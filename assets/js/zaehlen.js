@@ -13,8 +13,9 @@
 })();
 
 /* Partner-Tracking (30.09.2026, Uwe: „Alles“). Nur wenn der Besuch über
-   einen Partnerlink begann (Cookie vdsp=1 von p.php) oder der Besucher
-   zugestimmt hat, sich den Partner zu merken (vecomspurok, serverseitig):
+   einen Partnerlink oder einen Kampagnenlink begann (Cookie vdsp=1 von p.php
+   bzw. k.php) oder der Besucher zugestimmt hat, sich das zu merken
+   (vecomspurok, serverseitig):
    Seitenwechsel, Kontaktformular geöffnet, ein Lebenszeichen je Minute,
    solange die Seite sichtbar ist. Welcher Partner, entscheidet der Server. */
 (function () {
@@ -32,7 +33,7 @@
   ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content'].forEach(function (k) { if (q.get(k)) { u[k] = q.get(k).slice(0, 80); } });
   senden({ e: 'page_view', p: location.pathname, r: document.referrer || '', l: sp, u: u }, function (j) {
     if (j && j.aus) { return; }
-    if (j && j.frage && j.partner) { fragen(j.partner, j.tage || 30); }
+    if (j && j.frage && (j.partner || j.art === 'kampagne')) { fragen(j.art === 'kampagne' ? '' : j.partner, j.tage || 30); }
   });
 
   /* Kontaktformular (E-Mail-Einstieg oder Rückruf) zum ersten Mal berührt */
@@ -56,7 +57,11 @@
   /* Die Frage: gleichwertige Knöpfe, nichts vorausgewählt, jederzeit widerrufbar */
   function fragen(name, tage) {
     if (document.getElementById('vd-spur-frage')) { return; }
-    var T = {
+    var T = !name ? {
+      it: ['Ricordare la visita?', 'Possiamo ricordare per ' + tage + ' giorni da quale nostro post o annuncio è arrivato? Così vediamo quale pubblicità è utile, anche se torna più tardi. Senza consenso vale solo questa visita.', 'Sì, ricordare', 'No', 'Privacy'],
+      de: ['Besuch merken?', 'Dürfen wir uns ' + tage + ' Tage merken, über welchen unserer Beiträge oder welche Anzeige Sie gekommen sind? So sehen wir, welche Werbung hilft — auch wenn Sie später wiederkommen. Ohne Zustimmung gilt es nur für diesen Besuch.', 'Ja, merken', 'Nein', 'Datenschutz'],
+      en: ['Remember your visit?', 'May we remember for ' + tage + ' days which of our posts or ads brought you here? That shows us which advertising helps, even if you come back later. Without consent it only applies to this visit.', 'Yes, remember', 'No', 'Privacy']
+    }[sp] || null : {
       it: ['Consiglio di ' + name, 'Possiamo ricordare per ' + tage + ' giorni che è arrivato tramite ' + name + '? Così la raccomandazione vale anche se torna più tardi. Senza consenso vale solo questa visita.', 'Sì, ricordare', 'No', 'Privacy'],
       de: ['Empfehlung von ' + name, 'Dürfen wir uns ' + tage + ' Tage merken, dass Sie über ' + name + ' gekommen sind? Dann zählt die Empfehlung auch, wenn Sie später wiederkommen. Ohne Zustimmung gilt sie nur für diesen Besuch.', 'Ja, merken', 'Nein', 'Datenschutz'],
       en: ['Recommended by ' + name, 'May we remember for ' + tage + ' days that you came via ' + name + '? The recommendation then still counts if you come back later. Without consent it only applies to this visit.', 'Yes, remember', 'No', 'Privacy']

@@ -1,10 +1,11 @@
 <?php
 declare(strict_types=1);
 /* ==========================================================================
-   t.php — Meldestelle des Partner-Trackings (30.09.2026, Uwe: „Alles“).
+   t.php — Meldestelle des Partner-Trackings (30.09.2026, Uwe: „Alles“),
+   seit Growth Engine Phase 3 auch für Besuche über Kampagnenlinks (/k/…).
 
    Das Skript auf den Seiten (assets/js/zaehlen.js) meldet hier NUR in einem
-   Partner-Besuch: Seitenwechsel, Kontaktformular geöffnet, ein Lebenszeichen
+   Partner- oder Kampagnen-Besuch: Seitenwechsel, Kontaktformular geöffnet, ein Lebenszeichen
    für „Live“ und die Antwort auf die Frage „30 Tage merken?“.
 
    Der Browser bestimmt nichts Wichtiges: welcher Partner und welcher Besuch,
@@ -78,8 +79,10 @@ try {
         if (preg_match('~^/((de|en)/)?(prezzi|preise|pricing|prices)(\.html)?/?$~', $seite)) {
             Spur::ereignis('price_calculator_opened', ['besuch' => $b, 'seite' => $seite, 'meta' => ['art' => 'richtpreis']]);
         }
-        $p = Partner::laden((int) $b['partner_id']);
-        $antwort(['ok' => 1, 'frage' => Spur::sollFragen() ? 1 : 0, 'partner' => $p ? Partner::anzeigeName($p) : '', 'tage' => Spur::zuordnungTage()]);
+        $p = !empty($b['partner_id']) ? Partner::laden((int) $b['partner_id']) : null;
+        /* Kampagnen-Besuch: die Frage ohne Partnernamen (das Skript wählt den Wortlaut nach „art“). */
+        $antwort(['ok' => 1, 'frage' => Spur::sollFragen() ? 1 : 0, 'partner' => $p ? Partner::anzeigeName($p) : '',
+                  'art' => $p ? 'partner' : 'kampagne', 'tage' => Spur::zuordnungTage()]);
     }
     if ($e === 'contact_form_opened') {
         $form = preg_replace('~[^a-z0-9_-]~', '', mb_strtolower((string) ($d['f'] ?? ''))) ?: 'formular';

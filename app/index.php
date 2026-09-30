@@ -523,6 +523,41 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
                 weiter('tracking#einstellungen');
 
+            /* Kampagnen (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“) */
+            case 'kampagne_anlegen':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkErg = MkKampagne::anlegen($_POST);
+                if (is_string($mkErg)) { $_SESSION['fehler'] = $mkErg; weiter('kampagnen#neu'); }
+                $_SESSION['gut'] = 'Kampagne angelegt — der Link ist fertig zum Teilen.';
+                weiter('kampagnen/' . $mkErg);
+
+            case 'kampagne_aendern':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $f = MkKampagne::aendern($mkId, $_POST);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
+                weiter('kampagnen/' . $mkId);
+
+            case 'werbemittel_anlegen':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $mkErg = MkKampagne::werbemittelAnlegen($mkId, $_POST);
+                $_SESSION[is_string($mkErg) ? 'fehler' : 'gut'] = is_string($mkErg) ? $mkErg : 'Werbemittel angelegt — es hat seinen eigenen Link.';
+                weiter('kampagnen/' . $mkId . '#werbemittel');
+
+            case 'kampagne_kosten':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $f = MkKampagne::kostenAnlegen($mkId, $_POST);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Kosten eingetragen.';
+                weiter('kampagnen/' . $mkId . '#kosten');
+
+            case 'kampagne_kosten_loeschen':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = MkKampagne::kostenLoeschen((int) ($_POST['kosten_id'] ?? 0));
+                $_SESSION['gut'] = 'Kosten entfernt.';
+                weiter($mkId !== null ? 'kampagnen/' . $mkId . '#kosten' : 'kampagnen');
+
             case 'partner_bedingungen':
                 require_once __DIR__ . '/src/Partner.php';
                 $pid = (int) ($_POST['id'] ?? 0);
@@ -4327,6 +4362,26 @@ switch ($route) {
             'z' => $mkZ, 'd' => MkKennzahlen::ueberblick($mkZ),
             'sicht' => ($_GET['sicht'] ?? '') === 'chef' ? 'chef' : 'alles',
         ]);
+        break;
+
+    case 'kampagnen':   // Kampagnen-Links (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“)
+        require_once __DIR__ . '/src/MkKennzahlen.php';
+        require_once __DIR__ . '/src/MkKampagne.php';
+        $mkZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
+        if ($id !== null) {
+            $mkK = MkKampagne::laden($id);
+            if ($mkK === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            $mkZahlen = MkKampagne::zahlen($mkZ[0], $mkZ[1]);
+            ansicht('kampagne', [
+                'z' => $mkZ, 'k' => $mkK, 'zahl' => $mkZahlen[$id] ?? [], 'jeWerbemittel' => MkKampagne::zahlen($mkZ[0], $mkZ[1], $id),
+                'werbemittel' => MkKampagne::werbemittel($id), 'kosten' => MkKampagne::kosten($id),
+                'kostenZeitraum' => MkKampagne::kostenJe($mkZ[0], $mkZ[1])[$id] ?? 0,
+                'belege' => MkKampagne::freieBelege(), 'kontakte' => MkKampagne::kontakte($id),
+            ]);
+            break;
+        }
+        $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')];
+        ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF)]);
         break;
 
     case 'statistiken':

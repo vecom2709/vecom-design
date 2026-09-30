@@ -19,9 +19,10 @@ declare(strict_types=1);
      ausgaben (Kategorie „werbung“)   Marketingkosten
      web_berichte, akq_audits, akq_einwilligungen          Website-Check, Akquise
 
-   Nichts wird neu erfasst, nichts gespeichert, nichts geschätzt. Wo eine
-   Zahl fehlt (Umsatz je Kampagne, bestes Creative), steht, dass sie fehlt —
-   sie kommt mit den Kampagnen-Links in Phase 3.
+   Nichts wird neu erfasst, nichts gespeichert, nichts geschätzt. Seit Phase 3
+   kommen Kampagnen und Werbemittel (Kampagnenlinks /k/…, MkKampagne) dazu:
+   beste Kampagne und bestes Werbemittel nach Leads, Umsatz über Kampagnen,
+   Kampagnenkosten ohne Beleg in den Marketingkosten.
 
    WARUM „AUFRUFE“ UND NICHT „BESUCHER“
 
@@ -322,6 +323,8 @@ final class MkKennzahlen
         $neuKunden = "SELECT COUNT(*) FROM (SELECT o.customer_id, MIN(p.paid_at) AS erst FROM payments p JOIN orders o ON o.id = p.order_id
                        WHERE p.status = 'bezahlt' AND p.demo = 0 GROUP BY o.customer_id) k WHERE k.erst BETWEEN ? AND ?";
         $werbung = "SELECT COALESCE(SUM(CASE WHEN netto_cents > 0 THEN netto_cents ELSE brutto_cents END),0) FROM ausgaben WHERE kategorie = 'werbung' AND datum BETWEEN ? AND ?";
+        /* Kampagnenkosten ohne Beleg kommen dazu; mit Beleg stecken sie schon in den Ausgaben (Phase 3). */
+        $kampKosten = "SELECT COALESCE(SUM(betrag_cents),0) FROM mk_kosten WHERE ausgabe_id IS NULL AND datum BETWEEN ? AND ?";
         $auftrag = (array) self::still(static fn() => Db::one("SELECT COUNT(*) AS n, COALESCE(AVG(price_cents),0) AS schnitt FROM orders
                                    WHERE demo = 0 AND status <> 'storniert' AND ordered_at BETWEEN ? AND ?", $a), []);
         return [
@@ -331,9 +334,14 @@ final class MkKennzahlen
             'auftraege' => (int) ($auftrag['n'] ?? 0), 'auftragswert' => (int) round((float) ($auftrag['schnitt'] ?? 0)),
             'partner' => $w("SELECT COALESCE(SUM(pp.basis_cents),0) FROM partner_provisionen pp JOIN payments p ON p.id = pp.payment_id
                               WHERE p.status = 'bezahlt' AND p.paid_at BETWEEN ? AND ?", $a),
-            'kosten' => $w($werbung, [$von, $bis]), 'kosten_vorher' => $w($werbung, [$vv, $vb]),
-            'kosten_je_anbieter' => (array) self::still(static fn() => Db::all("SELECT lieferant AS wert, SUM(CASE WHEN netto_cents > 0 THEN netto_cents ELSE brutto_cents END) AS n
+            'kosten' => $w($werbung, [$von, $bis]) + $w($kampKosten, [$von, $bis]), 'kosten_vorher' => $w($werbung, [$vv, $vb]) + $w($kampKosten, [$vv, $vb]),
+            'kosten_je_anbieter' => array_merge(
+                (array) self::still(static fn() => Db::all("SELECT lieferant AS wert, SUM(CASE WHEN netto_cents > 0 THEN netto_cents ELSE brutto_cents END) AS n
                                    FROM ausgaben WHERE kategorie = 'werbung' AND datum BETWEEN ? AND ? GROUP BY lieferant ORDER BY n DESC LIMIT 6", [$von, $bis]), []),
+                (array) self::still(static fn() => Db::all("SELECT CONCAT('Kampagne ', k.name) AS wert, SUM(o.betrag_cents) AS n FROM mk_kosten o JOIN mk_kampagnen k ON k.id = o.kampagne_id
+                                   WHERE o.ausgabe_id IS NULL AND o.datum BETWEEN ? AND ? GROUP BY k.id, k.name ORDER BY n DESC LIMIT 6", [$von, $bis]), [])),
+            'kampagnen' => $w("SELECT COALESCE(SUM(betrag_cents),0) FROM spur_ereignisse WHERE kampagne_id IS NOT NULL AND event_type = 'payment_completed' AND created_at BETWEEN ? AND ?", $a)
+                         + $w("SELECT COALESCE(SUM(betrag_cents),0) FROM mk_tage WHERE event_type = 'payment_completed' AND tag BETWEEN ? AND ?", [$von, $bis]),
         ];
     }
 
@@ -352,6 +360,35 @@ final class MkKennzahlen
                 "SELECT pa.name AS wert, SUM(pp.basis_cents) AS n FROM partner_provisionen pp JOIN payments p ON p.id = pp.payment_id JOIN partner pa ON pa.id = pp.partner_id
                  WHERE p.status = 'bezahlt' AND p.paid_at BETWEEN ? AND ? GROUP BY pa.id, pa.name ORDER BY n DESC LIMIT 5", $a), []),
         ];
+    }
+
+    /**
+     * Kampagnen und Werbemittel im Zeitraum (Phase 3): Leads je Kampagne,
+     * Umsatz je Kampagne, Leads je Werbemittel, dazu Kosten und Namen für die
+     * Hinweise. Gewertet wird nach Leads; ohne einen einzigen Lead nach Klicks.
+     */
+    public static function kampagnen(string $von, string $bis): array
+    {
+        $leer = ['leads' => [], 'klicks' => [], 'umsatz' => [], 'werbemittel' => [], 'werbemittel_klicks' => [], 'zeilen' => []];
+        return (array) self::still(static function () use ($von, $bis, $leer): array {
+            require_once __DIR__ . '/MkKampagne.php';
+            $l = MkKampagne::liste($von, $bis);
+            $aus = $leer;
+            /* Gleiche Namen (zweimal „Restaurants Herbst“ auf zwei Plattformen) bekommen ihren Code dazu. */
+            $namen = array_count_values(array_map(static fn($k) => (string) $k['name'], $l['kampagnen']));
+            foreach ($l['kampagnen'] as $k) {
+                $nm = $namen[(string) $k['name']] > 1 ? $k['name'] . ' · /k/' . $k['code'] : (string) $k['name'];
+                $aus['leads'][$nm] = (int) $k['leads']; $aus['klicks'][$nm] = (int) $k['klicks']; $aus['umsatz'][$nm] = (int) $k['umsatz'];
+                $aus['zeilen'][] = ['name' => $nm, 'leads' => (int) $k['leads'], 'kosten' => (int) $k['kosten'], 'klicks' => (int) $k['klicks']];
+            }
+            $zeit = [$von . ' 00:00:00', $bis . ' 23:59:59'];
+            foreach (Db::all("SELECT CONCAT(cr.name, ' · ', k.name) AS wert, SUM(e.event_type = 'lead_created') AS leads, SUM(e.event_type = 'campaign_visit') AS klicks
+                                FROM spur_ereignisse e JOIN mk_creatives cr ON cr.id = e.creative_id JOIN mk_kampagnen k ON k.id = e.kampagne_id
+                               WHERE e.created_at BETWEEN ? AND ? GROUP BY cr.id, cr.name, k.name", $zeit) as $r) {
+                $aus['werbemittel'][(string) $r['wert']] = (int) $r['leads']; $aus['werbemittel_klicks'][(string) $r['wert']] = (int) $r['klicks'];
+            }
+            return $aus;
+        }, $leer);
     }
 
     /** Die Akquise im Zeitraum: geprüft, eingewilligt, Termine. */
@@ -428,8 +465,16 @@ final class MkKennzahlen
         if ($t !== null && $t <= -30 && $a['vorher'] >= 50) { $p[] = 'Aufrufe ' . number_format(abs($t), 0, ',', '.') . ' % unter dem Vergleichszeitraum (' . $a['summe'] . ' statt ' . $a['vorher'] . ').'; }
         if ($g['kosten'] > 0 && $l['neu'] === 0) { $p[] = 'Werbekosten von ' . Fmt::geld($g['kosten']) . ' im Zeitraum, aber kein neuer Lead.'; }
 
+        foreach (($d['kampagnen']['zeilen'] ?? []) as $kz) {
+            if ($kz['kosten'] > 0 && $kz['leads'] === 0) { $p[] = 'Kampagne „' . $kz['name'] . '“: ' . Fmt::geld($kz['kosten']) . ' Kosten, ' . $kz['klicks'] . ' Klicks, noch kein Lead.'; }
+        }
+        $guenstig = array_filter($d['kampagnen']['zeilen'] ?? [], static fn($kz) => $kz['kosten'] > 0 && $kz['leads'] >= 3);
+        if (count($guenstig) >= 2) {
+            usort($guenstig, static fn($x, $y) => ($x['kosten'] / $x['leads']) <=> ($y['kosten'] / $y['leads']));
+            $e[] = 'Günstigste Leads: Kampagne „' . $guenstig[0]['name'] . '“ mit ' . Fmt::geld(intdiv($guenstig[0]['kosten'], $guenstig[0]['leads'])) . ' je Lead (' . $guenstig[0]['leads'] . ' Leads) — dort zuerst mehr Budget prüfen.';
+        }
         if ($a['summe'] >= 30 && self::quote($a['mit_kampagne'], $a['summe']) < 10) {
-            $e[] = 'Nur ' . $a['mit_kampagne'] . ' von ' . $a['summe'] . ' Aufrufen kamen über einen Link mit Kampagnen-Kennung. Geteilte Links mit Kennung versehen — dann zeigt diese Seite, welcher Beitrag wirkt (Phase 3 macht das per Knopf).';
+            $e[] = 'Nur ' . $a['mit_kampagne'] . ' von ' . $a['summe'] . ' Aufrufen kamen über einen Link mit Kampagnen-Kennung. Für jeden Beitrag, jede Anzeige und jeden Flyer unter Marketing → Kampagnen einen eigenen Link anlegen — dann zeigt diese Seite, welcher Beitrag Kunden bringt.';
         }
         if ($s['checks'] >= 5) {
             $q = self::quote($s['checks_kontakt'], $s['checks']);
@@ -470,6 +515,7 @@ final class MkKennzahlen
             'geld'     => self::geld($z),
             'nach'     => self::umsatzNach($von, $bis),
             'akquise'  => self::akquise($von, $bis),
+            'kampagnen'=> self::kampagnen($von, $bis),
             'offen'    => self::offen(),
         ];
         $d['hinweise'] = self::hinweise($d);

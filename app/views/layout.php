@@ -178,6 +178,11 @@ $reiter = [
     ['tracking', 'Partner-Tracking', 'tracking'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
   ],
+  /* Growth Engine: die Reiter der Tür „Marketing“ wachsen mit ihren Phasen. */
+  'marketing' => [
+    ['marketing', 'Überblick', 'marketing'],
+    ['kampagnen', 'Kampagnen', 'kampagnen'],
+  ],
   'dashboard' => [
     ['dashboard', 'Zahlen', 'dashboard'],
     ['statistiken', 'Besucher', 'statistiken'],
@@ -271,7 +276,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     foreach ($menue as [$ziel, $wort, $schl, $unter, $summe, $offen]) {
         printf('<a href="%s" class="nav__tuer%s%s"><span>%s</span>%s</a>',
             Fmt::h(url($ziel)),
-            $aktiv === ($ziel ?: 'heute') ? ' an' : '',
+            $aktiv === ($ziel ?: 'heute') || $aktivMenue === $ziel ? ' an' : '',
             $offen && $unter ? ' auf' : '',
             Fmt::h($wort),
             $summe > 0 ? '<span class="zahl warn">' . $summe . '</span>' : '');

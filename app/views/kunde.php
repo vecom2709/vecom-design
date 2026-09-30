@@ -271,6 +271,15 @@ $eing = !empty($eingebettet);
     <tr><td>Telefon</td><td><?= Fmt::h($k['phone'] ?: '—') ?></td></tr>
     <tr><td>Firma</td><td><?= Fmt::h($k['company'] ?: '—') ?></td></tr>
     <tr><td>Branche</td><td><?= Fmt::h($k['industry'] ?: '—') ?></td></tr>
+    <?php /* HERKUNFT (Growth Engine Phase 3, 30.09.2026): über welche Kampagne,
+             welches Werbemittel oder welchen Partner der erste aufgezeichnete
+             Besuch kam. Ohne solchen Link weiß es niemand -- dann steht das da. */
+      $kHer = sicher(static function () use ($k): ?array { require_once dirname(__DIR__) . '/src/MkKampagne.php'; return MkKampagne::herkunft((int) $k['id']); }, null); ?>
+    <tr><td>Herkunft</td><td><?php if ($kHer): ?>
+      <?php if (!empty($kHer['kampagne'])): ?>Kampagne <a href="<?= Fmt::h(url('kampagnen/' . (int) $kHer['k_id'])) ?>"><?= Fmt::h($kHer['kampagne']) ?></a><?= !empty($kHer['werbemittel']) ? ' · ' . Fmt::h($kHer['werbemittel']) : '' ?><?php endif; ?>
+      <?php if (!empty($kHer['partner'])): ?><?= !empty($kHer['kampagne']) ? ' · ' : '' ?>Partner <?= Fmt::h($kHer['partner']) ?><?php endif; ?>
+      <span class="leise" style="display:block;margin:2px 0 0">erster Besuch <?= Fmt::h(date('d.m.Y', strtotime((string) $kHer['start_am']))) ?> · Quelle <?= Fmt::h(Spur::quelleName((string) $kHer['quelle'])) ?> · Einstieg <?= Fmt::h((string) $kHer['einstieg']) ?><?= (int) $kHer['besuche'] > 1 ? ' · ' . (int) $kHer['besuche'] . ' aufgezeichnete Besuche' : '' ?></span>
+    <?php else: ?><span class="leise" style="display:inline">unbekannt — kam nicht über einen Kampagnen- oder Partnerlink</span><?php endif; ?></td></tr>
     <tr><td>Adresse</td><td><?= Fmt::h(trim(($k['street'] ?? '') . ' ' . ($k['zip'] ?? '') . ' ' . ($k['city'] ?? '') . ' ' . ($k['country'] ?? ''))) ?: '—' ?></td></tr>
     <?php /* ------------------------------------------------------------
          SPRACHE: GEFRAGT ODER GERATEN

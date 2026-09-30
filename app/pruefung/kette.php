@@ -16466,7 +16466,7 @@ pruefe('Marketing: keine KI, kein Zufall — dieselben Zahlen ergeben dieselben 
 
 /* Die Seite selbst */
 $mkIdx = (string) file_get_contents($wurzel . '/index.php');
-pruefe('Marketing: eigene Tür, nur hinter der Anmeldung, nur lesen (keine Aktion im POST-Teil)',
+pruefe('Marketing: eigene Tür, nur hinter der Anmeldung; der Überblick selbst nur lesen',
     str_contains($mkIdx, "case 'marketing':") && strpos($mkIdx, "case 'marketing':") > strpos($mkIdx, 'Auth::nurAdmin()')
     && preg_match("~case 'marketing_[a-z]+':~", $mkIdx) === 0
     && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['marketing', 'Marketing', 'marketing', []]"));
@@ -16485,6 +16485,161 @@ pruefe('Marketing: die Chef-Ansicht zeigt Umsatz, Leads, Kunden, Conversion, Kos
     && !str_contains($mkHtmlC, 'Weg zum Kunden') && !str_contains($mkHtmlC, 'Woher diese Zahlen kommen') && !str_contains($mkHtmlC, 'Kampagnen-Kennung (utm_source)'));
 pruefe('Marketing: keine Platzhaltertexte, keine erfundenen Zahlen im Quelltext der Seite',
     !preg_match('~lorem|ipsum|TODO|beispielwert~i', (string) file_get_contents($wurzel . '/views/marketing.php')));
+
+/* ============================================================================
+   Marketing · Kampagnen-Links (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“)
+   Eigener Link /k/CODE[/WERBEMITTEL], Besuch in derselben Spur wie beim
+   Partner, Zuordnung bis zum Umsatz, Kosten mit und ohne Beleg, nie ein
+   fremdes Ziel, Partner-Tracking bleibt unberührt.
+   ============================================================================ */
+abschnitt('Marketing: Kampagnen-Links und Zuordnung');
+require_once $wurzel . '/src/MkKampagne.php';
+require_once $wurzel . '/src/Spur.php';
+pruefe('Kampagne: Ziel nur eine eigene Seite — kein Schema, kein //, kein /k/, /p/ oder /app, kein ..',
+    MkKampagne::zielOk('/') && MkKampagne::zielOk('/de/') && MkKampagne::zielOk('/siti-web-ristoranti.html') && MkKampagne::zielOk('/siti-web/ristoranti-agrigento')
+    && !MkKampagne::zielOk('//boese.example') && !MkKampagne::zielOk('https://boese.example') && !MkKampagne::zielOk('/k/abc') && !MkKampagne::zielOk('/p/ULLI10')
+    && !MkKampagne::zielOk('/app/kunden') && !MkKampagne::zielOk('/a/../app') && !MkKampagne::zielOk('/x?y=1') && !MkKampagne::zielOk(''));
+pruefe('Kampagne: Code aus dem Namen, lesbar und sicher',
+    MkKampagne::slug('Restaurants Herbst 2026') === 'restaurants-herbst-2026' && MkKampagne::slug('Ärzte & Co.') === 'aerzte-co'
+    && MkKampagne::codeOk('abc') && !MkKampagne::codeOk('ab') && !MkKampagne::codeOk('Ab-c') && !MkKampagne::codeOk('-abc'));
+$kaId = MkKampagne::anlegen(['name' => 'Restaurants Herbst', 'plattform' => 'instagram', 'ziel' => '/siti-web-ristoranti.html']);
+$ka = is_int($kaId) ? MkKampagne::laden($kaId) : null;
+pruefe('Kampagne: anlegen mit Code aus dem Namen', $ka !== null && $ka['code'] === 'restaurants-herbst' && $ka['status'] === 'aktiv', is_string($kaId) ? $kaId : '');
+pruefe('Kampagne: gleicher Name bekommt einen eigenen Code, ein belegter Wunsch-Code wird abgelehnt',
+    is_int($kaId2 = MkKampagne::anlegen(['name' => 'Restaurants Herbst', 'plattform' => 'facebook', 'ziel' => '/'])) && MkKampagne::laden($kaId2)['code'] === 'restaurants-herbst-2'
+    && is_string(MkKampagne::anlegen(['name' => 'X', 'plattform' => 'facebook', 'code' => 'restaurants-herbst'])));
+pruefe('Kampagne: ohne Plattform, mit fremdem Ziel oder kaputtem Code kein Anlegen',
+    is_string(MkKampagne::anlegen(['name' => 'X', 'plattform' => 'myspace'])) && is_string(MkKampagne::anlegen(['name' => 'X', 'plattform' => 'facebook', 'ziel' => 'https://boese.example']))
+    && is_string(MkKampagne::anlegen(['name' => 'X', 'plattform' => 'facebook', 'code' => 'A B'])) && is_string(MkKampagne::anlegen(['name' => '', 'plattform' => 'facebook'])));
+$kaWmId = MkKampagne::werbemittelAnlegen((int) $ka['id'], ['name' => 'Reel 3', 'art' => 'reel']);
+$kaWm = is_int($kaWmId) ? Db::one('SELECT * FROM mk_creatives WHERE id = ?', [$kaWmId]) : null;
+pruefe('Kampagne: Werbemittel mit eigenem Code und Link', $kaWm !== null && $kaWm['code'] === 'reel-3' && MkKampagne::link($ka, $kaWm) === MkKampagne::basis() . '/k/restaurants-herbst/reel-3');
+pruefe('Kampagne: die Weiterleitung trägt UTM und bleibt auf der eigenen Seite',
+    MkKampagne::zielAdresse($ka, $kaWm) === '/siti-web-ristoranti.html?utm_source=instagram&utm_medium=social&utm_campaign=restaurants-herbst&utm_content=reel-3');
+[$kaAus, $kaAusWm] = MkKampagne::ausCode('RESTAURANTS-HERBST', 'reel-3');
+pruefe('Kampagne: Code wird gefunden (groß/klein egal), ein unbekanntes Werbemittel zählt für die Kampagne',
+    $kaAus !== null && (int) $kaAus['id'] === (int) $ka['id'] && $kaAusWm !== null && MkKampagne::ausCode('restaurants-herbst', 'gibtsnicht')[1] === null
+    && MkKampagne::ausCode('gibt-es-nicht')[0] === null && MkKampagne::ausCode("x' or 1=1")[0] === null);
+
+/* Der Besuch: dieselbe Spur wie beim Partner */
+$kaAlt = [$_COOKIE, $_SERVER['SCRIPT_NAME'] ?? null];
+$_COOKIE = []; $_SERVER['SCRIPT_NAME'] = '/k.php'; Spur::vergessen();
+$kaUa = 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36';
+$kaServer = ['ua' => $kaUa, 'ip' => '151.99.125.1', 'referrer' => 'https://l.instagram.com/x', 'sprache' => 'it', 'get' => MkKampagne::utm($ka, $kaWm), 'einstieg' => '/k/restaurants-herbst/reel-3'];
+$kaPartnerVorher = Spur::kennzahlen(date('Y-m-d'), date('Y-m-d'));
+pruefe('Kampagne: Programme erzeugen keinen Besuch', Spur::kampagnenBesuch($ka, $kaWm, ['ua' => 'facebookexternalhit/1.1'] + $kaServer) === null);
+$kaB = Spur::kampagnenBesuch($ka, $kaWm, $kaServer);
+pruefe('Kampagne: der Klick legt einen anonymen Besuch an — Kampagne und Werbemittel, kein Partner, Quelle Instagram',
+    $kaB !== null && (int) $kaB['kampagne_id'] === (int) $ka['id'] && (int) $kaB['creative_id'] === (int) $kaWm['id'] && $kaB['partner_id'] === null
+    && $kaB['quelle'] === 'instagram' && $kaB['utm_campaign'] === 'restaurants-herbst' && ($_COOKIE[Spur::KEKS_JS] ?? '') === '1'
+    && str_starts_with((string) ($_COOKIE[Spur::KEKS_KAMPAGNE] ?? ''), 'restaurants-herbst:reel-3'), json_encode($kaB));
+$kaB2 = Spur::kampagnenBesuch($ka, $kaWm, $kaServer);
+pruefe('Kampagne: erneuter Klick im selben Besuch zählt als Klick, nicht als neuer Besuch',
+    $kaB2 !== null && (int) $kaB2['id'] === (int) $kaB['id'] && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE event_type = 'campaign_visit' AND kampagne_id = ?", [$ka['id']], 0) === 2);
+Spur::ereignis('page_view', ['seite' => '/siti-web-ristoranti.html']);
+Spur::ereignis('price_calculator_completed', ['seite' => '/bedarf.php']);
+$kaKunde = (int) Db::insert('customers', ['name' => 'Trattoria Kampagne', 'email' => 'trattoria@kampagne.example', 'company' => 'Trattoria K']);
+Spur::ereignis('lead_created', ['customer_id' => $kaKunde]);
+Spur::ereignis('payment_completed', ['customer_id' => $kaKunde, 'betrag_cents' => 120000]);
+$kaZ = MkKampagne::zahlen(date('Y-m-d'), date('Y-m-d'))[(int) $ka['id']] ?? [];
+pruefe('Kampagne: Klick → Besuch → Rechner → Lead → Umsatz hängen an der Kampagne',
+    ($kaZ['klicks'] ?? 0) === 2 && ($kaZ['besuche'] ?? 0) === 1 && ($kaZ['rechner'] ?? 0) === 1 && ($kaZ['leads'] ?? 0) === 1 && ($kaZ['umsatz'] ?? 0) === 120000, json_encode($kaZ));
+$kaZw = MkKampagne::zahlen(date('Y-m-d'), date('Y-m-d'), (int) $ka['id']);
+pruefe('Kampagne: dieselben Zahlen je Werbemittel', ($kaZw[(int) $kaWm['id']]['leads'] ?? 0) === 1 && ($kaZw[(int) $kaWm['id']]['umsatz'] ?? 0) === 120000);
+pruefe('Kampagne: der Besuch hängt am Kunden, sobald er selbst seine Daten eintrug — und die Akte zeigt die Herkunft',
+    (int) Db::wert('SELECT customer_id FROM spur_besuche WHERE id = ?', [$kaB['id']], 0) === $kaKunde
+    && (MkKampagne::herkunft($kaKunde)['kampagne'] ?? '') === 'Restaurants Herbst' && (MkKampagne::herkunft($kaKunde)['werbemittel'] ?? '') === 'Reel 3'
+    && MkKampagne::herkunft(999999) === null && count(MkKampagne::kontakte((int) $ka['id'])) === 1);
+$kaPartnerNach = Spur::kennzahlen(date('Y-m-d'), date('Y-m-d'));
+pruefe('Kampagne: das Partner-Tracking zählt Kampagnenbesuche nicht mit',
+    $kaPartnerNach['sitzungen'] === $kaPartnerVorher['sitzungen'] && $kaPartnerNach['umsatz'] === $kaPartnerVorher['umsatz'] && $kaPartnerNach['anfragen'] === $kaPartnerVorher['anfragen']);
+/* Wiederkehr mit Einwilligung: gemerkte Kampagne, neuer Besuch ohne Link */
+$_COOKIE = [Spur::KEKS_WAHL => '1', Spur::KEKS_KAMPAGNE => 'restaurants-herbst:reel-3']; Spur::vergessen();
+$kaW = Spur::wiederkehr(['ua' => $kaUa, 'ip' => '151.99.125.1', 'referrer' => '', 'sprache' => 'it', 'get' => [], 'einstieg' => '/']);
+pruefe('Kampagne: mit Einwilligung zählt die Wiederkehr für die gemerkte Kampagne', $kaW !== null && (int) $kaW['kampagne_id'] === (int) $ka['id'] && $kaW['quelle'] === 'wiederkehr');
+pruefe('Kampagne: zwei Besuche zählen als zwei — je Kampagne und je Werbemittel',
+    (MkKampagne::zahlen(date('Y-m-d'), date('Y-m-d'))[(int) $ka['id']]['besuche'] ?? 0) === 2
+    && (MkKampagne::zahlen(date('Y-m-d'), date('Y-m-d'), (int) $ka['id'])[(int) $kaWm['id']]['besuche'] ?? 0) === 2);
+$_COOKIE = [Spur::KEKS_KAMPAGNE => 'restaurants-herbst']; Spur::vergessen();
+pruefe('Kampagne: ohne Einwilligung keine Wiederkehr', Spur::wiederkehr(['ua' => $kaUa, 'ip' => '151.99.125.1', 'get' => [], 'einstieg' => '/']) === null);
+Spur::widerrufen();
+pruefe('Kampagne: der Widerruf löscht auch die gemerkte Kampagne', !isset($_COOKIE[Spur::KEKS_KAMPAGNE]));
+/* Pausiert: Link zählt nichts mehr */
+MkKampagne::aendern((int) $ka['id'], ['status' => 'pausiert']);
+pruefe('Kampagne: pausiert findet k.php sie nicht mehr (still auf die Startseite)', MkKampagne::ausCode('restaurants-herbst')[0] === null);
+pruefe('Kampagne: Status und Ziel werden geprüft', MkKampagne::aendern((int) $ka['id'], ['status' => 'kaputt']) !== null && MkKampagne::aendern((int) $ka['id'], ['ziel' => '//boese.example']) !== null);
+MkKampagne::aendern((int) $ka['id'], ['status' => 'aktiv']);
+[$_COOKIE, $kaSn] = $kaAlt; if ($kaSn === null) { unset($_SERVER['SCRIPT_NAME']); } else { $_SERVER['SCRIPT_NAME'] = $kaSn; }
+Spur::vergessen();
+
+/* Kosten: mit Beleg nicht doppelt */
+require_once $wurzel . '/src/MkKennzahlen.php';
+$kaAus1 = (int) Db::insert('ausgaben', ['beleg_nr' => 'KA-1', 'datum' => date('Y-m-d'), 'lieferant' => 'Meta Ads KA', 'kategorie' => 'werbung', 'netto_cents' => 4000, 'brutto_cents' => 4880]);
+$kaAus2 = (int) Db::insert('ausgaben', ['beleg_nr' => 'KA-2', 'datum' => date('Y-m-d'), 'lieferant' => 'Canva KA', 'kategorie' => 'software', 'netto_cents' => 1000, 'brutto_cents' => 1220]);
+$kaZj = MkKennzahlen::zeitraum('30');
+$kaG0 = MkKennzahlen::geld($kaZj)['kosten'];
+$kaF1 = MkKampagne::kostenAnlegen((int) $ka['id'], ['datum' => date('Y-m-d'), 'betrag' => '', 'ausgabe_id' => $kaAus1]);
+$kaG1 = MkKennzahlen::geld($kaZj)['kosten'];
+$kaF2 = MkKampagne::kostenAnlegen((int) $ka['id'], ['datum' => date('Y-m-d'), 'betrag' => '12,50', 'notiz' => 'Boost']);
+$kaG2 = MkKennzahlen::geld($kaZj)['kosten'];
+pruefe('Kampagne: Kosten mit Beleg übernehmen dessen Betrag und zählen im Überblick nicht doppelt; ohne Beleg kommen sie dazu',
+    $kaF1 === null && $kaF2 === null && $kaG1 === $kaG0 && $kaG2 - $kaG1 === 1250 && (MkKampagne::kostenJe(date('Y-m-d'), date('Y-m-d'))[(int) $ka['id']] ?? 0) === 5250, json_encode([$kaF1, $kaF2, $kaG0, $kaG1, $kaG2]));
+pruefe('Kampagne: derselbe Beleg nur einmal, nur Belege „Werbung“, kein Betrag 0',
+    MkKampagne::kostenAnlegen((int) $ka['id'], ['ausgabe_id' => $kaAus1]) !== null && MkKampagne::kostenAnlegen((int) $ka['id'], ['ausgabe_id' => $kaAus2]) !== null
+    && MkKampagne::kostenAnlegen((int) $ka['id'], ['betrag' => '0']) !== null && !in_array($kaAus1, array_map('intval', array_column(MkKampagne::freieBelege(), 'id')), true));
+$kaL = MkKampagne::liste(date('Y-m-d'), date('Y-m-d'));
+pruefe('Kampagne: die Liste summiert Klicks, Leads, Umsatz und Kosten', $kaL['summe']['leads'] >= 1 && $kaL['summe']['umsatz'] >= 120000 && $kaL['summe']['kosten'] >= 5250);
+$kaKp = MkKennzahlen::kampagnen(date('Y-m-d'), date('Y-m-d'));
+pruefe('Überblick: beste Kampagne und bestes Werbemittel nach Leads — gleiche Namen mit Code unterschieden', ($kaKp['leads']['Restaurants Herbst · /k/restaurants-herbst'] ?? 0) === 1
+    && isset($kaKp['leads']['Restaurants Herbst · /k/restaurants-herbst-2']) && ($kaKp['werbemittel']['Reel 3 · Restaurants Herbst'] ?? 0) === 1);
+pruefe('Überblick: Umsatz über Kampagnen', MkKennzahlen::geld(MkKennzahlen::zeitraum('heute'))['kampagnen'] >= 120000);
+$kaH = MkKennzahlen::hinweise(['aufrufe' => ['summe' => 0, 'vorher' => 0, 'mit_kampagne' => 0, 'plattformen' => []], 'schritte' => ['rechner_begonnen' => 0, 'rechner_fertig' => 0, 'checks' => 0, 'checks_kontakt' => 0],
+    'leads' => ['neu' => 0, 'qualifiziert' => 0], 'geld' => ['kosten' => 0], 'offen' => ['anfragen' => 0, 'angebote' => 0, 'bedarf' => 0, 'termine_morgen' => 0],
+    'kampagnen' => ['zeilen' => [['name' => 'Teuer', 'leads' => 0, 'kosten' => 5000, 'klicks' => 40], ['name' => 'A', 'leads' => 4, 'kosten' => 4000, 'klicks' => 90], ['name' => 'B', 'leads' => 5, 'kosten' => 10000, 'klicks' => 80]]]]);
+pruefe('Überblick: Hinweise zu Kampagnen nennen ihre Zahl — Kosten ohne Lead, günstigste Leads',
+    str_contains(implode('|', $kaH['probleme']), 'Kampagne „Teuer“: 50,00') && str_contains(implode('|', $kaH['empfehlungen']), 'Kampagne „A“ mit 10,00'), json_encode($kaH));
+
+/* Aufräumen: alte Einzeldaten → Tageszahlen je Kampagne */
+Db::insert('spur_ereignisse', ['kampagne_id' => (int) $ka['id'], 'creative_id' => (int) $kaWm['id'], 'event_type' => 'lead_created', 'visitor_id' => 'VIS-ALT00001', 'created_at' => date('Y-m-d H:i:s', strtotime('-200 days'))]);
+Spur::aufraeumen();
+$kaAlt200 = date('Y-m-d', strtotime('-200 days'));
+pruefe('Kampagne: nach der Aufbewahrungsfrist bleiben Tageszahlen je Kampagne und Werbemittel',
+    (int) Db::wert("SELECT anzahl FROM mk_tage WHERE kampagne_id = ? AND creative_id = ? AND event_type = 'lead_created' AND tag = ?", [$ka['id'], $kaWm['id'], $kaAlt200], 0) === 1
+    && (MkKampagne::zahlen($kaAlt200, $kaAlt200)[(int) $ka['id']]['leads'] ?? 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE created_at < ?", [date('Y-m-d', strtotime('-100 days'))], 0) === 0);
+
+/* Öffentliche Tür, Verwaltung, Datenschutz */
+$kaK = (string) file_get_contents($oben . '/k.php');
+pruefe('k.php: nur eigene Ziele, keine Programme, Uwes eigener Browser zählt nicht, Vorschau n=1 nicht, still auf die Startseite',
+    str_contains($kaK, 'MkKampagne::zielAdresse') && str_contains($kaK, 'Partner::istRoboter') && str_contains($kaK, "\$_COOKIE['vecomadmin']")
+    && str_contains($kaK, "!isset(\$_GET['n'])") && str_contains($kaK, "\$ziel = '/';") && str_contains($kaK, '302') && !str_contains($kaK, "\$_GET['ziel']"));
+pruefe('k.php: Kurzadresse /k/CODE und /k/CODE/WERBEMITTEL in .htaccess',
+    str_contains((string) file_get_contents($oben . '/.htaccess'), 'RewriteRule ^k/([A-Za-z0-9-]{3,24})/?$ k.php?c=$1'));
+$kaLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Verwaltung: Reiter „Kampagnen“ unter Marketing, die Tür leuchtet auch dort', str_contains($kaLay, "['kampagnen', 'Kampagnen', 'kampagnen']")
+    && str_contains($kaLay, "|| \$aktivMenue === \$ziel ? ' an' : ''") && Hilfe::satz('kampagnen') !== '');
+$kaIdx = (string) file_get_contents($wurzel . '/index.php');
+foreach (['kampagne_anlegen', 'kampagne_aendern', 'werbemittel_anlegen', 'kampagne_kosten', 'kampagne_kosten_loeschen'] as $kaTat) {
+    pruefe('Verwaltung: Aktion ' . $kaTat . ' hinter Anmeldung und CSRF', strpos($kaIdx, "case '$kaTat':") > strpos($kaIdx, 'Csrf::pruefen()'));
+}
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$z = MkKennzahlen::zeitraum('30'); $f = ['plattform' => '', 'status' => '']; $l = MkKampagne::liste($z[0], $z[1], $f);
+ob_start(); require $wurzel . '/views/kampagnen.php'; $kaHtml1 = (string) ob_get_clean();
+$k = MkKampagne::laden((int) $ka['id']); $zahl = MkKampagne::zahlen($z[0], $z[1])[(int) $ka['id']] ?? []; $jeWerbemittel = MkKampagne::zahlen($z[0], $z[1], (int) $ka['id']);
+$werbemittel = MkKampagne::werbemittel((int) $ka['id']); $kosten = MkKampagne::kosten((int) $ka['id']); $kostenZeitraum = MkKampagne::kostenJe($z[0], $z[1])[(int) $ka['id']] ?? 0;
+$belege = MkKampagne::freieBelege(); $kontakte = MkKampagne::kontakte((int) $ka['id']);
+ob_start(); require $wurzel . '/views/kampagne.php'; $kaHtml2 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Kampagnenliste und Kampagne rendern ohne Warnung, mit Link, QR und Kosten',
+    $kaFehler === null && str_contains($kaHtml1, 'Restaurants Herbst') && str_contains($kaHtml2, '/k/restaurants-herbst') && str_contains($kaHtml2, '<svg')
+    && str_contains($kaHtml2, 'Boost') && str_contains($kaHtml2, 'Trattoria Kampagne'), (string) $kaFehler);
+foreach (['de' => 'Kampagnenlinks', 'it' => 'link di campagna', 'en' => 'campaign links'] as $kaL2 => $kaW2) {
+    $kaLeg = (string) file_get_contents($oben . '/assets/js/legal-' . $kaL2 . '.js');
+    pruefe('Datenschutz (' . $kaL2 . '): Kampagnenlinks beschrieben, derselbe Widerruf', str_contains($kaLeg, 'p9k:') && str_contains($kaLeg, '/k/') && str_contains($kaLeg, $kaW2));
+}
+pruefe('Datenschutz: der Absatz steht auf der Seite', str_contains((string) file_get_contents($oben . '/legal.html'), 'data-i18n="legal.p9k"'));
+pruefe('Tracking-Skript: eigener Wortlaut für Kampagnenbesuche, ohne Partnernamen',
+    str_contains((string) file_get_contents($oben . '/assets/js/zaehlen.js'), 'Besuch merken?') && str_contains((string) file_get_contents($oben . '/t.php'), "'art' => \$p ? 'partner' : 'kampagne'"));
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -7,7 +7,10 @@ require_once __DIR__ . '/Partner.php';
  * Partner-Tracking (30.09.2026, Uwe: „Alles“).
  *
  * WAS AUFGEZEICHNET WIRD: nur Besuche, die über einen Partnerlink begannen
- * (/p/CODE), und mit Einwilligung ihre späteren Wiederkehrer. Alle anderen
+ * (/p/CODE) — und seit dem 30.09.2026 (Growth Engine Phase 3) über einen
+ * eigenen Kampagnenlink (/k/CODE, k.php) —, und mit Einwilligung ihre
+ * späteren Wiederkehrer. Ein Besuch trägt dann partner_id ODER kampagne_id
+ * (selten beides, wenn ein Partnerkunde über eine Kampagne wiederkommt). Alle anderen
  * Besucher bleiben in der anonymen Zählung (z.php) — hier entsteht kein
  * zweites Statistiksystem, sondern die Ebene zwischen „Klick“ (partner_klicks)
  * und „Kunde“ (partner_zuordnungen).
@@ -33,10 +36,11 @@ final class Spur
     public const KEKS = 'vecomspur';          // Sitzung (httponly, bis der Browser zugeht)
     public const KEKS_BESUCHER = 'vecomspurv'; // Besucher-ID, nur mit Einwilligung, befristet
     public const KEKS_WAHL = 'vecomspurok';    // die Entscheidung ja/nein (technisch notwendig)
-    public const KEKS_JS = 'vdsp';             // für das Skript lesbar: „dies ist ein Partner-Besuch“ (nur 1)
+    public const KEKS_JS = 'vdsp';             // für das Skript lesbar: „dies ist ein Partner-/Kampagnen-Besuch“ (nur 1)
+    public const KEKS_KAMPAGNE = 'vecomkamp';  // Kampagne (CODE oder CODE:WERBEMITTEL), wie das Partner-Cookie
 
     public const EREIGNISSE = [
-        'partner_visit', 'page_view',
+        'partner_visit', 'campaign_visit', 'page_view',
         'price_calculator_opened', 'price_calculator_started', 'price_calculator_completed',
         'questionnaire_opened', 'questionnaire_started', 'questionnaire_completed',
         'contact_form_opened', 'lead_created', 'offer_created', 'customer_created', 'order_created', 'payment_completed',
@@ -48,7 +52,7 @@ final class Spur
         'questionnaire_started', 'questionnaire_completed', 'contact_form_opened', 'lead_created', 'customer_created'];
 
     public const NAMEN = [
-        'partner_visit' => 'Partnerlink geöffnet', 'page_view' => 'Seite', 'price_calculator_opened' => 'Preisrechner geöffnet',
+        'partner_visit' => 'Partnerlink geöffnet', 'campaign_visit' => 'Kampagnenlink geöffnet', 'page_view' => 'Seite', 'price_calculator_opened' => 'Preisrechner geöffnet',
         'price_calculator_started' => 'Preisrechner gestartet', 'price_calculator_completed' => 'Preisrechner abgeschlossen',
         'questionnaire_opened' => 'Fragebogen geöffnet', 'questionnaire_started' => 'Fragebogen gestartet',
         'questionnaire_completed' => 'Fragebogen abgeschlossen', 'contact_form_opened' => 'Kontaktformular geöffnet',
@@ -67,7 +71,8 @@ final class Spur
     ];
 
     public const QUELLEN = ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'tiktok' => 'TikTok', 'whatsapp' => 'WhatsApp',
-        'telegram' => 'Telegram', 'google' => 'Google', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube', 'email' => 'E-Mail', 'sms' => 'SMS',
+        'telegram' => 'Telegram', 'google' => 'Google', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube', 'pinterest' => 'Pinterest', 'threads' => 'Threads',
+        'x' => 'X', 'email' => 'E-Mail', 'sms' => 'SMS',
         'qr' => 'QR-Code', 'visitenkarte' => 'Partner-Visitenkarte', 'flyer' => 'Flyer (QR)', 'wiederkehr' => 'Wiederkehr (gemerkt)',
         'andere' => 'Andere Website', 'direkt' => 'Direktlink'];
 
@@ -163,7 +168,8 @@ final class Spur
             if ($w === '') { return null; }
             foreach (['facebook' => '~^(fb|facebook|meta)|facebook\.|fb\.me|fbclid~', 'instagram' => '~^(ig|insta)|instagram~', 'tiktok' => '~tiktok~',
                       'whatsapp' => '~^wa$|whatsapp|wa\.me~', 'telegram' => '~^tg$|telegram|t\.me~', 'google' => '~google|^gclid~', 'linkedin' => '~linkedin|lnkd~',
-                      'youtube' => '~youtube|youtu\.be~', 'email' => '~^(e-?mail|mail|newsletter)$~', 'sms' => '~^sms$~', 'qr' => '~^qr~',
+                      'youtube' => '~youtube|youtu\.be~', 'pinterest' => '~pinterest|^pin\.it$~', 'threads' => '~^threads$|threads\.(net|com)~',
+                      'x' => '~^x$|^(twitter|t\.co|x\.com)$~', 'email' => '~^(e-?mail|mail|newsletter)$~', 'sms' => '~^sms$~', 'qr' => '~^qr~',
                       'visitenkarte' => '~^(karte|visitenkarte|biglietto)$~', 'flyer' => '~^(flyer|volantino)$~'] as $q => $re) {
                 if (preg_match($re, $w)) { return $q; }
             }
@@ -240,7 +246,7 @@ final class Spur
             $vorher = self::aktuellerBesuch();
             $get = (array) ($s['get'] ?? []);
             $wiederholt = $vorher !== null && (int) $vorher['partner_id'] === (int) $p['id'];
-            $besuch = $wiederholt ? $vorher : self::besuchAnlegen((int) $p['id'], $kanal, $s, $get, false);
+            $besuch = $wiederholt ? $vorher : self::besuchAnlegen((int) $p['id'], null, null, $kanal, $s, $get, false);
             if ($besuch === null) { return null; }
             self::ereignis('partner_visit', ['besuch' => $besuch, 'seite' => mb_substr((string) ($s['einstieg'] ?? '/p/' . $p['code']), 0, 190),
                 'meta' => array_filter(['kanal' => $kanal, 'wiederholt' => $wiederholt ? 1 : null, 'verdacht' => (int) $besuch['verdacht'] === 1 ? 1 : null])]);
@@ -252,7 +258,33 @@ final class Spur
         } catch (Throwable $e) { error_log('Spur::partnerBesuch: ' . $e->getMessage()); return null; }
     }
 
-    private static function besuchAnlegen(int $partnerId, ?string $kanal, array $s, array $get, bool $wiederkehr): ?array
+    /**
+     * Ein echter Klick auf einen Kampagnenlink (k.php). Wie partnerBesuch:
+     * jeder Klick ist ein campaign_visit; eine neue Sitzung nur, wenn dieser
+     * Browser nicht schon eine für dieselbe Kampagne und dasselbe Werbemittel hat.
+     *
+     * @param array{id:int,code:string,plattform:string} $k
+     * @param array{id:int,code:string}|null $cr
+     */
+    public static function kampagnenBesuch(array $k, ?array $cr, array $s): ?array
+    {
+        if (!self::an()) { return null; }
+        try {
+            $vorher = self::aktuellerBesuch();
+            $wiederholt = $vorher !== null && (int) ($vorher['kampagne_id'] ?? 0) === (int) $k['id'] && (int) ($vorher['creative_id'] ?? 0) === (int) ($cr['id'] ?? 0);
+            $besuch = $wiederholt ? $vorher : self::besuchAnlegen(null, (int) $k['id'], $cr !== null ? (int) $cr['id'] : null, null, $s, (array) ($s['get'] ?? []), false);
+            if ($besuch === null) { return null; }
+            self::ereignis('campaign_visit', ['besuch' => $besuch, 'seite' => mb_substr((string) ($s['einstieg'] ?? '/k/' . $k['code']), 0, 190),
+                'meta' => array_filter(['werbemittel' => $cr['code'] ?? null, 'wiederholt' => $wiederholt ? 1 : null, 'verdacht' => (int) $besuch['verdacht'] === 1 ? 1 : null])]);
+            self::keks(self::KEKS_JS, '1', 0, false);
+            /* Ohne Einwilligung nur für diesen Besuch; mit Einwilligung wie beim Partner befristet. */
+            self::keks(self::KEKS_KAMPAGNE, (string) $k['code'] . ($cr !== null ? ':' . $cr['code'] : ''), self::eingewilligt() ? self::zuordnungTage() * 86400 : 0, true);
+            if (self::eingewilligt()) { self::merken($besuch); }
+            return $besuch;
+        } catch (Throwable $e) { error_log('Spur::kampagnenBesuch: ' . $e->getMessage()); return null; }
+    }
+
+    private static function besuchAnlegen(?int $partnerId, ?int $kampagneId, ?int $creativeId, ?string $kanal, array $s, array $get, bool $wiederkehr): ?array
     {
         $ua = (string) ($s['ua'] ?? '');
         if (Partner::istRoboter($ua)) { return null; }
@@ -273,17 +305,19 @@ final class Spur
         if (self::eingewilligt() && preg_match('/^VIS-[A-F0-9]{8}$/', $vid)) {
             $neu = (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE visitor_id = ?', [$vid], 0) > 0 ? 0 : 1;
         } else { $vid = self::neueId('VIS-', 8); }
-        /* Mehrfachklicks: viele neue Sitzungen aus derselben Quelle für denselben Partner in einer Stunde. */
+        /* Mehrfachklicks: viele neue Sitzungen aus derselben Quelle für denselben Partner (bzw. dieselbe Kampagne) in einer Stunde. */
         $verdacht = 0;
         if ($ipHash !== '') {
-            $n = (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE ip_hash = ? AND partner_id = ? AND start_am >= DATE_SUB(NOW(), INTERVAL 1 HOUR)', [$ipHash, $partnerId], 0);
+            $n = (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE ip_hash = ? AND ' . ($partnerId !== null ? 'partner_id' : 'kampagne_id') . ' = ? AND start_am >= DATE_SUB(NOW(), INTERVAL 1 HOUR)',
+                [$ipHash, $partnerId ?? (int) $kampagneId], 0);
             $verdacht = $n >= (int) self::einstellung('spur_klick_grenze') ? 1 : 0;
         }
         $sid = bin2hex(random_bytes(16));
         $einstieg = mb_substr((string) ($s['einstieg'] ?? ''), 0, 190);
         $quelle = $wiederkehr ? 'wiederkehr' : self::quelle((string) ($get['utm_source'] ?? ''), $kanal, $refHost);
         $id = Db::insert('spur_besuche', [
-            'visitor_id' => $vid, 'session_id' => $sid, 'partner_id' => $partnerId, 'kanal' => Partner::kanal((string) $kanal),
+            'visitor_id' => $vid, 'session_id' => $sid, 'partner_id' => $partnerId, 'kampagne_id' => $kampagneId, 'creative_id' => $creativeId,
+            'kanal' => $kanal !== null ? Partner::kanal($kanal) : null,
             'neu' => $neu, 'einwilligung' => self::eingewilligt() ? 1 : 0, 'einstieg' => $einstieg, 'aktuell' => $einstieg,
             'ref_link' => mb_substr((string) ($s['ref_link'] ?? ''), 0, 190), 'referrer' => mb_substr($refHost, 0, 120), 'quelle' => $quelle,
             'utm_source' => $utm('utm_source', 60), 'utm_medium' => $utm('utm_medium', 60), 'utm_campaign' => $utm('utm_campaign', 80), 'utm_content' => $utm('utm_content', 80),
@@ -306,9 +340,17 @@ final class Spur
         if (!self::an() || !self::eingewilligt() || self::aktuellerBesuch() !== null) { return self::aktuellerBesuch(); }
         [$c, $kanal] = Partner::teilen((string) ($_COOKIE[Partner::KEKS] ?? ''));
         $p = $c !== '' ? Partner::ausCode($c) : null;
-        if ($p === null) { return null; }
         try {
-            $b = self::besuchAnlegen((int) $p['id'], $kanal, $s, (array) ($s['get'] ?? []), true);
+            if ($p !== null) {
+                $b = self::besuchAnlegen((int) $p['id'], null, null, $kanal, $s, (array) ($s['get'] ?? []), true);
+            } else {
+                /* Kein Partner gemerkt, aber eine Kampagne (mit Einwilligung). */
+                [$kc, $crc] = array_pad(explode(':', (string) ($_COOKIE[self::KEKS_KAMPAGNE] ?? ''), 2), 2, '');
+                $k = preg_match('/^[a-z0-9][a-z0-9-]{2,23}$/', $kc) ? Db::one("SELECT id FROM mk_kampagnen WHERE code = ? AND status = 'aktiv'", [$kc]) : null;
+                if (!$k) { return null; }
+                $cr = $crc !== '' ? Db::one('SELECT id FROM mk_creatives WHERE kampagne_id = ? AND code = ?', [(int) $k['id'], $crc]) : null;
+                $b = self::besuchAnlegen(null, (int) $k['id'], $cr ? (int) $cr['id'] : null, null, $s, (array) ($s['get'] ?? []), true);
+            }
             if ($b) { self::keks(self::KEKS_JS, '1', 0, false); }
             return $b;
         } catch (Throwable $e) { return null; }
@@ -320,8 +362,14 @@ final class Spur
         $dauer = self::zuordnungTage() * 86400;
         self::keks(self::KEKS_BESUCHER, (string) $besuch['visitor_id'], $dauer, true);
         self::keks(self::KEKS_JS, '1', $dauer, false);   // damit das Skript beim Wiederkommen meldet
-        if ($p === null) { $p = Partner::laden((int) $besuch['partner_id']); $kanal = $besuch['kanal'] ?? null; }
+        if ($p === null && !empty($besuch['partner_id'])) { $p = Partner::laden((int) $besuch['partner_id']); $kanal = $besuch['kanal'] ?? null; }
         if ($p) { self::keks(Partner::KEKS, (string) $p['code'] . ($kanal ? ':' . $kanal : ''), $dauer, true); }
+        if (!empty($besuch['kampagne_id'])) {
+            try {
+                $k = Db::one('SELECT k.code, c.code AS werbemittel FROM mk_kampagnen k LEFT JOIN mk_creatives c ON c.id = ? WHERE k.id = ?', [(int) ($besuch['creative_id'] ?? 0), (int) $besuch['kampagne_id']]);
+                if ($k) { self::keks(self::KEKS_KAMPAGNE, (string) $k['code'] . (!empty($k['werbemittel']) ? ':' . $k['werbemittel'] : ''), $dauer, true); }
+            } catch (Throwable $e) { }
+        }
     }
 
     /** Die Antwort auf die Frage im Fenster (t.php). */
@@ -338,6 +386,7 @@ final class Spur
             if ($b) { Db::run('UPDATE spur_besuche SET einwilligung = 0 WHERE id = ?', [(int) $b['id']]); }
             // Das Partner-Cookie wird wieder zum Sitzungs-Cookie (wie vor der Frage).
             if (isset($_COOKIE[Partner::KEKS])) { self::keks(Partner::KEKS, (string) $_COOKIE[Partner::KEKS], 0, true); }
+            if (isset($_COOKIE[self::KEKS_KAMPAGNE])) { self::keks(self::KEKS_KAMPAGNE, (string) $_COOKIE[self::KEKS_KAMPAGNE], 0, true); }
             self::keks(self::KEKS_JS, '1', 0, false);
         }
     }
@@ -347,11 +396,11 @@ final class Spur
     {
         $b = self::aktuellerBesuch();
         if ($b) { Db::run('UPDATE spur_besuche SET einwilligung = 0 WHERE id = ?', [(int) $b['id']]); }
-        foreach ([self::KEKS_BESUCHER, Partner::KEKS, self::KEKS_JS, self::KEKS] as $k) { self::keks($k, '', -1); }
+        foreach ([self::KEKS_BESUCHER, Partner::KEKS, self::KEKS_KAMPAGNE, self::KEKS_JS, self::KEKS] as $k) { self::keks($k, '', -1); }
         self::keks(self::KEKS_WAHL, '0', 180 * 86400, true);
     }
 
-    /** Soll das Fenster fragen? Nur in einem Partner-Besuch, nur wenn noch nicht entschieden. */
+    /** Soll das Fenster fragen? Nur in einem Partner- oder Kampagnen-Besuch, nur wenn noch nicht entschieden. */
     public static function sollFragen(): bool
     {
         return self::an() && self::einstellung('spur_frage_an') === '1' && self::aktuellerBesuch() !== null && !isset($_COOKIE[self::KEKS_WAHL]);
@@ -381,9 +430,12 @@ final class Spur
             if ($b === null && $kunde !== null) {
                 $b = Db::one('SELECT * FROM spur_besuche WHERE customer_id = ? ORDER BY zuletzt_am DESC LIMIT 1', [$kunde]) ?: null;
             }
-            $partner = $b !== null ? (int) $b['partner_id']
+            /* Partner: aus dem Besuch; hat der keinen (Kampagnen-Besuch), der dem Kunden zugeordnete Partner —
+               so bleibt ein Partnerkunde im Partner-Tracking, auch wenn er später über eine Kampagne wiederkommt. */
+            $partner = $b !== null && !empty($b['partner_id']) ? (int) $b['partner_id']
                 : ($kunde !== null ? (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$kunde], 0) : 0);
-            if ($partner <= 0) { return; }
+            $kampagne = $b !== null && !empty($b['kampagne_id']) ? (int) $b['kampagne_id'] : null;
+            if ($partner <= 0 && $kampagne === null) { return; }
             if ($b !== null && $kunde !== null && empty($b['customer_id'])) { self::verknuepfen($kunde, isset($o['anfrage_id']) ? (int) $o['anfrage_id'] : null, $b); }
             if (in_array($typ, self::EINMALIG, true)) {
                 $schon = $b !== null
@@ -398,7 +450,8 @@ final class Spur
             $meta = $o['meta'] ?? [];
             Db::insert('spur_ereignisse', [
                 'besuch_id' => $b['id'] ?? null, 'visitor_id' => (string) ($b['visitor_id'] ?? ''), 'session_id' => (string) ($b['session_id'] ?? ''),
-                'partner_id' => $partner, 'event_type' => $typ, 'seite' => mb_substr((string) ($o['seite'] ?? ''), 0, 190),
+                'partner_id' => $partner > 0 ? $partner : null, 'kampagne_id' => $kampagne,
+                'creative_id' => $kampagne !== null && !empty($b['creative_id']) ? (int) $b['creative_id'] : null, 'event_type' => $typ, 'seite' => mb_substr((string) ($o['seite'] ?? ''), 0, 190),
                 'meta' => $meta ? mb_substr((string) json_encode($meta, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 0, 500) : '',
                 'customer_id' => $kunde ?? ($b['customer_id'] ?? null), 'betrag_cents' => isset($o['betrag_cents']) ? (int) $o['betrag_cents'] : null,
             ]);
@@ -422,9 +475,9 @@ final class Spur
             $b ??= self::aktuellerBesuch();
             if ($b === null || $kundeId <= 0) { return; }
             Db::run('UPDATE spur_besuche SET customer_id = ?, anfrage_id = COALESCE(anfrage_id, ?) WHERE id = ? AND customer_id IS NULL', [$kundeId, $anfrageId, (int) $b['id']]);
-            /* Frühere Ereignisse dieses Besuchers ohne Kunde gleich mit (derselbe Besucher, gleicher Partner). */
-            Db::run('UPDATE spur_ereignisse SET customer_id = ? WHERE customer_id IS NULL AND besuch_id IN (SELECT id FROM spur_besuche WHERE visitor_id = ? AND partner_id = ?)',
-                [$kundeId, (string) $b['visitor_id'], (int) $b['partner_id']]);
+            /* Frühere Ereignisse dieses Besuchers ohne Kunde gleich mit (derselbe Besucher — die Kennung ist zufällig je Browser). */
+            Db::run('UPDATE spur_ereignisse SET customer_id = ? WHERE customer_id IS NULL AND besuch_id IN (SELECT id FROM spur_besuche WHERE visitor_id = ?)',
+                [$kundeId, (string) $b['visitor_id']]);
             if (self::$besuch !== null && (int) self::$besuch['id'] === (int) $b['id']) { self::$besuch['customer_id'] = $kundeId; }
         } catch (Throwable $e) { }
     }
@@ -459,8 +512,15 @@ final class Spur
         Db::run("INSERT INTO spur_tage (partner_id, tag, event_type, anzahl, besucher, betrag_cents)
                  SELECT e.partner_id, DATE(e.created_at), e.event_type, COUNT(*), COUNT(DISTINCT NULLIF(e.visitor_id, '')), COALESCE(SUM(e.betrag_cents), 0)
                    FROM spur_ereignisse e LEFT JOIN spur_besuche b ON b.id = e.besuch_id
-                  WHERE e.created_at < ? AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'partner_visit')
+                  WHERE e.created_at < ? AND e.partner_id IS NOT NULL AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'partner_visit')
                GROUP BY e.partner_id, DATE(e.created_at), e.event_type
+                 ON DUPLICATE KEY UPDATE anzahl = anzahl + VALUES(anzahl), besucher = besucher + VALUES(besucher), betrag_cents = betrag_cents + VALUES(betrag_cents)", [$grenze]);
+        /* Dasselbe je Kampagne und Werbemittel (Growth Engine). */
+        Db::run("INSERT INTO mk_tage (kampagne_id, creative_id, tag, event_type, anzahl, besucher, betrag_cents)
+                 SELECT e.kampagne_id, COALESCE(e.creative_id, 0), DATE(e.created_at), e.event_type, COUNT(*), COUNT(DISTINCT NULLIF(e.visitor_id, '')), COALESCE(SUM(e.betrag_cents), 0)
+                   FROM spur_ereignisse e LEFT JOIN spur_besuche b ON b.id = e.besuch_id
+                  WHERE e.created_at < ? AND e.kampagne_id IS NOT NULL AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'campaign_visit')
+               GROUP BY e.kampagne_id, COALESCE(e.creative_id, 0), DATE(e.created_at), e.event_type
                  ON DUPLICATE KEY UPDATE anzahl = anzahl + VALUES(anzahl), besucher = besucher + VALUES(besucher), betrag_cents = betrag_cents + VALUES(betrag_cents)", [$grenze]);
         $n = Db::run('DELETE FROM spur_ereignisse WHERE created_at < ?', [$grenze])->rowCount();
         Db::run('DELETE FROM spur_besuche WHERE zuletzt_am < ?', [$grenze]);
@@ -541,12 +601,12 @@ final class Spur
         [$fw, $fa] = self::filterSql($f);
         $zeit = [$von . ' 00:00:00', $bis . ' 23:59:59'];
         $besuche = Db::one("SELECT COUNT(*) AS sitzungen, COUNT(DISTINCT b.visitor_id) AS besucher, SUM(b.neu = 1) AS neu, SUM(b.neu = 0) AS wieder, SUM(b.verdacht) AS verdacht
-                              FROM spur_besuche b WHERE b.verdacht = 0 AND b.start_am BETWEEN ? AND ?$fw", array_merge($zeit, $fa)) ?: [];
-        $verd = (int) Db::wert("SELECT COUNT(*) FROM spur_besuche b WHERE b.verdacht = 1 AND b.start_am BETWEEN ? AND ?$fw", array_merge($zeit, $fa), 0);
+                              FROM spur_besuche b WHERE b.partner_id IS NOT NULL AND b.verdacht = 0 AND b.start_am BETWEEN ? AND ?$fw", array_merge($zeit, $fa)) ?: [];
+        $verd = (int) Db::wert("SELECT COUNT(*) FROM spur_besuche b WHERE b.partner_id IS NOT NULL AND b.verdacht = 1 AND b.start_am BETWEEN ? AND ?$fw", array_merge($zeit, $fa), 0);
         $ev = [];
         foreach (Db::all("SELECT e.event_type, COUNT(*) AS n, COUNT(DISTINCT COALESCE(e.besuch_id, -e.customer_id)) AS eindeutig, COALESCE(SUM(e.betrag_cents), 0) AS summe
                             FROM spur_ereignisse e LEFT JOIN spur_besuche b ON b.id = e.besuch_id
-                           WHERE e.created_at BETWEEN ? AND ? AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'partner_visit')" . self::filterEreignis($f) . "
+                           WHERE e.created_at BETWEEN ? AND ? AND e.partner_id IS NOT NULL AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'partner_visit')" . self::filterEreignis($f) . "
                         GROUP BY e.event_type", array_merge($zeit, self::filterEreignisArgs($f))) as $z) {
             $ev[(string) $z['event_type']] = $z;
         }
@@ -673,7 +733,7 @@ final class Spur
         foreach (['land' => 'b.land', 'region' => "CONCAT(b.land, ' · ', b.region)", 'geraet' => 'b.geraet', 'browser' => 'b.browser', 'einstieg' => 'b.einstieg',
                   'kampagne' => 'b.utm_campaign', 'quelle' => 'b.quelle'] as $k => $sp) {
             $extra = $k === 'region' ? " AND b.region <> ''" : ($k === 'kampagne' ? " AND b.utm_campaign <> ''" : '');
-            $aus[$k] = Db::all("SELECT $sp AS wert, COUNT(*) AS n FROM spur_besuche b WHERE b.verdacht = 0 AND b.start_am BETWEEN ? AND ?$fw$extra
+            $aus[$k] = Db::all("SELECT $sp AS wert, COUNT(*) AS n FROM spur_besuche b WHERE b.partner_id IS NOT NULL AND b.verdacht = 0 AND b.start_am BETWEEN ? AND ?$fw$extra
                                 GROUP BY wert ORDER BY n DESC LIMIT " . max(1, min(30, $top)), array_merge([$von . ' 00:00:00', $bis . ' 23:59:59'], $fa));
         }
         return $aus;
