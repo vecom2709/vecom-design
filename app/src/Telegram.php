@@ -130,25 +130,33 @@ final class Telegram
         self::geheimSetzen('tg_pruefwort', $wort);
         self::setzen('tg_webhook_am', date('Y-m-d H:i:s'));
 
-        // Befehle und Kurzbeschreibung je Sprache. Scheitert das, läuft der
-        // Bot trotzdem — es fehlt nur das Menü neben dem Eingabefeld.
-        require_once __DIR__ . '/TelegramBot.php';
-        foreach (['it', 'de', 'en'] as $sp) {
-            $T = TelegramBot::T[$sp];
-            $befehle = [];
-            foreach ($T['befehle'] as $cmd => $was) { $befehle[] = ['command' => $cmd, 'description' => $was]; }
-            self::rufen('setMyCommands', ['commands' => $befehle, 'language_code' => $sp]);
-            self::rufen('setMyShortDescription', ['short_description' => $T['kurz'], 'language_code' => $sp]);
-            self::rufen('setMyDescription', ['description' => $T['beschreibung'], 'language_code' => $sp]);
-        }
-        $T = TelegramBot::T['it'];
-        $befehle = [];
-        foreach ($T['befehle'] as $cmd => $was) { $befehle[] = ['command' => $cmd, 'description' => $was]; }
-        self::rufen('setMyCommands', ['commands' => $befehle]);
-        self::rufen('setMyShortDescription', ['short_description' => $T['kurz']]);
-        self::rufen('setMyDescription', ['description' => $T['beschreibung']]);
+        self::texteSetzen();
 
         return ['ok' => true, 'text' => 'Angemeldet. Telegram schickt ab jetzt alles an ' . self::adresse() . '.'];
+    }
+
+    /**
+     * Befehle und Beschreibungen des Bots je Sprache. Scheitert das, läuft
+     * der Bot trotzdem — es fehlt nur das Menü neben dem Eingabefeld.
+     * Ist ein Kanal hinterlegt, nennt die Beschreibung (was Telegram vor
+     * dem ersten „Starten“ zeigt) ihn mit — aufgerufen auch beim Speichern
+     * des Kanals, damit ein neuer Link nicht erst beim nächsten Anmelden
+     * ankommt.
+     */
+    public static function texteSetzen(): void
+    {
+        require_once __DIR__ . '/TelegramBot.php';
+        $kanal = self::einstellung('tg_kanal_link');
+        foreach (['it', 'de', 'en', ''] as $sp) {
+            $T = TelegramBot::T[$sp === '' ? 'it' : $sp];
+            $befehle = [];
+            foreach ($T['befehle'] as $cmd => $was) { $befehle[] = ['command' => $cmd, 'description' => $was]; }
+            $sprache = $sp === '' ? [] : ['language_code' => $sp];
+            $beschreibung = $T['beschreibung'] . ($kanal !== '' ? "\n\n" . $T['k_kanal'] . ': ' . $kanal : '');
+            self::rufen('setMyCommands', ['commands' => $befehle] + $sprache);
+            self::rufen('setMyShortDescription', ['short_description' => $T['kurz']] + $sprache);
+            self::rufen('setMyDescription', ['description' => mb_substr($beschreibung, 0, 512)] + $sprache);
+        }
     }
 
     /** @return array{ok:bool, text:string} */
@@ -261,6 +269,7 @@ final class Telegram
         $link = trim($link);
         if ($wer === '') {
             foreach (['tg_kanal_id', 'tg_kanal_titel', 'tg_kanal_link'] as $k) { self::setzen($k, ''); }
+            if (self::bereit()) { self::texteSetzen(); }
             return ['ok' => true, 'text' => 'Der Kanal ist nicht mehr hinterlegt.'];
         }
         if (preg_match('~^(?:https?://)?t\.me/([A-Za-z][A-Za-z0-9_]{4,31})/?$~', $wer, $m)) { $wer = '@' . $m[1]; }
@@ -291,6 +300,7 @@ final class Telegram
         self::setzen('tg_kanal_id', $neueId);
         self::setzen('tg_kanal_titel', mb_substr((string) ($chat['result']['title'] ?? ''), 0, 120));
         self::setzen('tg_kanal_link', $link);
+        self::texteSetzen();
         // Mehr Rechte als nötig sind kein Fehler, aber ein Hinweis wert.
         $zuviel = array_keys(array_filter([
             'löschen' => !empty($r['can_delete_messages']),

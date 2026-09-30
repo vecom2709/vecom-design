@@ -15664,6 +15664,17 @@ pruefe('Kanal-Knopf bei einem Bekannten: sofort am Punkt (persönliche Beratung)
 pruefe('… die erste Quelle bleibt', $tgChat($tkNeu)['quelle_code'] === 'kanal');
 $tgAus($tgText($tkNeu, '/start kanal-gibtsnicht', 'de'));
 pruefe('Ein unbekanntes Sprungwort springt nirgendwohin (Menü)', in_array('m:preis', $tgZuletzt()['knoepfe'], true));
+$tgNetz = [];
+Telegram::kanalSetzen('-1004410953446', 'https://t.me/+2XCcnCJj_F9lMTEy');
+$tkBes = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'setMyDescription' && ($x[1]['language_code'] ?? '') === 'de'))[0][1]['description'] ?? '';
+pruefe('Kanal: die Bot-Beschreibung nennt den Kanal, sobald er hinterlegt ist (ohne neu anzumelden)',
+    str_ends_with($tkBes, Texte::TELEGRAM['de']['k_kanal'] . ': https://t.me/+2XCcnCJj_F9lMTEy') && mb_strlen($tkBes) <= 512);
+$tkLegal = true;
+foreach (['it', 'de', 'en'] as $tkSp) {
+    $tkL = (string) file_get_contents($oben . '/assets/js/legal-' . $tkSp . '.js');
+    $tkLegal = $tkLegal && str_contains($tkL, 't.me/vecomdesign') && str_contains($tkL, '6');
+}
+pruefe('Datenschutzerklärung nennt den Kanal in allen drei Sprachen', $tkLegal);
 pruefe('Kanal: leer = gelöst, der Menüknopf verschwindet', Telegram::kanalSetzen('', '')['ok'] && Telegram::kanal()['id'] === ''
     && (function () use ($tgAus, $tgText, $tqW, $tgZuletzt) { $tgAus($tgText($tqW, '/start', 'de')); return !array_filter($tgZuletzt()['knoepfe'], static fn($k) => str_contains($k, 't.me/+')); })());
 Telegram::$netz = null;
