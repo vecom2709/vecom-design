@@ -103,6 +103,12 @@ final class Ablauf
             'Die Datei wird endgültig gelöscht — auch vom Webspace. '
             . 'Hat der Kunde sie geschickt, hat er sie danach nur noch selbst.',
             'Ja, Datei löschen'],
+        /* Der Telegram-Kanal (30.09.2026): Ein Beitrag ist sofort bei allen
+           Abonnenten und für jeden mit dem Link sichtbar. */
+        'telegram_kanal_posten' => [self::RAUS,
+            'Der Beitrag erscheint sofort im Telegram-Kanal — bei allen Abonnenten und für jeden mit dem Link. '
+            . 'Zurücknehmen geht nur in Telegram selbst.',
+            'Ja, veröffentlichen'],
         'kunde_loeschen' => [self::SCHWER,
             'Der Kunde und alles, was an ihm hängt, wird gelöscht. Das lässt sich nicht rückgängig machen.',
             'Ja, endgültig löschen'],

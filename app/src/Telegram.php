@@ -209,6 +209,8 @@ final class Telegram
             'abgeschickt' => $abgeschickt,
             'verbunden' => $verbunden,
             'letzte' => $letzte,
+            'kanal' => self::kanal(),
+            'kanal_zuletzt' => self::einstellung('tg_kanal_zuletzt'),
         ];
     }
 
@@ -218,6 +220,111 @@ final class Telegram
         $n = self::einstellung('tg_name');
         if ($n === '') { return ''; }
         return 'https://t.me/' . $n . ($start !== '' ? '?start=' . rawurlencode($start) : '');
+    }
+
+    /* ------------------------------ Kanal ------------------------------ */
+
+    /* DER KANAL „VECOM DESIGN“ (30.09.2026, Uwe: „mach automatisch“)
+
+       Ein Kanal ist ein Sender, keine Unterhaltung: Uwe veröffentlicht dort
+       Neuigkeiten, Interessenten lesen mit und landen über den Knopf unter
+       jedem Beitrag im Bot (?start=kanal → „kam über: kanal“ im Verlauf).
+
+       Der Bot ist im Kanal Admin mit genau zwei Rechten: posten und
+       bearbeiten. Er kann dort nichts löschen, niemanden hinzufügen oder
+       sperren und keine Admins ernennen — gesetzt von Hand in Telegram,
+       geprüft hier bei jedem Speichern (getChatMember).
+
+       Der Link ist ein eigenes Feld, weil ein privater Kanal keinen
+       Namen hat, aus dem er sich ergäbe (t.me/+…), und der Bot die
+       Einladungslinks ohne das Recht „Nutzer einladen“ nicht lesen darf. */
+
+    /** @return array{id:string, titel:string, link:string} */
+    public static function kanal(): array
+    {
+        return [
+            'id' => self::einstellung('tg_kanal_id'),
+            'titel' => self::einstellung('tg_kanal_titel'),
+            'link' => self::einstellung('tg_kanal_link'),
+        ];
+    }
+
+    /**
+     * Kanal prüfen und merken. $wer ist die Kennung (-100…) oder @name.
+     * Leeres $wer löst die Verbindung.
+     *
+     * @return array{ok:bool, text:string}
+     */
+    public static function kanalSetzen(string $wer, string $link): array
+    {
+        $wer = trim($wer);
+        $link = trim($link);
+        if ($wer === '') {
+            foreach (['tg_kanal_id', 'tg_kanal_titel', 'tg_kanal_link'] as $k) { self::setzen($k, ''); }
+            return ['ok' => true, 'text' => 'Der Kanal ist nicht mehr hinterlegt.'];
+        }
+        if (preg_match('~^(?:https?://)?t\.me/([A-Za-z][A-Za-z0-9_]{4,31})/?$~', $wer, $m)) { $wer = '@' . $m[1]; }
+        if (!preg_match('/^(-100\d{5,15}|@[A-Za-z][A-Za-z0-9_]{4,31})$/', $wer)) {
+            return ['ok' => false, 'text' => 'Kanal bitte als Kennung (-100…) oder als @Name angeben.'];
+        }
+        if ($link !== '' && !preg_match('~^https://t\.me/(\+[A-Za-z0-9_-]{8,64}|[A-Za-z][A-Za-z0-9_]{4,31})$~', $link)) {
+            return ['ok' => false, 'text' => 'Der Link muss mit https://t.me/ beginnen.'];
+        }
+        if (!self::bereit()) { return ['ok' => false, 'text' => 'Erst den Bot einrichten (Token + Webhook).']; }
+
+        $chat = self::rufen('getChat', ['chat_id' => $wer]);
+        if (!$chat['ok'] || ($chat['result']['type'] ?? '') !== 'channel') {
+            return ['ok' => false, 'text' => 'Telegram kennt diesen Kanal nicht, oder der Bot ist dort nicht Mitglied'
+                . ($chat['beschreibung'] !== '' ? ' (' . $chat['beschreibung'] . ')' : '') . '.'];
+        }
+        $me = self::rufen('getMe');
+        $rolle = self::rufen('getChatMember', ['chat_id' => $wer, 'user_id' => (int) ($me['result']['id'] ?? 0)]);
+        $r = (array) ($rolle['result'] ?? []);
+        if (($r['status'] ?? '') !== 'administrator' || empty($r['can_post_messages'])) {
+            return ['ok' => false, 'text' => 'Der Bot ist in diesem Kanal nicht Admin mit dem Recht „Beiträge veröffentlichen“.'];
+        }
+        $name = (string) ($chat['result']['username'] ?? '');
+        if ($link === '' && $name !== '') { $link = 'https://t.me/' . $name; }
+        self::setzen('tg_kanal_id', (string) ($chat['result']['id'] ?? $wer));
+        self::setzen('tg_kanal_titel', mb_substr((string) ($chat['result']['title'] ?? ''), 0, 120));
+        self::setzen('tg_kanal_link', $link);
+        // Mehr Rechte als nötig sind kein Fehler, aber ein Hinweis wert.
+        $zuviel = array_keys(array_filter([
+            'löschen' => !empty($r['can_delete_messages']),
+            'Nutzer einladen' => !empty($r['can_invite_users']),
+            'Admins ernennen' => !empty($r['can_promote_members']),
+            'Kanal ändern' => !empty($r['can_change_info']),
+        ]));
+        return ['ok' => true, 'text' => 'Kanal „' . ($chat['result']['title'] ?? $wer) . '“ hinterlegt.'
+            . ($zuviel ? ' Hinweis: Der Bot darf dort mehr als nötig (' . implode(', ', $zuviel) . ').' : '')];
+    }
+
+    /** Die längste Nachricht, die Telegram annimmt. */
+    public const KANAL_MAX = 4000;
+
+    /**
+     * Einen Beitrag im Kanal veröffentlichen. Reiner Text, keine HTML-Deutung —
+     * was Uwe tippt, erscheint so. Unter dem Beitrag ein Knopf in den Bot.
+     *
+     * @return array{ok:bool, text:string}
+     */
+    public static function kanalPosten(string $text, string $knopf = ''): array
+    {
+        $text = trim(str_replace("\r\n", "\n", $text));
+        $k = self::kanal();
+        if ($k['id'] === '') { return ['ok' => false, 'text' => 'Es ist noch kein Kanal hinterlegt.']; }
+        if ($text === '') { return ['ok' => false, 'text' => 'Der Beitrag ist leer.']; }
+        if (mb_strlen($text) > self::KANAL_MAX) { return ['ok' => false, 'text' => 'Der Beitrag ist länger als ' . self::KANAL_MAX . ' Zeichen.']; }
+        $daten = ['chat_id' => $k['id'], 'text' => $text];
+        $knopf = trim($knopf);
+        $bot = self::link('kanal');
+        if ($knopf !== '' && $bot !== '') {
+            $daten['reply_markup'] = ['inline_keyboard' => [[['text' => mb_substr($knopf, 0, 40), 'url' => $bot]]]];
+        }
+        $r = self::rufen('sendMessage', $daten);
+        if (!$r['ok']) { return ['ok' => false, 'text' => 'Telegram hat den Beitrag nicht angenommen: ' . $r['beschreibung']]; }
+        self::setzen('tg_kanal_zuletzt', date('Y-m-d H:i:s'));
+        return ['ok' => true, 'text' => 'Der Beitrag steht im Kanal.'];
     }
 
     /* ------------------------------ Senden ----------------------------- */

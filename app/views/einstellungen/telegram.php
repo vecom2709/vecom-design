@@ -88,6 +88,45 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
   </p>
 </div>
 
+<?php if (!empty($tg['bereit'])): $tgK = (array) ($tg['kanal'] ?? []); ?>
+<div class="block">
+  <h2>Telegram-Kanal</h2>
+  <?php if (!empty($tgK['id'])): ?>
+    <div class="hinweis gut">Verbunden mit <b><?= Fmt::h((string) ($tgK['titel'] ?: $tgK['id'])) ?></b><?=
+      !empty($tgK['link']) ? ' — <a href="' . Fmt::h((string) $tgK['link']) . '" target="_blank" rel="noopener">' . Fmt::h((string) $tgK['link']) . '</a>' : '' ?>.
+      <?php if (!empty($tg['kanal_zuletzt'])): ?>Letzter Beitrag: <?= Fmt::h((string) $tg['kanal_zuletzt']) ?>.<?php endif; ?></div>
+
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_kanal_posten">
+      <div class="feld"><label>Neuer Beitrag
+        <span style="color:var(--leise);font-weight:400">— reiner Text, erscheint so, wie er hier steht (höchstens <?= Telegram::KANAL_MAX ?> Zeichen)</span></label>
+        <textarea name="text" rows="6" maxlength="<?= Telegram::KANAL_MAX ?>" required><?= Fmt::h((string) ($daten['telegramEntwurf'] ?? '')) ?></textarea></div>
+      <div class="feld"><label>Knopf unter dem Beitrag
+        <span style="color:var(--leise);font-weight:400">— führt in den Bot; leer lassen für keinen Knopf</span></label>
+        <input name="knopf" maxlength="40" value="💬 Preis-Richtwert im Bot"></div>
+      <button class="knopf haupt">Im Kanal veröffentlichen</button>
+    </form>
+  <?php else: ?>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 14px">
+      Im Kanal veröffentlichst du Neuigkeiten; der Bot postet sie für dich. Dafür muss er dort Admin sein —
+      mit „Beiträge veröffentlichen“, mehr braucht er nicht.
+    </p>
+  <?php endif; ?>
+
+  <details style="margin-top:14px"<?= empty($tgK['id']) ? ' open' : '' ?>>
+    <summary><?= empty($tgK['id']) ? 'Kanal hinterlegen' : 'Kanal ändern' ?></summary>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_kanal_speichern">
+      <div class="feld"><label>Kanal <span style="color:var(--leise);font-weight:400">— Kennung (-100…) oder @Name; leer = lösen</span></label>
+        <input name="kanal" spellcheck="false" value="<?= Fmt::h((string) ($tgK['id'] ?? '')) ?>"></div>
+      <div class="feld"><label>Link für Besucher <span style="color:var(--leise);font-weight:400">— bei einem privaten Kanal der Einladungslink (https://t.me/+…)</span></label>
+        <input name="kanal_link" spellcheck="false" value="<?= Fmt::h((string) ($tgK['link'] ?? '')) ?>"></div>
+      <button class="knopf">Prüfen und speichern</button>
+    </form>
+  </details>
+</div>
+<?php endif; ?>
+
 <?php if (!empty($tg['bereit'])): $tgAdm = $daten['telegramAdmin'] ?? null; ?>
 <div class="block">
   <h2>Dein Telegram als Fenster zur Verwaltung</h2>

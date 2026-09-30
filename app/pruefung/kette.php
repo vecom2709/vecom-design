@@ -15597,6 +15597,46 @@ pruefe('Nach dem Trennen kommen keine Zurufe mehr an', !array_filter($tgNetz, st
 $tqW = 555300111;
 $tgAus($tgText($tqW, '/start web', 'de'));
 pruefe('Ein einfaches Start-Wort (?start=web) wird als Quelle gemerkt, Partnercodes bleiben davon getrennt', $tgChat($tqW)['quelle_code'] === 'web');
+
+/* ---- Der Kanal (30.09.2026): hinterlegen, posten, Knopf im Menü ---- */
+$tkRechte = ['status' => 'administrator', 'can_post_messages' => true];
+$tkTyp = 'channel';
+Telegram::$netz = static function (string $m, array $d) use (&$tgNetz, &$tgMsg, &$tkRechte, &$tkTyp): array {
+    $tgNetz[] = [$m, $d];
+    if ($m === 'getMe') { return ['ok' => true, 'result' => ['id' => 4242, 'is_bot' => true, 'username' => 'vecom_pruef_bot']]; }
+    if ($m === 'getChat') { return ['ok' => true, 'result' => ['id' => -1004410953446, 'type' => $tkTyp, 'title' => 'Vecom Design']]; }
+    if ($m === 'getChatMember') { return ['ok' => true, 'result' => $tkRechte]; }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => ++$tgMsg]]; }
+    return ['ok' => true, 'result' => true];
+};
+pruefe('Kanal: Unsinn als Kennung wird abgelehnt, bevor Telegram gefragt wird',
+    !Telegram::kanalSetzen('irgendwas', '')['ok'] && !Telegram::kanalSetzen('-1004410953446', 'http://evil.example/x')['ok']);
+$tkRechte = ['status' => 'member'];
+pruefe('Kanal: ohne Admin-Recht „posten“ wird nichts hinterlegt', !Telegram::kanalSetzen('-1004410953446', '')['ok'] && Telegram::kanal()['id'] === '');
+$tkTyp = 'group'; $tkRechte = ['status' => 'administrator', 'can_post_messages' => true];
+pruefe('Kanal: eine Gruppe ist kein Kanal', !Telegram::kanalSetzen('-1004410953446', '')['ok']);
+$tkTyp = 'channel';
+$tkS = Telegram::kanalSetzen('-1004410953446', 'https://t.me/+2XCcnCJj_F9lMTEy');
+pruefe('Kanal: mit Posting-Recht hinterlegt (Kennung, Titel, Einladungslink)', $tkS['ok']
+    && Telegram::kanal() === ['id' => '-1004410953446', 'titel' => 'Vecom Design', 'link' => 'https://t.me/+2XCcnCJj_F9lMTEy'] && !str_contains($tkS['text'], 'Hinweis'));
+$tkRechte['can_delete_messages'] = true;
+pruefe('Kanal: mehr Rechte als nötig ergeben einen Hinweis', str_contains(Telegram::kanalSetzen('-1004410953446', 'https://t.me/+2XCcnCJj_F9lMTEy')['text'], 'löschen'));
+$tgNetz = [];
+$tkP = Telegram::kanalPosten("Neu: <b>nicht fett</b>\r\nZweite Zeile", '💬 Preis-Richtwert');
+$tkSend = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
+pruefe('Kanal: Beitrag geht als reiner Text an den Kanal, mit Knopf in den Bot (?start=kanal)', $tkP['ok']
+    && $tkSend['chat_id'] === '-1004410953446' && !isset($tkSend['parse_mode']) && $tkSend['text'] === "Neu: <b>nicht fett</b>\nZweite Zeile"
+    && str_ends_with((string) $tkSend['reply_markup']['inline_keyboard'][0][0]['url'], '?start=kanal'));
+pruefe('Kanal: leer oder zu lang wird nicht gesendet', !Telegram::kanalPosten('   ')['ok'] && !Telegram::kanalPosten(str_repeat('x', Telegram::KANAL_MAX + 1))['ok']);
+pruefe('Kanal: Veröffentlichen fragt vorher nach (TRAGWEITE), Hinterlegen nicht',
+    Ablauf::wiegt('telegram_kanal_posten') === Ablauf::RAUS && Ablauf::rueckfrage('telegram_kanal_speichern') === null);
+$tgAus($tgText($tqW, '/start', 'de'));
+$tgAus($tgKnopf($tqW, 'l:de'));
+pruefe('Kanal: im Menü steht der Knopf „Neuigkeiten im Kanal“ mit dem hinterlegten Link',
+    in_array('url:https://t.me/+2XCcnCJj_F9lMTEy', $tgZuletzt()['knoepfe'], true), implode(' ', $tgZuletzt()['knoepfe']));
+pruefe('Kanal: der Knopf ist dreisprachig', isset(Texte::TELEGRAM['it']['k_kanal'], Texte::TELEGRAM['de']['k_kanal'], Texte::TELEGRAM['en']['k_kanal']));
+pruefe('Kanal: leer = gelöst, der Menüknopf verschwindet', Telegram::kanalSetzen('', '')['ok'] && Telegram::kanal()['id'] === ''
+    && (function () use ($tgAus, $tgText, $tqW, $tgZuletzt) { $tgAus($tgText($tqW, '/start', 'de')); return !array_filter($tgZuletzt()['knoepfe'], static fn($k) => str_contains($k, 't.me/+')); })());
 Telegram::$netz = null;
 
 /* ---- Alles auf Sie (30.09.2026, Uwe) ----

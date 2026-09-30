@@ -1002,7 +1002,10 @@ final class TelegramBot
             [self::k($c, 'k_logo', 'm:logo'), self::k($c, 'k_3d', 'm:3d')],
             [self::k($c, 'k_hosting', 'm:hosting'), self::k($c, !empty($c['kunde_verbunden']) ? 'k_projekt' : 'k_kunde', 'm:kunde')],
             [self::k($c, 'k_mensch', 'm:mensch'), self::k($c, 'k_sprache', 'm:sprache')],
-        ], !empty($c['admin_verbunden']) && TelegramAdmin::darf((int) $c['admin_verbunden'])
+        ],
+        // Der Kanal (30.09.2026): nur, wenn einer hinterlegt ist.
+        Telegram::einstellung('tg_kanal_link') !== '' ? [[self::url(self::t($c, 'k_kanal'), Telegram::einstellung('tg_kanal_link'))]] : [],
+        !empty($c['admin_verbunden']) && TelegramAdmin::darf((int) $c['admin_verbunden'])
             ? [[['text' => '🛠 Verwaltung', 'callback_data' => 'v:lage']]] : []);
     }
 

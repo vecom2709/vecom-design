@@ -2298,6 +2298,27 @@ if ($post) {
                 $_SESSION['gut'] = 'Dein Telegram ist von der Verwaltung getrennt.';
                 weiter('einstellungen?b=telegram');
 
+            /* Der Kanal (30.09.2026): hinterlegen und Beiträge veröffentlichen.
+               Das Veröffentlichen fragt vorher nach (Ablauf::TRAGWEITE). */
+            case 'telegram_kanal_speichern':
+                require_once __DIR__ . '/src/Telegram.php';
+                $e = Telegram::kanalSetzen((string) ($_POST['kanal'] ?? ''), (string) ($_POST['kanal_link'] ?? ''));
+                if ($e['ok']) { Events::protokoll('telegram', 'Telegram: Kanal hinterlegt oder geändert'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
+            case 'telegram_kanal_posten':
+                require_once __DIR__ . '/src/Telegram.php';
+                $tgText = (string) ($_POST['text'] ?? '');
+                $e = Telegram::kanalPosten($tgText, (string) ($_POST['knopf'] ?? ''));
+                if ($e['ok']) {
+                    Events::protokoll('telegram_kanal', 'Beitrag im Telegram-Kanal veröffentlicht: ' . mb_substr(preg_replace('/\s+/u', ' ', $tgText), 0, 80));
+                } else {
+                    $_SESSION['telegram_entwurf'] = mb_substr($tgText, 0, Telegram::KANAL_MAX);
+                }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
             case 'telegram_weg':
                 require_once __DIR__ . '/src/Telegram.php';
                 Telegram::entfernen();
@@ -3992,7 +4013,8 @@ switch ($route) {
                 'angemeldet' => '', 'bereit' => false, 'adresse' => '', 'chats' => 0, 'abgeschickt' => 0, 'letzte' => '']);
             $daten['telegramPruefung'] = $_SESSION['telegram_pruefung'] ?? null;
             $daten['telegramAdmin'] = sicher(static function () { require_once __DIR__ . '/src/TelegramAdmin.php'; return TelegramAdmin::chat((int) Auth::id()); }, null);
-            unset($_SESSION['telegram_pruefung']);
+            $daten['telegramEntwurf'] = (string) ($_SESSION['telegram_entwurf'] ?? '');
+            unset($_SESSION['telegram_pruefung'], $_SESSION['telegram_entwurf']);
         }
 
         if ($b === 'telefon') {
