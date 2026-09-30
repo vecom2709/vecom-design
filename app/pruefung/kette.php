@@ -12250,7 +12250,7 @@ pruefe('Vorlagen: Uwes Fassung erscheint beim Partner, mit seinem Link; andere S
 pruefe('Vorlagen: Vorschau füllt Beispielwerte', str_contains(PartnerVorlagen::vorschau('werbung.whatsapp.status.text', '{name}: {link}'), 'Maria Rossi: https://vecom-design.it/p/MARIA26/whatsapp'));
 PartnerVorlagen::speichern('werbung.whatsapp.status.text', 'de', '');
 $stV2 = array_values(array_filter(PartnerWerbung::vorlagen($stPa, 'de')['whatsapp'], static fn($v) => $v['id'] === 'whatsapp_status'))[0] ?? null;
-pruefe('Vorlagen: leeren = zurück zum Standard', (int) Db::wert('SELECT COUNT(*) FROM partner_vorlagen_text', [], 0) === 0 && str_starts_with((string) $stV2['text'], 'Kennst du jemanden'));
+pruefe('Vorlagen: leeren = zurück zum Standard', (int) Db::wert('SELECT COUNT(*) FROM partner_vorlagen_text', [], 0) === 0 && str_starts_with((string) $stV2['text'], 'Kennen Sie jemanden'));
 pruefe('Admin: Seite /partner/vorlagen und Tat partner_vorlage', str_contains((string) file_get_contents($wurzel . '/index.php'), "if (\$unter === 'vorlagen')")
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_vorlage':") && is_file($wurzel . '/views/partner_vorlagen.php'));
 
@@ -15546,7 +15546,57 @@ $tgNetz = [];
 Zuruf::vormerken('anfrage', 'Vecom Design: Neue Anfrage.');
 pruefe('Nach dem Trennen kommen keine Zurufe mehr an', !array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && (int) $x[1]['chat_id'] === $taChat));
 
+
+$tqW = 555300111;
+$tgAus($tgText($tqW, '/start web', 'de'));
+pruefe('Ein einfaches Start-Wort (?start=web) wird als Quelle gemerkt, Partnercodes bleiben davon getrennt', $tgChat($tqW)['quelle_code'] === 'web');
 Telegram::$netz = null;
+
+/* ---- Alles auf Sie (30.09.2026, Uwe) ----
+   Vecom siezt: Website, Baukasten, Manuela, Bot, Mails, Partnervorlagen.
+   Erlaubt bleibt das Du nur dort, wo es ausdrücklich gewählt wird: als
+   Antwortmöglichkeit „Mit Du — locker“ (wie der Kunde SEINE Kunden anspricht)
+   und in der als „unter Bekannten (du)“ beschrifteten Partnervorlage. */
+abschnitt('Alles auf Sie');
+$sieDu = '/(?<![\p{L}])(du|Du|dich|Dich|dir|Dir|dein|Dein|deine|Deine|deinen|Deinen|deinem|Deinem|deiner|Deiner|deines|Deines)(?![\p{L}])/u';
+$sieErlaubt = ['Mit Du — locker', 'Kurz, unter Bekannten (du)'];
+$sieFunde = [];
+$sieSuchen = static function ($wert, string $pfad) use (&$sieSuchen, &$sieFunde, $sieDu, $sieErlaubt): void {
+    if (is_array($wert)) {
+        if (isset($wert['de']) && is_string($wert['de'])) {
+            $t = $wert['de'];
+            $bekannte = str_starts_with($t, 'Hallo [Name],') && str_contains($t, 'mein Tipp für deine Website');
+            if (!in_array($t, $sieErlaubt, true) && !$bekannte && preg_match($sieDu, $t)) { $sieFunde[] = $pfad; }
+        }
+        foreach ($wert as $k => $v) { $sieSuchen($v, $pfad . '.' . $k); }
+    }
+};
+foreach (['Texte', 'Fragen', 'Baukasten'] as $kl) {
+    foreach ((new ReflectionClass($kl))->getConstants() as $n => $w) { $sieSuchen($w, $kl . '::' . $n); }
+}
+pruefe('Keine deutschen Kundentexte mit Du (außer der ausdrücklichen Du-Wahl)', $sieFunde === [], implode(', ', array_slice($sieFunde, 0, 5)));
+$sieMail = (string) file_get_contents($wurzel . '/src/Mail.php');
+pruefe('Die Fußzeile jeder Mail siezt (de) und nutzt Lei (it)',
+    str_contains($sieMail, 'Sie erhalten diese E-Mail, weil wir an Ihrem Projekt zusammenarbeiten.') && str_contains($sieMail, 'al suo progetto'));
+$sieStart = json_encode([json_decode((string) file_get_contents($wurzel . '/src/standardbausteine.json'), true),
+                         json_decode((string) file_get_contents($wurzel . '/src/standardpakete.json'), true)], JSON_UNESCAPED_UNICODE);
+pruefe('Startdaten für neue Einrichtungen siezen (Bausteine und Betreuung)',
+    !str_contains($sieStart, 'du liest sie') && !str_contains($sieStart, 'Dein Projekt geht') && !str_contains($sieStart, 'vor dir')
+    && !str_contains($sieStart, 'du schreibst mir') && !str_contains($sieStart, 'deine Anliegen'));
+// Migration 113 an einem alten Stand: nur der wörtliche alte Satz wird ersetzt.
+$sieB = Db::one("SELECT id, text_de FROM bausteine WHERE slug = 'texte'");
+Db::run("UPDATE bausteine SET text_de = 'Ich schreibe die Texte jeder Seite, du liest sie vor der Veröffentlichung gegen.' WHERE slug = 'texte'");
+Db::run("UPDATE bausteine SET text_de = 'Eigener Text von Uwe, du bleibst.' WHERE slug = 'express'");
+$siePaket = Db::one("SELECT id, texte FROM packages WHERE texte IS NOT NULL LIMIT 1");
+if ($siePaket) { Db::update('packages', (int) $siePaket['id'], ['texte' => json_encode(['de' => ['features' => ['Direkte Betreuung, kein Ticketsystem: du schreibst mir, ich antworte']]])]); }
+foreach (array_filter(array_map('trim', preg_split('/;\s*\n/', (string) preg_replace('/^--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/113_sie.sql'))))) as $sql) { Db::run($sql); }
+pruefe('Migration 113: alter Wortlaut wird gesiezt, selbst geänderte Texte bleiben, Paket-JSON bleibt gültig',
+    Db::wert("SELECT text_de FROM bausteine WHERE slug = 'texte'") === 'Ich schreibe die Texte jeder Seite, Sie lesen sie vor der Veröffentlichung gegen.'
+    && Db::wert("SELECT text_de FROM bausteine WHERE slug = 'express'") === 'Eigener Text von Uwe, du bleibst.'
+    && (!$siePaket || str_contains((string) json_decode((string) Db::wert('SELECT texte FROM packages WHERE id = ?', [(int) $siePaket['id']]), true)['de']['features'][0], 'Sie schreiben mir')));
+Db::update('bausteine', (int) $sieB['id'], ['text_de' => $sieB['text_de']]);
+pruefe('Die Fußzeile der Website führt zum Telegram-Bot (mit ?start=web)',
+    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  'https://t.me/VecomDesignBot?start=web'"));
 
 /* ============================================================================
    Aufräumen und Bilanz

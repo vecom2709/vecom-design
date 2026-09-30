@@ -70,7 +70,7 @@ final class Fragen
     public const ZUSTANDWORT = [
         'haben' => ['it' => 'c’è già',   'de' => 'haben wir',   'en' => 'have it'],
         'kommt' => ['it' => 'arriva',    'de' => 'kommt noch',  'en' => 'coming'],
-        'du'    => ['it' => 'lo fai tu', 'de' => 'machst du',   'en' => 'you do it'],
+        'du'    => ['it' => 'lo fa Lei', 'de' => 'machen Sie',  'en' => 'you do it'],
         'nein'  => ['it' => 'non serve', 'de' => 'nicht nötig', 'en' => 'not needed'],
     ];
 

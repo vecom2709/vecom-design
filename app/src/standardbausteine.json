@@ -142,7 +142,7 @@
       },
       "text": {
         "it": "Scrivo i testi di ogni pagina, tu li rileggi prima della pubblicazione.",
-        "de": "Ich schreibe die Texte jeder Seite, du liest sie vor der Veröffentlichung gegen.",
+        "de": "Ich schreibe die Texte jeder Seite, Sie lesen sie vor der Veröffentlichung gegen.",
         "en": "I write the text for every page; you read it before it goes live."
       },
       "je_einheit": 1,
@@ -217,7 +217,7 @@
       },
       "text": {
         "it": "Il tuo progetto passa avanti. Più è grande, più lavoro sposta.",
-        "de": "Dein Projekt geht in der Reihenfolge vor. Je größer es ist, desto mehr schiebt es.",
+        "de": "Ihr Projekt geht in der Reihenfolge vor. Je größer es ist, desto mehr schiebt es.",
         "en": "Your project moves to the front of the queue. The bigger it is, the more it displaces."
       },
       "je_einheit": 1,

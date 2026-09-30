@@ -614,8 +614,9 @@ final class Mail
         if (trim($cf) !== '')   { $steuer[] = 'C.F. ' . $cf; }
         if ($steuer) { $unten[] = implode('  ·  ', $steuer); }
 
-        $satz = ['it' => 'Ricevi questa e-mail perché stiamo lavorando insieme al tuo progetto.',
-                 'de' => 'Du bekommst diese E-Mail, weil wir an deinem Projekt zusammenarbeiten.',
+        // Gesiezt wie jede andere Kundenpost (30.09.2026, Uwe: „alles auf Sie“).
+        $satz = ['it' => 'Riceve questa e-mail perché stiamo lavorando insieme al suo progetto.',
+                 'de' => 'Sie erhalten diese E-Mail, weil wir an Ihrem Projekt zusammenarbeiten.',
                  'en' => 'You’re receiving this email because we’re working on your project together.',
                 ][$sprache] ?? '';
 

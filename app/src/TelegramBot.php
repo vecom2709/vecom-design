@@ -188,6 +188,10 @@ final class TelegramBot
                 if ($arg !== '' && preg_match('/^[pe]_[A-Za-z0-9]{5,16}$/', $arg) && empty($c['quelle_code'])) {
                     $c = self::setzen($c, ['quelle_code' => strtolower($arg[0]) . '_' . strtoupper(substr($arg, 2))]);
                 }
+                // Ein einfaches Wort (?start=web, ?start=kanal) sagt, woher jemand kam.
+                elseif ($arg !== '' && preg_match('/^[a-z]{2,12}$/', $arg) && empty($c['quelle_code'])) {
+                    $c = self::setzen($c, ['quelle_code' => $arg]);
+                }
                 if ($c['sprache'] === null) { self::zeigeSprachwahl($c); return 'sprache'; }
                 $c = self::setzen($c, ['stand' => 'menu']);
                 self::zeigeMenu($c);
@@ -719,6 +723,9 @@ final class TelegramBot
         }
 
         // Ab hier steht die Anfrage. Alles Weitere darf scheitern, ohne sie mitzunehmen.
+        if ($kundeId && $code !== '' && !preg_match('/^[pe]_/', $code)) {
+            try { Events::protokoll('anfrage_quelle', 'Telegram-Anfrage kam über: ' . $code, $kundeId); } catch (Throwable $e) { }
+        }
         if ($kundeId) {
             // Der Nachweis, welchem Wortlaut er zugestimmt hat — in seiner Sprache, mit Fassung.
             try {
