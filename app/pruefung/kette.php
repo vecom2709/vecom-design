@@ -15792,6 +15792,90 @@ pruefe('Die Übersicht hat den Knopf „📊 Heute“', in_array('v:heute', $tgZ
 $tgAus($tgText($tqW, '/heute', 'de'));
 pruefe('/heute bei einem normalen Nutzer: keine Zahlen, nur das normale Menü', !str_contains($tgZuletzt()['text'], 'Entwürfe zur Freigabe') && in_array('m:preis', $tgZuletzt()['knoepfe'], true));
 
+/* Chef-Zentrale Schritt 2: „✅ Freigaben“ (01.10.2026, Uwe: „fahre fort“). Telegram
+   ruft dieselben Funktionen wie die Verwaltung; freigegeben wird nur, was die
+   Rechtsprüfung erlaubt — im Zweifel nicht. */
+require_once $wurzel . '/src/TelegramAkquise.php';
+$frSauber = "Guten Tag,\n\nich habe mir Ihre Website angesehen und hätte zwei Ideen, wie sie auf dem Handy leichter zu lesen wäre.\n\nMehr über uns: https://www.vecom-design.it\n\nWenn Sie keine weitere Nachricht wünschen, genügt eine kurze Antwort.";
+$frA = Db::insert('akq_firmen', ['kennung' => 'L-FREIG001', 'name' => 'Freigabe <b>Prüf</b> & Söhne', 'name_norm' => 'freigabe pruef soehne', 'land' => 'DE',
+    'stadt' => 'Mainz', 'email' => 'inhaber@freigabe-pruef.example', 'score' => 99, 'top_probleme' => json_encode(['Kein HTTPS', 'Langsam auf dem Handy']),
+    'einwilligung' => 'Prüfung: bittet um Zusendung per E-Mail', 'einwilligung_kanaele' => 'email']);
+$frB = Db::insert('akq_firmen', ['kennung' => 'L-FREIG002', 'name' => 'Kaltakquise Prüfbetrieb', 'name_norm' => 'kaltakquise pruefbetrieb', 'land' => 'IT',
+    'stadt' => 'Bolzano', 'email' => 'info@kalt-pruef.example', 'score' => 98]);
+$frVa = Db::insert('akq_vorlagen', ['firma_id' => $frA, 'sprache' => 'de', 'kanal' => 'email', 'betreff' => 'Ihre Website auf dem Handy', 'text' => $frSauber,
+    'fingerabdruck' => hash('sha256', 'freig-a-' . $frA), 'status' => 'entwurf']);
+$frVb = Db::insert('akq_vorlagen', ['firma_id' => $frB, 'sprache' => 'de', 'kanal' => 'email', 'betreff' => 'Ihre Website', 'text' => $frSauber . str_repeat("\n„Zitat“ & \"Anführung\" <tag>", 80),
+    'fingerabdruck' => hash('sha256', 'freig-b-' . $frB), 'status' => 'entwurf']);
+$frGa = AkquiseGate::pruefen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$frA]), 'email');
+pruefe('Freigaben (Vorbedingung): Betrieb mit Einwilligung ist per E-Mail erlaubt, der ohne nicht',
+    $frGa['status'] === AkquiseGate::ERLAUBT && TelegramAkquise::entwurf($frVb)['gate']['status'] !== AkquiseGate::ERLAUBT, json_encode($frGa['gruende']));
+$tgAus($tgKnopf($tzChat, 'v:heute'));
+pruefe('/heute hat den Knopf „✅ Freigaben“', in_array('v:fl', $tgZuletzt()['knoepfe'], true));
+$tgAus($tgKnopf($tzChat, 'v:fl'));
+$frL = $tgZuletzt();
+pruefe('Freigaben-Liste: beide Entwürfe, der mit dem höchsten Score zuerst', in_array('v:fv:' . $frVa, $frL['knoepfe'], true) && in_array('v:fv:' . $frVb, $frL['knoepfe'], true)
+    && array_search('v:fv:' . $frVa, $frL['knoepfe'], true) < array_search('v:fv:' . $frVb, $frL['knoepfe'], true), $frL['text']);
+$tgAus($tgKnopf($tzChat, 'v:fv:' . $frVa));
+$frD = $tgZuletzt();
+pruefe('Entwurf lesen: Empfänger, Betrieb (maskiert), Betreff, ganzer Text, Grund und Rechtsprüfung — Knopf „Freigeben“',
+    str_contains($frD['text'], 'inhaber@freigabe-pruef.example') && str_contains($frD['text'], 'Freigabe &lt;b&gt;Prüf&lt;/b&gt; &amp; Söhne')
+    && str_contains($frD['text'], 'Ihre Website auf dem Handy') && str_contains($frD['text'], 'keine weitere Nachricht')
+    && str_contains($frD['text'], 'Kein HTTPS · Langsam auf dem Handy') && str_contains($frD['text'], 'Rechtsprüfung:')
+    && !str_contains($frD['text'], 'Rechtliche Prüfung erforderlich') && in_array('v:ff:' . $frVa, $frD['knoepfe'], true)
+    && in_array('v:fs:' . $frVa, $frD['knoepfe'], true) && in_array('v:fw:' . $frVa, $frD['knoepfe'], true), $frD['text']);
+$tgAus($tgKnopf($tzChat, 'v:ff:' . $frVa));
+pruefe('Freigeben fragt erst nach — mit dem Satz aus Ablauf::TRAGWEITE, und noch ist nichts geschehen',
+    str_contains($tgZuletzt()['text'], 'gelesen und geprüft') && in_array('v:ffj:' . $frVa, $tgZuletzt()['knoepfe'], true)
+    && Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$frVa], '') === 'entwurf');
+$frSess = $_SESSION ?? null;
+$tgAus($tgKnopf($tzChat, 'v:ffj:' . $frVa));
+$frVz = Db::one('SELECT status, freigegeben_von FROM akq_vorlagen WHERE id = ?', [$frVa]);
+pruefe('„Ja, freigeben“: freigegeben, mit Namen und „(Telegram)“ — verschickt ist nichts',
+    $frVz['status'] === 'freigegeben' && str_ends_with((string) $frVz['freigegeben_von'], '(Telegram)')
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$frA], 0) === 0 && str_contains($tgZuletzt()['text'], 'Verschickt ist noch nichts'), json_encode($frVz));
+pruefe('… und steht in der Prüfspur mit demselben Namen', Db::wert("SELECT actor FROM audit_log WHERE action = 'akquise_freigabe' AND entity_id = ? ORDER BY id DESC LIMIT 1", [$frVa], '') === $frVz['freigegeben_von']);
+pruefe('… danach steht die Sitzung wieder wie vorher (kein Rest-Login im Webhook)', ($_SESSION ?? null) === $frSess);
+$tgAus($tgKnopf($tzChat, 'v:ffj:' . $frVa));
+pruefe('Ein zweiter Druck auf den alten Ja-Knopf tut nichts Doppeltes und sagt, warum', str_contains($tgZuletzt()['text'], 'kein Entwurf mehr')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_freigabe' AND entity_id = ?", [$frVa], 0) === 1);
+$tgAus($tgKnopf($tzChat, 'v:fv:' . $frVb));
+$frD = $tgZuletzt();
+pruefe('Kaltakquise ohne Einwilligung: „⚠️ Rechtliche Prüfung erforderlich“, kein Freigeben-Knopf',
+    str_contains($frD['text'], 'Rechtliche Prüfung erforderlich') && !in_array('v:ff:' . $frVb, $frD['knoepfe'], true)
+    && in_array('url:https://pruefung.example/app/akquise/' . $frB, $frD['knoepfe'], true), $frD['text']);
+pruefe('Langer Text mit Zeichen zum Maskieren: gekürzt, bleibt unter 4000 Zeichen und reißt nicht im HTML ab',
+    mb_strlen($frD['text']) < 4000 && str_contains($frD['text'], 'Gekürzt') && substr_count($frD['text'], '<blockquote') === substr_count($frD['text'], '</blockquote>')
+    && !str_contains($frD['text'], '<tag>'));
+$tgAus($tgKnopf($tzChat, 'v:ffj:' . $frVb));
+pruefe('Auch ein gebauter Ja-Knopf gibt ihn nicht frei (die Prüfung sitzt in der Tat, nicht im Knopf)',
+    Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$frVb], '') === 'entwurf' && str_contains($tgZuletzt()['text'], 'Rechtliche Prüfung'));
+$tgAus($tgKnopf($tzChat, 'v:fs:' . $frVb));
+pruefe('„Nicht kontaktieren“ fragt erst nach (Sperrliste, dauerhaft)', str_contains($tgZuletzt()['text'], 'Sperrliste') && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$frB], 0) === 0);
+$tgAus($tgKnopf($tzChat, 'v:fsj:' . $frVb));
+pruefe('„Ja, dauerhaft sperren“: Betrieb gesperrt, E-Mail auf der Sperrliste, Entwurf verworfen, nicht mehr in der Liste',
+    (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$frB], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_sperrliste WHERE art = 'email' AND wert = 'info@kalt-pruef.example'", [], 0) === 1
+    && Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$frVb], '') === 'verworfen'
+    && !in_array('v:fv:' . $frVb, $tgZuletzt()['knoepfe'], true)
+    && str_contains((string) Db::wert("SELECT actor FROM akq_sperrliste WHERE firma_id = ? LIMIT 1", [$frB], ''), '(Telegram)'));
+$frVc = Db::insert('akq_vorlagen', ['firma_id' => $frA, 'sprache' => 'de', 'kanal' => 'email', 'betreff' => 'Zweiter Text', 'text' => $frSauber . ' ',
+    'fingerabdruck' => hash('sha256', 'freig-c-' . $frA), 'status' => 'entwurf']);
+$tgAus($tgKnopf($tzChat, 'v:fw:' . $frVc));
+$tgAus($tgKnopf($tzChat, 'v:fwj:' . $frVc));
+pruefe('Verwerfen (nach Rückfrage): Entwurf verworfen, Betrieb bleibt offen', Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$frVc], '') === 'verworfen'
+    && (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$frA], 0) === 0);
+$frVd = Db::insert('akq_vorlagen', ['firma_id' => $frA, 'sprache' => 'de', 'kanal' => 'email', 'betreff' => 'Dritter Text', 'text' => $frSauber . '  ',
+    'fingerabdruck' => hash('sha256', 'freig-d-' . $frA), 'status' => 'entwurf']);
+$tgNetz = [];
+$tgAus($tgKnopf($tqW, 'v:fl'));
+$tgAus($tgKnopf($tqW, 'v:ffj:' . $frVd));
+pruefe('Ein normaler Nutzer sieht keine Freigaben und kann nichts freigeben — auch nicht mit gebautem Knopf',
+    !str_contains($tgZuletzt()['text'], 'Freigaben') && Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$frVd], '') === 'entwurf'
+    && !str_contains(json_encode($tgNetz, JSON_UNESCAPED_UNICODE), 'freigabe-pruef.example'));
+Db::run('DELETE FROM akq_vorlagen WHERE firma_id IN (?, ?)', [$frA, $frB]);
+Db::run('DELETE FROM akq_sperrliste WHERE firma_id = ?', [$frB]);
+Db::run('DELETE FROM akq_firmen WHERE id IN (?, ?)', [$frA, $frB]);
+
 $tkPerson = 'left'; TelegramAdmin::vergessen();
 $tgAus($tgText($tzChat, '/menu', 'de'));
 $tzMenu = $tgZuletzt()['knoepfe'];

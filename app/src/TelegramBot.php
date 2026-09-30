@@ -847,8 +847,149 @@ final class TelegramBot
             return 'admin_getrennt';
         }
         if ($was === 'heute') { self::zeigeHeute($c, $msgId); return 'heute'; }
+        if (preg_match('/^(fl|fv|ff|ffj|fw|fwj|fs|fsj)(?::(\d{1,9}))?$/', $was, $m)) {
+            return self::freigabeKnopf($c, $m[1], (int) ($m[2] ?? 0), $msgId);
+        }
         self::zeigeLage($c, $msgId);
         return 'lage';
+    }
+
+    /* ---------- Chef-Zentrale Schritt 2: „✅ Freigaben“ (01.10.2026) ----------
+       Liste → Entwurf lesen → Freigeben / Verwerfen / Nicht kontaktieren.
+       Jede Tat erst nach einer Rückfrage mit dem Text aus Ablauf::TRAGWEITE
+       (wie vor dem Knopf in der Verwaltung); der Ja-Knopf trägt ein „j“.
+       Ein zweiter Druck auf einen alten Ja-Knopf tut nichts Doppeltes: Die
+       Funktionen dahinter prüfen den Status selbst und sagen, warum nicht. */
+
+    private static function freigabeKnopf(array $c, string $tat, int $id, ?int $msgId): string
+    {
+        require_once __DIR__ . '/TelegramAkquise.php';
+        $uid = (int) $c['admin_verbunden'];
+        try {
+            switch ($tat) {
+                case 'fl': self::zeigeFreigaben($c, $msgId); return 'freigaben';
+                case 'fv': self::zeigeEntwurf($c, $id, $msgId); return 'entwurf';
+                case 'ff': case 'fw': case 'fs':
+                    return self::freigabeRueckfrage($c, $tat, $id, $msgId);
+                case 'ffj':
+                    TelegramAkquise::freigeben($uid, $id);
+                    self::zeigeFreigaben($c, $msgId, "✅ Entwurf #$id ist freigegeben (gelesen und geprüft). Verschickt ist noch nichts — das geschieht mit eigenem Klick in der Verwaltung.\n\n");
+                    return 'freigegeben';
+                case 'fwj':
+                    TelegramAkquise::verwerfen($uid, $id);
+                    self::zeigeFreigaben($c, $msgId, "❌ Entwurf #$id ist verworfen.\n\n");
+                    return 'verworfen';
+                case 'fsj':
+                    $name = TelegramAkquise::sperren($uid, $id);
+                    self::zeigeFreigaben($c, $msgId, '🚫 <b>' . self::h($name) . "</b> steht jetzt dauerhaft auf der Sperrliste. Offene Texte für diesen Betrieb sind verworfen; er wird nicht wieder vorgeschlagen.\n\n");
+                    return 'gesperrt';
+            }
+        } catch (RuntimeException $e) {
+            // Die Sätze der Akquise sind für Menschen geschrieben — sie gehen so durch.
+            self::zeigen($c, '⚠️ ' . self::h($e->getMessage()), [
+                [['text' => '⬅️ Zum Entwurf', 'callback_data' => 'v:fv:' . $id], ['text' => '📋 Alle Freigaben', 'callback_data' => 'v:fl']],
+            ], $msgId);
+            return 'freigabe_abgelehnt';
+        }
+        return 'lage';
+    }
+
+    private static function zeigeFreigaben(array $c, ?int $msgId = null, string $vorspann = ''): void
+    {
+        $e = TelegramAkquise::entwuerfe();
+        $kanal = ['email' => '✉️', 'brief' => '📮'];
+        $text = $vorspann . "✅ <b>Freigaben</b> — Entwürfe, die auf Sie warten: <b>" . $e['zahl'] . "</b>\n";
+        $knoepfe = [];
+        if (!$e['liste']) {
+            $text .= "\nNichts offen.";
+        } else {
+            $text .= "Die wichtigsten zuerst (Score). Antippen zum Lesen — freigegeben wird erst nach dem Lesen.\n";
+            foreach ($e['liste'] as $z) {
+                $beschr = ($kanal[$z['kanal']] ?? '•') . ' ' . $z['name'] . ($z['stadt'] ? ' · ' . $z['stadt'] : '') . ' · ' . strtoupper((string) $z['sprache']);
+                $knoepfe[] = [['text' => mb_substr($beschr, 0, 60), 'callback_data' => 'v:fv:' . (int) $z['id']]];
+            }
+            if ($e['zahl'] > count($e['liste'])) { $text .= "\n(" . ($e['zahl'] - count($e['liste'])) . " weitere in der Verwaltung)"; }
+        }
+        $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
+        $knoepfe[] = [['text' => '🔄 Aktualisieren', 'callback_data' => 'v:fl'], ['text' => '👥 Betriebe', 'url' => $b . '/akquise']];
+        $knoepfe[] = [['text' => '📊 Heute', 'callback_data' => 'v:heute'], ['text' => '🏠 Übersicht', 'callback_data' => 'v:lage']];
+        self::zeigen($c, $text, $knoepfe, $msgId);
+    }
+
+    private static function zeigeEntwurf(array $c, int $id, ?int $msgId = null): void
+    {
+        $e = TelegramAkquise::entwurf($id);
+        if (!$e) {
+            self::zeigeFreigaben($c, $msgId, "Diesen Entwurf gibt es nicht mehr.\n\n");
+            return;
+        }
+        $v = $e['vorlage']; $f = $e['firma']; $g = $e['gate'];
+        $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
+        $kanal = ['email' => 'E-Mail', 'brief' => 'Brief'][$v['kanal']] ?? (string) $v['kanal'];
+        $an = $v['kanal'] === 'email'
+            ? ((string) ($f['email'] ?? '') !== '' ? (string) $f['email'] : 'keine E-Mail-Adresse hinterlegt')
+            : trim(($f['adresse'] ?? '') . ', ' . ($f['plz'] ?? '') . ' ' . ($f['stadt'] ?? ''), ' ,');
+        $status = AkquiseGate::STATUS[$g['status']] ?? $g['status'];
+        $ampel = [AkquiseGate::ERLAUBT => '🟢', AkquiseGate::PRUEFEN => '🟡', AkquiseGate::NICHT => '🔴', AkquiseGate::UNKLAR => '⚪'][$g['status']] ?? '⚪';
+
+        $kopf = "✉️ <b>Entwurf #" . (int) $v['id'] . "</b> · " . self::h($kanal) . ' · ' . self::h(strtoupper((string) $v['sprache'])) . ($v['status'] !== 'entwurf' ? ' · <i>' . self::h((string) $v['status']) . '</i>' : '') . "\n\n"
+              . "<b>Betrieb:</b> " . self::h((string) $f['name']) . ($f['stadt'] ? ' · ' . self::h((string) $f['stadt']) : '') . "\n"
+              . "<b>Branche:</b> " . self::h(Akquise::branchenName($f['branche'] ?? null)) . ($f['score'] !== null && $f['score'] !== '' ? ' · Score ' . (int) $f['score'] : '') . "\n"
+              . "<b>An:</b> " . self::h($an) . "\n"
+              . "<b>Grund der Kontaktaufnahme:</b> " . ($e['grund'] !== '' ? self::h($e['grund']) : '—') . "\n"
+              . "<b>Rechtsprüfung:</b> " . $ampel . ' ' . self::h($status) . (isset($g['gruende'][0]) ? ' — ' . self::h((string) $g['gruende'][0]) : '') . "\n";
+        // Im Zweifel nicht: Alles außer „erlaubt“ bekommt die Warnung, auch wenn Freigeben möglich ist
+        // (bei „prüfen“ verlangt das Senden später einen Prüfvermerk).
+        if ($g['status'] !== AkquiseGate::ERLAUBT) { $kopf .= "⚠️ <b>Rechtliche Prüfung erforderlich</b>\n"; }
+        if ($e['hinweise']) { $kopf .= "\n<b>Beanstandungen der Textprüfung:</b>\n• " . implode("\n• ", array_map([self::class, 'h'], array_map('strval', $e['hinweise']))) . "\n"; }
+        if (!$e['darfFreigeben']) { $kopf .= "\n🔒 Freigabe hier nicht möglich: " . self::h((string) $e['warum']) . "\n"; }
+
+        // Der Text darf die 4096 Zeichen der Nachricht nicht sprengen — und nie mitten im HTML abreißen.
+        //  Gemessen wird nach dem Maskieren (aus " wird &quot;), sonst schneidet zeigen() später blind.
+        $kopf .= "\n<b>Betreff:</b> " . self::h((string) $v['betreff']) . "\n";
+        $platz = min(TelegramAkquise::TEXT_MAX, 3900 - mb_strlen($kopf) - 80);
+        $mail = (string) $v['text'];
+        $gekuerzt = false;
+        while (mb_strlen(self::h($mail)) > $platz && $mail !== '') {
+            $mail = mb_substr($mail, 0, max(0, mb_strlen($mail) - max(20, mb_strlen(self::h($mail)) - $platz)));
+            $gekuerzt = true;
+        }
+        if ($gekuerzt) { $mail = rtrim($mail) . ' …'; }
+        $text = $kopf
+              . '<blockquote expandable>' . self::h($mail) . '</blockquote>'
+              . ($gekuerzt ? "\n<i>Gekürzt — den ganzen Text zeigt die Verwaltung.</i>" : '');
+
+        $knoepfe = [];
+        if ($e['darfFreigeben']) {
+            $knoepfe[] = [['text' => '✅ Freigeben', 'callback_data' => 'v:ff:' . $id]];
+        } else {
+            $knoepfe[] = [['text' => '⚠️ Rechtliche Prüfung erforderlich', 'url' => $b . '/akquise/' . (int) $f['id']]];
+        }
+        if ($v['status'] === 'entwurf' || $v['status'] === 'freigegeben') {
+            $knoepfe[] = [['text' => '❌ Verwerfen', 'callback_data' => 'v:fw:' . $id], ['text' => '🚫 Nicht kontaktieren', 'callback_data' => 'v:fs:' . $id]];
+        }
+        $knoepfe[] = [['text' => '🔗 In der Verwaltung öffnen', 'url' => $b . '/akquise/' . (int) $f['id']]];
+        $knoepfe[] = [['text' => '⬅️ Alle Freigaben', 'callback_data' => 'v:fl']];
+        self::zeigen($c, $text, $knoepfe, $msgId);
+    }
+
+    /** Rückfrage vor der Tat — was passiert und wem, nicht „Sind Sie sicher?“. */
+    private static function freigabeRueckfrage(array $c, string $tat, int $id, ?int $msgId): string
+    {
+        $e = TelegramAkquise::entwurf($id);
+        if (!$e) { self::zeigeFreigaben($c, $msgId, "Diesen Entwurf gibt es nicht mehr.\n\n"); return 'freigaben'; }
+        if ($tat === 'ff' && !$e['darfFreigeben']) { self::zeigeEntwurf($c, $id, $msgId); return 'entwurf'; }
+        $name = self::h((string) $e['firma']['name']);
+        [$titel, $frage, $ja] = match ($tat) {
+            'ff' => ['✅ <b>Freigeben?</b>', TelegramAkquise::rueckfrage('akq_vorlage_freigeben', 'Der Text gilt damit als gelesen und geprüft. Verschickt wird noch nichts.'), '✅ Ja, freigeben'],
+            'fw' => ['❌ <b>Verwerfen?</b>', 'Der Entwurf wird verworfen und nicht verschickt. Der Betrieb bleibt in der Liste; ein neuer Text lässt sich jederzeit erzeugen.', '❌ Ja, verwerfen'],
+            'fs' => ['🚫 <b>Nicht kontaktieren?</b>', TelegramAkquise::rueckfrage('akq_sperren', 'Die Firma kommt dauerhaft auf die Sperrliste; offene Vorlagen werden verworfen.'), '🚫 Ja, dauerhaft sperren'],
+        };
+        self::zeigen($c, $titel . "\n<b>" . $name . "</b> · Entwurf #" . $id . "\n\n" . self::h($frage), [
+            [['text' => $ja, 'callback_data' => 'v:' . $tat . 'j:' . $id]],
+            [['text' => '⬅️ Nein, zurück zum Entwurf', 'callback_data' => 'v:fv:' . $id]],
+        ], $msgId);
+        return 'rueckfrage';
     }
 
     /** /heute — die Tagesübersicht der Chef-Zentrale (nur lesen, Zahlen aus TelegramAdmin::heute). */
@@ -876,6 +1017,7 @@ final class TelegramBot
               . "<b>Verwaltung</b>\n"
               . "Du bist dran: " . $f($v['du']) . " · Anfragen: " . $f($v['anfragen']) . " · Nachrichten: " . $f($v['nachrichten']);
         self::zeigen($c, $text, [
+            [['text' => '✅ Freigaben' . ($a['entwuerfe'] ? ' (' . $a['entwuerfe'] . ')' : ''), 'callback_data' => 'v:fl']],
             [['text' => '👥 Betriebe', 'url' => $b . '/akquise'], ['text' => '📋 Heute (Verwaltung)', 'url' => $b . '/heute']],
             [['text' => '🔄 Aktualisieren', 'callback_data' => 'v:heute'], ['text' => '🏠 Übersicht', 'callback_data' => 'v:lage']],
             [self::k($c, 'k_menu', 'm:menu')],
@@ -894,7 +1036,7 @@ final class TelegramBot
               . "Neue Dateien (24 h): " . $l['dateien'] . "\n"
               . "Ungelesene Meldungen: " . $l['meldungen'];
         self::zeigen($c, $text, [
-            [['text' => '📊 Heute (Akquise + Verwaltung)', 'callback_data' => 'v:heute']],
+            [['text' => '📊 Heute (Akquise + Verwaltung)', 'callback_data' => 'v:heute'], ['text' => '✅ Freigaben', 'callback_data' => 'v:fl']],
             [['text' => '📋 Heute', 'url' => $b . '/heute'], ['text' => '📥 Anfragen', 'url' => $b . '/anfragen']],
             [['text' => '💬 Nachrichten', 'url' => $b . '/nachrichten'], ['text' => '🔄 Aktualisieren', 'callback_data' => 'v:lage']],
             [['text' => '🔌 Verwaltung trennen', 'callback_data' => 'v:trennen'], self::k($c, 'k_menu', 'm:menu')],
