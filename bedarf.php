@@ -44,6 +44,20 @@ require_once __DIR__ . '/app/src/Einfuehrung.php';
 require_once __DIR__ . '/app/src/Empfehlung.php';
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+
+/* ---------- Als Telegram-Mini-App (30.09.2026) ----------
+   ?tg=QUELLE heißt: Diese Seite läuft im Fenster über dem Telegram-Kanal
+   (telegram-app.php). Drei Unterschiede, sonst ist alles dieselbe Seite:
+   Telegram Web darf sie einbetten; das Sitzungs-Cookie muss dann auch im
+   fremden Rahmen mitkommen (SameSite=None, sonst scheitert das CSRF-Feld
+   bei jedem Klick); und die Anfrage trägt die Herkunft „telegram“. */
+$tg = preg_match('/^[a-z]{2,12}$/', (string) ($_GET['tg'] ?? '')) ? (string) $_GET['tg'] : '';
+if ($tg !== '') {
+    require_once __DIR__ . '/app/src/TelegramApp.php';
+    header('Content-Security-Policy: ' . TelegramApp::EINBETTEN);
+    session_set_cookie_params(['path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'None']);
+}
+$tgZusatz = $tg !== '' ? '&tg=' . rawurlencode($tg) : '';
 session_name('vecombedarf');
 session_start();
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
@@ -76,8 +90,8 @@ $anzahl = Baukasten::schrittZahl();
    umgeschrieben, die Adresse im Browser bleibt aber /e/ANNA3CU. Eine
    relative Weiterleitung landet dann unter /e/bedarf.php, und der Kunde
    steht vor einer toten Seite — ausgerechnet der, den jemand empfohlen hat. */
-$adresse = static function (int $schritt, string $token, string $meldung = '') use ($sprache): string {
-    $u = '/bedarf.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache) . '&schritt=' . $schritt;
+$adresse = static function (int $schritt, string $token, string $meldung = '') use ($sprache, $tgZusatz): string {
+    $u = '/bedarf.php?t=' . rawurlencode($token) . '&lang=' . rawurlencode($sprache) . '&schritt=' . $schritt . $tgZusatz;
     return $meldung !== '' ? $u . '&m=' . rawurlencode($meldung) : $u;
 };
 
@@ -172,7 +186,9 @@ if ($b && $b['customer_id'] !== null) {
         } catch (Throwable $e) { $empfehlCode = ''; }
     }
     // Schon abgesendet? Dann gehoert er ins Dashboard, nicht auf eine Dankeseite
-    if ($imDashboard && $b['status'] !== 'offen' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    // In der Mini-App nicht: Dort zeigt die Dankeseite „Zurück zu Telegram“ (Telegram Web
+    // dürfte das Dashboard ohnehin nicht einbetten).
+    if ($imDashboard && $tg === '' && $b['status'] !== 'offen' && $_SERVER['REQUEST_METHOD'] !== 'POST') {
         header('Location: ' . $dashLink, true, 303); exit;
     }
 }
@@ -201,7 +217,15 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'sprache'      => (string) ($_POST['sprache_wahl'] ?? ''),
                 'demo'         => $demo,
                 'plan'         => $plan,
+                // Aus der Mini-App im Kanal: dieselbe Herkunft wie der Bot
+                'herkunft'     => $tg !== '' ? 'telegram' : '',
             ]);
+            if ($ok && $tg !== '') {
+                try {
+                    $tgKid = (int) Db::wert('SELECT customer_id FROM bedarf WHERE id = ?', [(int) $b['id']], 0);
+                    if ($tgKid > 0) { Events::protokoll('anfrage_quelle', 'Anfrage kam über die Telegram-Mini-App (' . $tg . ')', $tgKid); }
+                } catch (Throwable $e) { /* ein fehlender Vermerk kostet nichts */ }
+            }
             if ($ok) { unset($_SESSION['bedarf_demo'], $_SESSION['bedarf_plan']); }
             /* Kam er über einen Partnerlink, oder hat er in „Wer hat uns
                empfohlen?“ einen Partnercode eingetippt? Dann gehört er ab
@@ -242,7 +266,7 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
             header('Location: /bedarf.php?t=' . rawurlencode((string) $b['token'])
                 . '&lang=' . rawurlencode($zielSprache)
                 . '&schritt=' . $anzahl
-                . '&m=' . ($ok ? 'danke' : 'pflicht')); exit;
+                . '&m=' . ($ok ? 'danke' : 'pflicht') . $tgZusatz); exit;
         }
 
         // Die Antworten dieses Schritts einsammeln. Ein nicht angekreuztes
@@ -327,6 +351,9 @@ $geld = static function (int $cents) use ($sprache): string {
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('titel')) ?> — Vecom Design</title>
+<?php if ($tg !== ''): ?>
+<script src="https://telegram.org/js/telegram-web-app.js?59"></script>
+<?php endif; ?>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
@@ -410,13 +437,22 @@ $geld = static function (int $cents) use ($sprache): string {
 <?php if ($panne || !$b): ?>
   <div class="block">
     <div class="hinweis schlecht"><?= $h($T($panne ? 'panne' : 'weg')) ?></div>
-    <a class="knopf haupt" href="/bedarf.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu')) ?></a>
+    <a class="knopf haupt" href="<?= $tg !== '' ? '/telegram-app.php?neu=1&amp;lang=' . $h($sprache) . '&amp;s=' . $h($tg) : '/bedarf.php?lang=' . $h($sprache) ?>"><?= $h($T('neu')) ?></a>
   </div>
 
-<?php elseif ($m === 'danke' || ($fertig && $schritt === $anzahl)): ?>
+<?php elseif ($m === 'danke' || ($fertig && ($schritt === $anzahl || $tg !== ''))): ?>
   <div class="block">
     <div class="hinweis gut"><?= $h($T('danke')) ?></div>
+    <?php if ($tg !== ''): ?>
+      <button type="button" class="knopf haupt" style="margin-top:12px" data-tg-schliessen><?= $h($T('tgZurueck')) ?></button>
+      <?php if ($dashLink !== ''): ?>
+        <?php /* Der persönliche Bereich öffnet im Browser, nicht im Fenster: Er ist
+                 länger als ein Rechner und gehört nicht in einen fremden Rahmen. */ ?>
+        <a class="knopf" style="margin-top:10px" href="<?= $h($dashLink) ?>" target="_blank" rel="noopener" data-tg-extern><?= $h($T('zumDashboard')) ?></a>
+      <?php endif; ?>
+    <?php else: ?>
     <a class="knopf haupt" style="margin-top:12px" href="<?= $h($zurueck) ?>">Vecom Design</a>
+    <?php endif; ?>
   </div>
 
 <?php else: ?>
@@ -462,7 +498,7 @@ $geld = static function (int $cents) use ($sprache): string {
     <p class="erkannt"><?= $h(strtr($T('demoErkannt'), ['{wahl}' => $demoText])) ?></p>
   <?php endif; ?>
 
-  <form method="post" action="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $h($sprache) ?>">
+  <form method="post" action="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $h($sprache) ?><?= $h($tgZusatz) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="lang" value="<?= $h($sprache) ?>">
     <input type="hidden" name="schritt" value="<?= (int) $schritt ?>">
@@ -619,7 +655,7 @@ $geld = static function (int $cents) use ($sprache): string {
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
       <a class="<?= $l === $sprache ? 'jetzt' : '' ?>"
-         href="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $l ?>&amp;schritt=<?= (int) $schritt ?>"><?= $h($wie) ?></a>
+         href="/bedarf.php?t=<?= $h(rawurlencode((string) $b['token'])) ?>&amp;lang=<?= $l ?>&amp;schritt=<?= (int) $schritt ?><?= $h($tgZusatz) ?>"><?= $h($wie) ?></a>
     <?php endforeach; ?>
   </div>
 <?php endif; ?>
@@ -628,5 +664,29 @@ $geld = static function (int $cents) use ($sprache): string {
          mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen
          Seiten zu finden, obwohl der Kunde hier entscheidet. */ ?>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
+<?php if ($tg !== ''): ?>
+<script>
+/* Mini-App: Telegram sagen, dass die Seite steht, das Fenster ganz öffnen,
+   Farben passend zur Seite. Den Schlüssel im Gerät merken, solange der
+   Rechner offen ist — beim nächsten Öffnen geht es hier weiter
+   (telegram-app.php); nach dem Absenden vergessen. Die Startdaten von
+   Telegram (hinter dem #) werden nicht gelesen und nicht verschickt. */
+(function () {
+  var w = window.Telegram && window.Telegram.WebApp;
+  if (w) {
+    try { w.ready(); w.expand(); w.setHeaderColor('#0e0c09'); w.setBackgroundColor('#0e0c09'); } catch (e) { }
+  }
+  try {
+    <?php if ($b && !$fertig && $m !== 'danke'): ?>localStorage.setItem('vd_tg_bedarf', <?= json_encode((string) $b['token']) ?>);
+    <?php else: ?>localStorage.removeItem('vd_tg_bedarf');
+    <?php endif; ?>
+  } catch (e) { }
+  var k = document.querySelector('[data-tg-schliessen]');
+  if (k) { k.addEventListener('click', function () { if (w) { w.close(); } else { history.back(); } }); }
+  var x = document.querySelector('[data-tg-extern]');
+  if (x && w && w.openLink) { x.addEventListener('click', function (e) { e.preventDefault(); w.openLink(x.href); }); }
+})();
+</script>
+<?php endif; ?>
 </body>
 </html>

@@ -2347,6 +2347,18 @@ if ($post) {
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
 
+            case 'telegram_app_speichern':
+                require_once __DIR__ . '/src/Telegram.php';
+                $tgAppName = trim((string) ($_POST['app'] ?? ''));
+                if ($tgAppName !== '' && !preg_match('/^[A-Za-z0-9_]{3,30}$/', $tgAppName)) {
+                    $_SESSION['fehler'] = 'Der Kurzname besteht aus 3 bis 30 Buchstaben, Ziffern oder Unterstrichen — wie bei @BotFather.';
+                    weiter('einstellungen?b=telegram');
+                }
+                Telegram::setzen('tg_app_name', $tgAppName);
+                Events::protokoll('telegram', 'Telegram: Mini-App ' . ($tgAppName !== '' ? '„' . $tgAppName . '“ eingetragen' : 'ausgetragen'));
+                $_SESSION['gut'] = $tgAppName !== '' ? 'Mini-App eingetragen. Jetzt „Menü im Kanal aktualisieren“, damit die Knöpfe sie öffnen.' : 'Mini-App ausgetragen — die Knöpfe führen wieder in den Bot.';
+                weiter('einstellungen?b=telegram');
+
             case 'telegram_kanal_menue':
                 require_once __DIR__ . '/src/Telegram.php';
                 $e = Telegram::kanalMenue('de');

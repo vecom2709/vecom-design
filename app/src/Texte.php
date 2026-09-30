@@ -2333,6 +2333,8 @@ final class Texte
     ];
 
     public const BEDARF = [
+        // Mini-App im Telegram-Kanal (30.09.2026): nach dem Absenden zurück in den Kanal
+        'tgZurueck' => ['it' => 'Torna a Telegram', 'de' => 'Zurück zu Telegram', 'en' => 'Back to Telegram'],
         'titel' => ['it' => 'Di che cosa ha bisogno?', 'de' => 'Was brauchen Sie?', 'en' => 'What do you need?'],
         'lead'  => [
             'it' => 'Otto domande brevi, circa un minuto e mezzo. Alla fine sa in che ordine di prezzo si muove — senza impegno.',

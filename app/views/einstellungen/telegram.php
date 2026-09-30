@@ -123,6 +123,23 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
     </p>
   <?php endif; ?>
 
+  <?php require_once dirname(__DIR__, 2) . '/src/TelegramApp.php'; $tgApp = TelegramApp::name(); ?>
+  <details style="margin-top:14px"<?= !empty($tgK['id']) && $tgApp === '' ? ' open' : '' ?>>
+    <summary>Mini-App „Preis-Rechner“<?= $tgApp !== '' ? ' — angemeldet als ' . Fmt::h($tgApp) : ' — noch nicht angemeldet' ?></summary>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:10px 0">
+      Die Knöpfe „Preis berechnen“, „Neue Website“ und „Website verbessern“ im Menü-Beitrag öffnen dann den Konfigurator
+      als Fenster über dem Kanal, statt in den Bot zu wechseln. Bei @BotFather mit <code>/newapp</code> anmelden,
+      als Adresse <code style="user-select:all"><?= Fmt::h(TelegramApp::adresse()) ?></code>, danach hier den Kurznamen eintragen
+      und oben „Menü im Kanal aktualisieren“.
+    </p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_app_speichern">
+      <div class="feld"><label>Kurzname der Mini-App <span style="color:var(--leise);font-weight:400">— wie bei @BotFather, z. B. rechner; leer = aus</span></label>
+        <input name="app" spellcheck="false" maxlength="30" value="<?= Fmt::h($tgApp) ?>"></div>
+      <button class="knopf">Speichern</button>
+    </form>
+  </details>
+
   <details style="margin-top:14px"<?= empty($tgK['id']) ? ' open' : '' ?>>
     <summary><?= empty($tgK['id']) ? 'Kanal hinterlegen' : 'Kanal ändern' ?></summary>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">

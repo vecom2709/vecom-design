@@ -359,9 +359,13 @@ final class Telegram
         if (self::einstellung('tg_name') === '') { return ['ok' => false, 'text' => 'Der Bot ist nicht eingerichtet.']; }
         $T = Texte::TELEGRAM[$sp] ?? Texte::TELEGRAM['de'];
         $l = static fn(string $wort): string => self::link('kanal-' . $wort);
+        // Die drei Rechner-Knöpfe öffnen die Mini-App über dem Kanal, sobald
+        // sie bei @BotFather angemeldet ist — vorher den Bot wie bisher.
+        require_once __DIR__ . '/TelegramApp.php';
+        $r = static fn(string $wort): string => TelegramApp::link('kanal-' . $sp . '-' . $wort) ?: $l($wort);
         $knoepfe = [
-            [['text' => $T['k_preis'], 'url' => $l('preis')]],
-            [['text' => $T['k_neu'], 'url' => $l('neu')], ['text' => $T['k_besser'], 'url' => $l('besser')]],
+            [['text' => $T['k_preis'], 'url' => $r('preis')]],
+            [['text' => $T['k_neu'], 'url' => $r('neu')], ['text' => $T['k_besser'], 'url' => $r('besser')]],
             [['text' => $T['k_pruefen'], 'url' => $l('pruefen')], ['text' => $T['k_hosting'], 'url' => $l('hosting')]],
             [['text' => $T['k_logo'], 'url' => $l('logo')], ['text' => $T['k_3d'], 'url' => $l('dreid')]],
             [['text' => $T['k_mensch'], 'url' => $l('mensch')], ['text' => $T['k_kunde'], 'url' => $l('kunde')]],

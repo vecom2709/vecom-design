@@ -13648,7 +13648,9 @@ pruefe('jede gebaute Seite traegt die Weiche im Kopf', $jsOhne === [], implode('
 $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', 'telefon.php',
                 'formular.php', 'rueckruf.php', 'zahl.php', 'z.php', 'd.php', 'bezahlen.php',
                 'domain-pruefung.php', 'pakete-daten.php', 'preise-daten.php', 'stimmen-daten.php',
-                'akquise.php', 'config.local.example.php'];
+                'akquise.php', 'config.local.example.php',
+                // Weiterleitung der Telegram-Mini-App, zeigt selbst nichts; die Sprache kommt aus dem Knopf
+                'telegram-app.php'];
 $jsFehlt = [];
 foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
     $jsName = basename($jsPhp);
@@ -15666,6 +15668,49 @@ pruefe('Kanal-Menü: fragt vorher nach (TRAGWEITE)', Ablauf::wiegt('telegram_kan
 pruefe('Kanal-Menü: jedes Sprungwort führt zu einem Punkt, den das Bot-Menü kennt',
     !array_diff(array_values(TelegramBot::SPRUENGE), ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch'])
     && !array_filter($tkUrls, static fn($u) => !isset(TelegramBot::SPRUENGE[substr($u, strrpos($u, '-') + 1)])));
+/* Mini-App „Preis-Rechner“ über dem Kanal (30.09.2026, Uwe: „Bot direkt im Kanal“ → „ja mach automatisch“) */
+require_once $wurzel . '/src/TelegramApp.php';
+pruefe('Mini-App: Start-Parameter kanal-de-preis → Quelle kanal, Deutsch, Preis',
+    TelegramApp::lesen('kanal-de-preis') === ['quelle' => 'kanal', 'sprache' => 'de', 'einstieg' => 'preis']
+    && TelegramApp::lesen('kanal-en-neu')['einstieg'] === 'neu' && TelegramApp::lesen('kanal-en-neu')['sprache'] === 'en');
+pruefe('Mini-App: leerer oder kaputter Parameter öffnet trotzdem den Rechner (Standard, keine Fehlermeldung)',
+    TelegramApp::lesen('') === ['quelle' => 'telegram', 'sprache' => 'it', 'einstieg' => 'preis']
+    && TelegramApp::lesen('<script>alert(1)</script>', 'de') === ['quelle' => 'telegram', 'sprache' => 'de', 'einstieg' => 'preis']);
+$maTok = TelegramApp::neuerBedarf(TelegramApp::lesen('kanal-de-neu'));
+$maB = Bedarf::laden($maTok);
+pruefe('Mini-App: legt einen offenen Bedarf wie der Bot an (Sprache de, „Neue Website“ beantwortet die Bestandsfrage)',
+    preg_match('/^[0-9a-f]{48}$/', $maTok) === 1 && $maB !== null && $maB['sprache'] === 'de' && $maB['status'] === 'offen'
+    && (Bedarf::antworten($maB)['bestand'] ?? '') === 'neu');
+pruefe('Mini-App: ohne Anmeldung bei @BotFather kein Link — die Knöpfe führen weiter in den Bot', TelegramApp::link('kanal-de-preis') === '');
+Telegram::setzen('tg_app_name', 'rechner');
+$maLink = TelegramApp::link('kanal-de-preis');
+$tgNetz = []; Telegram::setzen('tg_kanal_menue_id', '');
+Telegram::kanalMenue('de');
+$maMS = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
+$maUrls = [];
+foreach ((array) ($maMS['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $bk) { $maUrls[] = (string) ($bk['url'] ?? ''); } }
+pruefe('Mini-App angemeldet: Preis/Neu/Verbessern öffnen sie über dem Kanal, die übrigen sechs führen weiter in den Bot',
+    str_ends_with($maLink, '/rechner?startapp=kanal-de-preis')
+    && count(array_filter($maUrls, static fn($u) => str_contains($u, '/rechner?startapp=kanal-de-'))) === 3
+    && count(array_filter($maUrls, static fn($u) => str_contains($u, '?start=kanal-'))) === 6);
+Telegram::setzen('tg_app_name', '');
+$maBedarf = (string) file_get_contents($oben . '/bedarf.php');
+$maEinstieg = (string) file_get_contents($oben . '/telegram-app.php');
+pruefe('Mini-App: Telegram Web darf einbetten (frame-ancestors), Sitzung mit SameSite=None, Herkunft telegram, Schlüssel im Gerät',
+    str_contains($maBedarf, 'TelegramApp::EINBETTEN') && str_contains($maBedarf, "'samesite' => 'None'")
+    && str_contains($maBedarf, "'herkunft'     => \$tg !== '' ? 'telegram' : ''") && str_contains($maBedarf, 'vd_tg_bedarf')
+    && str_contains($maEinstieg, 'TelegramApp::EINBETTEN') && str_contains(TelegramApp::EINBETTEN, 'https://web.telegram.org'));
+pruefe('Mini-App: die Startdaten von Telegram (tgWebAppData/initData) werden nirgends gelesen',
+    !str_contains($maBedarf . $maEinstieg, 'initData') && !str_contains($maBedarf . $maEinstieg, 'tgWebAppData'));
+pruefe('Mini-App: „Zurück zu Telegram“ dreisprachig', isset(Texte::BEDARF['tgZurueck']['it'], Texte::BEDARF['tgZurueck']['de'], Texte::BEDARF['tgZurueck']['en']));
+$maLegal = true;
+foreach (['it' => 'mini app', 'de' => 'Mini-App', 'en' => 'mini app'] as $maSp => $maWort) {
+    $maLegal = $maLegal && str_contains((string) file_get_contents($oben . '/assets/js/legal-' . $maSp . '.js'), $maWort);
+}
+pruefe('Datenschutzerklärung nennt die Mini-App in allen drei Sprachen', $maLegal);
+pruefe('Bild für @BotFather liegt bei (640×360)', (@getimagesize($oben . '/assets/img/telegram-app.jpg') ?: [0, 0])[0] === 640
+    && (@getimagesize($oben . '/assets/img/telegram-app.jpg') ?: [0, 0])[1] === 360);
+
 $tkNeu = 555300222;
 $tgAus($tgText($tkNeu, '/start kanal-preis', 'de'));
 pruefe('Kanal-Knopf bei einem Neuen: erst die Sprachwahl (nie automatisch), Quelle „kanal“ gemerkt',
