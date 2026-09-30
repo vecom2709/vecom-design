@@ -182,6 +182,8 @@ $reiter = [
   'marketing' => [
     ['marketing', 'Überblick', 'marketing'],
     ['kampagnen', 'Kampagnen', 'kampagnen'],
+    ['zielgruppen', 'Zielgruppen', 'zielgruppen'],
+    ['recherche', 'Recherche', 'recherche'],
   ],
   'dashboard' => [
     ['dashboard', 'Zahlen', 'dashboard'],

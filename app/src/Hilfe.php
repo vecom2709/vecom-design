@@ -47,6 +47,8 @@ final class Hilfe
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',
         'marketing'          => 'Hier siehst du, welche Maßnahme Besucher bringt und wer davon Kunde wird — Aufrufe, Leads, Kunden, Umsatz und Kosten aus den vorhandenen Daten, mit dem, was klemmt, und dem, was du tun kannst.',
         'kampagnen'          => 'Hier legst du für jeden Beitrag, jede Anzeige und jeden Flyer einen eigenen Link an und siehst, was er bringt — Klicks, Leads, Kunden, Umsatz und Kosten.',
+        'zielgruppen'        => 'Hier stehen die Zielgruppen je Branche und Land — was sie plagt, was sie wollen, wie sie suchen. Claude liefert Entwürfe mit Quellen, du gibst frei.',
+        'recherche'          => 'Hier landet, was Claude recherchiert hat: Themen, Trends, häufige Fragen und Wettbewerb, jeweils mit Quelle. Merken, verwenden oder verwerfen.',
         'tracking'           => 'Hier siehst du, welcher Partner wen gebracht hat und was daraus wurde — vom Klick über Preisrechner und Anfrage bis zur Zahlung. Anonym, bis jemand selbst seine E-Mail einträgt.',
         'statistiken'        => 'Hier siehst du, wie viele Besucher kommen, woher, auf welche Seite — und was sie anklicken. Ohne IP, ohne Cookie.',
         'suche'              => 'Hier findest du Kunden, Bestellungen und Angebote über Name, Nummer oder E-Mail.',

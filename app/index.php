@@ -523,6 +523,21 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
                 weiter('tracking#einstellungen');
 
+            /* Zielgruppen und Recherche (Marketing-Studio Schritt 1, 01.10.2026) */
+            case 'zielgruppe_freigeben':
+            case 'zielgruppe_verwerfen':
+                require_once __DIR__ . '/src/MkZielgruppe.php';
+                $mzId = (int) ($_POST['id'] ?? 0);
+                $f = $tat === 'zielgruppe_freigeben' ? MkZielgruppe::freigeben($mzId) : MkZielgruppe::verwerfen($mzId);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($tat === 'zielgruppe_freigeben' ? 'Freigegeben — Content und Kampagnen dürfen sich jetzt darauf stützen.' : 'Verworfen.');
+                weiter($tat === 'zielgruppe_freigeben' || MkZielgruppe::laden($mzId) !== null ? 'zielgruppen/' . $mzId : 'zielgruppen');
+
+            case 'recherche_status':
+                require_once __DIR__ . '/src/MkZielgruppe.php';
+                $f = MkZielgruppe::rechercheStatus((int) ($_POST['id'] ?? 0), (string) ($_POST['status'] ?? ''));
+                if ($f !== null) { $_SESSION['fehler'] = $f; }
+                weiter('recherche' . (isset($_POST['zurueck']) && preg_match('/^[a-z=&_0-9-]*$/', (string) $_POST['zurueck']) ? '?' . $_POST['zurueck'] : ''));
+
             /* Kampagnen (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“) */
             case 'kampagne_anlegen':
                 require_once __DIR__ . '/src/MkKampagne.php';
@@ -4396,6 +4411,24 @@ switch ($route) {
         }
         $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? '')];
         ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF)]);
+        break;
+
+    case 'zielgruppen':   // Marketing-Studio Schritt 1 (01.10.2026)
+        require_once __DIR__ . '/src/MkZielgruppe.php';
+        if ($id !== null) {
+            $mz = MkZielgruppe::laden($id);
+            if ($mz === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            ansicht('zielgruppe', ['z' => $mz, 'daten' => MkZielgruppe::datengrundlage((string) $mz['branche'], (string) $mz['land']),
+                'funde' => MkZielgruppe::recherche(['branche' => (string) $mz['branche']], 12)]);
+            break;
+        }
+        ansicht('zielgruppen', ['liste' => MkZielgruppe::alle(), 'fehlend' => MkZielgruppe::fehlend()]);
+        break;
+
+    case 'recherche':
+        require_once __DIR__ . '/src/MkZielgruppe.php';
+        $mrF = ['art' => (string) ($_GET['art'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')];
+        ansicht('recherche', ['f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF)]);
         break;
 
     case 'statistiken':

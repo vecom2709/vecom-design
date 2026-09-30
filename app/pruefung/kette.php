@@ -16888,6 +16888,108 @@ foreach (['de' => 'Beitritte je Link', 'it' => 'iscrizioni per link', 'en' => 'j
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_titel', '');
 
 /* ============================================================================
+   Marketing-Studio 1: Zielgruppen und Recherche (01.10.2026, Uwe: „Ja, so bauen“)
+   Claude liefert über die Worker-Tür nur Entwürfe mit Quellen; freigegeben
+   wird in der Verwaltung. Datengrundlage aus eigenen Zahlen.
+   ============================================================================ */
+abschnitt('Marketing-Studio: Zielgruppen und Recherche');
+require_once $wurzel . '/src/MkZielgruppe.php';
+$mzProfil = static fn(array $mehr = []): array => $mehr + [
+    'branche' => 'agriturismo', 'land' => 'IT', 'titel' => 'Agriturismi in Sicilia', 'kurz' => 'Kleine Familienbetriebe, <b>stark</b> saisonal.',
+    'ansprache' => 'Du, herzlich, konkret.', 'probleme' => ['Buchungen nur über Portale', 'Keine eigene Website', 'Fotos veraltet', 'Buchungen nur über Portale', ''],
+    'wuensche' => ['Direktbuchungen'], 'suchbegriffe' => ['agriturismo sicilia'], 'bezahlt' => ['zielgruppe' => 'Reisende 30–60', 'keywords' => ['agriturismo con piscina'], 'budget' => '5 € am Tag'],
+    'quellen' => [['titel' => 'ISTAT Agriturismo 2025', 'url' => 'https://www.istat.it/agriturismo', 'datum' => '2025-11'], ['titel' => 'böse', 'url' => 'javascript:alert(1)']],
+];
+pruefe('Zielgruppe: Branche aus dem Wortschatz, Land IT/DE, mindestens drei Probleme und eine Quelle — sonst kein Profil',
+    is_string(MkZielgruppe::pruefen($mzProfil(['branche' => 'mondfahrt']))) && is_string(MkZielgruppe::pruefen($mzProfil(['land' => 'FR'])))
+    && is_string(MkZielgruppe::pruefen($mzProfil(['probleme' => ['a', 'b']]))) && is_string(MkZielgruppe::pruefen($mzProfil(['quellen' => [['titel' => 'x', 'url' => 'javascript:alert(1)']]]))));
+$mzP = MkZielgruppe::pruefen($mzProfil());
+pruefe('Zielgruppe: Text ohne HTML, Doppeltes und Leeres entfernt, nur http(s)-Quellen',
+    is_array($mzP) && $mzP['kurz'] === 'Kleine Familienbetriebe, stark saisonal.' && count($mzP['probleme']) === 3 && count($mzP['quellen']) === 1
+    && $mzP['bezahlt']['keywords'] === ['agriturismo con piscina']);
+$mzE = MkZielgruppe::melden($mzProfil());
+$mzId = (int) ($mzE['id'] ?? 0);
+pruefe('Zielgruppe: von Claude geliefert = Entwurf, noch nicht gültig', $mzE['ok'] === true && MkZielgruppe::laden($mzId)['status'] === 'entwurf'
+    && MkZielgruppe::freigegeben('agriturismo', 'IT') === null);
+MkZielgruppe::freigeben($mzId);
+MkZielgruppe::melden($mzProfil(['titel' => 'Agriturismi in Sicilia · überarbeitet']));
+$mzZ = MkZielgruppe::laden($mzId);
+pruefe('Zielgruppe: eine Überarbeitung wartet als Entwurf, die freigegebene Fassung gilt weiter',
+    $mzZ['status'] === 'entwurf' && $mzZ['v'] !== null && (MkZielgruppe::freigegeben('agriturismo', 'IT')['titel'] ?? '') === 'Agriturismi in Sicilia');
+MkZielgruppe::verwerfen($mzId);
+pruefe('Zielgruppe: Überarbeitung verwerfen stellt die alte Fassung wieder her', MkZielgruppe::laden($mzId)['status'] === 'freigegeben'
+    && MkZielgruppe::laden($mzId)['titel'] === 'Agriturismi in Sicilia' && MkZielgruppe::laden($mzId)['vorher'] === null);
+$mzE2 = MkZielgruppe::melden($mzProfil(['branche' => 'friseur', 'land' => 'DE', 'titel' => 'Friseure in Deutschland']));
+MkZielgruppe::verwerfen((int) $mzE2['id']);
+pruefe('Zielgruppe: einen nie freigegebenen Entwurf verwerfen entfernt ihn', MkZielgruppe::laden((int) $mzE2['id']) === null);
+
+/* Recherche */
+$mzR = MkZielgruppe::rechercheMelden([
+    ['art' => 'frage', 'titel' => 'Brauche ich eine eigene Website, wenn ich auf Booking bin?', 'text' => 'Häufige Frage in Foren.', 'branche' => 'agriturismo', 'land' => 'IT', 'relevanz' => 5,
+     'quellen' => [['titel' => 'Forum', 'url' => 'https://example.org/forum']]],
+    ['art' => 'frage', 'titel' => 'Brauche ich eine eigene Website, wenn ich auf Booking bin?', 'text' => 'Doppelt.', 'branche' => 'agriturismo', 'land' => 'IT',
+     'quellen' => [['titel' => 'Forum', 'url' => 'https://example.org/forum']]],
+    ['art' => 'trend', 'titel' => 'Ohne Quelle', 'text' => 'x', 'quellen' => []],
+    ['art' => 'klatsch', 'titel' => 'Falsche Art', 'text' => 'x', 'quellen' => [['url' => 'https://example.org']]],
+    ['art' => 'trend', 'titel' => 'Kurzvideos in der Gastronomie', 'text' => 'Reels bringen Reichweite.', 'branche' => 'restaurant', 'relevanz' => 9,
+     'quellen' => [['titel' => 'Studie', 'url' => 'https://example.org/studie']]],
+]);
+pruefe('Recherche: neue Funde übernommen, Doppeltes übersprungen, ohne Quelle oder mit falscher Art nicht',
+    $mzR['neu'] === 2 && $mzR['doppelt'] === 1 && count($mzR['fehler']) === 2, json_encode($mzR));
+$mzF = MkZielgruppe::recherche(['branche' => 'restaurant']);
+pruefe('Recherche: Relevanz auf 1–5 begrenzt, Filter nach Branche', count($mzF) === 1 && (int) $mzF[0]['relevanz'] === 5 && $mzF[0]['q'][0]['url'] === 'https://example.org/studie');
+MkZielgruppe::rechercheStatus((int) $mzF[0]['id'], 'verworfen');
+pruefe('Recherche: Verworfenes verschwindet aus der Liste, bleibt aber gegen Wiederholung gemerkt',
+    MkZielgruppe::recherche(['branche' => 'restaurant']) === [] && count(MkZielgruppe::recherche(['branche' => 'restaurant', 'status' => 'verworfen'])) === 1
+    && MkZielgruppe::rechercheMelden([['art' => 'trend', 'titel' => 'Kurzvideos in der Gastronomie', 'text' => 'nochmal', 'branche' => 'restaurant', 'quellen' => [['url' => 'https://example.org/b']]]])['doppelt'] === 1
+    && MkZielgruppe::rechercheStatus((int) $mzF[0]['id'], 'kaputt') !== null);
+
+/* Datengrundlage aus eigenen Zahlen */
+$mzFirma = static fn(string $name, ?string $domain) => (int) Db::insert('akq_firmen', ['kennung' => 'L-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8)), 'name' => $name, 'name_norm' => strtolower($name),
+    'land' => 'IT', 'branche' => 'agriturismo', 'domain' => $domain, 'score' => 70]);
+$mzF1 = $mzFirma('Agri Uno', 'agri-uno-mz.example'); $mzF2 = $mzFirma('Agri Due', 'agri-due-mz.example'); $mzFirma('Agri Tre', null);
+foreach ([$mzF1, $mzF2] as $mzFi) {
+    $mzAu = (int) Db::insert('akq_audits', ['firma_id' => $mzFi, 'gestartet_am' => date('Y-m-d H:i:s'), 'status' => 'fertig']);
+    Db::insert('akq_befunde', ['audit_id' => $mzAu, 'firma_id' => $mzFi, 'kategorie' => 'mobile', 'code' => 'tel_nicht_klickbar', 'titel' => 'Telefonnummer nicht antippbar', 'status' => 'VERIFIED', 'erkannt_am' => date('Y-m-d H:i:s')]);
+}
+$mzD = MkZielgruppe::datengrundlage('agriturismo', 'IT');
+pruefe('Datengrundlage: gezählt — Betriebe, geprüft, ohne Website, häufigster Befund mit Anteil',
+    $mzD['firmen'] >= 3 && $mzD['geprueft'] >= 2 && $mzD['ohne_website'] >= 1 && ($mzD['befunde'][0]['code'] ?? '') === 'tel_nicht_klickbar' && $mzD['befunde'][0]['anteil'] > 0, json_encode($mzD));
+
+/* Die Tür: lesen und Entwürfe liefern, nie freigeben */
+$mzDaten = AkquiseWorker::ausfuehren('marketing_daten', ['branche' => 'agriturismo']);
+pruefe('Worker-Tür: marketing_daten liefert Zahlen je Branche, Wortschatz und vorhandene Profile — keine Personen',
+    $mzDaten['ok'] === true && ($mzDaten['branchen'][0]['branche'] ?? '') === 'agriturismo' && isset($mzDaten['wortschatz']['restaurant'])
+    && !str_contains(json_encode($mzDaten), 'Agri Uno') && !str_contains(json_encode($mzDaten), '@'));
+$mzT = AkquiseWorker::ausfuehren('marketing_zielgruppe', ['zielgruppe' => $mzProfil(['branche' => 'hotel', 'titel' => 'Hotels in Sizilien'])]);
+pruefe('Worker-Tür: marketing_zielgruppe legt nur einen Entwurf an; marketing_recherche prüft wie oben',
+    $mzT['ok'] === true && MkZielgruppe::laden((int) $mzT['id'])['status'] === 'entwurf'
+    && AkquiseWorker::ausfuehren('marketing_recherche', ['funde' => [['art' => 'thema', 'titel' => 'T', 'text' => 'x']]])['neu'] === 0
+    && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb') || str_contains($a, 'send') || str_contains($a, 'post')));
+$mzB = (string) file_get_contents($oben . '/tools/marketing/bruecke.mjs');
+pruefe('Brücke auf dem PC: Schlüssel aus tools/akquise/.env, nur im Kopf der Anfrage, nie ausgegeben',
+    str_contains($mzB, "'X-Vecom-Akquise': schluessel") && !preg_match('/console\.(log|error)\([^)]*schluessel\)/', $mzB) && !str_contains($mzB, 'freigeb('));
+
+/* Verwaltung */
+$mzLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Verwaltung: Reiter Zielgruppen und Recherche unter Marketing, mit Hilfesatz', str_contains($mzLay, "['zielgruppen', 'Zielgruppen', 'zielgruppen']")
+    && str_contains($mzLay, "['recherche', 'Recherche', 'recherche']") && Hilfe::satz('zielgruppen') !== '' && Hilfe::satz('recherche') !== '');
+$mzIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Freigeben, Verwerfen und Recherche-Status nur hinter Anmeldung und CSRF',
+    strpos($mzIdx, "case 'zielgruppe_freigeben':") > strpos($mzIdx, 'Csrf::pruefen()') && strpos($mzIdx, "case 'recherche_status':") > strpos($mzIdx, 'Csrf::pruefen()'));
+$mzFehler = null; set_error_handler(static function (int $n, string $m) use (&$mzFehler): bool { $mzFehler = $m; return true; });
+$liste = MkZielgruppe::alle(); $fehlend = MkZielgruppe::fehlend();
+ob_start(); require $wurzel . '/views/zielgruppen.php'; $mzH1 = (string) ob_get_clean();
+$z = MkZielgruppe::laden((int) $mzT['id']); $daten = MkZielgruppe::datengrundlage('hotel', 'IT'); $funde = MkZielgruppe::recherche(['branche' => 'hotel'], 12);
+ob_start(); require $wurzel . '/views/zielgruppe.php'; $mzH2 = (string) ob_get_clean();
+$f = ['art' => '', 'branche' => '', 'status' => '']; $funde = MkZielgruppe::recherche($f);
+ob_start(); require $wurzel . '/views/recherche.php'; $mzH3 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Zielgruppen, Profil und Recherche rendern ohne Warnung — Quellen öffnen sicher in neuem Fenster',
+    $mzFehler === null && str_contains($mzH1, 'Hotels in Sizilien') && str_contains($mzH2, 'Zielgruppe freigeben') && str_contains($mzH2, 'rel="noopener noreferrer nofollow"')
+    && str_contains($mzH2, 'Datengrundlage') && str_contains($mzH3, 'Brauche ich eine eigene Website'), (string) $mzFehler);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
