@@ -69,7 +69,12 @@ body{display:grid;place-items:center}</style>
   // (gesehen am 30.09.2026: kam das „fertig“ erst von bedarf.php, blieb der Ladekreis).
   try { window.Telegram.WebApp.ready(); } catch (e) { }
   // Der Teil hinter dem # geht mit — er bleibt im Gerät, der Server sieht ihn nie.
-  location.replace((ok ? <?= json_encode($weiter, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?> + t : <?= json_encode($neu, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>) + location.hash);
+  var ziel = (ok ? <?= json_encode($weiter, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?> + t : <?= json_encode($neu, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG) ?>) + location.hash;
+  // Erst weiter, wenn dieses Dokument fertig geladen ist: Telegram Web richtet
+  // sich am „load“ des Rahmens ein — sprang die Seite schon während des
+  // Aufbaus weiter, kamen dort keine Nachrichten an (gemessen 30.09.2026).
+  var los = function () { setTimeout(function () { location.replace(ziel); }, 30); };
+  if (document.readyState === 'complete') { los(); } else { window.addEventListener('load', los); }
 })();
 </script>
 <noscript><a href="<?= htmlspecialchars($neu, ENT_QUOTES) ?>">→ Vecom Design</a></noscript>
