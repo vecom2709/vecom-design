@@ -95,6 +95,11 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
     <div class="hinweis gut">Verbunden mit <b><?= Fmt::h((string) ($tgK['titel'] ?: $tgK['id'])) ?></b><?=
       !empty($tgK['link']) ? ' — <a href="' . Fmt::h((string) $tgK['link']) . '" target="_blank" rel="noopener">' . Fmt::h((string) $tgK['link']) . '</a>' : '' ?>.
       <?php if (!empty($tg['kanal_zuletzt'])): ?>Letzter Beitrag: <?= Fmt::h((string) $tg['kanal_zuletzt']) ?>.<?php endif; ?></div>
+    <?php /* Growth Engine T1 (01.10.2026): Stand aus dem täglichen Lauf, nicht bei jedem Aufruf Telegram fragen. */
+      $tgSt = null; try { $tgSt = Db::one("SELECT tag, zahl FROM tg_tage WHERE art = 'kanal_stand' ORDER BY tag DESC LIMIT 1"); } catch (Throwable $e) { } ?>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:10px 0 0">
+      <b>Mitglieder:</b> <?= $tgSt ? number_format((int) $tgSt['zahl'], 0, ',', '.') . ' (Stand ' . Fmt::h(date('d.m.Y', strtotime((string) $tgSt['tag']))) . ')' : 'noch nicht gemessen — der tägliche Lauf trägt die Zahl ein' ?>.
+      Beitritte je Quelle zählen über eigene Einladungslinks, die eine <a href="<?= Fmt::h(url('kampagnen')) ?>">Kampagne</a> anlegt. Dafür braucht der Bot im Kanal das Recht „Nutzer einladen“.</p>
 
     <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 8px">
       <b>Menü im Kanal:</b> ein angehefteter Beitrag mit denselben Knöpfen wie im Bot (Preis-Richtwert, neue Website,

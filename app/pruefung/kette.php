@@ -15216,9 +15216,10 @@ $tgNetz = [];
 $tgAn = Telegram::anmelden();
 $tgSet = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'setWebhook'))[0][1] ?? [];
 $tgCmds = array_filter($tgNetz, static fn($x) => $x[0] === 'setMyCommands');
-pruefe('Webhook anmelden: eigene Adresse, 64-stelliges Prüfwort, nur message + callback_query, Stau verwerfen, Befehle in drei Sprachen',
+pruefe('Webhook anmelden: eigene Adresse, 64-stelliges Prüfwort, nur message + callback_query (+ chat_member für Kanal-Beitritte seit T1), Stau verwerfen, Befehle in drei Sprachen',
     $tgAn['ok'] && ($tgSet['url'] ?? '') === 'https://pruefung.example/telegram-webhook.php'
-    && strlen((string) ($tgSet['secret_token'] ?? '')) === 64 && ($tgSet['allowed_updates'] ?? []) === ['message', 'callback_query']
+    && strlen((string) ($tgSet['secret_token'] ?? '')) === 64 && ($tgSet['allowed_updates'] ?? []) === ['message', 'callback_query', 'chat_member']
+    && Telegram::einstellung('tg_updates') === 'message,callback_query,chat_member'
     && !empty($tgSet['drop_pending_updates']) && Telegram::pruefwort() === $tgSet['secret_token'] && Telegram::bereit()
     && count($tgCmds) === 4, json_encode($tgSet));
 
@@ -16731,6 +16732,160 @@ pruefe('Verwaltung: Liste und Kampagne zeigen Ziel, Branche, CTA, Budget, Laufze
     $kmFehler === null && str_contains($kmHtml1, 'Vergleich') && str_contains($kmHtml1, 'Website-Checks') && str_contains($kmHtml1, 'mk-budget')
     && str_contains($kmHtml2, 'Ziel · Website-Checks') && str_contains($kmHtml2, 'Restaurant') && str_contains($kmHtml2, 'Jetzt Ampel ansehen') && str_contains($kmHtml2, 'erreicht')
     && str_contains($kmHtml2, 'name="budget"'), (string) $kmFehler);
+
+/* ============================================================================
+   Telegram Growth Engine T1: Messung (01.10.2026, Uwe: „Ja mach“)
+   ============================================================================ */
+abschnitt('Telegram Growth Engine T1: Messung');
+require_once $wurzel . '/src/TelegramWachstum.php';
+$gwNetz = [];
+Telegram::$netz = static function (string $m, array $d) use (&$gwNetz): array {
+    $gwNetz[] = [$m, $d];
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => 9100 + count($gwNetz)]]; }
+    if ($m === 'createChatInviteLink') {
+        return str_contains((string) ($d['name'] ?? ''), 'ohne-recht') ? ['ok' => false, 'result' => null, 'beschreibung' => 'Bad Request: not enough rights to manage chat invite link']
+            : ['ok' => true, 'result' => ['invite_link' => 'https://t.me/+PruefLink' . substr(md5((string) $d['name']), 0, 10), 'name' => $d['name']]];
+    }
+    if ($m === 'getChatMemberCount') { return ['ok' => true, 'result' => 57]; }
+    return ['ok' => true, 'result' => true];
+};
+Telegram::setzen('tg_name', 'vecom_pruef_bot');
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+Telegram::setzen('tg_kanal_titel', 'Vecom Design');
+$gwHeute = date('Y-m-d');
+$gwS = static fn(?string $q = null): array => TelegramWachstum::summen($gwHeute, $gwHeute, $q);
+$gwK = (int) MkKampagne::anlegen(['name' => 'WegFinder Prüfung', 'plattform' => 'telegram', 'code' => 'tg-wegfinder']);
+$gwWm = (int) MkKampagne::werbemittelAnlegen($gwK, ['name' => 'Beitrag 1', 'code' => 'post1', 'art' => 'beitrag']);
+$gwKa = MkKampagne::laden($gwK);
+
+$gwA = 555000901;
+$tgAus($tgText($gwA, '/start m_tg-wegfinder_post1', 'de'));
+$gwC = $tgChat($gwA);
+$gwB = $gwC && $gwC['spur_besuch_id'] ? Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $gwC['spur_besuch_id']]) : null;
+pruefe('T1: Bot-Start über m_CODE_WERBEMITTEL — Quelle am Chat, Besuch in derselben Spur wie /k/ (Quelle telegram, ohne IP, ohne Gerät)',
+    $gwC && $gwC['quelle_code'] === 'm_tg-wegfinder_post1' && $gwB && (int) $gwB['kampagne_id'] === $gwK && (int) $gwB['creative_id'] === $gwWm
+    && $gwB['quelle'] === 'telegram' && $gwB['ip_hash'] === '' && $gwB['partner_id'] === null && $gwB['region'] === '', json_encode([$gwC['quelle_code'] ?? null, $gwB]));
+pruefe('T1: … zählt als Klick der Kampagne (campaign_visit) und als Bot-Start und neuer Nutzer dieser Quelle',
+    (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE kampagne_id = ? AND event_type = 'campaign_visit'", [$gwK], 0) === 1
+    && $gwS('m_tg-wegfinder_post1')['bot_start'] === 1 && $gwS('m_tg-wegfinder_post1')['bot_neu'] === 1
+    && (MkKampagne::zahlen($gwHeute, $gwHeute)[$gwK]['klicks'] ?? 0) === 1, json_encode($gwS('m_tg-wegfinder_post1')));
+$tgAus($tgText($gwA, '/start m_tg-wegfinder', 'de'));
+pruefe('T1: Ein zweiter Start zählt als Klick, aber Quelle und Besuch bleiben die ersten (wie auf der Website)',
+    $tgChat($gwA)['quelle_code'] === 'm_tg-wegfinder_post1' && (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE kampagne_id = ?', [$gwK], 0) === 1
+    && $gwS('m_tg-wegfinder')['bot_start'] === 1 && $gwS('m_tg-wegfinder')['bot_neu'] === null);
+$gwX = 555000902;
+$tgAus($tgText($gwX, '/start m_gibt-es-nicht', 'de'));
+MkKampagne::aendern($gwK, ['name' => 'WegFinder Prüfung', 'plattform' => 'telegram', 'ziel' => '/', 'status' => 'pausiert']);
+$gwY = 555000903;
+$tgAus($tgText($gwY, '/start m_tg-wegfinder', 'de'));
+MkKampagne::aendern($gwK, ['name' => 'WegFinder Prüfung', 'plattform' => 'telegram', 'ziel' => '/', 'status' => 'aktiv']);
+pruefe('T1: Unbekannte oder pausierte Kampagne: kein Besuch, keine Quelle, kein Zähler — der Bot startet trotzdem normal',
+    empty($tgChat($gwX)['quelle_code']) && empty($tgChat($gwX)['spur_besuch_id']) && empty($tgChat($gwY)['spur_besuch_id'])
+    && $gwS('m_gibt-es-nicht')['bot_start'] === null && $gwS('m_tg-wegfinder')['bot_start'] === 1 && $tgChat($gwY)['stand'] === 'sprache');
+
+/* Der Weg bis zum Lead: Beratung aus dem Bot — die Anfrage hängt an der Kampagne, ohne dass Anfrage.php Telegram kennt. */
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+foreach (['l:de', 'm:logo', 'b:logo', 'd:ja'] as $gwD) { $tgAus($tgKnopf($gwA, $gwD)); }
+$tgAus($tgText($gwA, 'Paola Kampagne'));
+$tgAus($tgText($gwA, 'paola.kampagne@pruefung.example'));
+$tgAus($tgText($gwA, 'Ich brauche ein Logo für meine Bäckerei.'));
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+$tgAus($tgKnopf($gwA, 's:ja'));
+$gwAnf = Db::one('SELECT * FROM anfragen WHERE id = ?', [(int) $tgChat($gwA)['anfrage_id']]);
+$gwZ = MkKampagne::zahlen($gwHeute, $gwHeute)[$gwK] ?? [];
+pruefe('T1: Anfrage aus dem Bot = Lead der Kampagne, Besuch hängt am Kunden (Angebot, Auftrag und Zahlung folgen ihm von selbst)',
+    $gwAnf && ($gwZ['leads'] ?? 0) === 1 && (int) Db::wert('SELECT customer_id FROM spur_besuche WHERE id = ?', [(int) $gwB['id']], 0) === (int) $gwAnf['customer_id']
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE kampagne_id = ? AND event_type = 'lead_created' AND customer_id = ?", [$gwK, (int) $gwAnf['customer_id']], 0) === 1,
+    json_encode($gwZ));
+pruefe('T1: Nach jeder Nachricht ist der vorgegebene Besuch wieder vergessen (kein Übersprechen auf die nächste)', Spur::aktuellerBesuch() === null);
+Spur::ereignis('offer_created', ['customer_id' => (int) $gwAnf['customer_id'], 'betrag_cents' => 150000]);
+pruefe('T1: Ein späteres Angebot an diesen Kunden zählt für die Telegram-Kampagne', (MkKampagne::zahlen($gwHeute, $gwHeute)[$gwK]['angebote'] ?? 0) === 1);
+
+/* Aktiv und wiederkehrend */
+$gwVor = $gwS();
+Db::run("UPDATE telegram_chats SET letzte_am = NOW() - INTERVAL 2 DAY, created_at = NOW() - INTERVAL 5 DAY, takt_zahl = 0 WHERE chat_id = ?", [$gwA]);
+$tgAus($tgText($gwA, '/menu'));
+$tgAus($tgText($gwA, '/menu'));
+$gwNach = $gwS();
+pruefe('T1: Wer nach Tagen wiederkommt, zählt einmal am Tag als aktiv und wiederkehrend — die zweite Nachricht nicht noch einmal',
+    ($gwNach['bot_aktiv'] ?? 0) - ($gwVor['bot_aktiv'] ?? 0) === 1 && ($gwNach['bot_wieder'] ?? 0) - ($gwVor['bot_wieder'] ?? 0) === 1, json_encode([$gwVor, $gwNach]));
+pruefe('T1: Tageszahlen tragen keine Chat-Kennung — nur Tag, Art, Quelle und Zahl',
+    array_column(Db::all('SHOW COLUMNS FROM tg_tage'), 'Field') === ['tag', 'art', 'quelle', 'zahl']
+    && (int) Db::wert("SELECT COUNT(*) FROM tg_tage WHERE quelle LIKE '%55500%'", [], 0) === 0);
+
+/* Kanal: eigener Einladungslink je Kampagne, Beitritte je Link */
+$gwNetz = [];
+$gwE = TelegramWachstum::einladungAnlegen($gwK, 'Prüfer');
+$gwLink = (string) ($gwE['link'] ?? '');
+$gwCall = array_values(array_filter($gwNetz, static fn($x) => $x[0] === 'createChatInviteLink'));
+pruefe('T1: Kanal-Link für die Kampagne: bei Telegram angelegt (Name m_CODE, unser Kanal), gespeichert',
+    $gwE['ok'] && str_starts_with($gwLink, 'https://t.me/+') && count($gwCall) === 1 && $gwCall[0][1]['name'] === 'm_tg-wegfinder'
+    && $gwCall[0][1]['chat_id'] === '-1004410953446' && TelegramWachstum::einladung($gwK)['link'] === $gwLink, json_encode($gwE));
+$gwNetz = [];
+$gwE2 = TelegramWachstum::einladungAnlegen($gwK, 'Prüfer');
+pruefe('T1: … ein zweiter Klick legt keinen zweiten Link an', ($gwE2['link'] ?? '') === $gwLink && !array_filter($gwNetz, static fn($x) => $x[0] === 'createChatInviteLink'));
+$gwOhne = (int) MkKampagne::anlegen(['name' => 'Ohne Recht', 'plattform' => 'telegram', 'code' => 'ohne-recht']);
+$gwE3 = TelegramWachstum::einladungAnlegen($gwOhne, 'Prüfer');
+pruefe('T1: Fehlt dem Bot das Recht, sagt die Verwaltung genau, welches (und legt nichts an)',
+    !$gwE3['ok'] && str_contains($gwE3['text'], 'Nutzer einladen') && TelegramWachstum::einladung($gwOhne) === null);
+$gwCm = static fn(string $alt, string $neu, string $link = '', string $chat = '-1004410953446'): array => array_filter([
+    'chat' => ['id' => (int) $chat, 'type' => 'channel'], 'from' => ['id' => 777001, 'is_bot' => false], 'date' => time(),
+    'old_chat_member' => ['user' => ['id' => 777001, 'is_bot' => false, 'first_name' => 'Heimlich'], 'status' => $alt],
+    'new_chat_member' => ['user' => ['id' => 777001, 'is_bot' => false, 'first_name' => 'Heimlich'], 'status' => $neu],
+    'invite_link' => $link !== '' ? ['invite_link' => $link, 'name' => 'm_tg-wegfinder'] : null]);
+$gwV1 = TelegramWachstum::mitglied($gwCm('left', 'member', $gwLink));
+$gwV2 = TelegramWachstum::mitglied($gwCm('left', 'member'));
+$gwV3 = TelegramWachstum::mitglied($gwCm('member', 'left'));
+$gwV4 = TelegramWachstum::mitglied($gwCm('left', 'member', $gwLink, '-1009999999999'));
+$gwV5 = TelegramWachstum::mitglied($gwCm('member', 'administrator'));
+pruefe('T1: Beitritt über den Kampagnen-Link zählt für die Kampagne, ohne Link als „ohne“, Austritt als Austritt; fremder Kanal und Rollenwechsel zählen nicht',
+    [$gwV1, $gwV2, $gwV3, $gwV4, $gwV5] === ['beitritt', 'beitritt', 'austritt', 'fremder_chat', 'unveraendert']
+    && $gwS('m_tg-wegfinder')['kanal_bei'] === 1 && $gwS('')['kanal_bei'] === 1 && $gwS()['kanal_aus'] === 1
+    && (int) TelegramWachstum::einladung($gwK)['beitritte'] === 1 && TelegramWachstum::kampagne($gwKa, $gwHeute, $gwHeute)['kanal_bei'] === 1,
+    json_encode([$gwV1, $gwV2, $gwV3, $gwV4, $gwV5, $gwS()]));
+$gwSpeicher = '';
+foreach (['tg_tage', 'tg_einladungen', 'telegram_chats'] as $gwT) { $gwSpeicher .= json_encode(Db::all("SELECT * FROM $gwT"), JSON_UNESCAPED_UNICODE); }
+pruefe('T1: Wer beigetreten ist, steht nirgends — weder Kennung noch Vorname', !str_contains($gwSpeicher, '777001') && !str_contains($gwSpeicher, 'Heimlich'));
+pruefe('T1: telegram-webhook.php verteilt „chat_member“ an die Zählung, Telegram bekommt es bestellt',
+    str_contains((string) file_get_contents($oben . '/telegram-webhook.php'), "TelegramWachstum::mitglied((array) \$u['chat_member'])") && in_array('chat_member', Telegram::UPDATES, true));
+
+/* Webhook nachziehen, Mitgliederstand */
+Telegram::setzen('tg_updates', 'message,callback_query');
+$gwWebhookVor = Telegram::einstellung('tg_webhook_am');
+if ($gwWebhookVor === '') { Telegram::setzen('tg_webhook_am', date('Y-m-d H:i:s')); }
+$gwNetz = [];
+$gwN = Telegram::webhookNachziehen();
+$gwSet = array_values(array_filter($gwNetz, static fn($x) => $x[0] === 'setWebhook'))[0][1] ?? [];
+pruefe('T1: Neue Update-Art: der tägliche Lauf meldet den Webhook mit DEMSELBEN Prüfwort nach, ohne wartende Updates zu verwerfen',
+    Telegram::bereit() && ($gwN['ok'] && in_array('chat_member', (array) ($gwSet['allowed_updates'] ?? []), true) && ($gwSet['secret_token'] ?? '') === Telegram::pruefwort()
+    && !isset($gwSet['drop_pending_updates']) && Telegram::einstellung('tg_updates') === implode(',', Telegram::UPDATES)), json_encode([$gwN, Telegram::bereit()]));
+$gwNetz = [];
+Telegram::webhookNachziehen();
+pruefe('T1: … und danach nicht bei jedem Lauf wieder', !array_filter($gwNetz, static fn($x) => $x[0] === 'setWebhook'));
+if ($gwWebhookVor === '') { Telegram::setzen('tg_webhook_am', ''); }
+pruefe('T1: Mitgliederstand des Kanals als Momentaufnahme (getChatMemberCount), zweimal am Tag = derselbe Wert, nicht die Summe',
+    Telegram::bereit() && (TelegramWachstum::kanalStand() === 57 && TelegramWachstum::kanalStand() === 57 && $gwS()['kanal_stand'] === 57));
+pruefe('T1: Der tägliche Lauf zieht nach, misst und räumt auf', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Telegram::webhookNachziehen()')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'TelegramWachstum::kanalStand()'));
+
+/* Verwaltung und Datenschutz */
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$z = MkKennzahlen::zeitraum('30'); $k = $gwKa; $zahl = MkKampagne::zahlen($z[0], $z[1])[$gwK] ?? []; $jeWerbemittel = MkKampagne::zahlen($z[0], $z[1], $gwK);
+$werbemittel = MkKampagne::werbemittel($gwK); $kosten = []; $kostenZeitraum = 0; $belege = []; $kontakte = MkKampagne::kontakte($gwK);
+$tgKampagne = ['bot' => TelegramWachstum::botLink($gwKa), 'kanal' => Telegram::kanal(), 'einladung' => TelegramWachstum::einladung($gwK), 'zahl' => TelegramWachstum::kampagne($gwKa, $z[0], $z[1])];
+ob_start(); require $wurzel . '/views/kampagne.php'; $gwHtml = (string) ob_get_clean();
+$tgKampagne = null;
+restore_error_handler();
+pruefe('T1: Kampagnenseite zeigt Bot-Link, QR zum Bot, Kanal-Link und die Telegram-Zahlen — ohne Warnung',
+    $kaFehler === null && str_contains($gwHtml, 'https://t.me/vecom_pruef_bot?start=m_tg-wegfinder') && str_contains($gwHtml, Fmt::h($gwLink))
+    && str_contains($gwHtml, 'Kanal-Beitritte') && substr_count($gwHtml, '<svg') >= 2, (string) $kaFehler);
+$gwIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('T1: Aktion „Kanal-Link anlegen“ hinter Anmeldung und CSRF, mit Prüfspur',
+    strpos($gwIdx, "case 'kampagne_telegram_link':") > strpos($gwIdx, 'Csrf::pruefen()') && str_contains($gwIdx, "Events::pruefspur('telegram_einladung'"));
+foreach (['de' => 'Beitritte je Link', 'it' => 'iscrizioni per link', 'en' => 'joins per link'] as $gwL => $gwW) {
+    pruefe('T1: Datenschutz (' . $gwL . '): Kampagne im Bot und Beitritte je Link beschrieben', str_contains((string) file_get_contents($oben . '/assets/js/legal-' . $gwL . '.js'), $gwW));
+}
+Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_titel', '');
 
 /* ============================================================================
    Aufräumen und Bilanz

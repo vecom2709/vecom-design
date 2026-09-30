@@ -6,6 +6,7 @@
  * Kosten (auch mit Beleg aus „Ausgaben“), wer darüber kam, Einstellungen.
  *
  * Erwartet: $z, $k, $zahl, $jeWerbemittel, $werbemittel, $kosten, $kostenZeitraum, $belege, $kontakte.
+ * Seit 01.10.2026 (Telegram Growth Engine T1) auch $tgKampagne: Bot-Link, Kanal, Kanal-Einladungslink, Zahlen.
  */
 [$von, $bis, $zk] = $z;
 $leer = MkKampagne::LEER;
@@ -62,6 +63,43 @@ require __DIR__ . '/mk_stil.php';
     </figure>
   </div>
 </div>
+
+<?php $tgK = $tgKampagne ?? null; if ($tgK !== null): $tgZ = $tgK['zahl']; $tgE = $tgK['einladung']; ?>
+<div class="block" id="telegram">
+  <h2>Telegram <span class="mehr">dieselbe Kampagne im Bot und im Kanal</span></h2>
+  <?php if ($tgK['bot'] === ''): ?>
+    <p class="leise">Der Bot ist noch nicht eingerichtet (Einstellungen → Telegram) — dann erscheint hier sein Link für diese Kampagne.</p>
+  <?php else: ?>
+  <div class="mk-teilen">
+    <div>
+      <label class="leise" for="kl_tgbot" style="margin:0">Bot-Link — startet den Vecom-Bot; Preisrechner, Anfrage und Kunde zählen für diese Kampagne</label>
+      <div class="mk-link"><input id="kl_tgbot" readonly value="<?= Fmt::h($tgK['bot']) ?>"><button class="knopf" type="button" data-kopieren="kl_tgbot">Kopieren</button></div>
+      <?php if ($tgK['kanal']['id'] === ''): ?>
+        <p class="mk-fein" style="margin:6px 0 0">Kanal-Link: erst den Kanal hinterlegen (Einstellungen → Telegram).</p>
+      <?php elseif ($tgE): ?>
+        <label class="leise" for="kl_tgkanal" style="margin:6px 0 0">Kanal-Link — tritt dem Kanal bei; Beitritte darüber zählen für diese Kampagne</label>
+        <div class="mk-link"><input id="kl_tgkanal" readonly value="<?= Fmt::h((string) $tgE['link']) ?>"><button class="knopf" type="button" data-kopieren="kl_tgkanal">Kopieren</button></div>
+      <?php else: ?>
+        <form method="post" action="<?= Fmt::h(url('kampagnen/' . $id)) ?>" style="margin:8px 0 0">
+          <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_telegram_link"><input type="hidden" name="id" value="<?= $id ?>">
+          <button class="knopf">Kanal-Link für diese Kampagne anlegen</button>
+          <span class="mk-fein">Ein eigener Einladungslink des Kanals „<?= Fmt::h($tgK['kanal']['titel'] ?: 'Vecom Design') ?>“ — so sieht man, wie viele über diese Kampagne beitreten.</span>
+        </form>
+      <?php endif; ?>
+      <p class="mk-fein" style="margin:6px 0 0">Gezählt wird, wie viele über diese Links kamen — nicht, wer. Aufrufe einzelner Kanalbeiträge gibt Telegram an Bots nicht heraus; die stehen in Telegrams eigener Kanalstatistik.</p>
+    </div>
+    <figure style="margin:0;text-align:center">
+      <div class="mk-qr"><?= MkKampagne::qr($tgK['bot']) ?></div>
+      <figcaption class="mk-fein" style="margin-top:6px">QR zum Bot</figcaption>
+    </figure>
+  </div>
+  <div class="karten mk-karten" style="margin-top:12px">
+    <div class="karte"><h3>Bot-Starts</h3><div class="wert"><?= $n($tgZ['bot_start']) ?></div><div class="neben"><?= $n($tgZ['bot_neu']) ?> davon neue Nutzer · im Zeitraum</div></div>
+    <div class="karte"><h3>Kanal-Beitritte</h3><div class="wert"><?= $tgE ? $n($tgZ['kanal_bei']) : '–' ?></div><div class="neben"><?= $tgE ? 'über den Kanal-Link, im Zeitraum' : 'erst mit Kanal-Link messbar' ?></div></div>
+  </div>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
 
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('kampagnen/' . $id)) ?>">
   <nav class="mk-chips" aria-label="Zeitraum">

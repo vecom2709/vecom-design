@@ -387,7 +387,12 @@ final class Cron
         if (self::heuteNochNicht('cron_telegram')) {
             $aufgaben['telegram'] = static function () {
                 require_once __DIR__ . '/TelegramBot.php';
-                return TelegramBot::aufraeumen();
+                require_once __DIR__ . '/TelegramWachstum.php';
+                // Growth Engine T1 (01.10.2026): neue Update-Arten bei Telegram nachmelden,
+                // Mitgliederstand des Kanals festhalten, alte Tageszahlen weg.
+                $nach = Telegram::webhookNachziehen();
+                return TelegramBot::aufraeumen() + ['webhook' => $nach['text'], 'kanal_mitglieder' => TelegramWachstum::kanalStand(),
+                    'tageszahlen_geloescht' => TelegramWachstum::aufraeumen()];
             };
         }
         // Partner-Tracking (30.09.2026): Einzeldaten nach der Frist zu Tageszahlen,

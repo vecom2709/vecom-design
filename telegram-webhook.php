@@ -68,13 +68,19 @@ if (strlen($roh) > 262144) { $aus(413); }
 $u = json_decode($roh, true);
 if (!is_array($u) || !isset($u['update_id']) || !is_int($u['update_id'])) { $aus(400); }
 
-$typ = isset($u['callback_query']) ? 'callback_query' : (isset($u['message']) ? 'message' : 'anderes');
+$typ = isset($u['callback_query']) ? 'callback_query' : (isset($u['message']) ? 'message' : (isset($u['chat_member']) ? 'chat_member' : 'anderes'));
 $annahme = Webhook::annehmen('telegram', (string) $u['update_id'], $typ, json_encode(['typ' => $typ]));
 if (!$annahme['weiter']) { $aus($annahme['code'], $annahme['text']); }
 $eid = (int) $annahme['id'];
 
 try {
-    $vermerk = TelegramBot::verarbeiten($u);
+    if ($typ === 'chat_member') {
+        // Beitritt/Austritt im Kanal (Growth Engine T1): nur gezählt, nie die Person gespeichert.
+        require_once __DIR__ . '/app/src/TelegramWachstum.php';
+        $vermerk = TelegramWachstum::mitglied((array) $u['chat_member']);
+    } else {
+        $vermerk = TelegramBot::verarbeiten($u);
+    }
     Db::update('webhook_events', $eid, ['status' => 'verarbeitet', 'event_type' => mb_substr($typ . ':' . $vermerk, 0, 80),
         'processed_at' => date('Y-m-d H:i:s')]);
     try { Telegram::setzen('tg_zuletzt', date('Y-m-d H:i:s')); } catch (Throwable $e) { }

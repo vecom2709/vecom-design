@@ -552,6 +552,15 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Kosten eingetragen.';
                 weiter('kampagnen/' . $mkId . '#kosten');
 
+            /* Telegram Growth Engine T1 (01.10.2026): eigener Kanal-Einladungslink je Kampagne. */
+            case 'kampagne_telegram_link':
+                require_once __DIR__ . '/src/TelegramWachstum.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $tgE = TelegramWachstum::einladungAnlegen($mkId, Auth::name());
+                if ($tgE['ok']) { Events::pruefspur('telegram_einladung', 'mk_kampagnen', $mkId, [], ['link' => $tgE['link'] ?? '']); }
+                $_SESSION[$tgE['ok'] ? 'gut' : 'fehler'] = $tgE['text'];
+                weiter('kampagnen/' . $mkId . '#telegram');
+
             case 'kampagne_kosten_loeschen':
                 require_once __DIR__ . '/src/MkKampagne.php';
                 $mkId = MkKampagne::kostenLoeschen((int) ($_POST['kosten_id'] ?? 0));
@@ -4377,6 +4386,11 @@ switch ($route) {
                 'werbemittel' => MkKampagne::werbemittel($id), 'kosten' => MkKampagne::kosten($id),
                 'kostenZeitraum' => MkKampagne::kostenJe($mkZ[0], $mkZ[1])[$id] ?? 0,
                 'belege' => MkKampagne::freieBelege(), 'kontakte' => MkKampagne::kontakte($id),
+                'tgKampagne' => (static function () use ($mkK, $mkZ, $id) {   // Telegram Growth Engine T1
+                    require_once __DIR__ . '/src/TelegramWachstum.php';
+                    return ['bot' => TelegramWachstum::botLink($mkK), 'kanal' => Telegram::kanal(), 'einladung' => TelegramWachstum::einladung($id),
+                            'zahl' => TelegramWachstum::kampagne($mkK, $mkZ[0], $mkZ[1])];
+                })(),
             ]);
             break;
         }

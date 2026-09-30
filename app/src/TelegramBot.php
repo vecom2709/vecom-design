@@ -113,8 +113,43 @@ final class TelegramBot
         }
 
         $vorschlag = substr(strtolower((string) ($von['language_code'] ?? '')), 0, 2);
+        self::$neuerChat = false;
         $c = self::chat($chatId, in_array($vorschlag, ['it', 'de', 'en'], true) ? $vorschlag : null);
+        $neu = self::$neuerChat;
 
+        // Growth Engine T1 (01.10.2026): aktiv / wiederkehrend zählen — vor takt(), das letzte_am überschreibt.
+        require_once __DIR__ . '/TelegramWachstum.php';
+        TelegramWachstum::botKontakt($c, $neu);
+        // Kam der Chat über einen Kampagnenlink, gehören alle Ereignisse dieser Nachricht zu jenem Besuch.
+        self::spurVorgeben($c);
+
+        try {
+            $vermerk = self::verarbeitenChat($c, $cq, $msg);
+        } finally {
+            // Der vorgegebene Besuch gilt nur für diese Nachricht (in einem langen Prozess — der Kette — sonst auch für die nächste).
+            if (class_exists('Spur', false)) { Spur::vergessen(); }
+        }
+        // Neue Nutzer mit ihrer Quelle — die steht erst nach /start fest.
+        if ($neu) {
+            TelegramWachstum::zaehlen('bot_neu', (string) Db::wert('SELECT quelle_code FROM telegram_chats WHERE id = ?', [(int) $c['id']], ''));
+        }
+        return $vermerk;
+    }
+
+    /** true, wenn chat() in dieser Anfrage einen Chat neu angelegt hat. */
+    private static bool $neuerChat = false;
+
+    private static function spurVorgeben(array $c): void
+    {
+        if (empty($c['spur_besuch_id'])) { return; }
+        try {
+            require_once __DIR__ . '/Spur.php';
+            Spur::besuchVorgeben(Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $c['spur_besuch_id']]) ?: null);
+        } catch (Throwable $e) { }
+    }
+
+    private static function verarbeitenChat(array $c, ?array $cq, array $msg): string
+    {
         $takt = self::takt($c);
         if ($takt !== 'ok') {
             if ($cq) { self::antwortKnopf((string) ($cq['id'] ?? '')); }
@@ -197,6 +232,23 @@ final class TelegramBot
                 // Die erste Quelle zählt — wie auf der Website.
                 if ($arg !== '' && preg_match('/^[pe]_[A-Za-z0-9]{5,16}$/', $arg) && empty($c['quelle_code'])) {
                     $c = self::setzen($c, ['quelle_code' => strtolower($arg[0]) . '_' . strtoupper(substr($arg, 2))]);
+                }
+                // Kampagnenlink: ?start=m_CODE oder m_CODE_WERBEMITTEL (Growth Engine T1,
+                // 01.10.2026) — dieselbe Kampagne wie /k/CODE. Jeder Start zählt als
+                // Klick; Quelle und Besuch bekommt der Chat nur beim ersten Mal.
+                if (str_starts_with($arg, 'm_')) {
+                    require_once __DIR__ . '/TelegramWachstum.php';
+                    [$mk, $mcr, $mq] = TelegramWachstum::kampagneAusStart($arg);
+                    if ($mk !== null) {
+                        TelegramWachstum::zaehlen('bot_start', $mq);
+                        if (empty($c['quelle_code'])) {
+                            require_once __DIR__ . '/Spur.php';
+                            $sb = Spur::telegramBesuch($mk, $mcr, (string) ($c['sprache'] ?? $c['sprache_vorschlag'] ?? ''));
+                            $c = self::setzen($c, ['quelle_code' => $mq, 'spur_besuch_id' => $sb !== null ? (int) $sb['id'] : null]);
+                            if ($sb !== null) { Spur::besuchVorgeben($sb); }
+                        }
+                    }
+                    $arg = '';
                 }
                 // Knopf aus dem Menü-Beitrag im Kanal: ?start=kanal-preis — Quelle
                 // „kanal“, und der Bot springt direkt zu diesem Punkt (30.09.2026).
@@ -1266,6 +1318,7 @@ final class TelegramBot
         if ($c) { return $c; }
         try {
             Db::insert('telegram_chats', ['chat_id' => $chatId, 'sprache_vorschlag' => $vorschlag, 'stand' => 'neu']);
+            self::$neuerChat = true;
         } catch (Throwable $e) {
             if (!Db::andrang($e) && !Db::doppelt($e)) { throw $e; }
         }

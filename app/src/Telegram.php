@@ -35,7 +35,7 @@ final class Telegram
     public const API = 'https://api.telegram.org';
 
     /** Nur diese Arten von Updates bestellen wir — alles andere schickt Telegram gar nicht erst. */
-    public const UPDATES = ['message', 'callback_query'];
+    public const UPDATES = ['message', 'callback_query', 'chat_member'];   // chat_member: Kanal-Beitritte je Einladungslink (Growth Engine T1)
 
     /** Für die Kette: ersetzt das Netz. fn(string $methode, array $daten): array{ok:bool,...} */
     public static $netz = null;
@@ -129,10 +129,34 @@ final class Telegram
         if (!$r['ok']) { return ['ok' => false, 'text' => 'Telegram hat die Anmeldung abgelehnt: ' . $r['beschreibung']]; }
         self::geheimSetzen('tg_pruefwort', $wort);
         self::setzen('tg_webhook_am', date('Y-m-d H:i:s'));
+        self::setzen('tg_updates', implode(',', self::UPDATES));
 
         self::texteSetzen();
 
         return ['ok' => true, 'text' => 'Angemeldet. Telegram schickt ab jetzt alles an ' . self::adresse() . '.'];
+    }
+
+    /**
+     * Kommt eine neue Art von Update dazu (01.10.2026: chat_member), muss
+     * Telegram das erfahren — sonst schickt es sie nie. Statt Uwe zum
+     * erneuten Anmelden zu schicken, meldet der tägliche Lauf den Webhook
+     * mit demselben Prüfwort nach. Kein drop_pending_updates: Es geht nichts
+     * verloren, was gerade wartet.
+     *
+     * @return array{ok:bool, text:string}
+     */
+    public static function webhookNachziehen(): array
+    {
+        $soll = implode(',', self::UPDATES);
+        if (self::einstellung('tg_updates') === $soll) { return ['ok' => true, 'text' => 'aktuell']; }
+        if (!self::bereit() || self::einstellung('tg_webhook_am') === '') { return ['ok' => true, 'text' => 'nicht angemeldet']; }
+        $r = self::rufen('setWebhook', [
+            'url' => self::adresse(), 'secret_token' => self::pruefwort(),
+            'allowed_updates' => self::UPDATES, 'max_connections' => 10,
+        ]);
+        if (!$r['ok']) { return ['ok' => false, 'text' => 'Telegram hat abgelehnt: ' . $r['beschreibung']]; }
+        self::setzen('tg_updates', $soll);
+        return ['ok' => true, 'text' => 'Webhook nachgezogen: ' . $soll];
     }
 
     /**
@@ -247,8 +271,11 @@ final class Telegram
        jedem Beitrag im Bot (?start=kanal → „kam über: kanal“ im Verlauf).
 
        Der Bot ist im Kanal Admin mit genau zwei Rechten: posten und
-       bearbeiten. Er kann dort nichts löschen, niemanden hinzufügen oder
-       sperren und keine Admins ernennen — gesetzt von Hand in Telegram,
+       bearbeiten — seit dem 01.10.2026 (Growth Engine T1) zusätzlich
+       „Nutzer einladen“, damit er je Kampagne einen eigenen Einladungslink
+       anlegen und Beitritte darüber zählen kann (nur auf Klick in der
+       Verwaltung). Er kann dort nichts löschen, niemanden sperren und keine
+       Admins ernennen — gesetzt von Hand in Telegram,
        geprüft hier bei jedem Speichern (getChatMember).
 
        Der Link ist ein eigenes Feld, weil ein privater Kanal keinen
@@ -312,7 +339,6 @@ final class Telegram
         // Mehr Rechte als nötig sind kein Fehler, aber ein Hinweis wert.
         $zuviel = array_keys(array_filter([
             'löschen' => !empty($r['can_delete_messages']),
-            'Nutzer einladen' => !empty($r['can_invite_users']),
             'Admins ernennen' => !empty($r['can_promote_members']),
             'Kanal ändern' => !empty($r['can_change_info']),
         ]));

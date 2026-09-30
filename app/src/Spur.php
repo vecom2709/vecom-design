@@ -232,6 +232,42 @@ final class Spur
         return self::$besuch;
     }
 
+    /**
+     * Telegram (01.10.2026, T1): Im Webhook gibt es kein Cookie. Der Bot sagt
+     * hier, welcher Besuch zu diesem Chat gehört — dann hängen sich alle
+     * Ereignisse dieser Anfrage (Preisrechner in Bedarf, Lead in Anfrage …)
+     * an ihn, ohne dass eine dieser Stellen Telegram kennen muss.
+     */
+    public static function besuchVorgeben(?array $b): void { self::$besuch = $b; self::$gesucht = true; }
+
+    /**
+     * Ein Bot-Start über einen Kampagnenlink (t.me/BOT?start=m_CODE): derselbe
+     * Besuch wie ein Klick auf /k/CODE, nur ohne Browser — kein Cookie, keine
+     * IP, kein Gerät, keine Region. Quelle „telegram“. Gemerkt wird er nicht
+     * im Browser, sondern am Chat (telegram_chats.spur_besuch_id), und nur so
+     * lange, wie der Chat besteht.
+     *
+     * @param array{id:int,code:string} $k
+     * @param array{id:int,code:string}|null $cr
+     */
+    public static function telegramBesuch(array $k, ?array $cr, string $sprache = ''): ?array
+    {
+        if (!self::an()) { return null; }
+        try {
+            $id = Db::insert('spur_besuche', [
+                'visitor_id' => self::neueId('VIS-', 8), 'session_id' => bin2hex(random_bytes(16)),
+                'partner_id' => null, 'kampagne_id' => (int) $k['id'], 'creative_id' => $cr !== null ? (int) $cr['id'] : null,
+                'kanal' => 'telegram', 'neu' => 1, 'einwilligung' => 0, 'einstieg' => 'telegram:start', 'aktuell' => 'telegram:start',
+                'quelle' => 'telegram', 'utm_source' => 'telegram', 'utm_medium' => 'bot', 'utm_campaign' => mb_substr((string) $k['code'], 0, 80),
+                'utm_content' => mb_substr((string) ($cr['code'] ?? ''), 0, 80), 'geraet' => 'telegram', 'sprache' => mb_substr($sprache, 0, 5),
+            ]);
+            $b = Db::one('SELECT * FROM spur_besuche WHERE id = ?', [$id]);
+            if (!$b) { return null; }
+            self::ereignis('campaign_visit', ['besuch' => $b, 'seite' => 'telegram:start', 'meta' => array_filter(['kanal' => 'telegram', 'werbemittel' => $cr['code'] ?? null])]);
+            return $b;
+        } catch (Throwable $e) { error_log('Spur::telegramBesuch: ' . $e->getMessage()); return null; }
+    }
+
     /** Für die Kette: Zwischenspeicher leeren, wenn sich Cookies ändern. */
     public static function vergessen(): void { self::$besuch = null; self::$gesucht = false; }
 
