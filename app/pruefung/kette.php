@@ -16988,6 +16988,131 @@ restore_error_handler();
 pruefe('Verwaltung: Zielgruppen, Profil und Recherche rendern ohne Warnung — Quellen öffnen sicher in neuem Fenster',
     $mzFehler === null && str_contains($mzH1, 'Hotels in Sizilien') && str_contains($mzH2, 'Zielgruppe freigeben') && str_contains($mzH2, 'rel="noopener noreferrer nofollow"')
     && str_contains($mzH2, 'Datengrundlage') && str_contains($mzH3, 'Brauche ich eine eigene Website'), (string) $mzFehler);
+/* ============================================================================
+   Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
+   ============================================================================ */
+abschnitt('Telegram Growth Engine T2: Dashboard');
+require_once $wurzel . '/src/TelegramZahlen.php';
+require_once $wurzel . '/src/TelegramApp.php';
+$t2Heute = date('Y-m-d');
+$t2Vor = TelegramWachstum::summen($t2Heute, $t2Heute);
+$t2K = (int) MkKampagne::anlegen(['name' => 'Gastro Telegram', 'plattform' => 'telegram', 'code' => 'tg-t2']);
+MkKampagne::werbemittelAnlegen($t2K, ['name' => 'Beitrag A', 'code' => 'a1', 'art' => 'beitrag']);
+$t2P = Partner::laden(Partner::anlegen(['name' => 'Ulli Telegram', 'email' => 'ulli-t2@partner.example', 'status' => 'aktiv']));
+$t2Klick = static function (int $chat, string $d) use ($tgAus, $tgKnopf): void { Db::run('UPDATE telegram_chats SET takt_zahl = 0'); $tgAus($tgKnopf($chat, $d)); };
+$t2Text = static function (int $chat, string $t) use ($tgAus, $tgText): void { Db::run('UPDATE telegram_chats SET takt_zahl = 0'); $tgAus($tgText($chat, $t)); };
+
+/* Chat A: über die Kampagne, Preisrechner bis zum Ergebnis, zweimal hinein, dann Anfrage */
+$t2A = 555000951;
+$t2Text($t2A, '/start m_tg-t2');
+$t2Klick($t2A, 'l:de');
+$t2Klick($t2A, 'm:preis');
+foreach (['t:0:kontakt', 'w:0', 'q:1:wenige', 'q:2:2', 't:3:texte', 'w:3', 'q:4:neu', 'q:5:offen', 'q:6:ja', 'q:7:gastro'] as $t2D) { $t2Klick($t2A, $t2D); }
+pruefe('T2: Stufen je Chat — Wegweiser, Interesse, Preisrechner gestartet und abgeschlossen, in dieser Reihenfolge',
+    $tgChat($t2A)['stand'] === 'ergebnis' && explode(',', (string) $tgChat($t2A)['stufen']) === ['wegweiser', 'interesse', 'rechner', 'rechner_fertig'],
+    json_encode([$tgChat($t2A)['stand'], $tgChat($t2A)['stufen']]));
+$t2Klick($t2A, 'r:senden'); $t2Klick($t2A, 'd:ja');
+$t2Text($t2A, 'Gino Gastro'); $t2Text($t2A, 'gino.t2@pruefung.example');
+$t2Klick($t2A, 's:ja');
+$t2KdA = (int) $tgChat($t2A)['customer_id'];
+pruefe('T2: Anfrage aus dem Bot = Stufe Lead der Quelle, und der Kunde kam über Telegram (Herkunft m_tg-t2, Weg bot)',
+    $t2KdA > 0 && TelegramWachstum::summen($t2Heute, $t2Heute, 'm_tg-t2')['lead'] === 1
+    && Db::one('SELECT quelle, weg FROM tg_herkunft WHERE customer_id = ?', [$t2KdA]) == ['quelle' => 'm_tg-t2', 'weg' => 'bot'],
+    json_encode([$t2KdA, $tgChat($t2A)['stand'], $tgChat($t2A)['stufen']]));
+$t2Klick($t2A, 'm:preis');
+$t2Klick($t2A, 'm:menu');
+$t2Klick($t2A, 'm:preis');
+pruefe('T2: Wer zweimal in den Preisrechner geht, zählt einmal (je Stufe und Chat)',
+    TelegramWachstum::summen($t2Heute, $t2Heute, 'm_tg-t2')['rechner'] === 1 && TelegramWachstum::summen($t2Heute, $t2Heute, 'm_tg-t2')['wegweiser'] === 1
+    && TelegramWachstum::summen($t2Heute, $t2Heute, 'm_tg-t2')['rechner_fertig'] === 1, (string) $tgChat($t2A)['stufen']);
+TelegramWachstum::herkunftMerken($t2KdA, 'p_ANDERS', 'app');
+pruefe('T2: Die erste Herkunft bleibt', Db::wert('SELECT quelle FROM tg_herkunft WHERE customer_id = ?', [$t2KdA], '') === 'm_tg-t2');
+
+/* Chat B: Werbemittel derselben Kampagne — zählt im Dashboard zur Kampagne */
+$t2B = 555000952;
+$t2Text($t2B, '/start m_tg-t2_a1');
+/* Chat C: Partner-Link, persönliche Beratung, Website-Check */
+$t2C = 555000953;
+$t2Text($t2C, '/start p_' . $t2P['code']);
+$t2Klick($t2C, 'l:de');
+$t2Klick($t2C, 'm:pruefen');
+$t2Klick($t2C, 'm:mensch');
+$t2Klick($t2C, 'b:allgemein');
+pruefe('T2: Partner-Chat — Website-Check und Beratung als Stufen, mit der Quelle des Partners',
+    TelegramWachstum::summen($t2Heute, $t2Heute, 'p_' . $t2P['code'])['check'] === 1 && TelegramWachstum::summen($t2Heute, $t2Heute, 'p_' . $t2P['code'])['beratung'] === 1
+    && str_contains((string) $tgChat($t2C)['stufen'], 'check'), (string) $tgChat($t2C)['stufen']);
+
+/* Mini-App im Kanal */
+$t2Tok = TelegramApp::neuerBedarf(['quelle' => 'kanal', 'sprache' => 'de', 'einstieg' => 'preis']);
+pruefe('T2: Mini-App geöffnet = Mini-App-Start und Preisrechner gestartet (Quelle kanal)',
+    $t2Tok !== '' && TelegramWachstum::summen($t2Heute, $t2Heute, 'kanal')['app_start'] >= 1 && TelegramWachstum::summen($t2Heute, $t2Heute, 'kanal')['rechner'] >= 1);
+$t2Bed = (string) file_get_contents($oben . '/bedarf.php');
+pruefe('T2: Anfrage aus der Mini-App zählt Rechner fertig und Lead und merkt die Herkunft (Weg app)',
+    str_contains($t2Bed, "TelegramWachstum::zaehlen('lead', \$tg)") && str_contains($t2Bed, "TelegramWachstum::herkunftMerken(\$tgKid, \$tg, 'app'"));
+
+/* Kunde und Umsatz: erste Zahlung des Telegram-Kunden heute; Kosten der Kampagne */
+$t2O = (int) Db::insert('orders', ['order_no' => 'TG2-' . random_int(10000, 99999), 'customer_id' => $t2KdA, 'package_name' => 'Probe', 'price_cents' => 200000, 'status' => 'bezahlt']);
+Db::insert('payments', ['order_id' => $t2O, 'amount_cents' => 120000, 'status' => 'bezahlt', 'paid_at' => date('Y-m-d H:i:s')]);
+Db::insert('payments', ['order_id' => $t2O, 'amount_cents' => 50000, 'status' => 'bezahlt', 'paid_at' => date('Y-m-d H:i:s'), 'demo' => 1]);
+MkKampagne::kostenAnlegen($t2K, ['datum' => $t2Heute, 'betrag' => '40,00']);
+$t2Z = MkKennzahlen::zeitraum('heute');
+$t2D = TelegramZahlen::dashboard($t2Z);
+$t2Q = array_values(array_filter($t2D['quellen'], static fn($q) => $q['quelle'] === 'm_tg-t2'))[0] ?? null;
+$t2Pq = array_values(array_filter($t2D['quellen'], static fn($q) => $q['quelle'] === 'p_' . $t2P['code']))[0] ?? null;
+pruefe('T2: Quelle „Kampagne“ im Dashboard — Werbemittel zusammengefasst, Kunde und Umsatz (ohne Beispielzahlung), Kosten',
+    $t2Q && $t2Q['name'] === 'Kampagne „Gastro Telegram“' && $t2Q['bot_start'] === 2 && $t2Q['bot_neu'] === 2 && $t2Q['lead'] === 1
+    && $t2Q['kunden'] === 1 && $t2Q['umsatz'] === 120000 && $t2Q['kosten'] === 4000 && $t2Q['id'] === $t2K, json_encode($t2Q));
+pruefe('T2: Growth Score nach den offenen Gewichten (2 neu + 3 Rechner + 10 Lead + 30 Kunde + 12 für 1.200 €) und Punkte je 10 €',
+    $t2Q && $t2Q['score'] === 2 * 1 + 3 + 10 + 30 + 12 && $t2Q['je10'] === round(57 / 4, 1), json_encode([$t2Q['score'] ?? null, $t2Q['je10'] ?? null]));
+pruefe('T2: Partner-Quelle mit Namen und Beratung; Kunden und Umsatz gesamt aus Telegram',
+    $t2Pq && $t2Pq['name'] === 'Partner Ulli Telegram' && $t2Pq['beratung'] === 1 && $t2Pq['art'] === 'partner'
+    && $t2D['kunden'] >= 1 && $t2D['umsatz'] >= 120000, json_encode($t2Pq));
+$t2Nach = TelegramWachstum::summen($t2Heute, $t2Heute);
+$t2F = array_column($t2D['funnel'], 1, 0);
+pruefe('T2: Funnel aus den Zählern — Preisrechner, Beratung, Lead und Kunde stimmen mit den Tageszahlen überein',
+    count($t2D['funnel']) === 9 && $t2F['Preisrechner gestartet'] === (int) $t2Nach['rechner'] && $t2F['Beratung gestartet'] === (int) $t2Nach['beratung']
+    && $t2F['Lead (Anfrage abgeschickt)'] === (int) $t2Nach['lead'] && $t2F['Kunde (erste Zahlung)'] === $t2D['kunden']
+    && $t2F['Neu in Telegram'] === (int) $t2Nach['bot_neu'] + (int) $t2Nach['app_start'], json_encode($t2F));
+pruefe('T2: Beste Kampagne und bester Partner nach Leads (der Partner der früheren Prüfung hat heute eine Anfrage, Ulli nur eine Beratung)',
+    ($t2D['beste']['kampagne']['name'] ?? '') === 'Kampagne „Gastro Telegram“' && $t2D['beste']['kampagne_nach'] === 'Leads'
+    && ($t2D['beste']['partner']['name'] ?? '') === 'Partner Telegram Partner' && $t2D['beste']['partner_nach'] === 'Leads', json_encode($t2D['beste']));
+pruefe('T2: Ohne Partner-Lead zählt der Partner nach neuen Nutzern — und die Karte sagt es',
+    (static function () use ($t2P): bool {
+        Db::run("UPDATE tg_tage SET quelle = CONCAT('x', quelle) WHERE art = 'lead' AND quelle LIKE 'p\\_%'");
+        $d = TelegramZahlen::dashboard(MkKennzahlen::zeitraum('heute'));
+        Db::run("UPDATE tg_tage SET quelle = SUBSTRING(quelle, 2) WHERE art = 'lead' AND quelle LIKE 'xp\\_%'");
+        return $d['beste']['partner_nach'] === 'neue Nutzer (noch kein Lead)' && $d['beste']['partner'] !== null;
+    })());
+pruefe('T2: Beste Quelle = höchster Growth Score', ($t2D['beste']['quelle']['name'] ?? '') === $t2D['quellen'][0]['name'] && $t2D['quellen'][0]['score'] >= ($t2D['quellen'][1]['score'] ?? 0));
+
+/* Kanal-Wachstum aus dem Mitgliederstand */
+Db::run("INSERT INTO tg_tage (tag, art, quelle, zahl) VALUES (?, 'kanal_stand', '', 40) ON DUPLICATE KEY UPDATE zahl = 40", [date('Y-m-d', strtotime('-10 days'))]);
+Db::run("INSERT INTO tg_tage (tag, art, quelle, zahl) VALUES (?, 'kanal_stand', '', 50) ON DUPLICATE KEY UPDATE zahl = 50", [$t2Heute]);
+$t2D7 = TelegramZahlen::dashboard(MkKennzahlen::zeitraum('7'));
+pruefe('T2: Kanal-Wachstum = Stand heute gegen den Stand vor dem Zeitraum (+10, +25 %)',
+    $t2D7['kanal']['stand'] === 50 && $t2D7['kanal']['anfang'] === 40 && $t2D7['kanal']['wachstum'] === 10 && $t2D7['kanal']['wachstum_pct'] === 25.0, json_encode($t2D7['kanal']));
+Db::run("DELETE FROM tg_tage WHERE art = 'kanal_stand'");
+$t2Leer = TelegramZahlen::dashboard(MkKennzahlen::zeitraum('heute'));
+pruefe('T2: Ohne Messung ist der Mitgliederstand „nicht gemessen“ (null), nie 0 — und das Dashboard sagt es',
+    $t2Leer['kanal']['stand'] === null && str_contains(implode('|', $t2Leer['hinweise']), 'noch nicht gemessen'));
+
+/* Verwaltung */
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$z = $t2Z; $d = $t2D;
+ob_start(); require $wurzel . '/views/telegram.php'; $t2Html = (string) ob_get_clean();
+$z = MkKennzahlen::zeitraum('heute'); $d = ['summe' => array_fill_keys(array_keys(TelegramWachstum::ARTEN), null)] + TelegramZahlen::dashboard(MkKennzahlen::zeitraum('gestern'));
+ob_start(); require $wurzel . '/views/telegram.php'; $t2Html2 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('T2: Reiter „Telegram“ rendert ohne Warnung — Kacheln, Funnel, Quellen mit Score, Grenzen offen benannt, auch ohne Zahlen',
+    $kaFehler === null && str_contains($t2Html, 'Kampagne „Gastro Telegram“') && str_contains($t2Html, 'Growth Score') && str_contains($t2Html, 'Weg zum Kunden')
+    && str_contains($t2Html, 'Noch nicht messbar') && str_contains($t2Html, 'Umsatz aus Telegram') && str_contains($t2Html, Fmt::geld(120000))
+    && str_contains($t2Html2, 'Im Zeitraum kam noch niemand über Telegram'), (string) $kaFehler);
+$t2Lay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('T2: Reiter unter Marketing, mit Hilfesatz, Route in der Verwaltung',
+    str_contains($t2Lay, "['telegram', 'Telegram', 'telegram']") && Hilfe::satz('telegram') !== ''
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "ansicht('telegram', ['z' => \$tgZ, 'd' => TelegramZahlen::dashboard(\$tgZ)])"));
+pruefe('T2: Migration übernimmt schon abgeschickte Bot-Anfragen in die Herkunft',
+    str_contains((string) file_get_contents($wurzel . '/migrations/121_telegram_funnel.sql'), 'INSERT IGNORE INTO tg_herkunft'));
 
 /* ============================================================================
    Aufräumen und Bilanz

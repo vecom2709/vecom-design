@@ -46,6 +46,7 @@ final class Hilfe
         'baukasten'          => 'Hier stellst du die Preise ein, aus denen der Preisrechner den Preis ausrechnet.',
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',
         'marketing'          => 'Hier siehst du, welche Maßnahme Besucher bringt und wer davon Kunde wird — Aufrufe, Leads, Kunden, Umsatz und Kosten aus den vorhandenen Daten, mit dem, was klemmt, und dem, was du tun kannst.',
+        'telegram'           => 'Hier siehst du, was Telegram bringt: neue Nutzer, Kanal-Mitglieder, den Weg bis zum Kunden und welche Quelle am meisten bewirkt — nur aus Gemessenem.',
         'kampagnen'          => 'Hier legst du für jeden Beitrag, jede Anzeige und jeden Flyer einen eigenen Link an und siehst, was er bringt — Klicks, Leads, Kunden, Umsatz und Kosten.',
         'zielgruppen'        => 'Hier stehen die Zielgruppen je Branche und Land — was sie plagt, was sie wollen, wie sie suchen. Claude liefert Entwürfe mit Quellen, du gibst frei.',
         'recherche'          => 'Hier landet, was Claude recherchiert hat: Themen, Trends, häufige Fragen und Wettbewerb, jeweils mit Quelle. Merken, verwenden oder verwerfen.',

@@ -184,6 +184,7 @@ $reiter = [
     ['kampagnen', 'Kampagnen', 'kampagnen'],
     ['zielgruppen', 'Zielgruppen', 'zielgruppen'],
     ['recherche', 'Recherche', 'recherche'],
+    ['telegram', 'Telegram', 'telegram'],
   ],
   'dashboard' => [
     ['dashboard', 'Zahlen', 'dashboard'],

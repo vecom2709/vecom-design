@@ -51,7 +51,19 @@ final class TelegramWachstum
         'kanal_bei'   => 'Kanal-Beitritte',
         'kanal_aus'   => 'Kanal-Austritte',
         'kanal_stand' => 'Kanal-Mitglieder',
+        // T2 (01.10.2026): Stufen des Funnels — je Chat einmal (stufe()), in der Mini-App je Rechner einmal.
+        'wegweiser'      => 'Wegweiser genutzt',
+        'check'          => 'Website-Check geöffnet',
+        'interesse'      => 'Interesse an einem Thema',
+        'rechner'        => 'Preisrechner gestartet',
+        'rechner_fertig' => 'Preisrechner abgeschlossen',
+        'beratung'       => 'Beratung gestartet',
+        'lead'           => 'Anfrage abgeschickt',
+        'app_start'      => 'Mini-App geöffnet',
     ];
+
+    /** Die Stufen, die ein Chat einmal erreichen kann (telegram_chats.stufen). */
+    public const STUFEN = ['wegweiser', 'check', 'interesse', 'rechner', 'rechner_fertig', 'beratung', 'lead'];
 
     /** Start-Parameter einer Kampagne: m_CODE oder m_CODE_WERBEMITTEL (Codes wie bei /k/). */
     public const START_MUSTER = '/^m_([a-z0-9][a-z0-9-]{2,23})(?:_([a-z0-9][a-z0-9-]{0,11}))?$/';
@@ -97,6 +109,37 @@ final class TelegramWachstum
         if (substr((string) ($vorher['letzte_am'] ?? ''), 0, 10) >= $heute) { return; }
         self::zaehlen('bot_aktiv');
         if (substr((string) ($vorher['created_at'] ?? ''), 0, 10) < $heute) { self::zaehlen('bot_wieder'); }
+    }
+
+    /**
+     * Ein Chat erreicht eine Stufe des Funnels — gezählt wird nur das erste
+     * Mal, mit der Quelle des Chats. Die Prüfung sitzt im UPDATE selbst
+     * (FIND_IN_SET), damit zwei schnelle Klicks nicht zweimal zählen.
+     */
+    public static function stufe(array $c, string $stufe): void
+    {
+        if (!in_array($stufe, self::STUFEN, true) || empty($c['id'])) { return; }
+        try {
+            $n = Db::run("UPDATE telegram_chats SET stufen = TRIM(BOTH ',' FROM CONCAT(stufen, ',', ?)) WHERE id = ? AND FIND_IN_SET(?, stufen) = 0",
+                [$stufe, (int) $c['id'], $stufe])->rowCount();
+            if ($n === 1) {
+                self::zaehlen($stufe, (string) Db::wert('SELECT quelle_code FROM telegram_chats WHERE id = ?', [(int) $c['id']], ''));
+            }
+        } catch (Throwable $e) { error_log('TelegramWachstum::stufe(' . $stufe . '): ' . $e->getMessage()); }
+    }
+
+    /**
+     * Dieser Kunde kam über Telegram (Anfrage aus dem Bot oder der Mini-App).
+     * Die erste Herkunft bleibt — wer später noch einmal über Telegram
+     * anfragt, war schon vorher Kunde über einen anderen Weg oder dieselbe Quelle.
+     */
+    public static function herkunftMerken(int $kundeId, string $quelle, string $weg, ?int $anfrageId = null): void
+    {
+        if ($kundeId <= 0) { return; }
+        try {
+            Db::run('INSERT IGNORE INTO tg_herkunft (customer_id, quelle, weg, anfrage_id) VALUES (?, ?, ?, ?)',
+                [$kundeId, self::quelle($quelle), $weg === 'app' ? 'app' : 'bot', $anfrageId]);
+        } catch (Throwable $e) { error_log('TelegramWachstum::herkunftMerken: ' . $e->getMessage()); }
     }
 
     /* ================================================================== */

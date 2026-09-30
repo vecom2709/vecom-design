@@ -4388,6 +4388,12 @@ switch ($route) {
         ]);
         break;
 
+    case 'telegram':    // Telegram Growth Engine T2 (01.10.2026, Uwe: „Ja mach T2“) — Reiter unter Marketing
+        require_once __DIR__ . '/src/TelegramZahlen.php';
+        $tgZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
+        ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ)]);
+        break;
+
     case 'kampagnen':   // Kampagnen-Links (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“)
         require_once __DIR__ . '/src/MkKennzahlen.php';
         require_once __DIR__ . '/src/MkKampagne.php';

@@ -385,6 +385,14 @@ final class TelegramBot
     {
         $sp = (string) $c['sprache'];
         $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        /* Growth Engine T2: Wegweiser = ein Punkt des Menüs gewählt; Interesse = ein Thema;
+           Website-Check = der Check. Je Chat einmal gezählt (TelegramWachstum::stufe). */
+        if (in_array($was, ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch'], true)) {
+            require_once __DIR__ . '/TelegramWachstum.php';
+            TelegramWachstum::stufe($c, 'wegweiser');
+            if ($was === 'pruefen') { TelegramWachstum::stufe($c, 'check'); }
+            elseif ($was !== 'kunde') { TelegramWachstum::stufe($c, 'interesse'); }
+        }
         switch ($was) {
             case 'neu': case 'besser': case 'preis':
                 return self::frageStarten($c, $was, $msgId);
@@ -468,6 +476,8 @@ final class TelegramBot
             Bedarf::speichern((int) $b['id'], ['bestand' => ''], self::schrittVon('bestand'));
         }
         $c = self::setzen($c, ['stand' => 'frage', 'frage' => 0, 'bedarf_id' => (int) $b['id'], 'einstieg' => $einstieg]);
+        require_once __DIR__ . '/TelegramWachstum.php';
+        TelegramWachstum::stufe($c, 'rechner');
         self::zeigeFrage($c, $msgId);
         return 'frage';
     }
@@ -672,6 +682,8 @@ final class TelegramBot
     private static function zeigeErgebnis(array $c, ?int $msgId = null): void
     {
         $e = self::ergebnis($c);
+        require_once __DIR__ . '/TelegramWachstum.php';
+        TelegramWachstum::stufe($c, 'rechner_fertig');
         self::zeigen($c, $e['text'], [
             [self::k($c, 'k_senden', 'r:senden')],
             [self::k($c, 'k_aendern', 'r:aendern'), self::k($c, 'k_mensch', 'm:mensch')],
@@ -684,6 +696,7 @@ final class TelegramBot
     private static function datenschutz(array $c, string $ziel, ?string $thema, ?int $msgId): string
     {
         if ($ziel === 'anfrage' && self::bedarf($c) === null) { self::zeigeStand($c, $msgId); return 'veraltet'; }
+        if ($ziel === 'beratung') { require_once __DIR__ . '/TelegramWachstum.php'; TelegramWachstum::stufe($c, 'beratung'); }
         // Denselben Hinweis in derselben Fassung schon bestätigt? Dann nicht zweimal fragen.
         if ((string) ($c['datenschutz_fassung'] ?? '') === self::FASSUNG) {
             $c = self::setzen($c, ['stand' => 'name', 'ziel' => $ziel, 'thema' => $thema]);
@@ -809,6 +822,10 @@ final class TelegramBot
         if ($kundeId && $code !== '' && !preg_match('/^[pe]_/', $code)) {
             try { Events::protokoll('anfrage_quelle', 'Telegram-Anfrage kam über: ' . $code, $kundeId); } catch (Throwable $e) { }
         }
+        // Growth Engine T2: Lead dieser Quelle, und der Kunde kam über Telegram (die erste Herkunft zählt).
+        require_once __DIR__ . '/TelegramWachstum.php';
+        TelegramWachstum::stufe($c, 'lead');
+        if ($kundeId) { TelegramWachstum::herkunftMerken($kundeId, $code, 'bot', $anfrageId); }
         if ($kundeId) {
             // Der Nachweis, welchem Wortlaut er zugestimmt hat — in seiner Sprache, mit Fassung.
             try {

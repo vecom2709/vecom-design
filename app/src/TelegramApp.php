@@ -63,6 +63,10 @@ final class TelegramApp
         require_once __DIR__ . '/Bedarf.php';
         Baukasten::sicherstellen();
         $b = Bedarf::starten($start['sprache']);
+        // Growth Engine T2: Mini-App geöffnet = Preisrechner gestartet (je Rechner einmal — hier entsteht er).
+        require_once __DIR__ . '/TelegramWachstum.php';
+        TelegramWachstum::zaehlen('app_start', (string) $start['quelle']);
+        TelegramWachstum::zaehlen('rechner', (string) $start['quelle']);
         if ($start['einstieg'] === 'neu') {
             $schritt = 1;
             foreach (Baukasten::SCHRITTE as $i => $namen) { if (in_array('bestand', $namen, true)) { $schritt = $i + 1; } }

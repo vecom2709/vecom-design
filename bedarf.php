@@ -228,6 +228,13 @@ if ($b && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 try {
                     $tgKid = (int) Db::wert('SELECT customer_id FROM bedarf WHERE id = ?', [(int) $b['id']], 0);
                     if ($tgKid > 0) { Events::protokoll('anfrage_quelle', 'Anfrage kam über die Telegram-Mini-App (' . $tg . ')', $tgKid); }
+                    /* Growth Engine T2: Rechner fertig und Lead aus der Mini-App, Kunde kam über Telegram. */
+                    require_once __DIR__ . '/app/src/TelegramWachstum.php';
+                    TelegramWachstum::zaehlen('rechner_fertig', $tg);
+                    TelegramWachstum::zaehlen('lead', $tg);
+                    if ($tgKid > 0) {
+                        TelegramWachstum::herkunftMerken($tgKid, $tg, 'app', ((int) Db::wert('SELECT anfrage_id FROM bedarf WHERE id = ?', [(int) $b['id']], 0)) ?: null);
+                    }
                 } catch (Throwable $e) { /* ein fehlender Vermerk kostet nichts */ }
             }
             if ($ok) { unset($_SESSION['bedarf_demo'], $_SESSION['bedarf_plan']); }
