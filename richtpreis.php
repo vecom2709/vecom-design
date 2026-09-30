@@ -33,6 +33,11 @@ $ein = json_decode($roh, true);
 if (!is_array($ein)) { $aus(['zeigen' => false], 400); }
 $sprache = in_array((string) ($ein['lang'] ?? ''), ['it', 'de', 'en'], true) ? (string) $ein['lang'] : 'it';
 $bis = max(0, min(Baukasten::schrittZahl(), (int) ($ein['bis'] ?? 0)));
+/* Partner-Tracking (30.09.2026): der erste Live-Preis in einem Partner-Besuch = Preisrechner gestartet. */
+if (isset($_COOKIE['vecomspur']) && !empty($ein['antworten'])) {
+    try { foreach (['Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Sprache', 'Partner', 'Spur'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+          Spur::ereignis('price_calculator_started', ['seite' => '/richtpreis', 'meta' => ['art' => 'richtpreis']]); } catch (Throwable $e) { }
+}
 
 try {
     if ((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'bedarf_spanne_zeigen'", [], '1') !== '1') { $aus(['zeigen' => false]); }

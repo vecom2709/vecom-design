@@ -128,6 +128,7 @@ $plan = (string) ($_SESSION['bedarf_plan'] ?? '');
 if ($plan !== '') { $demoText = ($demoText !== '' ? $demoText . ': ' : '') . Bedarf::planText($plan, $sprache); }
 
 /* ---------- Laden oder anfangen ---------- */
+/* (Partner-Tracking: „Preisrechner geöffnet“ steht weiter unten, sobald ein Bedarf geladen ist.) */
 $token = trim((string) ($_REQUEST['t'] ?? ''));
 $b = null;
 $panne = false;
@@ -154,6 +155,9 @@ try {
         header('Location: /zugang.php?lang=' . rawurlencode($sprache)
             . ($empfehlCode !== '' ? '&e=' . rawurlencode($empfehlCode) : ''), true, 302);
         exit;
+    }
+    if ($b && $_SERVER['REQUEST_METHOD'] !== 'POST' && isset($_COOKIE['vecomspur'])) {
+        try { require_once __DIR__ . '/app/src/Spur.php'; Spur::ereignis('price_calculator_opened', ['customer_id' => $b['customer_id'] !== null ? (int) $b['customer_id'] : null, 'seite' => '/bedarf.php', 'meta' => ['art' => 'konfigurator']]); } catch (Throwable $e) { }
     }
 } catch (Throwable $e) {
     $panne = true;

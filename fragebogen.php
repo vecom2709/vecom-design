@@ -55,6 +55,10 @@ $f = null;
 $panne = false;
 try {
     $f = Onboarding::laden($token);
+    /* Partner-Tracking (30.09.2026): Fragebogen geöffnet -- über den Besuch oder den zugeordneten Kunden. */
+    if ($f && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+        try { require_once __DIR__ . '/app/src/Spur.php'; Spur::ereignis('questionnaire_opened', ['customer_id' => (int) $f['customer_id'], 'seite' => '/fragebogen.php']); } catch (Throwable $e3) { }
+    }
 } catch (Throwable $e) {
     // Fehlt eine Aktualisierung der Datenbank, ist das kein Grund fuer eine
     // weisse Seite — der Kunde bekommt eine Erklaerung und ich eine Meldung.

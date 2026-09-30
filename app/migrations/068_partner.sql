@@ -12,6 +12,10 @@
 -- Die Website verspricht „keine Tracking-Cookies, kein Cookie-Banner“, und
 -- dabei bleibt es: Zugeordnet wird beim ersten Kontakt am KUNDEN
 -- (partner_zuordnungen), nicht im Browser.
+-- STAND 30.09.2026: überholt. Seit 26.09. trägt ein Sitzungs-Cookie
+-- (vecompartner, p.php) den Code während des Besuchs, seit 30.09. zeichnet
+-- das Partner-Tracking (116, Spur) Partner-Besuche anonym auf; mit
+-- Einwilligung merkt sich der Browser den Partner befristet.
 --
 -- partner_provisionen: je Zahlung höchstens eine Provision (uq_pp_zahlung),
 -- auch wenn Webhook, Abgleich und Klick gleichzeitig kommen.

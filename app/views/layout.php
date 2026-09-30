@@ -163,6 +163,7 @@ $reiter = [
   'empfehlungen' => [
     ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
     ['partner', 'Partner', 'partner'],
+    ['tracking', 'Partner-Tracking', 'tracking'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
   ],
   'dashboard' => [

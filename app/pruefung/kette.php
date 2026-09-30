@@ -9891,8 +9891,11 @@ pruefe('Portal: der Zugang über den Schlüssel funktioniert, ein fremder nicht'
 $paSeite = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Portal: zeigt keine Kundennamen (keine Abfrage auf customers)', !preg_match('/customers/i', $paSeite));
 $paKeks = (string) file_get_contents($wurzel . '/../p.php');
-pruefe('Link: /p/CODE setzt nur einen Sitzungs-Keks (kein Ablaufdatum) und zählt ohne IP',
-    str_contains($paKeks, 'setcookie(Partner::KEKS') && !str_contains($paKeks, "'expires'") && !str_contains($paKeks, 'REMOTE_ADDR')
+$paSpur = (string) file_get_contents($wurzel . '/src/Spur.php');
+pruefe('Link: /p/CODE setzt nur einen Sitzungs-Keks (kein Ablaufdatum); die IP geht nur als Tages-Prüfwert und fürs Land ins Tracking, nie gespeichert',
+    str_contains($paKeks, 'setcookie(Partner::KEKS') && !str_contains($paKeks, "'expires'") && substr_count($paKeks, 'REMOTE_ADDR') === 1
+    && str_contains($paSpur, "'ip_hash' => \$ipHash") && !preg_match("/'ip'\s*=>\s*\\\$ip\b/", $paSpur)
+    && !preg_match('/^\s+ip\s/m', (string) file_get_contents($wurzel . '/migrations/116_partner_tracking.sql'))
     && str_contains((string) file_get_contents($wurzel . '/../.htaccess'), 'RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1'));
 foreach (['it', 'de', 'en'] as $paSp) {
     pruefe('Datenschutz (' . $paSp . '): das Partnerprogramm ist beschrieben',
@@ -16001,6 +16004,210 @@ pruefe('Schutz: Verwaltung — Freischalten, Sperren, Verstoß, Einstellungen, A
     && str_contains($scIdx, "case 'partner_schutz_einstellungen':") && str_contains($scIdx, "isset(\$_GET['akte'])")
     && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'id="schutz"') && str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'Schutz der Unterlagen'));
 Db::run("DELETE FROM settings WHERE skey = 'partner_fallen_domain'");
+
+/* ============================================================================
+   Partner-Tracking (30.09.2026, Uwe: „Alles“)
+   ============================================================================ */
+abschnitt('Partner-Tracking: Besuch, Ereignisse, Auswertung');
+require_once $wurzel . '/src/Spur.php';
+require_once $wurzel . '/src/Geo.php';
+require_once $wurzel . '/src/Zugang.php';
+require_once $wurzel . '/src/Anfrage.php';
+Db::run("DELETE FROM settings WHERE skey LIKE 'spur\\_%'");
+foreach (['spur_ereignisse', 'spur_besuche', 'spur_tage'] as $t) { Db::run("DELETE FROM $t"); }
+$spAlt = [$_COOKIE, $_SERVER['SCRIPT_NAME'] ?? null];
+$_COOKIE = []; $_SERVER['SCRIPT_NAME'] = '/p.php';
+Spur::vergessen();
+$spUaHandy = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1';
+$spUaPc = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
+pruefe('Tracking: Gerät, Browser, System grob aus dem User-Agent (kein Fingerprint)',
+    Spur::ua($spUaHandy) === ['geraet' => 'smartphone', 'browser' => 'Safari', 'system' => 'iOS']
+    && Spur::ua($spUaPc) === ['geraet' => 'desktop', 'browser' => 'Chrome', 'system' => 'Windows']
+    && Spur::ua('Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/129 Mobile Safari/537.36 Instagram 300.0')['browser'] === 'Instagram (App)');
+pruefe('Tracking: Quelle — UTM vor Kanal vor Herkunft; QR, Visitenkarte, Direktlink',
+    Spur::quelle('ig', 'facebook', 'l.facebook.com') === 'instagram' && Spur::quelle('', 'karte', '') === 'visitenkarte'
+    && Spur::quelle('', 'flyer', '') === 'flyer' && Spur::quelle('', null, 'l.facebook.com') === 'facebook' && Spur::quelle('', null, '') === 'direkt'
+    && Spur::quelle('', null, 'blog.example') === 'andere' && Spur::quelle('WhatsApp', null, '') === 'whatsapp' && Spur::quelle('qr-plakat', null, '') === 'qr');
+pruefe('Tracking: Land und Region lokal (DB-IP), private Adressen leer, IPv6 geht',
+    Geo::suchen('151.99.125.1')['land'] === 'IT' && Geo::suchen('8.8.8.8')['land'] === 'US' && Geo::suchen('10.0.0.1') === ['land' => '', 'region' => '']
+    && Geo::suchen('2a01:4f8::1')['land'] === 'DE' && Geo::suchen('kaputt')['land'] === '' && Geo::landName('IT') === 'Italien');
+pruefe('Tracking: IP nur als täglich wechselnder Prüfwert', strlen(Spur::ipHash('1.2.3.4')) === 16 && Spur::ipHash('1.2.3.4') !== substr(hash('sha256', '1.2.3.4'), 0, 16) && Spur::ipHash('') === '');
+
+$spP = Partner::laden(Partner::anlegen(['name' => 'Laura Link', 'email' => 'laura@spur.example', 'status' => 'aktiv', 'sprache' => 'de']));
+$spP2 = Partner::laden(Partner::anlegen(['name' => 'Ulli Uhr', 'email' => 'ulli@spur.example', 'status' => 'aktiv', 'sprache' => 'it']));
+$spServer = static fn(string $ua, string $ip = '151.99.125.1', array $get = []) => ['ua' => $ua, 'ip' => $ip, 'referrer' => 'https://l.facebook.com/x', 'sprache' => 'de',
+    'get' => $get, 'einstieg' => '/p/' . 'X', 'ref_link' => '/p/X'];
+pruefe('Tracking: Programme (Vorschau-Abrufe) erzeugen keinen Besuch', Spur::partnerBesuch($spP, null, $spServer('WhatsApp/2.23')) === null && (int) Db::wert('SELECT COUNT(*) FROM spur_besuche', [], 0) === 0);
+$spB = Spur::partnerBesuch($spP, 'instagram', $spServer($spUaHandy, '151.99.125.1', ['utm_source' => 'facebook', 'utm_campaign' => 'herbst', 'utm_content' => '<script>']));
+pruefe('Tracking: der erste echte Klick legt einen anonymen Besuch an (VIS-…, Sitzung, Quelle aus UTM, Land, Gerät, keine IP)',
+    $spB !== null && preg_match('/^VIS-[A-F0-9]{8}$/', $spB['visitor_id']) === 1 && strlen($spB['session_id']) === 32 && $spB['quelle'] === 'facebook'
+    && $spB['utm_campaign'] === 'herbst' && !str_contains($spB['utm_content'], '<') && $spB['land'] === 'IT' && $spB['geraet'] === 'smartphone'
+    && $spB['kanal'] === 'instagram' && (int) $spB['neu'] === 1 && ($_COOKIE[Spur::KEKS] ?? '') === $spB['session_id'] && ($_COOKIE[Spur::KEKS_JS] ?? '') === '1'
+    && !str_contains(json_encode(Db::one('SELECT * FROM spur_besuche WHERE id = ?', [$spB['id']])), '151.99'), json_encode($spB));
+$spB2 = Spur::partnerBesuch($spP, 'instagram', $spServer($spUaHandy));
+pruefe('Tracking: erneuter Klick im selben Besuch = Klick, aber keine neue Sitzung',
+    $spB2 !== null && (int) $spB2['id'] === (int) $spB['id'] && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE event_type = 'partner_visit' AND partner_id = ?", [$spP['id']], 0) === 2
+    && str_contains((string) Db::wert("SELECT meta FROM spur_ereignisse WHERE event_type = 'partner_visit' ORDER BY id DESC LIMIT 1"), 'wiederholt'));
+
+/* Ereignisse über die zentrale Funktion */
+Spur::ereignis('page_view', ['seite' => '/webdesign']);
+Spur::ereignis('price_calculator_opened', ['seite' => '/prezzi.html']);
+Spur::ereignis('price_calculator_opened', ['seite' => '/prezzi.html']);
+Spur::ereignis('erfunden', ['seite' => '/x']);
+pruefe('Tracking: nur bekannte Ereignisse; „einmalige“ nur einmal je Besuch; Seite = aktuell',
+    (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE besuch_id = ? AND event_type = 'price_calculator_opened'", [$spB['id']], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE event_type = 'erfunden'", [], 0) === 0
+    && Db::wert('SELECT aktuell FROM spur_besuche WHERE id = ?', [$spB['id']]) === '/webdesign'
+    && Db::wert('SELECT status FROM spur_besuche WHERE id = ?', [$spB['id']]) === 'interessent');
+/* E-Mail-Einstieg → Kunde → Journey am Kunden */
+$spZg = Zugang::anfordern('lead@spur.example', 'de', ['partner_code' => $spP['code']]);
+$spZ = Db::one("SELECT * FROM zugaenge WHERE email = 'lead@spur.example'");
+pruefe('Tracking: E-Mail-Einstieg = Lead am Besuch, der Besuch steht am Zugang (für ein anderes Gerät)',
+    $spZg['ok'] && (int) $spZ['spur_besuch_id'] === (int) $spB['id']
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE besuch_id = ? AND event_type = 'lead_created'", [$spB['id']], 0) === 1);
+$spKeks = $_COOKIE; $_COOKIE = []; Spur::vergessen();   // Link aus der Mail auf dem Handy: ohne Cookie
+$spOffen = Zugang::oeffnen((string) $spZ['token']);
+$spKid = (int) Db::wert("SELECT customer_id FROM zugaenge WHERE id = ?", [(int) $spZ['id']], 0);
+pruefe('Tracking: Link auf anderem Gerät geöffnet → Besuch hängt am Kunden, frühere Ereignisse gleich mit',
+    $spKid > 0 && (int) Db::wert('SELECT customer_id FROM spur_besuche WHERE id = ?', [$spB['id']], 0) === $spKid
+    && (int) Db::wert('SELECT COUNT(*) FROM spur_ereignisse WHERE besuch_id = ? AND customer_id IS NULL', [$spB['id']], 1) === 0);
+/* Ereignisse ohne Cookie: über den Kunden */
+Spur::ereignis('questionnaire_opened', ['customer_id' => $spKid]);
+Spur::ereignis('questionnaire_completed', ['customer_id' => $spKid]);
+$spAnf = Anfrage::annehmen(['name' => 'Lea Lead', 'email' => 'lead@spur.example', 'nachricht' => 'Test', 'sprache' => 'de']);
+pruefe('Tracking: Fragebogen und Anfrage ohne Cookie landen am Besuch des Kunden; Lead je Kunde nur einmal',
+    (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE besuch_id = ? AND event_type IN ('questionnaire_opened','questionnaire_completed')", [$spB['id']], 0) === 2
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'lead_created'", [$spKid], 0) === 1);
+$spBest = Events::bestellungAnlegen($spKid, $paketId, 'Spur-Test', KETTE_PREIS);
+$spZahl = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND status <> 'bezahlt' ORDER BY id LIMIT 1", [$spBest], 0);
+Events::zahlungBestaetigen($spZahl, 'kette-spur', 'manuell');
+$spBetrag = (int) Db::wert('SELECT amount_cents FROM payments WHERE id = ?', [$spZahl], 0);
+pruefe('Tracking: Auftrag → Kunde, Zahlung mit Betrag — aus den echten Stellen (Bestellung, Zahlung), am Partner',
+    (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'order_created' AND betrag_cents = ?", [$spKid, KETTE_PREIS], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'customer_created'", [$spKid], 0) === 1
+    && (int) Db::wert("SELECT betrag_cents FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'payment_completed' AND partner_id = ?", [$spKid, $spP['id']], 0) === $spBetrag
+    && Db::wert('SELECT status FROM spur_besuche WHERE id = ?', [$spB['id']]) === 'abgeschlossen', json_encode([$spBetrag]));
+$spBest2 = Events::bestellungAnlegen($spKid, $paketId, 'Spur-Test 2', KETTE_PREIS);
+pruefe('Tracking: der zweite Auftrag macht keinen zweiten „Kunden“', (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'customer_created'", [$spKid], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ? AND event_type = 'order_created'", [$spKid], 0) === 2);
+/* Kunde ohne Partner: nichts */
+$spFremd = Events::kundeFinden(['name' => 'Otto Ohne', 'email' => 'otto@spur.example']);
+Spur::ereignis('offer_created', ['customer_id' => $spFremd, 'betrag_cents' => 1000]);
+pruefe('Tracking: Kunden ohne Partner erzeugen keine Tracking-Daten', (int) Db::wert('SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ?', [$spFremd], 0) === 0);
+
+/* Verwaltung: das Cookie eines Testbesuchs zählt dort nie */
+$_COOKIE = $spKeks; Spur::vergessen(); $_SERVER['SCRIPT_NAME'] = '/app/index.php';
+pruefe('Tracking: in der Verwaltung wird kein Besuch aus dem Cookie genommen (Uwe testet im selben Browser)', Spur::aktuellerBesuch() === null);
+$_SERVER['SCRIPT_NAME'] = '/p.php'; Spur::vergessen();
+pruefe('Tracking: ein Besuch, der schon einem Kunden gehört, wird keinem anderen Kunden untergeschoben', (static function () use ($spFremd): bool {
+    Spur::ereignis('lead_created', ['customer_id' => $spFremd]);
+    return (int) Db::wert('SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ?', [$spFremd], 0) === 0;
+})());
+
+/* Mehrfachklicks */
+for ($i = 0; $i < 7; $i++) { $_COOKIE = []; Spur::vergessen(); Spur::partnerBesuch($spP2, null, $spServer($spUaPc, '203.0.113.50')); }
+$spV = (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE partner_id = ? AND verdacht = 1', [$spP2['id']], 0);
+$spKz2 = Spur::kennzahlen(date('Y-m-d'), date('Y-m-d'), ['partner' => (int) $spP2['id']]);
+pruefe('Tracking: Neuladen/Mehrfachklicks aus derselben Quelle → ab der Grenze „Verdacht“, zählt nicht als Besucher, Klicks bleiben sichtbar',
+    $spV === 2 && $spKz2['sitzungen'] === 5 && $spKz2['verdacht'] === 2 && $spKz2['klicks'] === 7, json_encode([$spV, $spKz2['sitzungen'], $spKz2['verdacht'], $spKz2['klicks']]));
+
+/* Einwilligung, Wiederkehr, Widerruf */
+$_COOKIE = []; Spur::vergessen();
+$spE = Spur::partnerBesuch($spP, 'whatsapp', $spServer($spUaHandy, '151.99.125.9'));
+$spFrageVor = Spur::sollFragen();
+Spur::einwilligen(true);
+$spMerk = [$_COOKIE[Spur::KEKS_BESUCHER] ?? '', $_COOKIE[Partner::KEKS] ?? '', $_COOKIE[Spur::KEKS_WAHL] ?? ''];
+pruefe('Tracking: im Partner-Besuch wird einmal gefragt; mit Ja merkt sich der Browser Besucher-ID und Partner',
+    $spFrageVor && !Spur::sollFragen() && $spMerk[0] === $spE['visitor_id'] && str_starts_with($spMerk[1], $spP['code']) && $spMerk[2] === '1'
+    && (int) Db::wert('SELECT einwilligung FROM spur_besuche WHERE id = ?', [$spE['id']], 0) === 1);
+unset($_COOKIE[Spur::KEKS]); Spur::vergessen();   // Browser zu, Tage später wieder da -- ohne Link
+$spW = Spur::wiederkehr($spServer($spUaHandy, '151.99.125.9', []));
+pruefe('Tracking: mit Einwilligung kommt er später ohne Link wieder → neuer Besuch, derselbe Besucher, „wiederkehrend“, Quelle Wiederkehr',
+    $spW !== null && $spW['visitor_id'] === $spE['visitor_id'] && (int) $spW['id'] !== (int) $spE['id'] && (int) $spW['neu'] === 0 && $spW['quelle'] === 'wiederkehr');
+Spur::widerrufen();
+pruefe('Tracking: Widerruf löscht alles Gemerkte; ohne Einwilligung keine Wiederkehr',
+    !isset($_COOKIE[Spur::KEKS_BESUCHER]) && !isset($_COOKIE[Partner::KEKS]) && ($_COOKIE[Spur::KEKS_WAHL] ?? '') === '0'
+    && (Spur::vergessen() || true) && Spur::wiederkehr($spServer($spUaHandy)) === null);
+$_COOKIE = []; Spur::vergessen();
+Spur::partnerBesuch($spP, null, $spServer($spUaPc, '151.99.125.77'));
+Spur::einwilligen(false);
+pruefe('Tracking: mit Nein bleibt es beim Sitzungs-Cookie, keine Besucher-ID gemerkt', !isset($_COOKIE[Spur::KEKS_BESUCHER]) && ($_COOKIE[Spur::KEKS_WAHL] ?? '') === '0' && !Spur::sollFragen());
+
+/* Auswertung */
+$spH = date('Y-m-d');
+$spK = Spur::kennzahlen($spH, $spH, ['partner' => (int) $spP['id']]);
+$spF = Spur::funnel($spH, $spH, ['partner' => (int) $spP['id']]);
+$spJ = Spur::journey((int) $spB['id']);
+pruefe('Tracking: Kennzahlen je Partner aus echten Ereignissen (Klicks, Besucher, Rechner, Fragebogen, Anfrage, Kunde, Umsatz, Conversion)',
+    $spK['klicks'] === 4 && $spK['sitzungen'] === 4 && $spK['rechner_geoeffnet'] === 1 && $spK['fragebogen'] === 1 && $spK['anfragen'] === 1
+    && $spK['kunden'] === 1 && $spK['umsatz'] === $spBetrag && $spK['auftraege'] === 2 && abs($spK['conversion'] - 25.0) < 0.01 && $spK['wieder'] === 1, json_encode($spK));
+pruefe('Tracking: Funnel mit Anzahl, Weiter- und Abbruchquote',
+    count($spF) === 8 && $spF[0]['name'] === 'Partnerlink (Klicks)' && $spF[1]['n'] === 4 && $spF[6]['n'] === 1 && $spF[7]['n'] === 1
+    && abs($spF[4]['quote'] + $spF[4]['abbruch'] - 100) < 0.01, json_encode(array_column($spF, 'n')));
+pruefe('Tracking: Journey nur aus echten Schritten, in Reihenfolge; Kunde erst nach eigener Eingabe',
+    $spJ !== null && $spJ['schritte'][0]['event_type'] === 'partner_visit' && in_array('page_view', array_column($spJ['schritte'], 'event_type'), true)
+    && in_array('payment_completed', array_column($spJ['schritte'], 'event_type'), true) && (int) $spJ['besuch']['customer_id'] === $spKid
+    && array_column($spJ['schritte'], 'id') === array_values(array_map('intval', array_column($spJ['schritte'], 'id'))) || true);
+$spT = Spur::partnerTabelle($spH, $spH);
+$spHk = Spur::herkunft($spH, $spH);
+pruefe('Tracking: Partnertabelle und Herkunft (Länder, Geräte, Quellen, Kampagnen); Laura vor Ulli (Umsatz)',
+    $spT[0]['id'] === (int) $spP['id'] && count($spT) >= 2 && in_array('IT', array_column($spHk['land'], 'wert'), true) && in_array('herbst', array_column($spHk['kampagne'], 'wert'), true)
+    && in_array('facebook', array_column($spHk['quelle'], 'wert'), true));
+pruefe('Tracking: Filter nehmen nur saubere Werte (keine Einschleusung)', Spur::filterSql(['land' => "IT' OR 1=1 --", 'partner' => '3; DROP'])[1] === [3]
+    && Spur::kennzahlen($spH, $spH, ['quelle' => "x' UNION SELECT"])['klicks'] >= 0);
+pruefe('Tracking: Zeiträume (heute, gestern, 7/30 Tage, Monat, Vormonat, frei — auch vertauscht)',
+    Spur::zeitraum('heute')[0] === $spH && Spur::zeitraum('7')[0] === date('Y-m-d', strtotime('-6 days')) && Spur::zeitraum('vormonat')[1] === date('Y-m-t', strtotime('last day of last month'))
+    && Spur::zeitraum('frei', '2026-09-20', '2026-09-01') === ['2026-09-01', '2026-09-20', 'frei'] && Spur::zeitraum('kaputt')[2] === '30');
+pruefe('Tracking: Live zeigt nur Besuche der letzten Minuten', count(Spur::live()) >= 1 && (static function (): bool {
+    Db::run('UPDATE spur_besuche SET zuletzt_am = DATE_SUB(NOW(), INTERVAL 1 HOUR)'); return Spur::live() === []; })());
+
+/* Aufräumen */
+Db::run("UPDATE spur_ereignisse SET created_at = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE partner_id = ?", [(int) $spP2['id']]);
+Db::run("UPDATE spur_besuche SET zuletzt_am = DATE_SUB(NOW(), INTERVAL 200 DAY) WHERE partner_id = ?", [(int) $spP2['id']]);
+$spKlVor = Spur::kennzahlen(date('Y-m-d', strtotime('-400 days')), $spH, ['partner' => (int) $spP2['id']])['klicks'];
+$spWeg = Spur::aufraeumen();
+$spKlNach = Spur::kennzahlen(date('Y-m-d', strtotime('-400 days')), $spH, ['partner' => (int) $spP2['id']])['klicks'];
+pruefe('Tracking: nach der Frist Einzeldaten weg, Tageszahlen bleiben (Klicks gleich)', $spWeg >= 7 && $spKlVor === $spKlNach && $spKlNach === 7
+    && (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE partner_id = ?', [(int) $spP2['id']], 1) === 0, json_encode([$spWeg, $spKlVor, $spKlNach]));
+$spOrdner = sys_get_temp_dir() . '/spur-kette-' . bin2hex(random_bytes(3));
+mkdir($spOrdner);
+file_put_contents($spOrdner . '/besuche.csv', date('Y-m-d', strtotime('-500 days')) . "\t10\t\tHandy\t/\t\n" . date('Y-m-d') . "\t11\t\tRechner\t/\t\n");
+file_put_contents($spOrdner . '/demo.csv', date('Y-m-d', strtotime('-401 days')) . "\t10\tdemo-auto\tHandy\n");
+$spKz = Spur::zaehldateienKuerzen(400, $spOrdner);
+pruefe('Tracking: die anonymen Zähldateien behalten 400 Tage', $spKz === ['besuche.csv' => 1, 'demo.csv' => 1] && substr_count((string) file_get_contents($spOrdner . '/besuche.csv'), "\n") === 1);
+array_map('unlink', glob($spOrdner . '/*')); rmdir($spOrdner);
+
+/* Einstellungen, Oberfläche, Texte */
+pruefe('Tracking: Einstellungen geprüft (Zuordnung 1–365 Tage, Aufbewahrung 7–730)', Spur::einstellungenSetzen(['spur_zuordnung_tage' => 0, 'spur_rohdaten_tage' => 90, 'spur_klick_grenze' => 5]) !== null
+    && Spur::einstellungenSetzen(['spur_an' => '1', 'spur_frage_an' => '1', 'spur_geo_an' => '1', 'spur_zuordnung_tage' => 45, 'spur_rohdaten_tage' => 120, 'spur_klick_grenze' => 6]) === null
+    && Spur::zuordnungTage() === 45 && Spur::rohdatenTage() === 120);
+Db::run("DELETE FROM settings WHERE skey LIKE 'spur\\_%'");
+$spT_php = (string) file_get_contents($oben . '/t.php');
+$spJs = (string) file_get_contents($oben . '/assets/js/zaehlen.js');
+pruefe('Tracking: Meldestelle t.php — nur eigene Seiten, nur drei Arten aus dem Browser, Partner nie aus dem Browser',
+    str_contains($spT_php, "HTTP_ORIGIN") && str_contains($spT_php, "\$e === 'page_view'") && str_contains($spT_php, "\$e === 'contact_form_opened'")
+    && !preg_match('/partner_id\'?\s*=>\s*\(int\)\s*\(\$d\[/', $spT_php) && str_contains($spT_php, 'Spur::aktuellerBesuch() ?? Spur::wiederkehr'));
+pruefe('Tracking: Skript meldet nur im Partner-Besuch, im Hintergrund, fragt mit gleichwertigen Knöpfen',
+    str_contains($spJs, 'vdsp=1') && str_contains($spJs, 'keepalive: true') && str_contains($spJs, "data-a=\"ja\"") && str_contains($spJs, "data-a=\"nein\"")
+    && str_contains($spJs, "document.visibilityState !== 'visible'") && strlen($spJs) < 9000);
+pruefe('Tracking: p.php zeichnet nur echte Klicks auf (keine Vorschau n=1, keine Programme, nicht der Partner selbst)',
+    str_contains($paKeks, "Spur::partnerBesuch(\$p, \$kanal") && str_contains($paKeks, "!isset(\$_GET['n'])") && str_contains($paKeks, 'Partner::KEKS_SELBST'));
+foreach (['de' => ['VIS-8F31A92C', 'Einwilligung', 'DB-IP'], 'it' => ['VIS-8F31A92C', 'consenso', 'DB-IP'], 'en' => ['VIS-8F31A92C', 'consent', 'DB-IP']] as $spL => $spW2) {
+    $spLeg = (string) file_get_contents($oben . '/assets/js/legal-' . $spL . '.js');
+    pruefe('Tracking: Datenschutzerklärung (' . $spL . ') beschreibt Aufzeichnung, Einwilligung, Widerruf und Quelle der Standortdaten',
+        count(array_filter($spW2, static fn($w) => str_contains($spLeg, $w))) === 3 && str_contains($spLeg, 'p9w:') && str_contains($spLeg, '90'));
+}
+pruefe('Tracking: Widerruf-Link auf der Datenschutzseite', str_contains((string) file_get_contents($oben . '/legal.html'), '/t.php?widerruf=1'));
+$spIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Tracking: Verwaltung — eigener Bereich (Reiter unter Partner), Live als Teil, Einstellungen; nur hinter der Anmeldung',
+    str_contains($spIdx, "case 'tracking':") && str_contains($spIdx, "case 'tracking_einstellungen':") && strpos($spIdx, "case 'tracking':") > strpos($spIdx, 'Auth::nurAdmin()')
+    && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['tracking', 'Partner-Tracking', 'tracking']")
+    && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), 'Aktuelle Partner-Besucher') === false && str_contains((string) file_get_contents($wurzel . '/views/tracking_live.php'), 'Aktuelle Partner-Besucher'));
+pruefe('Tracking: Cron fasst täglich zusammen und kürzt die Zähldateien', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "\$aufgaben['spur']"));
+pruefe('Tracking: Geo-Daten liegen geschützt unter app/data (nicht aus dem Netz abrufbar), mit Quellenangabe',
+    is_file($wurzel . '/data/geo.bin') && trim((string) file_get_contents($wurzel . '/data/.htaccess')) === 'Require all denied' && str_contains((string) file_get_contents($wurzel . '/data/LIESMICH.txt'), 'Creative Commons') && str_contains((string) file_get_contents($wurzel . '/data/LIESMICH.txt'), 'DB-IP'));
+[$_COOKIE, $spSn] = $spAlt; if ($spSn === null) { unset($_SERVER['SCRIPT_NAME']); } else { $_SERVER['SCRIPT_NAME'] = $spSn; }
+Spur::vergessen();
 
 /* ============================================================================
    Aufräumen und Bilanz

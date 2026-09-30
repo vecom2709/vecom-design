@@ -111,6 +111,19 @@ if (is_file($konfig)) {
                 'httponly' => true, 'samesite' => 'Lax',
             ]);
             $_COOKIE[Partner::KEKS] = (string) $p['code'] . ($kanal !== null ? ':' . $kanal : '');
+            /* PARTNER-TRACKING (30.09.2026, Uwe: „Alles“): jeder echte Klick als
+               partner_visit, beim ersten im Besuch eine anonyme Sitzung (Spur).
+               Nicht bei Vorschau (n=1), Programmen oder dem Partner selbst. */
+            if (!isset($_GET['n']) && (!isset($_GET['weg']) || $_GET['weg'] === 'analisi')
+                && !Partner::istRoboter((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))
+                && strtoupper((string) ($_COOKIE[Partner::KEKS_SELBST] ?? '')) !== strtoupper((string) $p['code'])) {
+                try {
+                    require_once __DIR__ . '/app/src/Spur.php';
+                    Spur::partnerBesuch($p, $kanal, ['ua' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
+                        'referrer' => (string) ($_SERVER['HTTP_REFERER'] ?? ''), 'sprache' => $sprache, 'get' => $_GET,
+                        'einstieg' => '/p/' . $p['code'] . ($kanal !== null ? '/' . $kanal : ''), 'ref_link' => '/p/' . $p['code'] . ($kanal !== null ? '/' . $kanal : '')]);
+                } catch (Throwable $e) { /* Tracking ist Beiwerk */ }
+            }
             /* DIE WEGE (27.09.2026): Website-Check, Preis, Termin und der
                WhatsApp-Knopf laufen über diese Adresse -- gezählt wird der
                Preis-Aufruf und das Öffnen von WhatsApp hier, Check und

@@ -390,6 +390,14 @@ final class Cron
                 return TelegramBot::aufraeumen();
             };
         }
+        // Partner-Tracking (30.09.2026): Einzeldaten nach der Frist zu Tageszahlen,
+        // und die anonymen Zähldateien auf 400 Tage kürzen.
+        if (self::heuteNochNicht('cron_spur')) {
+            $aufgaben['spur'] = static function () {
+                require_once __DIR__ . '/Spur.php';
+                return ['ereignisse_zusammengefasst' => Spur::aufraeumen(), 'zaehldateien' => Spur::zaehldateienKuerzen()];
+            };
+        }
         $aufgaben['abos'] = static function () {
             require_once __DIR__ . '/Abo.php';
             return Abo::taeglich();

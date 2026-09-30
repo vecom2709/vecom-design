@@ -516,6 +516,13 @@ if ($post) {
                 $_SESSION['gut'] = 'Gespeichert. Neue Zustimmungen bekommen diese Zahlen in den Wortlaut.';
                 weiter('partner#schutz');
 
+            /* Partner-Tracking (30.09.2026) */
+            case 'tracking_einstellungen':
+                require_once __DIR__ . '/src/Spur.php';
+                $f = Spur::einstellungenSetzen($_POST);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
+                weiter('tracking#einstellungen');
+
             case 'partner_bedingungen':
                 require_once __DIR__ . '/src/Partner.php';
                 $pid = (int) ($_POST['id'] ?? 0);
@@ -4275,6 +4282,44 @@ switch ($route) {
 
     /* Besucher (26.09.2026): der Entwurf vom 25.09. eingebunden -- was die
        Website zählt, ohne IP und ohne Keks. Umsatz steht unter „Zahlen“. */
+    case 'tracking':   // Partner-Tracking (30.09.2026, Uwe: „Alles“)
+        require_once __DIR__ . '/src/Spur.php';
+        require_once __DIR__ . '/src/Geo.php';
+        if ($unter === 'live' || ($_SERVER['HTTP_X_TEIL'] ?? '') !== '') {
+            $live = Spur::live();
+            header('Cache-Control: no-store');
+            require __DIR__ . '/views/tracking_live.php';
+            exit;
+        }
+        $z = Spur::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
+        $f = ['partner' => max(0, (int) ($_GET['partner'] ?? 0))];
+        foreach (['land', 'geraet', 'quelle', 'status'] as $fk) {
+            $fv = (string) ($_GET[$fk] ?? '');
+            $f[$fk] = preg_match('/^[A-Za-z_-]{1,30}$/', $fv) ? $fv : '';
+        }
+        $detail = null;
+        if ($f['partner'] > 0 && ($dp = Partner::laden($f['partner'])) !== null) {
+            $kl = static fn(string $zs): int => Spur::kennzahlen(...array_merge(array_slice(Spur::zeitraum($zs), 0, 2), [['partner' => (int) $dp['id']]]))['klicks'];
+            require_once __DIR__ . '/lib/qrcode.php';
+            $qr = QRCode::getMinimumQRCode(Partner::link($dp), QR_ERROR_CORRECT_LEVEL_M);
+            $qn = $qr->getModuleCount(); $qd = '';
+            for ($qy = 0; $qy < $qn; $qy++) { for ($qx = 0; $qx < $qn; $qx++) { if ($qr->isDark($qy, $qx)) { $qd .= "M{$qx},{$qy}h1v1h-1z"; } } }
+            $detail = ['partner' => $dp, 'k' => Spur::kennzahlen($z[0], $z[1], $f),
+                'klicks' => ['heute' => $kl('heute'), '7' => $kl('7'), '30' => $kl('30'), 'gesamt' => Partner::klicksImmer((int) $dp['id'])],
+                'provision' => (int) (Partner::summen((int) $dp['id'])['ausgezahlt'] ?? 0) + (int) (Partner::summen((int) $dp['id'])['bereit'] ?? 0) + (int) (Partner::summen((int) $dp['id'])['wartet'] ?? 0),
+                'qr' => '<svg viewBox="0 0 ' . $qn . ' ' . $qn . '" role="img" aria-label="QR-Code des Empfehlungslinks" shape-rendering="crispEdges"><path fill="#000" d="' . $qd . '"/></svg>'];
+        }
+        $journey = isset($_GET['besuch']) ? Spur::journey((int) $_GET['besuch']) : null;
+        $einst = [];
+        foreach (array_keys(Spur::STANDARD) as $ek) { $einst[$ek] = Spur::einstellung($ek); }
+        ansicht('tracking', [
+            'z' => $z, 'f' => $f, 'k' => Spur::kennzahlen($z[0], $z[1], $f), 'heute' => Spur::heuteSaetze(),
+            'tabelle' => Spur::partnerTabelle($z[0], $z[1], $f), 'funnel' => Spur::funnel($z[0], $z[1], $f), 'herkunft' => Spur::herkunft($z[0], $z[1], $f),
+            'besuche' => Spur::besuche($z[0], $z[1], $f), 'live' => Spur::live(), 'detail' => $detail, 'journey' => $journey, 'einst' => $einst,
+            'partnerListe' => Db::all("SELECT id, name FROM partner WHERE status IN ('aktiv','pausiert') ORDER BY name"),
+        ]);
+        break;
+
     case 'statistiken':
         require_once __DIR__ . '/src/Statistik.php';
         require_once __DIR__ . '/src/Zugang.php';

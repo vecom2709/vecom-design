@@ -537,8 +537,12 @@ final class Onboarding
     public static function speichern(int $fragebogenId, array $antworten): void
     {
         $alt = [];
-        $f = Db::one('SELECT data FROM questionnaires WHERE id = ?', [$fragebogenId]);
+        $f = Db::one('SELECT data, customer_id FROM questionnaires WHERE id = ?', [$fragebogenId]);
         if ($f && $f['data']) { $alt = json_decode((string) $f['data'], true) ?: []; }
+        /* Partner-Tracking (30.09.2026): das erste Speichern = Fragebogen gestartet. */
+        if ($f && $alt === []) {
+            try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('questionnaire_started', ['customer_id' => (int) $f['customer_id'], 'seite' => '/fragebogen.php']); } catch (Throwable $e) { }
+        }
 
         $neu = self::saeubern($antworten);
         // Nur Felder, die diesmal wirklich im Formular standen, duerfen den
@@ -637,6 +641,8 @@ final class Onboarding
         });
 
         if ($f === null) { return; }
+        /* Partner-Tracking (30.09.2026): Fragebogen abgeschlossen. */
+        try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('questionnaire_completed', ['customer_id' => (int) $f['fragebogen']['customer_id'], 'seite' => '/fragebogen.php']); } catch (Throwable $e) { }
 
         /* DAS BRIEFING ENTSTEHT HIER, NICHT AUF KNOPFDRUCK
            ------------------------------------------------------------------

@@ -417,6 +417,14 @@ final class Events
         require_once __DIR__ . '/Beispieldaten.php';
         Beispieldaten::beiEchtenDatenEntfernen();
 
+        /* Partner-Tracking (30.09.2026): Auftrag angenommen; der erste macht den Kunden. */
+        try {
+            require_once __DIR__ . '/Spur.php';
+            $wert = (int) Db::wert('SELECT price_cents FROM orders WHERE id = ?', [$bestellId], 0);
+            Spur::ereignis('order_created', ['customer_id' => $kundeId, 'betrag_cents' => $wert, 'meta' => ['auftrag' => $bestellId]]);
+            Spur::ereignis('customer_created', ['customer_id' => $kundeId, 'meta' => ['auftrag' => $bestellId]]);
+        } catch (Throwable $e) { }
+
         return $bestellId;
     }
 
@@ -516,6 +524,16 @@ final class Events
 
             return ['projekt' => $projektId, 'art' => $art];
         });
+
+        /* Partner-Tracking (30.09.2026): Zahlung eingegangen, mit Betrag -- nur Kunden
+           mit Partner (Besuch oder Zuordnung) erscheinen dort. Eigenes Netz. */
+        if (is_array($nachlauf)) {
+            try {
+                require_once __DIR__ . '/Spur.php';
+                $sz = self::zahlungFuerSpur($zahlungId);
+                if ($sz !== null) { Spur::ereignis('payment_completed', ['customer_id' => $sz['kunde'], 'betrag_cents' => $sz['betrag'], 'meta' => ['zahlung' => $zahlungId]]); }
+            } catch (Throwable $e) { }
+        }
 
         // Zu jeder bezahlten Rate ein Beleg — ebenfalls erst nach dem
         // Festschreiben, und so, dass ein Fehler dabei die Zahlung nicht
@@ -691,6 +709,14 @@ final class Events
 
         self::zahlungBestaetigen($zahlungId, $referenz, 'stripe');
         return 'gebucht';
+    }
+
+    /** Kunde und Betrag einer Zahlung (Bestellung oder Betreuung) — fürs Partner-Tracking. @return ?array{kunde:int,betrag:int} */
+    private static function zahlungFuerSpur(int $zahlungId): ?array
+    {
+        $r = Db::one('SELECT p.amount_cents, COALESCE(o.customer_id, a.customer_id) AS kunde FROM payments p
+                        LEFT JOIN orders o ON o.id = p.order_id LEFT JOIN abos a ON a.id = p.abo_id WHERE p.id = ?', [$zahlungId]);
+        return $r && (int) $r['kunde'] > 0 ? ['kunde' => (int) $r['kunde'], 'betrag' => (int) $r['amount_cents']] : null;
     }
 
     /** Was bei einer Bestellung noch offen ist — in Cent. */

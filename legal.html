@@ -95,6 +95,16 @@
   <p class="pre" data-i18n="legal.p10"></p>
   <h3 data-i18n="legal.p9h"></h3>
   <p class="pre" data-i18n="legal.p9"></p>
+  <p class="legal__hinweis" id="spur-widerrufen" hidden data-i18n="legal.p9ok"></p>
+  <p><a class="btn" id="spur-widerruf" href="/t.php?widerruf=1" data-i18n="legal.p9w"></a></p>
+  <script>
+    /* Partner-Tracking (30.09.2026): Widerruf in der Sprache der Seite, Bestätigung danach */
+    (function () {
+      var a = document.getElementById('spur-widerruf'); var l = (document.documentElement.lang || 'it').slice(0, 2);
+      if (a) { a.href = '/t.php?widerruf=1&lang=' + encodeURIComponent(l); }
+      if (/[?&]widerrufen=1/.test(location.search)) { var h = document.getElementById('spur-widerrufen'); if (h) { h.hidden = false; } }
+    })();
+  </script>
   <h3 data-i18n="legal.p7h"></h3>
   <p class="pre" data-i18n="legal.p7"></p>
 
@@ -165,7 +175,7 @@
 </footer>
 
 <script src="assets/js/i18n-it.js?v=85e988c9"></script>
-<script src="assets/js/legal-it.js?v=c0172e76"></script>
+<script src="assets/js/legal-it.js?v=8c9f28c2"></script>
 <script src="assets/js/app.js"></script>
 </body>
 </html>

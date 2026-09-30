@@ -98,6 +98,9 @@ final class Anfrage
         // nichts daraus, soll kein Link ewig offen stehen.
         self::token($id);
 
+        /* Partner-Tracking (30.09.2026): Anfrage = Lead, am Besuch oder am zugeordneten Kunden. */
+        try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('lead_created', ['customer_id' => $kundeId, 'anfrage_id' => $id, 'meta' => ['art' => 'anfrage']]); } catch (Throwable $e) { }
+
         Events::protokoll('anfrage_neu', 'Anfrage von ' . $name . ($telegram ? ' (über Telegram)' : ''), $kundeId);
         Events::melden('anfrage_neu', 'Neue Anfrage über ' . $ueber, 'gut',
             $name . ($paketName !== '' ? ' — ' . $paketName : ''), '/anfragen/' . $id);

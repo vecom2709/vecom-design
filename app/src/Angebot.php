@@ -541,6 +541,9 @@ final class Angebot
                 . 'abgeschickt hat — erst seine Antworten legen fest, was gebaut wird und was es kostet.');
         }
 
+        /* Partner-Tracking (30.09.2026): Angebot erstellt (= an den Kunden geschickt). */
+        try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('offer_created', ['customer_id' => (int) $a['customer_id'], 'betrag_cents' => (int) $a['summe_cents'], 'meta' => ['angebot' => (string) $a['nummer']]]); } catch (Throwable $e) { }
+
         $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
         Db::update('angebote', $angebotId, [
             'status'      => 'gesendet',

@@ -164,6 +164,19 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
 </div>
 <?php endif; ?>
 
+<?php /* Partner-Tracking (30.09.2026): die letzten 30 Tage in einer Zeile, Einzelheiten im eigenen Bereich */
+  require_once dirname(__DIR__) . '/src/Spur.php';
+  $trZ = Spur::zeitraum('30'); $trK = Spur::kennzahlen($trZ[0], $trZ[1], ['partner' => (int) $p['id']]); ?>
+<div class="block" id="tracking">
+  <h2 style="font-size:15px;margin:0 0 8px">Tracking · 30 Tage <a class="mehr" href="<?= Fmt::h(url('tracking') . '?partner=' . (int) $p['id']) ?>#partner" style="margin-left:auto;font-size:12.5px;font-weight:400">Partner-Tracking öffnen →</a></h2>
+  <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">
+    <?php foreach (['klicks' => 'Klicks', 'sitzungen' => 'Besucher', 'rechner_gestartet' => 'Preisrechner', 'fragebogen' => 'Fragebögen', 'anfragen' => 'Anfragen', 'kunden' => 'Kunden'] as $trS => $trW): ?>
+      <div><b style="font-size:20px"><?= (int) $trK[$trS] ?></b><br><span style="color:var(--leise)"><?= $trW ?></span></div>
+    <?php endforeach; ?>
+    <div><b style="font-size:20px"><?= Fmt::h(Fmt::geld((int) $trK['umsatz'])) ?></b><br><span style="color:var(--leise)">Umsatz</span></div>
+  </div>
+</div>
+
 <div class="block">
   <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">
     <div><b style="font-size:20px"><?= (int) $zahlen['klicks'] ?></b><br><span style="color:var(--leise)">Klicks</span></div>

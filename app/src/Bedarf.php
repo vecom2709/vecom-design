@@ -292,9 +292,14 @@ final class Bedarf
         if (!$z || $z['status'] !== 'offen') { return; }
 
         $alt = self::antworten($z);
+        $warLeer = $alt === [];
         foreach ($neu as $schluessel => $wert) {
             if (!isset(Baukasten::FRAGEN[$schluessel])) { continue; }
             $alt[$schluessel] = self::saubern($schluessel, $wert);
+        }
+        /* Partner-Tracking: die erste Antwort = Preisrechner gestartet (30.09.2026). */
+        if ($warLeer && $alt !== []) {
+            try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('price_calculator_started', ['customer_id' => $z['customer_id'] !== null ? (int) $z['customer_id'] : null, 'seite' => '/bedarf.php', 'meta' => ['art' => 'konfigurator']]); } catch (Throwable $e) { }
         }
 
         Db::update('bedarf', $id, [
@@ -437,6 +442,15 @@ final class Bedarf
                     $name . ' — ' . $e->getMessage(), '/bedarf/' . $id);
             } catch (Throwable $e2) { /* dann eben nicht */ }
         }
+
+        /* Partner-Tracking (30.09.2026): Preisrechner abgeschlossen -- mit Kunde und Richtpreis. */
+        try {
+            require_once __DIR__ . '/Spur.php';
+            $sp = Db::one('SELECT customer_id, anfrage_id, von_cents, bis_cents FROM bedarf WHERE id = ?', [$id]);
+            Spur::ereignis('price_calculator_completed', ['customer_id' => $sp && $sp['customer_id'] !== null ? (int) $sp['customer_id'] : null,
+                'anfrage_id' => $sp && $sp['anfrage_id'] !== null ? (int) $sp['anfrage_id'] : null, 'seite' => '/bedarf.php',
+                'meta' => array_filter(['von' => $sp['von_cents'] ?? null, 'bis' => $sp['bis_cents'] ?? null])]);
+        } catch (Throwable $e) { }
 
         // Zuletzt die Empfehlung. Sie ist das Entbehrlichste an diesem Vorgang
         // — eine fehlende Gutschrift laesst sich nachtragen, ein verlorener

@@ -198,6 +198,16 @@ final class Zugang
                 'partner_code' => self::partnerCode($extra),
             ]);
             $z = (array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$id]);
+            /* Partner-Tracking (30.09.2026): Der Besuch, aus dem die Adresse kam -- so hängt die
+               Journey am Kunden, auch wenn er den Link aus der Mail auf dem Handy öffnet. */
+            try {
+                require_once __DIR__ . '/Spur.php';
+                $sb = Spur::aktuellerBesuch();
+                if ($sb) {
+                    Db::run('UPDATE zugaenge SET spur_besuch_id = ? WHERE id = ?', [(int) $sb['id'], $id]);
+                    Spur::ereignis('lead_created', ['besuch' => $sb, 'seite' => '/zugang.php', 'meta' => ['art' => 'e-mail-einstieg']]);
+                }
+            } catch (Throwable $e) { }
         } else {
             $aend = [];
             // Die Sprache der letzten Anforderung gilt: Er liest gerade in ihr.
@@ -289,6 +299,13 @@ final class Zugang
 
         // Erst jetzt markieren: Scheitert oben etwas, bleibt der Link gueltig.
         Db::update('zugaenge', (int) $z['id'], ['customer_id' => $kid, 'geoeffnet_am' => date('Y-m-d H:i:s')]);
+
+        /* Partner-Tracking (30.09.2026): Besuch ↔ Kunde, jetzt mit Namen (freiwillig eingetragen). */
+        try {
+            require_once __DIR__ . '/Spur.php';
+            $sb = !empty($z['spur_besuch_id']) ? (Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $z['spur_besuch_id']]) ?: null) : null;
+            Spur::verknuepfen($kid, null, $sb ?? Spur::aktuellerBesuch());
+        } catch (Throwable $e) { }
 
         // Der Bedarf, in dem er gleich die acht Fragen beantwortet (D1)
         if ($z['bedarf_id'] !== null) {
