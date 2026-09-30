@@ -58,6 +58,17 @@ final class TelegramAdmin
         if (!preg_match('/^[0-9a-f]{32}$/', $code)) { return null; }
         $z = Db::one('SELECT * FROM telegram_codes WHERE code_hash = ? AND user_id IS NOT NULL', [hash('sha256', $code)]);
         if (!$z || $z['benutzt_am'] !== null || strtotime((string) $z['gueltig_bis']) < time()) { return null; }
+        // Zweites Schloss schon beim Verbinden, BEVOR der Code verbraucht ist:
+        // Öffnet Uwe den Link versehentlich im falschen Telegram-Konto, kann er
+        // ihn danach im richtigen noch benutzen.
+        if (!self::imKanal((int) Db::wert('SELECT chat_id FROM telegram_chats WHERE id = ?', [$chatZeile], 0))) {
+            try {
+                require_once __DIR__ . '/Events.php';
+                Events::melden('telegram_admin_abgelehnt', 'Telegram: Verbindung zur Verwaltung abgelehnt', 'warnung',
+                    'Das Telegram-Konto, das den Link geöffnet hat, ist nicht Besitzer oder Admin des Kanals.', 'einstellungen?b=telegram');
+            } catch (Throwable $e) { }
+            return null;
+        }
         $st = Db::run('UPDATE telegram_codes SET benutzt_am = NOW() WHERE id = ? AND benutzt_am IS NULL', [(int) $z['id']]);
         if ($st->rowCount() !== 1) { return null; }
         $uid = (int) $z['user_id'];
@@ -91,6 +102,47 @@ final class TelegramAdmin
         try { return Db::one('SELECT * FROM telegram_chats WHERE admin_verbunden = ?', [$userId]); }
         catch (Throwable $e) { return null; }
     }
+
+    /* ZWEI SCHLÖSSER (30.09.2026, Uwe: „kein normaler Nutzer in die
+       Verwaltung, nur Kanalbesitzer und Admin“)
+
+       Ein Chat kommt nur in die Verwaltung, wenn BEIDES stimmt:
+         1. er ist mit einem aktiven Zugang der Rolle admin verbunden
+            (Einmal-Code aus der angemeldeten Verwaltung), und
+         2. die Telegram-Person dahinter ist Besitzer oder Admin des
+            hinterlegten Kanals — gefragt bei Telegram (getChatMember),
+            nicht am Namen erkannt.
+       Ein weitergereichter Code oder ein übernommenes Handy mit fremdem
+       Telegram-Konto scheitert am zweiten Schloss. Ist noch kein Kanal
+       hinterlegt, gilt nur das erste. Antwortet Telegram nicht, bleibt die
+       Tür zu (lieber ein verpasster Zuruf als ein offenes Fenster).
+       Normale Nutzer kommen gar nicht bis zur Frage: Ohne Verbindung wird
+       Telegram nicht einmal gefragt. */
+
+    /** @var array<int,bool> je Anfrage gemerkt — ein Knopfdruck fragt Telegram höchstens einmal */
+    private static array $kanalRolle = [];
+
+    /** Ist diese Telegram-Person Besitzer oder Admin des hinterlegten Kanals? */
+    public static function imKanal(int $telegramId): bool
+    {
+        if ($telegramId <= 0) { return false; }
+        $kanal = Telegram::einstellung('tg_kanal_id');
+        if ($kanal === '') { return true; }
+        if (!array_key_exists($telegramId, self::$kanalRolle)) {
+            $r = Telegram::rufen('getChatMember', ['chat_id' => $kanal, 'user_id' => $telegramId]);
+            self::$kanalRolle[$telegramId] = $r['ok'] && in_array((string) ($r['result']['status'] ?? ''), ['creator', 'administrator'], true);
+        }
+        return self::$kanalRolle[$telegramId];
+    }
+
+    /** Beide Schlösser für einen Chat (im Privatchat ist chat_id = Telegram-Person). */
+    public static function darfChat(array $c): bool
+    {
+        return !empty($c['admin_verbunden']) && self::darf((int) $c['admin_verbunden']) && self::imKanal((int) ($c['chat_id'] ?? 0));
+    }
+
+    /** Nur für die Kette: gemerkte Antworten vergessen. */
+    public static function vergessen(): void { self::$kanalRolle = []; }
 
     /** Aktiver Zugang mit Rolle admin? Wird bei jedem Aufruf neu gefragt. */
     public static function darf(int $userId): bool
@@ -139,7 +191,7 @@ final class TelegramAdmin
             if (!Telegram::bereit()) { return false; }
             $ids = Db::all('SELECT id, chat_id, admin_verbunden FROM telegram_chats WHERE admin_verbunden IS NOT NULL');
             foreach ($ids as $r) {
-                if (self::darf((int) $r['admin_verbunden'])) { self::$warteschlange[] = [(int) $r['chat_id'], mb_substr($text, 0, 900)]; }
+                if (self::darfChat($r)) { self::$warteschlange[] = [(int) $r['chat_id'], mb_substr($text, 0, 900)]; }
             }
             $neu = count(self::$warteschlange) > $vorher;
             if (!self::$warteschlange || self::$angemeldet) { return $neu; }

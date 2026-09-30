@@ -15664,6 +15664,50 @@ pruefe('Kanal-Knopf bei einem Bekannten: sofort am Punkt (persönliche Beratung)
 pruefe('… die erste Quelle bleibt', $tgChat($tkNeu)['quelle_code'] === 'kanal');
 $tgAus($tgText($tkNeu, '/start kanal-gibtsnicht', 'de'));
 pruefe('Ein unbekanntes Sprungwort springt nirgendwohin (Menü)', in_array('m:preis', $tgZuletzt()['knoepfe'], true));
+/* Zwei Schlösser vor der Verwaltung (30.09.2026, Uwe: „kein normaler Nutzer in die Verwaltung, nur Kanalbesitzer und Admin“) */
+$tkPerson = 'member';
+Telegram::$netz = static function (string $m, array $d) use (&$tgNetz, &$tgMsg, &$tkRechte, &$tkTyp, &$tkPerson): array {
+    $tgNetz[] = [$m, $d];
+    if ($m === 'getMe') { return ['ok' => true, 'result' => ['id' => 4242, 'is_bot' => true, 'username' => 'vecom_pruef_bot']]; }
+    if ($m === 'getChat') { return ['ok' => true, 'result' => ['id' => -1004410953446, 'type' => $tkTyp, 'title' => 'Vecom Design']]; }
+    if ($m === 'getChatMember') { return (int) $d['user_id'] === 4242 ? ['ok' => true, 'result' => $tkRechte] : ($tkPerson === 'fehler' ? ['ok' => false, 'beschreibung' => 'Bad Gateway'] : ['ok' => true, 'result' => ['status' => $tkPerson]]); }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => ++$tgMsg]]; }
+    return ['ok' => true, 'result' => true];
+};
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+$tzUid = Db::insert('users', ['email' => 'tg-schloss@pruefung.example', 'password_hash' => password_hash('z' . random_int(0, 99999), PASSWORD_DEFAULT), 'name' => 'Zwei Schloesser', 'role' => 'admin', 'active' => 1]);
+preg_match('~a_([0-9a-f]{32})$~', TelegramAdmin::verbindungslink($tzUid), $tzM);
+$tzChat = 555400111;
+TelegramAdmin::vergessen();
+$tgAus($tgText($tzChat, '/start a_' . $tzM[1], 'de'));
+pruefe('Schloss 2: Admin-Code im Telegram-Konto, das im Kanal nur Mitglied ist → nicht verbunden, Code bleibt gültig, Meldung an Uwe',
+    $tgChat($tzChat)['admin_verbunden'] === null
+    && (int) Db::wert('SELECT COUNT(*) FROM telegram_codes WHERE code_hash = ? AND benutzt_am IS NULL', [hash('sha256', $tzM[1])], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'telegram_admin_abgelehnt'", [], 0) >= 1);
+$tkPerson = 'creator'; TelegramAdmin::vergessen();
+$tgAus($tgText($tzChat, '/start a_' . $tzM[1], 'de'));
+pruefe('… derselbe Code im Konto des Kanalbesitzers verbindet', (int) $tgChat($tzChat)['admin_verbunden'] === $tzUid);
+$tgAus($tgText($tzChat, '/menu', 'de'));
+pruefe('Kanalbesitzer + Admin der Verwaltung: Menü mit „🛠 Verwaltung“', in_array('v:lage', $tgZuletzt()['knoepfe'], true));
+$tkPerson = 'administrator'; TelegramAdmin::vergessen();
+pruefe('Auch ein Kanal-Admin (nicht nur der Besitzer) zählt', TelegramAdmin::darfChat($tgChat($tzChat)));
+$tkPerson = 'left'; TelegramAdmin::vergessen();
+$tgAus($tgText($tzChat, '/menu', 'de'));
+$tzMenu = $tgZuletzt()['knoepfe'];
+$tgAus($tgKnopf($tzChat, 'v:lage'));
+pruefe('Verliert das Konto die Kanal-Rolle: kein Menüpunkt, keine Lage — obwohl die Verwaltung noch verbunden ist',
+    !in_array('v:lage', $tzMenu, true) && !str_contains($tgZuletzt()['text'], 'Lage in der Verwaltung'));
+$tgNetz = []; TelegramAdmin::vergessen();
+Zuruf::vormerken('stoerung_schloss', 'Website nicht erreichbar', 15);
+pruefe('… und keine Zurufe mehr', !array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && (int) ($x[1]['chat_id'] ?? 0) === $tzChat));
+$tkPerson = 'fehler'; TelegramAdmin::vergessen();
+pruefe('Antwortet Telegram nicht, bleibt die Tür zu', !TelegramAdmin::darfChat($tgChat($tzChat)));
+$tgNetz = []; TelegramAdmin::vergessen();
+$tgAus($tgKnopf($tkNeu, 'v:lage'));
+pruefe('Ein normaler Nutzer (ohne Verbindung) kommt nicht hinein — und Telegram wird dafür nicht einmal gefragt',
+    !str_contains($tgZuletzt()['text'], 'Lage in der Verwaltung') && !in_array('getChatMember', array_column($tgNetz, 0), true));
+TelegramAdmin::trennen($tzUid);
+
 $tgNetz = [];
 Telegram::kanalSetzen('-1004410953446', 'https://t.me/+2XCcnCJj_F9lMTEy');
 $tkBes = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'setMyDescription' && ($x[1]['language_code'] ?? '') === 'de'))[0][1]['description'] ?? '';

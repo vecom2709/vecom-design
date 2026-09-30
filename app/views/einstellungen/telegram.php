@@ -141,7 +141,8 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
 <div class="block">
   <h2>Dein Telegram als Fenster zur Verwaltung</h2>
   <?php if ($tgAdm): ?>
-    <div class="hinweis gut">Verbunden. Die Zurufe (neue Anfrage, Störung …) kommen auch in Telegram an, und im Bot-Menü steht „🛠 Verwaltung“ mit der Lage.</div>
+    <div class="hinweis gut">Verbunden. Die Zurufe (neue Anfrage, Störung …) kommen auch in Telegram an, und im Bot-Menü steht „🛠 Verwaltung“ mit der Lage.
+      Zugang nur, solange dieses Telegram-Konto Besitzer oder Admin des Kanals ist; normale Nutzer sehen den Punkt nie.</div>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
           data-frage="Dein Telegram von der Verwaltung trennen?" data-ja="Ja, trennen">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_admin_trennen">
@@ -151,6 +152,8 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
       Ein Klick öffnet Telegram mit einem Einmal-Link (30 Minuten gültig). Danach bekommst du dort dieselben
       Zurufe wie per WhatsApp und siehst die Lage — nur Zahlen und Knöpfe in die Verwaltung, keine Kundennamen.
       Gearbeitet wird weiter hier.
+      <br><b>Zwei Schlösser:</b> Öffnen Sie den Link mit dem Telegram-Konto, das Besitzer oder Admin des Kanals ist —
+      mit jedem anderen Konto wird nicht verbunden, und wer die Kanal-Rolle später verliert, verliert auch den Zugang im Bot.
     </p>
     <form method="post" action="<?= Fmt::h(url('')) ?>">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_admin_verbinden">

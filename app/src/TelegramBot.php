@@ -275,7 +275,7 @@ final class TelegramBot
             case 'm': self::antwortKnopf($cqId); return self::menuPunkt($c, $rest, $msgId);
             case 'v':
                 self::antwortKnopf($cqId);
-                if (empty($c['admin_verbunden']) || !TelegramAdmin::darf((int) $c['admin_verbunden'])) { self::zeigeStand($c, $msgId); return 'kein_admin'; }
+                if (!TelegramAdmin::darfChat($c)) { self::zeigeStand($c, $msgId); return 'kein_admin'; }
                 return self::verwaltungKnopf($c, $rest, $msgId);
             case 'c': case 'f':
                 self::antwortKnopf($cqId);
@@ -1033,7 +1033,7 @@ final class TelegramBot
         ],
         // Der Kanal (30.09.2026): nur, wenn einer hinterlegt ist.
         Telegram::einstellung('tg_kanal_link') !== '' ? [[self::url(self::t($c, 'k_kanal'), Telegram::einstellung('tg_kanal_link'))]] : [],
-        !empty($c['admin_verbunden']) && TelegramAdmin::darf((int) $c['admin_verbunden'])
+        TelegramAdmin::darfChat($c)
             ? [[['text' => '🛠 Verwaltung', 'callback_data' => 'v:lage']]] : []);
     }
 
