@@ -360,6 +360,11 @@ final class WebBericht
         $token = bin2hex(random_bytes(16));
         Db::insert('web_berichte', ['token' => $token, 'firma_id' => $firmaId, 'host' => mb_substr($daten['host'], 0, 190), 'url' => mb_substr($daten['url'], 0, 500),
             'daten' => json_encode($daten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'note' => self::note($daten['punkte']), 'quelle' => mb_substr($quelle, 0, 20)]);
+        /* Growth Engine Phase 4: der öffentliche Check im Besuch über einen Partner- oder
+           Kampagnenlink zählt als Ereignis (ohne Besuch passiert in Spur nichts). */
+        if (in_array($quelle, ['analisi', 'check'], true)) {
+            try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('website_check_completed', ['seite' => $quelle === 'check' ? '/website-check.php' : '/analisi.php', 'meta' => ['note' => self::note($daten['punkte'])]]); } catch (Throwable $e) { }
+        }
         return $token;
     }
 

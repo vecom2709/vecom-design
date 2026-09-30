@@ -8,7 +8,12 @@
  * Erwartet: $z, $k, $zahl, $jeWerbemittel, $werbemittel, $kosten, $kostenZeitraum, $belege, $kontakte.
  */
 [$von, $bis, $zk] = $z;
-$leer = ['klicks' => 0, 'besuche' => 0, 'rechner' => 0, 'leads' => 0, 'angebote' => 0, 'kunden' => 0, 'auftraege' => 0, 'zahlungen' => 0, 'umsatz' => 0];
+$leer = MkKampagne::LEER;
+$branchen = MkKampagne::branchen();
+$budget = MkKampagne::budget($k);
+$zielWort = MkKampagne::ZIEL_ARTEN[$k['ziel_art']][0] ?? 'Leads';
+$zielWert = MkKampagne::zielWert($k, $zahl + $leer);
+$lz = MkKampagne::laufzeit($k);
 $zahl += $leer;
 $geld = static fn(int $c): string => Fmt::geld($c);
 $n = static fn(int $x): string => number_format($x, 0, ',', '.');
@@ -26,7 +31,13 @@ require __DIR__ . '/mk_stil.php';
 <div class="mk-kopf">
   <div>
     <h1><?= Fmt::h($k['name']) ?> <span class="marke2 <?= $statusKlasse ?>" style="vertical-align:4px"><?= Fmt::h(MkKampagne::STATUS[$k['status']] ?? $k['status']) ?></span></h1>
-    <div class="weg"><?= Fmt::h(MkKampagne::PLATTFORMEN[$k['plattform']] ?? $k['plattform']) ?> · Ziel <?= Fmt::h($k['ziel']) ?> · angelegt am <?= Fmt::h($datum((string) $k['created_at'])) ?></div>
+    <div class="weg"><?= Fmt::h(implode(' · ', array_filter([
+        MkKampagne::PLATTFORMEN[$k['plattform']] ?? $k['plattform'],
+        $branchen[$k['branche']] ?? '',
+        $k['cta'] === 'eigen' ? 'CTA „' . $k['cta_text'] . '“' : (isset(MkKampagne::CTA[$k['cta']]) ? 'CTA „' . MkKampagne::CTA[$k['cta']] . '“' : ''),
+        'Zielseite ' . $k['ziel'],
+        $lz === 'offen' ? 'angelegt am ' . $datum((string) $k['created_at']) : ($lz === 'vor' ? 'startet am ' . $datum((string) $k['start_am']) : ($lz === 'vorbei' ? 'abgelaufen am ' . $datum((string) $k['ende_am']) : 'läuft' . ($k['ende_am'] ? ' bis ' . $datum((string) $k['ende_am']) : ''))),
+      ]))) ?></div>
   </div>
   <a class="knopf" href="<?= Fmt::h(url('kampagnen')) ?>">‹ Alle Kampagnen</a>
 </div>
@@ -65,9 +76,9 @@ require __DIR__ . '/mk_stil.php';
 </form>
 
 <div class="karten mk-karten">
-  <div class="karte"><h3>Klicks</h3><div class="wert"><?= $n($zahl['klicks']) ?></div><div class="neben"><?= $n($zahl['besuche']) ?> Besuche</div></div>
-  <div class="karte"><h3>Leads</h3><div class="wert"><?= $n($zahl['leads']) ?></div><div class="neben"><?= Fmt::h($q($zahl['leads'], $zahl['besuche'])) ?> der Besuche · <?= $n($zahl['rechner']) ?> Rechner abgeschlossen</div></div>
-  <div class="karte"><h3>Kunden</h3><div class="wert"><?= $n($zahl['kunden']) ?></div><div class="neben"><?= $n($zahl['angebote']) ?> Angebote · <?= $n($zahl['auftraege']) ?> Aufträge</div></div>
+  <div class="karte" style="border-color:var(--linie2)"><h3>Ziel · <?= Fmt::h($zielWort) ?></h3><div class="wert"><?= $n($zielWert) ?></div><div class="neben"><?= $k['ziel_art'] === 'besuche' ? $n($zahl['klicks']) . ' Klicks' : Fmt::h($q($zielWert, $zahl['besuche'])) . ' der Besuche' ?></div></div>
+  <div class="karte"><h3>Klicks</h3><div class="wert"><?= $n($zahl['klicks']) ?></div><div class="neben"><?= $n($zahl['besuche']) ?> Besuche · <?= $n($zahl['checks']) ?> Website-Checks · <?= $n($zahl['termine']) ?> Termine</div></div>
+  <div class="karte"><h3>Leads</h3><div class="wert"><?= $n($zahl['leads']) ?></div><div class="neben"><?= Fmt::h($q($zahl['leads'], $zahl['besuche'])) ?> der Besuche · <?= $n($zahl['kunden']) ?> Kunden · <?= $n($zahl['angebote']) ?> Angebote</div></div>
   <div class="karte"><h3>Umsatz</h3><div class="wert"><?= Fmt::h($geld($zahl['umsatz'])) ?></div>
     <div class="neben">Kosten <?= Fmt::h($geld($kostenZeitraum)) ?><?php if ($kostenZeitraum > 0): ?> · ROAS <?= number_format($zahl['umsatz'] / $kostenZeitraum, 1, ',', '.') ?> · pro Lead <?= $zahl['leads'] > 0 ? Fmt::h($geld(intdiv($kostenZeitraum, $zahl['leads']))) : '—' ?> · pro Kunde <?= $zahl['kunden'] > 0 ? Fmt::h($geld(intdiv($kostenZeitraum, $zahl['kunden']))) : '—' ?><?php endif; ?></div></div>
 </div>
@@ -130,6 +141,12 @@ require __DIR__ . '/mk_stil.php';
 <div class="mk-zwei">
   <div class="block" id="kosten">
     <h2>Kosten <span class="mehr">gesamt <?= Fmt::h($geld((int) array_sum(array_column($kosten, 'betrag_cents')))) ?></span></h2>
+    <?php if ($budget !== null): $bf = ['ok' => 'var(--gruen)', 'knapp' => 'var(--gelb)', 'erreicht' => 'var(--rot)'][$budget['stufe']]; ?>
+      <div style="margin:0 0 12px">
+        <span class="mk-budget gross"><i style="width:<?= min(100, (int) round($budget['anteil'])) ?>%;background:<?= $bf ?>"></i></span>
+        <span class="mk-fein">Budget <?= Fmt::h($geld($budget['ausgegeben'])) ?> von <?= Fmt::h($geld($budget['grenze'])) ?> <?= $budget['art'] === 'monat' ? 'in diesem Monat' : 'insgesamt' ?> · <?= number_format($budget['anteil'], 0, ',', '.') ?> %<?= $budget['stufe'] === 'erreicht' ? ' — erreicht: die Anzeige bei der Plattform pausieren oder das Budget erhöhen' : ($budget['stufe'] === 'knapp' ? ' — bald erreicht' : '') ?></span>
+      </div>
+    <?php endif; ?>
     <?php if ($kosten): ?>
       <div class="tabellenrahmen"><table class="mk-tab">
         <thead><tr><th>Datum</th><th>Notiz / Beleg</th><th class="num">Betrag</th><th></th></tr></thead>
@@ -189,6 +206,7 @@ require __DIR__ . '/mk_stil.php';
     <div class="feld"><label for="ke_ziel">Zielseite</label><input id="ke_ziel" name="ziel" list="ke_ziele" value="<?= Fmt::h($k['ziel']) ?>" maxlength="180" required pattern="/[A-Za-z0-9/_.\-]*">
       <datalist id="ke_ziele"><?php foreach (MkKampagne::ZIELE as $zp => $zw): ?><option value="<?= Fmt::h($zp) ?>"><?= Fmt::h($zw) ?></option><?php endforeach; ?></datalist></div>
     <div class="feld"><label for="ke_status">Status</label><select id="ke_status" name="status"><?php foreach (MkKampagne::STATUS as $sk => $sw): ?><option value="<?= $sk ?>"<?= $k['status'] === $sk ? ' selected' : '' ?>><?= Fmt::h($sw) ?></option><?php endforeach; ?></select></div>
+    <?php $kf = $k; $kfId = 'ke'; require __DIR__ . '/mk_kampagne_felder.php'; ?>
     <div class="feld breit"><label for="ke_notiz">Notiz</label><input id="ke_notiz" name="notiz" value="<?= Fmt::h($k['notiz']) ?>" maxlength="500"></div>
     <p class="mk-fein breit" style="margin:0">Der Kurz-Code <b>/k/<?= Fmt::h($k['code']) ?></b> bleibt fest — er steht vielleicht schon in Beiträgen oder auf Flyern. Plattform ebenso; für eine andere Plattform eine neue Kampagne anlegen.</p>
     <div class="breit"><button class="knopf">Einstellungen speichern</button></div>

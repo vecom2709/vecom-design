@@ -66,12 +66,18 @@
   .mk-teilen{display:flex;gap:18px;align-items:flex-start;flex-wrap:wrap}
   .mk-teilen > div{flex:1 1 320px;min-width:0;display:grid;gap:10px}
   .mk-tab td,.mk-tab th{white-space:nowrap}
-  .mk-tab td.mk-name{white-space:normal;min-width:180px}
+  .mk-tab td.mk-name{white-space:normal;min-width:250px}
+  .mk-tab{font-size:13.5px}
+  .mk-tab td.num .mk-budget{display:block;margin:6px 0 3px auto}
+  @media(max-width:700px){.mk-tab td.mk-name{min-width:180px}}
   .mk-tab .num{text-align:right;font-variant-numeric:tabular-nums}
   .mk-code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;color:var(--leise)}
   .mk-formular{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;align-items:end}
   .mk-formular .feld{margin:0}
   .mk-formular .breit{grid-column:1/-1}
   .mk-fein{font-size:12.5px;color:var(--leise)}
+  .mk-budget{display:inline-block;width:90px;height:6px;border-radius:99px;background:var(--flaeche2);overflow:hidden;vertical-align:middle;margin:6px 6px 2px 0}
+  .mk-budget i{display:block;height:100%;border-radius:99px}
+  .mk-budget.gross{width:100%;height:9px;margin:4px 0 6px}
   @media(max-width:700px){.mk-besten{grid-template-columns:minmax(0,1fr)}}
 </style>

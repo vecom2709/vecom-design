@@ -379,7 +379,8 @@ final class MkKennzahlen
             foreach ($l['kampagnen'] as $k) {
                 $nm = $namen[(string) $k['name']] > 1 ? $k['name'] . ' · /k/' . $k['code'] : (string) $k['name'];
                 $aus['leads'][$nm] = (int) $k['leads']; $aus['klicks'][$nm] = (int) $k['klicks']; $aus['umsatz'][$nm] = (int) $k['umsatz'];
-                $aus['zeilen'][] = ['name' => $nm, 'leads' => (int) $k['leads'], 'kosten' => (int) $k['kosten'], 'klicks' => (int) $k['klicks']];
+                $aus['zeilen'][] = ['name' => $nm, 'leads' => (int) $k['leads'], 'kosten' => (int) $k['kosten'], 'klicks' => (int) $k['klicks'],
+                    'budget' => $k['budget'] ?? null, 'laufzeit' => (string) ($k['laufzeit'] ?? 'offen'), 'status' => (string) ($k['status'] ?? 'aktiv'), 'ende_am' => $k['ende_am'] ?? null];
             }
             $zeit = [$von . ' 00:00:00', $bis . ' 23:59:59'];
             foreach (Db::all("SELECT CONCAT(cr.name, ' · ', k.name) AS wert, SUM(e.event_type = 'lead_created') AS leads, SUM(e.event_type = 'campaign_visit') AS klicks
@@ -467,6 +468,13 @@ final class MkKennzahlen
 
         foreach (($d['kampagnen']['zeilen'] ?? []) as $kz) {
             if ($kz['kosten'] > 0 && $kz['leads'] === 0) { $p[] = 'Kampagne „' . $kz['name'] . '“: ' . Fmt::geld($kz['kosten']) . ' Kosten, ' . $kz['klicks'] . ' Klicks, noch kein Lead.'; }
+            $bu = $kz['budget'] ?? null;
+            if (is_array($bu) && $bu['stufe'] === 'erreicht' && ($kz['status'] ?? 'aktiv') === 'aktiv') {
+                $p[] = 'Kampagne „' . $kz['name'] . '“: Budget erreicht (' . Fmt::geld($bu['ausgegeben']) . ' von ' . Fmt::geld($bu['grenze']) . ') — die Anzeige bei der Plattform pausieren oder das Budget erhöhen.';
+            }
+            if (($kz['laufzeit'] ?? '') === 'vorbei' && ($kz['status'] ?? '') === 'aktiv') {
+                $e[] = 'Kampagne „' . $kz['name'] . '“ ist seit ' . date('d.m.Y', strtotime((string) $kz['ende_am'])) . ' abgelaufen, der Link zählt aber weiter — auf „beendet“ setzen oder die Laufzeit verlängern.';
+            }
         }
         $guenstig = array_filter($d['kampagnen']['zeilen'] ?? [], static fn($kz) => $kz['kosten'] > 0 && $kz['leads'] >= 3);
         if (count($guenstig) >= 2) {

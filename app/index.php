@@ -4380,7 +4380,7 @@ switch ($route) {
             ]);
             break;
         }
-        $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')];
+        $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? '')];
         ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF)]);
         break;
 

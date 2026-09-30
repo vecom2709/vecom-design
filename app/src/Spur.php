@@ -44,12 +44,14 @@ final class Spur
         'price_calculator_opened', 'price_calculator_started', 'price_calculator_completed',
         'questionnaire_opened', 'questionnaire_started', 'questionnaire_completed',
         'contact_form_opened', 'lead_created', 'offer_created', 'customer_created', 'order_created', 'payment_completed',
+        'website_check_completed', 'appointment_requested',   // Growth Engine Phase 4: Website-Check und Termin
     ];
     /** Was das Skript im Browser melden darf — alles andere entsteht nur auf dem Server. */
     public const AUS_DEM_BROWSER = ['page_view', 'price_calculator_opened', 'contact_form_opened'];
     /** Nur einmal je Besuch (bzw. je Kunde bei Ereignissen ohne Besuch). */
     public const EINMALIG = ['price_calculator_opened', 'price_calculator_started', 'price_calculator_completed', 'questionnaire_opened',
-        'questionnaire_started', 'questionnaire_completed', 'contact_form_opened', 'lead_created', 'customer_created'];
+        'questionnaire_started', 'questionnaire_completed', 'contact_form_opened', 'lead_created', 'customer_created',
+        'website_check_completed', 'appointment_requested'];
 
     public const NAMEN = [
         'partner_visit' => 'Partnerlink geöffnet', 'campaign_visit' => 'Kampagnenlink geöffnet', 'page_view' => 'Seite', 'price_calculator_opened' => 'Preisrechner geöffnet',
@@ -58,6 +60,7 @@ final class Spur
         'questionnaire_completed' => 'Fragebogen abgeschlossen', 'contact_form_opened' => 'Kontaktformular geöffnet',
         'lead_created' => 'Anfrage / Lead erstellt', 'offer_created' => 'Angebot erstellt', 'customer_created' => 'Kunde geworden',
         'order_created' => 'Auftrag angenommen', 'payment_completed' => 'Zahlung eingegangen',
+        'website_check_completed' => 'Website-Check gemacht', 'appointment_requested' => 'Termin gebucht',
     ];
 
     /** Status eines Besuchs, aufsteigend. */
@@ -68,6 +71,7 @@ final class Spur
         'contact_form_opened' => 'interessent', 'price_calculator_completed' => 'rechner', 'questionnaire_started' => 'rechner',
         'questionnaire_completed' => 'anfrage', 'lead_created' => 'anfrage', 'offer_created' => 'angebot',
         'customer_created' => 'kunde', 'order_created' => 'kunde', 'payment_completed' => 'abgeschlossen',
+        'website_check_completed' => 'interessent', 'appointment_requested' => 'anfrage',
     ];
 
     public const QUELLEN = ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'tiktok' => 'TikTok', 'whatsapp' => 'WhatsApp',

@@ -44,6 +44,29 @@ final class MkKampagne
 
     public const STATUS = ['aktiv' => 'Aktiv', 'pausiert' => 'Pausiert', 'beendet' => 'Beendet'];
 
+    /* Phase 4 (Kampagnen-Manager): woran der Erfolg gemessen wird — jeweils ein
+       echtes Ereignis aus der Spur, nie ein Klick. [Wort, Feld in zahlen()] */
+    public const ZIEL_ARTEN = [
+        'leads'         => ['Leads (E-Mail oder Anfrage)', 'leads'],
+        'website_check' => ['Website-Checks', 'checks'],
+        'rechner'       => ['Preisrechner abgeschlossen', 'rechner'],
+        'termin'        => ['Termine gebucht', 'termine'],
+        'kunden'        => ['Neue Kunden', 'kunden'],
+        'besuche'       => ['Besuche (Bekanntheit)', 'besuche'],
+    ];
+    /** Der Handlungsaufruf im Beitrag oder in der Anzeige. */
+    public const CTA = [
+        'website_check' => 'Kostenloser Website-Check', 'preis' => 'Preis berechnen', 'termin' => 'Termin buchen',
+        'whatsapp' => 'WhatsApp schreiben', 'anruf' => 'Anrufen', 'angebot' => 'Angebot anfordern',
+        'mehr' => 'Mehr erfahren', 'eigen' => 'Eigener Text',
+    ];
+    /** Alle Zahlen einer Kampagne, leer. */
+    public const LEER = ['klicks' => 0, 'besuche' => 0, 'checks' => 0, 'rechner' => 0, 'termine' => 0, 'leads' => 0, 'angebote' => 0, 'kunden' => 0,
+        'auftraege' => 0, 'zahlungen' => 0, 'umsatz' => 0];
+    public const BUDGET_ARTEN = ['gesamt' => 'für die ganze Kampagne', 'monat' => 'je Kalendermonat'];
+    /** Ab diesem Anteil warnt die Budgetgrenze (Meldung und Farbe). */
+    public const BUDGET_WARNUNG = 80;
+
     /** Häufige Ziele zur Auswahl — frei eintippen geht auch, solange es ein eigener Pfad ist. */
     public const ZIELE = [
         '/' => 'Startseite (IT)', '/de/' => 'Startseite (DE)', '/en/' => 'Startseite (EN)',
@@ -87,6 +110,53 @@ final class MkKampagne
     /* Anlegen und ändern                                                  */
     /* ------------------------------------------------------------------ */
 
+    /** Branchen wie in der Akquise (akquise_branchen.json) — ein Wortschatz für alles. @return array<string,string> */
+    public static function branchen(): array
+    {
+        static $b = null;
+        if ($b !== null) { return $b; }
+        $b = [];
+        $j = json_decode((string) @file_get_contents(__DIR__ . '/akquise_branchen.json'), true);
+        foreach (is_array($j) ? $j : [] as $k => $v) {
+            if ($k[0] !== '_' && is_array($v)) { $b[(string) $k] = (string) ($v['de'] ?? $k); }
+        }
+        return $b;
+    }
+
+    /**
+     * Ziel, Branche, CTA, Budget und Laufzeit aus einem Formular prüfen.
+     * @return array<string,mixed>|string die Felder oder ein Fehlertext
+     */
+    public static function felder(array $d, ?array $alt = null): array|string
+    {
+        $wert = static fn(string $k, $vor) => array_key_exists($k, $d) ? $d[$k] : $vor;
+        $ziel = (string) $wert('ziel_art', $alt['ziel_art'] ?? 'leads');
+        $branche = (string) $wert('branche', $alt['branche'] ?? '');
+        $cta = (string) $wert('cta', $alt['cta'] ?? '');
+        $ctaText = mb_substr(trim((string) $wert('cta_text', $alt['cta_text'] ?? '')), 0, 120);
+        $budgetRoh = trim((string) $wert('budget', isset($alt['budget_cents']) && $alt['budget_cents'] !== null ? number_format((int) $alt['budget_cents'] / 100, 2, '.', '') : ''));
+        $budgetArt = (string) $wert('budget_art', $alt['budget_art'] ?? 'gesamt');
+        $start = trim((string) $wert('start_am', $alt['start_am'] ?? ''));
+        $ende = trim((string) $wert('ende_am', $alt['ende_am'] ?? ''));
+        if (!isset(self::ZIEL_ARTEN[$ziel])) { return 'Bitte ein Ziel wählen.'; }
+        if ($branche !== '' && !isset(self::branchen()[$branche])) { return 'Unbekannte Branche.'; }
+        if ($cta !== '' && !isset(self::CTA[$cta])) { return 'Unbekannter Handlungsaufruf.'; }
+        if ($cta === 'eigen' && $ctaText === '') { return 'Bitte den eigenen Handlungsaufruf ausschreiben.'; }
+        if ($cta !== 'eigen') { $ctaText = ''; }
+        $budget = null;
+        if ($budgetRoh !== '') {
+            if (!preg_match('/^\d{1,7}([.,]\d{1,2})?$/', $budgetRoh)) { return 'Das Budget bitte als Betrag in Euro, z. B. 150 oder 150,00.'; }
+            $budget = (int) round((float) str_replace(',', '.', $budgetRoh) * 100);
+            if ($budget <= 0) { $budget = null; }
+        }
+        if (!isset(self::BUDGET_ARTEN[$budgetArt])) { $budgetArt = 'gesamt'; }
+        $datum = static fn(string $t): bool => $t === '' || (preg_match('/^\d{4}-\d{2}-\d{2}$/', $t) === 1 && strtotime($t) !== false);
+        if (!$datum($start) || !$datum($ende)) { return 'Bitte gültige Daten für die Laufzeit.'; }
+        if ($start !== '' && $ende !== '' && $ende < $start) { return 'Das Ende der Laufzeit liegt vor dem Start.'; }
+        return ['ziel_art' => $ziel, 'branche' => $branche, 'cta' => $cta, 'cta_text' => $ctaText, 'budget_cents' => $budget, 'budget_art' => $budgetArt,
+                'start_am' => $start !== '' ? $start : null, 'ende_am' => $ende !== '' ? $ende : null];
+    }
+
     /** @return int|string neue ID oder Fehlertext */
     public static function anlegen(array $d): int|string
     {
@@ -96,6 +166,8 @@ final class MkKampagne
         if ($name === '' || mb_strlen($name) > 120) { return 'Bitte einen Namen (bis 120 Zeichen) eingeben.'; }
         if (!isset(self::PLATTFORMEN[$plattform])) { return 'Bitte eine Plattform wählen.'; }
         if (!self::zielOk($ziel)) { return 'Die Zielseite muss eine Seite von vecom-design.it sein, z. B. /de/ oder /analisi.php.'; }
+        $mehr = self::felder($d);
+        if (is_string($mehr)) { return $mehr; }
         $code = strtolower(trim((string) ($d['code'] ?? '')));
         if ($code !== '' && !self::codeOk($code)) { return 'Der Kurz-Code darf nur a–z, 0–9 und Bindestrich enthalten (3 bis 24 Zeichen).'; }
         if ($code === '') {
@@ -107,8 +179,8 @@ final class MkKampagne
             return 'Den Kurz-Code „' . $code . '“ gibt es schon.';
         }
         $id = (int) Db::insert('mk_kampagnen', ['code' => $code, 'name' => $name, 'plattform' => $plattform, 'ziel' => $ziel,
-            'notiz' => mb_substr(trim((string) ($d['notiz'] ?? '')), 0, 500)]);
-        Events::pruefspur('kampagne_angelegt', 'mk_kampagnen', $id, [], ['code' => $code, 'name' => $name, 'plattform' => $plattform, 'ziel' => $ziel]);
+            'notiz' => mb_substr(trim((string) ($d['notiz'] ?? '')), 0, 500)] + $mehr);
+        Events::pruefspur('kampagne_angelegt', 'mk_kampagnen', $id, [], ['code' => $code, 'name' => $name, 'plattform' => $plattform, 'ziel' => $ziel] + $mehr);
         return $id;
     }
 
@@ -126,6 +198,9 @@ final class MkKampagne
         if ($neu['name'] === '' || mb_strlen($neu['name']) > 120) { return 'Bitte einen Namen (bis 120 Zeichen) eingeben.'; }
         if (!self::zielOk($neu['ziel'])) { return 'Die Zielseite muss eine Seite von vecom-design.it sein.'; }
         if (!isset(self::STATUS[$neu['status']])) { return 'Unbekannter Status.'; }
+        $mehr = self::felder($d, $k);
+        if (is_string($mehr)) { return $mehr; }
+        $neu += $mehr;
         Db::update('mk_kampagnen', $id, $neu);
         Events::pruefspur('kampagne_geaendert', 'mk_kampagnen', $id, array_intersect_key($k, $neu), $neu);
         return null;
@@ -172,10 +247,62 @@ final class MkKampagne
             if ($betrag <= 0) { $betrag = (int) ($a['netto_cents'] > 0 ? $a['netto_cents'] : $a['brutto_cents']); }
         }
         if ($betrag <= 0 || $betrag > 100000000) { return 'Bitte einen Betrag über 0 eingeben.'; }
+        $vorher = self::budget(self::laden($kampagneId) ?? [], $datum);
         $id = (int) Db::insert('mk_kosten', ['kampagne_id' => $kampagneId, 'datum' => $datum, 'betrag_cents' => $betrag,
             'notiz' => mb_substr(trim((string) ($d['notiz'] ?? '')), 0, 200), 'ausgabe_id' => $ausgabe > 0 ? $ausgabe : null]);
         Events::pruefspur('kampagne_kosten', 'mk_kosten', $id, [], ['kampagne_id' => $kampagneId, 'betrag_cents' => $betrag, 'ausgabe_id' => $ausgabe ?: null]);
+        self::budgetMelden(self::laden($kampagneId) ?? [], $vorher, self::budget(self::laden($kampagneId) ?? [], $datum));
         return null;
+    }
+
+    /**
+     * Stand der Budgetgrenze: ausgegeben (ganze Kampagne oder der Monat des
+     * Stichtags) gegen die Grenze. Null ohne Grenze.
+     * @return array{grenze:int, ausgegeben:int, anteil:float, stufe:string, art:string}|null  stufe: ok | knapp | erreicht
+     */
+    public static function budget(array $k, ?string $stichtag = null): ?array
+    {
+        if (empty($k['id']) || empty($k['budget_cents'])) { return null; }
+        $grenze = (int) $k['budget_cents'];
+        $monat = ($k['budget_art'] ?? 'gesamt') === 'monat';
+        $tag = $stichtag ?? date('Y-m-d');
+        $aus = $monat
+            ? (int) Db::wert('SELECT COALESCE(SUM(betrag_cents),0) FROM mk_kosten WHERE kampagne_id = ? AND datum BETWEEN ? AND ?', [(int) $k['id'], date('Y-m-01', strtotime($tag)), date('Y-m-t', strtotime($tag))], 0)
+            : (int) Db::wert('SELECT COALESCE(SUM(betrag_cents),0) FROM mk_kosten WHERE kampagne_id = ?', [(int) $k['id']], 0);
+        $anteil = round($aus / $grenze * 100, 1);
+        return ['grenze' => $grenze, 'ausgegeben' => $aus, 'anteil' => $anteil, 'art' => $monat ? 'monat' : 'gesamt',
+                'stufe' => $anteil >= 100 ? 'erreicht' : ($anteil >= self::BUDGET_WARNUNG ? 'knapp' : 'ok')];
+    }
+
+    /** Meldung, wenn neue Kosten die Warnschwelle oder die Grenze überschreiten — einmal je Übergang. */
+    private static function budgetMelden(array $k, ?array $vorher, ?array $nachher): void
+    {
+        if ($nachher === null || empty($k['id'])) { return; }
+        $rang = ['ok' => 0, 'knapp' => 1, 'erreicht' => 2];
+        if ($rang[$nachher['stufe']] <= $rang[$vorher['stufe'] ?? 'ok']) { return; }
+        $erreicht = $nachher['stufe'] === 'erreicht';
+        try {
+            Events::melden('kampagne_budget', 'Kampagne „' . $k['name'] . '“: Budget ' . ($erreicht ? 'erreicht' : 'zu ' . number_format($nachher['anteil'], 0, ',', '.') . ' % verbraucht'),
+                $erreicht ? 'schlecht' : 'warnung',
+                Fmt::geld($nachher['ausgegeben']) . ' von ' . Fmt::geld($nachher['grenze']) . ($nachher['art'] === 'monat' ? ' in diesem Monat' : '')
+                . ' — die Anzeige läuft bei der Plattform weiter, bis du sie dort pausierst.', '/kampagnen/' . (int) $k['id']);
+        } catch (Throwable $e) { }
+    }
+
+    /** Läuft die Kampagne laut Laufzeit? vor | laeuft | vorbei | offen (ohne Laufzeit) */
+    public static function laufzeit(array $k, ?string $heute = null): string
+    {
+        $h = $heute ?? date('Y-m-d');
+        if (empty($k['start_am']) && empty($k['ende_am'])) { return 'offen'; }
+        if (!empty($k['start_am']) && $h < $k['start_am']) { return 'vor'; }
+        if (!empty($k['ende_am']) && $h > $k['ende_am']) { return 'vorbei'; }
+        return 'laeuft';
+    }
+
+    /** Die Zahl, an der die Kampagne gemessen wird. */
+    public static function zielWert(array $k, array $z): int
+    {
+        return (int) ($z[self::ZIEL_ARTEN[$k['ziel_art'] ?? 'leads'][1] ?? 'leads'] ?? 0);
     }
 
     public static function kostenLoeschen(int $id): ?int
@@ -279,13 +406,14 @@ final class MkKampagne
         $jeE = $nurKampagne !== null ? 'COALESCE(e.creative_id, 0)' : 'e.kampagne_id';
         $w = $nurKampagne !== null ? ' AND b.kampagne_id = ' . (int) $nurKampagne : '';
         $wE = $nurKampagne !== null ? ' AND e.kampagne_id = ' . (int) $nurKampagne : '';
-        $leer = ['klicks' => 0, 'besuche' => 0, 'rechner' => 0, 'leads' => 0, 'angebote' => 0, 'kunden' => 0, 'auftraege' => 0, 'zahlungen' => 0, 'umsatz' => 0];
+        $leer = self::LEER;
         $aus = [];
         foreach (Db::all("SELECT $je AS gid, COUNT(*) AS n FROM spur_besuche b WHERE b.kampagne_id IS NOT NULL AND b.verdacht = 0 AND b.start_am BETWEEN ? AND ?$w GROUP BY gid", $zeit) as $r) {
             $aus[(int) $r['gid']] = ['besuche' => (int) $r['n']] + $leer;
         }
         $feld = ['campaign_visit' => 'klicks', 'price_calculator_completed' => 'rechner', 'lead_created' => 'leads', 'offer_created' => 'angebote',
-                 'customer_created' => 'kunden', 'order_created' => 'auftraege', 'payment_completed' => 'zahlungen'];
+                 'customer_created' => 'kunden', 'order_created' => 'auftraege', 'payment_completed' => 'zahlungen',
+                 'website_check_completed' => 'checks', 'appointment_requested' => 'termine'];
         foreach (Db::all("SELECT $jeE AS gid, e.event_type, COUNT(*) AS n, COUNT(DISTINCT COALESCE(e.besuch_id, -e.customer_id)) AS eindeutig, COALESCE(SUM(e.betrag_cents), 0) AS summe
                             FROM spur_ereignisse e LEFT JOIN spur_besuche b ON b.id = e.besuch_id
                            WHERE e.kampagne_id IS NOT NULL AND e.created_at BETWEEN ? AND ?$wE AND (b.id IS NULL OR b.verdacht = 0 OR e.event_type = 'campaign_visit')
@@ -326,18 +454,31 @@ final class MkKampagne
         $w = []; $a = [];
         if (isset(self::PLATTFORMEN[(string) ($f['plattform'] ?? '')])) { $w[] = 'k.plattform = ?'; $a[] = (string) $f['plattform']; }
         if (isset(self::STATUS[(string) ($f['status'] ?? '')])) { $w[] = 'k.status = ?'; $a[] = (string) $f['status']; }
+        if (isset(self::branchen()[(string) ($f['branche'] ?? '')])) { $w[] = 'k.branche = ?'; $a[] = (string) $f['branche']; }
         $kamp = Db::all('SELECT k.*, (SELECT COUNT(*) FROM mk_creatives c WHERE c.kampagne_id = k.id) AS werbemittel FROM mk_kampagnen k'
             . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY FIELD(k.status, 'aktiv', 'pausiert', 'beendet'), k.created_at DESC", $a);
         $zahlen = self::zahlen($von, $bis);
         $kosten = self::kostenJe($von, $bis);
-        $summe = ['klicks' => 0, 'besuche' => 0, 'rechner' => 0, 'leads' => 0, 'angebote' => 0, 'kunden' => 0, 'auftraege' => 0, 'zahlungen' => 0, 'umsatz' => 0, 'kosten' => 0];
+        $summe = self::LEER + ['kosten' => 0];
+        /* Vergleich nach Branche, Handlungsaufruf und Plattform (Phase 4): dieselben Zahlen, anders gebündelt. */
+        $gruppen = ['branche' => [], 'cta' => [], 'plattform' => []];
         foreach ($kamp as $i => $k) {
-            $z = ($zahlen[(int) $k['id']] ?? []) + ['klicks' => 0, 'besuche' => 0, 'rechner' => 0, 'leads' => 0, 'angebote' => 0, 'kunden' => 0, 'auftraege' => 0, 'zahlungen' => 0, 'umsatz' => 0];
+            $z = ($zahlen[(int) $k['id']] ?? []) + self::LEER;
             $z['kosten'] = $kosten[(int) $k['id']] ?? 0;
             $kamp[$i] += $z;
+            $kamp[$i]['zielwert'] = self::zielWert($k, $z);
+            $kamp[$i]['budget'] = self::budget($k);
+            $kamp[$i]['laufzeit'] = self::laufzeit($k);
             foreach ($summe as $s => $_) { $summe[$s] += (int) $z[$s]; }
+            foreach (['branche' => (string) $k['branche'], 'cta' => (string) $k['cta'], 'plattform' => (string) $k['plattform']] as $g => $schl) {
+                $schl = $schl !== '' ? $schl : '—';
+                $gruppen[$g][$schl] ??= ['kampagnen' => 0] + self::LEER + ['kosten' => 0];
+                $gruppen[$g][$schl]['kampagnen']++;
+                foreach (self::LEER + ['kosten' => 0] as $s => $_) { $gruppen[$g][$schl][$s] += (int) $z[$s]; }
+            }
         }
-        return ['kampagnen' => $kamp, 'summe' => $summe];
+        foreach ($gruppen as $g => $l) { uasort($l, static fn($x, $y) => [$y['leads'], $y['umsatz'], $y['klicks']] <=> [$x['leads'], $x['umsatz'], $x['klicks']]); $gruppen[$g] = $l; }
+        return ['kampagnen' => $kamp, 'summe' => $summe, 'gruppen' => $gruppen];
     }
 
     /** Wer über die Kampagne kam und selbst seine Daten eingetragen hat. */

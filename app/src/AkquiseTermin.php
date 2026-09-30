@@ -172,6 +172,8 @@ final class AkquiseTermin
             Partner::ereignis((int) $partner[0]['id'], 'termin');
             Partner::vormerken((int) $partner[0]['id'], $email, $telefon !== '' ? $telefon : null, 'termin', 'link', $partner[1]);
         }
+        /* Growth Engine Phase 4: Termin im Besuch über einen Partner- oder Kampagnenlink. */
+        try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('appointment_requested', ['seite' => '/termin.php', 'meta' => ['art' => ($e['art'] ?? '') === 'video' ? 'video' : 'telefon']]); } catch (Throwable $x) { }
         $t = Db::one('SELECT * FROM akq_termine WHERE id = ?', [$id]) ?? [];
         self::mail($t, 'mail_betreff', 'mail_text', 'termin_bestaetigung');
         if ($firmaId !== null) { Akquise::protokoll((int) $firmaId, 'termin', 'Termin gebucht: ' . date('d.m.Y H:i', $beginn) . ' (' . $t['art'] . ', ' . $thema . ')'

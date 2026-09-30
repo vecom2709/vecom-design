@@ -16623,7 +16623,7 @@ foreach (['kampagne_anlegen', 'kampagne_aendern', 'werbemittel_anlegen', 'kampag
     pruefe('Verwaltung: Aktion ' . $kaTat . ' hinter Anmeldung und CSRF', strpos($kaIdx, "case '$kaTat':") > strpos($kaIdx, 'Csrf::pruefen()'));
 }
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
-$z = MkKennzahlen::zeitraum('30'); $f = ['plattform' => '', 'status' => '']; $l = MkKampagne::liste($z[0], $z[1], $f);
+$z = MkKennzahlen::zeitraum('30'); $f = ['plattform' => '', 'status' => '', 'branche' => '']; $l = MkKampagne::liste($z[0], $z[1], $f);
 ob_start(); require $wurzel . '/views/kampagnen.php'; $kaHtml1 = (string) ob_get_clean();
 $k = MkKampagne::laden((int) $ka['id']); $zahl = MkKampagne::zahlen($z[0], $z[1])[(int) $ka['id']] ?? []; $jeWerbemittel = MkKampagne::zahlen($z[0], $z[1], (int) $ka['id']);
 $werbemittel = MkKampagne::werbemittel((int) $ka['id']); $kosten = MkKampagne::kosten((int) $ka['id']); $kostenZeitraum = MkKampagne::kostenJe($z[0], $z[1])[(int) $ka['id']] ?? 0;
@@ -16640,6 +16640,97 @@ foreach (['de' => 'Kampagnenlinks', 'it' => 'link di campagna', 'en' => 'campaig
 pruefe('Datenschutz: der Absatz steht auf der Seite', str_contains((string) file_get_contents($oben . '/legal.html'), 'data-i18n="legal.p9k"'));
 pruefe('Tracking-Skript: eigener Wortlaut für Kampagnenbesuche, ohne Partnernamen',
     str_contains((string) file_get_contents($oben . '/assets/js/zaehlen.js'), 'Besuch merken?') && str_contains((string) file_get_contents($oben . '/t.php'), "'art' => \$p ? 'partner' : 'kampagne'"));
+
+/* ============================================================================
+   Marketing · Kampagnen-Manager (Growth Engine Phase 4, 30.09.2026, Uwe: „Ja“)
+   Ziel, Branche, Handlungsaufruf, Laufzeit, Budgetgrenze mit Meldung,
+   Website-Check und Termin als eigene Ereignisse, Vergleich nach Gruppen.
+   ============================================================================ */
+abschnitt('Marketing: Kampagnen-Manager');
+require_once $wurzel . '/src/MkKampagne.php';
+$kmB = MkKampagne::branchen();
+pruefe('Kampagne: Branchen aus der Akquise (ein Wortschatz), ohne Hinweis-Einträge', ($kmB['restaurant'] ?? '') === 'Restaurant' && !isset($kmB['_hinweis']) && count($kmB) >= 20);
+pruefe('Kampagne: Felder werden geprüft — Ziel, Branche, eigener CTA, Budget, Laufzeit',
+    is_string(MkKampagne::felder(['ziel_art' => 'ruhm'])) && is_string(MkKampagne::felder(['branche' => 'mondfahrt'])) && is_string(MkKampagne::felder(['cta' => 'eigen', 'cta_text' => '']))
+    && is_string(MkKampagne::felder(['budget' => 'viel'])) && is_string(MkKampagne::felder(['start_am' => '2026-10-10', 'ende_am' => '2026-10-01']))
+    && MkKampagne::felder(['budget' => '150,50'])['budget_cents'] === 15050 && MkKampagne::felder(['budget' => ''])['budget_cents'] === null
+    && MkKampagne::felder(['cta' => 'preis', 'cta_text' => 'weg damit'])['cta_text'] === '' && MkKampagne::felder([])['ziel_art'] === 'leads');
+$kmId = MkKampagne::anlegen(['name' => 'Check für Restaurants', 'plattform' => 'facebook', 'ziel' => '/analisi.php', 'ziel_art' => 'website_check',
+    'branche' => 'restaurant', 'cta' => 'website_check', 'budget' => '100', 'budget_art' => 'gesamt', 'start_am' => date('Y-m-d', strtotime('-3 days')), 'ende_am' => date('Y-m-d', strtotime('+10 days'))]);
+$km = is_int($kmId) ? MkKampagne::laden($kmId) : null;
+pruefe('Kampagne: mit Ziel, Branche, CTA, Budget und Laufzeit angelegt',
+    $km !== null && $km['ziel_art'] === 'website_check' && $km['branche'] === 'restaurant' && $km['cta'] === 'website_check' && (int) $km['budget_cents'] === 10000
+    && MkKampagne::laufzeit($km) === 'laeuft', is_string($kmId) ? $kmId : '');
+pruefe('Kampagne: Laufzeit — vor dem Start, läuft, abgelaufen, offen',
+    MkKampagne::laufzeit(['start_am' => '2026-10-05', 'ende_am' => null], '2026-10-01') === 'vor' && MkKampagne::laufzeit(['start_am' => null, 'ende_am' => '2026-09-30'], '2026-10-01') === 'vorbei'
+    && MkKampagne::laufzeit(['start_am' => null, 'ende_am' => null], '2026-10-01') === 'offen');
+pruefe('Kampagne: Ändern prüft die neuen Felder mit', MkKampagne::aendern((int) $km['id'], ['branche' => 'mondfahrt']) !== null
+    && MkKampagne::aendern((int) $km['id'], ['cta' => 'eigen', 'cta_text' => 'Jetzt Ampel ansehen']) === null && MkKampagne::laden((int) $km['id'])['cta_text'] === 'Jetzt Ampel ansehen'
+    && MkKampagne::laden((int) $km['id'])['branche'] === 'restaurant');
+/* Budget: Warnung bei 80 %, Grenze bei 100 %, je Übergang eine Meldung */
+$kmMeld = static fn(string $stufe): int => (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'kampagne_budget' AND level = ?", [$stufe], 0);
+[$kmW0, $kmS0] = [$kmMeld('warnung'), $kmMeld('schlecht')];
+MkKampagne::kostenAnlegen((int) $km['id'], ['datum' => date('Y-m-d'), 'betrag' => '70']);
+$kmB1 = MkKampagne::budget(MkKampagne::laden((int) $km['id']));
+MkKampagne::kostenAnlegen((int) $km['id'], ['datum' => date('Y-m-d'), 'betrag' => '15']);
+$kmB2 = MkKampagne::budget(MkKampagne::laden((int) $km['id']));
+$kmW2 = $kmMeld('warnung');
+MkKampagne::kostenAnlegen((int) $km['id'], ['datum' => date('Y-m-d'), 'betrag' => '5']);
+$kmW3 = $kmMeld('warnung');
+MkKampagne::kostenAnlegen((int) $km['id'], ['datum' => date('Y-m-d'), 'betrag' => '20']);
+$kmB4 = MkKampagne::budget(MkKampagne::laden((int) $km['id']));
+pruefe('Kampagne: Budget — 70 % ok, 85 % knapp (eine Warnung), weitere Kosten ohne neue Warnung, 110 % erreicht (Störung)',
+    $kmB1['stufe'] === 'ok' && $kmB2['stufe'] === 'knapp' && $kmW2 === $kmW0 + 1 && $kmW3 === $kmW2 && $kmB4['stufe'] === 'erreicht' && $kmMeld('schlecht') === $kmS0 + 1
+    && $kmB4['ausgegeben'] === 11000, json_encode([$kmB1, $kmB2, $kmB4, $kmW0, $kmW2, $kmW3]));
+pruefe('Kampagne: die Meldung sagt ehrlich, dass die Anzeige bei der Plattform weiterläuft',
+    str_contains((string) Db::wert("SELECT body FROM notifications WHERE type = 'kampagne_budget' ORDER BY id DESC LIMIT 1", [], ''), 'läuft bei der Plattform weiter'));
+$kmMonat = MkKampagne::anlegen(['name' => 'Monatsbudget', 'plattform' => 'instagram', 'budget' => '50', 'budget_art' => 'monat']);
+MkKampagne::kostenAnlegen($kmMonat, ['datum' => date('Y-m-d', strtotime('first day of last month')), 'betrag' => '45']);
+MkKampagne::kostenAnlegen($kmMonat, ['datum' => date('Y-m-d'), 'betrag' => '10']);
+pruefe('Kampagne: Monatsbudget zählt nur den laufenden Monat', MkKampagne::budget(MkKampagne::laden($kmMonat))['ausgegeben'] === 1000);
+pruefe('Kampagne: ohne Grenze kein Budgetstand', MkKampagne::budget(['id' => 1, 'budget_cents' => null]) === null);
+
+/* Website-Check und Termin als Ereignisse, Ziel-Wert */
+$kmAlt = [$_COOKIE, $_SERVER['SCRIPT_NAME'] ?? null];
+$_COOKIE = []; $_SERVER['SCRIPT_NAME'] = '/k.php'; Spur::vergessen();
+$kmBesuch = Spur::kampagnenBesuch($km, null, ['ua' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36', 'ip' => '151.99.125.9',
+    'referrer' => 'https://lm.facebook.com/', 'sprache' => 'it', 'get' => MkKampagne::utm($km), 'einstieg' => '/k/' . $km['code']]);
+Spur::ereignis('website_check_completed', ['seite' => '/analisi.php']);
+Spur::ereignis('website_check_completed', ['seite' => '/analisi.php']);
+Spur::ereignis('appointment_requested', ['seite' => '/termin.php']);
+$kmZ = MkKampagne::zahlen(date('Y-m-d'), date('Y-m-d'))[(int) $km['id']] ?? [];
+pruefe('Kampagne: Website-Check und Termin zählen je Besuch einmal — und das Ziel misst den Check',
+    $kmBesuch !== null && ($kmZ['checks'] ?? 0) === 1 && ($kmZ['termine'] ?? 0) === 1 && MkKampagne::zielWert(MkKampagne::laden((int) $km['id']), $kmZ) === 1
+    && (string) Db::wert('SELECT status FROM spur_besuche WHERE id = ?', [$kmBesuch['id']], '') === 'anfrage', json_encode($kmZ));
+[$_COOKIE, $kmSn] = $kmAlt; if ($kmSn === null) { unset($_SERVER['SCRIPT_NAME']); } else { $_SERVER['SCRIPT_NAME'] = $kmSn; }
+Spur::vergessen();
+pruefe('Kampagne: der öffentliche Check (analisi, website-check) und die Terminbuchung melden das Ereignis',
+    str_contains((string) file_get_contents($wurzel . '/src/WebBericht.php'), "Spur::ereignis('website_check_completed'")
+    && str_contains((string) file_get_contents($wurzel . '/src/AkquiseTermin.php'), "Spur::ereignis('appointment_requested'")
+    && in_array('website_check_completed', Spur::EINMALIG, true) && in_array('appointment_requested', Spur::EINMALIG, true));
+$kmL = MkKampagne::liste(date('Y-m-d'), date('Y-m-d'));
+pruefe('Kampagne: Vergleich nach Branche, Handlungsaufruf und Plattform', ($kmL['gruppen']['branche']['restaurant']['checks'] ?? 0) === 1
+    && ($kmL['gruppen']['branche']['restaurant']['kampagnen'] ?? 0) === 1 && isset($kmL['gruppen']['cta']['eigen']) && isset($kmL['gruppen']['plattform']['facebook']));
+pruefe('Kampagne: Filter nach Branche', count(MkKampagne::liste(date('Y-m-d'), date('Y-m-d'), ['branche' => 'restaurant'])['kampagnen']) === 1
+    && count(MkKampagne::liste(date('Y-m-d'), date('Y-m-d'), ['branche' => 'mondfahrt'])['kampagnen']) === count($kmL['kampagnen']));
+$kmH = MkKennzahlen::hinweise(['aufrufe' => ['summe' => 0, 'vorher' => 0, 'mit_kampagne' => 0, 'plattformen' => []], 'schritte' => ['rechner_begonnen' => 0, 'rechner_fertig' => 0, 'checks' => 0, 'checks_kontakt' => 0],
+    'leads' => ['neu' => 0, 'qualifiziert' => 0], 'geld' => ['kosten' => 0], 'offen' => ['anfragen' => 0, 'angebote' => 0, 'bedarf' => 0, 'termine_morgen' => 0],
+    'kampagnen' => ['zeilen' => [['name' => 'Voll', 'leads' => 2, 'kosten' => 12000, 'klicks' => 50, 'status' => 'aktiv', 'laufzeit' => 'laeuft', 'ende_am' => null,
+        'budget' => ['grenze' => 10000, 'ausgegeben' => 12000, 'anteil' => 120.0, 'stufe' => 'erreicht', 'art' => 'gesamt']],
+        ['name' => 'Alt', 'leads' => 1, 'kosten' => 0, 'klicks' => 5, 'status' => 'aktiv', 'laufzeit' => 'vorbei', 'ende_am' => '2026-09-15', 'budget' => null]]]]);
+pruefe('Überblick: Hinweise zu Budget erreicht und abgelaufener Kampagne, jeweils mit Zahl bzw. Datum',
+    str_contains(implode('|', $kmH['probleme']), 'Kampagne „Voll“: Budget erreicht (120,00') && str_contains(implode('|', $kmH['empfehlungen']), 'Kampagne „Alt“ ist seit 15.09.2026 abgelaufen'), json_encode($kmH));
+$kmFehler = null; set_error_handler(static function (int $n, string $m) use (&$kmFehler): bool { $kmFehler = $m; return true; });
+$z = MkKennzahlen::zeitraum('30'); $f = ['plattform' => '', 'status' => '', 'branche' => '']; $l = MkKampagne::liste($z[0], $z[1], $f);
+ob_start(); require $wurzel . '/views/kampagnen.php'; $kmHtml1 = (string) ob_get_clean();
+$k = MkKampagne::laden((int) $km['id']); $zahl = MkKampagne::zahlen($z[0], $z[1])[(int) $km['id']] ?? []; $jeWerbemittel = MkKampagne::zahlen($z[0], $z[1], (int) $km['id']);
+$werbemittel = []; $kosten = MkKampagne::kosten((int) $km['id']); $kostenZeitraum = MkKampagne::kostenJe($z[0], $z[1])[(int) $km['id']] ?? 0; $belege = []; $kontakte = [];
+ob_start(); require $wurzel . '/views/kampagne.php'; $kmHtml2 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Liste und Kampagne zeigen Ziel, Branche, CTA, Budget, Laufzeit und den Vergleich — ohne Warnung',
+    $kmFehler === null && str_contains($kmHtml1, 'Vergleich') && str_contains($kmHtml1, 'Website-Checks') && str_contains($kmHtml1, 'mk-budget')
+    && str_contains($kmHtml2, 'Ziel · Website-Checks') && str_contains($kmHtml2, 'Restaurant') && str_contains($kmHtml2, 'Jetzt Ampel ansehen') && str_contains($kmHtml2, 'erreicht')
+    && str_contains($kmHtml2, 'name="budget"'), (string) $kmFehler);
 
 /* ============================================================================
    Aufräumen und Bilanz
