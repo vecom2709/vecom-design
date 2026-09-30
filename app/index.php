@@ -2280,6 +2280,24 @@ if ($post) {
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
 
+            /* Stufe 3: dein eigenes Telegram als Fenster zur Verwaltung. */
+            case 'telegram_admin_verbinden':
+                require_once __DIR__ . '/src/TelegramAdmin.php';
+                $tgA = TelegramAdmin::verbindungslink((int) Auth::id());
+                if ($tgA === '') {
+                    $_SESSION['fehler'] = 'Erst den Bot einrichten (Token + Webhook).';
+                    weiter('einstellungen?b=telegram');
+                }
+                header('Location: ' . $tgA, true, 303);
+                exit;
+
+            case 'telegram_admin_trennen':
+                require_once __DIR__ . '/src/TelegramAdmin.php';
+                TelegramAdmin::trennen((int) Auth::id());
+                Events::protokoll('telegram', 'Telegram: Verwaltung vom Chat getrennt');
+                $_SESSION['gut'] = 'Dein Telegram ist von der Verwaltung getrennt.';
+                weiter('einstellungen?b=telegram');
+
             case 'telegram_weg':
                 require_once __DIR__ . '/src/Telegram.php';
                 Telegram::entfernen();
@@ -3973,6 +3991,7 @@ switch ($route) {
             $daten['telegram'] = sicher(static fn() => Telegram::stand(), ['token' => false, 'ende' => '', 'name' => '',
                 'angemeldet' => '', 'bereit' => false, 'adresse' => '', 'chats' => 0, 'abgeschickt' => 0, 'letzte' => '']);
             $daten['telegramPruefung'] = $_SESSION['telegram_pruefung'] ?? null;
+            $daten['telegramAdmin'] = sicher(static function () { require_once __DIR__ . '/src/TelegramAdmin.php'; return TelegramAdmin::chat((int) Auth::id()); }, null);
             unset($_SESSION['telegram_pruefung']);
         }
 

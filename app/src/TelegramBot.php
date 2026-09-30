@@ -6,6 +6,7 @@ require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Telegram.php';
 require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/TelegramKunde.php';
+require_once __DIR__ . '/TelegramAdmin.php';
 
 /* ==========================================================================
    TelegramBot.php — was der Bot sagt und tut (30.09.2026, Stufe 1:
@@ -180,6 +181,8 @@ final class TelegramBot
             case 'start':
                 // Verbindungslink aus dem persönlichen Bereich: t.me/bot?start=k_CODE (Stufe 2).
                 if (preg_match('/^k_([0-9a-f]{32})$/', $arg, $km)) { return self::verbinden($c, $km[1]); }
+                // Verbindungslink aus der Verwaltung: t.me/bot?start=a_CODE (Stufe 3).
+                if (preg_match('/^a_([0-9a-f]{32})$/', $arg, $am)) { return self::verwaltungVerbinden($c, $am[1]); }
                 // Start-Link: t.me/bot?start=p_CODE (Partner) oder e_CODE (Empfehlung).
                 // Die erste Quelle zählt — wie auf der Website.
                 if ($arg !== '' && preg_match('/^[pe]_[A-Za-z0-9]{5,16}$/', $arg) && empty($c['quelle_code'])) {
@@ -240,6 +243,10 @@ final class TelegramBot
 
         switch ($art) {
             case 'm': self::antwortKnopf($cqId); return self::menuPunkt($c, $rest, $msgId);
+            case 'v':
+                self::antwortKnopf($cqId);
+                if (empty($c['admin_verbunden']) || !TelegramAdmin::darf((int) $c['admin_verbunden'])) { self::zeigeStand($c, $msgId); return 'kein_admin'; }
+                return self::verwaltungKnopf($c, $rest, $msgId);
             case 'c': case 'f':
                 self::antwortKnopf($cqId);
                 if (empty($c['kunde_verbunden'])) { self::zeigeStand($c, $msgId); return 'nicht_verbunden'; }
@@ -773,6 +780,56 @@ final class TelegramBot
         return ['chats' => $chats, 'entwuerfe' => $entw, 'updates' => $upd];
     }
 
+    /* =================== STUFE 3: VERWALTUNG (nur Uwe) ================
+       Deutsch, weil die Verwaltung deutsch ist. Nur Zahlen und Verweise —
+       keine Kundennamen in einem fremden Dienst (wie beim Zuruf). */
+
+    private static function verwaltungVerbinden(array $c, string $code): string
+    {
+        $uid = TelegramAdmin::einloesen((int) $c['id'], $code);
+        if ($uid === null) {
+            self::senden($c, 'Dieser Verbindungslink der Verwaltung gilt nicht mehr (30 Minuten, einmal). Bitte in der Verwaltung unter Einstellungen → Telegram neu erzeugen.');
+            return 'code_ungueltig';
+        }
+        $werte = ['stand' => 'menu'];
+        if ($c['sprache'] === null) { $werte['sprache'] = 'de'; }
+        self::setzen($c, $werte);
+        $c = (array) Db::one('SELECT * FROM telegram_chats WHERE id = ?', [(int) $c['id']]);
+        self::senden($c, "✅ <b>Verwaltung verbunden.</b>\nHier kommen ab jetzt dieselben Zurufe wie per WhatsApp (neue Anfrage, Störung …) — ohne Kundennamen. Unter „🛠 Verwaltung“ im Menü siehst du die Lage.");
+        self::zeigeLage($c);
+        return 'admin_verbunden';
+    }
+
+    private static function verwaltungKnopf(array $c, string $was, ?int $msgId): string
+    {
+        if ($was === 'trennen') {
+            TelegramAdmin::trennen((int) $c['admin_verbunden']);
+            $c['admin_verbunden'] = null;
+            self::zeigen($c, 'Die Verwaltung ist von diesem Chat getrennt. Neu verbinden: Einstellungen → Telegram.', self::menuKnoepfe($c), $msgId);
+            return 'admin_getrennt';
+        }
+        self::zeigeLage($c, $msgId);
+        return 'lage';
+    }
+
+    private static function zeigeLage(array $c, ?int $msgId = null): void
+    {
+        $l = TelegramAdmin::lage();
+        $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
+        $text = "🛠 <b>Lage in der Verwaltung</b> · " . date('d.m. H:i') . "\n\n"
+              . "Du bist dran: <b>" . $l['du'] . "</b>\n"
+              . "Wartet auf Kunden: " . $l['kunde'] . "\n"
+              . "Offene Anfragen: <b>" . $l['anfragen'] . "</b>\n"
+              . "Ungelesene Nachrichten: <b>" . $l['nachrichten'] . "</b>\n"
+              . "Neue Dateien (24 h): " . $l['dateien'] . "\n"
+              . "Ungelesene Meldungen: " . $l['meldungen'];
+        self::zeigen($c, $text, [
+            [['text' => '📋 Heute', 'url' => $b . '/heute'], ['text' => '📥 Anfragen', 'url' => $b . '/anfragen']],
+            [['text' => '💬 Nachrichten', 'url' => $b . '/nachrichten'], ['text' => '🔄 Aktualisieren', 'callback_data' => 'v:lage']],
+            [['text' => '🔌 Verwaltung trennen', 'callback_data' => 'v:trennen'], self::k($c, 'k_menu', 'm:menu')],
+        ], $msgId);
+    }
+
     /* ====================== STUFE 2: KUNDEN =========================== */
 
     private static function verbinden(array $c, string $code): string
@@ -932,13 +989,14 @@ final class TelegramBot
 
     private static function menuKnoepfe(array $c): array
     {
-        return [
+        return array_merge([
             [self::k($c, 'k_neu', 'm:neu'), self::k($c, 'k_besser', 'm:besser')],
             [self::k($c, 'k_preis', 'm:preis'), self::k($c, 'k_pruefen', 'm:pruefen')],
             [self::k($c, 'k_logo', 'm:logo'), self::k($c, 'k_3d', 'm:3d')],
             [self::k($c, 'k_hosting', 'm:hosting'), self::k($c, !empty($c['kunde_verbunden']) ? 'k_projekt' : 'k_kunde', 'm:kunde')],
             [self::k($c, 'k_mensch', 'm:mensch'), self::k($c, 'k_sprache', 'm:sprache')],
-        ];
+        ], !empty($c['admin_verbunden']) && TelegramAdmin::darf((int) $c['admin_verbunden'])
+            ? [[['text' => '🛠 Verwaltung', 'callback_data' => 'v:lage']]] : []);
     }
 
     private static function zeigeMenu(array $c, ?int $msgId = null, string $vorspann = ''): void

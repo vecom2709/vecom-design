@@ -15493,6 +15493,59 @@ pruefe('Aufräumen lässt verbundene Kunden stehen, auch nach langer Stille', $t
 $tgAus($tgText($tkC, '/delete', 'it')); $tgAus($tgKnopf($tkC, 'k:ja', 'it'));
 pruefe('/delete bei einem verbundenen Kunden: Chat weg, Verbindung sauber gelöst', $tgChat($tkC) === null && TelegramKunde::chat($tkKid) === null);
 
+/* ---- Stufe 3: Uwes Telegram als Fenster zur Verwaltung (30.09.2026) ---- */
+require_once $wurzel . '/src/TelegramAdmin.php';
+require_once $wurzel . '/src/Zuruf.php';
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+$taUid = Db::insert('users', ['email' => 'tg-admin@pruefung.example', 'password_hash' => password_hash('x' . random_int(0, 99999), PASSWORD_DEFAULT), 'name' => 'Uwe Pruefung', 'role' => 'admin', 'active' => 1]);
+$taKunde = Db::insert('users', ['email' => 'tg-kunde@pruefung.example', 'password_hash' => password_hash('y' . random_int(0, 99999), PASSWORD_DEFAULT), 'name' => 'Kein Admin', 'role' => 'kunde', 'active' => 1]);
+pruefe('Migration 112: Verwaltungsverbindung und Codes für Zugänge',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'telegram_chats' AND column_name = 'admin_verbunden'", [], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'telegram_codes' AND column_name = 'user_id'", [], 0) === 1);
+$taLink = TelegramAdmin::verbindungslink($taUid);
+pruefe('Nur ein aktiver Zugang mit Rolle admin bekommt einen Verbindungslink',
+    str_contains($taLink, '?start=a_') && TelegramAdmin::verbindungslink($taKunde) === '' && TelegramAdmin::verbindungslink(0) === '');
+preg_match('~a_([0-9a-f]{32})$~', $taLink, $taM);
+$taChat = 555200111; $tgNetz = [];
+$tgAus($tgText($taChat, '/start a_' . $taM[1], 'de'));
+$z = $tgZuletzt();
+pruefe('/start a_CODE verbindet die Verwaltung: Lage mit Zahlen und Knöpfen in /app, Menü mit „🛠 Verwaltung“',
+    (int) $tgChat($taChat)['admin_verbunden'] === $taUid && str_contains($z['text'], 'Lage in der Verwaltung')
+    && in_array('url:https://pruefung.example/app/anfragen', $z['knoepfe'], true) && in_array('v:trennen', $z['knoepfe'], true), $z['text']);
+$tgAus($tgText($taChat, '/menu', 'de'));
+pruefe('Das Hauptmenü des Admins hat „🛠 Verwaltung“', in_array('v:lage', $tgZuletzt()['knoepfe'], true));
+$taAndere = 555200222;
+$tgAus($tgText($taAndere, '/start a_' . $taM[1], 'de'));
+pruefe('Derselbe Code zweimal: kein zweiter Admin-Chat', $tgChat($taAndere)['admin_verbunden'] === null);
+$tgAus($tgKnopf($taAndere, 'v:lage'));
+pruefe('Ein normaler Chat kommt nicht an die Lage', !str_contains($tgZuletzt()['text'], 'Lage in der Verwaltung'));
+$tgAus($tgKnopf($taChat, 'v:lage'));
+pruefe('In der Lage stehen keine Kundennamen (wie beim Zuruf)', !preg_match('~Rosa|Maria|Giuseppe|Verdi|Telegram Partner~', $tgZuletzt()['text']) && str_contains($tgZuletzt()['text'], 'Offene Anfragen'));
+
+Db::update('users', $taUid, ['active' => 0]);
+$tgAus($tgKnopf($taChat, 'v:lage'));
+$taAus = $tgZuletzt();
+$tgAus($tgText($taChat, '/menu', 'de'));
+pruefe('Zugang abgeschaltet: im selben Moment keine Lage und kein Verwaltungsknopf mehr',
+    !str_contains($taAus['text'], 'Lage in der Verwaltung') && !in_array('v:lage', $tgZuletzt()['knoepfe'], true));
+Db::update('users', $taUid, ['active' => 1]);
+
+$tgNetz = [];
+Zuruf::vormerken('anfrage', 'Vecom Design: Neue Anfrage über Telegram.');
+$taZ = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && (int) $x[1]['chat_id'] === $taChat));
+pruefe('Ein Zuruf kommt auch in Uwes Telegram an (auch ohne CallMeBot), mit Knopf in die Verwaltung',
+    count($taZ) === 1 && str_contains((string) $taZ[0][1]['text'], 'Neue Anfrage') && str_contains((string) ($taZ[0][1]['reply_markup']['inline_keyboard'][0][0]['url'] ?? ''), '/app/heute'));
+$tgNetz = [];
+Zuruf::vormerken('stoerung_tgtest', 'Website nicht erreichbar', 15);
+Zuruf::vormerken('stoerung_tgtest', 'Website nicht erreichbar', 15);
+pruefe('Die Sperre gegen Wiederholung gilt auch für Telegram (zweimal gemeldet, einmal angekommen)',
+    count(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && (int) $x[1]['chat_id'] === $taChat)) === 1);
+$tgAus($tgKnopf($taChat, 'v:trennen'));
+pruefe('Trennen im Bot: Verwaltung weg', $tgChat($taChat)['admin_verbunden'] === null && TelegramAdmin::chat($taUid) === null);
+$tgNetz = [];
+Zuruf::vormerken('anfrage', 'Vecom Design: Neue Anfrage.');
+pruefe('Nach dem Trennen kommen keine Zurufe mehr an', !array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && (int) $x[1]['chat_id'] === $taChat));
+
 Telegram::$netz = null;
 
 /* ============================================================================

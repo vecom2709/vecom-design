@@ -129,9 +129,26 @@ final class Zuruf
      */
     public static function vormerken(string $anlass, string $text, int $sperreMinuten = 0): void
     {
+        // Die Sperre gilt fuer beide Wege gemeinsam und wird EINMAL gefragt:
+        // Sonst saehe der zweite Weg die Sperre, die der erste gerade gesetzt hat.
         try {
-            if (!self::moeglich()) { return; }
             if ($sperreMinuten > 0 && self::gesperrt($anlass, $sperreMinuten)) { return; }
+        } catch (Throwable $e) { return; }
+
+        /* Derselbe Zuruf auch an Uwes Telegram, wenn er es mit der Verwaltung
+           verbunden hat (30.09.2026, Stufe 3) -- unabhaengig davon, ob
+           CallMeBot eingerichtet ist. */
+        $telegram = false;
+        try {
+            require_once __DIR__ . '/TelegramAdmin.php';
+            $telegram = TelegramAdmin::zuruf($text);
+        } catch (Throwable $e) { /* Beiwerk */ }
+
+        try {
+            if (!self::moeglich()) {
+                if ($telegram && $sperreMinuten > 0) { self::sperren($anlass); }
+                return;
+            }
 
             Db::insert('zurufe', [
                 'anlass' => mb_substr($anlass, 0, 64),

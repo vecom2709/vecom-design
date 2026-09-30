@@ -87,3 +87,25 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
     <?php if (!empty($tg['letzte'])): ?> · zuletzt aktiv: <?= Fmt::h((string) $tg['letzte']) ?><?php endif; ?>
   </p>
 </div>
+
+<?php if (!empty($tg['bereit'])): $tgAdm = $daten['telegramAdmin'] ?? null; ?>
+<div class="block">
+  <h2>Dein Telegram als Fenster zur Verwaltung</h2>
+  <?php if ($tgAdm): ?>
+    <div class="hinweis gut">Verbunden. Die Zurufe (neue Anfrage, Störung …) kommen auch in Telegram an, und im Bot-Menü steht „🛠 Verwaltung“ mit der Lage.</div>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
+          data-frage="Dein Telegram von der Verwaltung trennen?" data-ja="Ja, trennen">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_admin_trennen">
+      <button class="knopf">Trennen</button></form>
+  <?php else: ?>
+    <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 14px">
+      Ein Klick öffnet Telegram mit einem Einmal-Link (30 Minuten gültig). Danach bekommst du dort dieselben
+      Zurufe wie per WhatsApp und siehst die Lage — nur Zahlen und Knöpfe in die Verwaltung, keine Kundennamen.
+      Gearbeitet wird weiter hier.
+    </p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_admin_verbinden">
+      <button class="knopf haupt">Mein Telegram verbinden</button></form>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
