@@ -15368,6 +15368,131 @@ foreach (['it', 'de', 'en'] as $sp) {
 }
 pruefe('Die Datenschutzerklärung beschreibt den Bot in allen drei Sprachen (Anbieter, was gespeichert wird, Löschfristen, /delete)', $tgLegOk);
 
+/* ---- Stufe 2: Telegram mit dem Kundenkonto verbinden (30.09.2026) ----
+   Die Hälfte sind Sperren: Ohne Einmal-Link aus dem persönlichen Bereich
+   gibt es keinen Projektstand, keine Nachricht, keine Datei — auch nicht
+   für einen Chat, aus dem schon eine Anfrage an diesen Kunden kam. */
+require_once $wurzel . '/src/TelegramKunde.php';
+require_once $wurzel . '/src/Ablage.php';
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+pruefe('Migration 111: Verbindungsspalten und Einmal-Codes stehen',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.columns WHERE table_schema = DATABASE() AND table_name = 'telegram_chats' AND column_name IN ('kunde_verbunden','verbunden_am','benachrichtigen','datei_id')", [], 0) === 4
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name = 'telegram_codes'", [], 0) === 1);
+
+$tkKid = Events::kundeFinden(['name' => 'Rosa Telegram', 'email' => 'rosa.tg@pruefung.example']);
+Db::update('customers', $tkKid, ['sprache' => 'it']);
+$tkLink = TelegramKunde::verbindungslink($tkKid);
+$tkCode = preg_match('~start=k_([0-9a-f]{32})$~', $tkLink, $tkM) ? $tkM[1] : '';
+pruefe('Verbindungslink: t.me/BOT?start=k_ + 32 Zeichen, gespeichert nur als SHA-256, 30 Minuten gültig',
+    $tkCode !== '' && str_starts_with($tkLink, 'https://t.me/vecom_pruef_bot?start=k_')
+    && (int) Db::wert('SELECT COUNT(*) FROM telegram_codes WHERE code_hash = ? AND customer_id = ?', [hash('sha256', $tkCode), $tkKid], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM telegram_codes WHERE code_hash = ?", [$tkCode], 0) === 0
+    && abs(strtotime((string) Db::wert('SELECT gueltig_bis FROM telegram_codes WHERE code_hash = ?', [hash('sha256', $tkCode)], '')) - (time() + 1800)) < 60, $tkLink);
+
+$tkA = 555100111; $tgNetz = [];
+$tgAus($tgText($tkA, '/start k_' . $tkCode, 'de'));
+$c = $tgChat($tkA); $z = $tgZuletzt();
+pruefe('/start k_CODE verbindet: Kunde am Chat, Sprache aus der Kundenakte (it), Begrüßung, Projektmenü',
+    (int) $c['kunde_verbunden'] === $tkKid && $c['verbunden_am'] !== null && $c['sprache'] === 'it'
+    && (bool) array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && str_contains((string) $x[1]['text'], 'Collegato'))
+    && in_array('c:schreiben', $z['knoepfe'], true) && str_contains($z['text'], Texte::KUNDE_STUFEN[TelegramKunde::stand($tkKid, 'it')['stufe']]['it']), $z['text']);
+$tkB = 555100222;
+$tgAus($tgText($tkB, '/start k_' . $tkCode, 'de'));
+pruefe('Derselbe Code ein zweites Mal (anderer Chat): verbindet nicht', $tgChat($tkB)['kunde_verbunden'] === null);
+$tgAus($tgText($tkB, '/start k_' . str_repeat('a', 32), 'de'));
+pruefe('Ein erfundener Code verbindet nicht', $tgChat($tkB)['kunde_verbunden'] === null);
+$tkAlt = TelegramKunde::verbindungslink($tkKid); preg_match('~k_([0-9a-f]{32})$~', $tkAlt, $tkM2);
+Db::run('UPDATE telegram_codes SET gueltig_bis = NOW() - INTERVAL 1 MINUTE WHERE code_hash = ?', [hash('sha256', $tkM2[1])]);
+$tgAus($tgText($tkB, '/start k_' . $tkM2[1], 'de'));
+pruefe('Ein abgelaufener Code verbindet nicht', $tgChat($tkB)['kunde_verbunden'] === null);
+
+// Ein Chat, aus dem nur eine Anfrage kam (Stufe 1), sieht kein Projekt.
+Db::run('UPDATE telegram_chats SET customer_id = ? WHERE chat_id = ?', [$tkKid, $tkB]);
+$tgAus($tgKnopf($tkB, 'm:kunde'));
+$tkVor = (int) Db::wert('SELECT COUNT(*) FROM messages WHERE customer_id = ?', [$tkKid], 0);
+$tgAus($tgKnopf($tkB, 'c:schreiben'));
+pruefe('Ohne Verbindung: kein Projektstand und keine Kundenaktion, auch wenn der Chat schon angefragt hat',
+    !in_array('c:schreiben', $tgZuletzt()['knoepfe'], true) && $tgChat($tkB)['stand'] !== 'kundennachricht');
+
+$tgAus($tgKnopf($tkA, 'c:schreiben'));
+$tgAus($tgText($tkA, 'Ciao Uwe, ho una domanda sul menu.'));
+pruefe('Nachricht an Uwe: dasselbe Postfach wie im Dashboard, Meldung in der Verwaltung',
+    (int) Db::wert("SELECT COUNT(*) FROM messages WHERE customer_id = ? AND sender = 'kunde' AND body LIKE '%domanda sul menu%'", [$tkKid], 0) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title = 'Neue Nachricht von Rosa Telegram'", [], 0) >= 1
+    && $tgChat($tkA)['stand'] === 'menu');
+
+/* Dateien: dieselben Grenzen wie der Upload im Dashboard */
+ob_start(); $tkBild = imagecreatetruecolor(4, 4); imagepng($tkBild); $tkPng = (string) ob_get_clean();
+$tkInhalt = $tkPng;
+Telegram::$netz = static function (string $m, array $d) use (&$tgNetz, &$tgMsg, &$tkInhalt): array {
+    $tgNetz[] = [$m, $d];
+    if ($m === 'getFile') { return ['ok' => true, 'result' => ['file_path' => 'photos/file_1.jpg', 'file_size' => strlen($tkInhalt)]]; }
+    if ($m === '__datei') { return ['inhalt' => $tkInhalt]; }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => ++$tgMsg]]; }
+    return ['ok' => true, 'result' => true];
+};
+$tkFoto = $tgText($tkA, 'x'); unset($tkFoto['message']['text']);
+$tkFoto['message']['photo'] = [['file_id' => 'klein', 'file_size' => 100], ['file_id' => 'gross-123', 'file_size' => 2000]];
+$tkDateienVor = (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$tkKid], 0);
+pruefe('Foto vom verbundenen Kunden: erst die Frage, die größte Fassung gemerkt',
+    $tgAus($tkFoto) === 'datei_frage' && $tgChat($tkA)['datei_id'] === 'gross-123' && in_array('f:ja', $tgZuletzt()['knoepfe'], true));
+$tgAus($tgKnopf($tkA, 'f:ja'));
+$tkDatei = Db::one('SELECT * FROM files WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [$tkKid]);
+pruefe('„Ja“: Datei liegt beim Kunden, als vom Kunden, Typ aus dem Inhalt (image/png), Merker geleert',
+    (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$tkKid], 0) === $tkDateienVor + 1
+    && $tkDatei['uploaded_by'] === 'kunde' && $tkDatei['mime'] === 'image/png' && $tgChat($tkA)['datei_id'] === null);
+$tgAus($tgKnopf($tkA, 'f:ja'));
+pruefe('Ein zweiter Klick legt nichts doppelt ab', (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$tkKid], 0) === $tkDateienVor + 1);
+$tkInhalt = "<?php echo 'boese';";
+$tkDok = $tgText($tkA, 'x'); unset($tkDok['message']['text']);
+$tkDok['message']['document'] = ['file_id' => 'dok-1', 'file_name' => 'rechnung.pdf', 'file_size' => 20];
+$tgAus($tkDok); $tgAus($tgKnopf($tkA, 'f:ja'));
+pruefe('Falscher Inhalt hinter einem harmlosen Namen wird abgelehnt (Typ aus dem Inhalt)',
+    (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ?', [$tkKid], 0) === $tkDateienVor + 1 && str_contains($tgZuletzt()['text'], 'PDF'));
+$tkGross = $tgText($tkA, 'x'); unset($tkGross['message']['text']);
+$tkGross['message']['document'] = ['file_id' => 'dok-2', 'file_name' => 'video.mp4', 'file_size' => 25 * 1024 * 1024];
+pruefe('Über 20 MB: freundlicher Hinweis auf den persönlichen Bereich, nichts gemerkt', $tgAus($tkGross) === 'datei_zu_gross' && $tgChat($tkA)['datei_id'] === null);
+
+/* Hinweise zu Mails an den Kunden */
+$tgNetz = [];
+Db::run('UPDATE telegram_chats SET hinweis_am = NULL WHERE chat_id = ?', [$tkA]);
+$tkH1 = TelegramKunde::hinweis($tkKid, 'Il suo preventivo VD-2026-0099');
+$tkH2 = TelegramKunde::hinweis($tkKid, 'Noch eine Mail');
+$tkHm = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'));
+pruefe('Hinweis zur Mail: nur der Betreff in seiner Sprache, Knopf zum persönlichen Bereich, höchstens einer je Minute',
+    $tkH1 && !$tkH2 && count($tkHm) === 1 && str_contains((string) $tkHm[0][1]['text'], 'VD-2026-0099')
+    && str_contains((string) $tkHm[0][1]['text'], 'Nuovo messaggio') && str_contains((string) ($tkHm[0][1]['reply_markup']['inline_keyboard'][0][0]['url'] ?? ''), 'kunde.php'));
+$tgAus($tgKnopf($tkA, 'c:hinweise'));
+Db::run('UPDATE telegram_chats SET hinweis_am = NULL WHERE chat_id = ?', [$tkA]);
+pruefe('Hinweise abschaltbar im Bot', (int) $tgChat($tkA)['benachrichtigen'] === 0 && !TelegramKunde::hinweis($tkKid, 'X'));
+$tgAus($tgKnopf($tkA, 'c:hinweise'));
+$tkMail = (string) file_get_contents($wurzel . '/src/Mail.php');
+pruefe('Mail::senden meldet nur nach erfolgreichem Versand und nur an die eigene Adresse des Kunden',
+    str_contains($tkMail, "self::vermerken(\$eintrag + ['status' => 'gesendet']);\n            self::telegramHinweis(\$an, \$betreff, \$bezug);")
+    && str_contains($tkMail, 'mb_strtolower($mail) !== mb_strtolower(trim($an))'));
+TelegramKunde::hinweis(0, 'x');
+pruefe('Kein Kunde, kein Hinweis (wirft nicht)', TelegramKunde::hinweis(999999, 'x') === false);
+
+/* Ein Kunde, ein Chat — und Trennen */
+$tkC = 555100333;
+$tkNeu = TelegramKunde::verbindungslink($tkKid); preg_match('~k_([0-9a-f]{32})$~', $tkNeu, $tkM3);
+$tgAus($tgText($tkC, '/start k_' . $tkM3[1], 'it'));
+pruefe('Verbindet er ein zweites Konto, löst sich das erste', (int) $tgChat($tkC)['kunde_verbunden'] === $tkKid && $tgChat($tkA)['kunde_verbunden'] === null);
+$tgAus($tgKnopf($tkC, 'c:trennen', 'it'));
+pruefe('Trennen im Bot: Verbindung weg, im Protokoll', $tgChat($tkC)['kunde_verbunden'] === null
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE customer_id = ? AND type = 'telegram_getrennt'", [$tkKid], 0) >= 1);
+pruefe('Link zurückziehen löst auch Telegram; Dashboard hat Verbinden und Trennen',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "TelegramKunde::trennen(\$kid, 'Zugangslink zurückgezogen')")
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), "\$tat === 'telegram_verbinden'")
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), "\$tat === 'telegram_trennen'"));
+$tkNeu = TelegramKunde::verbindungslink($tkKid); preg_match('~k_([0-9a-f]{32})$~', $tkNeu, $tkM4);
+$tgAus($tgText($tkC, '/start k_' . $tkM4[1], 'it'));
+Db::run("UPDATE telegram_chats SET letzte_am = NOW() - INTERVAL 200 DAY WHERE chat_id = ?", [$tkC]);
+TelegramBot::aufraeumen();
+pruefe('Aufräumen lässt verbundene Kunden stehen, auch nach langer Stille', $tgChat($tkC) !== null && (int) $tgChat($tkC)['kunde_verbunden'] === $tkKid);
+$tgAus($tgText($tkC, '/delete', 'it')); $tgAus($tgKnopf($tkC, 'k:ja', 'it'));
+pruefe('/delete bei einem verbundenen Kunden: Chat weg, Verbindung sauber gelöst', $tgChat($tkC) === null && TelegramKunde::chat($tkKid) === null);
+
 Telegram::$netz = null;
 
 /* ============================================================================

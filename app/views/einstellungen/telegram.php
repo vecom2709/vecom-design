@@ -28,10 +28,13 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
   <?php endif; ?>
 
   <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 14px">
-    <b>Was der Bot kann (Stufe 1):</b> Begrüßung, Sprache (IT/DE/EN, bleibt fest),
+    <b>Was der Bot kann (Stufe 1 und 2):</b> Begrüßung, Sprache (IT/DE/EN, bleibt fest),
     die acht Fragen aus dem Baukasten mit dem Richtwert aus derselben Rechnung wie auf
     der Website, Datenschutzhinweis, Anfrage absenden, persönliche Beratung anfragen,
     Weiterleitung zu Website-Check, Domain &amp; Hosting und zum persönlichen Bereich.
+    Kunden verbinden Telegram im persönlichen Bereich mit ihrem Konto (Einmal-Link) und sehen dann
+    ihren Projektstand, schreiben dir, schicken Dateien ins Projekt und bekommen zu jeder Mail an sie
+    einen kurzen Hinweis (nur der Betreff, abschaltbar).
     Preise und Fragen ändern sich hier nie von Hand — sie kommen aus dem Baukasten.
   </p>
 
@@ -80,7 +83,7 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
       Link zum Bot: <a href="<?= Fmt::h($link) ?>" target="_blank" rel="noopener"><?= Fmt::h($link) ?></a>
       · für einen Partner: <code style="user-select:all"><?= Fmt::h($link) ?>?start=p_CODE</code><br>
     <?php endif; ?>
-    Chats bisher: <?= (int) ($tg['chats'] ?? 0) ?> · davon mit gesendeter Anfrage: <?= (int) ($tg['abgeschickt'] ?? 0) ?>
+    Chats bisher: <?= (int) ($tg['chats'] ?? 0) ?> · davon mit gesendeter Anfrage: <?= (int) ($tg['abgeschickt'] ?? 0) ?> · mit Kundenkonto verbunden: <?= (int) ($tg['verbunden'] ?? 0) ?>
     <?php if (!empty($tg['letzte'])): ?> · zuletzt aktiv: <?= Fmt::h((string) $tg['letzte']) ?><?php endif; ?>
   </p>
 </div>

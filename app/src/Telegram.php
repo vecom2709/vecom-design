@@ -191,11 +191,12 @@ final class Telegram
      */
     public static function stand(): array
     {
-        $chats = $abgeschickt = 0; $letzte = '';
+        $chats = $abgeschickt = $verbunden = 0; $letzte = '';
         try {
             $chats = (int) Db::wert('SELECT COUNT(*) FROM telegram_chats', [], 0);
             $abgeschickt = (int) Db::wert('SELECT COUNT(*) FROM telegram_chats WHERE anfrage_id IS NOT NULL', [], 0);
             $letzte = (string) Db::wert('SELECT MAX(letzte_am) FROM telegram_chats', [], '');
+            $verbunden = (int) Db::wert('SELECT COUNT(*) FROM telegram_chats WHERE kunde_verbunden IS NOT NULL', [], 0);
         } catch (Throwable $e) { /* Migration noch offen */ }
         return [
             'token' => self::token() !== '',
@@ -206,6 +207,7 @@ final class Telegram
             'adresse' => self::adresse(),
             'chats' => $chats,
             'abgeschickt' => $abgeschickt,
+            'verbunden' => $verbunden,
             'letzte' => $letzte,
         ];
     }
@@ -259,6 +261,49 @@ final class Telegram
             'beschreibung' => $ok ? '' : mb_substr((string) ($j['description'] ?? $netzfehler ?: ('HTTP ' . $status)), 0, 200),
             'status' => $status,
         ];
+    }
+
+    /**
+     * Eine Datei, die jemand dem Bot geschickt hat, auf den Server holen.
+     *
+     * Telegram gibt Bots Dateien bis 20 MB heraus (getFile). Größere kommen
+     * gar nicht erst an — das sagt der Bot dem Kunden vorher.
+     *
+     * @return string Pfad der Zwischendatei (der Aufrufer legt sie ab oder löscht sie)
+     */
+    public static function dateiHolen(string $dateiId, int $hoechstens): string
+    {
+        $r = self::rufen('getFile', ['file_id' => $dateiId]);
+        $pfad = (string) ($r['result']['file_path'] ?? '');
+        if (!$r['ok'] || $pfad === '' || !preg_match('~^[A-Za-z0-9_./-]{1,200}$~', $pfad) || str_contains($pfad, '..')) {
+            throw new RuntimeException('Telegram gibt die Datei nicht heraus.');
+        }
+        if ((int) ($r['result']['file_size'] ?? 0) > $hoechstens) {
+            throw new RuntimeException('Die Datei ist zu groß.');
+        }
+        $ziel = (string) tempnam(sys_get_temp_dir(), 'tg');
+        if (self::$netz) {
+            $d = (array) (self::$netz)('__datei', ['file_path' => $pfad]);
+            file_put_contents($ziel, (string) ($d['inhalt'] ?? ''));
+            return $ziel;
+        }
+        $fh = fopen($ziel, 'wb');
+        $ch = curl_init(self::API . '/file/bot' . self::token() . '/' . $pfad);
+        $geladen = 0;
+        curl_setopt_array($ch, [
+            CURLOPT_FILE => $fh, CURLOPT_TIMEOUT => 40, CURLOPT_CONNECTTIMEOUT => 5,
+            // Mitten im Laden abbrechen, wenn es größer wird als erlaubt.
+            CURLOPT_NOPROGRESS => false,
+            CURLOPT_PROGRESSFUNCTION => static function ($c, $gesamt, $jetzt) use ($hoechstens, &$geladen): int {
+                $geladen = (int) $jetzt;
+                return $jetzt > $hoechstens ? 1 : 0;
+            },
+        ]);
+        $ok = curl_exec($ch) !== false && (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE) === 200;
+        curl_close($ch);
+        fclose($fh);
+        if (!$ok) { @unlink($ziel); throw new RuntimeException('Die Datei ließ sich nicht von Telegram laden.'); }
+        return $ziel;
     }
 
     /* --------------------------- Einstellungen ------------------------- */

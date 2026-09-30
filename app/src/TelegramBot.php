@@ -5,6 +5,7 @@ require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Telegram.php';
 require_once __DIR__ . '/Texte.php';
+require_once __DIR__ . '/TelegramKunde.php';
 
 /* ==========================================================================
    TelegramBot.php — was der Bot sagt und tut (30.09.2026, Stufe 1:
@@ -133,6 +134,7 @@ final class TelegramBot
     private static function nachricht(array $c, array $m): string
     {
         if (!isset($m['text']) || !is_string($m['text'])) {
+            if (!empty($c['kunde_verbunden']) && $c['sprache'] !== null) { return self::dateiAngekommen($c, $m); }
             self::zeigen($c, self::t($c, 'nurText'), [[self::k($c, 'k_menu', 'm:menu')]]);
             return 'kein_text';
         }
@@ -159,6 +161,9 @@ final class TelegramBot
             case 'name':      return self::eingabeName($c, $text);
             case 'email':     return self::eingabeEmail($c, $text);
             case 'nachricht': return self::eingabeNachricht($c, $text);
+            case 'kundennachricht':
+                if (!empty($c['kunde_verbunden'])) { return self::kundenNachricht($c, $text); }
+                break;
         }
 
         if (self::willMenschen($text)) {
@@ -173,6 +178,8 @@ final class TelegramBot
     {
         switch ($cmd) {
             case 'start':
+                // Verbindungslink aus dem persönlichen Bereich: t.me/bot?start=k_CODE (Stufe 2).
+                if (preg_match('/^k_([0-9a-f]{32})$/', $arg, $km)) { return self::verbinden($c, $km[1]); }
                 // Start-Link: t.me/bot?start=p_CODE (Partner) oder e_CODE (Empfehlung).
                 // Die erste Quelle zählt — wie auf der Website.
                 if ($arg !== '' && preg_match('/^[pe]_[A-Za-z0-9]{5,16}$/', $arg) && empty($c['quelle_code'])) {
@@ -233,6 +240,10 @@ final class TelegramBot
 
         switch ($art) {
             case 'm': self::antwortKnopf($cqId); return self::menuPunkt($c, $rest, $msgId);
+            case 'c': case 'f':
+                self::antwortKnopf($cqId);
+                if (empty($c['kunde_verbunden'])) { self::zeigeStand($c, $msgId); return 'nicht_verbunden'; }
+                return $art === 'c' ? self::kundeKnopf($c, $rest, $msgId) : self::dateiKnopf($c, $rest, $msgId);
             case 'q': case 't': case 'w': return self::frageKnopf($c, $art, $rest, $cqId, $msgId);
             case 'z': self::antwortKnopf($cqId); return self::zurueck($c, $msgId);
             case 'x': self::antwortKnopf($cqId); return self::abbrechen($c, $msgId);
@@ -297,6 +308,7 @@ final class TelegramBot
                 self::zeigen($c, self::t($c, 'hostingText'), [[self::url(self::t($c, 'k_hosting_seite'), $web . '/hosting.php?lang=' . $sp)], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
                 return 'hosting';
             case 'kunde':
+                if (!empty($c['kunde_verbunden'])) { self::zeigeKunde($c, $msgId); return 'kunde_projekt'; }
                 self::zeigen($c, self::t($c, 'kundeText'), [[self::url(self::t($c, 'k_zugang'), $web . '/zugang.php?lang=' . $sp)], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
                 return 'kunde';
             case 'mensch':
@@ -735,6 +747,7 @@ final class TelegramBot
         // Ein offener, nie abgeschickter Bedarf gehört nur diesem Chat.
         if ($b !== null && $b['customer_id'] === null) { Bedarf::loeschen((int) $b['id']); }
         $text = self::t($c, 'geloescht');
+        if (!empty($c['kunde_verbunden'])) { TelegramKunde::trennen((int) $c['kunde_verbunden'], 'kunde /delete'); }
         Db::run('DELETE FROM telegram_chats WHERE id = ?', [(int) $c['id']]);
         $c['id'] = 0; $c['nachricht_id'] = null;
         self::zeigen($c, $text, [], $msgId);
@@ -749,13 +762,158 @@ final class TelegramBot
      */
     public static function aufraeumen(): array
     {
-        $chats = Db::run('DELETE FROM telegram_chats WHERE anfrage_id IS NULL AND letzte_am < (NOW() - INTERVAL ' . self::AUFHEBEN_TAGE . ' DAY)')->rowCount();
+        // Verbundene Kunden bleiben: Ihr Chat ist ihr Kanal, auch wenn sie monatelang nichts schreiben.
+        $chats = Db::run('DELETE FROM telegram_chats WHERE anfrage_id IS NULL AND kunde_verbunden IS NULL AND letzte_am < (NOW() - INTERVAL ' . self::AUFHEBEN_TAGE . ' DAY)')->rowCount();
+        Db::run("UPDATE telegram_chats SET datei_id = NULL, datei_name = NULL, datei_groesse = NULL WHERE datei_id IS NOT NULL AND letzte_am < (NOW() - INTERVAL 1 DAY)");
         $entw = Db::run("UPDATE telegram_chats SET name = NULL, email = NULL, nachricht = NULL,
                                 stand = IF(stand IN ('ds','name','email','nachricht','pruefen'), 'menu', stand)
                           WHERE (name IS NOT NULL OR email IS NOT NULL OR nachricht IS NOT NULL)
                             AND letzte_am < (NOW() - INTERVAL 30 DAY)")->rowCount();
         $upd = Db::run("DELETE FROM webhook_events WHERE provider = 'telegram' AND received_at < (NOW() - INTERVAL 14 DAY)")->rowCount();
         return ['chats' => $chats, 'entwuerfe' => $entw, 'updates' => $upd];
+    }
+
+    /* ====================== STUFE 2: KUNDEN =========================== */
+
+    private static function verbinden(array $c, string $code): string
+    {
+        $kid = TelegramKunde::einloesen((int) $c['id'], $code);
+        if ($kid === null) {
+            $c = self::setzen($c, ['stand' => $c['sprache'] === null ? 'sprache' : 'menu']);
+            self::senden($c, self::t($c, 'codeUngueltig'));
+            if ($c['sprache'] === null) { self::zeigeSprachwahl($c); } else { self::zeigeMenu($c); }
+            return 'code_ungueltig';
+        }
+        $k = Db::one('SELECT name, sprache FROM customers WHERE id = ?', [$kid]);
+        $werte = ['stand' => 'menu'];
+        // Die Sprache aus der Kundenakte, falls der Chat noch keine hat.
+        if ($c['sprache'] === null) {
+            $werte['sprache'] = in_array((string) ($k['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $k['sprache'] : 'it';
+        }
+        self::setzen($c, $werte);
+        $c = (array) Db::one('SELECT * FROM telegram_chats WHERE id = ?', [(int) $c['id']]);
+        $vorname = trim((string) strtok((string) ($k['name'] ?? ''), ' '));
+        self::senden($c, strtr(self::t($c, 'verbunden'), ['{name}' => self::h($vorname)]));
+        self::zeigeKunde($c);
+        return 'verbunden';
+    }
+
+    private static function zeigeKunde(array $c, ?int $msgId = null): void
+    {
+        $kid = (int) $c['kunde_verbunden'];
+        $sp = (string) $c['sprache'];
+        require_once __DIR__ . '/Kundenzugang.php';
+        $st = TelegramKunde::stand($kid, $sp);
+        $text = '📂 <b>' . self::h(self::t($c, 'kundeKopf')) . "</b>\n\n<b>" . self::h($st['titel']) . "</b>\n" . self::h($st['text']);
+        self::zeigen($c, $text, [
+            [self::url(self::t($c, 'k_dashboard'), Kundenzugang::linkFuer($kid, $sp))],
+            [self::k($c, 'k_schreiben', 'c:schreiben'), self::k($c, 'k_datei', 'c:datei')],
+            [self::k($c, (int) $c['benachrichtigen'] ? 'k_hinweise_an' : 'k_hinweise_aus', 'c:hinweise'), self::k($c, 'k_trennen', 'c:trennen')],
+            [self::k($c, 'k_menu', 'm:menu')],
+        ], $msgId);
+    }
+
+    private static function kundeKnopf(array $c, string $was, ?int $msgId): string
+    {
+        switch ($was) {
+            case 'schreiben':
+                $c = self::setzen($c, ['stand' => 'kundennachricht']);
+                self::zeigen($c, self::t($c, 'fragKundenNachricht'), [[self::k($c, 'k_abbrechen', 'x:')]], $msgId);
+                return 'kundennachricht';
+            case 'datei':
+                require_once __DIR__ . '/Ablage.php';
+                require_once __DIR__ . '/Fmt.php';
+                $max = Fmt::bytes(min(Ablage::grenze(), 20 * 1024 * 1024));
+                self::zeigen($c, strtr(self::t($c, 'dateiTipp'), ['{max}' => $max]), [[self::k($c, 'k_projekt', 'm:kunde')]], $msgId);
+                return 'datei_tipp';
+            case 'hinweise':
+                $an = (int) $c['benachrichtigen'] ? 0 : 1;
+                $c = self::setzen($c, ['benachrichtigen' => $an]);
+                self::zeigeKunde($c, $msgId);
+                return $an ? 'hinweise_an' : 'hinweise_aus';
+            case 'trennen':
+                TelegramKunde::trennen((int) $c['kunde_verbunden'], 'kunde über Telegram');
+                $c = self::setzen($c, ['stand' => 'menu']);
+                $c['kunde_verbunden'] = null; $c['verbunden_am'] = null;
+                self::zeigen($c, self::t($c, 'getrennt'), self::menuKnoepfe($c), $msgId);
+                return 'getrennt';
+        }
+        self::zeigeKunde($c, $msgId);
+        return 'kunde_projekt';
+    }
+
+    private static function kundenNachricht(array $c, string $text): string
+    {
+        $t = trim($text);
+        if (mb_strlen($t) < 2) {
+            self::zeigen($c, self::t($c, 'nachrichtFalsch'), [[self::k($c, 'k_abbrechen', 'x:')]]);
+            return 'nachricht_falsch';
+        }
+        try {
+            TelegramKunde::nachricht((int) $c['kunde_verbunden'], $t);
+        } catch (Throwable $e) {
+            self::meldenFehler('Telegram: Kundennachricht ließ sich nicht ablegen', $e->getMessage());
+            self::zeigen($c, self::t($c, 'fehlerSenden'), [[self::k($c, 'k_projekt', 'm:kunde')]]);
+            return 'fehler';
+        }
+        $c = self::setzen($c, ['stand' => 'menu']);
+        self::zeigen($c, self::t($c, 'kundenNachrichtOk'), [[self::k($c, 'k_projekt', 'm:kunde'), self::k($c, 'k_menu', 'm:menu')]]);
+        return 'kundennachricht_gesendet';
+    }
+
+    /** Ein verbundener Kunde schickt eine Datei: erst fragen, dann ablegen. */
+    private static function dateiAngekommen(array $c, array $m): string
+    {
+        $id = ''; $name = ''; $groesse = 0;
+        if (!empty($m['document']['file_id'])) {
+            $id = (string) $m['document']['file_id']; $name = (string) ($m['document']['file_name'] ?? 'datei'); $groesse = (int) ($m['document']['file_size'] ?? 0);
+        } elseif (!empty($m['photo']) && is_array($m['photo'])) {
+            $gross = end($m['photo']);                                  // Telegram liefert mehrere Größen, die größte zuletzt
+            $id = (string) ($gross['file_id'] ?? ''); $groesse = (int) ($gross['file_size'] ?? 0);
+            $name = 'telegram-foto-' . date('Ymd-His') . '.jpg';
+        } elseif (!empty($m['video']['file_id'])) {
+            $id = (string) $m['video']['file_id']; $name = (string) ($m['video']['file_name'] ?? ('telegram-video-' . date('Ymd-His') . '.mp4')); $groesse = (int) ($m['video']['file_size'] ?? 0);
+        } elseif (!empty($m['audio']['file_id'])) {
+            $id = (string) $m['audio']['file_id']; $name = (string) ($m['audio']['file_name'] ?? ('telegram-audio-' . date('Ymd-His') . '.mp3')); $groesse = (int) ($m['audio']['file_size'] ?? 0);
+        }
+        if ($id === '' || strlen($id) > 200) {
+            self::zeigen($c, self::t($c, 'nurText'), [[self::k($c, 'k_projekt', 'm:kunde')]]);
+            return 'kein_text';
+        }
+        if ($groesse > 20 * 1024 * 1024) {
+            self::zeigen($c, self::t($c, 'dateiGross'), [[self::k($c, 'k_projekt', 'm:kunde')]]);
+            return 'datei_zu_gross';
+        }
+        $name = mb_substr(trim((string) preg_replace('~[\x00-\x1f\x7f/\\\\]~u', '', $name)) ?: 'datei', 0, 200);
+        $c = self::setzen($c, ['datei_id' => $id, 'datei_name' => $name, 'datei_groesse' => $groesse]);
+        self::zeigen($c, strtr(self::t($c, 'dateiFrage'), ['{name}' => self::h($name)]),
+            [[self::k($c, 'k_datei_ja', 'f:ja'), self::k($c, 'k_abbrechen', 'f:nein')]]);
+        return 'datei_frage';
+    }
+
+    private static function dateiKnopf(array $c, string $was, ?int $msgId): string
+    {
+        if ($was !== 'ja' || empty($c['datei_id'])) {
+            $c = self::setzen($c, ['datei_id' => null, 'datei_name' => null, 'datei_groesse' => null]);
+            self::zeigeKunde($c, $msgId);
+            return 'datei_verworfen';
+        }
+        $id = (string) $c['datei_id']; $name = (string) $c['datei_name'];
+        // Zuerst vergessen: Ein zweiter Klick soll dieselbe Datei nicht zweimal ablegen.
+        $st = Db::run('UPDATE telegram_chats SET datei_id = NULL, datei_name = NULL, datei_groesse = NULL WHERE id = ? AND datei_id = ?', [(int) $c['id'], $id]);
+        if ($st->rowCount() !== 1) { self::zeigeKunde($c, $msgId); return 'veraltet'; }
+        try {
+            TelegramKunde::dateiAblegen((int) $c['kunde_verbunden'], $id, $name);
+        } catch (Throwable $e) {
+            require_once __DIR__ . '/Ablage.php';
+            require_once __DIR__ . '/Fmt.php';
+            $schl = $e->getMessage() === 'voll' ? 'dateiVoll' : (str_contains($e->getMessage(), 'zu groß') ? 'dateiGross' : 'dateiFehler');
+            self::zeigen($c, strtr(self::t($c, $schl), ['{max}' => Fmt::bytes(min(Ablage::grenze(), 20 * 1024 * 1024))]),
+                [[self::k($c, 'k_projekt', 'm:kunde')]], $msgId);
+            return 'datei_fehler';
+        }
+        self::zeigen($c, strtr(self::t($c, 'dateiOk'), ['{name}' => self::h($name)]), [[self::k($c, 'k_projekt', 'm:kunde'), self::k($c, 'k_menu', 'm:menu')]], $msgId);
+        return 'datei_abgelegt';
     }
 
     /* ========================= ANSICHTEN ============================ */
@@ -778,7 +936,7 @@ final class TelegramBot
             [self::k($c, 'k_neu', 'm:neu'), self::k($c, 'k_besser', 'm:besser')],
             [self::k($c, 'k_preis', 'm:preis'), self::k($c, 'k_pruefen', 'm:pruefen')],
             [self::k($c, 'k_logo', 'm:logo'), self::k($c, 'k_3d', 'm:3d')],
-            [self::k($c, 'k_hosting', 'm:hosting'), self::k($c, 'k_kunde', 'm:kunde')],
+            [self::k($c, 'k_hosting', 'm:hosting'), self::k($c, !empty($c['kunde_verbunden']) ? 'k_projekt' : 'k_kunde', 'm:kunde')],
             [self::k($c, 'k_mensch', 'm:mensch'), self::k($c, 'k_sprache', 'm:sprache')],
         ];
     }
@@ -815,6 +973,9 @@ final class TelegramBot
                 self::zeigen($c, strtr(self::t($c, 'fragEmail'), ['{name}' => self::h((string) $c['name'])]), [[self::k($c, 'k_abbrechen', 'x:')]], $msgId); return;
             case 'nachricht':
                 self::zeigen($c, self::t($c, 'fragNachricht'), [[self::k($c, 'k_abbrechen', 'x:')]], $msgId); return;
+            case 'kundennachricht':
+                if (!empty($c['kunde_verbunden'])) { self::zeigen($c, self::t($c, 'fragKundenNachricht'), [[self::k($c, 'k_abbrechen', 'x:')]], $msgId); return; }
+                break;
         }
         $c = self::setzen($c, ['stand' => 'menu']);
         self::zeigeMenu($c, $msgId);

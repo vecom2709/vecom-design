@@ -114,7 +114,8 @@ final class Ablage
             'customer_id' => $kundeId, 'project_id' => $projektId,
             'stored_name' => $abgelegt, 'orig_name' => self::namenSaeubern($name),
             'mime' => $typ, 'size_bytes' => $groesse,
-            'uploaded_by' => in_array($wer, ['admin', 'werkstatt'], true) ? $wer : 'werkstatt',
+            /* 'kunde' (30.09.2026): Dateien, die der Kunde über Telegram schickt. */
+            'uploaded_by' => in_array($wer, ['admin', 'werkstatt', 'kunde'], true) ? $wer : 'werkstatt',
             /* 'sicherung' (26.09.2026): was vor einer Veroeffentlichung auf dem
                Webspace lag -- nur fuer die Verwaltung, siehe kunde.php. */
             'rolle' => $rolle === 'sicherung' ? 'sicherung' : 'material',

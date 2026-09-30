@@ -1472,7 +1472,13 @@ if ($post) {
                 $kid = (int) ($_POST['id'] ?? 0);
                 if ($kid <= 0) { throw new RuntimeException('Kein Kunde angegeben.'); }
                 $neuLink = Kundenzugang::link(Kundenzugang::neu($kid));
+                /* Wer den Link zurückzieht, meint: Jemand Falsches hatte Zugang.
+                   Dann gilt auch die Telegram-Verbindung nicht mehr, die mit
+                   diesem Link hergestellt worden sein kann (30.09.2026). */
+                $tgGeloest = false;
+                try { require_once __DIR__ . '/src/TelegramKunde.php'; $tgGeloest = TelegramKunde::trennen($kid, 'Zugangslink zurückgezogen'); } catch (Throwable $e) { }
                 $_SESSION['gut'] = 'Neuer Zugangslink erzeugt. Der alte gilt nicht mehr — '
+                    . ($tgGeloest ? 'auch die Telegram-Verbindung ist gelöst. ' : '')
                     . 'schick dem Kunden den neuen: ' . $neuLink;
                 zurueck('kunden/' . $kid);
 

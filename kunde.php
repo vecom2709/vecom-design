@@ -346,6 +346,24 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                         'Die Zugangsdaten sind nicht mehr hinterlegt.');
                 }
 
+            } elseif ($tat === 'telegram_verbinden') {
+                /* Telegram mit dem Kundenkonto verbinden (30.09.2026, Stufe 2).
+                   Der Einmal-Link entsteht erst beim Klick -- nicht beim bloßen
+                   Anzeigen der Seite -- und führt direkt in den Bot. */
+                require_once __DIR__ . '/app/src/TelegramKunde.php';
+                $tgLink = TelegramKunde::verbindungslink((int) $kunde['id']);
+                if ($tgLink === '') {
+                    $fehler[] = Texte::h(Texte::TELEGRAM_DASHBOARD['nichtJetzt'], $sprache);
+                } else {
+                    header('Location: ' . $tgLink, true, 303);
+                    exit;
+                }
+
+            } elseif ($tat === 'telegram_trennen') {
+                require_once __DIR__ . '/app/src/TelegramKunde.php';
+                TelegramKunde::trennen((int) $kunde['id'], 'kunde im Dashboard');
+                $meldung = Texte::h(Texte::TELEGRAM_DASHBOARD['getrennt'], $sprache);
+
             } elseif ($tat === 'datei') {
                 Ablage::annehmen($_FILES['datei'] ?? [], $pid ? (int) $pid : null, (int) $kunde['id'], 'kunde');
                 Events::melden('datei_neu', 'Neue Datei vom Kunden', 'info',
@@ -1408,6 +1426,30 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <button class="knopf haupt"><?= $h(Texte::h(Texte::PROJEKT['senden'] ?? [], $sprache, 'Absenden')) ?></button>
     </form>
   </details>
+
+  <?php /* ---------- Telegram (30.09.2026, Stufe 2) ----------
+       Nur, wenn der Bot eingerichtet ist. Ein Knopf, der ins Leere führt,
+       wäre schlimmer als keiner. */
+  $tgBereit = sicherLesen(static function () { require_once __DIR__ . '/app/src/TelegramKunde.php'; return Telegram::bereit() && Telegram::einstellung('tg_name') !== ''; }, false);
+  $tgChat = $tgBereit ? sicherLesen(static fn() => TelegramKunde::chat((int) $kunde['id']), null) : null;
+  if ($tgBereit): $TD = static fn(string $k): string => Texte::h(Texte::TELEGRAM_DASHBOARD[$k], $sprache); ?>
+    <details class="klapp">
+      <summary><?= $h($TD('titel')) ?><?= $tgChat ? ' ✓' : '' ?></summary>
+      <?php if ($tgChat): ?>
+        <p style="color:var(--dim);font-size:14px;line-height:1.6"><?= $h(strtr($TD('verbunden'), ['{datum}' => Fmt::datum((string) $tgChat['verbunden_am'])])) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_trennen">
+          <button class="knopf"><?= $h($TD('trennen')) ?></button>
+        </form>
+      <?php else: ?>
+        <p style="color:var(--dim);font-size:14px;line-height:1.6"><?= $h($TD('text')) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_verbinden">
+          <button class="knopf haupt"><?= $h($TD('knopf')) ?></button>
+        </form>
+      <?php endif; ?>
+    </details>
+  <?php endif; ?>
 
   <?php /* ---------- Unterlagen ---------- */ ?>
   <?php if ($belege || $vertraege): ?>

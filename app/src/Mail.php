@@ -196,12 +196,35 @@ final class Mail
 
         if ($code >= 200 && $code < 300) {
             self::vermerken($eintrag + ['status' => 'gesendet']);
+            self::telegramHinweis($an, $betreff, $bezug);
             return true;
         }
 
         $grund = $netz !== '' ? $netz : mb_substr((string) $antwort, 0, 300);
         self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => "Brevo antwortete $code: $grund"]);
         return false;
+    }
+
+    /**
+     * Hat der Kunde Telegram mit seinem Konto verbunden, bekommt er dort zu
+     * jeder Mail, die an IHN geht, einen kurzen Hinweis (30.09.2026, Stufe 2).
+     *
+     * Hier und nicht an den dreissig Stellen, die Mails an Kunden schicken:
+     * So kann keine vergessen werden, und es entsteht keine zusaetzliche
+     * Post — nur ein zweiter Weg, von derselben Post zu erfahren. Nur der
+     * Betreff geht mit; Links und Betraege bleiben in der Mail. Mails an Uwe
+     * (gleicher Kunde im Bezug, andere Adresse) loesen nichts aus. Wirft nie.
+     */
+    private static function telegramHinweis(string $an, string $betreff, array $bezug): void
+    {
+        $kid = (int) ($bezug['customer_id'] ?? 0);
+        if ($kid <= 0) { return; }
+        try {
+            $mail = (string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kid], '');
+            if ($mail === '' || mb_strtolower($mail) !== mb_strtolower(trim($an))) { return; }
+            require_once __DIR__ . '/TelegramKunde.php';
+            TelegramKunde::hinweis($kid, $betreff);
+        } catch (Throwable $e) { /* der Hinweis ist Beiwerk */ }
     }
 
     /**
