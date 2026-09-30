@@ -25,6 +25,12 @@ final class Anfrage
         $name  = trim((string) ($d['name'] ?? ''));
         if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return null; }
 
+        /* Woher sie kommt (30.09.2026): Ohne Angabe die Website wie bisher.
+           Kommt sie aus dem Telegram-Bot, sagen Meldung, Zuruf und Akte das —
+           der Posteingang bleibt derselbe. */
+        $telegram = ($d['herkunft'] ?? '') === 'telegram';
+        $ueber = $telegram ? 'Telegram' : 'die Website';
+
         // Der Kunde entsteht sofort — nach E-Mail, damit ein Stammkunde, der
         // ein zweites Mal anfragt, nicht doppelt in der Liste steht.
         $kundeId = Events::kundeFinden([
@@ -32,7 +38,7 @@ final class Anfrage
             'email' => $email,
             'phone' => mb_substr(trim((string) ($d['telefon'] ?? '')), 0, 60) ?: null,
             'firma' => mb_substr(trim((string) ($d['firma'] ?? '')), 0, 160) ?: null,
-            'notes' => 'Über das Formular auf der Website angefragt.',
+            'notes' => $telegram ? 'Über den Telegram-Bot angefragt.' : 'Über das Formular auf der Website angefragt.',
         ]);
 
         /* LEERE FELDER DER AKTE ERGAENZEN, NIE UEBERSCHREIBEN (24.09.2026)
@@ -92,8 +98,8 @@ final class Anfrage
         // nichts daraus, soll kein Link ewig offen stehen.
         self::token($id);
 
-        Events::protokoll('anfrage_neu', 'Anfrage von ' . $name, $kundeId);
-        Events::melden('anfrage_neu', 'Neue Anfrage über die Website', 'gut',
+        Events::protokoll('anfrage_neu', 'Anfrage von ' . $name . ($telegram ? ' (über Telegram)' : ''), $kundeId);
+        Events::melden('anfrage_neu', 'Neue Anfrage über ' . $ueber, 'gut',
             $name . ($paketName !== '' ? ' — ' . $paketName : ''), '/anfragen/' . $id);
 
         // Und ein Zuruf aufs Handy. Ohne Namen und ohne den Text der
@@ -103,7 +109,7 @@ final class Anfrage
         try {
             require_once __DIR__ . '/Zuruf.php';
             Zuruf::vormerken('anfrage',
-                'Vecom Design: Neue Anfrage über die Website'
+                'Vecom Design: Neue Anfrage über ' . $ueber
                     . ($paketName !== '' ? ' (' . $paketName . ')' : '') . ".\n"
                     . rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/app/heute');
         } catch (Throwable $e) { /* der Zuruf ist Beiwerk */ }

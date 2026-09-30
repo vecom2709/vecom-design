@@ -26,6 +26,7 @@ $bereiche = [
     'email'        => ['E-Mail & Zuruf',         'Wie etwas hinausgeht'],
     'bezahlung'    => ['Bezahlung',              'Stripe und die Dienste von außen'],
     'telefon'      => ['Telefonassistentin',     'Schlüssel, Zugang, die 15 Konfigurationen'],
+    'telegram'     => ['Telegram',               'Der Bot: Schlüssel, Webhook, Stand'],
     'ueberwachung' => ['Was von allein läuft',   'Der Cronjob, der alles andere anstößt'],
     'reseller'     => ['Reseller (KAS)',         'Kunden, Domains, Postfächer, Speicher — und ob es zu Vecom passt'],
     'daten'        => ['Daten',                  'Beispieldaten und was noch kommt'],

@@ -22,7 +22,9 @@ declare(strict_types=1);
 
 final class Zustimmung
 {
-    public const ARTEN = ['hosting', 'domain_transfer', 'domain_neu', 'mail', 'migration', 'abbuchung', 'mailumzug'];
+    public const ARTEN = ['hosting', 'domain_transfer', 'domain_neu', 'mail', 'migration', 'abbuchung', 'mailumzug',
+                            // Datenschutzhinweis vor dem Absenden im Telegram-Bot (30.09.2026)
+                            'datenschutz'];
 
     public static function festhalten(string $art, int $kundeId, string $text, string $sprache,
                                       string $fassung, ?int $projektId = null, ?int $bezugId = null): int

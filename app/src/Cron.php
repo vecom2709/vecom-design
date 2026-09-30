@@ -378,6 +378,15 @@ final class Cron
         // Gekuendigte Vertraege, deren Datum durch ist, auf "beendet" setzen.
         // Das ist die Stelle, an der spaeter auch der Zahlungsanbieter
         // abbestellt wird — deshalb steht sie jetzt schon da.
+        // Telegram (30.09.2026): stille Chats ohne Anfrage nach 90 Tagen weg,
+        // liegengebliebene Kontaktdaten nach 30 Tagen leeren, alte Update-Vermerke weg.
+        // Datenminimierung, wie im Hinweis vor dem Absenden versprochen.
+        if (self::heuteNochNicht('cron_telegram')) {
+            $aufgaben['telegram'] = static function () {
+                require_once __DIR__ . '/TelegramBot.php';
+                return TelegramBot::aufraeumen();
+            };
+        }
         $aufgaben['abos'] = static function () {
             require_once __DIR__ . '/Abo.php';
             return Abo::taeglich();

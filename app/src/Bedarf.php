@@ -422,6 +422,8 @@ final class Bedarf
                 // Vor dem Angebot steht immer der große Fragebogen (21.09.2026);
                 // seit 26.09.2026 ist er die Fortsetzung dieser acht Fragen.
                 'fragebogen_folgt' => true,
+                // Eingang (30.09.2026): 'telegram' aus dem Bot, sonst die Website.
+                'herkunft'  => (string) ($kontakt['herkunft'] ?? ''),
                 'nachricht' => $vorspann . self::zusammenfassung($antworten, $sprache, $spanne, (int) $r['monatlich_cents']),
             ]);
             if ($anfrageId) {

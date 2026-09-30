@@ -2246,6 +2246,41 @@ if ($post) {
                 }
                 zurueck('einstellungen');
 
+            /* Telegram (30.09.2026). Der Token landet verschluesselt in settings;
+               im Protokoll steht nur, DASS etwas geaendert wurde. */
+            case 'telegram_speichern':
+                require_once __DIR__ . '/src/Telegram.php';
+                $e = Telegram::tokenSpeichern((string) ($_POST['token'] ?? ''));
+                if ($e['ok']) { Events::protokoll('telegram', 'Telegram: Bot-Token hinterlegt'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
+            case 'telegram_anmelden':
+                require_once __DIR__ . '/src/Telegram.php';
+                $e = Telegram::anmelden();
+                if ($e['ok']) { Events::protokoll('telegram', 'Telegram: Webhook angemeldet'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
+            case 'telegram_pruefen':
+                require_once __DIR__ . '/src/Telegram.php';
+                $_SESSION['telegram_pruefung'] = Telegram::pruefen();
+                weiter('einstellungen?b=telegram');
+
+            case 'telegram_abmelden':
+                require_once __DIR__ . '/src/Telegram.php';
+                $e = Telegram::abmelden();
+                if ($e['ok']) { Events::protokoll('telegram', 'Telegram: Webhook abgemeldet'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram');
+
+            case 'telegram_weg':
+                require_once __DIR__ . '/src/Telegram.php';
+                Telegram::entfernen();
+                Events::protokoll('telegram', 'Telegram: Bot-Token entfernt, Webhook abgemeldet');
+                $_SESSION['gut'] = 'Der Bot ist abgemeldet, Token und Prüfwort sind gelöscht.';
+                weiter('einstellungen?b=telegram');
+
             case 'zuruf_pruefen':
                 require_once __DIR__ . '/src/Zuruf.php';
                 $e = Zuruf::pruefen();
@@ -3919,9 +3954,20 @@ switch ($route) {
             require_once __DIR__ . '/src/Zahlung/Stripe.php';
             $daten['stripe']     = new StripeAnbieter();
             $daten['liste']      = sicher(static fn() => Db::all('SELECT * FROM integrations ORDER BY category, name'));
-            $daten['ereignisse'] = sicher(static fn() => Db::all('SELECT * FROM webhook_events ORDER BY id DESC LIMIT 25'));
+            /* Nur Stripe: Seit dem 30.09.2026 landen auch die Updates des
+               Telegram-Bots in webhook_events (doppelte Zustellung abfangen) --
+               ohne den Filter stuenden hier 25 Chat-Klicks statt der Zahlungen. */
+            $daten['ereignisse'] = sicher(static fn() => Db::all("SELECT * FROM webhook_events WHERE provider = 'stripe' ORDER BY id DESC LIMIT 25"));
             $daten['offen']      = (int) sicher(static fn() => Db::wert(
-                "SELECT COUNT(*) FROM webhook_events WHERE status = 'fehler'", [], 0), 0);
+                "SELECT COUNT(*) FROM webhook_events WHERE provider = 'stripe' AND status = 'fehler'", [], 0), 0);
+        }
+
+        if ($b === 'telegram') {
+            require_once __DIR__ . '/src/Telegram.php';
+            $daten['telegram'] = sicher(static fn() => Telegram::stand(), ['token' => false, 'ende' => '', 'name' => '',
+                'angemeldet' => '', 'bereit' => false, 'adresse' => '', 'chats' => 0, 'abgeschickt' => 0, 'letzte' => '']);
+            $daten['telegramPruefung'] = $_SESSION['telegram_pruefung'] ?? null;
+            unset($_SESSION['telegram_pruefung']);
         }
 
         if ($b === 'telefon') {

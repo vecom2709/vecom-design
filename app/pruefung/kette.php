@@ -15086,6 +15086,291 @@ pruefe('Nach jedem Prüflauf werden die Branchen-Seiten automatisch neu gerechne
 AkquiseSteuerung::pruefungStarten(); AkquiseWorker::ausfuehren('befehl_holen', []);
 
 /* ============================================================================
+   Telegram-Bot, Stufe 1: Interessenten (30.09.2026)
+
+   Der Bot ist ein Kanal, keine zweite Welt. Geprüft wird deshalb vor allem,
+   dass er NICHTS Eigenes hat: dieselben Fragen wie der Konfigurator, dieselbe
+   Zahl wie Baukasten::rechnen, derselbe Posteingang wie die Website — und
+   dass er dort still bleibt, wo er nichts sagen darf (keine Zahl ohne Grund,
+   keine Gruppe, kein doppelter Eingang, kein Sprachwechsel aus einem Wort).
+   ============================================================================ */
+abschnitt('Telegram-Bot, Stufe 1: Interessenten');
+foreach (['Telegram', 'TelegramBot', 'Webhook', 'Zustimmung', 'Partner', 'Baukasten', 'Anfrage'] as $k) { require_once $wurzel . "/src/$k.php"; }
+
+$tgNetz = []; $tgMsg = 7000; $tgUpd = 900000;
+Telegram::$netz = static function (string $m, array $d) use (&$tgNetz, &$tgMsg): array {
+    $tgNetz[] = [$m, $d];
+    if ($m === 'getMe') { return ['ok' => true, 'result' => ['is_bot' => true, 'username' => 'vecom_pruef_bot']]; }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => ++$tgMsg]]; }
+    return ['ok' => true, 'result' => true];
+};
+$tgChat = static fn(int $id): ?array => Db::one('SELECT * FROM telegram_chats WHERE chat_id = ?', [$id]);
+$tgText = static function (int $chat, string $text, string $lang = 'de', string $typ = 'private') use (&$tgUpd): array {
+    return ['update_id' => ++$tgUpd, 'message' => ['message_id' => 1, 'date' => time(), 'text' => $text,
+        'from' => ['id' => $chat, 'is_bot' => false, 'language_code' => $lang], 'chat' => ['id' => $chat, 'type' => $typ]]];
+};
+$tgKnopf = static function (int $chat, string $daten, string $lang = 'de') use (&$tgUpd, $tgChat): array {
+    $c = $tgChat($chat);
+    return ['update_id' => ++$tgUpd, 'callback_query' => ['id' => 'cq' . $tgUpd, 'data' => $daten,
+        'from' => ['id' => $chat, 'is_bot' => false, 'language_code' => $lang],
+        'message' => ['message_id' => (int) ($c['nachricht_id'] ?? 1), 'chat' => ['id' => $chat, 'type' => 'private']]]];
+};
+/** Der zuletzt gezeigte Text und seine Knöpfe (sendMessage oder editMessageText). */
+$tgZuletzt = static function () use (&$tgNetz): array {
+    for ($i = count($tgNetz) - 1; $i >= 0; $i--) {
+        if (in_array($tgNetz[$i][0], ['sendMessage', 'editMessageText'], true)) {
+            $d = $tgNetz[$i][1];
+            $k = [];
+            foreach ((array) ($d['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $b) { $k[] = $b['callback_data'] ?? ('url:' . ($b['url'] ?? '')); } }
+            return ['text' => (string) $d['text'], 'knoepfe' => $k];
+        }
+    }
+    return ['text' => '', 'knoepfe' => []];
+};
+$tgAus = static fn(array $u): string => TelegramBot::verarbeiten($u);
+
+pruefe('Migration 110: telegram_chats steht, mit eindeutiger Chat-ID',
+    (int) Db::wert("SELECT COUNT(*) FROM information_schema.statistics WHERE table_schema = DATABASE() AND table_name = 'telegram_chats' AND index_name = 'uq_telegram_chat'", [], 0) > 0);
+
+/* ---- Token und Webhook ---- */
+$tgFalsch = Telegram::tokenSpeichern('kein-token');
+$tgGut = Telegram::tokenSpeichern('123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ');
+$tgRoh = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'tg_token'", [], '');
+pruefe('Token: Unsinn wird abgelehnt, ein echter über getMe geprüft, verschlüsselt abgelegt, nur die letzten vier Zeichen sichtbar',
+    !$tgFalsch['ok'] && $tgGut['ok'] && $tgRoh !== '' && !str_contains($tgRoh, 'AAHdqTcv')
+    && Telegram::token() === '123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ' && Telegram::tokenEnde() === 'sawQ'
+    && Telegram::einstellung('tg_name') === 'vecom_pruef_bot' && !Telegram::bereit(), json_encode([$tgFalsch, $tgGut]));
+
+$tgNetz = [];
+$tgAn = Telegram::anmelden();
+$tgSet = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'setWebhook'))[0][1] ?? [];
+$tgCmds = array_filter($tgNetz, static fn($x) => $x[0] === 'setMyCommands');
+pruefe('Webhook anmelden: eigene Adresse, 64-stelliges Prüfwort, nur message + callback_query, Stau verwerfen, Befehle in drei Sprachen',
+    $tgAn['ok'] && ($tgSet['url'] ?? '') === 'https://pruefung.example/telegram-webhook.php'
+    && strlen((string) ($tgSet['secret_token'] ?? '')) === 64 && ($tgSet['allowed_updates'] ?? []) === ['message', 'callback_query']
+    && !empty($tgSet['drop_pending_updates']) && Telegram::pruefwort() === $tgSet['secret_token'] && Telegram::bereit()
+    && count($tgCmds) === 4, json_encode($tgSet));
+
+/* ---- Erster Kontakt: Sprache ---- */
+$tgA = 555000111;
+$tgNetz = [];
+$tgAus($tgText($tgA, '/start', 'de'));
+$z = $tgZuletzt();
+pruefe('/start: Sprachwahl in allen drei Sprachen, die Oberflächensprache (de) als erster Knopf, noch keine Sprache festgelegt',
+    str_contains($z['text'], 'In welcher Sprache') && str_contains($z['text'], 'In quale lingua') && ($z['knoepfe'][0] ?? '') === 'l:de'
+    && $tgChat($tgA)['sprache'] === null && $tgChat($tgA)['sprache_vorschlag'] === 'de', json_encode($z));
+$tgAus($tgText($tgA, 'Hallo, was kostet eine Website?', 'de'));
+pruefe('Freier Text vor der Wahl: wieder die Sprachwahl, nichts wird geraten', $tgChat($tgA)['sprache'] === null && str_contains($tgZuletzt()['text'], 'Which language'));
+$tgAus($tgKnopf($tgA, 'l:de'));
+$z = $tgZuletzt();
+pruefe('Knopf „Deutsch“: Sprache fest, Hauptmenü mit allen Punkten',
+    $tgChat($tgA)['sprache'] === 'de' && $tgChat($tgA)['stand'] === 'menu' && str_contains($z['text'], 'Willkommen bei Vecom Design')
+    && in_array('m:preis', $z['knoepfe'], true) && in_array('m:mensch', $z['knoepfe'], true) && in_array('m:kunde', $z['knoepfe'], true));
+$tgAus($tgText($tgA, 'buongiorno, vorrei un sito web per il mio ristorante', 'de'));
+pruefe('Italienische Wörter wechseln die Sprache NICHT — Antwort bleibt deutsch', $tgChat($tgA)['sprache'] === 'de' && str_contains($tgZuletzt()['text'], 'digitale Assistent'));
+
+/* ---- Keine Pakete ---- */
+pruefe('Keine Paketnamen und keine Festpreise in den Bot-Texten (Starter/Business/Premium, 499/899/1.499)',
+    !preg_match('~Starter|Business|Premium|499|899|1\.499~', json_encode(Texte::TELEGRAM, JSON_UNESCAPED_UNICODE)));
+
+/* ---- Fragebogen: dieselben Fragen wie der Konfigurator ---- */
+$tgNetz = [];
+$tgAus($tgKnopf($tgA, 'm:preis'));
+$c = $tgChat($tgA); $z = $tgZuletzt();
+$tgFragen = TelegramBot::fragen('preis');
+$tgAlle = []; foreach (Baukasten::SCHRITTE as $n) { $tgAlle = array_merge($tgAlle, $n); }
+pruefe('Die Fragen sind genau die des Baukastens, in seiner Reihenfolge (8), bei „Neue Website“ ohne die Bestandsfrage (7)',
+    $tgFragen === $tgAlle && count($tgFragen) === 8 && !in_array('bestand', TelegramBot::fragen('neu'), true) && count(TelegramBot::fragen('neu')) === 7);
+$tgB = Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]);
+pruefe('„Preis berechnen“: ein ganz normaler Bedarf in der Tabelle des Konfigurators, Frage 1 von 8 in der Wortwahl des Baukastens',
+    $c['stand'] === 'frage' && $tgB && $tgB['status'] === 'offen' && $tgB['sprache'] === 'de'
+    && str_contains($z['text'], 'Frage 1 von 8') && str_contains($z['text'], Baukasten::FRAGEN['zweck']['frage']['de'])
+    && in_array('t:0:kontakt', $z['knoepfe'], true) && in_array('w:0', $z['knoepfe'], true), json_encode($z));
+$tgNetz = [];
+$tgAus($tgKnopf($tgA, 'w:0'));
+$tgHinweis = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'answerCallbackQuery'))[0][1]['text'] ?? '';
+pruefe('„Weiter“ ohne Zweck geht nicht (ohne Zweck keine Zahl) — Hinweis am Knopf, Frage bleibt', (int) $tgChat($tgA)['frage'] === 0 && str_contains($tgHinweis, 'mindestens'));
+$tgAus($tgKnopf($tgA, 't:0:kontakt'));
+$tgAus($tgKnopf($tgA, 't:0:speisekarte'));
+$tgAus($tgKnopf($tgA, 't:0:speisekarte'));
+$tgAnt = Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]));
+pruefe('Mehrfachauswahl schaltet an und wieder aus, gespeichert im Bedarf, Haken im Knopf', ($tgAnt['zweck'] ?? null) === ['kontakt'] && str_contains($tgZuletzt()['text'], 'Frage 1 von 8'));
+$tgAus($tgKnopf($tgA, 'w:0'));
+pruefe('„Weiter“ mit Zweck: Frage 2', (int) $tgChat($tgA)['frage'] === 1 && str_contains($tgZuletzt()['text'], 'Frage 2 von 8'));
+$tgVor = json_encode($tgAnt);
+$tgAus($tgKnopf($tgA, 'q:0:zeigen'));
+$tgAus($tgKnopf($tgA, 'q:1:hacker'));
+$tgAus($tgKnopf($tgA, 'q:1:<script>'));
+$tgAnt = Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]));
+pruefe('Veraltete Knöpfe, erfundene Antworten und fremde Zeichen ändern nichts', json_encode($tgAnt) === $tgVor && (int) $tgChat($tgA)['frage'] === 1);
+
+foreach (['q:1:wenige', 'q:2:2', 't:3:texte', 'w:3', 'q:4:neu', 'q:5:offen', 'q:6:ja'] as $d) { $tgAus($tgKnopf($tgA, $d)); }
+$tgAnt = Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]));
+$tgLive = Baukasten::live($tgAnt, 4);
+pruefe('Der laufende Richtwert ist Baukasten::live — dieselbe Rechnung wie auf der Website',
+    str_contains($tgZuletzt()['text'], Baukasten::geldText($tgLive['von_cents'], 'de') . ' – ' . Baukasten::geldText($tgLive['bis_cents'], 'de')), $tgZuletzt()['text']);
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+$tgAus($tgKnopf($tgA, 'l:it'));
+pruefe('Sprachknopf mitten im Fragebogen: dieselbe Frage auf Italienisch, keine Antwort verloren',
+    $tgChat($tgA)['sprache'] === 'it' && str_contains($tgZuletzt()['text'], 'Domanda 8 di 8')
+    && json_encode(Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]))) === json_encode($tgAnt));
+$tgAus($tgKnopf($tgA, 'l:de'));
+$tgAus($tgKnopf($tgA, 'q:7:gastro'));
+$tgAnt = Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]));
+$tgR = Baukasten::rechnen($tgAnt);
+$tgS = Baukasten::spanne((int) $tgR['von_cents'], (int) $tgR['bis_cents']);
+$tgSpanne = Baukasten::geldText($tgS['von_cents'], 'de') . ' – ' . Baukasten::geldText($tgS['bis_cents'], 'de');
+$z = $tgZuletzt();
+pruefe('Ergebnis: Posten aus dem Katalog und genau die Spanne von Baukasten::rechnen + spanne, Betreuung monatlich, Hinweis „kein Angebot“',
+    $tgChat($tgA)['stand'] === 'ergebnis' && str_contains($z['text'], $tgSpanne) && str_contains($z['text'], 'Grundgerüst')
+    && str_contains($z['text'], Baukasten::geldText((int) $tgR['monatlich_cents'], 'de')) && str_contains($z['text'], 'kein Angebot')
+    && in_array('r:senden', $z['knoepfe'], true), $z['text'] . ' / ' . $tgSpanne);
+
+// Eine Preisrunde im Baukasten — der Bot zeigt sie beim nächsten Mal, ohne dass sein Code sich ändert.
+$tgPreis = Db::one("SELECT id, preis_cents, preis_bis_cents FROM bausteine WHERE slug = 'basis'");
+Db::run("UPDATE bausteine SET preis_cents = preis_cents + 10000, preis_bis_cents = preis_bis_cents + 10000 WHERE slug = 'basis'");
+$tgE2 = TelegramBot::ergebnis($tgChat($tgA));
+$tgR2 = Baukasten::rechnen($tgAnt); $tgS2 = Baukasten::spanne((int) $tgR2['von_cents'], (int) $tgR2['bis_cents']);
+Db::run('UPDATE bausteine SET preis_cents = ?, preis_bis_cents = ? WHERE id = ?', [$tgPreis['preis_cents'], $tgPreis['preis_bis_cents'], $tgPreis['id']]);
+pruefe('Eine Preisänderung im Baukasten erscheint im Bot sofort (eine Quelle der Wahrheit)',
+    str_contains($tgE2['text'], Baukasten::geldText($tgS2['von_cents'], 'de')) && $tgS2['von_cents'] > $tgS['von_cents']);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('bedarf_spanne_zeigen', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
+$tgE3 = TelegramBot::ergebnis($tgChat($tgA));
+Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'bedarf_spanne_zeigen'");
+pruefe('Ist die Spanne abgeschaltet, nennt der Bot keine Zahl, sondern den Satz „keinen falschen Preis“',
+    !$tgE3['zeigen'] && !str_contains($tgE3['text'], '€') && str_contains($tgE3['text'], 'keinen falschen Preis'));
+
+/* ---- Datenschutz, Kontaktdaten, Absenden ---- */
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');   // die Kette klickt schneller als ein Mensch
+$tgAus($tgKnopf($tgA, 'r:senden'));
+$z = $tgZuletzt();
+pruefe('„Anfrage senden“: zuerst der Datenschutzhinweis mit Link auf die Erklärung in seiner Sprache, noch nichts gespeichert',
+    $tgChat($tgA)['stand'] === 'ds' && str_contains($z['text'], 'legal.html?lang=de#privacy') && $tgChat($tgA)['datenschutz_am'] === null
+    && in_array('d:ja', $z['knoepfe'], true));
+$tgAus($tgKnopf($tgA, 'd:ja'));
+pruefe('Einverstanden: Fassung und Zeitpunkt festgehalten, dann der Name', $tgChat($tgA)['datenschutz_fassung'] === TelegramBot::FASSUNG && $tgChat($tgA)['stand'] === 'name');
+$tgAus($tgText($tgA, 'http://spam.example'));
+$tgAus($tgText($tgA, '<b>x</b>'));
+pruefe('Name: Links und Tags werden abgelehnt', $tgChat($tgA)['stand'] === 'name' && $tgChat($tgA)['name'] === null);
+$tgAus($tgText($tgA, "Maria O'Neil & Rossi"));
+pruefe('Name angenommen und im Text maskiert (&amp;)', $tgChat($tgA)['stand'] === 'email' && str_contains($tgZuletzt()['text'], 'O&#039;Neil &amp; Rossi'));
+$tgAus($tgText($tgA, 'maria@'));
+pruefe('E-Mail: Unsinn abgelehnt', $tgChat($tgA)['stand'] === 'email');
+$tgAus($tgText($tgA, 'Maria.Telegram@Pruefung.example'));
+$z = $tgZuletzt();
+pruefe('E-Mail angenommen (klein geschrieben), Prüfansicht mit Name, Adresse und Richtwert',
+    $tgChat($tgA)['stand'] === 'pruefen' && str_contains($z['text'], 'maria.telegram@pruefung.example') && str_contains($z['text'], $tgSpanne)
+    && in_array('s:ja', $z['knoepfe'], true));
+$tgAnfVor = (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0);
+$tgAus($tgKnopf($tgA, 's:ja'));
+$tgC = $tgChat($tgA);
+$tgAnf = Db::one('SELECT * FROM anfragen WHERE id = ?', [(int) $tgC['anfrage_id']]);
+$tgKd = $tgAnf ? Db::one('SELECT * FROM customers WHERE id = ?', [(int) $tgAnf['customer_id']]) : null;
+$tgBd = Db::one('SELECT * FROM bedarf WHERE id = ?', [(int) $c['bedarf_id']]);
+pruefe('Absenden: EINE normale Anfrage im selben Posteingang, Kunde angelegt (Herkunft Telegram), Bedarf abgesendet mit der gezeigten Spanne',
+    (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0) === $tgAnfVor + 1 && $tgAnf && $tgAnf['email'] === 'maria.telegram@pruefung.example'
+    && $tgAnf['sprache'] === 'de' && $tgKd && str_contains((string) $tgKd['notes'], 'Telegram')
+    && $tgBd['status'] === 'abgesendet' && (int) $tgBd['von_cents'] === $tgS['von_cents'] && (int) $tgBd['customer_id'] === (int) $tgAnf['customer_id'],
+    json_encode([$tgAnf['id'] ?? null, $tgBd['status'] ?? null]));
+pruefe('Meldung sagt „über Telegram“; Datenschutz-Nachweis mit Wortlaut und Fassung beim Kunden',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title = 'Neue Anfrage über Telegram'", [], 0) >= 1
+    && (int) Db::wert("SELECT COUNT(*) FROM zustimmungen WHERE customer_id = ? AND art = 'datenschutz' AND fassung = ? AND sprache = 'de'", [(int) $tgAnf['customer_id'], TelegramBot::FASSUNG], 0) === 1);
+pruefe('Danach stehen Name und E-Mail nicht mehr im Chat (sie sind in der Kundenakte), Dank mit der Adresse',
+    $tgC['name'] === null && $tgC['email'] === null && $tgC['bedarf_id'] === null && $tgC['stand'] === 'menu'
+    && str_contains($tgZuletzt()['text'], 'maria.telegram@pruefung.example'));
+$tgAus($tgKnopf($tgA, 's:ja'));
+pruefe('Ein zweiter Klick auf „Jetzt senden“ erzeugt keine zweite Anfrage', (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0) === $tgAnfVor + 1);
+
+/* ---- Partner-Link und persönliche Beratung ---- */
+$tgP = Partner::laden(Partner::anlegen(['name' => 'Telegram Partner', 'email' => 'tg-partner@partner.example', 'status' => 'aktiv']));
+$tgPB = 555000222;
+$tgAus($tgText($tgPB, '/start p_' . $tgP['code'], 'it'));
+$tgAus($tgKnopf($tgPB, 'l:it', 'it'));
+pruefe('Start-Link mit Partnercode: gemerkt, Sprachvorschlag Italienisch', $tgChat($tgPB)['quelle_code'] === 'p_' . $tgP['code'] && $tgChat($tgPB)['sprache'] === 'it');
+$tgAus($tgText($tgPB, 'Vorrei parlare con una persona', 'it'));
+$z = $tgZuletzt();
+pruefe('„persona“ im Text führt sofort zu einem Menschen: WhatsApp-Link und Anliegen hinterlassen',
+    in_array('url:' . TelegramBot::WHATSAPP, $z['knoepfe'], true) && in_array('b:allgemein', $z['knoepfe'], true) && str_contains($z['text'], 'Uwe'));
+$tgAus($tgKnopf($tgPB, 'm:logo', 'it'));
+$tgAus($tgKnopf($tgPB, 'b:logo', 'it'));
+$tgAus($tgKnopf($tgPB, 'd:ja', 'it'));
+$tgAus($tgText($tgPB, 'Giuseppe Verdi', 'it'));
+$tgAus($tgText($tgPB, 'giuseppe.tg@pruefung.example', 'it'));
+$tgAus($tgText($tgPB, 'Mi serve un logo nuovo per la mia pasticceria.', 'it'));
+pruefe('Beratung: nach Name und E-Mail kommt das Anliegen, dann die Prüfansicht mit Thema', $tgChat($tgPB)['stand'] === 'pruefen' && str_contains($tgZuletzt()['text'], 'Logo'));
+$tgAus($tgKnopf($tgPB, 's:ja', 'it'));
+$tgAnf2 = Db::one('SELECT * FROM anfragen WHERE id = ?', [(int) $tgChat($tgPB)['anfrage_id']]);
+pruefe('Beratungswunsch: normale Anfrage auf Italienisch mit Thema und Wortlaut, Kunde dem Partner zugeordnet (Kanal telegram)',
+    $tgAnf2 && $tgAnf2['sprache'] === 'it' && str_contains((string) $tgAnf2['nachricht'], 'Logo') && str_contains((string) $tgAnf2['nachricht'], 'pasticceria')
+    && (int) Db::wert("SELECT COUNT(*) FROM partner_zuordnungen WHERE customer_id = ? AND partner_id = ? AND kanal = 'telegram'", [(int) $tgAnf2['customer_id'], (int) $tgP['id']], 0) === 1);
+
+/* ---- Grenzen ---- */
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+$tgNetz = [];
+pruefe('Gruppen und Kanäle werden nicht bedient', $tgAus($tgText(-100123, '/start', 'de', 'group')) === 'ignoriert' && $tgNetz === []);
+$tgBot = $tgText(555000333, '/start'); $tgBot['message']['from']['is_bot'] = true;
+pruefe('Nachrichten anderer Bots werden nicht bedient', $tgAus($tgBot) === 'ignoriert');
+$tgFoto = $tgText($tgA, 'x'); unset($tgFoto['message']['text']); $tgFoto['message']['photo'] = [['file_id' => 'abc']];
+pruefe('Ein Foto: freundlicher Satz statt Absturz', $tgAus($tgFoto) === 'kein_text' && str_contains($tgZuletzt()['text'], 'Dateien'));
+pruefe('Zu langer Text wird nicht angenommen', $tgAus($tgText($tgA, str_repeat('a', 1001))) === 'zu_lang');
+$tgFlut = 555000444; $tgErg = [];
+Db::run("INSERT INTO telegram_chats (chat_id, sprache, stand) VALUES (?, 'de', 'menu')", [$tgFlut]);
+$tgNetz = [];
+// Nicht über eine Minutengrenze zählen -- sonst beginnt der Zähler mitten im Versuch neu.
+if ((int) date('s') >= 55) { sleep(61 - (int) date('s')); }
+for ($i = 0; $i < 25; $i++) { $tgErg[] = $tgAus($tgText($tgFlut, 'hallo ' . $i)); }
+$tgLangsam = count(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && str_contains((string) $x[1]['text'], 'Einen Moment')));
+for ($i = 25; $i < 35; $i++) { $tgErg[] = $tgAus($tgText($tgFlut, 'hallo ' . $i)); }
+$tgLangsam = count(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage' && str_contains((string) $x[1]['text'], 'Einen Moment')));
+pruefe('Flutbremse: nach ' . TelegramBot::GRENZE_CHAT . ' Nachrichten in einer Minute ist Schluss, genau ein Hinweis',
+    count(array_filter($tgErg, static fn($e) => $e === 'gebremst')) === 35 - TelegramBot::GRENZE_CHAT && $tgLangsam === 1, json_encode(array_count_values($tgErg)));
+
+/* ---- Doppelte Zustellung ---- */
+$tgW1 = Webhook::annehmen('telegram', '424242', 'message', '{"typ":"message"}');
+Db::update('webhook_events', (int) $tgW1['id'], ['status' => 'verarbeitet']);
+$tgW2 = Webhook::annehmen('telegram', '424242', 'message', '{"typ":"message"}');
+$tgW3 = Webhook::annehmen('telegram', '424243', 'message', '{"typ":"message"}');
+$tgW4 = Webhook::annehmen('telegram', '424243', 'message', '{"typ":"message"}');
+pruefe('Dieselbe update_id zweimal: das zweite Mal nichts tun (200), läuft sie noch: 409',
+    $tgW1['weiter'] && !$tgW2['weiter'] && $tgW2['code'] === 200 && $tgW3['weiter'] && !$tgW4['weiter'] && $tgW4['code'] === 409);
+$tgWh = (string) file_get_contents($oben . '/telegram-webhook.php');
+pruefe('Die Tür: nur POST, Prüfwort zeitkonstant verglichen, 256 KB Grenze, update_id über Webhook::annehmen, kein Nachrichtentext im Protokoll',
+    str_contains($tgWh, "!== 'POST'") && str_contains($tgWh, 'hash_equals($soll, $ist)') && str_contains($tgWh, '262144')
+    && str_contains($tgWh, "Webhook::annehmen('telegram'") && str_contains($tgWh, "json_encode(['typ' => \$typ])"));
+pruefe('Die Stripe-Ansicht zeigt nur Stripe-Ereignisse (Telegram-Klicks verdrängen keine Zahlungen)',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "FROM webhook_events WHERE provider = 'stripe' ORDER BY id DESC LIMIT 25"));
+
+/* ---- Löschen und Aufräumen ---- */
+$tgL = 555000555;
+$tgAus($tgText($tgL, '/start', 'en'));
+$tgAus($tgKnopf($tgL, 'l:en', 'en'));
+$tgAus($tgKnopf($tgL, 'm:neu', 'en'));
+$tgLB = (int) $tgChat($tgL)['bedarf_id'];
+pruefe('„Neue Website“ setzt die Bestandsfrage auf „neu“ und fragt sie nicht (Frage 1 von 7)',
+    (Bedarf::antworten(Db::one('SELECT * FROM bedarf WHERE id = ?', [$tgLB]))['bestand'] ?? '') === 'neu' && str_contains($tgZuletzt()['text'], 'Question 1 of 7'));
+$tgAus($tgText($tgL, '/delete', 'en'));
+$tgAus($tgKnopf($tgL, 'k:ja', 'en'));
+pruefe('/delete: Chat und sein nie abgeschickter Bedarf sind weg',
+    $tgChat($tgL) === null && Db::one('SELECT id FROM bedarf WHERE id = ?', [$tgLB]) === null && str_contains($tgZuletzt()['text'], 'deleted'));
+Db::run("UPDATE telegram_chats SET letzte_am = NOW() - INTERVAL 100 DAY WHERE chat_id IN (?, ?)", [$tgA, $tgFlut]);
+Db::run("UPDATE webhook_events SET received_at = NOW() - INTERVAL 20 DAY WHERE provider = 'telegram' AND event_id = '424242'");
+$tgAuf = TelegramBot::aufraeumen();
+pruefe('Aufräumen: stiller Chat ohne Anfrage weg, Chat mit Anfrage bleibt, alte Update-Vermerke weg',
+    $tgChat($tgFlut) === null && $tgChat($tgA) !== null && $tgAuf['updates'] >= 1
+    && Db::one("SELECT id FROM webhook_events WHERE provider = 'telegram' AND event_id = '424242'") === null, json_encode($tgAuf));
+
+/* ---- Datenschutzerklärung ---- */
+$tgLegal = (string) file_get_contents($oben . '/legal.html');
+$tgLegOk = str_contains($tgLegal, 'data-i18n="legal.p10"');
+foreach (['it', 'de', 'en'] as $sp) {
+    $j = (string) file_get_contents($oben . "/assets/js/legal-$sp.js");
+    $tgLegOk = $tgLegOk && str_contains($j, 'p10h:') && str_contains($j, 'Telegram Messenger Inc.') && str_contains($j, '/delete');
+}
+pruefe('Die Datenschutzerklärung beschreibt den Bot in allen drei Sprachen (Anbieter, was gespeichert wird, Löschfristen, /delete)', $tgLegOk);
+
+Telegram::$netz = null;
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
