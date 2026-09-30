@@ -8064,12 +8064,15 @@ $abPost = static function (string $anlass, string $an, string $b, string $t, arr
         'customer_id' => $bezug['customer_id'] ?? null, 'payment_id' => $bezug['payment_id'] ?? null]);
     return true;
 };
-$abR0 = Abo::abrechnen($abAbo, '2027-06');
+/* Monate relativ zu heute, weit in der Zukunft (01.10.2026): Mit festen Monaten
+   („2026-10“) stieß der Monatslauf am Monatsersten auf eine schon angelegte Rate. */
+$abMon = static fn(int $n): string => date('Y-m', strtotime('first day of +' . $n . ' months'));
+$abR0 = Abo::abrechnen($abAbo, $abMon(28));
 pruefe('Phase 2: kommt die Ankündigung nicht an, wird die Rate nicht zur Abbuchung vorgemerkt',
     Abbuchung::ankuendigen($abR0, static fn() => false) === 'versand_fehler'
     && Db::one('SELECT method FROM payments WHERE id = ?', [$abR0])['method'] === null);
 Db::run("UPDATE payments SET status = 'bezahlt' WHERE id = ?", [$abR0]);   // aus dem Weg
-$abR1 = Abo::abrechnen($abAbo, '2026-10');
+$abR1 = Abo::abrechnen($abAbo, $abMon(20));
 $abWie = Abbuchung::ankuendigen($abR1, $abPost);
 $abP = Db::one('SELECT * FROM payments WHERE id = ?', [$abR1]);
 pruefe('Phase 2: statt Zahlungslink eine Ankündigung, fällig in zwei Tagen',
@@ -8090,7 +8093,7 @@ Abbuchung::faellige($abS);
 pruefe('Phase 2: eine bezahlte Rate wird nicht noch einmal abgebucht', $abS->abgebucht === 1);
 
 /* Lastschrift unterwegs: nicht mahnen */
-$abR2 = Abo::abrechnen($abAbo, '2026-11');
+$abR2 = Abo::abrechnen($abAbo, $abMon(21));
 Abbuchung::ankuendigen($abR2, $abPost);
 Db::run('UPDATE payments SET faellig_am = CURDATE() WHERE id = ?', [$abR2]);
 $abS->antwort = 'laeuft';
@@ -8103,7 +8106,7 @@ pruefe('Phase 2: eine laufende Lastschrift wartet auf den Abgleich und wird nich
     && !in_array($abR2, array_map('intval', $abMahn), true));
 
 /* Abgelehnt: gewohnter Weg */
-$abR3 = Abo::abrechnen($abAbo, '2026-12');
+$abR3 = Abo::abrechnen($abAbo, $abMon(22));
 Abbuchung::ankuendigen($abR3, $abPost);
 Db::run('UPDATE payments SET faellig_am = CURDATE() WHERE id = ?', [$abR3]);
 $abS->antwort = 'abgelehnt';
@@ -8127,7 +8130,7 @@ pruefe('Phase 2: der Monatslauf versucht die Ankündigung -- und schickt den Lin
     $abR4 > 0 && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'abbuchung_angekuendigt' AND payment_id = ?", [$abR4], 0) === 1
     && Db::one('SELECT method FROM payments WHERE id = ?', [$abR4])['method'] === null
     && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'betreuung_faellig' AND payment_id = ?", [$abR4], 0) === 1);
-$abR5 = Abo::abrechnen($abAbo, '2027-02');
+$abR5 = Abo::abrechnen($abAbo, $abMon(24));
 Abbuchung::ankuendigen($abR5, $abPost);
 
 /* Wechsel und Ende */
