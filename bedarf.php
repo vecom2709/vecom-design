@@ -683,6 +683,15 @@ $geld = static function (int $cents) use ($sprache): string {
   } catch (e) { }
   var k = document.querySelector('[data-tg-schliessen]');
   if (k) { k.addEventListener('click', function () { if (w) { w.close(); } else { history.back(); } }); }
+  // Telegrams eigener Zurück-Pfeil oben im Fenster: ab Schritt 2 derselbe
+  // Weg wie der Knopf „Zurück“ unten (speichert, dann ein Schritt zurück).
+  var zur = document.querySelector('button[name=tat][value=zurueck]');
+  if (w && w.BackButton) {
+    try {
+      if (zur) { w.BackButton.onClick(function () { zur.click(); }); w.BackButton.show(); }
+      else { w.BackButton.hide(); }
+    } catch (e) { }
+  }
   var x = document.querySelector('[data-tg-extern]');
   if (x && w && w.openLink) { x.addEventListener('click', function (e) { e.preventDefault(); w.openLink(x.href); }); }
 })();

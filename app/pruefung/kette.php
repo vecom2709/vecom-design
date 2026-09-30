@@ -15706,6 +15706,7 @@ pruefe('Mini-App: Einstieg lädt das Telegram-Skript und reicht den Teil hinter 
     str_contains($maEinstieg, 'telegram-web-app.js') && str_contains($maEinstieg, '+ location.hash;')
     && strpos($maEinstieg, 'WebApp.ready()') < strpos($maEinstieg, 'location.replace(')
     && str_contains($maEinstieg, "addEventListener('load', los)"));
+pruefe('Mini-App: Telegrams Zurück-Pfeil führt denselben Weg wie der Knopf „Zurück“', str_contains($maBedarf, 'w.BackButton.onClick(function () { zur.click(); })'));
 pruefe('Mini-App: „Zurück zu Telegram“ dreisprachig', isset(Texte::BEDARF['tgZurueck']['it'], Texte::BEDARF['tgZurueck']['de'], Texte::BEDARF['tgZurueck']['en']));
 $maLegal = true;
 foreach (['it' => 'mini app', 'de' => 'Mini-App', 'en' => 'mini app'] as $maSp => $maWort) {
