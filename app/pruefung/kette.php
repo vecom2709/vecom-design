@@ -19208,33 +19208,38 @@ Telegram::$netz = static function (string $m, array $d) use (&$kvNetz): array {
     return ['ok' => true, 'result' => true];
 };
 
-/* Vorschlag 3: zweisprachig, Italienisch zuerst */
+/* Vorschlag 3, seit 01.10.2026 abends: Hauptsprache Deutsch, Sprachwahl 🇩🇪 · 🇮🇹 · 🇬🇧 (Uwe) */
 Telegram::setzen('tg_kanal_menue_id', '');
 $kvM = Telegram::kanalMenue();
 $kvPost = array_values(array_filter($kvNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
-$kvUrls = []; $kvBeschr = [];
-foreach ((array) ($kvPost['reply_markup']['inline_keyboard'] ?? []) as $r) { foreach ($r as $b) { $kvUrls[] = (string) ($b['url'] ?? ''); $kvBeschr[] = (string) $b['text']; } }
+$kvUrls = []; $kvBeschr = []; $kvReihen = (array) ($kvPost['reply_markup']['inline_keyboard'] ?? []);
+foreach ($kvReihen as $r) { foreach ($r as $b) { $kvUrls[] = (string) ($b['url'] ?? ''); $kvBeschr[] = (string) $b['text']; } }
 $kvText = Telegram::kanalMenueText();
-$kvOhneGruss = static fn(string $t): string => trim((string) preg_replace('/^\x{1F44B}\s*/u', '', $t));
-pruefe('Kanal zweisprachig: der Menü-Beitrag steht italienisch, darunter deutsch — mit Fähnchen, ohne doppelten Gruß, unter Telegrams 4096 Zeichen',
-    $kvM['ok'] && ($kvPost['text'] ?? '') === $kvText && str_starts_with($kvText, "\u{1F1EE}\u{1F1F9} " . $kvOhneGruss(Texte::TELEGRAM['it']['kanalMenue']))
-    && str_ends_with($kvText, "\n\n\u{1F1E9}\u{1F1EA} " . $kvOhneGruss(Texte::TELEGRAM['de']['kanalMenue'])) && !str_contains($kvText, "\u{1F44B}") && mb_strlen($kvText) <= 4096,
-    mb_substr((string) ($kvPost['text'] ?? ''), 0, 60));
-pruefe('Kanal zweisprachig: zwölf Knöpfe, italienisch beschriftet, ohne Sprache im Link (das Fenster nimmt die des Geräts)',
-    count($kvUrls) === 12 && !array_filter($kvUrls, static fn($u) => !preg_match('~^https://t\.me/vecom_pruef_bot/rechner\?startapp=kanal-[a-z0-9]+$~', $u))
-    && in_array(Texte::TELEGRAM['it']['k_preis'], $kvBeschr, true) && in_array(Texte::TELEGRAM['it']['k_partner'], $kvBeschr, true)
-    && !in_array(Texte::TELEGRAM['de']['k_partner'], $kvBeschr, true), json_encode($kvUrls));
+pruefe('Kanal: Hauptsprache Deutsch — der Menü-Beitrag beginnt mit dem deutschen Text, darunter ein Satz zur Sprachwahl auf Italienisch und Englisch',
+    $kvM['ok'] && ($kvPost['text'] ?? '') === $kvText && str_starts_with($kvText, trim(Texte::TELEGRAM['de']['kanalMenue']))
+    && str_contains($kvText, 'scegli la lingua') && str_contains($kvText, 'choose your language') && mb_strlen($kvText) <= 4096, mb_substr((string) ($kvPost['text'] ?? ''), 0, 60));
+$kvWahl = array_map(static fn($b) => (string) $b['url'], (array) end($kvReihen));
+pruefe('Kanal: zwölf deutsche Knöpfe öffnen das Fenster auf Deutsch, die letzte Reihe wählt Deutsch, Italienisch oder Englisch',
+    count($kvUrls) === 15 && count(array_filter($kvUrls, static fn($u) => preg_match('~^https://t\.me/vecom_pruef_bot/rechner\?startapp=kanal-de-[a-z0-9]+$~', $u) === 1)) === 13
+    && in_array(Texte::TELEGRAM['de']['k_preis'], $kvBeschr, true) && !in_array(Texte::TELEGRAM['it']['k_preis'], $kvBeschr, true)
+    && $kvWahl === ['https://t.me/vecom_pruef_bot/rechner?startapp=kanal-de-menu', 'https://t.me/vecom_pruef_bot/rechner?startapp=kanal-it-menu', 'https://t.me/vecom_pruef_bot/rechner?startapp=kanal-en-menu']
+    && array_column((array) end($kvReihen), 'text') === array_values(Telegram::SPRACHWAHL), json_encode($kvUrls));
 $kvWege = true;
 foreach ($kvUrls as $u) {
-    $l = TelegramApp::lesen(substr($u, strpos($u, '=') + 1), 'de');
-    $kvWege = $kvWege && $l['quelle'] === 'kanal' && $l['sprache'] === 'de' && ($l['rechner'] || $l['ziel'] !== 'menu');
+    $l = TelegramApp::lesen(substr($u, strpos($u, '=') + 1), 'it');
+    $kvWege = $kvWege && $l['quelle'] === 'kanal' && in_array($l['sprache'], ['de', 'it', 'en'], true) && ($l['rechner'] || $l['ziel'] !== 'menu' || str_ends_with($u, '-menu'));
 }
-pruefe('Kanal zweisprachig: jeder Knopf führt im Fenster an seinen Punkt, in der Sprache, die der Server mitgibt', $kvWege);
+pruefe('Kanal: jeder Knopf führt im Fenster an seinen Punkt — die Sprache steht im Link, nicht im Gerät', $kvWege
+    && TelegramApp::lesen('kanal-en-menu', 'it') === ['quelle' => 'kanal', 'sprache' => 'en', 'einstieg' => 'preis', 'rechner' => false, 'ziel' => 'menu']);
+$kvFen = (string) file_get_contents($oben . '/telegram-menue.php');
+pruefe('Vecom-Fenster: oben jederzeit die Sprache wechseln (DE · IT · EN) — dieselbe Seite, jeder weitere Link trägt die Sprache',
+    str_contains($kvFen, '<nav class="sprachen"') && str_contains($kvFen, "http_build_query(['a' => \$a, 's' => \$quelle, 'lang' => \$ws]")
+    && str_contains($kvFen, "'lang' => \$sp] + \$mehr") && substr_count($kvFen, "?lang=' . \$sp") >= 4);
 $kvApp = (string) file_get_contents($oben . '/telegram-app.php');
 pruefe('Kanal zweisprachig: ohne Sprache im Start rät das Fenster aus Keks und Browser, mit Sprache bleibt sie fest — Telegrams Startdaten bleiben ungelesen',
     str_contains($kvApp, '$festeSprache = ') && str_contains($kvApp, 'Sprache::ausAnfrage()') && str_contains($kvApp, "if (!\$festeSprache)") && !str_contains($kvApp, 'initData'));
 $kvIdx = (string) file_get_contents($wurzel . '/index.php');
-pruefe('Kanal zweisprachig: „Menü im Kanal aktualisieren“ veröffentlicht die zweisprachige Fassung (mit Rückfrage)',
+pruefe('Kanal: „Menü im Kanal aktualisieren“ veröffentlicht die Fassung mit Sprachwahl (mit Rückfrage)',
     str_contains($kvIdx, '$e = Telegram::kanalMenue();') && Ablauf::wiegt('telegram_kanal_menue') === Ablauf::RAUS);
 pruefe('Kanal: mit fester Sprache wie bisher (Deutsch, Sprache im Link)', ($kvDe = Telegram::kanalMenue('de'))['ok']
     && (string) (array_values(array_filter($kvNetz, static fn($x) => $x[0] === 'editMessageText'))[0][1]['text'] ?? '') === Texte::TELEGRAM['de']['kanalMenue']);
@@ -19305,7 +19310,7 @@ pruefe('Kanal überall: unter dem Website-Check der Link mit eigener Zählung, d
 /* Vorschlag 7: QR-Aufsteller */
 pruefe('QR-Aufsteller: Route hinter der Anmeldung, Code auf /kanal.php?w=qr, italienisch und deutsch',
     strpos($kvIdx, "case 'kanal-karte':") > strpos($kvIdx, 'Auth::nurAdmin();') && str_contains($kvIdx, "QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1)")
-    && str_contains($kvIdx, '<h1>Seguici su Telegram</h1>') && str_contains($kvIdx, 'Folgen Sie uns auf Telegram'));
+    && str_contains($kvIdx, '<h1>Folgen Sie uns auf Telegram</h1>') && str_contains($kvIdx, 'Seguici su Telegram'));
 pruefe('QR-Aufsteller: der Code entsteht', str_starts_with(trim(QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1)), '<svg'));
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
 $z = MkKennzahlen::zeitraum('heute'); $d = TelegramZahlen::dashboard($z); $orte = TelegramWachstum::kanalLinksSicherstellen(false);
@@ -19586,6 +19591,37 @@ pruefe('Antragstexte: ohne Partita IVA warnt LinkedIn vorher (ein abgelehnter An
 pruefe('Antragstexte: TikTok sagt ehrlich, dass Direct Post je Beitrag eine Bestätigungsseite verlangt', str_contains(implode(' ', $paAlle['tiktok']['voraus']), 'Music Usage Confirmation'));
 pruefe('Antragstexte: stehen unter Kanäle › Verbinden & Posten je Plattform zum Kopieren',
     str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), 'MkPlattform::antrag($pk)') && str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), 'data-kopieren="<?= $pfId ?>"'));
+/* Anmeldungen an einer Stelle (01.10.2026, Uwe: „direkt auf die Seiten zum Registrieren, danach automatisch“) */
+require_once $wurzel . '/src/MkAnmeldungen.php';
+require_once $wurzel . '/src/MkStart.php';
+Db::run("DELETE FROM settings WHERE skey LIKE 'mk\\_konto\\_%'");
+$anL = MkAnmeldungen::liste('IT');
+pruefe('Anmeldungen: fünf Konten mit direkter https-Anmeldeseite, dazu die offenen und eingereichten Verzeichnisse des Landes (keine Kooperations-Kanäle)',
+    count($anL['konten']) === 5 && !array_filter($anL['konten'], static fn($k) => !str_starts_with($k['url'], 'https://') || !in_array($k['stand'], ['verbunden', 'offen'], true))
+    && array_column($anL['konten'], 'stand', 'schluessel')['linkedin'] === 'offen'
+    && $anL['eintraege'] !== [] && !array_filter($anL['eintraege'], static fn($e) => $e['art'] === 'kanal' || !in_array($e['status'], ['offen', 'eingereicht'], true))
+    && $anL['offen'] >= 3, json_encode(array_column($anL['konten'], 'stand')));
+pruefe('Anmeldungen: „Erledigt“ vermerkt ein Konto (nur das Datum, keine Zugangsdaten), Unbekanntes nicht',
+    MkAnmeldungen::kontoVermerken('tiktok') === null && MkAnmeldungen::kontoStand('tiktok') === 'angelegt'
+    && is_string(MkAnmeldungen::kontoVermerken('myspace')) && preg_match('/^\d{4}-\d{2}-\d{2}$/', (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_konto_tiktok'", [], '')) === 1);
+$anMi = (int) Db::wert("SELECT id FROM mk_verzeichnisse WHERE schluessel = 'opendi'", [], 0);
+Db::run('UPDATE mk_verzeichnisse SET kampagne_id = NULL WHERE id = ?', [$anMi]);
+$anO = MkAnmeldungen::verzeichnisOeffnen($anMi);
+pruefe('Anmeldungen: „Zur Anmeldung“ legt vorher die eigenen Zähl-Links an und führt nur auf die Adresse aus der eigenen Liste',
+    $anO['ok'] && $anO['url'] === (string) Db::wert('SELECT url FROM mk_verzeichnisse WHERE id = ?', [$anMi], '') && str_starts_with($anO['url'], 'https://')
+    && (int) Db::wert('SELECT kampagne_id FROM mk_verzeichnisse WHERE id = ?', [$anMi], 0) > 0 && !MkAnmeldungen::verzeichnisOeffnen(999999)['ok'], json_encode($anO));
+$anIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Anmeldungen: Taten hinter Anmeldung und CSRF; Weiterleitung nur auf die geprüfte Adresse',
+    strpos($anIdx, "case 'anmeldung_oeffnen':") > strpos($anIdx, 'Csrf::pruefen()') && strpos($anIdx, "case 'konto_vermerken':") > strpos($anIdx, 'Csrf::pruefen()')
+    && str_contains($anIdx, "if (\$anO['ok']) { header('Location: ' . \$anO['url'], true, 303); exit; }"));
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$land = 'IT'; $st = MkStart::schritte('IT'); $fehl = []; $anm = MkAnmeldungen::liste('IT');
+ob_start(); require $wurzel . '/views/mk_start.php'; $anHtml = (string) ob_get_clean();
+restore_error_handler(); unset($land, $st, $fehl, $anm);
+pruefe('Marketing › Start: Block „Anmeldungen“ mit „Zur Anmeldung“ (neuer Tab) und „Erledigt“, ohne Warnung',
+    $kaFehler === null && str_contains($anHtml, 'id="anmeldungen"') && str_contains($anHtml, 'https://www.linkedin.com/company/setup/new/')
+    && str_contains($anHtml, 'value="anmeldung_oeffnen"') && str_contains($anHtml, 'target="_blank"') && str_contains($anHtml, 'value="konto_vermerken"')
+    && str_contains($anHtml, 'name="zurueck" value="marketing#anmeldungen"'), (string) $kaFehler);
 Telegram::$netz = $kgTgAlt;
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_menue_id', '');
 foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }

@@ -991,6 +991,20 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert: ' . (Verzeichnisse::STATUS[(string) $_POST['status']] ?? '') . '.';
                 zurueck('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
 
+            /* Anmeldungen (01.10.2026, Uwe: „direkt auf die Seiten zum Registrieren, danach automatisch“) */
+            case 'anmeldung_oeffnen':
+                require_once __DIR__ . '/src/MkAnmeldungen.php';
+                $anO = MkAnmeldungen::verzeichnisOeffnen((int) ($_POST['id'] ?? 0));
+                if ($anO['ok']) { header('Location: ' . $anO['url'], true, 303); exit; }
+                $_SESSION['fehler'] = $anO['text'];
+                weiter('marketing#anmeldungen');
+
+            case 'konto_vermerken':
+                require_once __DIR__ . '/src/MkAnmeldungen.php';
+                $f = MkAnmeldungen::kontoVermerken((string) ($_POST['konto'] ?? ''), ($_POST['angelegt'] ?? '1') === '1');
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? (($_POST['angelegt'] ?? '1') === '1' ? 'Vermerkt. Sobald der Schlüssel unter Kanäle steht, postet Vecom dort selbst.' : 'Vermerk zurückgenommen.');
+                weiter('marketing#anmeldungen');
+
             case 'verzeichnis_weg':   // 01.10.2026: selbst aufgenommene Einträge wieder entfernen
                 require_once __DIR__ . '/src/Verzeichnisse.php';
                 $f = Verzeichnisse::entfernen((int) ($_POST['id'] ?? 0));
@@ -4885,7 +4899,8 @@ switch ($route) {
         require_once __DIR__ . '/src/MkStart.php';
         require_once __DIR__ . '/src/MkKanaele.php';
         $msLand = MkLand::wahl();
-        ansicht('mk_start', ['land' => $msLand, 'st' => MkStart::schritte($msLand), 'fehl' => MkKanaele::fehlgeschlagen($msLand)]);
+        ansicht('mk_start', ['land' => $msLand, 'st' => MkStart::schritte($msLand), 'fehl' => MkKanaele::fehlgeschlagen($msLand),
+            'anm' => sicher(static function () use ($msLand): ?array { require_once __DIR__ . '/src/MkAnmeldungen.php'; return MkAnmeldungen::liste($msLand); }, null)]);
         break;
 
     case 'zahlen':   // Marketing · Zahlen (Growth Engine Phase 2, 30.09.2026; seit G1 unter „Zahlen“)
@@ -4964,16 +4979,16 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
         if ($kkName === '') { $_SESSION['fehler'] = 'Erst den Kanal verbinden (Einstellungen › Telegram).'; weiter('telegram'); }
         header('Cache-Control: no-store');
         $kkQr = QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1);
-        ?><!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seguici su Telegram — Vecom Design</title>
+        ?><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Folgen Sie uns auf Telegram — Vecom Design</title>
 <style>@page{size:A6;margin:8mm}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#141414;background:#fff}
 .karte{display:grid;gap:3.5mm;justify-items:center;text-align:center;padding:6mm;max-width:105mm;margin:0 auto}
 h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin:0}.qr{width:58mm;height:58mm}.qr svg{width:100%;height:100%}
 .name{font-size:13pt;font-weight:700;margin:0;color:#229ED9}.klein{font-size:10pt;color:#555;margin:0;line-height:1.4}.marke{font-weight:800;letter-spacing:.08em;font-size:12pt}
 @media screen{body{background:#eee}.karte{background:#fff;margin:10mm auto;box-shadow:0 2px 14px rgba(0,0,0,.15)}}</style></head>
-<body><div class="karte"><div class="marke">VECOM DESIGN</div><h1>Seguici su Telegram</h1><p class="de">Folgen Sie uns auf Telegram</p>
+<body><div class="karte"><div class="marke">VECOM DESIGN</div><h1>Folgen Sie uns auf Telegram</h1><p class="de">Seguici su Telegram · Follow us on Telegram</p>
 <div class="qr" role="img" aria-label="QR-Code zum Telegram-Kanal"><?= $kkQr ?></div>
 <p class="name">@<?= Fmt::h($kkName) ?></p>
-<p class="klein">Novità, esempi e consigli sui siti web per piccole imprese.<br>Neuigkeiten, Beispiele und Tipps rund um Websites für kleine Betriebe.</p></div>
+<p class="klein">Neuigkeiten, Beispiele und Tipps rund um Websites für kleine Betriebe — auf Deutsch, Italienisch und Englisch.<br>Novità, esempi e consigli sui siti web per piccole imprese.</p></div>
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
         exit;
 

@@ -15,7 +15,7 @@ require_once __DIR__ . '/Telegram.php';
    drei Telegram-Beiträge an — für die freigegebene italienische Zielgruppe,
    die am längsten nichts bekommen hat (dieselbe Wahl wie der Autopilot),
    mit einem Thema, das jede Woche wechselt, und zweisprachig: erst
-   Italienisch, dann Deutsch.
+   Deutsch (Hauptsprache des Kanals), dann Italienisch.
 
    Es entsteht nur ein Schreibauftrag. Claude schreibt über Uwes Abo (die
    Tagesgrenze des Content-Studios gilt), ohne Bilder (kein Kie.ai-Guthaben).
@@ -40,7 +40,8 @@ final class TelegramKanalPlan
         'Aus dem Website-Check: drei typische Schwachstellen und wie man sie behebt',
         'Frage aus der Praxis: eine häufige Kundenfrage kurz und ehrlich beantwortet',
     ];
-    public const ZWEISPRACHIG = ' · Text zweisprachig: erst Italienisch, dann 🇩🇪 dasselbe auf Deutsch, zusammen max. 1024 Zeichen';
+    /* Seit 01.10.2026 (Uwe: „Hauptsprache Deutsch“): erst Deutsch, dann Italienisch. */
+    public const ZWEISPRACHIG = ' · Text zweisprachig: erst Deutsch, dann 🇮🇹 dasselbe auf Italienisch, zusammen max. 1024 Zeichen';
 
     private static function lesen(string $k): string
     {

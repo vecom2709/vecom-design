@@ -50,6 +50,49 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
 </div>
 <?php endif; ?>
 
+<?php if (!empty($anm)): /* Anmeldungen (01.10.2026): direkt zur Seite, danach „Erledigt“ — der Rest geht von selbst */
+  $anErster = true;   /* „Ein Ding je Bildschirm“: nur die erste offene Anmeldung ist gold */ ?>
+<div class="block" id="anmeldungen">
+  <h2>Anmeldungen <span class="mehr"><?= (int) $anm['offen'] ?> offen · Konto und Passwort legst du an, alles davor und danach macht Vecom</span></h2>
+  <p class="mk-fein" style="margin:0 0 10px;max-width:86ch;line-height:1.6">„Zur Anmeldung“ öffnet die Seite in einem neuen Tab — bei Verzeichnissen legt derselbe Klick vorher die eigenen Zähl-Links an.
+    Dort Konto anlegen und bestätigen, dann den <b>Ausfüll-Knopf</b> in der Lesezeichenleiste drücken: Er trägt Firmendaten, Texte und den eigenen Link ein (Einrichten unter Verzeichnisse › Alle Stellen und Werkzeuge).
+    Zum Schluss hier „Erledigt“.</p>
+  <div class="tabellenrahmen">
+    <table class="mk-tab">
+      <thead><tr><th>Wo · was du tust · was danach von selbst geht</th><th>Stand</th><th></th></tr></thead>
+      <tbody>
+        <?php foreach ($anm['konten'] as $k): $kStand = ['verbunden' => 'postet selbst', 'angelegt' => 'angelegt', 'offen' => 'offen'][$k['stand']]; ?>
+          <tr>
+            <td class="mk-name"><b><?= Fmt::h($k['name']) ?></b><br><span class="mk-fein"><?= Fmt::h($k['tun']) ?><br>→ <?= Fmt::h($k['danach']) ?></span></td>
+            <td><span class="marke2<?= $k['stand'] === 'verbunden' ? ' gut' : ($k['stand'] === 'angelegt' ? '' : ' warnung') ?>"><?= Fmt::h($kStand) ?></span></td>
+            <td style="text-align:right"><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <?php if ($k['stand'] === 'offen'): ?>
+                <a class="knopf<?= $anErster ? ' haupt' : '' ?>" href="<?= Fmt::h($k['url']) ?>" target="_blank" rel="noopener">Zur Anmeldung ↗</a><?php $anErster = false; ?>
+                <form method="post" action="<?= Fmt::h(url('marketing')) ?>" style="display:inline;margin:0"><?= $csrf ?><input type="hidden" name="tat" value="konto_vermerken"><input type="hidden" name="konto" value="<?= Fmt::h($k['schluessel']) ?>"><input type="hidden" name="angelegt" value="1"><button class="knopf">Erledigt</button></form>
+              <?php elseif ($k['stand'] === 'angelegt'): ?>
+                <a class="knopf" href="<?= Fmt::h(url(in_array($k['schluessel'], ['facebook', 'instagram'], true) ? 'kanaele#meta' : 'kanaele#pf-' . $k['schluessel'])) ?>">Verbinden</a>
+              <?php else: ?>✓<?php endif; ?>
+            </div></td>
+          </tr>
+        <?php endforeach; ?>
+        <?php foreach ($anm['eintraege'] as $e): ?>
+          <tr>
+            <td class="mk-name"><b><?= Fmt::h((string) $e['name']) ?></b><br><span class="mk-fein"><?= Fmt::h((string) $e['kosten']) ?><?= trim((string) $e['konto']) !== '' ? ' · ' . Fmt::h((string) $e['konto']) : '' ?><br>→ <?= $e['status'] === 'eingereicht' ? 'Erinnerung nach einer Woche, falls noch nicht online; Besuche und Anfragen zählen über den eigenen Link' : 'Zähl-Links entstehen beim Öffnen; nach „Erledigt“ Erinnerung und Zählung' ?></span></td>
+            <td><span class="marke2<?= $e['status'] === 'eingereicht' ? '' : ' warnung' ?>"><?= $e['status'] === 'eingereicht' ? 'eingereicht' : 'offen' ?></span></td>
+            <td style="text-align:right"><div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+              <form method="post" action="<?= Fmt::h(url('marketing')) ?>" target="_blank" style="display:inline;margin:0"><?= $csrf ?><input type="hidden" name="tat" value="anmeldung_oeffnen"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>"><button class="knopf<?= $e['status'] === 'offen' && $anErster ? ' haupt' : '' ?>"><?= $e['status'] === 'offen' ? 'Zur Anmeldung ↗' : 'Öffnen ↗' ?></button></form><?php if ($e['status'] === 'offen') { $anErster = false; } ?>
+              <?php if ($e['status'] === 'offen'): ?>
+                <form method="post" action="<?= Fmt::h(url('verzeichnisse')) ?>" style="display:inline;margin:0"><?= $csrf ?><input type="hidden" name="tat" value="verzeichnis_stand"><input type="hidden" name="id" value="<?= (int) $e['id'] ?>"><input type="hidden" name="status" value="eingereicht"><input type="hidden" name="zurueck" value="marketing#anmeldungen"><button class="knopf">Erledigt</button></form>
+              <?php endif; ?>
+            </div></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2>Was die Wörter heißen</h2>
   <dl class="mk-woerter">

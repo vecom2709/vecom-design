@@ -199,10 +199,20 @@ $knopf = static function (string $text, string $href, bool $haupt = false, bool 
   ol{padding-left:20px;margin:8px 0} li{margin:0 0 8px}
   .zurueck{display:inline-block;margin:0 0 12px;color:var(--leise);text-decoration:none;font-size:14px}
   .fein{font-size:13px;color:var(--leise)} .fein a{color:var(--gold)} .fein b{color:var(--text)}
+  .sprachen{display:flex;justify-content:flex-end;gap:6px;margin:0 0 8px}
+  .sprachen a{padding:5px 10px;border-radius:999px;border:1px solid var(--linie);color:var(--leise);text-decoration:none;font-size:13px;font-weight:600}
+  .sprachen a.an{color:#16120b;background:var(--gold);border-color:transparent}
 </style>
 </head>
 <body>
 <main>
+<?php /* Sprache jederzeit wechseln (01.10.2026, Uwe: „Nutzer kann Sprache ändern — auch die Unterseiten in der
+   eingestellten Sprache“): dieselbe Seite neu, jeder weitere Link trägt die Sprache mit. */ ?>
+<nav class="sprachen" aria-label="Lingua · Sprache · Language">
+  <?php foreach (['de' => "\u{1F1E9}\u{1F1EA} DE", 'it' => "\u{1F1EE}\u{1F1F9} IT", 'en' => "\u{1F1EC}\u{1F1E7} EN"] as $ws => $ww): ?>
+    <a href="<?= $h('/telegram-menue.php?' . http_build_query(['a' => $a, 's' => $quelle, 'lang' => $ws], '', '&', PHP_QUERY_RFC3986)) ?>" hreflang="<?= $ws ?>"<?= $ws === $sp ? ' class="an" aria-current="true"' : '' ?>><?= $h($ww) ?></a>
+  <?php endforeach; ?>
+</nav>
 <?php if ($a !== 'menu'): ?><a class="zurueck" href="<?= $h($hier('menu')) ?>"><?= $h($A('menu')) ?></a><?php endif; ?>
 
 <?php if ($a === 'menu'): ?>

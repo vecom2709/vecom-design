@@ -398,20 +398,23 @@ final class Telegram
      *
      * @return array{ok:bool, text:string}
      */
-    public static function kanalMenue(string $sp = 'auto'): array
+    public static function kanalMenue(string $sp = 'haupt'): array
     {
         require_once __DIR__ . '/Texte.php';
         $k = self::kanal();
         if ($k['id'] === '') { return ['ok' => false, 'text' => 'Es ist noch kein Kanal hinterlegt.']; }
         if (self::einstellung('tg_name') === '') { return ['ok' => false, 'text' => 'Der Bot ist nicht eingerichtet.']; }
-        /* ZWEISPRACHIG (01.10.2026, Uwe: „Alles“ — Vorschlag 3): Text italienisch und deutsch,
-           Knöpfe italienisch (die Kunden sind vor allem Betriebe um Agrigent), und die
-           Knöpfe tragen KEINE Sprache mehr — das Fenster nimmt die, die der Nutzer in
-           Telegram eingestellt hat (telegram-app.php). Mit fester Sprache wie bisher. */
-        $auto = !isset(Texte::TELEGRAM[$sp]);
-        $T = Texte::TELEGRAM[$auto ? 'it' : $sp];
+        /* HAUPTSPRACHE DEUTSCH (01.10.2026, Uwe: „Hauptsprache soll Deutsch sein, Nutzer kann
+           Deutsch, Italienisch, Englisch wählen — und die Unterseiten in der eingestellten
+           Sprache“): Text und Knöpfe deutsch, darunter eine Reihe 🇩🇪 · 🇮🇹 · 🇬🇧, die das
+           Vecom-Fenster in der gewählten Sprache öffnet. Im Fenster trägt jeder Link die
+           Sprache weiter (telegram-menue.php, Rechner, Website-Check …), und oben lässt
+           sie sich jederzeit wechseln. Mit fester Sprache ('de', 'it', 'en') wie bisher. */
+        $haupt = !isset(Texte::TELEGRAM[$sp]);
+        if ($haupt) { $sp = 'de'; }
+        $T = Texte::TELEGRAM[$sp];
         $l = static fn(string $wort): string => self::link('kanal-' . $wort);
-        $param = static fn(string $ziel): string => 'kanal-' . ($auto ? '' : $sp . '-') . $ziel;
+        $param = static fn(string $ziel): string => 'kanal-' . $sp . '-' . $ziel;
         // Die drei Rechner-Knöpfe öffnen die Mini-App über dem Kanal, sobald
         // sie bei @BotFather angemeldet ist — vorher den Bot wie bisher.
         require_once __DIR__ . '/TelegramApp.php';
@@ -429,7 +432,12 @@ final class Telegram
             [['text' => $T['k_mensch'], 'url' => $f('mensch', 'mensch')], ['text' => $T['k_partner'], 'url' => $f('partner', 'partner')]],
             [['text' => $T['k_kunde'], 'url' => $f('kunde', 'kunde')]],
         ];
-        $text = $auto ? self::kanalMenueText() : $T['kanalMenue'];
+        if ($haupt) {
+            $wahl = [];
+            foreach (self::SPRACHWAHL as $ws => $wort) { $wahl[] = ['text' => $wort, 'url' => TelegramApp::link('kanal-' . $ws . '-menu') ?: self::link('kanal-' . $ws)]; }
+            $knoepfe[] = $wahl;
+        }
+        $text = $haupt ? self::kanalMenueText() : $T['kanalMenue'];
         $daten = ['chat_id' => $k['id'], 'text' => $text, 'reply_markup' => ['inline_keyboard' => $knoepfe]];
 
         $alt = (int) self::einstellung('tg_kanal_menue_id', '0');
@@ -449,12 +457,15 @@ final class Telegram
         return ['ok' => true, 'text' => 'Der Menü-Beitrag steht im Kanal' . ($p['ok'] ? ' und ist oben angeheftet.' : ' — anheften bitte von Hand (' . $p['beschreibung'] . ').')];
     }
 
-    /** Der Text des Menü-Beitrags auf Italienisch und Deutsch — aus denselben Texten wie bisher, mit Fähnchen statt doppeltem Gruß. */
+    /** Die Sprachwahl unter dem Menü-Beitrag: öffnet das Vecom-Fenster in dieser Sprache. */
+    public const SPRACHWAHL = ['de' => "\u{1F1E9}\u{1F1EA} Deutsch", 'it' => "\u{1F1EE}\u{1F1F9} Italiano", 'en' => "\u{1F1EC}\u{1F1E7} English"];
+
+    /** Der Text des Menü-Beitrags: deutsch, darunter ein Satz zur Sprachwahl auf Italienisch und Englisch. */
     public static function kanalMenueText(): string
     {
         require_once __DIR__ . '/Texte.php';
-        $ohneGruss = static fn(string $t): string => trim((string) preg_replace('/^\x{1F44B}\s*/u', '', $t));
-        return "\u{1F1EE}\u{1F1F9} " . $ohneGruss(Texte::TELEGRAM['it']['kanalMenue']) . "\n\n\u{1F1E9}\u{1F1EA} " . $ohneGruss(Texte::TELEGRAM['de']['kanalMenue']);
+        return trim(Texte::TELEGRAM['de']['kanalMenue'])
+            . "\n\n\u{1F310} Italiano · English: scegli la lingua qui sotto · choose your language below.";
     }
 
     /* ------------------------------ Senden ----------------------------- */
