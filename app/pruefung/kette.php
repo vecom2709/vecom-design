@@ -13674,6 +13674,8 @@ $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', '
                 'formular.php', 'rueckruf.php', 'zahl.php', 'z.php', 'd.php', 'bezahlen.php',
                 'domain-pruefung.php', 'pakete-daten.php', 'preise-daten.php', 'stimmen-daten.php',
                 'akquise.php', 'config.local.example.php',
+                // Demo-Vorschau eines Interessenten (01.10.2026): läuft in einer Sandbox ohne Skripte — die Weiche (ein Skript) liefe dort nicht
+                'demo.php',
                 // Weiterleitung der Telegram-Mini-App, zeigt selbst nichts; die Sprache kommt aus dem Knopf
                 'telegram-app.php',
                 // Das Vecom-Fenster in Telegram (01.10.2026): eigener schlichter Rahmen in Telegram, die Sprache kommt aus dem Kanal-Knopf
@@ -17950,6 +17952,123 @@ pruefe('PC: Vorher/Nachher ohne Kie.ai und ohne Credits, Cookie-Hinweise nur aus
 foreach (array_unique(array_column($vnM, 'datei')) as $vnD) { @unlink(MkMedium::ordner() . '/' . $vnD); }
 Db::run('DELETE FROM mk_medien WHERE auftrag_id IN (?, ?)', [is_int($vnA) ? $vnA : 0, is_int($vnA2) ? $vnA2 : 0]);
 Db::run('DELETE FROM mk_inhalte WHERE kunde_id IN (?, ?)', [$vnK, $vnK2]);
+Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
+   Marketing-Studio 10: kostenlose Demo-Vorschau — nur auf Bitte des
+   Interessenten, erst nach Uwes Freigabe verschickt (01.10.2026, Uwe: „ja“ zu S1)
+   ============================================================================ */
+abschnitt('Marketing-Studio 10: Demo-Vorschau');
+require_once $wurzel . '/src/MkDemo.php';
+Db::run('DELETE FROM mk_auftraege');
+$dmNeu = static function (string $name, string $mail, string $sp, ?string $url): array {
+    $k = (int) Db::insert('customers', ['name' => $name, 'email' => $mail, 'sprache' => $sp]);
+    $f = (int) Db::insert('akq_firmen', ['kennung' => 'DM' . str_pad((string) random_int(1, 99999999), 8, '0', STR_PAD_LEFT), 'name' => $name, 'name_norm' => mb_strtolower($name),
+        'land' => $sp === 'de' ? 'DE' : 'IT', 'stadt' => 'Sciacca', 'branche' => 'ristorante', 'url' => $url, 'telefon' => '+39 0925 000111', 'customer_id' => $k]);
+    return [$k, $f];
+};
+[$dmK, $dmF] = $dmNeu('DM Trattoria Rossi', 'dm-rossi@probe.example', 'it', 'https://dm-rossi.example/');
+[$dmK0] = $dmNeu('DM Ohne Website', 'dm-ohne@probe.example', 'it', null);
+pruefe('Demo: nur für Interessenten aus dem Website-Check mit Website — ohne Website kein Angebot',
+    MkDemo::moeglich($dmK) !== null && MkDemo::moeglich($dmK0) === null && MkDemo::anfordern($dmK0, 'it') === 'nicht_moeglich' && MkDemo::fuerKunde($dmK) === null);
+$dmId = MkDemo::anfordern($dmK, 'it');
+$dmD = MkDemo::laden(is_int($dmId) ? $dmId : 0);
+$dmZu = Db::one("SELECT * FROM zustimmungen WHERE customer_id = ? AND art = 'demo' ORDER BY id DESC LIMIT 1", [$dmK]);
+$dmA = Db::one("SELECT * FROM mk_auftraege WHERE art = 'demo' ORDER BY id DESC LIMIT 1");
+pruefe('Demo: seine Bitte ist festgehalten (Wortlaut, Fassung), ein Auftrag für den PC liegt bereit, Uwe bekommt eine Meldung',
+    is_int($dmId) && $dmD['status'] === 'wartet' && strlen((string) $dmD['token']) === 32 && $dmZu && (string) $dmZu['fassung'] === MkDemo::FASSUNG
+    && str_contains((string) $dmZu['text'], 'anteprima gratuita') && $dmA && (int) (json_decode((string) $dmA['parameter'], true)['demo_id'] ?? 0) === $dmId
+    && (int) $dmD['auftrag_id'] === (int) $dmA['id'] && MkAuftrag::beschreibung($dmA) === 'Demo-Vorschau · DM Trattoria Rossi'
+    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'demo' ORDER BY id DESC LIMIT 1", [], '') === 'freigabe?land=IT#demos', json_encode([$dmId, $dmD, $dmA]));
+pruefe('Demo: eine je Interessent — die zweite Bitte geht nicht', MkDemo::anfordern($dmK, 'it') === 'nicht_moeglich' && MkDemo::moeglich($dmK) === null);
+for ($dmI = 0; $dmI < MkDemo::JE_TAG; $dmI++) { Db::insert('mk_demos', ['customer_id' => $dmK0, 'token' => bin2hex(random_bytes(16)), 'status' => 'verworfen']); }
+[$dmK2, $dmF2] = $dmNeu('DM Friseur Kamm', 'dm-kamm@probe.example', 'de', 'https://dm-kamm.example');
+pruefe('Demo: höchstens ' . MkDemo::JE_TAG . ' am Tag (schützt dein Abo)', MkDemo::anfordern($dmK2, 'de') === 'zuviel');
+Db::run("DELETE FROM mk_demos WHERE customer_id = ? AND status = 'verworfen'", [$dmK0]);
+$dmH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Demo: der PC bekommt Betrieb, Website, Ort, Telefon, Sprache und die Größengrenze — keinen Schlüssel, keine E-Mail des Interessenten',
+    ($dmH['art'] ?? '') === 'demo' && $dmH['demo_id'] === $dmId && $dmH['url'] === 'https://dm-rossi.example/' && $dmH['betrieb'] === 'DM Trattoria Rossi'
+    && $dmH['sprache'] === 'it' && $dmH['telefon'] === '+39 0925 000111' && $dmH['max_bytes'] === MkDemo::MAX_HTML
+    && !str_contains(json_encode($dmH), 'dm-rossi@probe.example') && !str_contains(json_encode($dmH), (string) $dmD['token']), json_encode($dmH));
+pruefe('Demo: Bruchstücke werden abgelehnt', (AkquiseWorker::ausfuehren('marketing_demo_melden', ['auftrag_id' => (int) $dmA['id'], 'html' => '<p>kurz</p>'])['ok'] ?? true) === false
+    && in_array('marketing_demo_melden', AkquiseWorker::AKTIONEN, true) && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb')));
+$dmHtml = '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=https://boese.example">'
+    . '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces"><link rel="stylesheet" href="https://boese.example/x.css"><base href="https://boese.example/">'
+    . '<style>body{margin:0;font-family:Fraunces}</style><script>alert(1)</script></head><body onload="alert(2)"><header><h1>Trattoria Rossi</h1></header>'
+    . '<a href="javascript:alert(3)">x</a><a href="tel:+390925000111" class="knopf">Chiamare</a><iframe src="https://boese.example"></iframe>'
+    . '<form action="https://boese.example/klau"><input name="x"></form><img src="https://dm-rossi.example/foto.jpg" onerror="alert(4)" alt="Sala">'
+    . '<section><h2>Il menù</h2><p>' . str_repeat('Pasta fresca ogni giorno. ', 30) . '</p></section></body></html>';
+$dmM = AkquiseWorker::ausfuehren('marketing_demo_melden', ['auftrag_id' => (int) $dmA['id'], 'html' => $dmHtml, 'zusammenfassung' => 'Übernommen: Name, Telefon, Menü. <b>Fotos</b> klein.',
+    'quellen' => ['https://dm-rossi.example/', 'javascript:alert(1)']]);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => (int) $dmA['id'], 'ok' => true, 'text' => 'Vorschau fertig']);
+$dmD = MkDemo::laden($dmId);
+$dmS = (string) $dmD['html'];
+pruefe('Demo: die Verwaltung bereinigt die Seite — keine Skripte, Ereignisse, javascript:, Rahmen, Formulare, Weiterleitungen, fremde Stylesheets; Inhalt und Google Fonts bleiben',
+    ($dmM['ok'] ?? false) === true && $dmD['status'] === 'fertig' && !preg_match('/<script|onload=|onerror=|javascript:|<iframe|<form|http-equiv|<base|boese\.example\/x\.css/i', $dmS)
+    && str_contains($dmS, 'Trattoria Rossi') && str_contains($dmS, 'href="tel:+390925000111"') && str_contains($dmS, 'fonts.googleapis.com/css2?family=Fraunces')
+    && str_contains($dmS, 'src="https://dm-rossi.example/foto.jpg"') && (string) $dmD['zusammenfassung'] === 'Übernommen: Name, Telefon, Menü. Fotos klein.'
+    && json_decode((string) $dmD['quellen'], true) === ['https://dm-rossi.example/'] && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [(int) $dmA['id']], '') === 'fertig', $dmS);
+pruefe('Demo: vor deiner Freigabe ist der Link tot — auch mit dem richtigen Schlüssel', MkDemo::zeigen((string) $dmD['token']) === null && MkDemo::zeigen('nix') === null);
+$dmLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Demo: eine fertige Vorschau zählt im Reiter „Freigeben“ mit', str_contains($dmLay, "SELECT COUNT(*) FROM mk_demos WHERE status = 'fertig'"));
+$dmFehler = null; set_error_handler(static function (int $n, string $m) use (&$dmFehler): bool { $dmFehler = $m; return true; });
+$land = 'IT'; $x = null; $rest = 0; $offen = ['IT' => 0, 'DE' => 0]; $zg = null; $medien = []; $bildLaeuft = 0; $geplant = []; $demos = MkDemo::liste('IT');
+ob_start(); require $wurzel . '/views/freigabe.php'; $dmV = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Freigeben: Block „Demo-Vorschauen“ mit Ansehen, Claudes Zusammenfassung, Freigeben/Nochmal (mit Hinweis)/Verwerfen — die deutsche Vorschau steht nicht im italienischen Stapel',
+    $dmFehler === null && str_contains($dmV, 'id="demos"') && str_contains($dmV, 'href="' . Fmt::h(url('demo/' . $dmId)) . '"') && str_contains($dmV, 'Claude: Übernommen: Name, Telefon')
+    && str_contains($dmV, 'value="demo_freigeben"') && str_contains($dmV, 'name="hinweis"') && str_contains($dmV, 'value="demo_verwerfen"') && count(MkDemo::liste('DE')) === 0, (string) $dmFehler);
+$dmMails = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'demo'", [], 0);
+pruefe('Demo: Freigeben → 30 Tage gültig, Mail mit Link an den Interessenten (nur jetzt, nicht vorher)',
+    $dmMails === 0 && MkDemo::freigeben($dmId) === null && MkDemo::laden($dmId)['status'] === 'freigegeben'
+    && (string) MkDemo::laden($dmId)['gueltig_bis'] === date('Y-m-d', strtotime('+30 days'))
+    && (string) Db::wert("SELECT empfaenger FROM mails WHERE anlass = 'demo' ORDER BY id DESC LIMIT 1", [], '') === 'dm-rossi@probe.example'
+    && str_contains(MkDemo::MAIL['de'][1], '{link}') && str_contains(MkDemo::adresse(MkDemo::laden($dmId)), '/demo.php?t=' . $dmD['token'])
+    && is_string(MkDemo::freigeben($dmId)), (string) Db::wert("SELECT CONCAT(status, ' ', COALESCE(fehler, '')) FROM mails WHERE anlass = 'demo' ORDER BY id DESC LIMIT 1", [], ''));
+$_GET['t'] = (string) $dmD['token'];
+ob_start(); require $oben . '/demo.php'; $dmOeff = (string) ob_get_clean();
+unset($_GET['t']);
+pruefe('demo.php: mit Schlüssel die Seite plus Band „Anteprima gratuita di Vecom Design … valida fino al …“, Aufruf gezählt',
+    str_contains($dmOeff, 'Anteprima gratuita di Vecom Design') && str_contains($dmOeff, date('d.m.Y', strtotime('+30 days'))) && str_contains($dmOeff, 'Il menù')
+    && !str_contains($dmOeff, '<script') && (int) MkDemo::laden($dmId)['aufrufe'] === 1);
+$dmSrc = (string) file_get_contents($wurzel . '/src/MkDemo.php');
+pruefe('demo.php: Sandbox ohne Skripte und Formulare, nicht fremd einbettbar, nicht in Suchmaschinen',
+    str_contains($dmSrc, "default-src 'none'") && str_contains($dmSrc, "form-action 'none'") && str_contains($dmSrc, "frame-ancestors 'self'") && str_contains($dmSrc, '; sandbox ')
+    && !str_contains($dmSrc, 'allow-scripts') && !str_contains($dmSrc, 'script-src') && str_contains($dmSrc, "header('X-Robots-Tag: noindex, nofollow')"));
+Db::run('UPDATE mk_demos SET gueltig_bis = ? WHERE id = ?', [date('Y-m-d', strtotime('-1 day')), $dmId]);
+pruefe('Demo: nach 30 Tagen ist der Link weg; verwerfen geht nach dem Verschicken nicht mehr', MkDemo::zeigen((string) $dmD['token']) === null && is_string(MkDemo::verwerfen($dmId)));
+
+/* Gescheitert, nochmal mit Hinweis, verworfen */
+$dmId2 = MkDemo::anfordern($dmK2, 'de');
+$dmA2 = (int) MkDemo::laden(is_int($dmId2) ? $dmId2 : 0)['auftrag_id'];
+AkquiseWorker::ausfuehren('marketing_auftrag_holen', []);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $dmA2, 'ok' => false, 'text' => 'Claude hat abgebrochen: Usage limit']);
+pruefe('Demo: scheitert der PC, steht die Vorschau auf „nicht geklappt“ mit Grund — und meldet sich (Stapel DE)',
+    MkDemo::laden($dmId2)['status'] === 'fehler' && str_contains((string) MkDemo::laden($dmId2)['fehler'], 'Usage limit')
+    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'demo' ORDER BY id DESC LIMIT 1", [], '') === 'freigabe?land=DE#demos');
+pruefe('Demo: „Nochmal bauen“ mit deinem Hinweis — neuer Auftrag, der Hinweis reist zu Claude',
+    MkDemo::nochmal($dmId2, 'Fotos größer, weniger Text') === null && MkDemo::laden($dmId2)['status'] === 'wartet' && (int) MkDemo::laden($dmId2)['auftrag_id'] !== $dmA2
+    && (AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag']['hinweis'] ?? '') === 'Fotos größer, weniger Text');
+pruefe('Demo: verwerfen bricht den Auftrag ab, der Interessent bekommt nichts',
+    MkDemo::verwerfen($dmId2) === null && MkDemo::laden($dmId2)['status'] === 'verworfen'
+    && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [(int) MkDemo::laden($dmId2)['auftrag_id']], '') === 'abgebrochen' && count(MkDemo::liste('DE')) === 0);
+
+/* Oberflächen und PC */
+$dmKu = (string) file_get_contents($oben . '/kunde.php');
+pruefe('Kundenbereich: Kasten „Kostenlos: So könnte Ihre neue Startseite aussehen“ nur vor Arbeitsbeginn, Wortlaut sichtbar, Knopf hinter CSRF; fertig erst nach Freigabe',
+    strpos($dmKu, "} elseif (\$tat === 'demo') {") > strpos($dmKu, "hash_equals((string) \$_SESSION['csrf']") && str_contains($dmKu, 'MkDemo::STUFEN, true)')
+    && str_contains($dmKu, 'id="vorschau"') && str_contains($dmKu, 'MkDemo::ZUSTIMMUNG[$sprache]') && str_contains($dmKu, "\$dmK['status'] === 'freigegeben'")
+    && MkDemo::t('titel', 'de') === 'Kostenlos: So könnte Ihre neue Startseite aussehen' && MkDemo::STUFEN === ['anfrage', 'vorhaben', 'angaben', 'angebot']);
+$dmIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Freigeben/Nochmal/Verwerfen hinter CSRF, Ansehen nur angemeldet (dieselbe Sandbox)',
+    strpos($dmIdx, "case 'demo_freigeben':") > strpos($dmIdx, 'Csrf::pruefen()') && strpos($dmIdx, "    case 'demo':") > strpos($dmIdx, 'Auth::nurAdmin();')
+    && str_contains($dmIdx, 'MkDemo::kopfzeilen();'));
+$dmTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/demo.ts');
+$dmMk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+pruefe('PC: Claude baut über dein Abo (nur WebSearch/WebFetch), erfindet nichts, kein JavaScript; Route im Marketing-Lauf',
+    str_contains($dmTs, 'Erfinde nichts') && str_contains($dmTs, 'KEIN JavaScript') && str_contains($dmTs, "api('marketing_demo_melden'")
+    && str_contains($dmMk, "r.auftrag?.art === 'demo') { await demoLauf(") && str_contains($dmMk, "'--tools', 'WebSearch,WebFetch'"));
+Db::run('DELETE FROM mk_demos WHERE customer_id IN (?, ?, ?)', [$dmK, $dmK0, $dmK2]);
 Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================

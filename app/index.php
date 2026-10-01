@@ -586,6 +586,25 @@ if ($post) {
                 }
                 weiter('freigabe');
 
+            /* Demo-Vorschau (Marketing-Studio 10, Uwe: „ja“ zu S1): erst nach deinem Ja geht der Link an den Interessenten. */
+            case 'demo_freigeben':
+            case 'demo_nochmal':
+            case 'demo_verwerfen':
+                require_once __DIR__ . '/src/MkDemo.php';
+                $dmId = (int) ($_POST['id'] ?? 0);
+                $dmD = MkDemo::laden($dmId);
+                $f = match ($tat) {
+                    'demo_freigeben' => MkDemo::freigeben($dmId),
+                    'demo_nochmal'   => MkDemo::nochmal($dmId, (string) ($_POST['hinweis'] ?? '')),
+                    default          => MkDemo::verwerfen($dmId),
+                };
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? match ($tat) {
+                    'demo_freigeben' => 'Freigegeben — der Link ist per Mail an den Interessenten unterwegs und steht in seinem Bereich (30 Tage gültig).',
+                    'demo_nochmal'   => 'Dein PC baut die Vorschau neu' . (trim((string) ($_POST['hinweis'] ?? '')) !== '' ? ' — mit deinem Hinweis' : '') . '.',
+                    default          => 'Verworfen. Der Interessent bekommt nichts.',
+                };
+                weiter(MkDemo::freigabeLink((string) ($dmD['sprache'] ?? 'it')));
+
             /* Wochen-Autopilot (Marketing-Studio 7, Uwe: „ja“ zu U4) — je Land, ab Werk aus. */
             case 'autopilot_speichern':
                 require_once __DIR__ . '/src/MkAutopilot.php';
@@ -4713,6 +4732,7 @@ switch ($route) {
         $msLand = MkLand::wahl();
         $msX = MkInhalt::naechster($msLand, (array) ($_SESSION['mk_spaeter'] ?? []));
         ansicht('freigabe', ['land' => $msLand, 'x' => $msX, 'offen' => MkLand::offen(),
+            'demos' => sicher(static function () use ($msLand): array { require_once __DIR__ . '/src/MkDemo.php'; return MkDemo::liste($msLand); }, []),   // Marketing-Studio 10
             'rest' => (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf' AND land = ?", [$msLand], 0),
             'zg' => $msX && $msX['zielgruppe_id'] ? MkZielgruppe::laden((int) $msX['zielgruppe_id']) : null,
             'medien' => $msX ? sicher(static fn() => MkMedium::zuInhalt((int) $msX['id']), []) : [],
@@ -4724,6 +4744,14 @@ switch ($route) {
                         'telegram' => (int) sicher(static fn() => Db::wert('SELECT COUNT(*) FROM telegram_chats WHERE admin_verbunden IS NOT NULL', [], 0), 0) > 0];
             })()]);
         break;
+
+    case 'demo':      // Demo-Vorschau ansehen, bevor du freigibst (Marketing-Studio 10) — dieselbe Sandbox wie öffentlich
+        require_once __DIR__ . '/src/MkDemo.php';
+        $dm = $id !== null ? MkDemo::laden($id) : null;
+        if ($dm === null || trim((string) $dm['html']) === '') { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+        MkDemo::kopfzeilen();
+        echo MkDemo::seite($dm, true);
+        exit;
 
     case 'medien':    // Bilder und Videos (Schritt 3): nur angemeldet, nur über PHP
         require_once __DIR__ . '/src/MkMedium.php';

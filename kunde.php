@@ -260,6 +260,15 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 $kunde['referenz_am'] = ($_POST['wert'] ?? '') === 'ja' ? date('Y-m-d H:i:s') : null;
                 $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke!');
 
+            } elseif ($tat === 'demo') {
+                /* Demo-Vorschau (Marketing-Studio 10, 01.10.2026): nur auf seine eigene Bitte, nur vor Arbeitsbeginn. */
+                require_once __DIR__ . '/app/src/MkDemo.php';
+                if (in_array((string) ($seite['stufe'] ?? 'anfrage'), MkDemo::STUFEN, true)) {
+                    $dmE = MkDemo::anfordern((int) $kunde['id'], $sprache);
+                    if (is_int($dmE)) { $meldung = MkDemo::t('danke', $sprache); }
+                    elseif ($dmE === 'zuviel') { $fehler[] = Texte::h(Texte::SEITE['panne'] ?? [], $sprache, 'Bitte morgen noch einmal versuchen.'); }
+                }
+
             } elseif ($tat === 'am_telefon') {
                 /* Kein Formular, kein Umleiten: Die Seite meldet im
                    Hintergrund, dass dieser Kunde gerade das Sprachfenster
@@ -647,6 +656,32 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php if ($akqKarte['analyse']): ?><a class="knopf" href="<?= $h($akqKarte['analyse']) ?>" target="_blank" rel="noopener"><?= $h($akqW['ganz']) ?></a><?php endif; ?>
   </div>
   <?php endif; ?>
+
+  <?php /* ---------- Kostenlose Demo-Vorschau (Marketing-Studio 10, 01.10.2026) ----------
+           Nur für Interessenten aus dem Website-Check (Betrieb mit Website), nur
+           vor Arbeitsbeginn, nur auf seinen Klick. Fertig wird sie erst nach Uwes
+           Freigabe gezeigt. */
+    if ($kunde && $akqKarte && in_array($stufe, ['anfrage', 'vorhaben', 'angaben', 'angebot'], true)):
+      require_once __DIR__ . '/app/src/MkDemo.php';
+      $dmK = MkDemo::fuerKunde((int) $kunde['id']);
+      $dmMoeglich = $dmK === null ? MkDemo::moeglich((int) $kunde['id']) : null;
+      $dmGueltig = $dmK && $dmK['status'] === 'freigegeben' && (string) $dmK['gueltig_bis'] >= date('Y-m-d');
+      if ($dmMoeglich || ($dmK && in_array($dmK['status'], ['wartet', 'fertig', 'fehler'], true)) || $dmGueltig): ?>
+  <div class="block" id="vorschau">
+    <h2><?= $h(MkDemo::t('titel', $sprache)) ?></h2>
+    <?php if ($dmGueltig): ?>
+      <p class="klein" style="margin-top:0"><?= $h(strtr(MkDemo::t('fertig', $sprache), ['{datum}' => Fmt::datum((string) $dmK['gueltig_bis'])])) ?></p>
+      <a class="knopf haupt" href="<?= $h(MkDemo::adresse($dmK)) ?>" target="_blank" rel="noopener"><?= $h(MkDemo::t('ansehen', $sprache)) ?></a>
+    <?php elseif ($dmK): ?>
+      <p class="klein" style="margin-top:0"><?= $h(MkDemo::t('wartet', $sprache)) ?></p>
+    <?php else: ?>
+      <p class="klein" style="margin-top:0"><?= $h(MkDemo::t('text', $sprache)) ?></p>
+      <p class="mini" style="margin:8px 0 0;line-height:1.5;opacity:.85"><?= $h(MkDemo::ZUSTIMMUNG[$sprache] ?? MkDemo::ZUSTIMMUNG['it']) ?></p>
+      <form method="post" action="<?= $h($hier) ?>#vorschau" style="margin-top:10px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="demo">
+        <button class="knopf haupt"><?= $h(MkDemo::t('knopf', $sprache)) ?></button></form>
+    <?php endif; ?>
+  </div>
+  <?php endif; endif; ?>
 
   <?php /* ---------- Wo er steht ---------- */ ?>
   <?php

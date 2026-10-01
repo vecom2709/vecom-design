@@ -8,7 +8,7 @@
  * Sendeplatz legen), Nein (verwerfen) oder Später. Tasten J, N, S.
  *
  * Erwartet: $land, $x (nächster Entwurf oder null), $rest, $offen, $zg, $medien, $bildLaeuft, $geplant,
- *           $autopilot (Marketing-Studio 7: e, naechster, zg, telegram).
+ *           $autopilot (Marketing-Studio 7: e, naechster, zg, telegram), $demos (Marketing-Studio 10).
  */
 require_once dirname(__DIR__) . '/src/MkLand.php';
 require_once dirname(__DIR__) . '/src/MkVeroeffentlichen.php';
@@ -34,6 +34,42 @@ require __DIR__ . '/mk_stil.php';
 </div>
 
 <?php $mkLand = $land; $mkLandSeite = 'freigabe'; $mkLandOffen = $offen; require __DIR__ . '/mk_land.php'; ?>
+
+<?php $demos = $demos ?? []; if ($demos): require_once dirname(__DIR__) . '/src/MkDemo.php';   /* Marketing-Studio 10: Demo-Vorschauen */
+  $dmForm = static fn(string $tat, int $id, string $wort, string $klasse, string $mehr = ''): string => '<form method="post" action="' . Fmt::h(url('freigabe')) . '" style="margin:0;display:flex;gap:6px;flex-wrap:wrap">'
+      . '<input type="hidden" name="_csrf" value="' . Fmt::h(Csrf::token()) . '"><input type="hidden" name="tat" value="' . $tat . '"><input type="hidden" name="id" value="' . $id . '">' . $mehr
+      . '<button class="' . $klasse . '">' . Fmt::h($wort) . '</button></form>'; ?>
+<section class="block" id="demos" aria-labelledby="mk-demo-titel" style="margin-bottom:16px">
+  <h2 id="mk-demo-titel">Demo-Vorschauen <span class="mehr">vom Interessenten selbst angefragt · erst dein Ja schickt ihm den Link (<?= MkDemo::GUELTIG_TAGE ?> Tage gültig)</span></h2>
+  <ul class="mk-zeilen">
+    <?php foreach ($demos as $dm):
+      $dmHaengt = $dm['status'] === 'wartet' && !in_array((string) ($dm['auftrag_status'] ?? ''), ['wartet', 'laeuft'], true);
+      $dmHost = (string) (parse_url((string) $dm['url'], PHP_URL_HOST) ?: $dm['url']); ?>
+      <li style="display:block">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+          <span><b><?= Fmt::h((string) ($dm['firma'] ?: 'Interessent')) ?></b> <span class="mk-fein">· <?= Fmt::h(trim((string) $dm['stadt'] . ' · ' . $dmHost, ' ·')) ?> · <?= Fmt::h($dmHaengt ? 'hängt' : (MkDemo::STATUS[$dm['status']] ?? $dm['status'])) ?></span></span>
+          <?php if (in_array($dm['status'], ['fertig', 'freigegeben'], true)): ?><a class="knopf klein<?= $dm['status'] === 'fertig' ? ' haupt' : '' ?>" href="<?= Fmt::h(url('demo/' . (int) $dm['id'])) ?>" target="_blank" rel="noopener">Ansehen</a><?php endif; ?>
+        </div>
+        <?php if ($dm['status'] === 'fertig'): ?>
+          <?php if (trim((string) $dm['zusammenfassung']) !== ''): ?><p class="mk-fein" style="margin:6px 0 8px;max-width:80ch;line-height:1.55">Claude: <?= Fmt::h((string) $dm['zusammenfassung']) ?></p><?php endif; ?>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+            <?= $dmForm('demo_freigeben', (int) $dm['id'], 'Freigeben und Link schicken', 'knopf klein haupt') ?>
+            <?= $dmForm('demo_nochmal', (int) $dm['id'], 'Nochmal bauen', 'knopf klein', '<input type="text" name="hinweis" maxlength="600" placeholder="Hinweis für Claude, z. B. „Fotos größer, weniger Text“" style="width:min(360px,100%)" aria-label="Hinweis für Claude">') ?>
+            <?= $dmForm('demo_verwerfen', (int) $dm['id'], 'Verwerfen', 'knopf klein') ?>
+          </div>
+        <?php elseif ($dm['status'] === 'fehler' || $dmHaengt): ?>
+          <p class="mk-fein" style="margin:6px 0 8px">Nicht geklappt: <?= Fmt::h((string) ($dm['fehler'] ?: ($dm['auftrag_ergebnis'] ?? '') ?: 'keine Rückmeldung vom PC')) ?></p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap"><?= $dmForm('demo_nochmal', (int) $dm['id'], 'Nochmal bauen', 'knopf klein haupt') ?><?= $dmForm('demo_verwerfen', (int) $dm['id'], 'Verwerfen', 'knopf klein') ?></div>
+        <?php elseif ($dm['status'] === 'wartet'): ?>
+          <p class="mk-fein" style="margin:6px 0 0">Dein PC baut sie gerade (Claude über dein Abo, meist 5–15 Minuten)<?= trim((string) $dm['hinweis']) !== '' ? ' — mit deinem Hinweis' : '' ?>.</p>
+        <?php else: ?>
+          <p class="mk-fein" style="margin:6px 0 0">Verschickt · gültig bis <?= Fmt::h(date('d.m.Y', strtotime((string) $dm['gueltig_bis']))) ?> · <?= (int) $dm['aufrufe'] ?>× angesehen</p>
+        <?php endif; ?>
+      </li>
+    <?php endforeach; ?>
+  </ul>
+</section>
+<?php endif; ?>
 
 <?php if ($x === null): ?>
   <div class="block">

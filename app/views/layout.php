@@ -37,7 +37,8 @@ $navZahlen['stimmen'] = (int) sicher(static function (): int {
 /* Marketing-Studio (01.10.2026): Entwürfe, die auf Uwes Freigabe warten, sind eine Handlung. */
 $navZahlen['zielgruppen'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_zielgruppen WHERE status = 'entwurf'", [], 0), 0);
 /* Marketing-Studio 6: Entwürfe zählen am Reiter „Freigeben“ — dort geht man sie mit Ja/Nein durch. */
-$navZahlen['freigabe'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf'", [], 0), 0);
+$navZahlen['freigabe'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf'", [], 0), 0)
+                        + (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_demos WHERE status = 'fertig'", [], 0), 0);   // Demo-Vorschauen (Marketing-Studio 10)
 /* Verzeichnisse (T5, 01.10.2026): nur Einträge, die seit einer Woche liegen — offen oder eingereicht und nicht nachgesehen. */
 $navZahlen['verzeichnisse'] = (int) sicher(static function (): int {
     require_once dirname(__DIR__) . '/src/Verzeichnisse.php';

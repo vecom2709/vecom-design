@@ -45,6 +45,11 @@ final class MkAuftrag
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             return 'Deutsche Fassung · ' . (int) ($p['profile'] ?? 0) . ' Zielgruppen, ' . (int) ($p['inhalte'] ?? 0) . ' Inhalte auf Italienisch';
         }
+        if (($a['art'] ?? 'recherche') === 'demo') {   // Marketing-Studio 10
+            $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            $f = self::still(static fn() => (string) Db::wert('SELECT f.name FROM mk_demos d JOIN akq_firmen f ON f.id = d.akq_firma_id WHERE d.id = ?', [(int) ($p['demo_id'] ?? 0)], ''), '');
+            return 'Demo-Vorschau · ' . ($f !== '' ? $f : 'Interessent');
+        }
         if (($a['art'] ?? 'recherche') === 'medien') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             require_once __DIR__ . '/MkMedium.php';
@@ -215,6 +220,13 @@ final class MkAuftrag
             if (($a['art'] ?? 'recherche') === 'uebersetzen') {
                 return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()];
             }
+            if (($a['art'] ?? 'recherche') === 'demo') {
+                /* Marketing-Studio 10: Demo-Vorschau — Claude baut eine Startseite aus der bisherigen Website. */
+                require_once __DIR__ . '/MkDemo.php';
+                $dm = MkDemo::fuerPc($a);
+                if ($dm === null) { Db::update('mk_auftraege', (int) $a['id'], ['status' => 'abgebrochen', 'ergebnis' => 'Vorschau nicht mehr da.']); continue; }
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'demo', 'beschreibung' => self::beschreibung($a)] + $dm];
+            }
             if (($a['art'] ?? 'recherche') === 'medien') {
                 require_once __DIR__ . '/MkMedium.php';
                 $p = json_decode((string) $a['parameter'], true) ?: [];
@@ -297,6 +309,12 @@ final class MkAuftrag
         if (($a['art'] ?? '') === 'uebersetzen') {
             if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'zielgruppen' => $zg, 'inhalte' => $in, 'fertig_am' => date('Y-m-d H:i:s')]);
+            return ['ok' => true];
+        }
+        if (($a['art'] ?? '') === 'demo') {   // Marketing-Studio 10: die Seite selbst kommt über marketing_demo_melden
+            if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
+            Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'fertig_am' => date('Y-m-d H:i:s')]);
+            if (!$ok) { require_once __DIR__ . '/MkDemo.php'; self::still(static fn() => MkDemo::gescheitert($a, $text), null); }
             return ['ok' => true];
         }
         if (($a['art'] ?? '') === 'medien') {

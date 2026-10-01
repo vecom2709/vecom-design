@@ -22,6 +22,7 @@ import { datenOrdner } from '../konfig.js';
 import { log } from '../log.js';
 import { medienLauf, type MedienAuftrag } from './kie.js';
 import { vnLauf, type VnDaten } from './vorhernachher.js';
+import { demoLauf, type DemoAuftrag } from './demo.js';
 
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
@@ -400,6 +401,8 @@ export async function marketingLauf(): Promise<boolean> {
   if (r.auftrag?.art === 'medien' && r.auftrag.vn) { await vnLauf(r.auftrag as MedienAuftrag & { vn: VnDaten }); return true; }
   if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
   if (r.auftrag?.art === 'uebersetzen') { await uebersetzenLauf(r.auftrag as UebersetzenAuftrag); return true; }
+  /* Marketing-Studio 10: Demo-Vorschau — Claude baut eine Startseite, Uwe gibt frei. */
+  if (r.auftrag?.art === 'demo') { await demoLauf(r.auftrag as DemoAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude recherchiert`);
