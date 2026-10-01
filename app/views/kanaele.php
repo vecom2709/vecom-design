@@ -136,6 +136,7 @@ $pfAntrag = [
 <div class="block" id="meta">
   <h2>Facebook-Seite und Instagram verbinden <span class="mehr">einmal, etwa 15 Minuten — dieselbe Meta-App wie bei WhatsApp</span></h2>
   <details<?= $stand['facebook']['bereit'] ? '' : ' open' ?>><summary style="cursor:pointer">So geht es Schritt für Schritt — ein Schlüssel für Facebook, Instagram und WhatsApp</summary>
+    <p style="margin:0 0 6px;max-width:80ch">Schon eingerichtet (01.10.2026): Business-Portfolio <b>„Vecom Design Sicilia“</b> mit der Seite, App <b>„Vecom Design Marketing“</b> (Seiten, Instagram, WhatsApp, Leads) und Systemnutzer <b>„Vecom Verwaltung“</b> mit Seite und App. Offen sind nur noch Instagram, WhatsApp-Nummer und der Schlüssel (Schritt 1, 4 und 5).</p>
     <ol style="line-height:1.7;max-width:80ch">
       <li><b>Instagram</b> (falls noch nicht da): in der Instagram-App ein Konto anlegen, unter Einstellungen auf <b>Professionelles Konto</b> umstellen und auf der Facebook-Seite unter Einstellungen › Verknüpfte Konten mit der Seite verbinden.</li>
       <li>Auf <b>business.facebook.com</b> ein Business-Portfolio <b>„Vecom Design“</b> anlegen und dort unter Konten die <b>Seite</b>, das <b>Instagram-Konto</b> und (für WhatsApp) ein <b>WhatsApp-Konto</b> hinzufügen.</li>
