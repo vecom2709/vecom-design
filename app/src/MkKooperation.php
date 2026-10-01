@@ -75,6 +75,20 @@ final class MkKooperation
         return $basis . '/partner.php?lang=' . ($land === 'DE' ? 'de' : 'it') . '&fuer=' . (isset(self::GRUPPEN[$gruppe]) ? $gruppe : 'steuerberater');
     }
 
+    /**
+     * Wo man Menschen dieser Gruppe in der Gegend findet — eine Suche in
+     * Google Maps (01.10.2026, Uwe: „die entsprechenden Seiten öffnen, um
+     * dort zu interagieren“). Italien: rund um Agrigent; Deutschland ohne Ort,
+     * Maps nimmt dann den eigenen Standort. Nur ein Link — hingehen bzw.
+     * anrufen bei bestehendem Kontakt, wie in ANSPRACHE.
+     */
+    public static function suche(string $gruppe, string $land): string
+    {
+        $g = self::GRUPPEN[$gruppe] ?? self::GRUPPEN['steuerberater'];
+        $was = $land === 'IT' ? $g[1] . ' Agrigento' : $g[0];
+        return 'https://www.google.com/maps/search/' . rawurlencode($was);
+    }
+
     /** Der Satz oben auf der Partnerseite für diese Gruppe (oder leer). */
     public static function satz(string $gruppe, string $sprache): string
     {

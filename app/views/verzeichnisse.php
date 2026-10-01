@@ -20,6 +20,7 @@ $summe = ['besuche' => 0, 'leads' => 0, 'kunden' => 0, 'beitritte' => 0, 'fenste
 foreach ($liste as $e) { foreach ($summe as $k => $_) { $summe[$k] += (int) ($e['zahl'][$k] ?? 0); } }
 $firma = Verzeichnisse::firmendaten();
 $kanal = Telegram::kanal();
+$kanalName = preg_match('~t\.me/([A-Za-z0-9_]{4,64})~', (string) ($kanal['link'] ?? ''), $kanalM) ? $kanalM[1] : '';
 $stMarke = static function (array $e): string {
     $klasse = match ((string) $e['status']) { 'online' => ' gut', 'abgelehnt' => ' schlecht', default => $e['faellig'] ? ' warnung' : '' };
     $wort = Verzeichnisse::STATUS[(string) $e['status']] ?? (string) $e['status'];
@@ -48,6 +49,9 @@ require __DIR__ . '/mk_stil.php';
   .vz-eintrag > summary::before{content:"▸";color:var(--leise);font-size:12px;width:10px}
   .vz-eintrag[open] > summary::before{content:"▾"}
   .vz-name{font-weight:600}
+  .vz-auf{font-size:12.5px;color:var(--gold,#d9b46a);text-decoration:none;white-space:nowrap}
+  .vz-auf:hover{text-decoration:underline}
+  .vz-tun{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
   .vz-klein{font-size:12.5px;color:var(--leise)}
   .vz-wirkung{font-size:12.5px;color:var(--dim);margin-left:auto}
   .vz-eintrag.ruhig > summary .vz-name{color:var(--dim);font-weight:500}
@@ -165,6 +169,7 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
           <p><?= Fmt::h($gWarum) ?></p>
           <label class="leise" for="<?= $gId ?>-l" style="margin:0">Partnerseite für diese Gruppe</label>
           <div class="mk-link"><input id="<?= $gId ?>-l" readonly value="<?= Fmt::h(MkKooperation::link($gk, $vzLand)) ?>"><button class="knopf" type="button" data-kopieren="<?= $gId ?>-l">Kopieren</button></div>
+          <div class="vz-tun"><a class="knopf klein" href="<?= Fmt::h(MkKooperation::suche($gk, $vzLand)) ?>" target="_blank" rel="noopener noreferrer">In der Gegend finden ↗</a><a class="knopf klein" href="<?= Fmt::h(MkKooperation::link($gk, $vzLand)) ?>" target="_blank" rel="noopener">Partnerseite ansehen ↗</a></div>
           <details><summary class="mk-fein" style="cursor:pointer">Gesprächsleitfaden<?= $vzLand === 'IT' ? ' (italienisch)' : '' ?></summary>
             <textarea id="<?= $gId ?>-t" readonly rows="7"><?= Fmt::h(MkKooperation::leitfaden($gk, $vzLand)) ?></textarea>
             <button class="knopf klein" type="button" data-kopieren="<?= $gId ?>-t">Kopieren</button></details>
@@ -235,6 +240,13 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
 <?php foreach (Verzeichnisse::ARTEN as $art => [$titel, $satz]): $l = $jeArt[$art]; ?>
 <section class="block" id="art-<?= Fmt::h($art) ?>">
   <h2><?= Fmt::h($titel) ?> <span class="mehr"><?= Fmt::h($satz) ?></span></h2>
+  <?php if ($art === 'kanal'): ?>
+    <p class="vz-tun" style="margin:0 0 8px">
+      <a class="knopf klein" href="https://www.google.com/search?q=<?= rawurlencode('site:t.me (Agrigento OR Sicilia OR Sciacca OR Licata OR Favara)') ?>" target="_blank" rel="noopener noreferrer">Kanäle und Gruppen um Agrigent suchen ↗</a>
+      <?php if ($kanalName !== ''): ?><a class="knopf klein" href="https://web.telegram.org/k/#@<?= Fmt::h($kanalName) ?>" target="_blank" rel="noopener noreferrer">Eigenen Kanal in Telegram Web ↗</a><?php endif; ?>
+    </p>
+    <p class="mk-fein" style="margin:0 0 10px">Gefunden? Beschreibung und angeheftete Regeln lesen — nur wenn Kooperationen oder Geschäftsbeiträge ausdrücklich erlaubt sind, unten aufnehmen und den Admin persönlich anschreiben.</p>
+  <?php endif; ?>
   <?php if (!$l): ?>
     <p class="leise" style="margin:0"><?= $art === 'kanal'
       ? 'Noch keine. Am 01.10.2026 nachgesehen: Keiner der lokalen Kanäle und Gruppen um Agrigent erlaubt in Beschreibung oder Regeln ausdrücklich Geschäftsbeiträge oder Kooperationen. Findest du einen, der es tut, nimm ihn unten auf.'
@@ -248,6 +260,9 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
       <span class="vz-klein"><?= Fmt::h(implode(' · ', array_filter([(string) $e['kosten'], (string) $e['konto'],
         $e['captcha'] === null ? '' : ((int) $e['captcha'] === 1 ? 'mit Captcha' : 'ohne Captcha'), Verzeichnisse::SPRACHEN[(string) $e['sprache']] ?? '']))) ?></span>
       <?php if (!(int) $e['kostenlos']): ?><span class="marke2 warnung">kostet</span><?php endif; ?>
+      <?php $vzTg = $art === 'kanal' && preg_match('~^https://t\.me/([A-Za-z0-9_]{4,64})/?$~', (string) $e['url'], $vzM) ? $vzM[1] : ''; ?>
+      <a class="vz-auf" href="<?= Fmt::h($e['status'] === 'online' && !empty($e['eintrag_url']) ? (string) $e['eintrag_url'] : (string) $e['url']) ?>" target="_blank" rel="noopener noreferrer"><?= $art === 'kanal' ? 'Kanal öffnen' : ($e['status'] === 'online' && !empty($e['eintrag_url']) ? 'Eintrag ansehen' : 'Öffnen') ?> ↗</a>
+      <?php if ($vzTg !== ''): ?><a class="vz-auf" href="https://web.telegram.org/k/#@<?= Fmt::h($vzTg) ?>" target="_blank" rel="noopener noreferrer">Telegram Web ↗</a><?php endif; ?>
       <?php if (Verzeichnisse::ohneKonto($e) && in_array($e['status'], ['offen'], true)): ?><span class="marke2">ohne Konto und Captcha</span><?php endif; ?>
       <?php if ($z !== null): ?><span class="vz-wirkung"><?= Fmt::h($mal($z['besuche'], 'Besuch', 'Besuche') . ' · ' . $mal($z['fenster'], 'Fenster', 'Fenster') . ' · ' . $mal($z['beitritte'], 'Beitritt', 'Beitritte')) ?> · <b><?= Fmt::h($mal($z['leads'], 'Lead', 'Leads')) ?></b><?= $z['kunden'] > 0 ? ' · ' . Fmt::h($mal($z['kunden'], 'Kunde', 'Kunden')) : '' ?></span><?php endif; ?>
     </summary>

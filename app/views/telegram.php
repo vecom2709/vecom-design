@@ -53,6 +53,35 @@ require __DIR__ . '/mk_stil.php';
   </nav>
 </div>
 
+<?php
+/* Direkt in Telegram (01.10.2026, Uwe: „unter Telegram … die entsprechenden Seiten öffnen, um dort zu
+   interagieren“). Telegram Web lässt sich nicht in die Verwaltung einbetten (es verbietet Rahmen) —
+   deshalb ein eigener Tab. Das Vecom-Fenster (Mini-App) fehlt hier mit Absicht: jedes Öffnen zählt
+   als „Mini-App geöffnet“ und würde die Zahlen oben verfälschen. */
+$tgKanal = Telegram::kanal();
+$tgKanalName = preg_match('~t\.me/([A-Za-z0-9_]{4,64})~', (string) ($tgKanal['link'] ?? ''), $tgM) ? $tgM[1] : '';
+$tgBotName = (string) Telegram::einstellung('tg_name');
+?>
+<div class="block" id="direkt">
+  <h2>Direkt in Telegram <span class="mehr">öffnet einen neuen Tab — dort posten, antworten, Kanal bearbeiten</span></h2>
+  <?php if ($tgKanalName === '' && $tgBotName === ''): ?>
+    <p class="leise" style="margin:0">Erst Bot und Kanal verbinden: <a href="<?= Fmt::h(url('einstellungen') . '?b=telegram') ?>">Einstellungen → Telegram</a>.</p>
+  <?php else: ?>
+  <div style="display:flex;flex-wrap:wrap;gap:8px">
+    <?php if ($tgKanalName !== ''): ?>
+      <a class="knopf" href="https://web.telegram.org/k/#@<?= Fmt::h($tgKanalName) ?>" target="_blank" rel="noopener noreferrer">Kanal in Telegram Web ↗</a>
+      <a class="knopf" href="https://t.me/<?= Fmt::h($tgKanalName) ?>" target="_blank" rel="noopener noreferrer">Kanal in der Telegram-App ↗</a>
+    <?php endif; ?>
+    <?php if ($tgBotName !== ''): ?>
+      <a class="knopf" href="https://web.telegram.org/k/#@<?= Fmt::h($tgBotName) ?>" target="_blank" rel="noopener noreferrer">Bot-Chat (Verwaltung) ↗</a>
+    <?php endif; ?>
+    <a class="knopf" href="https://www.google.com/search?q=<?= rawurlencode('site:t.me (Agrigento OR Sicilia OR Sciacca OR Licata OR Favara)') ?>" target="_blank" rel="noopener noreferrer">Kanäle um Agrigent finden ↗</a>
+    <a class="knopf" href="<?= Fmt::h(url('verzeichnisse')) ?>#partner-gewinnen">Kooperation &amp; Partner</a>
+  </div>
+  <p class="mk-fein" style="margin:8px 0 0">Beitrag oder Kanal-Menü aus der Verwaltung: <a href="<?= Fmt::h(url('einstellungen') . '?b=telegram') ?>">Einstellungen → Telegram</a>. Kanäle anderer nur anschreiben, wenn sie Kooperationen ausdrücklich anbieten — einzeln, nie als Serie.</p>
+  <?php endif; ?>
+</div>
+
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('telegram')) ?>">
   <nav class="mk-chips" aria-label="Zeitraum">
     <?php foreach (MkKennzahlen::ZEITRAEUME as $zs => $zw): if ((string) $zs === 'frei') { continue; } ?>

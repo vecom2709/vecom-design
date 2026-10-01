@@ -18888,6 +18888,18 @@ pruefe('T5: Reiter „Verzeichnisse“ rendert ohne Warnung — Gruppen, Vorher-
     && str_contains($vzHtml, 'Nicht eintragen') && str_contains($vzHtml, 'ohne Konto und Captcha'), (string) $kaFehler);
 pruefe('T5: Im Telegram-Dashboard steht der beste Eintrag statt „noch nicht messbar“',
     str_contains($vzTgHtml, 'Bester Eintrag') && str_contains($vzTgHtml, 'MisterImprese') && !str_contains($vzTgHtml, 'Beste Telegram-Gruppe'));
+/* Seiten öffnen, um dort zu handeln (01.10.2026, Uwe: „unter Telegram und Kooperation die entsprechenden Seiten öffnen“) */
+pruefe('Direkt öffnen: Telegram-Reiter — Kanal in Telegram Web und in der App, Bot-Chat, Suche nach Kanälen um Agrigent; das Vecom-Fenster nicht (würde mitzählen)',
+    str_contains($vzTgHtml, 'href="https://web.telegram.org/k/#@vecomdesign" target="_blank" rel="noopener noreferrer"') && str_contains($vzTgHtml, 'href="https://t.me/vecomdesign"')
+    && str_contains($vzTgHtml, 'https://web.telegram.org/k/#@vecom_pruef_bot') && str_contains($vzTgHtml, 'site%3At.me%20%28Agrigento')
+    && !preg_match('~id="direkt".*startapp=~s', $vzTgHtml));
+pruefe('Direkt öffnen: Partner in der Gegend finden (Google Maps) und die eigene Partnerseite der Gruppe',
+    MkKooperation::suche('steuerberater', 'IT') === 'https://www.google.com/maps/search/Commercialisti%20Agrigento'
+    && MkKooperation::suche('fotograf', 'DE') === 'https://www.google.com/maps/search/Fotografen'
+    && str_contains($vzHtml, 'In der Gegend finden ↗') && str_contains($vzHtml, 'Partnerseite ansehen ↗'));
+pruefe('Direkt öffnen: jede Stelle öffnet sich aus der Zeile heraus, ein Kanal auch in Telegram Web; Suche nach Kanälen über der Kooperationsliste',
+    str_contains($vzHtml, 'href="https://web.telegram.org/k/#@agrigentoeventi"') && str_contains($vzHtml, 'class="vz-auf" href="https://www.cylex-italia.it/register-company"')
+    && str_contains($vzHtml, 'Kanäle und Gruppen um Agrigent suchen ↗'));
 $vzIdx = (string) file_get_contents($wurzel . '/index.php');
 $vzLay = (string) file_get_contents($wurzel . '/views/layout.php');
 pruefe('T5: Reiter unter Marketing mit Hilfesatz und Zahl im Menü, Aktionen hinter Anmeldung und CSRF, täglicher Zuruf im Cron',
