@@ -412,7 +412,16 @@ final class Cron
                 // Mitgliederstand des Kanals festhalten, alte Tageszahlen weg.
                 $nach = Telegram::webhookNachziehen();
                 return TelegramBot::aufraeumen() + ['webhook' => $nach['text'], 'kanal_mitglieder' => TelegramWachstum::kanalStand(),
-                    'tageszahlen_geloescht' => TelegramWachstum::aufraeumen()];
+                    'tageszahlen_geloescht' => TelegramWachstum::aufraeumen(),
+                    // Kanal-Links je Ort (01.10.2026): fehlende Einladungslinks nachlegen.
+                    'kanal_links' => count(array_filter(TelegramWachstum::kanalLinksSicherstellen(), static fn($o) => $o['ok']))];
+            };
+        }
+        // Wochenbericht Telegram (01.10.2026, Uwe: „Alles“ — Vorschlag 8): montags einmal an Uwes Telegram.
+        if ((int) date('N') === 1 && self::heuteNochNicht('cron_tg_woche')) {
+            $aufgaben['telegram_woche'] = static function () {
+                require_once __DIR__ . '/TelegramWachstum.php';
+                return ['gemeldet' => TelegramWachstum::wochenberichtSenden()];
             };
         }
         // Verzeichnisse (T5, 01.10.2026): Einträge, die seit einer Woche liegen — ein Zuruf je Woche.

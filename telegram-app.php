@@ -34,6 +34,17 @@ header('Referrer-Policy: no-referrer');
 
 $param = strtolower((string) ($_GET['tgWebAppStartParam'] ?? $_GET['s'] ?? ''));
 $start = TelegramApp::lesen($param, strtolower((string) ($_GET['lang'] ?? '')));
+/* SPRACHE DES NUTZERS (01.10.2026, Uwe: „Alles“ — Kanal zweisprachig): Trägt der Start keine
+   Sprache (die Kanal-Knöpfe seitdem nicht mehr, Kampagnen- und Partner-Links nie), nimmt der
+   Server die Sprache aus Keks und Browser — in Telegram ist das die Sprache des Geräts.
+   Die Startdaten von Telegram (mit Name und Kennung) bleiben weiter ungelesen:
+   Für eine Sprache ist das zu viel. */
+$festeSprache = in_array(strtolower((string) ($_GET['lang'] ?? '')), ['it', 'de', 'en'], true) || preg_match('/(?:^|-)(?:it|de|en)(?:-|$)/', $param) === 1;
+if (!$festeSprache) {
+    require_once __DIR__ . '/app/src/Sprache.php';
+    $geraten = Sprache::ausAnfrage();
+    if (in_array($geraten, ['it', 'de', 'en'], true)) { $start['sprache'] = $geraten; }
+}
 // Aus dem Vecom-Fenster: der Rechner mit eigenem Einstieg, die Quelle bleibt die des Starts.
 if (isset($_GET['e']) && in_array((string) $_GET['e'], TelegramApp::EINSTIEGE, true)) { $start['einstieg'] = (string) $_GET['e']; $start['rechner'] = true; }
 $q = static fn(array $p): string => http_build_query($p, '', '&', PHP_QUERY_RFC3986);

@@ -395,22 +395,28 @@ final class Telegram
      *
      * @return array{ok:bool, text:string}
      */
-    public static function kanalMenue(string $sp = 'de'): array
+    public static function kanalMenue(string $sp = 'auto'): array
     {
         require_once __DIR__ . '/Texte.php';
         $k = self::kanal();
         if ($k['id'] === '') { return ['ok' => false, 'text' => 'Es ist noch kein Kanal hinterlegt.']; }
         if (self::einstellung('tg_name') === '') { return ['ok' => false, 'text' => 'Der Bot ist nicht eingerichtet.']; }
-        $T = Texte::TELEGRAM[$sp] ?? Texte::TELEGRAM['de'];
+        /* ZWEISPRACHIG (01.10.2026, Uwe: „Alles“ — Vorschlag 3): Text italienisch und deutsch,
+           Knöpfe italienisch (die Kunden sind vor allem Betriebe um Agrigent), und die
+           Knöpfe tragen KEINE Sprache mehr — das Fenster nimmt die, die der Nutzer in
+           Telegram eingestellt hat (telegram-app.php). Mit fester Sprache wie bisher. */
+        $auto = !isset(Texte::TELEGRAM[$sp]);
+        $T = Texte::TELEGRAM[$auto ? 'it' : $sp];
         $l = static fn(string $wort): string => self::link('kanal-' . $wort);
+        $param = static fn(string $ziel): string => 'kanal-' . ($auto ? '' : $sp . '-') . $ziel;
         // Die drei Rechner-Knöpfe öffnen die Mini-App über dem Kanal, sobald
         // sie bei @BotFather angemeldet ist — vorher den Bot wie bisher.
         require_once __DIR__ . '/TelegramApp.php';
-        $r = static fn(string $wort): string => TelegramApp::link('kanal-' . $sp . '-' . $wort) ?: $l($wort);
+        $r = static fn(string $wort): string => TelegramApp::link($param($wort)) ?: $l($wort);
         /* Seit 01.10.2026 (Uwe: „nur über den Kanal“) öffnet JEDER Knopf das
            Vecom-Fenster über dem Kanal (telegram-menue.php) — keiner führt mehr
            in den Bot-Chat. Ohne angemeldete Mini-App bleibt der alte Weg. */
-        $f = static fn(string $ziel, string $wort): string => TelegramApp::link('kanal-' . $sp . '-' . $ziel) ?: $l($wort);
+        $f = static fn(string $ziel, string $wort): string => TelegramApp::link($param($ziel)) ?: $l($wort);
         $knoepfe = [
             [['text' => $T['k_preis'], 'url' => $r('preis')]],
             [['text' => $T['k_neu'], 'url' => $r('neu')], ['text' => $T['k_besser'], 'url' => $r('besser')]],
@@ -420,7 +426,8 @@ final class Telegram
             [['text' => $T['k_mensch'], 'url' => $f('mensch', 'mensch')], ['text' => $T['k_partner'], 'url' => $f('partner', 'partner')]],
             [['text' => $T['k_kunde'], 'url' => $f('kunde', 'kunde')]],
         ];
-        $daten = ['chat_id' => $k['id'], 'text' => $T['kanalMenue'], 'reply_markup' => ['inline_keyboard' => $knoepfe]];
+        $text = $auto ? self::kanalMenueText() : $T['kanalMenue'];
+        $daten = ['chat_id' => $k['id'], 'text' => $text, 'reply_markup' => ['inline_keyboard' => $knoepfe]];
 
         $alt = (int) self::einstellung('tg_kanal_menue_id', '0');
         if ($alt > 0) {
@@ -437,6 +444,14 @@ final class Telegram
         self::setzen('tg_kanal_menue_id', (string) $id);
         $p = self::rufen('pinChatMessage', ['chat_id' => $k['id'], 'message_id' => $id, 'disable_notification' => true]);
         return ['ok' => true, 'text' => 'Der Menü-Beitrag steht im Kanal' . ($p['ok'] ? ' und ist oben angeheftet.' : ' — anheften bitte von Hand (' . $p['beschreibung'] . ').')];
+    }
+
+    /** Der Text des Menü-Beitrags auf Italienisch und Deutsch — aus denselben Texten wie bisher, mit Fähnchen statt doppeltem Gruß. */
+    public static function kanalMenueText(): string
+    {
+        require_once __DIR__ . '/Texte.php';
+        $ohneGruss = static fn(string $t): string => trim((string) preg_replace('/^\x{1F44B}\s*/u', '', $t));
+        return "\u{1F1EE}\u{1F1F9} " . $ohneGruss(Texte::TELEGRAM['it']['kanalMenue']) . "\n\n\u{1F1E9}\u{1F1EA} " . $ohneGruss(Texte::TELEGRAM['de']['kanalMenue']);
     }
 
     /* ------------------------------ Senden ----------------------------- */

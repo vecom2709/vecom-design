@@ -2852,7 +2852,7 @@ if ($post) {
 
             case 'telegram_kanal_menue':
                 require_once __DIR__ . '/src/Telegram.php';
-                $e = Telegram::kanalMenue('de');
+                $e = Telegram::kanalMenue();   // zweisprachig, Fenster in der Sprache des Nutzers (01.10.2026)
                 if ($e['ok']) { Events::protokoll('telegram_kanal', 'Menü-Beitrag im Telegram-Kanal veröffentlicht oder aktualisiert'); }
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
@@ -4825,7 +4825,9 @@ switch ($route) {
     case 'telegram':    // Telegram Growth Engine T2 (01.10.2026, Uwe: „Ja mach T2“) — Reiter unter Marketing
         require_once __DIR__ . '/src/TelegramZahlen.php';
         $tgZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
-        ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ)]);
+        /* Kanal-Links (01.10.2026): fehlende Einladungslinks beim Öffnen anlegen — aus der Verwaltung, nie von der öffentlichen kanal.php. */
+        $tgOrte = sicher(static fn() => TelegramWachstum::kanalLinksSicherstellen(), []);
+        ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ), 'orte' => $tgOrte]);
         break;
 
     case 'seite-vorschau':   // S6: Landingpage ansehen, bevor sie online geht
@@ -4865,6 +4867,27 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
             'me' => MetaSeite::einstellungen(),
             'handy' => sicher(static function (): array { if (!is_file(__DIR__ . '/src/MkHandy.php')) { return ['bereit' => false, 'text' => '']; } require_once __DIR__ . '/src/MkHandy.php'; return MkHandy::stand(); }, ['bereit' => false, 'text' => ''])]);
         break;
+
+    case 'kanal-karte':   // QR-Aufsteller „Folgen Sie uns auf Telegram“ (01.10.2026, Uwe: „Alles“ — Vorschlag 7), Beitritte zählen für „qr“
+        require_once __DIR__ . '/src/TelegramWachstum.php';
+        require_once __DIR__ . '/src/QrBild.php';
+        $kkKanal = Telegram::kanal();
+        $kkName = preg_match('~t\.me/([A-Za-z0-9_]{4,64})~', (string) $kkKanal['link'], $kkM) ? $kkM[1] : '';
+        if ($kkName === '') { $_SESSION['fehler'] = 'Erst den Kanal verbinden (Einstellungen › Telegram).'; weiter('telegram'); }
+        header('Cache-Control: no-store');
+        $kkQr = QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1);
+        ?><!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Seguici su Telegram — Vecom Design</title>
+<style>@page{size:A6;margin:8mm}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#141414;background:#fff}
+.karte{display:grid;gap:3.5mm;justify-items:center;text-align:center;padding:6mm;max-width:105mm;margin:0 auto}
+h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin:0}.qr{width:58mm;height:58mm}.qr svg{width:100%;height:100%}
+.name{font-size:13pt;font-weight:700;margin:0;color:#229ED9}.klein{font-size:10pt;color:#555;margin:0;line-height:1.4}.marke{font-weight:800;letter-spacing:.08em;font-size:12pt}
+@media screen{body{background:#eee}.karte{background:#fff;margin:10mm auto;box-shadow:0 2px 14px rgba(0,0,0,.15)}}</style></head>
+<body><div class="karte"><div class="marke">VECOM DESIGN</div><h1>Seguici su Telegram</h1><p class="de">Folgen Sie uns auf Telegram</p>
+<div class="qr" role="img" aria-label="QR-Code zum Telegram-Kanal"><?= $kkQr ?></div>
+<p class="name">@<?= Fmt::h($kkName) ?></p>
+<p class="klein">Novità, esempi e consigli sui siti web per piccole imprese.<br>Neuigkeiten, Beispiele und Tipps rund um Websites für kleine Betriebe.</p></div>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
+        exit;
 
     case 'verzeichnisse':   // Telegram Growth Engine T5 (01.10.2026, Uwe: „ja“) — Verzeichnisse und Kooperationen
         require_once __DIR__ . '/src/Verzeichnisse.php';

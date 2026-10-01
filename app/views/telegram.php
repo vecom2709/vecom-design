@@ -82,6 +82,30 @@ $tgBotName = (string) Telegram::einstellung('tg_name');
   <?php endif; ?>
 </div>
 
+<?php $orte = $orte ?? []; if ($orte): ?>
+<div class="block" id="kanal-links">
+  <h2>Wo der Kanal verlinkt ist <span class="mehr">je Ort ein eigener Einladungslink — Beitritte zählen für ihren Ort</span></h2>
+  <div class="tabellenrahmen">
+    <table class="mk-tab">
+      <thead><tr><th>Ort</th><th>Link</th><th class="num">Beitritte</th></tr></thead>
+      <tbody>
+        <?php foreach ($orte as $ort => $o): $oId = 'tgort-' . $ort; ?>
+          <tr>
+            <td class="mk-name"><?= Fmt::h(TelegramWachstum::KANAL_ORTE[$ort] ?? $ort) ?><br><span class="mk-code">…/kanal.php?w=<?= Fmt::h($ort) ?><?= $o['ok'] ? '' : ' · ' . Fmt::h($o['text']) ?></span></td>
+            <td style="width:55%"><div class="mk-link"><input id="<?= Fmt::h($oId) ?>" readonly value="<?= Fmt::h($o['link']) ?>" aria-label="Link"><button class="knopf" type="button" data-kopieren="<?= Fmt::h($oId) ?>">Kopieren</button></div></td>
+            <td class="num"><?= $zahl((int) $o['beitritte']) ?></td>
+          </tr>
+        <?php endforeach; ?>
+      </tbody>
+    </table>
+  </div>
+  <p style="margin:10px 0 0;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <a class="knopf" href="<?= Fmt::h(url('kanal-karte')) ?>" target="_blank" rel="noopener">QR-Aufsteller drucken ↗</a>
+    <span class="mk-fein">Den Link „Profile“ in die Beschreibung von Facebook, YouTube und TikTok setzen. Website, Website-Check, E-Mails und Kundenseiten tragen ihren Link schon. Beitritte seit dem Anlegen des Links, über den öffentlichen Namen gekommene ohne Ort.</span>
+  </p>
+</div>
+<?php endif; ?>
+
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('telegram')) ?>">
   <nav class="mk-chips" aria-label="Zeitraum">
     <?php foreach (MkKennzahlen::ZEITRAEUME as $zs => $zw): if ((string) $zs === 'frei') { continue; } ?>

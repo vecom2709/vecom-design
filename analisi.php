@@ -203,6 +203,12 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
     <label class="haken"><input type="checkbox" name="ja" value="1" required><span><?= $h(WebTipp::wortlaut($sprache)) ?></span></label>
     <button class="knopf leise" type="submit"><?= $h($TT[2]) ?></button>
   </form>
+  <?php /* Kanal-Link mit Zählung (01.10.2026, Uwe: „Alles“): Beitritte von hier zählen für „Website-Check“. */
+    $tgKanal = ''; try { require_once __DIR__ . '/app/src/Telegram.php'; $tgKanal = (string) (Telegram::kanal()['link'] ?? ''); } catch (Throwable $e) { }
+    if ($tgKanal !== ''): $TK = ['it' => 'Novità, esempi e consigli anche sul nostro canale Telegram', 'de' => 'Neuigkeiten, Beispiele und Tipps auch in unserem Telegram-Kanal',
+                                 'en' => 'News, examples and tips on our Telegram channel too'][$sprache]; ?>
+    <p class="ohne-website"><a href="/kanal.php?w=check" target="_blank" rel="noopener"><?= $h($TK) ?> →</a></p>
+  <?php endif; ?>
   <p class="fuss">Vecom Design · Aragona (AG) · <a href="<?= $h(Sprache::legal($sprache, 'privacy')) ?>" style="color:var(--l)">Privacy</a></p>
 </main>
 </body>

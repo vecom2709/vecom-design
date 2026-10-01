@@ -342,8 +342,10 @@ final class MkKampagne
             'kosten'    => self::zahlOder0('SELECT COUNT(*) FROM mk_kosten WHERE kampagne_id = ?', [$id]),
             'gepostet'  => self::zahlOder0("SELECT COUNT(*) FROM mk_inhalte WHERE kampagne_id = ? AND status = 'veroeffentlicht'", [$id]),
             'geplant'   => self::zahlOder0("SELECT COUNT(*) FROM mk_inhalte WHERE kampagne_id = ? AND status = 'freigegeben'", [$id]),
+            // Telegram (01.10.2026): Beitritte über den Kanal-Link der Kampagne zählen mit — sie kommen nie über /k/.
+            'beitritte' => self::zahlOder0('SELECT COALESCE(SUM(beitritte), 0) FROM tg_einladungen WHERE kampagne_id = ?', [$id]),
         ];
-        $n['leer'] = $n['besuche'] + $n['ereignisse'] + $n['tage'] + $n['kosten'] + $n['gepostet'] + $n['geplant'] === 0;
+        $n['leer'] = $n['besuche'] + $n['ereignisse'] + $n['tage'] + $n['kosten'] + $n['gepostet'] + $n['geplant'] + $n['beitritte'] === 0;
         return $n;
     }
 
@@ -401,7 +403,8 @@ final class MkKampagne
         if (in_array($land, ['IT', 'DE'], true)) { $sql .= " AND land IN (?, '')"; $a[] = $land; }
         $aus = [];
         foreach (Db::all($sql, $a) as $k) {
-            if (in_array($k['code'], self::GESCHUETZT, true)) { continue; }
+            /* kanal-…: die Kanal-Links je Ort (TelegramWachstum::KANAL_ORTE) — der Cron legte sie sonst täglich neu an, mit neuem Link und Zählung ab null. */
+            if (in_array($k['code'], self::GESCHUETZT, true) || str_starts_with((string) $k['code'], 'kanal-')) { continue; }
             if (self::nutzung((int) $k['id'])['leer']) { $aus[] = $k; }
         }
         return $aus;

@@ -15,8 +15,9 @@ window.VECOM_SOCIAL = {
   youtube:   'https://www.youtube.com/@vecomdesign',
   // Der Kanal (30.09.2026): Die Symbole hier sind Profile zum Folgen —
   // der Bot wäre auf der Website doppelt (der Baukasten steht schon hier).
-  // Jeder Kanalbeitrag trägt einen Knopf in den Bot, die Beschreibung auch.
-  telegram:  'https://t.me/vecomdesign',
+  // Seit 01.10.2026 über /kanal.php: eigener Einladungslink für diesen Ort,
+  // damit Beitritte über die Website zählen (Telegram-Reiter der Verwaltung).
+  telegram:  '/kanal.php?w=fuss',
 };
 
 (function () {

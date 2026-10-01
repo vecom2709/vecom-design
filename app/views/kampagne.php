@@ -260,7 +260,7 @@ require __DIR__ . '/mk_stil.php';
     <p style="margin:0 0 12px;max-width:70ch;line-height:1.6">Daran hängen <?= Fmt::h(implode(', ', array_filter([
         $nu['besuche'] ? $n($nu['besuche']) . ' Besuche' : '', $nu['kosten'] ? $n($nu['kosten']) . ' Kosten-Einträge' : '',
         $nu['gepostet'] ? $n($nu['gepostet']) . ' veröffentlichte Beiträge' : '', $nu['geplant'] ? $n($nu['geplant']) . ' freigegebene, noch nicht gepostete Beiträge' : '',
-        $nu['ereignisse'] ? $n($nu['ereignisse']) . ' gemessene Schritte' : '']))) ?>.
+        $nu['ereignisse'] ? $n($nu['ereignisse']) . ' gemessene Schritte' : '', !empty($nu['beitritte']) ? $n($nu['beitritte']) . ' Kanal-Beitritte' : '']))) ?>.
       <b>Ins Archiv</b> behält alle Zahlen (empfohlen). <b>Endgültig löschen</b> entfernt Werbemittel, Kosten-Zuordnungen (der Beleg bleibt unter Ausgaben) und Tageszahlen; Besuche und Beiträge bleiben, nur ohne Kampagne. Bereits gepostete Links führen danach still auf die Startseite.</p>
   <?php endif; ?>
   <div style="display:flex;gap:8px;flex-wrap:wrap">

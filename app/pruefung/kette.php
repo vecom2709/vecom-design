@@ -15990,7 +15990,7 @@ pruefe('Migration 113: alter Wortlaut wird gesiezt, selbst geänderte Texte blei
     && (!$siePaket || str_contains((string) json_decode((string) Db::wert('SELECT texte FROM packages WHERE id = ?', [(int) $siePaket['id']]), true)['de']['features'][0], 'Sie schreiben mir')));
 Db::update('bausteine', (int) $sieB['id'], ['text_de' => $sieB['text_de']]);
 pruefe('Die Fußzeile der Website führt zum öffentlichen Telegram-Kanal (ein Symbol, nicht Kanal und Bot)',
-    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  'https://t.me/vecomdesign'")
+    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  '/kanal.php?w=fuss'")
     && !str_contains((string) file_get_contents($oben . '/assets/js/social.js'), 'VecomDesignBot'));
 
 /* ============================================================================
@@ -18650,7 +18650,7 @@ pruefe('T2: Reiter „Telegram“ rendert ohne Warnung — Kacheln, Funnel, Quel
 $t2Lay = (string) file_get_contents($wurzel . '/views/layout.php');
 pruefe('T2: Reiter unter Marketing, mit Hilfesatz, Route in der Verwaltung',
     str_contains($t2Lay, "['telegram', 'Telegram', 'telegram']") && Hilfe::satz('telegram') !== ''
-    && str_contains((string) file_get_contents($wurzel . '/index.php'), "ansicht('telegram', ['z' => \$tgZ, 'd' => TelegramZahlen::dashboard(\$tgZ)])"));
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "ansicht('telegram', ['z' => \$tgZ, 'd' => TelegramZahlen::dashboard(\$tgZ), 'orte' => \$tgOrte])"));
 pruefe('T2: Migration übernimmt schon abgeschickte Bot-Anfragen in die Herkunft',
     str_contains((string) file_get_contents($wurzel . '/migrations/121_telegram_funnel.sql'), 'INSERT IGNORE INTO tg_herkunft'));
 
@@ -19122,6 +19122,155 @@ pruefe('Ausfüll-Knopf: in der Liste zum Ziehen in die Lesezeichenleiste, ein Kl
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', ''); Telegram::setzen('tg_bot_offen', '1');
 Db::run("DELETE FROM settings WHERE skey = 'firma_google_bewertung'");
 (new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+
+/* ============================================================================
+   Telegram-Kanal: überall verlinkt, zweisprachig, QR-Aufsteller, Wochenbericht
+   (01.10.2026, Uwe: „Alles“ — Vorschläge 1, 3, 7, 8)
+   ============================================================================ */
+abschnitt('Telegram-Kanal: überall verlinkt, zweisprachig, QR, Wochenbericht');
+require_once $wurzel . '/src/TelegramApp.php';
+require_once $wurzel . '/src/QrBild.php';
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+Telegram::setzen('tg_app_name', 'rechner');
+Telegram::setzen('tg_bot_offen', '0');
+$kvNetz = [];
+$kvTgAlt = Telegram::$netz;
+Telegram::$netz = static function (string $m, array $d) use (&$kvNetz): array {
+    $kvNetz[] = [$m, $d];
+    if ($m === 'createChatInviteLink') { return ['ok' => true, 'result' => ['invite_link' => 'https://t.me/+KanalOrtPruef' . str_pad((string) count($kvNetz), 3, '0', STR_PAD_LEFT)]]; }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => 9700 + count($kvNetz)]]; }
+    return ['ok' => true, 'result' => true];
+};
+
+/* Vorschlag 3: zweisprachig, Italienisch zuerst */
+Telegram::setzen('tg_kanal_menue_id', '');
+$kvM = Telegram::kanalMenue();
+$kvPost = array_values(array_filter($kvNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
+$kvUrls = []; $kvBeschr = [];
+foreach ((array) ($kvPost['reply_markup']['inline_keyboard'] ?? []) as $r) { foreach ($r as $b) { $kvUrls[] = (string) ($b['url'] ?? ''); $kvBeschr[] = (string) $b['text']; } }
+$kvText = Telegram::kanalMenueText();
+$kvOhneGruss = static fn(string $t): string => trim((string) preg_replace('/^\x{1F44B}\s*/u', '', $t));
+pruefe('Kanal zweisprachig: der Menü-Beitrag steht italienisch, darunter deutsch — mit Fähnchen, ohne doppelten Gruß, unter Telegrams 4096 Zeichen',
+    $kvM['ok'] && ($kvPost['text'] ?? '') === $kvText && str_starts_with($kvText, "\u{1F1EE}\u{1F1F9} " . $kvOhneGruss(Texte::TELEGRAM['it']['kanalMenue']))
+    && str_ends_with($kvText, "\n\n\u{1F1E9}\u{1F1EA} " . $kvOhneGruss(Texte::TELEGRAM['de']['kanalMenue'])) && !str_contains($kvText, "\u{1F44B}") && mb_strlen($kvText) <= 4096,
+    mb_substr((string) ($kvPost['text'] ?? ''), 0, 60));
+pruefe('Kanal zweisprachig: zwölf Knöpfe, italienisch beschriftet, ohne Sprache im Link (das Fenster nimmt die des Geräts)',
+    count($kvUrls) === 12 && !array_filter($kvUrls, static fn($u) => !preg_match('~^https://t\.me/vecom_pruef_bot/rechner\?startapp=kanal-[a-z0-9]+$~', $u))
+    && in_array(Texte::TELEGRAM['it']['k_preis'], $kvBeschr, true) && in_array(Texte::TELEGRAM['it']['k_partner'], $kvBeschr, true)
+    && !in_array(Texte::TELEGRAM['de']['k_partner'], $kvBeschr, true), json_encode($kvUrls));
+$kvWege = true;
+foreach ($kvUrls as $u) {
+    $l = TelegramApp::lesen(substr($u, strpos($u, '=') + 1), 'de');
+    $kvWege = $kvWege && $l['quelle'] === 'kanal' && $l['sprache'] === 'de' && ($l['rechner'] || $l['ziel'] !== 'menu');
+}
+pruefe('Kanal zweisprachig: jeder Knopf führt im Fenster an seinen Punkt, in der Sprache, die der Server mitgibt', $kvWege);
+$kvApp = (string) file_get_contents($oben . '/telegram-app.php');
+pruefe('Kanal zweisprachig: ohne Sprache im Start rät das Fenster aus Keks und Browser, mit Sprache bleibt sie fest — Telegrams Startdaten bleiben ungelesen',
+    str_contains($kvApp, '$festeSprache = ') && str_contains($kvApp, 'Sprache::ausAnfrage()') && str_contains($kvApp, "if (!\$festeSprache)") && !str_contains($kvApp, 'initData'));
+$kvIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Kanal zweisprachig: „Menü im Kanal aktualisieren“ veröffentlicht die zweisprachige Fassung (mit Rückfrage)',
+    str_contains($kvIdx, '$e = Telegram::kanalMenue();') && Ablauf::wiegt('telegram_kanal_menue') === Ablauf::RAUS);
+pruefe('Kanal: mit fester Sprache wie bisher (Deutsch, Sprache im Link)', ($kvDe = Telegram::kanalMenue('de'))['ok']
+    && (string) (array_values(array_filter($kvNetz, static fn($x) => $x[0] === 'editMessageText'))[0][1]['text'] ?? '') === Texte::TELEGRAM['de']['kanalMenue']);
+
+/* Vorschlag 1: Kanal-Links je Ort mit Zählung */
+pruefe('Kanal-Links: vor dem Anlegen führt jeder Ort zum öffentlichen Kanal', TelegramWachstum::kanalZiel('fuss') === 'https://t.me/vecomdesign');
+$kvNetz = [];
+$kvO1 = TelegramWachstum::kanalLinksSicherstellen();
+$kvAnl1 = count(array_filter($kvNetz, static fn($x) => $x[0] === 'createChatInviteLink'));
+$kvO2 = TelegramWachstum::kanalLinksSicherstellen();
+$kvAnl2 = count(array_filter($kvNetz, static fn($x) => $x[0] === 'createChatInviteLink'));
+$kvBasis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+pruefe('Kanal-Links: je Ort (sechs) eine Telegram-Kampagne „kanal-ORT“ mit eigenem Einladungslink — ein zweiter Lauf legt nichts doppelt an',
+    count($kvO1) === 6 && !array_filter($kvO1, static fn($o) => !$o['ok']) && $kvAnl1 === 6 && $kvAnl2 === 6 && $kvO1 == $kvO2
+    && (int) Db::wert("SELECT COUNT(*) FROM mk_kampagnen WHERE code IN ('kanal-fuss','kanal-check','kanal-mail','kanal-kunde','kanal-qr','kanal-profil') AND plattform = 'telegram'", [], 0) === 6
+    && $kvO1['qr']['link'] === $kvBasis . '/kanal.php?w=qr' && TelegramWachstum::kanalOrtLink('gibtsnicht') === $kvBasis . '/kanal.php?w=fuss', json_encode($kvO1));
+pruefe('Kanal-Links: die Einladungslinks heißen wie die Quelle (m_kanal-…) und lassen jeden ohne Freigabe hinein',
+    (string) Db::wert("SELECT e.name FROM tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id WHERE k.code = 'kanal-qr'", [], '') === 'm_kanal-qr'
+    && empty(array_values(array_filter($kvNetz, static fn($x) => $x[0] === 'createChatInviteLink'))[0][1]['creates_join_request']));
+$kvFuss = (string) Db::wert("SELECT e.link FROM tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id WHERE k.code = 'kanal-fuss'", [], '');
+pruefe('Kanal-Links: /kanal.php?w=fuss führt auf den eigenen Einladungslink, jeder Ort auf seinen; Unbekanntes auf den öffentlichen Kanal',
+    $kvFuss !== '' && TelegramWachstum::kanalZiel('fuss') === $kvFuss && TelegramWachstum::kanalZiel('qr') !== $kvFuss && str_starts_with(TelegramWachstum::kanalZiel('qr'), 'https://t.me/+')
+    && TelegramWachstum::kanalZiel('gibtsnicht') === 'https://t.me/vecomdesign' && TelegramWachstum::kanalZiel("fuss'--") === 'https://t.me/vecomdesign');
+$kvCm = ['chat' => ['id' => -1004410953446, 'type' => 'channel'], 'from' => ['id' => 777002, 'is_bot' => false], 'date' => time(),
+    'old_chat_member' => ['user' => ['id' => 777002, 'is_bot' => false, 'first_name' => 'Gast'], 'status' => 'left'],
+    'new_chat_member' => ['user' => ['id' => 777002, 'is_bot' => false, 'first_name' => 'Gast'], 'status' => 'member'],
+    'invite_link' => ['invite_link' => $kvFuss, 'name' => 'm_kanal-fuss']];
+pruefe('Kanal-Links: ein Beitritt über den Link zählt für seinen Ort — in der Liste und als Quelle m_kanal-fuss',
+    TelegramWachstum::mitglied($kvCm) === 'beitritt' && TelegramWachstum::kanalLinksSicherstellen(false)['fuss']['beitritte'] === 1
+    && TelegramWachstum::kanalLinksSicherstellen(false)['qr']['beitritte'] === 0
+    && (int) TelegramWachstum::summen(date('Y-m-d'), date('Y-m-d'), 'm_kanal-fuss')['kanal_bei'] === 1);
+Db::run("UPDATE mk_kampagnen SET created_at = NOW() - INTERVAL 5 DAY WHERE code LIKE 'kanal-%'");
+pruefe('Kanal-Links: „Leere Kampagnen aufräumen“ lässt sie stehen; Beitritte zählen als Nutzung einer Kampagne',
+    !array_filter(MkKampagne::leere(), static fn($k) => str_starts_with((string) $k['code'], 'kanal-'))
+    && MkKampagne::nutzung((int) Db::wert("SELECT id FROM mk_kampagnen WHERE code = 'kanal-fuss'", [], 0))['beitritte'] === 1
+    && !MkKampagne::nutzung((int) Db::wert("SELECT id FROM mk_kampagnen WHERE code = 'kanal-fuss'", [], 0))['leer']);
+Db::run("UPDATE mk_kampagnen SET status = 'beendet' WHERE code = 'kanal-check'");
+$kvBeendet = TelegramWachstum::kanalZiel('check');
+Db::run("UPDATE mk_kampagnen SET status = 'aktiv' WHERE code = 'kanal-check'");
+$kvMailLink = (string) Db::wert("SELECT e.link FROM tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id WHERE k.code = 'kanal-mail'", [], '');
+Db::run("UPDATE tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id SET e.link = 'https://boese.example/+abcdefghij' WHERE k.code = 'kanal-mail'");
+$kvFremd = TelegramWachstum::kanalZiel('mail');
+Db::run("UPDATE tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id SET e.link = ? WHERE k.code = 'kanal-mail'", [$kvMailLink]);
+Telegram::setzen('tg_kanal_link', 'https://boese.example/x');
+$kvKaputt = TelegramWachstum::kanalZiel('gibtsnicht');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+pruefe('Kanal-Links: nie eine fremde Adresse — beendeter Ort und fremder Einladungslink führen zum öffentlichen Kanal, ein kaputter Kanal-Link zur Startseite',
+    $kvBeendet === 'https://t.me/vecomdesign' && $kvFremd === 'https://t.me/vecomdesign' && $kvKaputt === '/', json_encode([$kvBeendet, $kvFremd, $kvKaputt]));
+$kvSeite = (string) file_get_contents($oben . '/kanal.php');
+pruefe('kanal.php: ruft nie bei Telegram an, speichert nichts, nicht indexiert — nur Weiterleitung über kanalZiel',
+    str_contains($kvSeite, 'TelegramWachstum::kanalZiel(') && !preg_match('/rufen\(|einladungAnlegen|kanalLinksSicherstellen|Db::(?:run|insert)|zaehlen\(/', $kvSeite)
+    && str_contains($kvSeite, "header('X-Robots-Tag: noindex, nofollow')") && str_contains($kvSeite, "header('Location: ' . \$ziel, true, 302)"));
+$kvMailMit = (string) (new ReflectionMethod(Mail::class, 'fuss'))->invoke(null, 'de', 'Arial');
+$kvMailIt = (string) (new ReflectionMethod(Mail::class, 'fuss'))->invoke(null, 'it', 'Arial');
+$kvFussMit = Fuss::html('it');
+Telegram::setzen('tg_kanal_link', '');
+$kvMailOhne = (string) (new ReflectionMethod(Mail::class, 'fuss'))->invoke(null, 'de', 'Arial');
+$kvFussOhne = Fuss::html('it');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+pruefe('Kanal überall: Mail-Fußzeile (in der Sprache des Empfängers) und Rechtsfuß der Kundenseiten tragen ihren eigenen Kanal-Link — ohne Kanal nichts',
+    str_contains($kvMailMit, $kvBasis . '/kanal.php?w=mail') && str_contains($kvMailMit, 'Neuigkeiten und Tipps auf Telegram') && str_contains($kvMailMit, 't.me/vecomdesign')
+    && str_contains($kvMailIt, 'Novità e consigli su Telegram') && str_contains($kvFussMit, $kvBasis . '/kanal.php?w=kunde')
+    && !str_contains($kvMailOhne, 'kanal.php') && !str_contains($kvFussOhne, 'kanal.php'));
+$kvAn = (string) file_get_contents($oben . '/analisi.php');
+pruefe('Kanal überall: unter dem Website-Check der Link mit eigener Zählung, dreisprachig',
+    str_contains($kvAn, '/kanal.php?w=check') && str_contains($kvAn, 'canale Telegram') && str_contains($kvAn, 'Telegram-Kanal') && str_contains($kvAn, 'Telegram channel'));
+
+/* Vorschlag 7: QR-Aufsteller */
+pruefe('QR-Aufsteller: Route hinter der Anmeldung, Code auf /kanal.php?w=qr, italienisch und deutsch',
+    strpos($kvIdx, "case 'kanal-karte':") > strpos($kvIdx, 'Auth::nurAdmin();') && str_contains($kvIdx, "QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1)")
+    && str_contains($kvIdx, '<h1>Seguici su Telegram</h1>') && str_contains($kvIdx, 'Folgen Sie uns auf Telegram'));
+pruefe('QR-Aufsteller: der Code entsteht', str_starts_with(trim(QrBild::svg(TelegramWachstum::kanalOrtLink('qr'), 300, 1)), '<svg'));
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$z = MkKennzahlen::zeitraum('heute'); $d = TelegramZahlen::dashboard($z); $orte = TelegramWachstum::kanalLinksSicherstellen(false);
+ob_start(); require $wurzel . '/views/telegram.php'; $kvHtml = (string) ob_get_clean();
+restore_error_handler(); unset($orte);
+pruefe('Telegram-Reiter: „Wo der Kanal verlinkt ist“ — sechs Orte mit Link zum Kopieren und Beitritten, Knopf zum QR-Aufsteller',
+    $kaFehler === null && str_contains($kvHtml, 'id="kanal-links"') && substr_count($kvHtml, $kvBasis . '/kanal.php?w=') >= 6 && str_contains($kvHtml, 'data-kopieren="tgort-profil"')
+    && str_contains($kvHtml, 'QR-Aufsteller drucken'), (string) $kaFehler);
+$kvCron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Cron: täglich fehlende Kanal-Links nachlegen, montags einmal der Wochenbericht',
+    str_contains($kvCron, 'TelegramWachstum::kanalLinksSicherstellen()') && str_contains($kvCron, "(int) date('N') === 1 && self::heuteNochNicht('cron_tg_woche')")
+    && str_contains($kvCron, 'TelegramWachstum::wochenberichtSenden()'));
+
+/* Vorschlag 8: Wochenbericht — feste Woche 21.–27.09.2026, nur Zahlen */
+foreach ([['2026-09-22', 'kanal_bei', 'm_kanal-fuss', 3], ['2026-09-23', 'kanal_bei', 'm_kanal-qr', 1], ['2026-09-23', 'kanal_aus', '', 1],
+          ['2026-09-24', 'app_start', 'kanal', 5], ['2026-09-24', 'bot_neu', 'm_kanal-mail_x1', 2], ['2026-09-25', 'rechner', 'kanal', 2],
+          ['2026-09-25', 'rechner_fertig', 'kanal', 1], ['2026-09-26', 'lead', 'kanal', 1], ['2026-09-27', 'kanal_stand', '', 61],
+          ['2026-09-28', 'kanal_bei', 'm_kanal-fuss', 50], ['2026-09-20', 'lead', 'kanal', 9]] as [$kvTag, $kvArt, $kvQ, $kvN]) {
+    Db::run('INSERT INTO tg_tage (tag, art, quelle, zahl) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE zahl = VALUES(zahl)', [$kvTag, $kvArt, $kvQ, $kvN]);
+}
+$kvWb = TelegramWachstum::wochenbericht(strtotime('2026-09-28 08:00'));
+$kvWbZ = explode("\n", $kvWb);
+pruefe('Wochenbericht: Montag bis Sonntag der Vorwoche — Mitglieder, Beitritte/Austritte, stärkste Quellen mit Namen, Fenster, Rechner, Anfragen',
+    $kvWbZ[0] === 'Telegram, Woche 21.09.–27.09.' && $kvWbZ[1] === 'Kanal: 61 Mitglieder · +4 / −1'
+    && str_starts_with($kvWbZ[2], 'Woher: Kanal-Knöpfe 5 · Kanal-Link: Website: Telegram-Symbol unten auf der Startseite 3 · Kanal-Link: E-Mails an Kunden: Fußzeile 2')
+    && $kvWbZ[3] === 'Vecom-Fenster geöffnet: 5 · Preisrechner: 2 (1 fertig) · Anfragen: 1', $kvWb);
+pruefe('Wochenbericht: keine Namen, keine Chat-Kennungen', !str_contains($kvWb, 'Gast') && !preg_match('/\d{6,}/', $kvWb));
+pruefe('Wochenbericht: geht an Uwes Telegram oder ersatzweise an den gewohnten Zuruf', TelegramWachstum::wochenberichtSenden(strtotime('2026-09-28 08:00')));
+Telegram::$netz = $kvTgAlt;
+Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', ''); Telegram::setzen('tg_bot_offen', '1'); Telegram::setzen('tg_kanal_menue_id', '');
 
 /* ============================================================================
    Aufräumen und Bilanz

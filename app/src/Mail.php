@@ -630,6 +630,14 @@ final class Mail
         foreach ($unten as $u) {
             $inhalt .= '<div style="margin:0 0 4px">' . self::zeileHtml((string) $u) . '</div>';
         }
+        /* Der Telegram-Kanal (01.10.2026, Uwe: „Alles“ — Vorschlag 1): ein Link in der Fußzeile, über
+           /kanal.php?w=mail — Beitritte aus Mails zählen so für sich. Nur, wenn der Kanal verbunden ist. */
+        $kanal = (string) self::still(static function (): string { require_once __DIR__ . '/Telegram.php'; return (string) (Telegram::kanal()['link'] ?? ''); }, '');
+        if (preg_match('~^https://t\.me/([A-Za-z0-9_]{4,64})~', $kanal, $km)) {
+            $wort = ['it' => 'Novità e consigli su Telegram', 'de' => 'Neuigkeiten und Tipps auf Telegram', 'en' => 'News and tips on Telegram'][$sprache] ?? 'Telegram';
+            $ziel = rtrim((string) self::still(static fn() => Config::get('website', 'https://vecom-design.it'), 'https://vecom-design.it'), '/') . '/kanal.php?w=mail';
+            $inhalt .= '<div style="margin:0 0 4px">' . self::sicher($wort) . ': <a href="' . self::sicher($ziel) . '" class="vd-adr" style="color:' . self::LEISE . '">t.me/' . self::sicher($km[1]) . '</a></div>';
+        }
         if ($satz !== '') {
             $inhalt .= '<div style="margin:12px 0 0">' . self::sicher($satz) . '</div>';
         }

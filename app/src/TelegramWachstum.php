@@ -307,6 +307,149 @@ final class TelegramWachstum
         return $aus;
     }
 
+    /* ================================================================== */
+    /*  Kanal-Links mit Zählung (01.10.2026, Uwe: „Alles“ — Vorschlag 1/7) */
+    /* ================================================================== */
+
+    /**
+     * Wo der Kanal verlinkt ist. Jeder Ort bekommt eine gewöhnliche Kampagne
+     * „kanal-ORT“ mit eigenem Einladungslink — so zählt jeder Beitritt für
+     * seinen Ort (Update chat_member, wie bei jeder Kampagne). Auf den Seiten
+     * steht immer /kanal.php?w=ORT: Der Link dort veraltet nie, auch wenn der
+     * Einladungslink einmal neu angelegt werden muss.
+     */
+    public const KANAL_ORTE = [
+        'fuss'   => 'Website: Telegram-Symbol unten auf der Startseite',
+        'check'  => 'Website-Check: unter dem Ergebnis',
+        'mail'   => 'E-Mails an Kunden: Fußzeile',
+        'kunde'  => 'Angebots- und Projektseiten: Fußzeile',
+        'qr'     => 'QR-Aufsteller zum Ausdrucken',
+        'profil' => 'Profile (Facebook, YouTube, TikTok …): Link in der Beschreibung',
+    ];
+
+    /** Die öffentliche Adresse eines Orts — sie leitet auf dessen Einladungslink. */
+    public static function kanalOrtLink(string $ort): string
+    {
+        return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/kanal.php?w=' . (isset(self::KANAL_ORTE[$ort]) ? $ort : 'fuss');
+    }
+
+    /**
+     * Wohin /kanal.php?w=ORT führt — ohne einen einzigen Aufruf bei Telegram
+     * (die Seite ist öffentlich; angelegt wird nur aus der Verwaltung und im
+     * Cronlauf). Fehlt der eigene Link, der öffentliche Kanal; fehlt auch der,
+     * die Startseite. Nie eine fremde Adresse.
+     */
+    public static function kanalZiel(string $ort): string
+    {
+        if (isset(self::KANAL_ORTE[$ort])) {
+            try {
+                $e = Db::one("SELECT e.link FROM tg_einladungen e JOIN mk_kampagnen k ON k.id = e.kampagne_id
+                               WHERE k.code = ? AND k.status = 'aktiv' AND e.aktiv = 1 ORDER BY e.id DESC LIMIT 1", ['kanal-' . $ort]);
+                if ($e && preg_match('~^https://t\.me/\+[A-Za-z0-9_-]{8,64}$~', (string) $e['link'])) { return (string) $e['link']; }
+            } catch (Throwable $x) { /* dann der öffentliche Kanal */ }
+        }
+        $pub = (string) (Telegram::kanal()['link'] ?? '');
+        return preg_match('~^https://t\.me/[A-Za-z0-9_]{4,64}/?$~', $pub) ? $pub : '/';
+    }
+
+    /**
+     * Für jeden Ort die Kampagne und den Einladungslink anlegen, wo sie fehlen
+     * (Verwaltung beim Öffnen des Telegram-Reiters, täglicher Cronlauf).
+     * @return array<string, array{link:string, beitritte:int, ok:bool, text:string}>
+     */
+    public static function kanalLinksSicherstellen(bool $anlegen = true): array
+    {
+        require_once __DIR__ . '/MkKampagne.php';
+        $aus = [];
+        $kanalDa = Telegram::kanal()['id'] !== '' && Telegram::bereit();
+        foreach (self::KANAL_ORTE as $ort => $wort) {
+            $zeile = ['link' => self::kanalOrtLink($ort), 'beitritte' => 0, 'ok' => false, 'text' => ''];
+            try {
+                $k = Db::one('SELECT * FROM mk_kampagnen WHERE code = ?', ['kanal-' . $ort]);
+                if ($k === null && $anlegen && $kanalDa) {
+                    $kid = MkKampagne::anlegen(['name' => 'Kanal-Link: ' . $wort, 'plattform' => 'telegram', 'code' => 'kanal-' . $ort, 'ziel' => '/',
+                        'notiz' => 'Telegram-Kanal, verlinkt hier: ' . $wort . '. Beitritte über diesen Link zählen für diesen Ort.']);
+                    $k = is_int($kid) ? MkKampagne::laden($kid) : Db::one('SELECT * FROM mk_kampagnen WHERE code = ?', ['kanal-' . $ort]);
+                }
+                if ($k !== null) {
+                    $e = self::einladung((int) $k['id']);
+                    if ($e === null && $anlegen && $kanalDa) {
+                        $r = self::einladungAnlegen((int) $k['id'], 'Kanal-Links');
+                        $zeile['text'] = $r['ok'] ? '' : $r['text'];
+                        $e = self::einladung((int) $k['id']);
+                    }
+                    if ($e !== null) { $zeile['ok'] = true; $zeile['beitritte'] = (int) $e['beitritte']; }
+                }
+                if (!$zeile['ok'] && $zeile['text'] === '') { $zeile['text'] = $kanalDa ? 'noch kein eigener Einladungslink — führt auf den öffentlichen Kanal' : 'Kanal oder Bot noch nicht verbunden'; }
+            } catch (Throwable $x) { $zeile['text'] = 'nicht angelegt: ' . mb_substr($x->getMessage(), 0, 80); }
+            $aus[$ort] = $zeile;
+        }
+        return $aus;
+    }
+
+    /* ================================================================== */
+    /*  Wochenbericht (01.10.2026, Uwe: „Alles“ — Vorschlag 8)             */
+    /* ================================================================== */
+
+    /**
+     * Was die letzte Woche in Telegram gebracht hat — ein paar Zeilen, nur
+     * Zahlen (keine Namen, keine Chat-Kennungen). Montags per Cron an Uwes
+     * Telegram (TelegramAdmin::zuruf), sonst an den gewohnten Zuruf.
+     */
+    public static function wochenbericht(?int $jetzt = null): string
+    {
+        $jetzt ??= time();
+        $bis = date('Y-m-d', $jetzt - 86400);
+        $von = date('Y-m-d', $jetzt - 7 * 86400);
+        $s = self::summen($von, $bis);
+        $n = static fn(string $a): int => (int) ($s[$a] ?? 0);
+        $z = [];
+        $z[] = 'Telegram, Woche ' . date('d.m.', strtotime($von)) . '–' . date('d.m.', strtotime($bis));
+        $stand = $s['kanal_stand'] ?? null;
+        $z[] = 'Kanal: ' . ($stand !== null ? $stand . ' Mitglieder' : 'Mitglieder noch nicht gemessen') . ' · +' . $n('kanal_bei') . ' / −' . $n('kanal_aus');
+        /* Woher: die stärksten Quellen nach Beitritten und neuen Nutzern (Kampagnen samt Werbemitteln zusammen). */
+        $quellen = [];
+        try {
+            foreach (Db::all("SELECT quelle, SUM(zahl) AS n FROM tg_tage WHERE tag BETWEEN ? AND ? AND art IN ('kanal_bei','bot_neu','app_start') AND quelle <> '' GROUP BY quelle", [$von, $bis]) as $r) {
+                $q = preg_match('/^m_([a-z0-9][a-z0-9-]{2,23})_[a-z0-9-]+$/', (string) $r['quelle'], $m) ? 'm_' . $m[1] : (string) $r['quelle'];
+                $quellen[$q] = ($quellen[$q] ?? 0) + (int) $r['n'];
+            }
+        } catch (Throwable $e) { }
+        arsort($quellen);
+        if ($quellen) {
+            $namen = [];
+            $kamp = [];
+            $codes = array_values(array_map(static fn($q) => substr($q, 2), array_filter(array_keys($quellen), static fn($q) => str_starts_with($q, 'm_'))));
+            if ($codes) {
+                try {
+                    foreach (Db::all('SELECT code, name FROM mk_kampagnen WHERE code IN (' . implode(',', array_fill(0, count($codes), '?')) . ')', $codes) as $r) { $kamp[(string) $r['code']] = (string) $r['name']; }
+                } catch (Throwable $e) { }
+            }
+            foreach (array_slice($quellen, 0, 3, true) as $q => $wie) {
+                $namen[] = (str_starts_with($q, 'm_') ? ($kamp[substr($q, 2)] ?? 'Kampagne ' . substr($q, 2)) : ($q === 'kanal' ? 'Kanal-Knöpfe' : ($q === 'telegram' ? 'Fenster ohne Angabe' : $q))) . ' ' . $wie;
+            }
+            $z[] = 'Woher: ' . implode(' · ', $namen);
+        }
+        $z[] = 'Vecom-Fenster geöffnet: ' . $n('app_start') . ' · Preisrechner: ' . $n('rechner') . ' (' . $n('rechner_fertig') . ' fertig) · Anfragen: ' . $n('lead');
+        try {
+            require_once __DIR__ . '/Verzeichnisse.php';
+            $f = array_sum(Verzeichnisse::faellig());
+            if ($f > 0) { $z[] = 'Verzeichnisse: ' . $f . ' Einträge warten seit über einer Woche'; }
+        } catch (Throwable $e) { }
+        return implode("\n", $z);
+    }
+
+    /** Montags einmal: den Wochenbericht an Uwes Telegram, ersatzweise an den Zuruf. */
+    public static function wochenberichtSenden(?int $jetzt = null): bool
+    {
+        $text = self::wochenbericht($jetzt);
+        try {
+            require_once __DIR__ . '/TelegramAdmin.php';
+            if (TelegramAdmin::zuruf($text)) { return true; }
+        } catch (Throwable $e) { }
+        try { require_once __DIR__ . '/Zuruf.php'; Zuruf::vormerken('telegram_woche', $text, 6 * 24 * 60); return true; } catch (Throwable $e) { return false; }
+    }
+
     /** Tageszahlen sind klein und ohne Personenbezug — nach zwei Jahren trotzdem weg. */
     public static function aufraeumen(): int
     {

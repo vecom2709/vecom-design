@@ -61,6 +61,15 @@ final class Fuss
                 . $h($w[$anker]) . '</a>';
         }
 
+        /* Der Telegram-Kanal (01.10.2026, Uwe: „Alles“ — Vorschlag 1): auf Angebots- und Projektseiten,
+           über /kanal.php?w=kunde — Beitritte von hier zählen für sich. Nur, wenn der Kanal verbunden ist. */
+        try {
+            require_once __DIR__ . '/Telegram.php';
+            if (preg_match('~^https://t\.me/[A-Za-z0-9_]{4,64}~', (string) (Telegram::kanal()['link'] ?? ''))) {
+                $teile[] = '<a href="' . $h(rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/kanal.php?w=kunde') . '" target="_blank" rel="noopener">Telegram</a>';
+            }
+        } catch (Throwable $e) { /* der Rechtsfuß steht auch ohne */ }
+
         return '<footer class="rechtsfuss">' . implode('<span aria-hidden="true">·</span>', $teile)
             . '</footer>';
     }
