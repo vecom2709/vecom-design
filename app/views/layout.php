@@ -34,6 +34,9 @@ $navZahlen['stimmen'] = (int) sicher(static function (): int {
     require_once __DIR__ . '/../src/Stimme.php';
     return Stimme::offene();
 }, 0);
+/* Marketing-Studio (01.10.2026): Entwürfe, die auf Uwes Freigabe warten, sind eine Handlung. */
+$navZahlen['zielgruppen'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_zielgruppen WHERE status = 'entwurf'", [], 0), 0);
+$navZahlen['inhalte'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf'", [], 0), 0);
 /* Einmal rechnen, zweimal benutzt: fuer die Zahl im Menue und fuer die
    Leiste "Jetzt dran". Zweimal rechnen hiesse, jede Seite zweimal durch alle
    Vorgaenge zu schicken. */
@@ -184,6 +187,7 @@ $reiter = [
     ['kampagnen', 'Kampagnen', 'kampagnen'],
     ['zielgruppen', 'Zielgruppen', 'zielgruppen'],
     ['recherche', 'Recherche', 'recherche'],
+    ['inhalte', 'Inhalte', 'inhalte'],
     ['telegram', 'Telegram', 'telegram'],
   ],
   'dashboard' => [

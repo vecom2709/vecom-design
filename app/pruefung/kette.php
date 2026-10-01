@@ -17069,6 +17069,154 @@ pruefe('PC: Claude Code nur mit Websuche und Webseiten, über Uwes Anmeldung —
 Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
+   Marketing-Studio Schritt 2: Content-Studio (01.10.2026)
+   ============================================================================ */
+abschnitt('Marketing-Studio: Content-Studio');
+require_once $wurzel . '/src/MkInhalt.php';
+Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_inhalte');
+$ciG = static fn(array $mehr = []): array => $mehr + ['format' => 'google_anzeige', 'plattform' => 'google', 'sprache' => 'it', 'titel' => 'Prenotazioni dirette',
+    'felder' => ['ueberschriften' => ['Sito per il tuo ristorante', 'Prenotazioni senza commissioni', 'Menu in tre lingue', 'Questa è una riga decisamente troppo lunga per Google'],
+                 'beschreibungen' => ['Un sito che porta prenotazioni dirette, senza commissione a coperto.', 'Preventivo gratuito, prezzo fisso, dominio intestato a lei.'],
+                 'pfad1' => 'siti web', 'pfad2' => 'ristoranti/sicilia', 'keywords' => ['sito web ristorante']],
+    'bildidee' => '<b>x</b>', 'begruendung' => 'Provision pro Gedeck', 'fund_ids' => [3, '4', 'x']];
+$ciP = MkInhalt::pruefen($ciG());
+pruefe('Content: Google-Anzeige — Überschriften über 30 Zeichen fallen weg, Pfade ohne Leerzeichen und höchstens 15 Zeichen, Funde als Zahlen',
+    is_array($ciP) && count($ciP['felder']['ueberschriften']) === 3 && $ciP['felder']['pfad1'] === 'siti-web' && $ciP['felder']['pfad2'] === 'ristoranti-sici'
+    && $ciP['art'] === 'bezahlt' && $ciP['fund_ids'] === '3,4' && $ciP['bildidee'] === 'x', json_encode($ciP));
+pruefe('Content: Grenzen der Plattformen — sonst kein Stück',
+    is_string(MkInhalt::pruefen($ciG(['felder' => ['ueberschriften' => ['a', 'b'], 'beschreibungen' => ['x', 'y']]])))
+    && is_string(MkInhalt::pruefen($ciG(['plattform' => 'instagram']))) && is_string(MkInhalt::pruefen(['format' => 'flugblatt']))
+    && is_string(MkInhalt::pruefen(['format' => 'karussell', 'plattform' => 'instagram', 'felder' => ['folien' => [['titel' => 'Eins'], ['titel' => 'Zwei']]]]))
+    && is_string(MkInhalt::pruefen(['format' => 'reel', 'plattform' => 'tiktok', 'felder' => ['szenen' => [['bild' => 'a'], ['bild' => 'b']]]]))
+    && is_string(MkInhalt::pruefen(['format' => 'meta_anzeige', 'plattform' => 'facebook', 'felder' => ['primaertexte' => ['Text']]])));
+$ciB = MkInhalt::pruefen(['format' => 'beitrag', 'plattform' => 'instagram', 'felder' => ['text' => "<script>x</script>Zeile 1\n\n\n\nZeile 2", 'hashtags' => '#sito  Sito ristoranti, #menù!']]);
+pruefe('Content: Beitrag ohne HTML, Absätze bleiben, Hashtags gesäubert und ohne Doppel; Sprache nach Land',
+    is_array($ciB) && $ciB['felder']['text'] === "xZeile 1\n\nZeile 2" && $ciB['felder']['hashtags'] === ['#sito', '#ristoranti', '#menù'] && $ciB['sprache'] === 'it'
+    && MkInhalt::pruefen(['format' => 'telegram', 'plattform' => 'telegram', 'felder' => ['text' => 'Hallo']], 'DE')['sprache'] === 'de', json_encode($ciB));
+$ciM = MkInhalt::pruefen(['format' => 'meta_anzeige', 'plattform' => 'facebook', 'felder' => ['primaertexte' => ['A', 'B', 'C', 'D', 'E', 'F'], 'ueberschriften' => ['Ü'], 'cta' => 'KAUFEN']]);
+pruefe('Content: Meta-Anzeige — höchstens fünf Varianten, unbekannter Knopf wird „Mehr dazu“', is_array($ciM) && count($ciM['felder']['primaertexte']) === 5 && $ciM['felder']['cta'] === 'LEARN_MORE');
+
+/* Auftrag: nur für freigegebene Zielgruppen */
+$ciZ = MkZielgruppe::melden($mzProfil(['branche' => 'restaurant', 'titel' => 'Ristoranti in Sicilia']));
+$ciZid = (int) $ciZ['id'];
+pruefe('Content-Auftrag: für einen Zielgruppen-Entwurf schreibt Claude nicht', is_string(MkAuftrag::anlegenInhalte(['zielgruppe' => $ciZid, 'plattformen' => ['instagram']])));
+MkZielgruppe::freigeben($ciZid);
+pruefe('Content-Auftrag: Plattform nötig; Anzeigen nur wo es sie gibt',
+    is_string(MkAuftrag::anlegenInhalte(['zielgruppe' => $ciZid, 'plattformen' => ['myspace']]))
+    && is_string(MkAuftrag::anlegenInhalte(['zielgruppe' => $ciZid, 'plattformen' => ['telegram'], 'umfang' => 'bezahlt'])));
+$ciA = MkAuftrag::anlegenInhalte(['zielgruppe' => $ciZid, 'plattformen' => ['instagram', 'google', 'telegram', 'facebook'], 'umfang' => 'beides', 'anzahl' => 40, 'thema' => '<i>Nebensaison</i>']);
+$ciAz = Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$ciA]);
+$ciPar = json_decode((string) $ciAz['parameter'], true);
+pruefe('Content-Auftrag: angelegt mit Zielgruppe, Plattformen, höchstens 12 Stück, Thema ohne HTML — ein zweiter für dieselbe Zielgruppe nicht',
+    is_int($ciA) && $ciAz['art'] === 'inhalte' && $ciAz['branche'] === 'restaurant' && $ciPar['anzahl'] === 12 && $ciPar['thema'] === 'Nebensaison'
+    && is_string(MkAuftrag::anlegenInhalte(['zielgruppe' => $ciZid, 'plattformen' => ['instagram']])) && MkAuftrag::wartet()
+    && str_contains(MkAuftrag::beschreibung($ciAz), 'Inhalte · Ristoranti in Sicilia — 12 Stück für Instagram'), json_encode($ciPar));
+$ciFund = MkZielgruppe::rechercheMelden([['art' => 'trend', 'titel' => 'Nur 13,5 % mit Online-Reservierung', 'text' => 'FIPE 2025', 'branche' => 'restaurant', 'land' => 'IT', 'relevanz' => 5,
+    'quellen' => [['titel' => 'FIPE', 'url' => 'https://example.org/fipe']]]]);
+$ciFid = (int) Db::wert("SELECT id FROM mk_recherche WHERE titel = 'Nur 13,5 % mit Online-Reservierung'");
+MkZielgruppe::rechercheStatus($ciFid, 'gemerkt');
+$ciH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Content-Auftrag: der PC bekommt das freigegebene Profil, passende Formate, Grenzen, Zielseite und die Funde der Branche mit id',
+    ($ciH['art'] ?? '') === 'inhalte' && ($ciH['zielgruppe']['profil']['titel'] ?? '') === 'Ristoranti in Sicilia' && isset($ciH['formate']['google_anzeige'], $ciH['formate']['telegram'], $ciH['formate']['meta_anzeige'])
+    && !isset($ciH['formate']['reel']['plattformen']) === false && $ciH['grenzen']['g_ueberschrift'] === 30 && $ciH['zielseite'] === '/siti-web-ristoranti.html'
+    && in_array($ciFid, array_column($ciH['funde'], 'id'), true) && !str_contains(json_encode($ciH), '@'), json_encode(array_keys($ciH)));
+$ciAb = AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $ciA, 'inhalte' => [
+    $ciG(['fund_ids' => [$ciFid]]),
+    ['format' => 'beitrag', 'plattform' => 'facebook', 'titel' => 'Provisionen rechnen', 'felder' => ['hook' => 'Quanto le costa ogni coperto?', 'text' => 'Quanto le costa ogni coperto?' . "\n\n" . 'Un sito con prenotazione diretta.', 'hashtags' => ['ristoranti'], 'cta' => 'Faccia il check gratuito']],
+    ['format' => 'beitrag', 'plattform' => 'instagram', 'felder' => ['text' => 'Testo per Instagram', 'cta' => 'Link in bio']],
+    ['format' => 'reel', 'plattform' => 'instagram', 'felder' => ['hook' => 'Tre secondi', 'szenen' => [['sekunden' => 3, 'bild' => 'Sala piena', 'einblendung' => 'Sala piena?', 'sprecher' => 'Lei'], ['sekunden' => 99, 'bild' => 'Telefono']], 'text' => 'Caption']],
+    ['format' => 'telegram', 'plattform' => 'telegram', 'felder' => ['text' => 'Nuovo: prenotazioni dirette.', 'knopf' => 'Check gratuito']],
+    ['format' => 'meta_anzeige', 'plattform' => 'instagram', 'felder' => ['primaertexte' => ['Per chi ha un ristorante: prenotazioni dirette.'], 'ueberschriften' => ['Prenotazioni senza commissioni'], 'cta' => 'GET_QUOTE']],
+    ['format' => 'karussell', 'plattform' => 'facebook', 'felder' => ['folien' => [['titel' => 'Eins', 'text' => 'a'], ['titel' => 'Zwei', 'text' => 'b'], ['titel' => 'Drei', 'text' => 'c']], 'text' => 'Begleittext']],
+    ['format' => 'google_anzeige', 'plattform' => 'google', 'felder' => ['ueberschriften' => ['Zu kurz'], 'beschreibungen' => ['x', 'y']]],
+]]);
+pruefe('Content: abgeliefert = Entwürfe mit Branche und Land der Zielgruppe; was die Grenzen bricht, wird mit Grund übersprungen',
+    $ciAb['ok'] === true && $ciAb['neu'] === 7 && count($ciAb['fehler']) === 1 && str_contains($ciAb['fehler'][0], 'mindestens drei Überschriften')
+    && (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf' AND branche = 'restaurant' AND land = 'IT' AND zielgruppe_id = ?", [$ciZid]) === 7
+    && (int) Db::wert("SELECT MAX(JSON_EXTRACT(felder, '$.szenen[1].sekunden')) FROM mk_inhalte WHERE format = 'reel'") === 60, json_encode($ciAb));
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $ciA, 'ok' => true, 'inhalte' => 7, 'text' => 'Sieben Stück.']);
+pruefe('Content-Auftrag: zurückgemeldet mit Zahl der Entwürfe, Meldung „Inhalte fertig“ mit Link zu den Inhalten',
+    (int) Db::wert('SELECT inhalte FROM mk_auftraege WHERE id = ?', [$ciA]) === 7
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'inhalte'", [], 0) >= 1);
+
+/* Bearbeiten, freigeben, eigener Link */
+$ciIdG = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'google_anzeige'");
+$ciIdF = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'beitrag' AND plattform = 'facebook'");
+$ciIdI = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'beitrag' AND plattform = 'instagram'");
+pruefe('Content: Bearbeiten prüft wie beim Abliefern',
+    MkInhalt::speichern($ciIdG, ['titel' => 'Google neu', 'f_ueberschriften' => "Nur eine Zeile\n" . str_repeat('x', 31)]) !== null
+    && MkInhalt::speichern($ciIdF, ['titel' => 'Provisionen rechnen', 'f_text' => "Neuer Text\n\nzweiter Absatz", 'f_hashtags' => 'ristoranti sicilia']) === null
+    && MkInhalt::laden($ciIdF)['f']['text'] === "Neuer Text\n\nzweiter Absatz" && MkInhalt::laden($ciIdF)['f']['hashtags'] === ['#ristoranti', '#sicilia']);
+$ciLinkVor = MkInhalt::link(MkInhalt::laden($ciIdF));
+$ciFr = MkInhalt::freigeben($ciIdF);
+$ciX = MkInhalt::laden($ciIdF);
+[$ciK, $ciCr] = MkInhalt::kampagne($ciX);
+pruefe('Content: Freigabe legt die Kampagne „Branche Land · Plattform · Monat“ mit passender Zielseite an und ein eigenes Werbemittel — der Link entsteht erst jetzt',
+    $ciLinkVor === null && $ciFr === null && $ciX['status'] === 'freigegeben' && $ciK !== null && str_starts_with((string) $ciK['name'], 'Restaurant IT · Facebook · ')
+    && $ciK['ziel'] === '/siti-web-ristoranti.html' && $ciK['branche'] === 'restaurant' && $ciK['cta'] === 'website_check'
+    && $ciCr !== null && $ciCr['art'] === 'beitrag' && MkInhalt::link($ciX) === MkKampagne::link($ciK, $ciCr) && MkInhalt::freigeben($ciIdF) !== null, json_encode($ciK));
+$ciIdK = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'karussell'");
+$ciFrK = MkInhalt::freigeben($ciIdK);
+pruefe('Content: ein zweites Stück für dieselbe Plattform im selben Monat landet in derselben Kampagne, mit eigenem Werbemittel',
+    $ciFrK === null && (int) MkInhalt::laden($ciIdK)['kampagne_id'] === (int) $ciK['id'] && (int) MkInhalt::laden($ciIdK)['creative_id'] !== (int) $ciCr['id'], (string) $ciFrK);
+MkInhalt::freigeben($ciIdG);
+pruefe('Content: Anzeigen kommen in eine eigene Anzeigen-Kampagne; benutzte Funde gelten danach als verwendet',
+    str_ends_with((string) MkKampagne::laden((int) MkInhalt::laden($ciIdG)['kampagne_id'])['name'], '· Anzeigen')
+    && Db::wert('SELECT status FROM mk_recherche WHERE id = ?', [$ciFid]) === 'verwendet');
+$ciKt = MkInhalt::kopiertext(MkInhalt::laden($ciIdF));
+MkInhalt::freigeben($ciIdI);
+$ciKi = MkInhalt::kopiertext(MkInhalt::laden($ciIdI));
+$ciKg = MkInhalt::kopiertext(MkInhalt::laden($ciIdG));
+pruefe('Content: fertiger Text — Facebook mit klickbarem Link, Instagram ohne (Link in Bio), Google mit Überschriften, Beschreibungen und finaler URL',
+    str_contains($ciKt, "Neuer Text\n\nzweiter Absatz") && str_contains($ciKt, MkInhalt::link(MkInhalt::laden($ciIdF))) && str_contains($ciKt, '#ristoranti #sicilia')
+    && !str_contains($ciKi, '/k/') && str_contains($ciKi, 'Link in bio')
+    && str_contains($ciKg, 'Überschrift 1: Sito per il tuo ristorante') && str_contains($ciKg, 'Finale URL: ' . MkInhalt::link(MkInhalt::laden($ciIdG))), $ciKt);
+$ciIdT = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'telegram'");
+pruefe('Content: veröffentlichen erst nach Freigabe, verwerfen nur Entwürfe; Veröffentlichtes lässt sich nicht mehr ändern',
+    MkInhalt::veroeffentlicht($ciIdT) !== null && MkInhalt::verwerfen($ciIdF) !== null && MkInhalt::veroeffentlicht($ciIdF) === null
+    && MkInhalt::laden($ciIdF)['veroeffentlicht_am'] !== null && MkInhalt::speichern($ciIdF, ['f_text' => 'nein']) !== null
+    && MkInhalt::verwerfen($ciIdT) === null && MkInhalt::liste() !== [] && !in_array($ciIdT, array_map('intval', array_column(MkInhalt::liste(), 'id')), true)
+    && MkInhalt::zaehlen()['verworfen'] === 1 && MkInhalt::zaehlen()['veroeffentlicht'] === 1);
+pruefe('Worker-Tür: marketing_inhalte gibt es, freigeben weiterhin nur in der Verwaltung',
+    in_array('marketing_inhalte', AkquiseWorker::AKTIONEN, true) && AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => 999999, 'inhalte' => []])['ok'] === false);
+
+/* Verwaltung */
+$ciLay = (string) file_get_contents($wurzel . '/views/layout.php');
+$ciIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Reiter „Inhalte“ unter Marketing mit Hilfesatz und Zahl der Entwürfe; alle Taten hinter CSRF',
+    str_contains($ciLay, "['inhalte', 'Inhalte', 'inhalte']") && Hilfe::satz('inhalte') !== '' && str_contains($ciLay, "\$navZahlen['inhalte']")
+    && strpos($ciIdx, "case 'inhalte_erstellen':") > strpos($ciIdx, 'Csrf::pruefen()') && strpos($ciIdx, "case 'inhalt_freigeben':") > strpos($ciIdx, 'Csrf::pruefen()'));
+$ciFehler = null; set_error_handler(static function (int $n, string $m) use (&$ciFehler): bool { $ciFehler = $m; return true; });
+$f = ['status' => '', 'art' => '', 'plattform' => '', 'zielgruppe' => 0]; $liste = MkInhalt::liste($f); $zahl = MkInhalt::zaehlen();
+$zielgruppen = Db::all("SELECT id, branche, land, titel, status FROM mk_zielgruppen WHERE status = 'freigegeben' OR vorher IS NOT NULL"); $alleZg = $zielgruppen;
+$kampagnen = Db::all('SELECT id, name FROM mk_kampagnen'); $auftraege = MkAuftrag::liste(6, 'inhalte'); $pc = ['pc_wach' => false, 'pc_alter' => 30];
+ob_start(); require $wurzel . '/views/inhalte.php'; $ciH1 = (string) ob_get_clean();
+$zielgruppen = [];
+ob_start(); require $wurzel . '/views/inhalte.php'; $ciH0 = (string) ob_get_clean();
+$ciSeiten = [];
+foreach (Db::all('SELECT id FROM mk_inhalte') as $ciR) {
+    $x = MkInhalt::laden((int) $ciR['id']); $zg = MkZielgruppe::laden($ciZid); $funde = [];
+    $kampagnen = Db::all('SELECT id, name, code FROM mk_kampagnen');
+    ob_start(); require $wurzel . '/views/inhalt.php'; $ciSeiten[$x['format'] . '/' . $x['status']] = (string) ob_get_clean();
+}
+restore_error_handler();
+pruefe('Verwaltung: Inhalte-Liste mit Schreib-Formular, Plattformen zum Anhaken, Stand des Auftrags und Karten; ohne freigegebene Zielgruppe ein Hinweis statt Formular',
+    $ciFehler === null && str_contains($ciH1, 'value="inhalte_erstellen"') && str_contains($ciH1, 'name="plattformen[]"') && str_contains($ciH1, 'Inhalte schreiben lassen')
+    && str_contains($ciH1, 'mk-inhalt-karte') && str_contains($ciH1, '7 Entwürfe') && !str_contains($ciH0, 'value="inhalte_erstellen"') && str_contains($ciH0, 'Noch keine freigegebene Zielgruppe'), (string) $ciFehler);
+pruefe('Verwaltung: jedes Format rendert ohne Warnung — Entwurf mit Freigabe und Bearbeiten, Freigegebenes mit eigenem Link, QR und fertigem Text',
+    $ciFehler === null && count($ciSeiten) >= 6
+    && str_contains($ciSeiten['google_anzeige/freigegeben'] ?? '', 'Gesponsert') && str_contains($ciSeiten['google_anzeige/freigegeben'] ?? '', 'mk-zaehler')
+    && str_contains($ciSeiten['google_anzeige/freigegeben'] ?? '', 'data-kopieren="mi_text"') && str_contains($ciSeiten['google_anzeige/freigegeben'] ?? '', '<svg')
+    && str_contains($ciSeiten['meta_anzeige/entwurf'] ?? '', 'Freigeben — eigenen Link erzeugen') && str_contains($ciSeiten['meta_anzeige/entwurf'] ?? '', 'name="f_primaertexte[]"')
+    && str_contains($ciSeiten['reel/entwurf'] ?? '', 'Drehbuch') && str_contains($ciSeiten['karussell/freigegeben'] ?? '', 'mk-folie')
+    && str_contains($ciSeiten['beitrag/veroeffentlicht'] ?? '', 'veröffentlicht am') && !str_contains($ciSeiten['beitrag/veroeffentlicht'] ?? '', 'value="inhalt_speichern"')
+    && str_contains($ciSeiten['telegram/verworfen'] ?? '', 'Telegram') , (string) $ciFehler . ' ' . implode(',', array_keys($ciSeiten)));
+$ciTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+pruefe('PC: Schreibaufträge laufen über dieselbe sichere Claude-Code-Brücke (nur Websuche/Webseiten, Uwes Abo) und liefern nur Entwürfe',
+    str_contains($ciTs, 'async function inhalteLauf') && str_contains($ciTs, "api('marketing_inhalte'") && str_contains($ciTs, 'SCHEMA_INHALTE') && !str_contains($ciTs, 'freigeb('));
+Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

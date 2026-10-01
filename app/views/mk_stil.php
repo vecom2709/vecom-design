@@ -91,6 +91,40 @@
   .mk-laeuft::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px;animation:mkPuls 1.4s ease-in-out infinite}
   @keyframes mkPuls{50%{opacity:.25}}
   @media (prefers-reduced-motion:reduce){.mk-laeuft::before{animation:none}}
+  /* Content-Studio (01.10.2026) */
+  .mk-plattformen{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center}
+  .mk-plattformen legend{font-size:13px;color:var(--dim);margin-bottom:6px;padding:0}
+  .mk-haken{display:inline-flex;gap:6px;align-items:center;font-size:14px;cursor:pointer;min-height:32px}
+  .mk-haken input{width:auto;margin:0}
+  .mk-inhalte{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+  .mk-inhalt-karte{display:flex;flex-direction:column;gap:8px;border:1px solid var(--linie);border-radius:12px;padding:14px;background:var(--flaeche2);color:inherit;text-decoration:none;min-width:0;transition:border-color .18s cubic-bezier(.16,1,.3,1)}
+  .mk-inhalt-karte:hover,.mk-inhalt-karte:focus-visible{border-color:var(--linie2)}
+  .mk-inhalt-karte__marken{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .mk-inhalt-karte__titel{font-size:15px;line-height:1.3;overflow-wrap:anywhere}
+  .mk-inhalt-karte__text{font-size:13px;line-height:1.5;color:var(--dim);overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:4;-webkit-box-orient:vertical;overflow:hidden}
+  .mk-inhalt-karte__fuss{display:flex;gap:8px;align-items:center;margin-top:auto;flex-wrap:wrap}
+  .mk-vorschau{border:1px solid var(--linie);border-radius:14px;background:#fff;color:#1c1e21;padding:14px 16px;max-width:520px;font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .mk-vorschau__kopf{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .mk-vorschau__logo{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#c9a24d,#7a5a1e);flex:none}
+  .mk-vorschau__name{font-weight:600;font-size:14px} .mk-vorschau__zweit{font-size:12px;color:#65676b}
+  .mk-vorschau__text{white-space:pre-line;overflow-wrap:anywhere}
+  .mk-vorschau__tags{color:#00376b;margin-top:6px;overflow-wrap:anywhere}
+  .mk-vorschau__bild{margin:10px -16px;aspect-ratio:1/1;background:#eceff3;display:flex;align-items:center;justify-content:center;color:#65676b;font-size:12.5px;padding:18px;text-align:center}
+  .mk-vorschau__leiste{display:flex;justify-content:space-between;gap:10px;align-items:center;background:#f0f2f5;margin:10px -16px -14px;padding:10px 16px;border-radius:0 0 14px 14px}
+  .mk-vorschau__leiste b{display:block;font-size:14px} .mk-vorschau__leiste small{color:#65676b;font-size:12px}
+  .mk-vorschau__knopf{background:#e4e6eb;border-radius:6px;padding:7px 12px;font-weight:600;font-size:13px;white-space:nowrap}
+  .mk-vorschau.google .g-url{font-size:12.5px;color:#202124} .mk-vorschau.google .g-anz{font-weight:700;font-size:12px;margin-right:4px}
+  .mk-vorschau.google .g-titel{color:#1a0dab;font-size:19px;line-height:1.3;margin:4px 0} .mk-vorschau.google .g-text{color:#4d5156;font-size:14px}
+  .mk-folien{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(180px,220px);gap:10px;overflow-x:auto;padding-bottom:6px;margin:10px -16px;padding-left:16px;padding-right:16px}
+  .mk-folie{aspect-ratio:4/5;border-radius:10px;background:#1c1e21;color:#fff;padding:14px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px}
+  .mk-folie b{font-size:16px;line-height:1.25} .mk-folie span{font-size:12.5px;opacity:.85;line-height:1.4} .mk-folie i{font-style:normal;font-size:11px;opacity:.6}
+  .mk-szenen td{vertical-align:top;white-space:normal!important;font-size:13px}
+  .mk-zaehler{font-size:12px;color:var(--leise);font-variant-numeric:tabular-nums} .mk-zaehler.zu{color:var(--rot);font-weight:600}
+  .mk-zeilen{display:grid;gap:4px;margin:0;padding:0;list-style:none} .mk-zeilen li{display:flex;justify-content:space-between;gap:10px;font-size:14px;border-bottom:1px solid var(--linie);padding:5px 0}
+  .mk-bearbeiten textarea{min-height:90px;font-size:14px;line-height:1.5}
+  .mk-bearbeiten .feld{margin:0 0 12px}
+  .mk-teilen > .mk-qr{flex:0 0 132px}
+  @media(min-width:900px){.mk-schreiben > .feld:first-of-type{grid-column:span 2}}
   .mk-budget{display:inline-block;width:90px;height:6px;border-radius:99px;background:var(--flaeche2);overflow:hidden;vertical-align:middle;margin:6px 6px 2px 0}
   .mk-budget i{display:block;height:100%;border-radius:99px}
   .mk-budget.gross{width:100%;height:9px;margin:4px 0 6px}

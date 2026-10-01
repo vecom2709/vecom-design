@@ -74,11 +74,108 @@ export const SCHEMA = {
 };
 
 type Auftrag = {
-  id: number; branche: string; land: string; beschreibung: string;
+  id: number; art?: 'recherche'; branche: string; land: string; beschreibung: string;
   zielgruppen_fuer: { branche: string; name: string }[];
   vorhandene_profile: Record<string, unknown>;
   daten: Record<string, unknown>;
 };
+
+/** Content-Studio (01.10.2026): Claude schreibt Inhalte für eine freigegebene Zielgruppe. */
+type InhalteAuftrag = {
+  id: number; art: 'inhalte'; branche: string; land: string; beschreibung: string;
+  zielgruppe: { id: number; name: string; profil: Record<string, unknown> | null };
+  plattformen: string[]; umfang: 'organisch' | 'bezahlt' | 'beides'; anzahl: number; thema: string;
+  formate: Record<string, { wort: string; art: string; plattformen: string[] }>;
+  grenzen: Record<string, number>; meta_cta: Record<string, string>; zielseite: string;
+  funde: { id: number; art: string; titel: string; text: string; relevanz: number; gemerkt: boolean; quellen: string[] }[];
+  bisherige_titel: string[];
+};
+
+const FOLIEN = { type: 'array', items: { type: 'object', properties: { titel: { type: 'string' }, text: { type: 'string' } } } };
+/** Schema für geschriebene Inhalte. Die Grenzen prüft die Verwaltung (MkInhalt::pruefen) noch einmal. */
+export const SCHEMA_INHALTE = {
+  type: 'object',
+  required: ['inhalte', 'zusammenfassung'],
+  properties: {
+    zusammenfassung: { type: 'string' },
+    inhalte: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['format', 'plattform', 'sprache', 'titel', 'felder', 'bildidee', 'begruendung', 'fund_ids'],
+        properties: {
+          format: { type: 'string', enum: ['beitrag', 'karussell', 'reel', 'story', 'telegram', 'profil', 'meta_anzeige', 'google_anzeige'] },
+          plattform: { type: 'string' }, sprache: { type: 'string', enum: ['it', 'de', 'en'] }, titel: { type: 'string' },
+          felder: {
+            type: 'object',
+            properties: {
+              hook: { type: 'string' }, text: { type: 'string' }, hashtags: LISTE, cta: { type: 'string' }, knopf: { type: 'string' },
+              folien: FOLIEN,
+              szenen: { type: 'array', items: { type: 'object', properties: { sekunden: { type: 'integer' }, bild: { type: 'string' }, einblendung: { type: 'string' }, sprecher: { type: 'string' } } } },
+              primaertexte: LISTE, ueberschriften: LISTE, beschreibung: { type: 'string' }, beschreibungen: LISTE,
+              pfad1: { type: 'string' }, pfad2: { type: 'string' }, keywords: LISTE,
+            },
+          },
+          bildidee: { type: 'string' }, begruendung: { type: 'string' },
+          fund_ids: { type: 'array', items: { type: 'integer' } },
+        },
+      },
+    },
+  },
+};
+
+/** Der Schreibauftrag an Claude. */
+export function inhalteText(a: InhalteAuftrag): string {
+  const sprache = a.land === 'DE' ? 'Deutsch, Anrede „Sie“' : 'Italienisch, Anrede „Lei“';
+  const g = a.grenzen ?? {};
+  return `Du schreibst Marketing-Inhalte für Vecom Design. Ergebnis sind ENTWÜRFE, die Uwe (Inhaber) prüft, ändert und freigibt.
+
+AUFTRAG #${a.id}: ${a.beschreibung}
+Zielgruppe: ${a.zielgruppe.name} · ${a.land}
+Anzahl: genau ${a.anzahl} Stück · Umfang: ${a.umfang === 'beides' ? 'organisch und bezahlt (etwa zwei Drittel organisch)' : a.umfang === 'organisch' ? 'nur organische Beiträge' : 'nur Anzeigen'}
+Plattformen: ${a.plattformen.join(', ')}${a.thema ? `\nThema: ${a.thema}` : ''}
+Zielseite der Links: https://vecom-design.it${a.zielseite}
+
+ERLAUBTE FORMATE (format → plattformen)
+${Object.entries(a.formate).map(([k, v]) => `- ${k} (${v.wort}, ${v.art}): ${v.plattformen.join(', ')}`).join('\n')}
+Verteile die Stücke sinnvoll über Plattformen und Formate; kein Format mehr als dreimal.
+
+ÜBER VECOM
+${ANBIETER}
+
+FELDER JE FORMAT (felder)
+- beitrag: hook (erste Zeile, ≤${g.hook ?? 150}), text (≤${g.text ?? 2200}, Absätze mit Leerzeile), hashtags (3–8, ohne #), cta
+- karussell: hook, folien 4–8 [{titel ≤${g.folie_titel ?? 60}, text ≤${g.folie_text ?? 250}}], text (Begleittext), hashtags, cta
+- reel: hook (die ersten 2 Sekunden), szenen 4–8 [{sekunden, bild (was man sieht), einblendung (Text im Bild, ≤6 Wörter), sprecher}], text, hashtags, cta — 15–45 Sekunden gesamt
+- story: folien 2–4 [{titel, text}], cta (Sticker-Text)
+- telegram: text (≤${g.telegram ?? 1024}), knopf (≤${g.knopf ?? 40})
+- profil (Google-Unternehmensprofil von Vecom): text (≤${g.profil ?? 1500}), cta
+- meta_anzeige: primaertexte 2–3 Varianten (das Wichtige in den ersten ${g.primaertext_sichtbar ?? 125} Zeichen), ueberschriften 3–5 (≤${g.meta_ueberschrift_empf ?? 40}), beschreibung (≤30), cta = einer von ${Object.keys(a.meta_cta ?? {}).join(', ')}
+- google_anzeige: ueberschriften 10–15 (JEDE ≤${g.g_ueberschrift ?? 30} Zeichen — zähle nach!), beschreibungen 4 (JEDE ≤${g.g_beschreibung ?? 90}), pfad1/pfad2 (≤15, ohne Leerzeichen), keywords 8–15 (ohne Match-Zeichen)
+
+REGELN — unbedingt
+- Sprache: ${sprache}. titel, bildidee und begruendung auf Deutsch (für Uwe).
+- Grundlage ist das freigegebene Zielgruppen-Profil unten: seine Probleme, Wünsche, Einwände, Fragen und Botschaften. Jedes Stück greift genau EINEN Punkt daraus auf.
+- Zahlen und Fakten nur aus dem Profil, den Funden unten oder „Über Vecom“ — mit Herkunft im Text, wo es passt („laut FIPE 2025“). Nichts erfinden: keine Kundenstimmen, keine Ergebnisse, keine Rabatte, keine Fristen, die nicht belegt sind.
+- Benutzte Funde in fund_ids eintragen (ihre id). Gemerkte Funde zuerst.
+- Keine Links und keine Telefonnummern in die Texte — den eigenen Link setzt die Verwaltung bei der Freigabe. Auf Instagram/TikTok im Aufruf „Link in Bio“ verwenden.
+- Ton: ruhig, konkret, respektvoll; Nutzen vor Technik. Höchstens zwei Emojis je Stück, keine in Anzeigen-Überschriften. Keine Superlative („il migliore“), keine Garantien, keine künstliche Eile, keine Namen von Mitbewerbern.
+- Anzeigen: keine Aussagen, die persönliche Merkmale oder Notlagen unterstellen (Meta-Richtlinie) — „Per chi ha un ristorante …“ statt „Il tuo ristorante sta fallendo?“.
+- Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern; Aufrufe führen auf die Website (kostenloser Website-Check, Preis berechnen, Termin).
+- bildidee: ein konkretes Motiv aus dem echten Alltag der Branche, ruhiges Licht, keine Stockfoto-Klischees; Text im Bild höchstens 5 Wörter, groß und kontrastreich.
+- begruendung: 1–2 Sätze — welcher Punkt des Profils, warum dieses Format auf dieser Plattform.
+- Nicht wiederholen, was in „bisherige_titel“ steht.
+- zusammenfassung: 2–3 Sätze auf Deutsch für Uwe.
+
+ZIELGRUPPEN-PROFIL (freigegeben)
+${JSON.stringify(a.zielgruppe.profil ?? {}, null, 1).slice(0, 40_000)}
+
+FUNDE (mit id)
+${JSON.stringify(a.funde ?? [], null, 1).slice(0, 30_000)}
+
+BISHERIGE TITEL
+${JSON.stringify(a.bisherige_titel ?? [])}`;
+}
 
 /** Der Auftrag an Claude — ein Text, alles drin, was er braucht. */
 export function auftragText(a: Auftrag): string {
@@ -142,8 +239,8 @@ function claudePfad(): string {
 
 type Ergebnis = { zielgruppen: Record<string, unknown>[]; funde: Record<string, unknown>[]; zusammenfassung: string };
 
-/** Aus der Antwort von „claude -p --output-format json“ das Ergebnis lesen. */
-export function ergebnisLesen(roh: string): Ergebnis {
+/** Das innere JSON aus der Antwort von „claude -p --output-format json“ (strukturierte Ausgabe oder Text). */
+export function innenLesen(roh: string): any {
   let aussen: any;
   try { aussen = JSON.parse(roh.trim()); } catch { throw new Error('Claude hat kein JSON geliefert: ' + roh.slice(0, 300)); }
   if (aussen?.is_error || (aussen?.subtype && aussen.subtype !== 'success')) {
@@ -156,11 +253,17 @@ export function ergebnisLesen(roh: string): Ergebnis {
     const kern = zaun ? zaun[1] : t.slice(t.indexOf('{'), t.lastIndexOf('}') + 1);
     try { innen = JSON.parse(kern); } catch { throw new Error('Ergebnis nicht lesbar: ' + t.slice(0, 300)); }
   }
+  return innen;
+}
+
+/** Aus der Antwort von „claude -p --output-format json“ das Ergebnis lesen. */
+export function ergebnisLesen(roh: string): Ergebnis {
+  const innen = innenLesen(roh);
   if (!innen || !Array.isArray(innen.zielgruppen) || !Array.isArray(innen.funde)) throw new Error('Ergebnis ohne zielgruppen/funde.');
   return { zielgruppen: innen.zielgruppen, funde: innen.funde, zusammenfassung: String(innen.zusammenfassung ?? '') };
 }
 
-function claudeAusfuehren(text: string, ordner: string): Promise<string> {
+function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA): Promise<string> {
   /* Nur Uwes Anmeldung (claude.ai, Max-Abo): ein API-Schlüssel in der Umgebung
      würde stattdessen pro Aufruf abrechnen — Uwe: „soll über mein Abo“. */
   const umgebung: NodeJS.ProcessEnv = { ...process.env };
@@ -172,7 +275,7 @@ function claudeAusfuehren(text: string, ordner: string): Promise<string> {
     '--permission-mode', 'dontAsk',
     '--safe-mode',                            // ohne CLAUDE.md, Skills, Plugins, MCP, Hooks
     '--no-session-persistence',
-    '--json-schema', JSON.stringify(SCHEMA),
+    '--json-schema', JSON.stringify(schema),
   ];
   return new Promise((fertig, scheitern) => {
     const p = spawn(claudePfad(), argumente, { cwd: ordner, env: umgebung, windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
@@ -194,6 +297,7 @@ function claudeAusfuehren(text: string, ordner: string): Promise<string> {
 /** Einen wartenden Auftrag abarbeiten. Gibt true zurück, wenn einer da war. */
 export async function marketingLauf(): Promise<boolean> {
   const r = await api('marketing_auftrag_holen');
+  if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude recherchiert`);
@@ -230,4 +334,29 @@ export async function marketingLauf(): Promise<boolean> {
     await api('marketing_auftrag_melden', { id: a.id, ok: false, text: grund.slice(0, 900) }).catch(() => {});
   }
   return true;
+}
+
+/** Content-Studio: schreiben lassen, als Entwürfe abliefern, zurückmelden. */
+async function inhalteLauf(a: InhalteAuftrag): Promise<void> {
+  log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude schreibt`);
+  await api('status_melden', { art: 'marketing', stand: 0, ziel: a.anzahl, text: a.beschreibung }).catch(() => {});
+  const ordner = datenOrdner('marketing');
+  const t0 = Date.now();
+  try {
+    if (!a.zielgruppe?.profil) throw new Error('Die Zielgruppe ist nicht (mehr) freigegeben.');
+    const roh = await claudeAusfuehren(inhalteText(a), ordner, SCHEMA_INHALTE);
+    writeFileSync(join(ordner, `auftrag-${a.id}.json`), roh);
+    const innen = innenLesen(roh);
+    if (!innen || !Array.isArray(innen.inhalte)) throw new Error('Ergebnis ohne inhalte.');
+    const j = await api('marketing_inhalte', { auftrag_id: a.id, inhalte: innen.inhalte.slice(0, 30) });
+    const fehler: string[] = j.fehler ?? [];
+    const neu = j.neu ?? 0;
+    const text = [String(innen.zusammenfassung ?? '').trim(), fehler.length ? 'Übersprungen: ' + fehler.join('; ') : ''].filter(Boolean).join('\n');
+    await api('marketing_auftrag_melden', { id: a.id, ok: neu > 0, inhalte: neu, text: text || (neu > 0 ? '' : 'Claude hat nichts Verwertbares geliefert.') });
+    log.info('marketing', `Auftrag #${a.id} fertig nach ${Math.round((Date.now() - t0) / 60_000)} Min.: ${neu} Entwürfe${fehler.length ? ` (${fehler.length} übersprungen)` : ''}`);
+  } catch (x) {
+    const grund = (x as Error).message;
+    log.fehler('marketing', `Auftrag #${a.id}: ${grund}`);
+    await api('marketing_auftrag_melden', { id: a.id, ok: false, text: grund.slice(0, 900) }).catch(() => {});
+  }
 }

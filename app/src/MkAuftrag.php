@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/MkKampagne.php';
 require_once __DIR__ . '/MkZielgruppe.php';
+require_once __DIR__ . '/MkInhalt.php';
 
 /**
  * Recherche per Knopf (Marketing-Studio, 01.10.2026, Uwe: „Recherche soll
@@ -40,6 +41,12 @@ final class MkAuftrag
     /** Was der Auftrag tut — in einem Satz. */
     public static function beschreibung(array $a): string
     {
+        if (($a['art'] ?? 'recherche') === 'inhalte') {
+            $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            $pl = implode(', ', array_map(static fn($x) => MkKampagne::PLATTFORMEN[$x] ?? $x, (array) ($p['plattformen'] ?? [])));
+            return 'Inhalte · ' . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
+                . ($pl !== '' ? ' für ' . $pl : '') . (($p['umfang'] ?? 'beides') !== 'beides' ? ' (' . (MkInhalt::ARTEN[$p['umfang']] ?? $p['umfang']) . ')' : '');
+        }
         $land = MkZielgruppe::LAENDER[$a['land']] ?? $a['land'];
         if ($a['branche'] === '') { return 'Alle Branchen · ' . $land . ' — neue Funde und fehlende Zielgruppen'; }
         return (MkKampagne::branchen()[$a['branche']] ?? $a['branche']) . ' · ' . $land . ' — Zielgruppe und Funde';
@@ -52,12 +59,48 @@ final class MkAuftrag
         if ($branche !== '' && !isset(MkKampagne::branchen()[$branche])) { return 'Unbekannte Branche.'; }
         if (!isset(MkZielgruppe::LAENDER[$land])) { return 'Land muss Italien oder Deutschland sein.'; }
         self::aufraeumen();
-        $offen = Db::one("SELECT id, status FROM mk_auftraege WHERE branche = ? AND land = ? AND status IN ('wartet','laeuft') LIMIT 1", [$branche, $land]);
+        $offen = Db::one("SELECT id, status FROM mk_auftraege WHERE art = 'recherche' AND branche = ? AND land = ? AND status IN ('wartet','laeuft') LIMIT 1", [$branche, $land]);
         if ($offen) { return $offen['status'] === 'laeuft' ? 'Diese Recherche läuft gerade schon.' : 'Diese Recherche wartet schon auf deinen PC.'; }
-        $heute = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE created_at >= CURDATE() AND status <> 'abgebrochen'", [], 0);
-        if ($heute >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Recherchen gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
-        $id = (int) Db::insert('mk_auftraege', ['branche' => $branche, 'land' => $land]);
+        if (self::heute('recherche') >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Recherchen gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
+        $id = (int) Db::insert('mk_auftraege', ['art' => 'recherche', 'branche' => $branche, 'land' => $land]);
         Events::protokoll('recherche_auftrag', 'Recherche angestoßen: ' . self::beschreibung(['branche' => $branche, 'land' => $land]), null, null, null, ['auftrag_id' => $id]);
+        return $id;
+    }
+
+    private static function heute(string $art): int
+    {
+        return (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = ? AND created_at >= CURDATE() AND status <> 'abgebrochen'", [$art], 0);
+    }
+
+    /**
+     * Content-Studio: Claude schreibt Inhalte für eine FREIGEGEBENE Zielgruppe.
+     * $p: zielgruppe (id), plattformen[], umfang organisch|bezahlt|beides, anzahl 3–12, thema, kampagne (id, optional)
+     * @return int|string
+     */
+    public static function anlegenInhalte(array $p): int|string
+    {
+        $zgId = (int) ($p['zielgruppe'] ?? 0);
+        $zg = Db::one('SELECT id, branche, land, titel, status, vorher FROM mk_zielgruppen WHERE id = ?', [$zgId]);
+        if (!$zg) { return 'Bitte eine Zielgruppe wählen.'; }
+        if ($zg['status'] !== 'freigegeben' && $zg['vorher'] === null) { return 'Diese Zielgruppe ist noch ein Entwurf — erst freigeben, dann schreibt Claude dafür.'; }
+        $pl = array_values(array_intersect(MkInhalt::PLATTFORMEN, array_map('strval', (array) ($p['plattformen'] ?? []))));
+        if ($pl === []) { return 'Bitte mindestens eine Plattform wählen.'; }
+        $umfang = (string) ($p['umfang'] ?? 'beides');
+        if (!in_array($umfang, ['organisch', 'bezahlt', 'beides'], true)) { $umfang = 'beides'; }
+        if (MkInhalt::formateFuerClaude($pl, $umfang) === []) { return 'Für diese Plattformen gibt es kein ' . (MkInhalt::ARTEN[$umfang] ?? '') . ' Format — z. B. Anzeigen nur auf Facebook, Instagram und Google.'; }
+        $anzahl = max(3, min(12, (int) ($p['anzahl'] ?? 6)));
+        $kampagne = (int) ($p['kampagne'] ?? 0);
+        if ($kampagne > 0 && MkKampagne::laden($kampagne) === null) { return 'Kampagne nicht gefunden.'; }
+        self::aufraeumen();
+        if (Db::one("SELECT id FROM mk_auftraege WHERE art = 'inhalte' AND status IN ('wartet','laeuft') AND parameter LIKE ? LIMIT 1", ['%"zielgruppe_id":' . $zgId . ',%'])) {
+            return 'Für diese Zielgruppe schreibt Claude gerade schon — oder der Auftrag wartet auf deinen PC.';
+        }
+        if (self::heute('inhalte') >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Schreibaufträge gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
+        $param = ['zielgruppe_id' => $zgId, 'zielgruppe_titel' => mb_substr((string) $zg['titel'], 0, 80), 'plattformen' => $pl, 'umfang' => $umfang,
+                  'anzahl' => $anzahl, 'thema' => mb_substr(trim(strip_tags((string) ($p['thema'] ?? ''))), 0, 200), 'kampagne_id' => $kampagne > 0 ? $kampagne : null];
+        $id = (int) Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => (string) $zg['branche'], 'land' => (string) $zg['land'],
+                                                'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        Events::protokoll('inhalte_auftrag', 'Inhalte angestoßen: ' . self::beschreibung(['art' => 'inhalte', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]), null, null, null, ['auftrag_id' => $id]);
         return $id;
     }
 
@@ -81,15 +124,15 @@ final class MkAuftrag
         return (bool) self::still(static fn() => (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE status = 'wartet'", [], 0) > 0, false);
     }
 
-    public static function liste(int $max = 6): array
+    public static function liste(int $max = 6, string $art = 'recherche'): array
     {
         self::aufraeumen();
-        return Db::all('SELECT * FROM mk_auftraege ORDER BY id DESC LIMIT ' . max(1, min(50, $max)));
+        return Db::all('SELECT * FROM mk_auftraege WHERE art = ? ORDER BY id DESC LIMIT ' . max(1, min(50, $max)), [$art]);
     }
 
-    public static function offen(): bool
+    public static function offen(string $art = 'recherche'): bool
     {
-        return (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE status IN ('wartet','laeuft')", [], 0) > 0;
+        return (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = ? AND status IN ('wartet','laeuft')", [$art], 0) > 0;
     }
 
     /**
@@ -105,6 +148,7 @@ final class MkAuftrag
             if (!$a) { return ['ok' => true, 'auftrag' => null]; }
             $n = Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
+            if (($a['art'] ?? 'recherche') === 'inhalte') { return ['ok' => true, 'auftrag' => self::inhalteAuftrag($a)]; }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
             $daten = MkZielgruppe::datenFuerClaude($branche !== '' ? $branche : null, $land);
@@ -123,7 +167,7 @@ final class MkAuftrag
                 if ($p) { $vorhanden[$b] = json_decode((string) $p['profil'], true) ?: null; }
             }
             return ['ok' => true, 'auftrag' => [
-                'id' => (int) $a['id'], 'branche' => $branche, 'land' => $land,
+                'id' => (int) $a['id'], 'art' => 'recherche', 'branche' => $branche, 'land' => $land,
                 'beschreibung' => self::beschreibung($a),
                 'zielgruppen_fuer' => array_map(static fn($b) => ['branche' => $b, 'name' => MkKampagne::branchen()[$b] ?? $b], $ziele),
                 'vorhandene_profile' => $vorhanden,
@@ -131,6 +175,34 @@ final class MkAuftrag
             ]];
         }
         return ['ok' => true, 'auftrag' => null];
+    }
+
+    /** Was Claude zum Schreiben bekommt: freigegebenes Profil, Funde der Branche, Formate, bisherige Titel (gegen Wiederholung). */
+    private static function inhalteAuftrag(array $a): array
+    {
+        $p = json_decode((string) $a['parameter'], true) ?: [];
+        $zg = Db::one('SELECT * FROM mk_zielgruppen WHERE id = ?', [(int) ($p['zielgruppe_id'] ?? 0)]);
+        $profil = $zg ? MkZielgruppe::freigegeben((string) $zg['branche'], (string) $zg['land']) : null;
+        $funde = [];
+        foreach (array_merge(MkZielgruppe::recherche(['branche' => (string) $a['branche']], 30), MkZielgruppe::recherche([], 30)) as $f) {
+            if (isset($funde[$f['id']]) || ($f['branche'] !== '' && $f['branche'] !== $a['branche']) || ($f['land'] !== '' && $f['land'] !== $a['land'])) { continue; }
+            $funde[$f['id']] = ['id' => (int) $f['id'], 'art' => $f['art'], 'titel' => $f['titel'], 'text' => $f['text'], 'relevanz' => (int) $f['relevanz'],
+                                'gemerkt' => $f['status'] === 'gemerkt', 'quellen' => array_map(static fn($q) => $q['url'], $f['q'])];
+            if (count($funde) >= 20) { break; }
+        }
+        $titel = array_map(static fn($r) => (string) $r['titel'], Db::all('SELECT titel FROM mk_inhalte WHERE zielgruppe_id = ? ORDER BY id DESC LIMIT 40', [(int) ($p['zielgruppe_id'] ?? 0)]));
+        $k = (int) ($p['kampagne_id'] ?? 0) > 0 ? MkKampagne::laden((int) $p['kampagne_id']) : null;
+        return [
+            'id' => (int) $a['id'], 'art' => 'inhalte', 'branche' => (string) $a['branche'], 'land' => (string) $a['land'],
+            'beschreibung' => self::beschreibung($a),
+            'zielgruppe' => ['id' => (int) ($zg['id'] ?? 0), 'name' => MkKampagne::branchen()[$a['branche']] ?? $a['branche'], 'profil' => $profil],
+            'plattformen' => (array) ($p['plattformen'] ?? []), 'umfang' => (string) ($p['umfang'] ?? 'beides'), 'anzahl' => (int) ($p['anzahl'] ?? 6),
+            'thema' => (string) ($p['thema'] ?? ''),
+            'formate' => MkInhalt::formateFuerClaude((array) ($p['plattformen'] ?? []), (string) ($p['umfang'] ?? 'beides')),
+            'grenzen' => MkInhalt::G, 'meta_cta' => MkInhalt::META_CTA,
+            'zielseite' => $k ? (string) $k['ziel'] : MkInhalt::zielSeite((string) $a['branche'], (string) $a['land']),
+            'funde' => array_values($funde), 'bisherige_titel' => $titel,
+        ];
     }
 
     /** Für den PC: fertig oder gescheitert. */
@@ -143,14 +215,17 @@ final class MkAuftrag
         $fu = max(0, min(999, (int) ($d['funde'] ?? 0)));
         $a = Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$id]);
         if (!$a) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
+        $in = max(0, min(999, (int) ($d['inhalte'] ?? 0)));
+        $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte';
         if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
         Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null,
-                                         'zielgruppen' => $zg, 'funde' => $fu, 'fertig_am' => date('Y-m-d H:i:s')]);
-        self::still(static fn() => Events::melden('recherche_fertig',
-            $ok ? 'Recherche fertig: ' . self::beschreibung($a) : 'Recherche nicht geklappt: ' . self::beschreibung($a),
+                                         'zielgruppen' => $zg, 'funde' => $fu, 'fertig_am' => date('Y-m-d H:i:s')] + ($istInhalt ? ['inhalte' => $in] : []));
+        $wort = $istInhalt ? 'Inhalte' : 'Recherche';
+        self::still(static fn() => Events::melden($istInhalt ? 'inhalte_fertig' : 'recherche_fertig',
+            $ok ? $wort . ' fertig: ' . self::beschreibung($a) : $wort . ' nicht geklappt: ' . self::beschreibung($a),
             $ok ? 'gut' : 'info',   // kein „warnung“: das klingelte als Störung auf dem Handy
-            $ok ? $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.' : $text,
-            $zg > 0 && $fu === 0 ? 'zielgruppen' : 'recherche'), null);
+            $ok ? ($istInhalt ? $in . ' Entwürfe — bitte prüfen, ändern und freigeben.' : $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.') : $text,
+            $istInhalt ? 'inhalte' : ($zg > 0 && $fu === 0 ? 'zielgruppen' : 'recherche')), null);
         return ['ok' => true];
     }
 }

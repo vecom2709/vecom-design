@@ -10,10 +10,7 @@ require_once dirname(__DIR__) . '/src/MkAuftrag.php';
 $branchen = MkKampagne::branchen();
 $auftraege = $auftraege ?? [];
 $pc = $pc ?? ['pc_wach' => false, 'pc_alter' => null];
-$offen = false;
-foreach ($auftraege as $a) { if (in_array($a['status'], ['wartet', 'laeuft'], true)) { $offen = true; } }
-$uhr = static fn(?string $t): string => $t ? (date('Y-m-d', strtotime($t)) === date('Y-m-d') ? 'heute ' : date('d.m. ', strtotime($t))) . date('H:i', strtotime($t)) : '';
-$minuten = static fn(?string $von, ?string $bis = null): int => $von ? max(0, (int) round(((($bis ? strtotime($bis) : time())) - strtotime($von)) / 60)) : 0;
+
 $zurueck = http_build_query(array_filter($f));
 require __DIR__ . '/mk_stil.php';
 ?>
@@ -36,34 +33,8 @@ require __DIR__ . '/mk_stil.php';
     <button class="knopf haupt">Recherche starten</button>
   </form>
   <p class="mk-fein" style="margin:0;max-width:90ch;line-height:1.55">Dein PC holt den Auftrag ab und lässt Claude über dein Claude-Abo im Netz suchen (nur Websuche und Webseiten lesen, kein API-Schlüssel). Dauer etwa 10–20 Minuten. Alles kommt als Entwurf mit Quellen — nichts gilt, bevor du es freigibst. Höchstens <?= MkAuftrag::PRO_TAG ?> Recherchen am Tag.</p>
-  <?php if ($auftraege): ?>
-  <div class="tabellenrahmen"><table class="mk-tab">
-    <thead><tr><th>Auftrag</th><th>Stand</th><th>Ergebnis</th></tr></thead>
-    <tbody>
-    <?php foreach ($auftraege as $a): ?>
-      <tr>
-        <td class="mk-name"><?= Fmt::h(MkAuftrag::beschreibung($a)) ?><div class="mk-fein">angestoßen <?= Fmt::h($uhr($a['created_at'])) ?></div></td>
-        <td style="white-space:nowrap">
-          <?php if ($a['status'] === 'laeuft'): ?><span class="marke2 warnung mk-laeuft">Claude recherchiert</span><div class="mk-fein">seit <?= $minuten($a['gestartet_am']) ?> Min.</div>
-          <?php elseif ($a['status'] === 'wartet'): ?><span class="marke2">wartet auf deinen PC</span>
-            <form method="post" action="<?= Fmt::h(url('recherche')) ?>" style="margin:6px 0 0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_abbrechen"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><button class="knopf klein">Abbrechen</button></form>
-          <?php elseif ($a['status'] === 'fertig'): ?><span class="marke2 gut">fertig</span><div class="mk-fein"><?= Fmt::h($uhr($a['fertig_am'])) ?> · <?= $minuten($a['gestartet_am'], $a['fertig_am']) ?> Min.</div>
-          <?php else: ?><span class="marke2 <?= $a['status'] === 'fehler' ? 'schlecht' : '' ?>"><?= Fmt::h(MkAuftrag::STATUS[$a['status']] ?? $a['status']) ?></span><?php endif; ?>
-        </td>
-        <td><?php if ($a['status'] === 'fertig'): ?><?= (int) $a['zielgruppen'] ?> <?= (int) $a['zielgruppen'] === 1 ? 'Zielgruppe' : 'Zielgruppen' ?><?= (int) $a['zielgruppen'] > 0 ? ' (<a href="' . Fmt::h(url('zielgruppen')) . '">prüfen</a>)' : '' ?> · <?= (int) $a['funde'] ?> <?= (int) $a['funde'] === 1 ? 'neuer Fund' : 'neue Funde' ?><?php endif; ?>
-          <?php if (!empty($a['ergebnis'])): ?><div class="mk-fein" style="max-width:60ch;white-space:pre-line"><?= Fmt::h((string) $a['ergebnis']) ?></div><?php endif; ?></td>
-      </tr>
-    <?php endforeach; ?>
-    </tbody>
-  </table></div>
-  <?php endif; ?>
+  <?php $mkSeite = 'recherche'; require __DIR__ . '/mk_auftraege.php'; ?>
 </section>
-<?php if ($offen): ?>
-<script>
-/* Solange ein Auftrag wartet oder läuft: alle 30 Sekunden neu laden — aber nicht, während jemand tippt oder auswählt. */
-setTimeout(function () { var a = document.activeElement; if (!a || !/^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName)) { location.reload(); } }, 30000);
-</script>
-<?php endif; ?>
 
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('recherche')) ?>" aria-label="Funde filtern">
   <select name="art" aria-label="Art" style="width:auto"><option value="">Alle Arten</option><?php foreach (MkZielgruppe::ARTEN as $ak => $aw): ?><option value="<?= $ak ?>"<?= $f['art'] === $ak ? ' selected' : '' ?>><?= Fmt::h($aw) ?></option><?php endforeach; ?></select>

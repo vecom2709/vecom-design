@@ -34,3 +34,23 @@ test('Auftragstext: Land, Sprache, Regeln, Daten — und das Schema verlangt Que
   assert.ok(fund.required.includes('quellen'));
   assert.equal(fund.properties.quellen.minItems, 1);
 });
+
+import { inhalteText, SCHEMA_INHALTE } from '../src/ki/marketing.js';
+
+test('Schreibauftrag: Formate, Grenzen, Profil, Funde mit id — und keine Links im Text', () => {
+  const t = inhalteText({ id: 9, art: 'inhalte', branche: 'restaurant', land: 'IT', beschreibung: 'Inhalte · Ristoranti — 6 Stück',
+    zielgruppe: { id: 3, name: 'Restaurant', profil: { titel: 'Ristoranti in Sicilia', probleme: ['Provision pro Gedeck'] } },
+    plattformen: ['instagram', 'google'], umfang: 'beides', anzahl: 6, thema: 'Nebensaison',
+    formate: { beitrag: { wort: 'Beitrag', art: 'organisch', plattformen: ['instagram'] }, google_anzeige: { wort: 'Google-Suchanzeige', art: 'bezahlt', plattformen: ['google'] } },
+    grenzen: { g_ueberschrift: 30, g_beschreibung: 90 }, meta_cta: { LEARN_MORE: 'Mehr dazu' }, zielseite: '/siti-web-ristoranti.html',
+    funde: [{ id: 42, art: 'trend', titel: 'Nur 13,5 % mit Online-Reservierung', text: 'FIPE', relevanz: 5, gemerkt: true, quellen: ['https://example.org'] }], bisherige_titel: ['Alt'] });
+  assert.match(t, /AUFTRAG #9/);
+  assert.match(t, /genau 6 Stück/);
+  assert.match(t, /Thema: Nebensaison/);
+  assert.match(t, /JEDE ≤30 Zeichen/);
+  assert.match(t, /Italienisch, Anrede „Lei“/);
+  assert.match(t, /Keine Links und keine Telefonnummern/);
+  assert.match(t, /"id": 42/);
+  assert.match(t, /Ristoranti in Sicilia/);
+  assert.ok((SCHEMA_INHALTE.properties.inhalte as any).items.required.includes('fund_ids'));
+});

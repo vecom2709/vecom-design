@@ -541,6 +541,41 @@ if ($post) {
                     : $maErg;
                 weiter('recherche#auftraege');
 
+            /* Content-Studio (Marketing-Studio Schritt 2, 01.10.2026) */
+            case 'inhalte_erstellen':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $maErg = MkAuftrag::anlegenInhalte($_POST);
+                $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
+                    ? 'Schreibauftrag angestoßen. Dein PC holt ihn in den nächsten fünf Minuten ab; Claude braucht dann etwa 5–15 Minuten.'
+                    : $maErg;
+                weiter('inhalte#auftraege');
+
+            case 'inhalte_abbrechen':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $f = MkAuftrag::abbrechen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
+                weiter('inhalte#auftraege');
+
+            case 'inhalt_speichern':
+            case 'inhalt_freigeben':
+            case 'inhalt_veroeffentlicht':
+            case 'inhalt_verwerfen':
+                require_once __DIR__ . '/src/MkInhalt.php';
+                $miId = (int) ($_POST['id'] ?? 0);
+                $f = match ($tat) {
+                    'inhalt_speichern'       => MkInhalt::speichern($miId, $_POST),
+                    'inhalt_freigeben'       => MkInhalt::freigeben($miId, (int) ($_POST['kampagne'] ?? 0) ?: null),
+                    'inhalt_veroeffentlicht' => MkInhalt::veroeffentlicht($miId),
+                    default                  => MkInhalt::verwerfen($miId),
+                };
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? match ($tat) {
+                    'inhalt_speichern' => 'Gespeichert.',
+                    'inhalt_freigeben' => 'Freigegeben — der eigene Link steht unten. Kopieren, posten, dann „Veröffentlicht“ drücken.',
+                    'inhalt_veroeffentlicht' => 'Als veröffentlicht vermerkt. Klicks und Leads siehst du in der Kampagne.',
+                    default => 'Verworfen.',
+                };
+                weiter($tat === 'inhalt_verwerfen' && $f === null ? 'inhalte' : 'inhalte/' . $miId);
+
             case 'recherche_abbrechen':
                 require_once __DIR__ . '/src/MkAuftrag.php';
                 $f = MkAuftrag::abbrechen((int) ($_POST['id'] ?? 0));
@@ -4452,6 +4487,27 @@ switch ($route) {
         require_once __DIR__ . '/src/MkAuftrag.php';
         require_once __DIR__ . '/src/AkquiseSteuerung.php';
         ansicht('recherche', ['f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF), 'auftraege' => sicher(static fn() => MkAuftrag::liste(6), []),
+            'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
+        break;
+
+    case 'inhalte':   // Content-Studio (Marketing-Studio Schritt 2, 01.10.2026)
+        require_once __DIR__ . '/src/MkInhalt.php';
+        require_once __DIR__ . '/src/MkAuftrag.php';
+        require_once __DIR__ . '/src/AkquiseSteuerung.php';
+        if ($id !== null) {
+            $mi = MkInhalt::laden($id);
+            if ($mi === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            ansicht('inhalt', ['x' => $mi, 'zg' => $mi['zielgruppe_id'] ? MkZielgruppe::laden((int) $mi['zielgruppe_id']) : null,
+                'kampagnen' => Db::all("SELECT id, name, code FROM mk_kampagnen WHERE status <> 'beendet' ORDER BY id DESC LIMIT 60"),
+                'funde' => $mi['fund_ids'] ? Db::all('SELECT id, art, titel FROM mk_recherche WHERE id IN (' . implode(',', array_map('intval', explode(',', (string) $mi['fund_ids']))) . ')') : []]);
+            break;
+        }
+        $miF = ['status' => (string) ($_GET['status'] ?? ''), 'art' => (string) ($_GET['art'] ?? ''), 'plattform' => (string) ($_GET['plattform'] ?? ''), 'zielgruppe' => (int) ($_GET['zielgruppe'] ?? 0)];
+        ansicht('inhalte', ['f' => $miF, 'liste' => MkInhalt::liste($miF), 'zahl' => MkInhalt::zaehlen(),
+            'zielgruppen' => Db::all("SELECT id, branche, land, titel, status FROM mk_zielgruppen WHERE status = 'freigegeben' OR vorher IS NOT NULL ORDER BY land, titel"),
+            'alleZg' => Db::all('SELECT id, titel FROM mk_zielgruppen ORDER BY titel'),
+            'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' ORDER BY id DESC LIMIT 60"),
+            'auftraege' => sicher(static fn() => MkAuftrag::liste(6, 'inhalte'), []),
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
 

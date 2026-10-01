@@ -25,7 +25,9 @@ final class AkquiseWorker
                              /* Marketing-Studio (01.10.2026): Claude liest Zahlen und liefert Entwürfe ab -- freigegeben wird nur in der Verwaltung. */
                              'marketing_daten', 'marketing_zielgruppe', 'marketing_recherche',
                              /* Recherche per Knopf (01.10.2026): Auftrag abholen und zurückmelden. */
-                             'marketing_auftrag_holen', 'marketing_auftrag_melden'];
+                             'marketing_auftrag_holen', 'marketing_auftrag_melden',
+                             /* Content-Studio (01.10.2026): geschriebene Inhalte als Entwürfe abliefern. */
+                             'marketing_inhalte'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -91,6 +93,8 @@ final class AkquiseWorker
                 return MkZielgruppe::rechercheMelden(is_array($d['funde'] ?? null) ? $d['funde'] : []); })(),
             'marketing_auftrag_holen'  => (static function (): array { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::holen(); })(),
             'marketing_auftrag_melden' => (static function () use ($d): array { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::melden($d); })(),
+            'marketing_inhalte'        => (static function () use ($d): array { require_once __DIR__ . '/MkInhalt.php';
+                return MkInhalt::melden(is_array($d['inhalte'] ?? null) ? $d['inhalte'] : [], (int) ($d['auftrag_id'] ?? 0)); })(),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }
