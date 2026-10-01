@@ -24,7 +24,9 @@ final class Zustimmung
 {
     public const ARTEN = ['hosting', 'domain_transfer', 'domain_neu', 'mail', 'migration', 'abbuchung', 'mailumzug',
                             // Datenschutzhinweis vor dem Absenden im Telegram-Bot (30.09.2026)
-                            'datenschutz'];
+                            'datenschutz',
+                            // Vorher/Nachher-Beitrag mit dem Namen des Betriebs (Marketing-Studio 9, 01.10.2026)
+                            'referenz'];
 
     public static function festhalten(string $art, int $kundeId, string $text, string $sprache,
                                       string $fassung, ?int $projektId = null, ?int $bezugId = null): int

@@ -659,6 +659,23 @@ if ($post) {
                 }
                 weiter('inhalte/' . $miId . '#posten');
 
+            /* Marketing-Studio 9: Vorher/Nachher aus einem fertigen Projekt (nur mit Zustimmung des Kunden). */
+            case 'vorher_nachher_erstellen':
+                require_once __DIR__ . '/src/MkVorherNachher.php';
+                $vnKunde = (int) ($_POST['kunde'] ?? 0);
+                $vnPunkte = null;
+                foreach (MkVorherNachher::kandidaten() as $vnK) {
+                    if ((int) $vnK['id'] !== $vnKunde) { continue; }
+                    /* Gemessen, nicht behauptet: der Website-Check der neuen Seite, so wie ihn jeder Besucher machen kann. */
+                    $vnC = sicher(static function () use ($vnK): array { require_once __DIR__ . '/src/PartnerSeite.php'; return PartnerSeite::kurzcheck((string) $vnK['domain'], 'verwaltung'); }, ['ok' => false]);
+                    if (!empty($vnC['ok'])) { $vnPunkte = count(array_filter((array) $vnC['punkte'], static fn($pp) => ($pp['stand'] ?? '') === 'gut')); }
+                }
+                $maErg = MkVorherNachher::erstellen($vnKunde, $vnPunkte);
+                $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
+                    ? 'Drei Entwürfe angelegt. Dein PC fotografiert jetzt die neue Website und setzt das Vorher/Nachher-Bild zusammen (in den nächsten fünf Minuten).'
+                    : $maErg;
+                weiter('inhalte#vorher-nachher');
+
             /* Marketing-Studio 8: freigegebenen Beitrag den Partnern zum Teilen geben (mit ihrem Link). */
             case 'inhalt_partner':
                 require_once __DIR__ . '/src/MkPartnerBeitraege.php';
@@ -4747,6 +4764,7 @@ switch ($route) {
             'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' AND land IN (?, '') ORDER BY id DESC LIMIT 60", [$miLand]),
             'auftraege' => sicher(static fn() => MkAuftrag::liste(6, 'inhalte', $miLand), []),
             'ohneDeutsch' => $miLand === 'IT' ? (int) sicher(static fn() => count(MkZielgruppe::ohneUebersetzung(100)['inhalte']), 0) : 0,
+            'vorherNachher' => sicher(static function (): array { require_once __DIR__ . '/src/MkVorherNachher.php'; return MkVorherNachher::kandidaten(); }, []),
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
 

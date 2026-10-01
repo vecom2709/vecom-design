@@ -253,6 +253,13 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 PartnerErfolg::zeigenSetzen((int) $kunde['id'], ($_POST['wert'] ?? '') === 'ja');
                 $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke!');
 
+            } elseif ($tat === 'referenz') {
+                /* Vorher/Nachher (Marketing-Studio 9, 01.10.2026): nur der Kunde selbst entscheidet, jederzeit zurücknehmbar. */
+                require_once __DIR__ . '/app/src/MkVorherNachher.php';
+                MkVorherNachher::zustimmen((int) $kunde['id'], ($_POST['wert'] ?? '') === 'ja', $sprache);
+                $kunde['referenz_am'] = ($_POST['wert'] ?? '') === 'ja' ? date('Y-m-d H:i:s') : null;
+                $meldung = Texte::h(Texte::KUNDE['stimmeDanke'] ?? [], $sprache, 'Danke!');
+
             } elseif ($tat === 'am_telefon') {
                 /* Kein Formular, kein Umleiten: Die Seite meldet im
                    Hintergrund, dass dieser Kunde gerade das Sprachfenster
@@ -1067,6 +1074,24 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       </script>
     </details>
   <?php endif; endif; ?>
+
+  <?php /* ---------- Vorher/Nachher zeigen? (Marketing-Studio 9, 01.10.2026) ---------- */
+  if ($kunde && in_array($stufe, ['online', 'fertig'], true)):
+    require_once __DIR__ . '/app/src/MkVorherNachher.php'; $refAm = $kunde['referenz_am'] ?? null; ?>
+    <details class="klapp">
+      <summary><?= $h($T('refTitel')) ?></summary>
+      <p class="mini" style="margin-top:10px;line-height:1.55"><?= $h($T('refText')) ?></p>
+      <?php if ($refAm): ?>
+        <p class="mini" style="margin-top:8px"><?= $h(strtr($T('refIstJa'), ['{datum}' => Fmt::datum((string) $refAm)])) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="referenz"><input type="hidden" name="wert" value="nein">
+          <button class="knopf"><?= $h($T('refZurueck')) ?></button></form>
+      <?php else: ?>
+        <p class="mini" style="margin-top:8px;line-height:1.5;opacity:.85"><?= $h(MkVorherNachher::ZUSTIMMUNG[$sprache] ?? MkVorherNachher::ZUSTIMMUNG['it']) ?></p>
+        <form method="post" action="<?= $h($hier) ?>" style="margin-top:10px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="referenz"><input type="hidden" name="wert" value="ja">
+          <button class="knopf haupt"><?= $h($T('refJa')) ?></button></form>
+      <?php endif; ?>
+    </details>
+  <?php endif; ?>
 
   <?php /* ---------- Deine Betreuung: der zweite Vertrag ---------- */ ?>
   <?php $abo = $kunde ? sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null) : null; ?>

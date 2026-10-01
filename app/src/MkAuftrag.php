@@ -221,7 +221,9 @@ final class MkAuftrag
                 return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'medien', 'beschreibung' => self::beschreibung($a),
                     'medium' => (string) ($p['medium'] ?? 'bild'), 'modell' => (string) ($p['modell'] ?? ''), 'format' => (string) ($p['format'] ?? ''),
                     'prompt' => (string) ($p['prompt'] ?? ''), 'startbild' => $p['startbild'] ?? null, 'credits_ca' => (int) ($p['credits_ca'] ?? 0),
-                    'teil_bytes' => MkMedium::TEIL_BYTES, 'max_bytes' => MkMedium::MAX_BYTES]];
+                    'teil_bytes' => MkMedium::TEIL_BYTES, 'max_bytes' => MkMedium::MAX_BYTES,
+                    /* Marketing-Studio 9: Vorher/Nachher — der PC fotografiert statt Kie.ai. */
+                    'vn' => $p['vn'] ?? null]];
             }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
@@ -302,6 +304,7 @@ final class MkAuftrag
             $p = json_decode((string) $a['parameter'], true) ?: [];
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'fertig_am' => date('Y-m-d H:i:s')]);
             if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text, 'inhalte/' . (int) ($p['inhalt_id'] ?? 0)), null); }
+            if ($ok && !empty($p['vn'])) { require_once __DIR__ . '/MkVorherNachher.php'; self::still(static fn() => MkVorherNachher::verteilen($a), null); }
             /* Marketing-Studio 7: War das das letzte Bild einer Kampagne, kommt jetzt der Stapel per Telegram. */
             $elternId = (int) Db::wert('SELECT auftrag_id FROM mk_inhalte WHERE id = ?', [(int) ($p['inhalt_id'] ?? 0)], 0);
             if ($elternId > 0) { require_once __DIR__ . '/TelegramMarketing.php'; TelegramMarketing::vielleichtMelden($elternId); }

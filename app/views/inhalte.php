@@ -76,6 +76,19 @@ require __DIR__ . '/mk_stil.php';
   <?php $mkSeite = 'inhalte'; require __DIR__ . '/mk_auftraege.php'; ?>
 </section>
 
+<?php if (!empty($vorherNachher)): /* Marketing-Studio 9 */ ?>
+<section class="block mk-start" id="vorher-nachher" aria-labelledby="mk-vn-titel">
+  <h2 id="mk-vn-titel">Vorher/Nachher aus fertigen Projekten <span class="mehr">der Kunde hat zugestimmt · ein Klick: drei Entwürfe mit Bild</span></h2>
+  <ul class="mk-zeilen">
+    <?php foreach ($vorherNachher as $vn): ?>
+      <li><span><b><?= Fmt::h((string) ($vn['company'] ?: $vn['name'])) ?></b> <span class="mk-fein">· <?= Fmt::h((string) $vn['domain']) ?> · zugestimmt am <?= Fmt::h(date('d.m.Y', strtotime((string) $vn['referenz_am']))) ?></span></span>
+        <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="vorher_nachher_erstellen"><input type="hidden" name="kunde" value="<?= (int) $vn['id'] ?>"><button class="knopf klein haupt">Beitrag erstellen</button></form></li>
+    <?php endforeach; ?>
+  </ul>
+  <p class="mk-fein" style="margin:8px 0 0">Instagram, Facebook und Telegram in der Sprache des Kunden (mit deutscher Fassung). Dein PC fotografiert die neue Website und nimmt als „Vorher“ das Bild aus dem Website-Check der Akquise, falls es eins gibt. Freigeben wie immer.</p>
+</section>
+<?php endif; ?>
+
 <nav class="mk-chips" aria-label="Nach Stand" style="margin:0 0 12px">
   <a href="<?= Fmt::h($filterLink(['status' => ''])) ?>"<?= $f['status'] === '' ? ' aria-current="page"' : '' ?>>Offen (<?= (int) $zahl['entwurf'] + (int) $zahl['freigegeben'] ?>)</a>
   <?php foreach (MkInhalt::STATUS as $sk => $sw): ?><a href="<?= Fmt::h($filterLink(['status' => $sk])) ?>"<?= $f['status'] === $sk ? ' aria-current="page"' : '' ?>><?= Fmt::h($sw) ?> (<?= (int) ($zahl[$sk] ?? 0) ?>)</a><?php endforeach; ?>

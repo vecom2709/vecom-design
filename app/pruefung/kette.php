@@ -17858,6 +17858,101 @@ pruefe('Google-Profil: der Website-Check zeigt den Einstieg nur vor dem Ergebnis
     && str_contains((string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts'), 'Google-Unternehmensprofil einrichten'));
 
 /* ============================================================================
+   Marketing-Studio 9: Vorher/Nachher aus fertigen Projekten — nur mit
+   Zustimmung des Kunden (01.10.2026, Uwe: „ja“ zu S4)
+   ============================================================================ */
+abschnitt('Marketing-Studio 9: Vorher/Nachher');
+require_once $wurzel . '/src/MkVorherNachher.php';
+require_once $wurzel . '/src/Zustimmung.php';
+require_once $wurzel . '/src/Ablage.php';
+Db::run('DELETE FROM mk_auftraege');
+$vnK = (int) Db::insert('customers', ['name' => 'Mario Rossi', 'company' => 'VN Pizzeria Da Mario', 'email' => 'vn-kunde@probe.example', 'city' => 'Sciacca', 'sprache' => 'it']);
+Db::insert('projects', ['customer_id' => $vnK, 'name' => 'VN Probe', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'veroeffentlicht_domain' => 'vn-pizzeria.example']);
+$vnF = (int) Db::insert('akq_firmen', ['kennung' => 'VN00000001', 'name' => 'Pizzeria Da Mario', 'name_norm' => 'pizzeria da mario', 'land' => 'IT', 'stadt' => 'Sciacca', 'branche' => 'ristorante', 'customer_id' => $vnK]);
+@mkdir(Ablage::ordner() . '/akquise', 0755, true);
+$vnAltRoh = "\xFF\xD8\xFF" . str_repeat('altes-foto', 40);
+file_put_contents(Ablage::ordner() . '/akquise/VN00000001-pruefung-mobil.jpg', $vnAltRoh);
+Db::insert('akq_audits', ['firma_id' => $vnF, 'status' => 'fertig', 'gestartet_am' => date('Y-m-d H:i:s'), 'screenshot_mobil' => 'VN00000001-pruefung-mobil.jpg']);
+$vnIstKand = static fn(int $k): bool => in_array($k, array_map(static fn($c) => (int) $c['id'], MkVorherNachher::kandidaten()), true);
+pruefe('Vorher/Nachher: ohne Zustimmung kein Kandidat, kein Beitrag', !$vnIstKand($vnK) && is_string(MkVorherNachher::erstellen($vnK)));
+MkVorherNachher::zustimmen($vnK, true, 'it');
+$vnZu = Db::one("SELECT * FROM zustimmungen WHERE customer_id = ? AND art = 'referenz' ORDER BY id DESC LIMIT 1", [$vnK]);
+pruefe('Vorher/Nachher: Zustimmung im Kundenbereich hält Wortlaut und Fassung fest (Art referenz) und macht den Kunden zum Kandidaten',
+    $vnZu && (string) $vnZu['fassung'] === MkVorherNachher::FASSUNG && str_contains((string) $vnZu['text'], 'prima e dopo') && Db::wert('SELECT referenz_am FROM customers WHERE id = ?', [$vnK], null) !== null
+    && $vnIstKand($vnK) && in_array('referenz', Zustimmung::ARTEN, true), json_encode($vnZu));
+$vnA = MkVorherNachher::erstellen($vnK, 9);
+$vnI = Db::all('SELECT * FROM mk_inhalte WHERE kunde_id = ? ORDER BY id', [$vnK]);
+$vnP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($vnA) ? $vnA : 0], '{}'), true) ?: [];
+pruefe('Vorher/Nachher: ein Klick = drei Entwürfe (Instagram, Facebook, Telegram) auf Italienisch mit deutscher Fassung, gemessene Punkte statt Versprechen',
+    is_int($vnA) && count($vnI) === 3 && array_column($vnI, 'plattform') === ['instagram', 'facebook', 'telegram'] && array_unique(array_column($vnI, 'land')) === ['IT']
+    && array_unique(array_column($vnI, 'status')) === ['entwurf'] && str_contains((string) $vnI[0]['felder'], 'Prima e dopo') && str_contains((string) $vnI[0]['felder'], '9 punti su 12')
+    && str_contains((string) $vnI[0]['uebersetzung'], 'Vorher – nachher') && str_contains((string) $vnI[0]['uebersetzung'], '9 von 12 Punkten'), json_encode([$vnA, $vnI]));
+pruefe('Vorher/Nachher: der Bild-Auftrag geht an den PC (fotografieren statt Kie.ai, 0 Credits) — mit Adresse, Sprache, Betrieb und den zwei Geschwister-Entwürfen',
+    ($vnP['modell'] ?? '') === 'vorher-nachher' && (int) ($vnP['credits_ca'] ?? -1) === 0 && ($vnP['prompt'] ?? 'x') === '' && (int) $vnP['inhalt_id'] === (int) $vnI[0]['id']
+    && ($vnP['vn']['url'] ?? '') === 'https://vn-pizzeria.example' && $vnP['vn']['sprache'] === 'it' && $vnP['vn']['vorher'] === true
+    && $vnP['vn']['geschwister'] === [(int) $vnI[1]['id'], (int) $vnI[2]['id']] && $vnP['vn']['betrieb'] === 'VN Pizzeria Da Mario', json_encode($vnP));
+pruefe('Vorher/Nachher: einmal je Kunde — solange ein Entwurf lebt, kein zweiter', is_string(MkVorherNachher::erstellen($vnK)) && !$vnIstKand($vnK));
+$vnB = static fn() => AkquiseWorker::ausfuehren('marketing_vorher_bild', ['auftrag_id' => is_int($vnA) ? $vnA : 0]);
+pruefe('Vorher/Nachher: das alte Bildschirmfoto gibt es nur zu einem LAUFENDEN Auftrag', ($vnB()['ok'] ?? true) === false && in_array('marketing_vorher_bild', AkquiseWorker::AKTIONEN, true));
+$vnH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Vorher/Nachher: der PC bekommt den Auftrag als Medien-Auftrag mit vn — und ohne Prompt (Kie.ai bleibt außen vor)',
+    ($vnH['id'] ?? 0) === $vnA && $vnH['art'] === 'medien' && ($vnH['vn']['url'] ?? '') === 'https://vn-pizzeria.example' && $vnH['prompt'] === '', json_encode($vnH));
+pruefe('Vorher/Nachher: laufender Auftrag + Zustimmung → das alte Foto aus dem Website-Check (base64)', ($vnB()['bild'] ?? null) === base64_encode($vnAltRoh));
+Db::run('UPDATE customers SET referenz_am = NULL WHERE id = ?', [$vnK]);
+pruefe('Vorher/Nachher: Zustimmung weg → kein altes Foto, der PC bricht ab', ($vnB()['ok'] ?? true) === false);
+Db::run('UPDATE customers SET referenz_am = NOW() WHERE id = ?', [$vnK]);
+$vnPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+$vnUp = AkquiseWorker::ausfuehren('marketing_medium_teil', ['auftrag_id' => $vnA, 'teil' => 1, 'von' => 1, 'daten' => base64_encode($vnPng), 'sha256' => hash('sha256', $vnPng)]);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $vnA, 'ok' => true, 'text' => 'Vorher/Nachher-Bild fertig · ohne Credits']);
+$vnM = Db::all('SELECT inhalt_id, datei, status FROM mk_medien WHERE auftrag_id = ? ORDER BY inhalt_id', [$vnA]);
+pruefe('Vorher/Nachher: fertig gemeldet → dasselbe Bild steht bei allen drei Entwürfen, überall gewählt',
+    ($vnUp['ok'] ?? false) === true && count($vnM) === 3 && array_map('intval', array_column($vnM, 'inhalt_id')) === array_map('intval', array_column($vnI, 'id'))
+    && count(array_unique(array_column($vnM, 'datei'))) === 1 && array_unique(array_column($vnM, 'status')) === ['gewaehlt']
+    && MkMedium::gewaehlt((int) $vnI[2]['id'])['datei'] === $vnM[0]['datei'], json_encode($vnM));
+pruefe('Vorher/Nachher: Meldung „Vorher/Nachher fertig“ mit Weg in den Freigabe-Stapel des Landes',
+    (string) Db::wert("SELECT link FROM notifications WHERE type = 'vorher_nachher' ORDER BY id DESC LIMIT 1", [], '') === 'freigabe?land=IT');
+
+/* Deutscher Kunde ohne altes Foto: Sie-Form, Land DE, keine Übersetzung, Bild nur „Nachher“ */
+$vnK2 = (int) Db::insert('customers', ['name' => 'Karl Kamm', 'company' => 'VN Friseur Kamm', 'email' => 'vn-kamm@probe.example', 'city' => 'Ulm', 'sprache' => 'de']);
+Db::insert('projects', ['customer_id' => $vnK2, 'name' => 'VN Kamm', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'veroeffentlicht_domain' => 'https://www.vn-kamm.example/']);
+MkVorherNachher::zustimmen($vnK2, true, 'de');
+$vnA2 = MkVorherNachher::erstellen($vnK2);
+$vnI2 = Db::all('SELECT * FROM mk_inhalte WHERE kunde_id = ? ORDER BY id', [$vnK2]);
+$vnP2 = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($vnA2) ? $vnA2 : 0], '{}'), true) ?: [];
+pruefe('Vorher/Nachher (DE): Land DE, Sie-Form, ohne Übersetzung, ohne erfundene Punkte; ohne altes Foto merkt der Auftrag „vorher: nein“',
+    is_int($vnA2) && count($vnI2) === 3 && array_unique(array_column($vnI2, 'land')) === ['DE'] && $vnI2[0]['uebersetzung'] === null
+    && str_contains((string) $vnI2[0]['felder'], 'Wie steht Ihre Website da?') && !str_contains((string) $vnI2[0]['felder'], 'von 12')
+    && ($vnP2['vn']['vorher'] ?? true) === false && ($vnP2['vn']['url'] ?? '') === 'https://www.vn-kamm.example', json_encode([$vnI2[0]['felder'] ?? null, $vnP2['vn'] ?? null]));
+MkVorherNachher::zustimmen($vnK2, false, 'de');
+pruefe('Vorher/Nachher: Zurückziehen löscht referenz_am und meldet sich in der Verwaltung (Veröffentlichtes entfernen)',
+    array_key_exists('referenz_am', Db::one('SELECT referenz_am FROM customers WHERE id = ?', [$vnK2]) ?: []) && Db::one('SELECT referenz_am FROM customers WHERE id = ?', [$vnK2])['referenz_am'] === null
+    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'referenz' ORDER BY id DESC LIMIT 1", [], '') === 'kunden/' . $vnK2);
+Db::run("UPDATE mk_inhalte SET status = 'verworfen' WHERE kunde_id = ?", [$vnK]);
+pruefe('Vorher/Nachher: alle Entwürfe verworfen → der Kunde steht wieder zur Auswahl', $vnIstKand($vnK) && !$vnIstKand($vnK2));
+
+/* Oberflächen und PC */
+$vnKu = (string) file_get_contents($oben . '/kunde.php');
+pruefe('Kundenbereich: „Dürfen wir Ihre neue Website zeigen?“ nach der Übergabe — Wortlaut sichtbar, Ja und Zurückziehen, hinter CSRF',
+    strpos($vnKu, "} elseif (\$tat === 'referenz') {") > strpos($vnKu, "hash_equals((string) \$_SESSION['csrf']") && str_contains($vnKu, 'MkVorherNachher::ZUSTIMMUNG[$sprache]')
+    && str_contains($vnKu, 'name="tat" value="referenz"><input type="hidden" name="wert" value="nein">') && Texte::h(Texte::KUNDE['refTitel'], 'de') === 'Dürfen wir Ihre neue Website zeigen?');
+$vnIdx = (string) file_get_contents($wurzel . '/index.php');
+$vnIv = (string) file_get_contents($wurzel . '/views/inhalte.php');
+pruefe('Verwaltung: „Vorher/Nachher aus fertigen Projekten“ unter Inhalte, Knopf hinter CSRF; Punkte kommen aus dem Website-Check der neuen Seite',
+    strpos($vnIdx, "case 'vorher_nachher_erstellen':") > strpos($vnIdx, 'Csrf::pruefen()') && str_contains($vnIdx, "PartnerSeite::kurzcheck((string) \$vnK['domain'], 'verwaltung')")
+    && str_contains($vnIv, 'id="vorher-nachher"') && str_contains($vnIv, 'value="vorher_nachher_erstellen"') && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb')));
+$vnTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/vorhernachher.ts');
+$vnMk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+$vnKie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
+pruefe('PC: Vorher/Nachher ohne Kie.ai und ohne Credits, Cookie-Hinweise nur ausgeblendet (kein Klick), Route vor dem Kie-Lauf, Kie-Lauf lehnt Aufträge ohne Prompt ab',
+    !str_contains($vnTs, 'guthaben(') && !str_contains($vnTs, 'KIE_API_KEY') && !preg_match('/\.click\(|\.tap\(/', $vnTs) && str_contains($vnTs, "api<{ ok: boolean; bild?: string | null }>('marketing_vorher_bild'")
+    && strpos($vnMk, "r.auftrag.vn) { await vnLauf(") < strpos($vnMk, 'await medienLauf(') && strpos($vnKie, "a.modell === 'vorher-nachher'") < strpos($vnKie, 'const s = schluessel();'));
+@unlink(Ablage::ordner() . '/akquise/VN00000001-pruefung-mobil.jpg');
+foreach (array_unique(array_column($vnM, 'datei')) as $vnD) { @unlink(MkMedium::ordner() . '/' . $vnD); }
+Db::run('DELETE FROM mk_medien WHERE auftrag_id IN (?, ?)', [is_int($vnA) ? $vnA : 0, is_int($vnA2) ? $vnA2 : 0]);
+Db::run('DELETE FROM mk_inhalte WHERE kunde_id IN (?, ?)', [$vnK, $vnK2]);
+Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

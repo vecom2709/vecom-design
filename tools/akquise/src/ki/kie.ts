@@ -27,6 +27,8 @@ const BASIS = 'https://api.kie.ai';
 export type MedienAuftrag = {
   id: number; art: 'medien'; beschreibung: string; medium: 'bild' | 'video'; modell: string; format: string;
   prompt: string; startbild: string | null; credits_ca: number; teil_bytes: number; max_bytes: number;
+  /** Marketing-Studio 9: Vorher/Nachher — macht der PC selbst (ki/vorhernachher.ts), nie Kie.ai. */
+  vn?: { url: string; betrieb: string; sprache: string; kunde_id: number; vorher: boolean; geschwister: number[] } | null;
 };
 
 /** Der Schlüssel aus Uwes Umgebung — Prozess, sonst Benutzer-Umgebung (Windows). Nie ausgeben. */
@@ -127,6 +129,8 @@ export async function medienLauf(a: MedienAuftrag): Promise<void> {
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Kie.ai`);
   await api('status_melden', { art: 'marketing', stand: 0, ziel: 1, text: a.beschreibung }).catch(() => {});
   try {
+    /* Sicherung: Ein Vorher/Nachher-Auftrag hat keinen Prompt und darf nie Credits kosten. */
+    if (a.vn || a.modell === 'vorher-nachher' || a.prompt.trim() === '') throw new Error('Kein Prompt — dieser Auftrag ist nicht für Kie.ai.');
     const s = schluessel();
     if (!s) throw new Error('Kein KIE_API_KEY in deiner Benutzer-Umgebung — Windows: „Umgebungsvariablen für dieses Konto bearbeiten“ → Neu → KIE_API_KEY.');
     const vorher = await guthaben(s);

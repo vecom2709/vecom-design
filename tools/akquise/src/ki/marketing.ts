@@ -21,6 +21,7 @@ import { api } from '../api.js';
 import { datenOrdner } from '../konfig.js';
 import { log } from '../log.js';
 import { medienLauf, type MedienAuftrag } from './kie.js';
+import { vnLauf, type VnDaten } from './vorhernachher.js';
 
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
@@ -395,6 +396,8 @@ function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA)
 export async function marketingLauf(): Promise<boolean> {
   const r = await api('marketing_auftrag_holen');
   if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }
+  /* Marketing-Studio 9: Vorher/Nachher fotografiert der PC selbst — ohne Kie.ai, ohne Credits. */
+  if (r.auftrag?.art === 'medien' && r.auftrag.vn) { await vnLauf(r.auftrag as MedienAuftrag & { vn: VnDaten }); return true; }
   if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
   if (r.auftrag?.art === 'uebersetzen') { await uebersetzenLauf(r.auftrag as UebersetzenAuftrag); return true; }
   const a = r.auftrag as Auftrag | null;
