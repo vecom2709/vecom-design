@@ -30,7 +30,9 @@ const ANBIETER = `Vecom Design — Webdesign für kleine Betriebe, Sitz Provinz 
 Preise (fest, im Kostenvoranschlag; Rechnung = Voranschlag): Ein-Seiten-Website 325–400 €, Website „vetrina“ 600–750 €,
 mit Speisekarte/mehreren Sprachen/Buchung 1.000–1.650 €; jede weitere Seite 65–85 €, jede weitere Sprache 40–55 € pro Seite.
 Betreuung („assistenza“) ab 39 €/Monat, freiwillig, eigener Vertrag. Domain gehört dem Kunden (15–30 €/Jahr).
-Kostenvoranschlag und erstes Gespräch gratis; kostenloser Website-Check. Ton: persönlich, ohne Fachjargon.`;
+Kostenvoranschlag und erstes Gespräch gratis; kostenloser Website-Check. Ton: persönlich, ohne Fachjargon.
+Kleiner Einstieg (Festpreis 89 €, direkt buchbar): Google-Unternehmensprofil einrichten — Kategorie, Zeiten, Leistungen, Fotos,
+Bewertungslink mit QR; die Bestätigung macht Google; keine Versprechen zur Platzierung.`;
 
 /** Die eigenen Seiten je Land — Kunden in Deutschland landen auf den deutschen Seiten. */
 function anbieter(land: string): string {

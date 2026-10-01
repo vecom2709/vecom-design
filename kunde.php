@@ -1034,6 +1034,40 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </details>
   <?php endif; endif; ?>
 
+  <?php /* ---------- Weiterempfehlen und sparen (Marketing-Studio 8, 01.10.2026) ----------
+           Den Empfehlungslink gab es seit dem 03.09., aber nur als Vorlage für Uwe.
+           Jetzt steht er da, wo der Kunde zufrieden ist: nach der Übergabe. Teilen
+           tut der Kunde selbst (WhatsApp, Kopieren, QR) — Vecom schreibt niemanden an. */
+  if ($kunde && in_array($stufe, ['online', 'fertig'], true)):
+    require_once __DIR__ . '/app/src/Empfehlung.php';
+    $empfCode = (string) sicherLesen(fn() => Empfehlung::codeFuer((int) $kunde['id']), '');
+    if ($empfCode !== ''):
+      $empfLink = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/e/' . $empfCode;
+      $empfVerdient = count(array_filter((array) sicherLesen(fn() => Empfehlung::fuerKunde((int) $kunde['id']), []), static fn($e) => (string) ($e['status'] ?? '') === 'verdient'));
+      $empfWerte = ['{rabatt}' => (string) (int) sicherLesen(fn() => Empfehlung::prozent(), 15), '{monate}' => (string) (int) sicherLesen(fn() => Empfehlung::monate(), 12)];
+      require_once __DIR__ . '/app/src/MkKampagne.php'; ?>
+    <details class="klapp empfehlen">
+      <summary><?= $h($T('empfTitel')) ?></summary>
+      <p class="mini" style="margin-top:10px;line-height:1.55"><?= $h(strtr($T('empfText'), $empfWerte)) ?></p>
+      <label class="mini" for="empf_link" style="display:block;margin-top:10px"><?= $h($T('empfLink')) ?></label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <input id="empf_link" readonly value="<?= $h($empfLink) ?>" style="flex:1 1 240px;min-width:0;font-family:ui-monospace,monospace;font-size:14px">
+        <button class="knopf" type="button" data-empf-kopieren data-fertig="<?= $h($T('empfKopiert')) ?>"><?= $h($T('empfKopieren')) ?></button>
+        <a class="knopf haupt" href="https://wa.me/?text=<?= rawurlencode(strtr($T('empfNachricht'), ['{link}' => $empfLink])) ?>" target="_blank" rel="noopener noreferrer"><?= $h($T('empfWhatsapp')) ?></a>
+      </div>
+      <p class="mini" style="margin:12px 0 6px"><?= $h($T('empfQr')) ?></p>
+      <div style="width:148px;height:148px;background:#fff;border-radius:10px;padding:4px"><?= MkKampagne::qr($empfLink) ?></div>
+      <?php if ($empfVerdient > 0): ?><p class="mini" style="margin-top:10px"><?= $h(strtr($T('empfStand'), ['{n}' => (string) $empfVerdient])) ?><?php if (!empty($kunde['rabatt_bis'])): ?> · <?= $h(strtr($T('empfRabatt'), ['{datum}' => Fmt::datum((string) $kunde['rabatt_bis'])])) ?><?php endif; ?></p><?php endif; ?>
+      <script>
+        (function () { var k = document.querySelector('[data-empf-kopieren]'); if (!k) { return; }
+          k.addEventListener('click', function () { var f = document.getElementById('empf_link'); f.select();
+            var fertig = function () { k.textContent = k.dataset.fertig; };
+            if (navigator.clipboard) { navigator.clipboard.writeText(f.value).then(fertig, function () { document.execCommand('copy'); fertig(); }); }
+            else { document.execCommand('copy'); fertig(); } }); })();
+      </script>
+    </details>
+  <?php endif; endif; ?>
+
   <?php /* ---------- Deine Betreuung: der zweite Vertrag ---------- */ ?>
   <?php $abo = $kunde ? sicherLesen(fn() => Abo::fuerKunde((int) $kunde['id']), null) : null; ?>
   <?php if ($abo && (string) $abo['status'] !== 'angelegt'): ?>

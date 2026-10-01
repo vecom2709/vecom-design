@@ -659,6 +659,14 @@ if ($post) {
                 }
                 weiter('inhalte/' . $miId . '#posten');
 
+            /* Marketing-Studio 8: freigegebenen Beitrag den Partnern zum Teilen geben (mit ihrem Link). */
+            case 'inhalt_partner':
+                require_once __DIR__ . '/src/MkPartnerBeitraege.php';
+                $miId = (int) ($_POST['id'] ?? 0);
+                $f = MkPartnerBeitraege::setzen($miId, !empty($_POST['an']));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? (!empty($_POST['an']) ? 'Die Partner sehen den Beitrag jetzt im Portal (Reiter Werben) — mit ihrem eigenen Link.' : 'Für Partner zurückgezogen.');
+                weiter('inhalte/' . $miId . '#posten');
+
             case 'inhalt_speichern':
             case 'inhalt_freigeben':
             case 'inhalt_veroeffentlicht':

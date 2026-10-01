@@ -96,6 +96,10 @@ require __DIR__ . '/mk_stil.php';
         <?php if ($kamp): ?><a class="knopf" href="<?= Fmt::h(url('kampagnen/' . (int) $kamp['id'])) ?>">Kampagne „<?= Fmt::h($kamp['name']) ?>“ · Zahlen</a><?php endif; ?>
       </div>
       <p class="mk-fein" style="margin:0">Werbemittel <span class="mk-code"><?= Fmt::h(($kamp['code'] ?? '') . '/' . ($cr['code'] ?? '')) ?></span><?= $x['veroeffentlicht_am'] ? ' · veröffentlicht am ' . Fmt::h(date('d.m.Y', strtotime((string) $x['veroeffentlicht_am']))) : '' ?></p>
+      <?php if ($x['art'] === 'organisch'): /* Marketing-Studio 8 */ ?>
+        <?= $posten('inhalt_partner', !empty($x['partner']) ? 'Für Partner zurückziehen' : 'Partnern zum Teilen geben', 'knopf klein', '<input type="hidden" name="an" value="' . (!empty($x['partner']) ? '' : '1') . '">') ?>
+        <span class="mk-fein"><?= !empty($x['partner']) ? 'Steht im Partnerportal — mit dem Link des jeweiligen Partners.' : 'Partner bekommen ihn mit ihrem eigenen Link (Provision bleibt bei ihnen).' ?></span>
+      <?php endif; ?>
     </div>
     <div class="mk-qr" aria-label="QR-Code zum Link"><?= MkKampagne::qr($link) ?></div>
   </div>

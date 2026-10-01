@@ -17795,6 +17795,69 @@ Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'AP %'"); Db::run("DELETE FROM 
 Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_%'");
 
 /* ============================================================================
+   Marketing-Studio 8: Empfehlen leicht gemacht (Kunden und Partner) und ein
+   kleiner Einstieg — Google-Unternehmensprofil (01.10.2026, Uwe: „ja“ zu S3, S6)
+   ============================================================================ */
+abschnitt('Marketing-Studio 8: Empfehlen und Google-Profil');
+require_once $wurzel . '/src/MkPartnerBeitraege.php';
+require_once $wurzel . '/src/Partner.php';
+require_once $wurzel . '/src/PartnerWerbung.php';
+$pbZ = MkZielgruppe::melden($mzProfil(['branche' => 'beauty', 'titel' => 'PB Estetica']));
+MkZielgruppe::freigeben((int) $pbZ['id']);
+$pbNeu = static function (string $format, string $plattform, string $art, array $felder, string $titel, string $sprache = 'it') use ($pbZ): int {
+    return (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $pbZ['id'], 'branche' => 'beauty', 'land' => $sprache === 'de' ? 'DE' : 'IT', 'sprache' => $sprache, 'art' => $art,
+        'format' => $format, 'plattform' => $plattform, 'titel' => $titel, 'felder' => json_encode($felder, JSON_UNESCAPED_UNICODE)]);
+};
+$pbFb = $pbNeu('beitrag', 'facebook', 'organisch', ['text' => 'Prenotazioni online per il suo salone.', 'cta' => 'Analisi gratuita'], 'PB Facebook');
+$pbIg = $pbNeu('beitrag', 'instagram', 'organisch', ['text' => 'Il suo salone su Google. Link in bio.', 'hashtags' => ['#salone']], 'PB Instagram');
+$pbAnz = $pbNeu('meta_anzeige', 'facebook', 'bezahlt', ['primaertexte' => ['A'], 'ueberschriften' => ['B'], 'cta' => 'LEARN_MORE'], 'PB Anzeige');
+pruefe('Partner-Beiträge: nur freigegebene, nur organische — Anzeigen bleiben bei Vecom',
+    is_string(MkPartnerBeitraege::setzen($pbFb, true)) && MkInhalt::freigeben($pbFb) === null && MkPartnerBeitraege::setzen($pbFb, true) === null
+    && MkInhalt::freigeben($pbAnz) === null && is_string(MkPartnerBeitraege::setzen($pbAnz, true)) && (int) MkInhalt::laden($pbFb)['partner'] === 1);
+MkInhalt::freigeben($pbIg); MkPartnerBeitraege::setzen($pbIg, true);
+$pbP = Partner::laden(Partner::anlegen(['name' => 'Paola Beitrag', 'email' => 'pb@partner.example', 'status' => 'aktiv']));
+$pbL = MkPartnerBeitraege::fuerPartner($pbP, 'it');
+$pbLink = PartnerWerbung::link($pbP, 'beitrag');
+$pbFbE = array_values(array_filter($pbL, static fn($b) => $b['id'] === $pbFb))[0] ?? [];
+$pbIgE = array_values(array_filter($pbL, static fn($b) => $b['id'] === $pbIg))[0] ?? [];
+pruefe('Partner-Beiträge: der Partner bekommt den Text mit SEINEM Link (/p/CODE/beitrag) statt dem Vecom-Link, „Link in bio“ fällt weg, Teilen per WhatsApp',
+    count($pbL) === 2 && str_contains((string) ($pbFbE['text'] ?? ''), $pbLink) && !str_contains((string) $pbFbE['text'], (string) MkInhalt::link(MkInhalt::laden($pbFb)))
+    && str_contains((string) ($pbIgE['text'] ?? ''), $pbLink) && !preg_match('/link in bio/i', (string) $pbIgE['text']) && str_starts_with((string) $pbFbE['whatsapp'], 'https://wa.me/?text=')
+    && str_ends_with($pbLink, '/beitrag'), json_encode($pbL, JSON_UNESCAPED_UNICODE));
+$pbWv = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+pruefe('Partnerportal: Block „Fertige Beiträge von Vecom“ im Reiter Werben, nur wenn es welche gibt — Kopieren, Bild laden, WhatsApp, Facebook',
+    str_contains($pbWv, '<div class="block pt" id="beitraege" data-reiter="werben">') && str_contains($pbWv, 'if ($pbListe):') && str_contains($pbWv, 'data-kopie="pb_')
+    && MkPartnerBeitraege::t('titel', 'de') === 'Fertige Beiträge von Vecom');
+$pbIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Haken „Partnern zum Teilen geben“ am freigegebenen Beitrag, hinter CSRF', strpos($pbIdx, "case 'inhalt_partner':") > strpos($pbIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/views/inhalt.php'), "'Partnern zum Teilen geben'"));
+MkPartnerBeitraege::setzen($pbFb, false);
+pruefe('Partner-Beiträge: zurückziehen nimmt ihn aus dem Portal', count(MkPartnerBeitraege::fuerPartner($pbP, 'it')) === 1);
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'PB %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'PB %'");
+
+/* Kundenbereich: Empfehlen und sparen */
+$pbKu = (string) file_get_contents($oben . '/kunde.php');
+pruefe('Kundenbereich: nach der Übergabe „Weiterempfehlen und sparen“ — eigener Link /e/CODE, Kopieren, WhatsApp, QR; Vecom schreibt niemanden an',
+    str_contains($pbKu, "\$empfLink = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/e/' . \$empfCode;")
+    && str_contains($pbKu, "in_array(\$stufe, ['online', 'fertig'], true)") && str_contains($pbKu, 'https://wa.me/?text=') && str_contains($pbKu, 'MkKampagne::qr($empfLink)')
+    && Texte::h(Texte::KUNDE['empfTitel'], 'de') === 'Weiterempfehlen und sparen' && str_contains(Texte::h(Texte::KUNDE['empfText'], 'it'), '{rabatt}')
+    && str_contains(Texte::h(Texte::KUNDE['empfNachricht'], 'de'), '{link}'));
+
+/* Google-Profil */
+$pbGp = Db::one("SELECT * FROM packages WHERE slug = 'google-profil'");
+$pbGt = json_decode((string) ($pbGp['texte'] ?? ''), true) ?: [];
+pruefe('Google-Profil: Zusatzpaket 89 €, direkt buchbar, dreisprachig — ohne Platzierungsversprechen, Bestätigung macht Google',
+    $pbGp && $pbGp['art'] === 'zusatz' && (int) $pbGp['price_cents'] === 8900 && (int) $pbGp['direktkauf'] === 1 && (int) $pbGp['oeffentlich'] === 1
+    && isset($pbGt['it'], $pbGt['de'], $pbGt['en']) && str_contains(implode(' ', $pbGt['de']['features']), 'Keine Versprechen zur Platzierung')
+    && str_contains(implode(' ', $pbGt['it']['features']), 'La verifica la fa Google'), json_encode($pbGp));
+$pbStd = array_values(array_filter(require $wurzel . '/src/Standardpakete.php', static fn($x) => $x['slug'] === 'google-profil'));
+pruefe('Google-Profil: auch in der Startdatei für neue Einrichtungen (dieselben Zahlen)', count($pbStd) === 1 && (int) $pbStd[0]['price_cents'] === 8900 && $pbStd[0]['art'] === 'zusatz');
+pruefe('Google-Profil: der Website-Check zeigt den Einstieg nur vor dem Ergebnis und nur, wenn das Paket buchbar ist; Claude kennt das Angebot',
+    str_contains((string) file_get_contents($oben . '/analisi.php'), "slug = 'google-profil' AND active = 1 AND oeffentlich = 1 AND direktkauf = 1")
+    && str_contains((string) file_get_contents($oben . '/analisi.php'), '/buchen.php?paket=google-profil')
+    && str_contains((string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts'), 'Google-Unternehmensprofil einrichten'));
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

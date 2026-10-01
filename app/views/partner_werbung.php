@@ -188,6 +188,31 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       't' => ['video_laeuft' => $T('video_laeuft'), 'video_fertig' => $T('video_fertig'), 'video_nein' => $T('video_nein'), 'video_webm' => $T('video_webm')],
   ];
 ?>
+<?php /* Fertige Beiträge aus dem Marketing-Studio (Marketing-Studio 8, 01.10.2026) — mit dem Link des Partners. */
+  require_once __DIR__ . '/../src/MkPartnerBeitraege.php';
+  $pbListe = (array) (static function () use ($p, $sprache): array { try { return MkPartnerBeitraege::fuerPartner($p, $sprache); } catch (Throwable $e) { return []; } })();
+  if ($pbListe): ?>
+<div class="block pt" id="beitraege" data-reiter="werben">
+  <h2><?= $h(MkPartnerBeitraege::t('titel', $sprache)) ?></h2>
+  <p class="klein" style="margin-top:0"><?= $h(MkPartnerBeitraege::t('text', $sprache)) ?></p>
+  <div class="tafel">
+    <?php foreach ($pbListe as $pb): ?>
+      <article class="vorlage">
+        <h4><?= $pb['land'] === 'DE' ? '🇩🇪' : '🇮🇹' ?> <?= $h($pb['titel']) ?></h4>
+        <?php if ($pb['bild']): ?><img src="<?= $h($pb['bild']) ?>" alt="<?= $h($pb['titel']) ?>" loading="lazy" style="display:block;width:100%;max-width:420px;border-radius:10px;margin:0 0 8px"><?php endif; ?>
+        <label class="sr" for="pb_<?= (int) $pb['id'] ?>"><?= $h($pb['titel']) ?></label>
+        <textarea id="pb_<?= (int) $pb['id'] ?>" readonly rows="6" data-wachsen><?= $h($pb['text']) ?></textarea>
+        <div class="knoepfe">
+          <button class="knopf" type="button" data-kopie="pb_<?= (int) $pb['id'] ?>"><?= $h($T('kopieren')) ?></button>
+          <?php if ($pb['bild']): ?><a class="knopf" href="<?= $h($pb['bild']) ?>" download="vecom-<?= (int) $pb['id'] ?>.jpg"><?= $h(MkPartnerBeitraege::t('bild', $sprache)) ?></a><?php endif; ?>
+          <a class="knopf haupt" href="<?= $h($pb['whatsapp']) ?>" target="_blank" rel="noopener"><?= $h(MkPartnerBeitraege::t('whatsapp', $sprache)) ?></a>
+          <a class="knopf" href="<?= $h($pb['facebook']) ?>" target="_blank" rel="noopener"><?= $h(MkPartnerBeitraege::t('facebook', $sprache)) ?></a>
+        </div>
+      </article>
+    <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 <div class="block pt" id="medien" data-reiter="werben">
   <h2><?= $h($T('md_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($T('md_text')) ?></p>

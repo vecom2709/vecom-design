@@ -1027,6 +1027,23 @@ final class Texte
            wiederfindet, ohne ein PDF aufmachen zu muessen. */
         'kundennr'   => ['it' => 'N. cliente', 'de' => 'Kundennummer', 'en' => 'Customer no.'],
         'titel'      => ['it' => 'Il suo progetto', 'de' => 'Ihr Projekt', 'en' => 'Your project'],
+        /* Empfehlen und sparen (Marketing-Studio 8, 01.10.2026, Uwe: „ja“ zu S3) — der eigene Link steht da, wo der Kunde zufrieden ist. */
+        'empfTitel'  => ['it' => 'Consigli Vecom e risparmi', 'de' => 'Weiterempfehlen und sparen', 'en' => 'Recommend us and save'],
+        'empfText'   => [
+            'it' => 'Conosce qualcuno che ha bisogno di un sito? Gli mandi il suo link personale. Se da lì nasce un incarico, Lei paga il {rabatt} % in meno sull’assistenza per {monate} mesi — ogni nuovo incarico allunga lo sconto.',
+            'de' => 'Kennen Sie jemanden, der eine Website braucht? Schicken Sie ihm Ihren persönlichen Link. Wird daraus ein Auftrag, zahlen Sie {monate} Monate lang {rabatt} % weniger für die Betreuung — jeder weitere Auftrag verlängert den Rabatt.',
+            'en' => 'Know someone who needs a website? Send them your personal link. If it turns into an order, you pay {rabatt} % less for your care plan for {monate} months — every further order extends the discount.'],
+        'empfLink'   => ['it' => 'Il suo link personale', 'de' => 'Ihr persönlicher Link', 'en' => 'Your personal link'],
+        'empfKopieren' => ['it' => 'Copia link', 'de' => 'Link kopieren', 'en' => 'Copy link'],
+        'empfKopiert'  => ['it' => 'Copiato', 'de' => 'Kopiert', 'en' => 'Copied'],
+        'empfWhatsapp' => ['it' => 'Inviare su WhatsApp', 'de' => 'Per WhatsApp schicken', 'en' => 'Send on WhatsApp'],
+        'empfNachricht' => [
+            'it' => 'Ciao! Il mio nuovo sito l’ha fatto Vecom Design: prezzo fisso, il dominio resta tuo, e mi sono trovato bene. Se ti serve un sito, guarda qui: {link}',
+            'de' => 'Guten Tag! Meine neue Website hat Vecom Design gemacht: Festpreis, die Domain gehört dem Kunden, und ich war zufrieden. Falls Sie eine Website brauchen, schauen Sie hier: {link}',
+            'en' => 'Hi! My new website was made by Vecom Design: fixed price, the domain stays yours, and I was happy with it. If you need a website, have a look: {link}'],
+        'empfStand'  => ['it' => 'Incarichi nati dai suoi consigli: {n}', 'de' => 'Aufträge aus Ihren Empfehlungen: {n}', 'en' => 'Orders from your recommendations: {n}'],
+        'empfRabatt' => ['it' => 'Il suo sconto vale fino al {datum}.', 'de' => 'Ihr Rabatt gilt bis {datum}.', 'en' => 'Your discount is valid until {datum}.'],
+        'empfQr'     => ['it' => 'Oppure lo faccia inquadrare dal telefono:', 'de' => 'Oder mit dem Handy abfotografieren lassen:', 'en' => 'Or let them scan it with their phone:'],
         'duBistDran' => ['it' => 'Tocca a Lei', 'de' => 'Jetzt sind Sie gefragt', 'en' => 'Over to you'],
         'wirSindDran'=> ['it' => 'Ci penso io', 'de' => 'Ich bin dran', 'en' => 'I am on it'],
         'nichtsOffen'=> ['it' => 'Tutto a posto', 'de' => 'Alles erledigt', 'en' => 'All done'],

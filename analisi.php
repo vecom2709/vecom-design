@@ -162,7 +162,12 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
   <?php /* Marketing-Studio 6 (01.10.2026): Alle Kampagnen führen hierher — wer noch keine Website hat, braucht den Weg zum Preis statt einer Prüfung. */
         if (!$kc): $OHNE = ['it' => ['Non ha ancora un sito?', 'Veda subito quanto costa', '/prezzi.html'], 'de' => ['Noch keine Website?', 'Sehen Sie gleich, was sie kostet', '/de/preise.html'],
                             'en' => ['No website yet?', 'See right away what it costs', '/en/pricing.html']][$sprache]; ?>
-    <p class="ohne-website"><?= $h($OHNE[0]) ?> <a href="<?= $h($OHNE[2]) ?>"><?= $h($OHNE[1]) ?> →</a></p>
+    <p class="ohne-website"><?= $h($OHNE[0]) ?> <a href="<?= $h($OHNE[2]) ?>"><?= $h($OHNE[1]) ?> →</a>
+    <?php /* Marketing-Studio 8 (S6): der kleinste Einstieg — erst einmal bei Google Maps gefunden werden. */
+      $gp = null; try { $gp = Db::one("SELECT price_cents FROM packages WHERE slug = 'google-profil' AND active = 1 AND oeffentlich = 1 AND direktkauf = 1"); } catch (Throwable $e) { }
+      if ($gp): $GP = ['it' => 'Oppure, per cominciare, il profilo Google dell’attività: {preis}', 'de' => 'Oder für den Anfang: Google-Unternehmensprofil einrichten, {preis}', 'en' => 'Or to start with: set up your Google Business Profile, {preis}'][$sprache]; ?>
+      <br><a href="/buchen.php?paket=google-profil&amp;lang=<?= $h($sprache) ?>"><?= $h(strtr($GP, ['{preis}' => number_format((int) $gp['price_cents'] / 100, 0, ',', '.') . ' €'])) ?> →</a>
+    <?php endif; ?></p>
   <?php endif; ?>
 
   <?php if ($kc): ?>
