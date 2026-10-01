@@ -254,6 +254,16 @@ final class Telegram
         ];
     }
 
+    /**
+     * Darf jeder in den Bot-Chat — oder nur der Admin? (01.10.2026, Uwe:
+     * „normale Nutzer außer Admin sollen nicht direkt in den Bot kommen,
+     * nur über den Kanal“ → „Nur Admin“.) Ab Werk zu: Interessenten und
+     * Kunden bekommen im Bot nur einen Hinweis auf den Kanal und das
+     * Vecom-Fenster (Mini-App); Kunden-Hinweise per Telegram ruhen.
+     * Umschaltbar unter Einstellungen → Telegram, ohne Code.
+     */
+    public static function botOffen(): bool { return self::einstellung('tg_bot_offen', '0') === '1'; }
+
     /** Der öffentliche Link zum Bot, z. B. für die Website. */
     public static function link(string $start = ''): string
     {
@@ -397,12 +407,18 @@ final class Telegram
         // sie bei @BotFather angemeldet ist — vorher den Bot wie bisher.
         require_once __DIR__ . '/TelegramApp.php';
         $r = static fn(string $wort): string => TelegramApp::link('kanal-' . $sp . '-' . $wort) ?: $l($wort);
+        /* Seit 01.10.2026 (Uwe: „nur über den Kanal“) öffnet JEDER Knopf das
+           Vecom-Fenster über dem Kanal (telegram-menue.php) — keiner führt mehr
+           in den Bot-Chat. Ohne angemeldete Mini-App bleibt der alte Weg. */
+        $f = static fn(string $ziel, string $wort): string => TelegramApp::link('kanal-' . $sp . '-' . $ziel) ?: $l($wort);
         $knoepfe = [
             [['text' => $T['k_preis'], 'url' => $r('preis')]],
             [['text' => $T['k_neu'], 'url' => $r('neu')], ['text' => $T['k_besser'], 'url' => $r('besser')]],
-            [['text' => $T['k_pruefen'], 'url' => $l('pruefen')], ['text' => $T['k_hosting'], 'url' => $l('hosting')]],
-            [['text' => $T['k_logo'], 'url' => $l('logo')], ['text' => $T['k_3d'], 'url' => $l('dreid')]],
-            [['text' => $T['k_mensch'], 'url' => $l('mensch')], ['text' => $T['k_kunde'], 'url' => $l('kunde')]],
+            [['text' => $T['k_pruefen'], 'url' => $f('pruefen', 'pruefen')], ['text' => $T['k_ki'], 'url' => $f('ki', 'ki')]],
+            [['text' => $T['k_bots'], 'url' => $f('bots', 'mensch')], ['text' => $T['k_3d'], 'url' => $f('dreid', 'dreid')]],
+            [['text' => $T['k_logo'], 'url' => $f('logo', 'logo')], ['text' => $T['k_hosting'], 'url' => $f('hosting', 'hosting')]],
+            [['text' => $T['k_mensch'], 'url' => $f('mensch', 'mensch')], ['text' => $T['k_partner'], 'url' => $f('partner', 'partner')]],
+            [['text' => $T['k_kunde'], 'url' => $f('kunde', 'kunde')]],
         ];
         $daten = ['chat_id' => $k['id'], 'text' => $T['kanalMenue'], 'reply_markup' => ['inline_keyboard' => $knoepfe]];
 

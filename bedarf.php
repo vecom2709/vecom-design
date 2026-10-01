@@ -51,9 +51,11 @@ date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
    Telegram Web darf sie einbetten; das Sitzungs-Cookie muss dann auch im
    fremden Rahmen mitkommen (SameSite=None, sonst scheitert das CSRF-Feld
    bei jedem Klick); und die Anfrage trägt die Herkunft „telegram“. */
-$tg = preg_match('/^[a-z]{2,12}$/', (string) ($_GET['tg'] ?? '')) ? (string) $_GET['tg'] : '';
+/* Seit 01.10.2026 auch Kampagne (m_CODE) und Partner (p_CODE) als Quelle — sonst
+   verlöre ein Fenster, das über eine Kampagne kam, im Rechner seinen Telegram-Rahmen. */
+require_once __DIR__ . '/app/src/TelegramApp.php';
+$tg = TelegramApp::quelleOk(strtolower((string) ($_GET['tg'] ?? ''))) ? strtolower((string) $_GET['tg']) : '';
 if ($tg !== '') {
-    require_once __DIR__ . '/app/src/TelegramApp.php';
     header('Content-Security-Policy: ' . TelegramApp::EINBETTEN);
     session_set_cookie_params(['path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'None']);
 }

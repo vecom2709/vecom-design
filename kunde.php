@@ -1430,7 +1430,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   <?php /* ---------- Telegram (30.09.2026, Stufe 2) ----------
        Nur, wenn der Bot eingerichtet ist. Ein Knopf, der ins Leere führt,
        wäre schlimmer als keiner. */
-  $tgBereit = sicherLesen(static function () { require_once __DIR__ . '/app/src/TelegramKunde.php'; return Telegram::bereit() && Telegram::einstellung('tg_name') !== ''; }, false);
+  $tgBereit = sicherLesen(static function () { require_once __DIR__ . '/app/src/TelegramKunde.php'; return Telegram::bereit() && Telegram::einstellung('tg_name') !== '' && Telegram::botOffen(); }, false);
   $tgChat = $tgBereit ? sicherLesen(static fn() => TelegramKunde::chat((int) $kunde['id']), null) : null;
   if ($tgBereit): $TD = static fn(string $k): string => Texte::h(Texte::TELEGRAM_DASHBOARD[$k], $sprache); ?>
     <details class="klapp">

@@ -157,12 +157,63 @@ final class TelegramBot
             return 'gebremst';
         }
 
+        /* Kanal statt Bot (01.10.2026, Uwe: „Nur Admin“): Wer nicht der Admin ist,
+           bekommt im Bot nur den Weg in den Kanal und ins Vecom-Fenster. Durch
+           bleibt allein der Verbindungslink der Verwaltung (a_CODE). */
+        $text = (string) ($msg['text'] ?? '');
+        if (!Telegram::botOffen() && !TelegramAdmin::darfChat($c) && !preg_match('~^/start(?:@\w+)?\s+a_[0-9a-f]{32}\s*$~i', $text)) {
+            if ($cq) { self::antwortKnopf((string) ($cq['id'] ?? '')); }
+            return self::nurKanal($c, $cq ? '' : $text);
+        }
+
         if ($cq) {
             $daten = (string) ($cq['data'] ?? '');
             $msgId = isset($cq['message']['message_id']) ? (int) $cq['message']['message_id'] : null;
             return self::knopf($c, $daten, (string) ($cq['id'] ?? ''), $msgId);
         }
         return self::nachricht($c, $msg);
+    }
+
+    /**
+     * Der Hinweis für alle außer dem Admin: kurz, in seiner Sprache, mit zwei
+     * Knöpfen — Kanal und Vecom-Fenster. Ein Start-Link nimmt seine Quelle mit
+     * ins Fenster (Kampagne, Partner, Kanal-Knopf), damit nichts verloren geht.
+     */
+    private static function nurKanal(array $c, string $text): string
+    {
+        require_once __DIR__ . '/TelegramApp.php';
+        $sp = in_array((string) ($c['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $c['sprache']
+            : (in_array((string) ($c['sprache_vorschlag'] ?? ''), ['it', 'de', 'en'], true) ? (string) $c['sprache_vorschlag'] : 'it');
+        $param = 'bot-' . $sp . '-menu';
+        if (preg_match('~^/start(?:@\w+)?\s+(\S+)~i', $text, $m)) {
+            $arg = $m[1];
+            if (preg_match('/^[mp]_/i', $arg) && TelegramApp::quelleOk(strtolower($arg))) {
+                $param = strtolower($arg);
+                if (str_starts_with($param, 'm_')) {
+                    require_once __DIR__ . '/TelegramWachstum.php';
+                    [$mk, , $mq] = TelegramWachstum::kampagneAusStart($param);
+                    if ($mk !== null) { TelegramWachstum::zaehlen('bot_start', $mq); }
+                }
+            } elseif (preg_match('/^([a-z]{2,12})-([a-z]{2,10})$/', $arg, $sm) && isset(self::SPRUENGE[$sm[2]])) {
+                $ziel = self::SPRUENGE[$sm[2]] === '3d' ? 'dreid' : self::SPRUENGE[$sm[2]];
+                $param = $sm[1] . '-' . $sp . '-' . (in_array($ziel, TelegramApp::EINSTIEGE, true) || in_array($ziel, TelegramApp::ZIELE, true) ? $ziel : 'menu');
+            } elseif (preg_match('/^[a-z]{2,12}$/', $arg)) {
+                $param = $arg . '-' . $sp . '-menu';
+            }
+            // Die erste Quelle merkt sich auch dieser Chat (Kampagnen-Codes enthalten selbst Bindestriche).
+            $erste = preg_match('/^[mp]_/', $param) ? $param : explode('-', $param)[0];
+            if (empty($c['quelle_code']) && TelegramApp::quelleOk($erste)) {
+                $c = self::setzen($c, ['quelle_code' => mb_substr($erste, 0, 40)]);
+            }
+        }
+        $T = self::T[$sp];
+        $knoepfe = [];
+        $kanal = Telegram::einstellung('tg_kanal_link');
+        if ($kanal !== '') { $knoepfe[] = [['text' => $T['k_zum_kanal'], 'url' => $kanal]]; }
+        $fenster = TelegramApp::link($param);
+        if ($fenster !== '') { $knoepfe[] = [['text' => $T['k_fenster'], 'url' => $fenster]]; }
+        self::zeigen($c, $T['nurKanal'], $knoepfe);
+        return 'nur_kanal';
     }
 
     /* ======================== NACHRICHTEN =========================== */

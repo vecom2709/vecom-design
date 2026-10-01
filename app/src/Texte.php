@@ -4800,7 +4800,11 @@ final class Texte
             'partnerText' => "🤝 <b>Partner werden</b>\n\nSie kennen Betriebe, die eine neue oder bessere Website brauchen? Als Partner empfehlen Sie Vecom Design mit Ihrem persönlichen Link und erhalten für Aufträge, die darüber zustande kommen, eine Provision. Die Bedingungen stehen in der Partnervereinbarung.\n\nDie Bewerbung dauert zwei Minuten:",
             'k_verbessern' => '✨ Verbesserung planen', 'k_beratung' => '📞 Beratung', 'k_anderer' => '🔎 Andere Website prüfen',
             'k_ki' => '🤖 KI & Automatisierung', 'k_partner' => '🤝 Partner werden', 'k_partner_seite' => '🤝 Als Partner bewerben',
-            'thema' => ['logo' => 'Logo & Branding', '3d' => '3D & Interactive', 'allgemein' => 'Persönliche Beratung', 'ki' => 'KI & Automatisierung'],
+            // Kanal statt Bot (01.10.2026, Uwe: „normale Nutzer nur über den Kanal“).
+            'nurKanal' => "👋 <b>Willkommen bei Vecom Design!</b>\n\nAlles finden Sie in unserem Kanal: Preis berechnen, Website prüfen, Beratung und mehr — es öffnet sich dort direkt als Fenster.",
+            'botsText' => "📲 <b>Telegram-Bots erstellen</b>\n\nWir bauen Telegram-Bots und Mini-Apps für Ihren Betrieb — zum Beispiel für Anfragen, Preis-Richtwerte, Terminwünsche oder Neuigkeiten in einem eigenen Kanal, so wie hier bei Vecom Design.\n\nWas Ihr Bot können soll, klären wir in einem kurzen Gespräch. Einen Pauschalpreis gibt es dafür nicht.",
+            'k_zum_kanal' => '📢 Zum Kanal', 'k_fenster' => '🧭 Vecom-Menü öffnen', 'k_bots' => '📲 Telegram-Bots erstellen',
+            'thema' => ['logo' => 'Logo & Branding', '3d' => '3D & Interactive', 'allgemein' => 'Persönliche Beratung', 'ki' => 'KI & Automatisierung', 'bots' => 'Telegram-Bots'],
             'k_projekt' => '📂 Mein Projekt',
             'kundeKopf' => 'Ihr Projekt',
             'k_dashboard' => '🌐 Persönlichen Bereich öffnen',
@@ -4899,7 +4903,11 @@ final class Texte
             'partnerText' => "🤝 <b>Diventare partner</b>\n\nConosce attività che hanno bisogno di un sito nuovo o migliore? Come partner consiglia Vecom Design con il suo link personale e riceve una provvigione per gli incarichi che nascono così. Le condizioni sono nell’accordo di partnership.\n\nLa candidatura richiede due minuti:",
             'k_verbessern' => '✨ Pianificare il miglioramento', 'k_beratung' => '📞 Consulenza', 'k_anderer' => '🔎 Controllare un altro sito',
             'k_ki' => '🤖 IA & automazione', 'k_partner' => '🤝 Diventare partner', 'k_partner_seite' => '🤝 Candidarsi come partner',
-            'thema' => ['logo' => 'Logo & branding', '3d' => '3D & interattivo', 'allgemein' => 'Consulenza personale', 'ki' => 'IA & automazione'],
+            // Kanal statt Bot (01.10.2026, Uwe: „normale Nutzer nur über den Kanal“).
+            'nurKanal' => "👋 <b>Benvenuto da Vecom Design!</b>\n\nTrova tutto nel nostro canale: calcolare il prezzo, analizzare il sito, consulenza e altro — si apre lì direttamente come finestra.",
+            'botsText' => "📲 <b>Creare bot Telegram</b>\n\nRealizziamo bot e mini-app Telegram per la sua attività — per esempio per richieste, stime di prezzo, prenotazioni o novità in un canale proprio, proprio come qui da Vecom Design.\n\nCosa deve saper fare il suo bot lo chiariamo in una breve conversazione. Non esiste un prezzo forfettario.",
+            'k_zum_kanal' => '📢 Al canale', 'k_fenster' => '🧭 Aprire il menu Vecom', 'k_bots' => '📲 Creare bot Telegram',
+            'thema' => ['logo' => 'Logo & branding', '3d' => '3D & interattivo', 'allgemein' => 'Consulenza personale', 'ki' => 'IA & automazione', 'bots' => 'Bot Telegram'],
             'k_projekt' => '📂 Il mio progetto',
             'kundeKopf' => 'Il suo progetto',
             'k_dashboard' => '🌐 Apri lo spazio personale',
@@ -4998,7 +5006,11 @@ final class Texte
             'partnerText' => "🤝 <b>Become a partner</b>\n\nDo you know businesses that need a new or better website? As a partner you recommend Vecom Design with your personal link and receive a commission for orders that come through it. The terms are in the partner agreement.\n\nApplying takes two minutes:",
             'k_verbessern' => '✨ Plan the improvement', 'k_beratung' => '📞 Advice', 'k_anderer' => '🔎 Check another website',
             'k_ki' => '🤖 AI & automation', 'k_partner' => '🤝 Become a partner', 'k_partner_seite' => '🤝 Apply as a partner',
-            'thema' => ['logo' => 'Logo & branding', '3d' => '3D & interactive', 'allgemein' => 'Personal advice', 'ki' => 'AI & automation'],
+            // Kanal statt Bot (01.10.2026, Uwe: „normale Nutzer nur über den Kanal“).
+            'nurKanal' => "👋 <b>Welcome to Vecom Design!</b>\n\nYou will find everything in our channel: price estimate, website check, advice and more — it opens right there as a window.",
+            'botsText' => "📲 <b>Build Telegram bots</b>\n\nWe build Telegram bots and mini apps for your business — for example for requests, price estimates, booking requests or news in your own channel, just like here at Vecom Design.\n\nWhat your bot should do we clarify in a short conversation. There is no flat price for it.",
+            'k_zum_kanal' => '📢 To the channel', 'k_fenster' => '🧭 Open the Vecom menu', 'k_bots' => '📲 Build Telegram bots',
+            'thema' => ['logo' => 'Logo & branding', '3d' => '3D & interactive', 'allgemein' => 'Personal advice', 'ki' => 'AI & automation', 'bots' => 'Telegram bots'],
             'k_projekt' => '📂 My project',
             'kundeKopf' => 'Your project',
             'k_dashboard' => '🌐 Open personal area',
@@ -5028,6 +5040,38 @@ final class Texte
     ];
 
     /* Der Block „Telegram“ im persönlichen Bereich (30.09.2026, Stufe 2). */
+    /* ======================================================================
+       TELEGRAM_APP — das Vecom-Fenster im Kanal (01.10.2026, Uwe: „normale
+       Nutzer nur über den Kanal“). Menü, Anfrage und Website-Check als
+       Mini-App über dem Kanal; die Inhalte (Texte der Themen, Check-Sätze)
+       kommen aus TELEGRAM und PARTNER_CHECK — hier steht nur der Rahmen.
+       ====================================================================== */
+    public const TELEGRAM_APP = [
+        'unter'    => ['it' => 'Che cosa desidera fare?', 'de' => 'Was möchten Sie tun?', 'en' => 'What would you like to do?'],
+        'menu'     => ['it' => '← Menu', 'de' => '← Menü', 'en' => '← Menu'],
+        'zurueck'  => ['it' => 'Torna a Telegram', 'de' => 'Zurück zu Telegram', 'en' => 'Back to Telegram'],
+        'extern'   => ['it' => 'si apre nel browser', 'de' => 'öffnet sich im Browser', 'en' => 'opens in the browser'],
+        'f_name'   => ['it' => 'Nome e cognome', 'de' => 'Vor- und Nachname', 'en' => 'First and last name'],
+        'f_email'  => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'f_text'   => ['it' => 'Di che cosa si tratta? (facoltativo)', 'de' => 'Worum geht es? (freiwillig)', 'en' => 'What is it about? (optional)'],
+        'f_ds'     => ['it' => 'Ho letto l’informativa sulla privacy e sono d’accordo.', 'de' => 'Ich habe den Datenschutzhinweis gelesen und bin einverstanden.', 'en' => 'I have read the privacy notice and agree.'],
+        'senden'   => ['it' => 'Invia richiesta', 'de' => 'Anfrage senden', 'en' => 'Send request'],
+        'pflicht'  => ['it' => 'Controlli nome, e-mail e la spunta.', 'de' => 'Bitte Name, E-Mail und das Häkchen prüfen.', 'en' => 'Please check name, email and the tick box.'],
+        'zuviel'   => ['it' => 'Per oggi sono arrivate molte richieste da qui. Ci scriva a kontakt@vecom-design.it.', 'de' => 'Für heute kamen von hier schon viele Anfragen. Schreiben Sie uns gern an kontakt@vecom-design.it.', 'en' => 'Many requests came from here today. Please write to kontakt@vecom-design.it.'],
+        'fehler'   => ['it' => 'Qualcosa è andato storto: riprovi tra un attimo.', 'de' => 'Da ist etwas schiefgegangen — bitte gleich noch einmal.', 'en' => 'Something went wrong — please try again in a moment.'],
+        'f_url'    => ['it' => 'Indirizzo del sito, per es. trattoria-rossi.it', 'de' => 'Adresse der Website, z. B. trattoria-rossi.it', 'en' => 'Website address, e.g. trattoria-rossi.it'],
+        'pruefen'  => ['it' => 'Verificare', 'de' => 'Prüfen', 'en' => 'Check'],
+        /* Eigener Hinweis: Im Fenster gibt es keinen Chat, keine Chat-Nummer und kein /delete (anders als im Bot). */
+        'ds'       => [
+            'it' => "🔒 <b>Due parole sulla privacy</b>\n\nSe ci scrive, salviamo il suo nome, il suo indirizzo e-mail e la sua richiesta per gestirla e risponderle — come per una richiesta dal sito. Titolare è Vecom Design (Uwe Vetter), Aragona. Del suo account Telegram non riceviamo né salviamo nulla.\n\nDettagli e diritti: {link}",
+            'de' => "🔒 <b>Kurz zum Datenschutz</b>\n\nWenn Sie uns schreiben, speichern wir Ihren Namen, Ihre E-Mail-Adresse und Ihr Anliegen, um Ihre Anfrage zu bearbeiten und Ihnen zu antworten — wie bei einer Anfrage über die Website. Verantwortlich ist Vecom Design (Uwe Vetter), Aragona. Von Ihrem Telegram-Konto erhalten und speichern wir dabei nichts.\n\nEinzelheiten und Ihre Rechte: {link}",
+            'en' => "🔒 <b>A word on privacy</b>\n\nIf you write to us, we store your name, your email address and your request to handle it and reply to you — just like a request made through the website. The controller is Vecom Design (Uwe Vetter), Aragona. We receive and store nothing from your Telegram account.\n\nDetails and your rights: {link}",
+        ],
+    ];
+
+    /** Fassung des Datenschutzhinweises im Vecom-Fenster — steht mit dem Wortlaut in der Zustimmung. */
+    public const TELEGRAM_APP_FASSUNG = 'tgapp-2026-10-01';
+
     public const TELEGRAM_DASHBOARD = [
         'titel'     => ['it' => 'Telegram', 'de' => 'Telegram', 'en' => 'Telegram'],
         'text'      => ['it' => 'Stato del progetto, messaggi a Uwe, file e brevi avvisi — direttamente in Telegram. Il link vale 30 minuti e una sola volta.',

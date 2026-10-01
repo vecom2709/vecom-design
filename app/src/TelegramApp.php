@@ -38,6 +38,18 @@ final class TelegramApp
     public const EINSTIEGE = ['preis', 'neu', 'besser'];
 
     /**
+     * Ziele des Vecom-Fensters (telegram-menue.php) — seit dem 01.10.2026
+     * der Weg für alle außer dem Admin: Menü, Website-Check, Themen mit
+     * Anfrage, Partner, Domain, Kundenbereich.
+     */
+    public const ZIELE = ['menu', 'pruefen', 'ki', 'bots', 'dreid', 'logo', 'mensch', 'partner', 'hosting', 'kunde'];
+
+    /** Quelle aus einem Link: ein Wort (kanal, web, bot …), eine Kampagne (m_CODE[_WM]) oder ein Partner (p_CODE). */
+    public const QUELLE_MUSTER = '/^(?:[a-z]{2,12}|m_[a-z0-9][a-z0-9-]{2,23}(?:_[a-z0-9][a-z0-9-]{0,11})?|p_[a-z0-9]{5,16})$/';
+
+    public static function quelleOk(string $q): bool { return preg_match(self::QUELLE_MUSTER, $q) === 1; }
+
+    /**
      * Den Start-Parameter lesen: QUELLE-SPRACHE-EINSTIEG, jedes Stück optional.
      * Unbekanntes fällt still auf den Normalfall zurück — ein kaputter Link
      * soll den Rechner öffnen, nicht eine Fehlermeldung.
@@ -46,13 +58,24 @@ final class TelegramApp
      */
     public static function lesen(string $param, string $sprache = ''): array
     {
-        $a = ['quelle' => 'telegram', 'sprache' => in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it', 'einstieg' => 'preis'];
+        $a = ['quelle' => 'telegram', 'sprache' => in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it', 'einstieg' => 'preis',
+              'rechner' => false, 'ziel' => 'menu'];
+        $param = strtolower($param);
+        /* Kampagne oder Partner (01.10.2026): der ganze Parameter ist die Quelle,
+           geöffnet wird das Menü — Kampagnen-Codes enthalten selbst Bindestriche. */
+        if (preg_match('/^[mp]_/', $param)) {
+            if (self::quelleOk($param)) { $a['quelle'] = $param; }
+            return $a;
+        }
         if (!preg_match('/^[a-z0-9-]{1,40}$/', $param)) { return $a; }
         foreach (explode('-', $param) as $i => $teil) {
             if (in_array($teil, ['it', 'de', 'en'], true)) { $a['sprache'] = $teil; }
-            elseif (in_array($teil, self::EINSTIEGE, true)) { $a['einstieg'] = $teil; }
+            elseif (in_array($teil, self::EINSTIEGE, true)) { $a['einstieg'] = $teil; $a['rechner'] = true; }
+            elseif ($i > 0 && in_array($teil, self::ZIELE, true)) { $a['ziel'] = $teil; }
             elseif ($i === 0 && preg_match('/^[a-z]{2,12}$/', $teil)) { $a['quelle'] = $teil; }
         }
+        // Ein Link ohne Ziel und ohne Einstieg (z. B. „kanal-de“) öffnete bis heute den Rechner — das bleibt so.
+        if (!$a['rechner'] && $a['ziel'] === 'menu' && !preg_match('/-menu(?:-|$)/', $param) && substr_count($param, '-') >= 1) { $a['rechner'] = true; }
         return $a;
     }
 
@@ -63,9 +86,8 @@ final class TelegramApp
         require_once __DIR__ . '/Bedarf.php';
         Baukasten::sicherstellen();
         $b = Bedarf::starten($start['sprache']);
-        // Growth Engine T2: Mini-App geöffnet = Preisrechner gestartet (je Rechner einmal — hier entsteht er).
+        // Growth Engine T2: Preisrechner gestartet (je Rechner einmal — hier entsteht er). „Mini-App geöffnet“ zählt telegram-app.php beim Öffnen.
         require_once __DIR__ . '/TelegramWachstum.php';
-        TelegramWachstum::zaehlen('app_start', (string) $start['quelle']);
         TelegramWachstum::zaehlen('rechner', (string) $start['quelle']);
         if ($start['einstieg'] === 'neu') {
             $schritt = 1;
@@ -73,6 +95,38 @@ final class TelegramApp
             Bedarf::speichern((int) $b['id'], ['bestand' => 'neu'], $schritt);
         }
         return (string) $b['token'];
+    }
+
+    /**
+     * Kam das Fenster über eine Kampagne (m_CODE) oder einen Partner (p_CODE),
+     * gilt dasselbe wie für einen Klick auf /k/CODE bzw. /p/CODE: ein Besuch
+     * in der Spur, beim Partner der Klick und sein Keks (mit dem fragt später
+     * die Anfrage, wem der Kunde gehört). Der Kanal heißt „telegram“.
+     * Unbekannte oder pausierte Codes: nichts, still.
+     */
+    public static function quelleMerken(string $quelle, string $sprache): void
+    {
+        $s = ['ua' => (string) ($_SERVER['HTTP_USER_AGENT'] ?? ''), 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''), 'referrer' => '',
+              'sprache' => $sprache, 'get' => ['utm_source' => 'telegram'], 'einstieg' => '/telegram-app.php', 'ref_link' => 'telegram:' . $quelle];
+        if (str_starts_with($quelle, 'm_')) {
+            require_once __DIR__ . '/TelegramWachstum.php';
+            [$k, $cr] = TelegramWachstum::kampagneAusStart($quelle);
+            if ($k === null) { return; }
+            require_once __DIR__ . '/Spur.php';
+            Spur::kampagnenBesuch($k, $cr, $s);
+            return;
+        }
+        if (str_starts_with($quelle, 'p_')) {
+            require_once __DIR__ . '/Partner.php';
+            $p = Partner::ausCode(substr($quelle, 2));
+            if ($p === null) { return; }
+            if (Partner::echterBesuch($p, $s['ua'], $_COOKIE)) { Partner::klick((int) $p['id'], 'telegram'); }
+            // SameSite=None: Telegram Web zeigt das Fenster in einem fremden Rahmen — sonst käme der Keks nie an.
+            setcookie(Partner::KEKS, (string) $p['code'] . ':telegram', ['path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'None']);
+            $_COOKIE[Partner::KEKS] = (string) $p['code'] . ':telegram';
+            require_once __DIR__ . '/Spur.php';
+            Spur::partnerBesuch($p, 'telegram', $s);
+        }
     }
 
     /** Kurzname der Mini-App bei @BotFather (leer = noch nicht angemeldet). */

@@ -42,7 +42,8 @@ final class TelegramKunde
     /** Einen Einmal-Link erzeugen. Leer, wenn der Bot nicht eingerichtet ist. */
     public static function verbindungslink(int $kundeId): string
     {
-        if ($kundeId <= 0 || !Telegram::bereit() || Telegram::einstellung('tg_name') === '') { return ''; }
+        // Seit 01.10.2026 ab Werk zu: Der Bot-Chat ist nur für den Admin (Telegram::botOffen).
+        if ($kundeId <= 0 || !Telegram::bereit() || Telegram::einstellung('tg_name') === '' || !Telegram::botOffen()) { return ''; }
         $code = bin2hex(random_bytes(16));
         Db::insert('telegram_codes', [
             'customer_id' => $kundeId,
@@ -116,7 +117,8 @@ final class TelegramKunde
     {
         try {
             $c = self::chat($kundeId);
-            if (!$c || !(int) $c['benachrichtigen'] || !Telegram::bereit()) { return false; }
+            // Ist der Bot nur für den Admin (ab Werk seit 01.10.2026), ruhen die Hinweise — die E-Mail kommt ja trotzdem.
+            if (!$c || !(int) $c['benachrichtigen'] || !Telegram::bereit() || !Telegram::botOffen()) { return false; }
             if ($c['hinweis_am'] !== null && strtotime((string) $c['hinweis_am']) > time() - self::HINWEIS_SEKUNDEN) { return false; }
             $sp = in_array((string) $c['sprache'], ['it', 'de', 'en'], true) ? (string) $c['sprache'] : 'it';
             $T = Texte::TELEGRAM[$sp];

@@ -13658,7 +13658,9 @@ $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', '
                 'domain-pruefung.php', 'pakete-daten.php', 'preise-daten.php', 'stimmen-daten.php',
                 'akquise.php', 'config.local.example.php',
                 // Weiterleitung der Telegram-Mini-App, zeigt selbst nichts; die Sprache kommt aus dem Knopf
-                'telegram-app.php'];
+                'telegram-app.php',
+                // Das Vecom-Fenster in Telegram (01.10.2026): eigener schlichter Rahmen in Telegram, die Sprache kommt aus dem Kanal-Knopf
+                'telegram-menue.php'];
 $jsFehlt = [];
 foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
     $jsName = basename($jsPhp);
@@ -15166,6 +15168,10 @@ AkquiseSteuerung::pruefungStarten(); AkquiseWorker::ausfuehren('befehl_holen', [
    keine Gruppe, kein doppelter Eingang, kein Sprachwechsel aus einem Wort).
    ============================================================================ */
 abschnitt('Telegram-Bot, Stufe 1: Interessenten');
+/* Seit 01.10.2026 ist der Bot-Chat ab Werk nur für den Admin (Telegram::botOffen).
+   Die Gespräche für Interessenten und Kunden bleiben im Code und werden hier
+   bei offenem Bot geprüft; „Kanal statt Bot“ prüft weiter unten den Normalfall. */
+Telegram::setzen('tg_bot_offen', '1');
 foreach (['Telegram', 'TelegramBot', 'Webhook', 'Zustimmung', 'Partner', 'Baukasten', 'Anfrage'] as $k) { require_once $wurzel . "/src/$k.php"; }
 
 $tgNetz = []; $tgMsg = 7000; $tgUpd = 900000;
@@ -15666,8 +15672,8 @@ $tkM = Telegram::kanalMenue('de');
 $tkMS = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
 $tkUrls = [];
 foreach ((array) ($tkMS['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $b) { $tkUrls[] = (string) ($b['url'] ?? ''); } }
-pruefe('Kanal-Menü: gesendet, angeheftet (still), neun Knöpfe, alle als Link in den Bot mit ?start=kanal-…', $tkM['ok']
-    && in_array('pinChatMessage', array_column($tgNetz, 0), true) && count($tkUrls) === 9
+pruefe('Kanal-Menü: gesendet, angeheftet (still), zwölf Knöpfe (seit 01.10.2026 mit KI, Telegram-Bots, Partner), ohne Mini-App als Link in den Bot mit ?start=kanal-…', $tkM['ok']
+    && in_array('pinChatMessage', array_column($tgNetz, 0), true) && count($tkUrls) === 12
     && !array_filter($tkUrls, static fn($u) => !preg_match('~^https://t\.me/[A-Za-z0-9_]+\?start=kanal-[a-z]+$~', $u))
     && $tkMS['text'] === Texte::TELEGRAM['de']['kanalMenue']);
 $tgNetz = [];
@@ -15680,11 +15686,11 @@ pruefe('Kanal-Menü: jedes Sprungwort führt zu einem Punkt, den das Bot-Menü k
 /* Mini-App „Preis-Rechner“ über dem Kanal (30.09.2026, Uwe: „Bot direkt im Kanal“ → „ja mach automatisch“) */
 require_once $wurzel . '/src/TelegramApp.php';
 pruefe('Mini-App: Start-Parameter kanal-de-preis → Quelle kanal, Deutsch, Preis',
-    TelegramApp::lesen('kanal-de-preis') === ['quelle' => 'kanal', 'sprache' => 'de', 'einstieg' => 'preis']
+    TelegramApp::lesen('kanal-de-preis') === ['quelle' => 'kanal', 'sprache' => 'de', 'einstieg' => 'preis', 'rechner' => true, 'ziel' => 'menu']
     && TelegramApp::lesen('kanal-en-neu')['einstieg'] === 'neu' && TelegramApp::lesen('kanal-en-neu')['sprache'] === 'en');
-pruefe('Mini-App: leerer oder kaputter Parameter öffnet trotzdem den Rechner (Standard, keine Fehlermeldung)',
-    TelegramApp::lesen('') === ['quelle' => 'telegram', 'sprache' => 'it', 'einstieg' => 'preis']
-    && TelegramApp::lesen('<script>alert(1)</script>', 'de') === ['quelle' => 'telegram', 'sprache' => 'de', 'einstieg' => 'preis']);
+pruefe('Mini-App: leerer oder kaputter Parameter öffnet das Vecom-Menü (seit 01.10.2026; keine Fehlermeldung)',
+    TelegramApp::lesen('') === ['quelle' => 'telegram', 'sprache' => 'it', 'einstieg' => 'preis', 'rechner' => false, 'ziel' => 'menu']
+    && TelegramApp::lesen('<script>alert(1)</script>', 'de') === ['quelle' => 'telegram', 'sprache' => 'de', 'einstieg' => 'preis', 'rechner' => false, 'ziel' => 'menu']);
 $maTok = TelegramApp::neuerBedarf(TelegramApp::lesen('kanal-de-neu'));
 $maB = Bedarf::laden($maTok);
 pruefe('Mini-App: legt einen offenen Bedarf wie der Bot an (Sprache de, „Neue Website“ beantwortet die Bestandsfrage)',
@@ -15698,10 +15704,10 @@ Telegram::kanalMenue('de');
 $maMS = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
 $maUrls = [];
 foreach ((array) ($maMS['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $bk) { $maUrls[] = (string) ($bk['url'] ?? ''); } }
-pruefe('Mini-App angemeldet: Preis/Neu/Verbessern öffnen sie über dem Kanal, die übrigen sechs führen weiter in den Bot',
+pruefe('Mini-App angemeldet: alle zwölf Knöpfe öffnen sie über dem Kanal, keiner führt mehr in den Bot (seit 01.10.2026)',
     str_ends_with($maLink, '/rechner?startapp=kanal-de-preis')
-    && count(array_filter($maUrls, static fn($u) => str_contains($u, '/rechner?startapp=kanal-de-'))) === 3
-    && count(array_filter($maUrls, static fn($u) => str_contains($u, '?start=kanal-'))) === 6);
+    && count(array_filter($maUrls, static fn($u) => str_contains($u, '/rechner?startapp=kanal-de-'))) === 12
+    && count(array_filter($maUrls, static fn($u) => str_contains($u, '?start=kanal-'))) === 0);
 Telegram::setzen('tg_app_name', '');
 $maBedarf = (string) file_get_contents($oben . '/bedarf.php');
 $maEinstieg = (string) file_get_contents($oben . '/telegram-app.php');
@@ -17272,8 +17278,9 @@ pruefe('T2: Partner-Chat — Website-Check und Beratung als Stufen, mit der Quel
 
 /* Mini-App im Kanal */
 $t2Tok = TelegramApp::neuerBedarf(['quelle' => 'kanal', 'sprache' => 'de', 'einstieg' => 'preis']);
-pruefe('T2: Mini-App geöffnet = Mini-App-Start und Preisrechner gestartet (Quelle kanal)',
-    $t2Tok !== '' && TelegramWachstum::summen($t2Heute, $t2Heute, 'kanal')['app_start'] >= 1 && TelegramWachstum::summen($t2Heute, $t2Heute, 'kanal')['rechner'] >= 1);
+pruefe('T2: Rechner in der Mini-App = Preisrechner gestartet (Quelle kanal); „Mini-App geöffnet“ zählt telegram-app.php beim Öffnen',
+    $t2Tok !== '' && TelegramWachstum::summen($t2Heute, $t2Heute, 'kanal')['rechner'] >= 1
+    && str_contains((string) file_get_contents($oben . '/telegram-app.php'), "TelegramWachstum::zaehlen('app_start', \$start['quelle'])"));
 $t2Bed = (string) file_get_contents($oben . '/bedarf.php');
 pruefe('T2: Anfrage aus der Mini-App zählt Rechner fertig und Lead und merkt die Herkunft (Weg app)',
     str_contains($t2Bed, "TelegramWachstum::zaehlen('lead', \$tg)") && str_contains($t2Bed, "TelegramWachstum::herkunftMerken(\$tgKid, \$tg, 'app'"));
@@ -17438,6 +17445,124 @@ foreach (['de' => 'Website prüfen, ruft unser Server', 'it' => 'controllare un 
 pruefe('T3: Das Dashboard zeigt, wie viele Checks ein Ergebnis hatten',
     str_contains(implode('|', array_column(TelegramZahlen::dashboard(MkKennzahlen::zeitraum('heute'))['funnel'], 2)), 'mit Ergebnis im Chat'));
 PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
+
+/* ============================================================================
+   Kanal statt Bot (01.10.2026, Uwe: „normale Nutzer außer Admin nicht direkt
+   in den Bot, nur über den Kanal — Partner werden und Telegram-Bots auch“ →
+   „Nur Admin“, „Kurzer Hinweis + Kanal“)
+   ============================================================================ */
+abschnitt('Telegram: Kanal statt Bot');
+require_once $wurzel . '/src/TelegramApp.php';
+require_once $wurzel . '/src/TelegramKunde.php';
+$kbNetz = []; $kbRolle = 'creator';
+Telegram::$netz = static function (string $m, array $d) use (&$kbNetz, &$kbRolle): array {
+    $kbNetz[] = [$m, $d];
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => 9500 + count($kbNetz)]]; }
+    if ($m === 'getChatMember') { return ['ok' => true, 'result' => ['status' => $kbRolle]]; }
+    return ['ok' => true, 'result' => true];
+};
+$kbZuletzt = static function () use (&$kbNetz): array {
+    for ($i = count($kbNetz) - 1; $i >= 0; $i--) {
+        if (in_array($kbNetz[$i][0], ['sendMessage', 'editMessageText'], true)) {
+            $d = $kbNetz[$i][1]; $k = [];
+            foreach ((array) ($d['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $b) { $k[] = $b['callback_data'] ?? ('url:' . ($b['url'] ?? '')); } }
+            return ['text' => (string) $d['text'], 'knoepfe' => $k];
+        }
+    }
+    return ['text' => '', 'knoepfe' => []];
+};
+Telegram::setzen('tg_bot_offen', '0');
+Telegram::setzen('tg_name', 'vecom_pruef_bot');
+Telegram::setzen('tg_app_name', 'rechner');
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+pruefe('Kanal statt Bot: ab Werk ist der Bot-Chat nur für den Admin', !Telegram::botOffen());
+$kbT = static function (int $chat, string $t, string $lang = 'de') use ($tgAus, $tgText): string { Db::run('UPDATE telegram_chats SET takt_zahl = 0'); return $tgAus($tgText($chat, $t, $lang)); };
+$kbA = random_int(580000000, 589999999);
+$kbV = $kbT($kbA, '/start');
+$kbZ = $kbZuletzt();
+pruefe('Kanal statt Bot: ein normaler Nutzer bekommt nur den Hinweis — Knopf zum Kanal und ins Vecom-Fenster, kein Bot-Menü',
+    $kbV === 'nur_kanal' && str_contains($kbZ['text'], 'Alles finden Sie in unserem Kanal')
+    && $kbZ['knoepfe'] === ['url:https://t.me/vecomdesign', 'url:https://t.me/vecom_pruef_bot/rechner?startapp=bot-de-menu'], json_encode($kbZ));
+$kbT($kbA, 'Hallo, was kostet eine Website?');
+pruefe('Kanal statt Bot: auch eine freie Nachricht führt nur dorthin (kein Fragebogen, keine Anfrage)', $kbZuletzt()['text'] === Texte::TELEGRAM['de']['nurKanal'] && $tgChat($kbA)['bedarf_id'] === null);
+Db::run('UPDATE telegram_chats SET takt_zahl = 0');
+pruefe('Kanal statt Bot: alte Knöpfe (Preis berechnen) öffnen nichts mehr', $tgAus($tgKnopf($kbA, 'm:preis')) === 'nur_kanal' && $tgChat($kbA)['bedarf_id'] === null);
+$kbB = random_int(590000000, 599999999);
+$kbT($kbB, '/start m_tg-t2', 'it');
+pruefe('Kanal statt Bot: Kampagnenlink im Bot — Quelle reist ins Fenster mit, der Start zählt, Italienisch nach der Telegram-Sprache',
+    in_array('url:https://t.me/vecom_pruef_bot/rechner?startapp=m_tg-t2', $kbZuletzt()['knoepfe'], true) && str_contains($kbZuletzt()['text'], 'Benvenuto')
+    && $tgChat($kbB)['quelle_code'] === 'm_tg-t2' && $tgChat($kbB)['spur_besuch_id'] === null, json_encode($kbZuletzt()));
+$kbC = random_int(600000000, 609999999);
+$kbT($kbC, '/start kanal-dreid');
+pruefe('Kanal statt Bot: alter Kanal-Knopf (?start=kanal-dreid) — öffnet im Fenster dasselbe Thema', in_array('url:https://t.me/vecom_pruef_bot/rechner?startapp=kanal-de-dreid', $kbZuletzt()['knoepfe'], true));
+$kbD = random_int(610000000, 619999999);
+$kbT($kbD, '/start k_' . str_repeat('ab', 16));
+pruefe('Kanal statt Bot: auch ein Kunden-Verbindungslink verbindet nicht mehr (nur Admin)', $kbZuletzt()['text'] === Texte::TELEGRAM['de']['nurKanal'] && $tgChat($kbD)['kunde_verbunden'] === null);
+$kbE = random_int(620000000, 629999999);
+pruefe('Kanal statt Bot: der Verbindungslink der Verwaltung (a_CODE) kommt durch', $kbT($kbE, '/start a_' . str_repeat('cd', 16)) === 'code_ungueltig');
+/* Der Admin: verbundener Chat, Besitzer des Kanals */
+Db::run('UPDATE telegram_chats SET admin_verbunden = ? WHERE chat_id = ?', [$tzUid, $tzChat]);
+$kbRolle = 'creator'; TelegramAdmin::vergessen();
+$kbT($tzChat, '/menu');
+pruefe('Kanal statt Bot: der Admin bekommt weiter das ganze Bot-Menü mit „🛠 Verwaltung“', in_array('v:lage', $kbZuletzt()['knoepfe'], true) && in_array('m:preis', $kbZuletzt()['knoepfe'], true), json_encode($kbZuletzt()['knoepfe']));
+$kbRolle = 'left'; TelegramAdmin::vergessen();
+$kbT($tzChat, '/menu');
+pruefe('Kanal statt Bot: verliert er die Rolle im Kanal, ist er ein normaler Nutzer', $kbZuletzt()['text'] === Texte::TELEGRAM['de']['nurKanal']);
+$kbRolle = 'creator'; TelegramAdmin::vergessen();
+Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE chat_id = ?', [$tzChat]);
+/* Kunden */
+pruefe('Kanal statt Bot: kein Verbindungslink für Kunden, keine Hinweise per Telegram, kein Knopf im persönlichen Bereich',
+    TelegramKunde::verbindungslink(1) === '' && str_contains((string) file_get_contents($oben . '/kunde.php'), "Telegram::einstellung('tg_name') !== '' && Telegram::botOffen()")
+    && str_contains((string) file_get_contents($wurzel . '/src/TelegramKunde.php'), "!Telegram::bereit() || !Telegram::botOffen()"));
+/* Kanal-Menü: alles im Fenster, mit Partner und Telegram-Bots */
+$kbNetz = [];
+Telegram::setzen('tg_kanal_menue_id', '');
+$kbM = Telegram::kanalMenue('de');
+$kbPost = array_values(array_filter($kbNetz, static fn($x) => $x[0] === 'sendMessage'))[0][1] ?? [];
+$kbUrls = [];
+foreach ((array) ($kbPost['reply_markup']['inline_keyboard'] ?? []) as $r) { foreach ($r as $b) { $kbUrls[(string) $b['text']] = (string) $b['url']; } }
+pruefe('Kanal statt Bot: jeder Knopf im Kanal-Menü öffnet das Vecom-Fenster — keiner mehr den Bot-Chat',
+    $kbM['ok'] && count($kbUrls) === 12 && !array_filter($kbUrls, static fn($u) => !str_starts_with($u, 'https://t.me/vecom_pruef_bot/rechner?startapp=kanal-de-')), json_encode($kbUrls));
+pruefe('Kanal statt Bot: „Partner werden“ und „Telegram-Bots erstellen“ stehen im Kanal-Menü',
+    ($kbUrls[Texte::TELEGRAM['de']['k_partner']] ?? '') === 'https://t.me/vecom_pruef_bot/rechner?startapp=kanal-de-partner'
+    && ($kbUrls[Texte::TELEGRAM['de']['k_bots']] ?? '') === 'https://t.me/vecom_pruef_bot/rechner?startapp=kanal-de-bots');
+/* Start-Parameter des Fensters */
+$kbL = static fn(string $p): array => TelegramApp::lesen($p, 'it');
+pruefe('Vecom-Fenster: Start lesen — Rechner, Themen, Menü, Kampagne und Partner',
+    $kbL('kanal-de-preis')['rechner'] && !$kbL('kanal-de-bots')['rechner'] && $kbL('kanal-de-bots')['ziel'] === 'bots' && $kbL('kanal-en-partner')['sprache'] === 'en'
+    && $kbL('m_tg-t2_a1')['quelle'] === 'm_tg-t2_a1' && !$kbL('m_tg-t2_a1')['rechner'] && $kbL('p_ULLI5KUH')['quelle'] === 'p_ulli5kuh'
+    && $kbL('bot-de-menu')['ziel'] === 'menu' && !$kbL('bot-de-menu')['rechner'] && $kbL('kanal-de')['rechner'] && $kbL('x_<script>')['quelle'] === 'telegram');
+pruefe('Vecom-Fenster: nur saubere Quellen (Wort, Kampagne, Partner)', TelegramApp::quelleOk('kanal') && TelegramApp::quelleOk('m_tg-t2_a1') && TelegramApp::quelleOk('p_ulli5kuh')
+    && !TelegramApp::quelleOk('m_') && !TelegramApp::quelleOk("kanal'") && !TelegramApp::quelleOk('p_ab'));
+$kbF = (string) file_get_contents($oben . '/telegram-menue.php');
+pruefe('Vecom-Fenster: Telegram darf einbetten, Sitzung im fremden Rahmen, CSRF, Lockfeld, Bremse, Datenschutz-Häkchen',
+    str_contains($kbF, 'TelegramApp::EINBETTEN') && str_contains($kbF, "'samesite' => 'None'") && str_contains($kbF, "hash_equals((string) \$_SESSION['csrf']")
+    && str_contains($kbF, 'firma_web') && str_contains($kbF, '$schonIch >= 3') && str_contains($kbF, "empty(\$_POST['ds'])"));
+pruefe('Vecom-Fenster: dieselben Wege wie Bot und Website — Anfrage (Herkunft telegram), Partner-Zuordnung, Herkunft, Schnellcheck, drei Punkte',
+    str_contains($kbF, "'herkunft' => 'telegram'") && str_contains($kbF, "Partner::zuordnen(\$kid, (int) \$p['id'], 'link', null, 'telegram')")
+    && str_contains($kbF, "TelegramWachstum::herkunftMerken(\$kid, \$quelle, 'app'") && str_contains($kbF, 'PartnerSeite::kurzcheck(') && str_contains($kbF, 'TelegramBot::checkTop('));
+foreach (['ki', 'bots', 'dreid', 'logo', 'mensch', 'pruefen', 'partner', 'hosting', 'kunde'] as $kbZiel) {
+    pruefe('Vecom-Fenster: Ziel „' . $kbZiel . '“ hat eine Ansicht', in_array($kbZiel, TelegramApp::ZIELE, true) && (str_contains($kbF, "'" . $kbZiel . "' =>") || str_contains($kbF, "\$a === '" . $kbZiel . "'")));
+}
+pruefe('Vecom-Fenster: telegram-app.php leitet ohne Rechner ins Menü und merkt Kampagne/Partner',
+    str_contains((string) file_get_contents($oben . '/telegram-app.php'), "'/telegram-menue.php?'") && str_contains((string) file_get_contents($oben . '/telegram-app.php'), 'TelegramApp::quelleMerken('));
+pruefe('Vecom-Fenster: der Rechner behält seinen Telegram-Rahmen auch bei Kampagnen- und Partnerquelle',
+    str_contains((string) file_get_contents($oben . '/bedarf.php'), "TelegramApp::quelleOk(strtolower((string) (\$_GET['tg'] ?? '')))"));
+$kbKa = MkKampagne::laden((int) Db::wert("SELECT id FROM mk_kampagnen WHERE code = 'tg-t2'", [], 0));
+pruefe('Vecom-Fenster: der Telegram-Link einer Kampagne öffnet bei geschlossenem Bot das Fenster', $kbKa && TelegramWachstum::botLink($kbKa) === 'https://t.me/vecom_pruef_bot/rechner?startapp=m_tg-t2');
+Telegram::setzen('tg_bot_offen', '1');
+pruefe('… und bei offenem Bot wieder den Bot', $kbKa && TelegramWachstum::botLink($kbKa) === 'https://t.me/vecom_pruef_bot?start=m_tg-t2');
+$kbIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Einstellung „Wer darf in den Bot-Chat?“ hinter Anmeldung und CSRF, mit Prüfspur',
+    strpos($kbIdx, "case 'telegram_bot_offen':") > strpos($kbIdx, 'Csrf::pruefen()') && str_contains($kbIdx, "Events::pruefspur('telegram_bot_offen'"));
+foreach (['de', 'it', 'en'] as $kbS) {
+    pruefe('Kanal statt Bot: Hinweis und „Telegram-Bots erstellen“ in ' . $kbS, trim(Texte::TELEGRAM[$kbS]['nurKanal']) !== '' && trim(Texte::TELEGRAM[$kbS]['botsText']) !== '' && isset(Texte::TELEGRAM[$kbS]['thema']['bots'], Texte::TELEGRAM_APP['senden'][$kbS]));
+}
+pruefe('Vecom-Fenster: eigener Datenschutzhinweis ohne Chat-Nummer und /delete, eigene Fassung in der Zustimmung',
+    !array_filter(Texte::TELEGRAM_APP['ds'], static fn($t) => str_contains($t, '/delete') || !str_contains($t, '{link}'))
+    && str_contains($kbF, "Texte::TELEGRAM_APP_FASSUNG") && str_contains($kbF, "strtr(\$A('ds')"));
+Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', '');
 
 /* ============================================================================
    Aufräumen und Bilanz

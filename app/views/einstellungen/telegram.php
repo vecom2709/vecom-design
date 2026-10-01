@@ -88,7 +88,23 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
   </p>
 </div>
 
-<?php if (!empty($tg['bereit'])): $tgK = (array) ($tg['kanal'] ?? []); ?>
+<?php if (!empty($tg['bereit'])): $tgK = (array) ($tg['kanal'] ?? []); $tgOffen = Telegram::botOffen(); ?>
+<div class="block" id="botzugang">
+  <h2>Wer darf in den Bot-Chat?</h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 10px">
+    <?php if ($tgOffen): ?>
+      <b>Offen für alle:</b> Interessenten nutzen den Bot (Preis, Check, Anfrage), verbundene Kunden ihren Projekt-Kanal mit Hinweisen.
+    <?php else: ?>
+      <b>Nur für Sie (Admin).</b> Alle anderen bekommen im Bot nur einen kurzen Hinweis mit zwei Knöpfen: zum Kanal und ins Vecom-Fenster (Mini-App über dem Kanal mit Preis, Website-Check, Anfrage, Partner werden, Telegram-Bots). Kunden-Hinweise per Telegram ruhen, im persönlichen Bereich gibt es keinen Telegram-Knopf.
+    <?php endif; ?>
+  </p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_bot_offen">
+    <?php if (!$tgOffen): ?><input type="hidden" name="offen" value="1"><?php endif; ?>
+    <button class="knopf"><?= $tgOffen ? 'Nur noch für mich (Admin)' : 'Wieder für alle öffnen' ?></button>
+  </form>
+</div>
+
 <div class="block">
   <h2>Telegram-Kanal</h2>
   <?php if (!empty($tgK['id'])): ?>

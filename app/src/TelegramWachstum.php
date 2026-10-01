@@ -167,7 +167,15 @@ final class TelegramWachstum
     /** Der Bot-Link einer Kampagne (für die Kampagnenseite). Leer, solange der Bot keinen Namen hat. */
     public static function botLink(array $k, ?array $cr = null): string
     {
-        return Telegram::link('m_' . $k['code'] . ($cr !== null ? '_' . $cr['code'] : ''));
+        $param = 'm_' . $k['code'] . ($cr !== null ? '_' . $cr['code'] : '');
+        /* Ist der Bot nur für den Admin (ab Werk seit 01.10.2026), öffnet der Link
+           das Vecom-Fenster mit derselben Kampagne (telegram-app.php merkt sie). */
+        if (!Telegram::botOffen()) {
+            require_once __DIR__ . '/TelegramApp.php';
+            $app = TelegramApp::link($param);
+            if ($app !== '') { return $app; }
+        }
+        return Telegram::link($param);
     }
 
     /* ================================================================== */

@@ -13,11 +13,19 @@ declare(strict_types=1);
      2. mit ?neu: einen Bedarf anlegen und nach bedarf.php weiterleiten.
 
    Alles Weitere ist der Konfigurator der Website (siehe TelegramApp.php).
+
+   SEIT DEM 01.10.2026 (Uwe: „normale Nutzer nur über den Kanal“): Ohne
+   Rechner-Einstieg (preis/neu/besser) geht es ins Vecom-Fenster
+   (telegram-menue.php) — Menü, Website-Check, Anfrage, Partner. Kommt der
+   Start über eine Kampagne (m_CODE) oder einen Partner (p_CODE), legt diese
+   Seite den Besuch in der Spur an und merkt den Partner, wie p.php und
+   k.php es auf der Website tun; gezählt wird jedes Öffnen (app_start).
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Der Rechner ist derzeit nicht erreichbar.'); }
 foreach (['Config', 'Db', 'Events', 'TelegramApp'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 
 header('Content-Security-Policy: ' . TelegramApp::EINBETTEN);
 header('Cache-Control: no-store, private');
@@ -26,6 +34,8 @@ header('Referrer-Policy: no-referrer');
 
 $param = strtolower((string) ($_GET['tgWebAppStartParam'] ?? $_GET['s'] ?? ''));
 $start = TelegramApp::lesen($param, strtolower((string) ($_GET['lang'] ?? '')));
+// Aus dem Vecom-Fenster: der Rechner mit eigenem Einstieg, die Quelle bleibt die des Starts.
+if (isset($_GET['e']) && in_array((string) $_GET['e'], TelegramApp::EINSTIEGE, true)) { $start['einstieg'] = (string) $_GET['e']; $start['rechner'] = true; }
 $q = static fn(array $p): string => http_build_query($p, '', '&', PHP_QUERY_RFC3986);
 
 if (isset($_GET['neu'])) {
@@ -40,8 +50,24 @@ if (isset($_GET['neu'])) {
     exit;
 }
 
+/* Das erste Laden eines Starts: zählen, und Kampagne/Partner merken. Wirft nie. */
+if (!isset($_GET['e'])) {
+    try {
+        require_once __DIR__ . '/app/src/TelegramWachstum.php';
+        TelegramWachstum::zaehlen('app_start', $start['quelle']);
+        TelegramApp::quelleMerken($start['quelle'], $start['sprache']);
+    } catch (Throwable $e) { error_log('telegram-app: ' . $e->getMessage()); }
+}
+
+if (!$start['rechner']) {
+    // Ins Vecom-Fenster — mit demselben Laden wie unten (erst „fertig“, dann weiter), nur ein anderes Ziel.
+    $weiter = '/telegram-menue.php?' . $q(['a' => $start['ziel'], 's' => $start['quelle'], 'lang' => $start['sprache']]);
+    $neu = $weiter;
+} else {
 $weiter = '/bedarf.php?' . $q(['lang' => $start['sprache'], 'tg' => $start['quelle']]) . '&t=';
-$neu = '/telegram-app.php?' . $q(['neu' => 1, 's' => $param, 'lang' => $start['sprache']]);
+$neu = '/telegram-app.php?' . $q(['neu' => 1, 's' => $param, 'lang' => $start['sprache']] + (isset($_GET['e']) ? ['e' => $start['einstieg']] : []));
+}
+$imMenu = !$start['rechner'];
 ?><!doctype html>
 <html lang="<?= htmlspecialchars($start['sprache'], ENT_QUOTES) ?>">
 <head>
@@ -64,7 +90,8 @@ body{display:grid;place-items:center}</style>
 (function () {
   var t = null;
   try { t = localStorage.getItem('vd_tg_bedarf'); } catch (e) { }
-  var ok = typeof t === 'string' && /^[0-9a-f]{48}$/.test(t);
+  // Ins Menü immer frisch; nur der Rechner macht dort weiter, wo man war.
+  var ok = <?= $imMenu ? 'false' : 'true' ?> && typeof t === 'string' && /^[0-9a-f]{48}$/.test(t);
   // Telegram Web zeigt das Fenster erst nach „fertig“ vom ERSTEN Dokument im Rahmen
   // (gesehen am 30.09.2026: kam das „fertig“ erst von bedarf.php, blieb der Ladekreis).
   try { window.Telegram.WebApp.ready(); } catch (e) { }

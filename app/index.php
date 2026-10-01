@@ -2463,6 +2463,16 @@ if ($post) {
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
 
+            /* Kanal statt Bot (01.10.2026): wer in den Bot-Chat darf. */
+            case 'telegram_bot_offen':
+                require_once __DIR__ . '/src/Telegram.php';
+                $tgOffen = !empty($_POST['offen']);
+                Telegram::setzen('tg_bot_offen', $tgOffen ? '1' : '0');
+                Events::pruefspur('telegram_bot_offen', 'settings', null, [], ['offen' => $tgOffen]);
+                $_SESSION['gut'] = $tgOffen ? 'Der Bot-Chat ist wieder für alle offen (Interessenten und verbundene Kunden).'
+                    : 'Der Bot-Chat ist nur noch für Sie. Alle anderen bekommen den Weg in den Kanal und ins Vecom-Fenster.';
+                weiter('einstellungen?b=telegram');
+
             case 'telegram_app_speichern':
                 require_once __DIR__ . '/src/Telegram.php';
                 $tgAppName = trim((string) ($_POST['app'] ?? ''));

@@ -72,7 +72,7 @@ require __DIR__ . '/mk_stil.php';
   <?php else: ?>
   <div class="mk-teilen">
     <div>
-      <label class="leise" for="kl_tgbot" style="margin:0">Bot-Link — startet den Vecom-Bot; Preisrechner, Anfrage und Kunde zählen für diese Kampagne</label>
+      <label class="leise" for="kl_tgbot" style="margin:0">Telegram-Link — öffnet <?= Telegram::botOffen() ? 'den Vecom-Bot' : 'das Vecom-Fenster (Mini-App)' ?>; Preisrechner, Anfrage und Kunde zählen für diese Kampagne</label>
       <div class="mk-link"><input id="kl_tgbot" readonly value="<?= Fmt::h($tgK['bot']) ?>"><button class="knopf" type="button" data-kopieren="kl_tgbot">Kopieren</button></div>
       <?php if ($tgK['kanal']['id'] === ''): ?>
         <p class="mk-fein" style="margin:6px 0 0">Kanal-Link: erst den Kanal hinterlegen (Einstellungen → Telegram).</p>
