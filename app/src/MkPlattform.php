@@ -125,6 +125,85 @@ final class MkPlattform
     /* OAuth                                                               */
     /* ------------------------------------------------------------------ */
 
+    /**
+     * Die fertigen Antworten für die Anträge bei den Plattformen (01.10.2026,
+     * Uwe: „Ja“ — „Antragstexte fertig schreiben, Sie schicken nur ab“).
+     * Englisch, weil die Formulare englisch sind. Nur Tatsachen aus den
+     * Firmendaten und aus dem, was der Code wirklich tut — nichts erfunden:
+     * eigene Seite/eigenes Profil/eigener Kanal, Posten erst nach Freigabe,
+     * höchstens ein Beitrag am Tag, keine Mitgliederdaten.
+     * Stand der Regeln recherchiert 01.10.2026 (Quellen in PROJEKT.md).
+     *
+     * @return array{voraus:list<string>, felder:list<array{0:string,1:string}>}
+     */
+    public static function antrag(string $p): array
+    {
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Sprache.php';
+        $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $name = Firma::get('name', 'Vecom Design');
+        $inhaber = Firma::get('inhaber');
+        $mail = Firma::get('email', 'kontakt@vecom-design.it');
+        $adresse = implode(', ', array_filter([Firma::get('strasse'), trim(Firma::get('plz') . ' ' . Firma::get('ort')), 'Italy']));   // englisch wie das Formular
+        $piva = Firma::get('piva');
+        $privacy = Sprache::legal('en', 'privacy');
+        $terms = Sprache::legal('en', 'agb');
+        $wer = $name . ' is a small web design studio in ' . (Firma::get('ort') ?: 'Aragona (AG)') . ', Sicily, Italy, run by ' . ($inhaber ?: 'its owner') . '. It builds websites, online shops and logos for small local businesses.';
+        $allgemein = [
+            ['Legal name / organization', $name . ($inhaber !== '' ? ' (' . $inhaber . ')' : '') . ($piva !== '' ? ' — Partita IVA ' . $piva : '')],
+            ['Address', $adresse],
+            ['Website', $web],
+            ['Business email', $mail],
+            ['Privacy policy URL', $privacy],
+            ['Terms of service URL', $terms],
+        ];
+        $voraus = [];
+        $felder = [];
+        switch ($p) {
+            case 'linkedin':
+                if ($piva === '') { $voraus[] = 'LinkedIn nimmt für diese Schnittstelle nur eingetragene Unternehmen an (geprüfte Firma, Website und Domain). Ohne Partita IVA unter Einstellungen › Firma ist eine Ablehnung wahrscheinlich — und ein abgelehnter Antrag lässt sich mit derselben App nicht wiederholen.'; }
+                $voraus[] = 'Eine LinkedIn-Unternehmensseite für Vecom Design muss es geben; ihr Super-Admin bestätigt die App.';
+                $voraus[] = 'Die App nur für diesen Antrag anlegen, ohne LinkedIn- oder Microsoft-Namen und -Logo.';
+                $felder = array_merge($allgemein, [
+                    ['App name', $name . ' Publisher'],
+                    ['Use case description', $wer . ' We use this application only for our own LinkedIn Page. Our in-house content tool drafts posts about our work (practical tips, before/after examples, short case studies). '
+                        . 'Every post is reviewed and approved by our page administrator before it is scheduled. At the scheduled time the application publishes the approved post (text, image or image carousel) '
+                        . 'to our own organization page through the Posts API and Images API (w_organization_social) and reads it back (r_organization_social) to confirm it was published. '
+                        . 'We do not access, store or share LinkedIn member data, we do not message members, and the application is not offered to third parties. Expected volume: at most one post per day.'],
+                ]);
+                break;
+            case 'google':
+                $voraus[] = 'Das Google-Unternehmensprofil muss bestätigt und mindestens 60 Tage alt sein, mit eingetragener Website — es steht in den Verzeichnissen noch als „offen“.';
+                $voraus[] = 'Den Antrag mit dem Google-Konto stellen, das Inhaber des Profils ist; vorher ein Projekt in der Google Cloud anlegen (Projektnummer ins Formular).';
+                $felder = array_merge($allgemein, [
+                    ['Number of locations', '1 (our own business)'],
+                    ['Use case', $wer . ' We manage exactly one Business Profile: our own. We want to publish our own local posts (short updates with a "Learn more" link to our website) from our in-house content tool, '
+                        . 'only after manual approval by the owner, and read our own profile information to show it in our admin area. We do not manage profiles of other businesses and do not collect reviews or customer data through the API. '
+                        . 'Volume: at most one post per day.'],
+                ]);
+                break;
+            case 'youtube':
+                $voraus[] = 'Ein YouTube-Kanal für Vecom Design und ein Google-Cloud-Projekt mit YouTube Data API v3; Zustimmungsbildschirm auf „In production“.';
+                $voraus[] = 'Das Formular verlangt Bildschirmfotos dieser Seite (Verbinden & Posten) und der Freigabe — die Schlüssel dabei nicht zeigen.';
+                $felder = array_merge($allgemein, [
+                    ['API client description', 'Internal publishing tool of ' . $name . '. ' . $wer . ' The tool uploads short vertical videos (YouTube Shorts) that we produce ourselves to our own YouTube channel, after the channel owner has approved each video.'],
+                    ['How the client uses YouTube API Services', 'OAuth 2.0 with the scope youtube.upload, authorized once by the channel owner for our own channel only. The client calls videos.insert (resumable upload) with title, description and tags; '
+                        . 'nothing else. It does not read other channels, comments or analytics, and stores no YouTube data except the returned video ID, which links the upload to the post in our admin area. There is exactly one user: the owner.'],
+                    ['Quota', 'The default quota is enough: at most one or two uploads per day. We ask for the audit so that our uploads are no longer restricted to private.'],
+                ]);
+                break;
+            case 'tiktok':
+                $voraus[] = 'TikTok verlangt beim „Direct Post“ für JEDEN Beitrag eine eigene Seite: Kontoname anzeigen, Sichtbarkeit ohne Vorauswahl wählen lassen, Kommentare/Duett/Stitch ankreuzen, Werbekennzeichnung, Vorschau und den Satz „By posting, you agree to TikTok\'s Music Usage Confirmation“. '
+                    . 'Ganz ohne Klick geht TikTok also nie — der heutige Handy-Weg (ein Tipp auf „Teilen“) ist fast genauso schnell. Ein Antrag lohnt erst, wenn diese Seite gebaut ist.';
+                $felder = array_merge($allgemein, [
+                    ['App description', 'Internal tool of ' . $name . ' to publish our own short videos to our own TikTok account. ' . $wer . ' Each video is reviewed by the account owner, who chooses privacy level, interaction settings and commercial content disclosure on a confirmation page before it is posted.'],
+                    ['Products and scopes', 'Login Kit (user.info.basic) to show the account nickname on the confirmation page; Content Posting API with Direct Post (video.publish, video.upload) to upload the approved video file. One user: the account owner. No data of other users is accessed or stored.'],
+                ]);
+                break;
+        }
+        return ['voraus' => $voraus, 'felder' => array_values(array_filter($felder, static fn($f) => trim((string) $f[1]) !== ''))];
+    }
+
     public static function rueckrufAdresse(string $p): string
     {
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/plattform-rueckruf?p=' . $p;

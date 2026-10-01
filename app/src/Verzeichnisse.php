@@ -248,6 +248,32 @@ final class Verzeichnisse
         return $id;
     }
 
+    /**
+     * Einen selbst aufgenommenen Eintrag wieder entfernen (01.10.2026: drei
+     * versehentlich angelegte „Vecom Design“ auf den eigenen Kanal). Nur eigene
+     * (ohne Schlüssel) und nur, solange nichts darüber kam — die geprüften
+     * Vorschläge bleiben, sie stehen höchstens auf „Nicht eintragen“.
+     */
+    public static function entfernen(int $id): ?string
+    {
+        $e = Db::one('SELECT * FROM mk_verzeichnisse WHERE id = ?', [$id]);
+        if (!$e) { return 'Diesen Eintrag gibt es nicht.'; }
+        if ((string) ($e['schluessel'] ?? '') !== '') { return 'Geprüfte Vorschläge bleiben in der Liste — bitte „Nicht eintragen“ wählen.'; }
+        if (in_array($e['status'], ['eingereicht', 'online'], true)) { return 'Ein eingereichter oder sichtbarer Eintrag bleibt, damit seine Zahlen zuordenbar sind.'; }
+        $kid = (int) ($e['kampagne_id'] ?? 0);
+        if ($kid > 0) {
+            require_once __DIR__ . '/MkKampagne.php';
+            if (MkKampagne::laden($kid) !== null) {
+                if (!MkKampagne::nutzung($kid)['leer']) { return 'Über die Links dieses Eintrags kam schon etwas — er bleibt, damit die Zahlen stimmen. „Nicht eintragen“ blendet ihn aus.'; }
+                $f = MkKampagne::loeschen($kid);
+                if ($f !== null) { return 'Die Kampagne zum Eintrag ließ sich nicht entfernen: ' . $f; }
+            }
+        }
+        Db::run('DELETE FROM mk_verzeichnisse WHERE id = ?', [$id]);
+        Events::pruefspur('verzeichnis_entfernt', 'mk_verzeichnisse', $id, ['name' => $e['name'], 'url' => $e['url']], []);
+        return null;
+    }
+
     /** Nur eine vollständige Web-Adresse, kein javascript: und Ähnliches. */
     public static function urlOk(string $u): bool
     {
@@ -538,6 +564,10 @@ final class Verzeichnisse
     {
         if (!preg_match('~^(https?)://([a-z0-9.-]+)(?::(\d{1,5}))?$~i', $origin, $m)) { return false; }
         if (strtolower($m[2]) !== strtolower($host) || $host === '') { return false; }
+        /* Nie die eigene Seite (01.10.2026): Auf der Verwaltung selbst füllte der Knopf das Formular
+           „Eigene Stelle aufnehmen“ — so entstanden drei Einträge „Vecom Design“ auf den eigenen Kanal. */
+        $eigen = strtolower((string) parse_url((string) Config::get('website', 'https://vecom-design.it'), PHP_URL_HOST));
+        if ($eigen !== '' && (strtolower($host) === $eigen || strtolower($host) === 'www.' . $eigen || 'www.' . strtolower($host) === $eigen)) { return false; }
         return strtolower($m[1]) === 'https' || in_array(strtolower($host), ['127.0.0.1', 'localhost'], true);
     }
 

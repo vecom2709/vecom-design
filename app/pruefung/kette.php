@@ -19543,6 +19543,49 @@ pruefe('Einstellungen › Telegram: Redaktionsplan, Umfrage (mit Vorlagen, Entwu
     && str_contains($kgHtml, 'value="Entwurf?"') && str_contains($kgHtml, 'value="telegram_umfrage_ende"') === false && str_contains($kgHtml, '3 · 75 %')
     && str_contains($kgHtml, 'id="kommentare"') && str_contains($kgHtml, 'value="telegram_gruppe_pruefen"') && str_contains($kgHtml, 'tg-umfrage-vorlage'), (string) $kaFehler);
 unset($daten);
+/* Verzeichnisse aufgeräumt (01.10.2026): eigene Einträge entfernen, Ausfüll-Knopf nie auf der eigenen Seite */
+require_once $wurzel . '/src/Verzeichnisse.php';
+$vwEigen = Verzeichnisse::anlegen(['art' => 'branche', 'name' => 'Versehen', 'url' => 'https://versehen.example/eintrag', 'kostenlos' => '1']);
+$vwVorschlag = (int) Db::wert("SELECT id FROM mk_verzeichnisse WHERE schluessel = 'cylex'", [], 0);
+$vwEingereicht = Verzeichnisse::anlegen(['art' => 'branche', 'name' => 'Schon eingereicht', 'url' => 'https://eingereicht.example/eintrag', 'kostenlos' => '1']);
+Verzeichnisse::status((int) $vwEingereicht, 'eingereicht');
+pruefe('Verzeichnisse: ein selbst aufgenommener Eintrag lässt sich entfernen — geprüfte Vorschläge und eingereichte nicht',
+    is_int($vwEigen) && Verzeichnisse::entfernen($vwEigen) === null && Verzeichnisse::laden($vwEigen) === null
+    && is_string(Verzeichnisse::entfernen($vwVorschlag)) && Verzeichnisse::laden($vwVorschlag) !== null
+    && is_string(Verzeichnisse::entfernen((int) $vwEingereicht)) && Verzeichnisse::laden((int) $vwEingereicht) !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'verzeichnis_entfernt' AND entity_id = ?", [$vwEigen], 0) === 1);
+$vwHost = (string) parse_url((string) Config::get('website'), PHP_URL_HOST);
+pruefe('Ausfüll-Knopf: nie auf der eigenen Seite (dort stand das Formular „Eigene Stelle aufnehmen“)',
+    $vwHost !== '' && !Verzeichnisse::zielOk($vwHost, 'https://' . $vwHost) && !Verzeichnisse::zielOk('www.' . $vwHost, 'https://www.' . $vwHost)
+    && Verzeichnisse::zielOk('www.misterimprese.it', 'https://www.misterimprese.it'));
+$vwIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verzeichnisse: „Eintrag entfernen“ hinter Anmeldung und CSRF, mit eigener Rückfrage',
+    strpos($vwIdx, "case 'verzeichnis_weg':") > strpos($vwIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/views/verzeichnisse.php'), 'data-ja="Ja, entfernen"'));
+/* Antragstexte für LinkedIn, Google, YouTube, TikTok (01.10.2026, Uwe: „Ja“) */
+require_once $wurzel . '/src/MkPlattform.php';
+$paAlle = [];
+foreach (array_keys(MkPlattform::ALLE) as $paP) { $paAlle[$paP] = MkPlattform::antrag($paP); }
+$paFeld = static fn(array $a, string $t): string => (string) (array_values(array_filter($a['felder'], static fn($f) => $f[0] === $t))[0][1] ?? '');
+pruefe('Antragstexte: für alle vier Plattformen — Datenschutz- und AGB-Adresse, Website, geschäftliche E-Mail, keine Schlüssel',
+    count($paAlle) === 4 && !array_filter($paAlle, static fn($a) => !str_contains($paFeld($a, 'Privacy policy URL'), 'legal.html?lang=en#privacy')
+        || $paFeld($a, 'Business email') === '' || $paFeld($a, 'Website') === '' || preg_match('/secret|token|passw/i', (string) json_encode($a['felder'])) === 1),
+    json_encode(array_map(static fn($a) => count($a['felder']), $paAlle)));
+pruefe('Antragstexte: sagen, was der Code wirklich tut — eigene Seite, Freigabe vor dem Posten, keine fremden Daten',
+    str_contains($paFeld($paAlle['linkedin'], 'Use case description'), 'only for our own LinkedIn Page') && str_contains($paFeld($paAlle['linkedin'], 'Use case description'), 'approved')
+    && str_contains($paFeld($paAlle['google'], 'Use case'), 'exactly one Business Profile') && str_contains($paFeld($paAlle['youtube'], 'How the client uses YouTube API Services'), 'videos.insert')
+    && str_contains($paFeld($paAlle['tiktok'], 'App description'), 'confirmation page'));
+Db::run("DELETE FROM settings WHERE skey = 'firma_piva'"); (new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+$paOhne = MkPlattform::antrag('linkedin');
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('firma_piva', '02999990849') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)"); (new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+$paMit = MkPlattform::antrag('linkedin');
+Db::run("DELETE FROM settings WHERE skey = 'firma_piva'"); (new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+pruefe('Antragstexte: ohne Partita IVA warnt LinkedIn vorher (ein abgelehnter Antrag lässt sich nicht wiederholen), mit ihr steht sie im Feld',
+    str_contains(implode(' ', $paOhne['voraus']), 'Partita IVA') && !str_contains(implode(' ', $paMit['voraus']), 'Ohne Partita IVA')
+    && str_contains($paFeld($paMit, 'Legal name / organization'), 'Partita IVA 02999990849'));
+pruefe('Antragstexte: TikTok sagt ehrlich, dass Direct Post je Beitrag eine Bestätigungsseite verlangt', str_contains(implode(' ', $paAlle['tiktok']['voraus']), 'Music Usage Confirmation'));
+pruefe('Antragstexte: stehen unter Kanäle › Verbinden & Posten je Plattform zum Kopieren',
+    str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), 'MkPlattform::antrag($pk)') && str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), 'data-kopieren="<?= $pfId ?>"'));
 Telegram::$netz = $kgTgAlt;
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_menue_id', '');
 foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }

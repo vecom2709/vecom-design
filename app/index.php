@@ -991,6 +991,12 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert: ' . (Verzeichnisse::STATUS[(string) $_POST['status']] ?? '') . '.';
                 zurueck('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
 
+            case 'verzeichnis_weg':   // 01.10.2026: selbst aufgenommene Einträge wieder entfernen
+                require_once __DIR__ . '/src/Verzeichnisse.php';
+                $f = Verzeichnisse::entfernen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Eintrag entfernt.';
+                weiter('verzeichnisse');
+
             case 'verzeichnis_anlegen':
                 require_once __DIR__ . '/src/Verzeichnisse.php';
                 $vzErg = Verzeichnisse::anlegen($_POST);

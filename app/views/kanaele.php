@@ -97,6 +97,17 @@ $pfAntrag = [
         <span class="mk-fein"><?= $e['bereit'] ? 'postet automatisch' : ($e['verbunden'] ? 'verbunden — wartet auf den Haken „Freigabe erhalten“' : ($e['client_id'] !== '' ? 'Schlüssel gespeichert — noch nicht verbunden' : 'noch nicht beantragt · kommt per Handy')) ?></span></summary>
       <p class="mk-fein" style="margin:8px 0 4px"><?= Fmt::h($pDauer) ?></p>
       <ol style="line-height:1.65;max-width:82ch;margin:0 0 10px"><?php foreach ($pSchritte as $sch): ?><li><?= $sch ?></li><?php endforeach; ?></ol>
+      <?php $pfA = MkPlattform::antrag($pk); /* 01.10.2026: fertige Antworten fürs Formular, nur kopieren */ ?>
+      <details class="mk-pf__antrag" id="antrag-<?= $pk ?>">
+        <summary>Antragstexte zum Kopieren <span class="mk-fein">— englisch wie das Formular, aus den Firmendaten</span></summary>
+        <?php foreach ($pfA['voraus'] as $pv): ?><p class="hinweis" style="margin:8px 0;max-width:82ch;line-height:1.55"><?= Fmt::h($pv) ?></p><?php endforeach; ?>
+        <?php foreach ($pfA['felder'] as $fi => [$pft, $pfw]): $pfId = 'pfa-' . $pk . '-' . $fi; ?>
+          <div class="feld" style="margin:8px 0">
+            <label for="<?= $pfId ?>"><?= Fmt::h($pft) ?></label>
+            <div class="mk-link"><textarea id="<?= $pfId ?>" readonly rows="<?= mb_strlen($pfw) > 160 ? (int) min(10, ceil(mb_strlen($pfw) / 110) + 1) : 1 ?>" style="flex:1 1 320px;min-width:0"><?= Fmt::h($pfw) ?></textarea><button class="knopf" type="button" data-kopieren="<?= $pfId ?>">Kopieren</button></div>
+          </div>
+        <?php endforeach; ?>
+      </details>
       <p style="margin:0 0 10px"><span class="mk-fein">Rückruf-Adresse (Redirect URI) für die Plattform:</span><br><code style="overflow-wrap:anywhere"><?= Fmt::h(MkPlattform::rueckrufAdresse($pk)) ?></code></p>
       <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" class="mk-formular">
         <?= $csrf() ?><input type="hidden" name="tat" value="plattform_speichern"><input type="hidden" name="plattform" value="<?= $pk ?>">

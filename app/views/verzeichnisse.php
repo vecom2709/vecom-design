@@ -330,6 +330,12 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
         <?php endif; ?>
         <span class="mk-fein">Stand seit <?= Fmt::h($datum((string) ($e['status_am'] ?? $e['angelegt_am']))) ?></span>
       </form>
+      <?php if ((string) ($e['schluessel'] ?? '') === '' && !in_array($e['status'], ['eingereicht', 'online'], true)): /* 01.10.2026: eigene Einträge wieder entfernen */ ?>
+        <form method="post" action="<?= Fmt::h(url('verzeichnisse')) ?>" class="vz-stand" data-frage="„<?= Fmt::h((string) $e['name']) ?>“ aus der Liste nehmen? Nur selbst aufgenommene Einträge, über die noch nichts kam." data-ja="Ja, entfernen">
+          <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="verzeichnis_weg"><input type="hidden" name="id" value="<?= $id ?>">
+          <button class="knopf">Eintrag entfernen</button>
+        </form>
+      <?php endif; ?>
     </div>
   </details>
   <?php endforeach; ?>
