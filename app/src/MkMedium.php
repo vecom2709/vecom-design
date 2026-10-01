@@ -51,7 +51,7 @@ final class MkMedium
         'lkw' => 'Sattelzug', 'schmuck' => 'Uhr beim Juwelier', 'auto' => 'Sportwagen an der Küstenstraße'];
     public const MOTOR_STANDARD = ['bild' => 'auto', 'video' => 'auto', 'nacht_an' => true, 'nacht_von' => 22, 'nacht_bis' => 7, 'unreal_bereit' => false];
     public const MOTOREN = ['bild' => ['auto' => 'Automatisch (Blender, wo es eine 3D-Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai', 'blender' => 'Blender', 'beides' => 'Kie.ai und Blender — du wählst'],
-                            'video' => ['auto' => 'Automatisch (3D, wo es eine Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai (Veo 3.1 Fast)', 'blender' => 'Blender', 'unreal' => 'Unreal Engine (nach dem Probelauf)']];
+                            'video' => ['auto' => 'Automatisch (3D, wo es eine Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai (Veo 3.1 Fast)', 'blender' => 'Blender', 'unreal' => 'Unreal Engine (Path Tracer, wenn freigeschaltet)']];
 
     public static function studioFuer(string $branche): ?string
     {

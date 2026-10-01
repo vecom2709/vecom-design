@@ -201,12 +201,16 @@ require __DIR__ . '/mk_stil.php';
       <label class="mk-haken">von <select name="nacht_von" style="width:auto"><?php for ($st = 0; $st <= 23; $st++): ?><option value="<?= $st ?>"<?= $mo['nacht_von'] === $st ? ' selected' : '' ?>><?= sprintf('%02d:00', $st) ?></option><?php endfor; ?></select></label>
       <label class="mk-haken">bis <select name="nacht_bis" style="width:auto"><?php for ($st = 0; $st <= 23; $st++): ?><option value="<?= $st ?>"<?= $mo['nacht_bis'] === $st ? ' selected' : '' ?>><?= sprintf('%02d:00', $st) ?></option><?php endfor; ?></select></label>
     </div>
+    <div class="mk-start__wahl">
+      <input type="hidden" name="unreal_bereit" value="0">
+      <label class="mk-haken"><input type="checkbox" name="unreal_bereit" value="1"<?= $mo['unreal_bereit'] ? ' checked' : '' ?>> <b>Unreal freigeschaltet</b> — 3D-Videos mit dem Path Tracer (Probelauf 01.10.: so hell wie Blender, etwa viermal schneller)</label>
+    </div>
     <div><button class="knopf haupt">Speichern</button></div>
   </form>
   <ul class="mk-start__schritte" style="list-style:disc">
     <li>3D-Szenen gibt es für: <?= Fmt::h(implode(', ', array_unique(array_map(static fn($b) => MkKampagne::branchen()[$b] ?? $b, array_keys(MkMedium::STUDIOS))))) ?>. Für andere Branchen baut Claude das Bild als Blender-Szene aus der Bildidee; Videos laufen dort über Kie.ai.</li>
     <li>Blender rechnet fotoreal mit Cycles auf deiner RTX 5070 — ohne Credits. Vor jedem Bild misst der PC die Belichtung an einer kleinen Probe und gleicht höchstens eine Blende aus.</li>
-    <li>Unreal (Path Tracer) wird nach dem Probelauf freigeschaltet<?= $mo['unreal_bereit'] ? ' — ist freigeschaltet' : '' ?>. Bis dahin entstehen 3D-Videos mit Blender.</li>
+    <li><?= $mo['unreal_bereit'] ? 'Unreal ist freigeschaltet: 3D-Videos rechnet der Path Tracer; vor jedem Film misst ein Probebild die Belichtung gegen Blender, scheitert Unreal, rechnet Blender.' : 'Unreal (Path Tracer) ist ausgeschaltet — 3D-Videos entstehen mit Blender.' ?></li>
     <li>Gerade <?= MkMedium::imFenster() ? 'darf der PC 3D rechnen' : 'ist keine Nachtschicht — 3D wartet bis ' . sprintf('%02d:00', $mo['nacht_von']) ?>. „3D jetzt rechnen“ am Stück geht immer.</li>
   </ul>
 </section>

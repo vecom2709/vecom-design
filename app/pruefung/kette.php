@@ -18215,6 +18215,16 @@ pruefe('Verwaltung: Galerie freigeben/verwerfen und Starterpaket hinter CSRF; Bl
 Db::run('DELETE FROM mk_medien WHERE inhalt_id = 0');
 Db::run('DELETE FROM mk_auftraege');
 
+/* Unreal freischalten (01.10.2026, Uwe nach dem Probefilm: „Ja, freischalten“) — Schalter unter Freigeben, abwählbar. */
+$urF = (string) file_get_contents($wurzel . '/views/freigabe.php');
+MkMedium::motorSpeichern(['bild' => 'auto', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '1']);
+$urAn = MkMedium::motor()['unreal_bereit'];
+MkMedium::motorSpeichern(['bild' => 'auto', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '0']);
+pruefe('Unreal: Schalter „Unreal freigeschaltet“ unter Freigeben, an- und wieder abwählbar (verstecktes Feld 0 vor dem Haken)',
+    $urAn === true && MkMedium::motor()['unreal_bereit'] === false
+    && strpos($urF, '<input type="hidden" name="unreal_bereit" value="0">') < strpos($urF, 'name="unreal_bereit" value="1"'));
+Db::run("DELETE FROM settings WHERE skey = 'mk_motor'");
+
 /* Eigene Wünsche der Partner (01.10.2026, Uwe: W1–W4) */
 Db::run('DELETE FROM mk_auftraege');
 $wuP = Partner::laden(Partner::anlegen(['name' => 'Wanda Wunsch', 'email' => 'wanda-g3@partner.example', 'status' => 'aktiv']));
