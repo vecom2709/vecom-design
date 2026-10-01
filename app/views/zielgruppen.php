@@ -55,12 +55,14 @@ require __DIR__ . '/mk_stil.php';
   <h2 id="mk-zg-titel">Zielgruppen in <?= Fmt::h($name) ?> <span class="mehr"><?= count($liste) ?></span></h2>
   <?php if ($liste): ?>
   <div class="mk-zg-karten">
+    <?php require_once dirname(__DIR__) . '/src/MkSeite.php'; $zgSeiten = []; foreach (MkSeite::uebersicht($land) as $zs) { $zgSeiten[(int) $zs['zielgruppe_id']] = $zs; } ?>
     <?php foreach ($liste as $z): $zp = json_decode((string) ($z['profil'] ?? ''), true) ?: []; ?>
       <a class="mk-best" href="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>" style="text-decoration:none;color:inherit">
         <h3><?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?></h3>
         <b class="mk-best__name"><?= Fmt::h($z['titel']) ?></b>
         <span class="mk-best__zahl">Stand <?= Fmt::h($datum($z['updated_at'])) ?></span>
         <?php if (isset(MkZielgruppe::KUNDENWEGE[(string) ($zp['kundenweg']['weg'] ?? '')])): ?><span class="mk-best__zweit">Weg: <?= Fmt::h(MkZielgruppe::KUNDENWEGE[$zp['kundenweg']['weg']][0]) ?></span><?php endif; ?>
+        <?php $zs = $zgSeiten[(int) $z['id']] ?? null; if ($zs): ?><span class="mk-best__zweit">Landingpage: <?= $zs['status'] === 'freigegeben' ? 'online · ' . number_format((int) $zs['aufrufe'], 0, ',', '.') . ' Aufrufe' : 'wartet auf dein Ja' ?><?= $zs['entwurf'] && $zs['status'] === 'freigegeben' ? ' · neuer Entwurf' : '' ?></span><?php endif; ?>
         <?php if ($land === 'IT' && $zp && MkZielgruppe::ohneDeutsch($zp + ['land' => 'IT'])): ?><span class="mk-best__zweit">deutsche Fassung wird nachgeholt</span><?php endif; ?>
         <?php if ($z['status'] === 'freigegeben'): ?><span class="marke2 gut mk-best__marke">freigegeben</span>
         <?php elseif ((int) $z['ueberarbeitung'] === 1): ?><span class="marke2 warnung mk-best__marke">Überarbeitung prüfen</span>

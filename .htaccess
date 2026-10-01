@@ -52,6 +52,8 @@ RewriteRule ^k/([A-Za-z0-9-]{3,24})/([A-Za-z0-9-]{1,12})/?$ k.php?c=$1&w=$2 [L,Q
 # Branchen-Stadt-Seiten (28.09.2026, W1): anonyme Zahlen je Branche und Ort
 RewriteRule ^siti-web/?$ branchen.php [L,QSA]
 RewriteRule ^siti-web/([a-z0-9-]{3,190})/?$ branchen.php?s=$1 [L,QSA]
+# Landingpages der Zielgruppen (01.10.2026, S6): /l/sito-ristorante, /l/website-restaurant
+RewriteRule ^l/([a-z0-9-]{3,80})/?$ seite.php?s=$1 [L,QSA]
 
 # /pakete.html gibt es nicht mehr.
 #

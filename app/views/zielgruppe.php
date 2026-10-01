@@ -108,6 +108,50 @@ require __DIR__ . '/mk_stil.php';
 </div>
 <?php endif; ?>
 
+<?php if ($nutzbar): require_once dirname(__DIR__) . '/src/MkSeite.php';
+  $se = isset($mkSeite) && is_array($mkSeite) ? $mkSeite : null; $sa = isset($mkSeiteAuftrag) && is_array($mkSeiteAuftrag) ? $mkSeiteAuftrag : null;
+  $seC = $se ? json_decode((string) ($se['entwurf'] ?: $se['inhalt']), true) : null;
+  $seLive = MkSeite::pfad($se);
+  $seBasis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+  $seForm = static function (string $tat, string $text, bool $haupt = false) use ($z, $se): void { ?>
+    <form method="post" action="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="<?= Fmt::h($tat) ?>"><input type="hidden" name="zielgruppe" value="<?= (int) $z['id'] ?>"><input type="hidden" name="id" value="<?= (int) ($se['id'] ?? 0) ?>"><button class="knopf<?= $haupt ? ' haupt' : '' ?>"><?= Fmt::h($text) ?></button></form>
+  <?php }; ?>
+<div class="block" id="seite">
+  <h2>Eigene Landingpage <span class="mehr">eine Seite nur für diese Zielgruppe, in ihrer Sprache · Beiträge führen dorthin</span></h2>
+  <?php if ($se === null): ?>
+    <p style="margin:0 0 12px;max-width:72ch;line-height:1.6">Claude schreibt aus diesem Profil eine Seite, die genau diese Betriebe anspricht — ihre Probleme, ihre Einwände, ihre Fragen — <?= $istIt ? 'auf Italienisch, mit deutscher Fassung zum Lesen' : 'auf Deutsch' ?>. Online geht sie erst mit deinem Ja.</p>
+  <?php else: ?>
+    <p style="margin:0 0 10px">
+      <?php if ($seLive): ?><span class="marke2 gut">online</span> <a href="<?= Fmt::h($seBasis . $seLive) ?>" target="_blank" rel="noopener"><?= Fmt::h($seBasis . $seLive) ?></a> · <?= number_format((int) $se['aufrufe'], 0, ',', '.') ?> Aufrufe<?php else: ?><span class="marke2 warnung"><?= $se['status'] === 'aus' ? 'offline' : 'noch nicht online' ?></span><?php endif; ?>
+      <?php if ($se['entwurf']): ?> · <b>neuer Entwurf wartet auf dein Ja</b><?php endif; ?>
+    </p>
+    <?php if (is_array($seC)): ?>
+      <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin:0 0 12px;max-width:80ch">
+        <div class="mk-fein"><?= Fmt::h((string) ($seC['kicker'] ?? '')) ?></div>
+        <div style="font-size:19px;font-weight:700;margin:2px 0 6px"><?= Fmt::h((string) ($seC['h1'] ?? '')) ?></div>
+        <div style="line-height:1.55"><?= Fmt::h((string) ($seC['lead'] ?? '')) ?></div>
+        <div class="mk-fein" style="margin-top:6px">Abschnitte: <?= Fmt::h(implode(' · ', array_map(static fn($a) => (string) ($a['h2'] ?? ''), (array) ($seC['abschnitte'] ?? [])))) ?> · <?= count((array) ($seC['faq'] ?? [])) ?> Fragen</div>
+      </div>
+      <?php if (!empty($se['lesen_de'])): ?><details style="margin:0 0 12px;max-width:80ch"><summary>Deutsche Fassung zum Lesen</summary><div style="white-space:pre-line;line-height:1.6;margin-top:8px"><?= Fmt::h((string) $se['lesen_de']) ?></div></details><?php endif; ?>
+    <?php endif; ?>
+  <?php endif; ?>
+  <?php if ($sa && in_array($sa['status'], ['wartet', 'laeuft'], true)): ?>
+    <p class="mk-fein" style="margin:0 0 10px"><?= $sa['status'] === 'laeuft' ? 'Claude schreibt gerade …' : 'Wartet auf deinen PC (fragt alle 5 Minuten nach).' ?></p>
+  <?php elseif ($sa && $sa['status'] === 'fehler'): ?>
+    <p class="mk-fein" style="margin:0 0 10px;color:var(--warnung,#c96)">Letzter Versuch nicht geklappt: <?= Fmt::h((string) $sa['ergebnis']) ?></p>
+  <?php endif; ?>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+    <?php if ($se && ($se['entwurf'] || $se['status'] !== 'freigegeben')): ?>
+      <a class="knopf" href="<?= Fmt::h(url('seite-vorschau/' . (int) $se['id'])) ?>" target="_blank" rel="noopener">Vorschau ansehen ↗</a>
+      <?php $seForm('seite_freigeben', 'Online stellen', true); ?>
+      <?php if ($se['entwurf']) { $seForm('seite_verwerfen', $se['inhalt'] ? 'Entwurf verwerfen, alte Fassung behalten' : 'Entwurf verwerfen'); } ?>
+    <?php endif; ?>
+    <?php if (!($sa && in_array($sa['status'], ['wartet', 'laeuft'], true))) { $seForm('seite_schreiben', $se ? 'Neu schreiben lassen' : 'Seite schreiben lassen', $se === null); } ?>
+    <?php if ($seLive) { $seForm('seite_offline', 'Offline nehmen'); } ?>
+  </div>
+</div>
+<?php endif; ?>
+
 <div class="block">
   <h2>Datengrundlage <span class="mehr">selbst gemessen, nicht geschätzt</span></h2>
   <div class="kacheln" style="margin:0 0 12px">

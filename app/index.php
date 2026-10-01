@@ -537,6 +537,8 @@ if ($post) {
                     require_once __DIR__ . '/src/MkAutopilot.php';
                     $mzZ = MkZielgruppe::laden($mzId);
                     $mzSchon = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'inhalte' AND status <> 'abgebrochen' AND created_at >= NOW() - INTERVAL 7 DAY AND parameter LIKE ?", ['%"zielgruppe_id":' . $mzId . ',%'], 0);
+                    /* S6: Die Landingpage der Zielgruppe gleich mitschreiben lassen (geht erst nach deinem Ja online). */
+                    if ($mzZ !== null) { require_once __DIR__ . '/src/MkSeite.php'; if (MkSeite::fuerZielgruppe($mzId) === null) { sicher(static fn() => MkSeite::anlegen($mzId), null); } }
                     if ($mzZ !== null && $mzSchon === 0) {
                         $mzE = MkAutopilot::einstellung((string) $mzZ['land']);
                         $mzK = MkAuftrag::anlegenKampagne($mzId, ['organisch' => '1', 'anzeigen' => $mzE['anzeigen'] ? '1' : '', 'bilder' => $mzE['bilder'] ? '1' : '', 'autopilot' => '1']);
@@ -564,6 +566,38 @@ if ($post) {
                 if ($maGut) { $_SESSION['gut'] = 'Recherche angestoßen (' . implode(' und ', $maGut) . '). Dein PC holt sie in den nächsten fünf Minuten ab; Claude braucht dann etwa 10–20 Minuten je Land. Die Seite zeigt den Stand.'; }
                 if ($maFehl) { $_SESSION['fehler'] = implode(' · ', $maFehl); }
                 weiter('zielgruppen?land=' . $maLand . '#auftraege');
+
+            case 'kommentar_schalten':
+            case 'kommentar_abo':
+                /* S1 (01.10.2026): „Kommentiere STICHWORT“ → automatische Nachricht */
+                require_once __DIR__ . '/src/MkKommentar.php';
+                if ($tat === 'kommentar_schalten') {
+                    MkKommentar::schalten(($_POST['an'] ?? '') === '1');
+                    $_SESSION['gut'] = MkKommentar::an() ? 'Eingeschaltet: Wer ein Stichwort kommentiert, bekommt die Nachricht mit dem Check-Link. Neue Beiträge sagen ab jetzt „Kommentiere …“.' : 'Ausgeschaltet.';
+                } else {
+                    $kaR = MkKommentar::abonnieren();
+                    $_SESSION[$kaR['ok'] ? 'gut' : 'fehler'] = $kaR['ok'] ? 'Die Seite meldet Kommentare jetzt an Vecom (Facebook). Für Instagram einmal das Feld „comments“ in der Meta-App abonnieren — Anleitung darunter.' : 'Nicht geklappt: ' . $kaR['grund'];
+                }
+                weiter('kampagnen#kommentar');
+
+            /* S6 (01.10.2026): Landingpage je Zielgruppe — schreiben lassen, online stellen, offline nehmen */
+            case 'seite_schreiben':
+            case 'seite_freigeben':
+            case 'seite_offline':
+            case 'seite_verwerfen':
+                require_once __DIR__ . '/src/MkSeite.php';
+                $msZg = (int) ($_POST['zielgruppe'] ?? 0);
+                $msId = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'seite_schreiben') {
+                    $msR = MkSeite::anlegen($msZg);
+                    $_SESSION[is_int($msR) ? 'gut' : 'fehler'] = is_int($msR) ? 'Claude schreibt die Seite, sobald dein PC nachfragt (alle 5 Minuten). Danach liegt sie hier zum Ansehen und Freigeben.' : $msR;
+                } else {
+                    $msR = match ($tat) { 'seite_freigeben' => MkSeite::freigeben($msId), 'seite_offline' => MkSeite::offline($msId), default => MkSeite::entwurfVerwerfen($msId) };
+                    $_SESSION[$msR === null ? 'gut' : 'fehler'] = $msR ?? match ($tat) {
+                        'seite_freigeben' => 'Die Seite ist online. Neue Beiträge und Anzeigen dieser Zielgruppe führen ab jetzt dorthin.',
+                        'seite_offline' => 'Offline genommen — Beiträge führen wieder auf den Website-Check.', default => 'Entwurf verworfen.' };
+                }
+                weiter('zielgruppen/' . $msZg . '#seite');
 
             /* Ein-Klick-Kampagne (Marketing-Studio 6, Uwe: „ja“ zu U3) — auf Wunsch auch für dieselbe Branche im anderen Land. */
             case 'woche_werben':
@@ -4741,6 +4775,17 @@ switch ($route) {
         ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ)]);
         break;
 
+    case 'seite-vorschau':   // S6: Landingpage ansehen, bevor sie online geht
+        require_once __DIR__ . '/src/MkSeite.php';
+        $svS = $id !== null ? Db::one('SELECT slug FROM mk_seiten WHERE id = ?', [$id]) : null;
+        $svS = $svS ? MkSeite::zumAnzeigen((string) $svS['slug'], true) : null;
+        $svG = $svS ? MkSeite::geruest((string) $svS['sprache'], dirname(__DIR__)) : null;
+        if (!$svS || $svG === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+        header('Cache-Control: no-store');
+        header('X-Robots-Tag: noindex');
+        echo MkSeite::html($svS, $svG, (string) Config::get('website', 'https://vecom-design.it'), true);
+        exit;
+
     case 'bewertung-karte':   // S3 (01.10.2026, Uwe: Ja): QR „Bewerten Sie uns“ zum Ausdrucken — persönlich übergeben, nicht per Mail
         require_once __DIR__ . '/src/Firma.php';
         require_once __DIR__ . '/src/QrBild.php';
@@ -4820,6 +4865,9 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
                 'inhalteZahl' => (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE zielgruppe_id = ? AND status <> 'verworfen'", [$id], 0), 0),
                 'gegenstueck' => sicher(static fn() => Db::one("SELECT id, titel, status FROM mk_zielgruppen WHERE branche = ? AND land = ? AND (status = 'freigegeben' OR vorher IS NOT NULL)", [(string) $mz['branche'], MkLand::andere((string) $mz['land'])]), null),
                 'kampagneLaeuft' => (bool) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'inhalte' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"zielgruppe_id":' . $id . ',%'], 0), false),
+                /* S6: Landingpage der Zielgruppe und ihr letzter Auftrag */
+                'mkSeite' => sicher(static function () use ($id): ?array { require_once __DIR__ . '/src/MkSeite.php'; return MkSeite::fuerZielgruppe($id); }, null),
+                'mkSeiteAuftrag' => sicher(static fn() => Db::one("SELECT status, ergebnis, created_at FROM mk_auftraege WHERE art = 'seite' AND parameter = ? ORDER BY id DESC LIMIT 1", [json_encode(['zielgruppe_id' => $id])]) ?: null, null),
                 'zahlen' => sicher(static function () use ($id, $mz): array {   // was die Kampagnen dieser Zielgruppe gebracht haben (30 Tage)
                     $z = MkKampagne::zahlen(date('Y-m-d', strtotime('-30 days')), date('Y-m-d'));
                     $s = MkKampagne::LEER;

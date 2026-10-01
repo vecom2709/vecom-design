@@ -111,3 +111,4 @@ __pycache__/
 # (wie /de/ und /en/). Aendern: seiten/landeseiten.mjs, dann node build.mjs.
 /siti-web-*.html
 /sito-o-booking.html
+/contributi-sito-web.html

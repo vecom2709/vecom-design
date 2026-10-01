@@ -47,6 +47,10 @@ final class MkAuftrag
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             return 'Deutsche Fassung · ' . (int) ($p['profile'] ?? 0) . ' Zielgruppen, ' . (int) ($p['inhalte'] ?? 0) . ' Inhalte auf Italienisch';
         }
+        if (($a['art'] ?? 'recherche') === 'seite') {   // S6
+            require_once __DIR__ . '/MkSeite.php';
+            return MkSeite::beschreibung($a);
+        }
         if (($a['art'] ?? 'recherche') === 'demo') {   // Marketing-Studio 10
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             $f = self::still(static fn() => (string) Db::wert('SELECT f.name FROM mk_demos d JOIN akq_firmen f ON f.id = d.akq_firma_id WHERE d.id = ?', [(int) ($p['demo_id'] ?? 0)], ''), '');
@@ -239,6 +243,13 @@ final class MkAuftrag
             if (($a['art'] ?? 'recherche') === 'uebersetzen') {
                 return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()];
             }
+            if (($a['art'] ?? 'recherche') === 'seite') {
+                /* S6: Landingpage — Claude schreibt aus dem freigegebenen Profil. */
+                require_once __DIR__ . '/MkSeite.php';
+                $sp = MkSeite::fuerPc($a);
+                if ($sp === null) { Db::update('mk_auftraege', (int) $a['id'], ['status' => 'abgebrochen', 'ergebnis' => 'Zielgruppe nicht mehr freigegeben.']); continue; }
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'seite', 'beschreibung' => self::beschreibung($a)] + $sp];
+            }
             if (($a['art'] ?? 'recherche') === 'demo') {
                 /* Marketing-Studio 10: Demo-Vorschau — Claude baut eine Startseite aus der bisherigen Website. */
                 require_once __DIR__ . '/MkDemo.php';
@@ -312,7 +323,9 @@ final class MkAuftrag
             'thema' => (string) ($p['thema'] ?? ''),
             'formate' => MkInhalt::formateFuerClaude((array) ($p['plattformen'] ?? []), (string) ($p['umfang'] ?? 'beides')),
             'grenzen' => MkInhalt::G, 'meta_cta' => MkInhalt::META_CTA,
-            'zielseite' => $k ? (string) $k['ziel'] : MkInhalt::CHECK . ($a['land'] === 'DE' ? '?lang=de' : ''),
+            /* S6: Hat die Zielgruppe eine eigene Landingpage online, führen die Beiträge dorthin. */
+            'zielseite' => $k ? (string) $k['ziel'] : (self::still(static function () use ($p): ?string { require_once __DIR__ . '/MkSeite.php'; return MkSeite::pfadFuerZielgruppe((int) ($p['zielgruppe_id'] ?? 0)); }, null)
+                           ?? MkInhalt::CHECK . ($a['land'] === 'DE' ? '?lang=de' : '')),
             'paket' => !empty($p['paket']),
             /* S1: Ist die automatische Antwort auf Kommentare eingeschaltet, dürfen Beiträge „Kommentiere STICHWORT“ sagen. */
             'kommentar_automatik' => (string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_kommentar_an'", [], ''), '') === '1',
@@ -332,7 +345,7 @@ final class MkAuftrag
         if (!$a) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
         $in = max(0, min(999, (int) ($d['inhalte'] ?? 0)));
         $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte';
-        if (($a['art'] ?? '') === 'uebersetzen') {
+        if (in_array($a['art'] ?? '', ['uebersetzen', 'seite'], true)) {   // S6: die Seite selbst kommt über marketing_seite_melden
             if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'zielgruppen' => $zg, 'inhalte' => $in, 'fertig_am' => date('Y-m-d H:i:s')]);
             return ['ok' => true];

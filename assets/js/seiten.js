@@ -64,5 +64,10 @@ window.VECOM_SEITEN = {
     "it": "/sito-o-booking.html",
     "de": "/de/eigene-website-oder-booking.html",
     "en": "/en/own-website-or-booking.html"
+  },
+  "contributi-sito-web": {
+    "it": "/contributi-sito-web.html",
+    "de": "/de/foerderung-website.html",
+    "en": "/en/funding-website.html"
   }
 };

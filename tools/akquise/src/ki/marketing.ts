@@ -23,6 +23,7 @@ import { log } from '../log.js';
 import { medienLauf, type MedienAuftrag } from './kie.js';
 import { vnLauf, type VnDaten } from './vorhernachher.js';
 import { demoLauf, type DemoAuftrag } from './demo.js';
+import { seiteLauf, type SeiteAuftrag } from './seite.js';
 import { dreiDLauf, type DreiDAuftrag } from './render3d.js';
 import { szeneBauen } from './szene3d.js';
 
@@ -207,7 +208,7 @@ REGELN — unbedingt
 - Ton: ruhig, konkret, respektvoll; Nutzen vor Technik. Höchstens zwei Emojis je Stück, keine in Anzeigen-Überschriften. Keine Superlative („il migliore“), keine Garantien, keine künstliche Eile, keine Namen von Mitbewerbern.
 - Anzeigen: keine Aussagen, die persönliche Merkmale oder Notlagen unterstellen (Meta-Richtlinie) — „Per chi ha un ristorante …“ statt „Il tuo ristorante sta fallendo?“.
 - KUNDENWEG des Profils (profil.kundenweg) bestimmt den roten Faden: ${a.kommentar_automatik
-    ? 'ist er „kommentar“, enden die Reels und Beiträge auf Instagram/Facebook mit „Kommentiere STICHWORT“ (Stichwort aus dem Profil, in der Kundensprache) — die Antwort mit dem Link kommt automatisch; '
+    ? 'ist er „kommentar“, enden die Reels und Beiträge auf Instagram/Facebook mit „Kommentiere STICHWORT“ (Stichwort aus dem Profil, in der Kundensprache; fehlt es: ' + (a.land === 'DE' ? 'CHECK' : 'SITO') + ') — die Antwort mit dem Link kommt automatisch; '
     : 'ist er „kommentar“, nutze vorerst den Link-Aufruf (die automatische Antwort ist noch nicht eingeschaltet); '}bei „demo“ wird die kostenlose Demo-Vorschau angeboten (auf Anfrage), sonst der Website-Check.
 - Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern. JEDER Aufruf (cta, knopf, Anzeigen-Knopf) führt zum kostenlosen Website-Check
   — z. B. ${a.land === 'DE' ? '„Website kostenlos prüfen“, „Jetzt kostenlos testen“' : '„Verifichi gratis il suo sito“, „Analisi gratuita“'}; bei Meta-Anzeigen cta LEARN_MORE oder SIGN_UP, wenn passend.
@@ -428,6 +429,8 @@ export async function marketingLauf(): Promise<boolean> {
   if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
   if (r.auftrag?.art === 'uebersetzen') { await uebersetzenLauf(r.auftrag as UebersetzenAuftrag); return true; }
   /* Marketing-Studio 10: Demo-Vorschau — Claude baut eine Startseite, Uwe gibt frei. */
+  /* S6: Landingpage je Zielgruppe — nur Text, die Verwaltung baut die Seite. */
+  if (r.auftrag?.art === 'seite') { await seiteLauf(r.auftrag as SeiteAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
   if (r.auftrag?.art === 'demo') { await demoLauf(r.auftrag as DemoAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;

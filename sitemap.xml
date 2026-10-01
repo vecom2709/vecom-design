@@ -338,6 +338,30 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/sito-o-booking.html"/>
     <lastmod>2026-09-26</lastmod><priority>0.7</priority>
   </url>
+  <url>
+    <loc>https://vecom-design.it/contributi-sito-web.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/foerderung-website.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/funding-website.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/de/foerderung-website.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/foerderung-website.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/funding-website.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://vecom-design.it/en/funding-website.html</loc>
+    <xhtml:link rel="alternate" hreflang="it" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://vecom-design.it/de/foerderung-website.html"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://vecom-design.it/en/funding-website.html"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://vecom-design.it/contributi-sito-web.html"/>
+    <lastmod>2026-09-26</lastmod><priority>0.7</priority>
+  </url>
   <!-- landeseiten:ende -->
   <!-- deutschland:anfang (build.mjs) -->
   <url>

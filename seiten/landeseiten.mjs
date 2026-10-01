@@ -406,6 +406,63 @@ export const LANDESEITEN = [
       branche: 'bb',
     },
   },
+
+  /* --------------------------------------------------------- Förderung (S6, 01.10.2026) */
+  /* Uwe: Ja zu S6 („Fördercheck“). Geprüft am 01.10.2026: Jede Handelskammer schreibt
+     eigene Voucher aus (Punto Impresa Digitale); Beispiel Modena 2025: 50 % bis 5.000 €,
+     Website nicht ausdrücklich gefördert. Darum hier nur der Weg, keine Zahl, kein Versprechen. */
+  {
+    schluessel: 'foerderung', art: 'Article',
+    ziele: { it: 'contributi-sito-web.html', de: 'de/foerderung-website.html', en: 'en/funding-website.html' },
+    it: {
+      titel: 'Contributi per il sito web: verifichiamo prima | Vecom Design',
+      desc: 'Camere di Commercio e Regione pubblicano a volte bandi per la digitalizzazione delle piccole imprese. Prima del preventivo verifichiamo insieme se ce n’è uno adatto, senza promesse.',
+      kicker: 'Contributi e voucher', h1: 'Contributi per il sito: lo verifichiamo prima di iniziare',
+      lead: 'Le Camere di Commercio, tramite i Punti Impresa Digitale, e a volte la Regione pubblicano bandi che coprono una parte delle spese per la digitalizzazione. Il sito non è sempre tra le spese ammesse, e ogni bando ha regole e scadenze proprie. Per questo lo verifichiamo insieme prima del preventivo — senza promesse.',
+      blocchi: [
+        ['Cosa sono i voucher digitali', 'Ogni Camera di Commercio decide da sé se e quando pubblicare un bando. Di solito si rivolgono a micro, piccole e medie imprese e coprono una percentuale delle spese ammesse fino a un tetto. Alcuni finanziano consulenza, formazione e strumenti digitali; il sito o il negozio online non sempre.'],
+        ['Come lo verifichiamo', null, ['Mi dice in quale provincia ha sede la sua attività.', 'Controllo i bandi aperti della sua Camera di Commercio e della Regione e le spese ammesse.', 'Se c’è un bando adatto, il preventivo segue le sue regole: voci separate, tempi, documenti.', 'La domanda la presenta lei o il suo commercialista; io fornisco preventivo e descrizione del lavoro.']],
+        ['Cosa non faccio', 'Non prometto contributi: decide l’ente, non io. E non alzo i prezzi per un bando — il prezzo è quello della pagina dei prezzi.'],
+      ],
+      faq: [
+        ['C’è un bando aperto adesso?', 'Dipende dal periodo: i bandi aprono e chiudono durante l’anno. Lo verifico quando mi scrive, sul sito della sua Camera di Commercio e della Regione.'],
+        ['Il mio commercialista può aiutarmi?', 'Sì, spesso è la persona giusta per la domanda. Io preparo preventivo e descrizione del lavoro come li chiede il bando.'],
+        ['E se non c’è nessun contributo?', 'Il sito costa quanto indicato sulla pagina dei prezzi; nel calcolatore vede la sua fascia in un minuto e mezzo.'],
+      ],
+    },
+    de: {
+      titel: 'Förderung für die Website: wir prüfen es vorher | Vecom Design',
+      desc: 'Länder, Kammern und Förderbanken haben je nach Region Programme für die Digitalisierung kleiner Betriebe. Vor dem Angebot prüfen wir mit Ihnen, ob eines passt — ohne Versprechen.',
+      kicker: 'Förderung', h1: 'Förderung für Ihre Website: wir prüfen es, bevor es losgeht',
+      lead: 'Je nach Bundesland gibt es Programme, die einen Teil der Kosten für die Digitalisierung kleiner Betriebe übernehmen. Ob eine Website dazugehört, welche Fristen gelten und wer den Antrag stellt, ist überall anders. Darum prüfen wir es gemeinsam vor dem Angebot — ohne Versprechen.',
+      blocchi: [
+        ['Was es gibt', 'Programme laufen über Länder, Kammern oder Förderbanken und richten sich meist an kleine und mittlere Betriebe. Manche fördern Beratung und digitale Werkzeuge, nicht jede eine Website. Viele verlangen, dass der Antrag vor dem Auftrag gestellt wird.'],
+        ['So prüfen wir es', null, ['Sie sagen mir, in welchem Bundesland Ihr Betrieb sitzt.', 'Ich sehe nach, welche Programme dort gerade offen sind und was sie fördern.', 'Passt eines, richtet sich das Angebot nach dessen Regeln: getrennte Posten, Zeitplan, Unterlagen.', 'Den Antrag stellen Sie oder Ihr Steuerberater; ich liefere Angebot und Leistungsbeschreibung.']],
+        ['Was ich nicht tue', 'Ich verspreche keine Förderung: Die entscheidet die Stelle, nicht ich. Und ich erhöhe keine Preise wegen eines Programms — der Preis ist der von der Preisseite.'],
+      ],
+      faq: [
+        ['Gibt es gerade ein Programm für mich?', 'Das hängt vom Bundesland und vom Zeitpunkt ab; Programme öffnen und schließen im Jahr. Ich prüfe es, wenn Sie sich melden.'],
+        ['Kann mein Steuerberater helfen?', 'Ja, oft ist er der Richtige für den Antrag. Ich bereite Angebot und Leistungsbeschreibung so vor, wie das Programm sie verlangt.'],
+        ['Und wenn es keine Förderung gibt?', 'Dann kostet die Website, was auf der Preisseite steht; im Rechner sehen Sie Ihre Spanne in anderthalb Minuten.'],
+      ],
+    },
+    en: {
+      titel: 'Funding for your website: we check first | Vecom Design',
+      desc: 'Chambers of commerce and regions sometimes run programmes for the digitalisation of small businesses. Before the quote we check together whether one fits — no promises.',
+      kicker: 'Funding', h1: 'Funding for your website: we check before we start',
+      lead: 'Chambers of commerce and regional governments sometimes run calls that cover part of the cost of going digital. A website is not always an eligible cost, and every call has its own rules and deadlines. That is why we check together before the quote — with no promises.',
+      blocchi: [
+        ['What is out there', 'Each chamber or region decides whether and when to open a call. Most target micro, small and medium businesses and cover a share of eligible costs up to a cap. Some fund consulting, training and digital tools; a website is not always included.'],
+        ['How we check', null, ['You tell me where your business is registered.', 'I look at the open calls there and what they cover.', 'If one fits, the quote follows its rules: separate items, timing, documents.', 'You or your accountant submit the application; I provide the quote and the description of the work.']],
+        ['What I do not do', 'I do not promise funding: the agency decides, not me. And I do not raise prices because of a call — the price is the one on the pricing page.'],
+      ],
+      faq: [
+        ['Is there an open call right now?', 'It depends on the time of year; calls open and close. I check when you get in touch.'],
+        ['Can my accountant help?', 'Yes, often they are the right person for the application. I prepare the quote and the description of the work as the call requires.'],
+        ['And if there is no funding?', 'Then the website costs what the pricing page says; the calculator shows your range in a minute and a half.'],
+      ],
+    },
+  },
 ];
 
 /* Wörter rund um die Seiten, je Sprache. */
@@ -426,4 +483,5 @@ export const LANDESEITEN_KURZ = {
   parrucchieri: { it: 'Parrucchieri', de: 'Friseure', en: 'Hairdressers' },
   artigiani:    { it: 'Artigiani', de: 'Handwerk', en: 'Tradespeople' },
   trasporti:    { it: 'Trasporti', de: 'Transport', en: 'Transport' },
+  foerderung:   { it: 'Contributi e voucher', de: 'Förderung', en: 'Funding' },
 };

@@ -10652,8 +10652,8 @@ pruefe('Landeseiten: nichts Erfundenes, das es auf der Website nicht gibt (Caval
     !preg_match('~prima e dopo|Vorher und Nachher|before and after~iu', (string) preg_replace("~'Una galleria[^']*'|'Eine Galerie[^']*'|'A gallery[^']*'~u", '', $lsTexte)));
 $lsSm = (string) file_get_contents($oben . '/sitemap.xml');
 preg_match('~<!-- landeseiten:anfang \(build\.mjs\) -->(.*?)<!-- landeseiten:ende -->~s', $lsSm, $lsM);
-pruefe('Landeseiten: sieben Seiten in drei Sprachen stehen in der Sitemap (vom Build gepflegt)',
-    substr_count($lsM[1] ?? '', '<loc>') === 21, (string) substr_count($lsM[1] ?? '', '<loc>'));
+pruefe('Landeseiten: acht Seiten in drei Sprachen stehen in der Sitemap (vom Build gepflegt; seit 01.10.2026 mit der Förderseite)',
+    substr_count($lsM[1] ?? '', '<loc>') === 24, (string) substr_count($lsM[1] ?? '', '<loc>'));
 $lsB = (string) file_get_contents($oben . '/build.mjs');
 pruefe('Landeseiten: im Gerüst der Preisseite, eigener Titel, app.js fasst ihn nicht an',
     str_contains($lsB, "const preis = SEITEN.find((x) => x.quelle === 'prezzi.html');") && str_contains($lsB, 'data-title-key="keiner"')
@@ -18383,6 +18383,73 @@ pruefe('S3/V: eigenes Google-Profil und Bewertungen mit QR-Karte zum Drucken (ni
     str_contains($vgV, 'id="google-profil"') && str_contains($vgV, '<details class="block vz-alles"') && str_contains($vgI, "case 'bewertung-karte':")
     && str_contains($vgI, '$bkQr = QrBild::svg($bkLink, 300, 1);') && str_contains($vgV, 'id="partner-gewinnen"'));
 Db::run('DELETE FROM mk_verzeichnisse'); Db::run("DELETE FROM settings WHERE skey = 'verzeichnisse_vorschlaege'");
+
+/* ============================================================================
+   Kunden kommen von selbst (01.10.2026, Uwe: Ja zu S1, S4, S6)
+   ============================================================================ */
+abschnitt('Kommentar → Nachricht, Sofortformular, Landingpages');
+require_once $wurzel . '/src/MkKommentar.php';
+require_once $wurzel . '/src/MkSeite.php';
+Db::run("DELETE FROM settings WHERE skey = 'mk_kommentar_an'");
+$s1Meldung = ['object' => 'instagram', 'entry' => [['changes' => [['field' => 'comments', 'value' => ['id' => '17890001', 'text' => 'Sito per favore', 'from' => ['id' => '99'], 'media' => ['id' => '55']]]]]]];
+pruefe('S1: ausgeschaltet antwortet nichts — eingeschaltet wird nur ein Stichwort als eigenes Wort erkannt, Sprache aus dem Stichwort',
+    MkKommentar::verarbeiten($s1Meldung) === 0 && (int) Db::wert('SELECT COUNT(*) FROM mk_kommentare', [], 0) === 0
+    && (MkKommentar::treffer('Bitte CHECK für mich')[0] ?? '') === 'CHECK' && (MkKommentar::treffer('sito')[1] ?? '') === 'IT'
+    && MkKommentar::treffer('Checkliste') === null && MkKommentar::treffer('bellissimo') === null
+    && MkKommentar::landAusText('Demo bitte, danke', '') === 'DE' && MkKommentar::landAusText('demo grazie', '') === 'IT');
+MkKommentar::schalten(true);
+MkKommentar::verarbeiten($s1Meldung); MkKommentar::verarbeiten($s1Meldung);
+$s1Z = Db::all('SELECT * FROM mk_kommentare');
+pruefe('S1: derselbe Kommentar höchstens einmal — ohne eingerichtetes Konto kein Versand, sondern ein lesbarer Grund',
+    count($s1Z) === 1 && $s1Z[0]['stichwort'] === 'SITO' && $s1Z[0]['land'] === 'IT' && $s1Z[0]['status'] === 'fehler' && $s1Z[0]['grund'] !== null);
+$s1Web = (string) file_get_contents($oben . '/wa-webhook.php');
+pruefe('S1: der Webhook gibt Seiten- und Instagram-Kommentare weiter; Texte DE/IT nennen den kostenlosen Check',
+    str_contains($s1Web, 'MkKommentar::verarbeiten') && str_contains(MkKommentar::TEXTE['DE'], 'Website-Check') && str_contains(MkKommentar::TEXTE['IT'], 'analisi gratuita'));
+Db::run('DELETE FROM mk_kommentare'); Db::run("DELETE FROM settings WHERE skey = 'mk_kommentar_an'");
+Db::run("DELETE FROM mk_kampagnen WHERE code IN ('km-it','km-de')");
+
+/* S6 */
+pruefe('S6: Adresse der Seite in der Sprache des Landes', MkSeite::slug('restaurant', 'IT') === 'sito-ristorante' && MkSeite::slug('restaurant', 'DE') === 'website-restaurant');
+Db::run("DELETE FROM mk_zielgruppen WHERE branche = 'friseur'");
+$s6Zg = (int) Db::insert('mk_zielgruppen', ['branche' => 'friseur', 'land' => 'IT', 'titel' => 'Parrucchieri', 'profil' => json_encode(['titel' => 'Parrucchieri', 'fragen' => ['Quanto costa?']]), 'status' => 'entwurf']);
+$s6Nein = MkSeite::anlegen($s6Zg);
+Db::update('mk_zielgruppen', $s6Zg, ['status' => 'freigegeben', 'freigegeben_am' => date('Y-m-d H:i:s')]);
+$s6A = MkSeite::anlegen($s6Zg);
+pruefe('S6: nur für freigegebene Zielgruppen, ein Auftrag zur Zeit', is_string($s6Nein) && is_int($s6A) && is_string(MkSeite::anlegen($s6Zg)));
+$s6Holen = MkAuftrag::holen();
+pruefe('S6: der PC bekommt Profil, Sprache und Grenzen — keine Werkzeuge nötig',
+    ($s6Holen['auftrag']['art'] ?? '') === 'seite' && ($s6Holen['auftrag']['sprache'] ?? '') === 'it' && ($s6Holen['auftrag']['profil']['fragen'][0] ?? '') === 'Quanto costa?'
+    && isset($s6Holen['auftrag']['grenzen']['h1']));
+$s6Text = ['titel' => 'Sito per parrucchieri', 'beschreibung' => 'Prenotazioni e prezzi chiari', 'kicker' => 'Parrucchieri', 'h1' => 'Le clienti la cercano sul telefono',
+    'lead' => 'Un sito che mostra servizi e orari.', 'cta_titel' => '', 'cta_text' => '', 'lesen_de' => 'Website für Friseure …',
+    'abschnitte' => [['h2' => 'Cosa perde oggi', 'text' => "Primo paragrafo.\n\nSecondo <b>paragrafo</b>.", 'punkte' => ['Orari', '']], ['h2' => 'Come lavoriamo', 'text' => 'Prezzo prima.', 'punkte' => []]],
+    'faq' => [['frage' => 'Quanto costa?', 'antwort' => 'Lo vede sulla pagina dei prezzi.'], ['frage' => '', 'antwort' => 'x']]];
+$s6M = MkSeite::melden(['auftrag_id' => $s6A, 'seite' => $s6Text]);
+MkAuftrag::melden(['id' => $s6A, 'ok' => true, 'text' => 'Seite fertig']);
+$s6 = MkSeite::fuerZielgruppe($s6Zg);
+$s6C = json_decode((string) $s6['entwurf'], true);
+pruefe('S6: Entwurf ist gesäubert (kein HTML, leere Punkte und Fragen weg) und noch nicht öffentlich',
+    !empty($s6M['ok']) && $s6['status'] === 'entwurf' && $s6['slug'] === 'sito-parrucchiere' && !str_contains((string) $s6['entwurf'], '<b>')
+    && count($s6C['abschnitte'][0]['punkte']) === 1 && count($s6C['faq']) === 1 && MkSeite::zumAnzeigen('sito-parrucchiere') === null
+    && MkSeite::zumAnzeigen('sito-parrucchiere', true) !== null && MkSeite::pfadFuerZielgruppe($s6Zg) === null
+    && (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$s6A], '') === 'fertig');
+pruefe('S6: kaputte Antwort wird abgelehnt', empty(MkSeite::melden(['auftrag_id' => $s6A, 'seite' => ['titel' => 'x']])['ok']));
+MkSeite::freigeben((int) $s6['id']);
+$s6L = MkSeite::zumAnzeigen('sito-parrucchiere');
+$s6G = MkSeite::geruest('it', $oben);
+$s6H = $s6L && $s6G ? MkSeite::html($s6L, $s6G, 'https://vecom-design.it') : '';
+pruefe('S6: nach dem Ja online — im Gerüst der Landeseiten, eigener Titel und Kanonisch-Link, FAQ-Daten, Knopf zum Check, keine fremden Sprachvarianten',
+    $s6L !== null && MkSeite::pfadFuerZielgruppe($s6Zg) === '/l/sito-parrucchiere'
+    && str_contains($s6H, '<title>Sito per parrucchieri | Vecom Design</title>') && str_contains($s6H, '<link rel="canonical" href="https://vecom-design.it/l/sito-parrucchiere">')
+    && str_contains($s6H, '"@type":"FAQPage"') && str_contains($s6H, 'href="/analisi.php?lang=it"') && !str_contains($s6H, 'hreflang=')
+    && str_contains($s6H, '<p>Secondo paragrafo.</p>') && !str_contains($s6H, 'noindex') && substr_count($s6H, '<main') === 1);
+$s6Ink = (string) file_get_contents($wurzel . '/src/AkquiseWorker.php') . (string) file_get_contents($wurzel . '/src/MkAuftrag.php');
+pruefe('S6: Beiträge der Zielgruppe führen auf die Seite; freigeben stößt die Seite gleich mit an; /l/ zeigt auf seite.php',
+    str_contains($s6Ink, 'MkSeite::pfadFuerZielgruppe') && str_contains((string) file_get_contents($wurzel . '/index.php'), 'MkSeite::anlegen($mzId)')
+    && str_contains((string) file_get_contents($oben . '/.htaccess'), 'seite.php?s=$1'));
+MkSeite::offline((int) $s6['id']);
+pruefe('S6: offline genommen ist die Seite nicht mehr erreichbar', MkSeite::zumAnzeigen('sito-parrucchiere') === null);
+Db::run('DELETE FROM mk_seiten'); Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_zielgruppen WHERE id = ?', [$s6Zg]);
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
