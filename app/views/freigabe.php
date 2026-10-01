@@ -212,7 +212,8 @@ require __DIR__ . '/mk_stil.php';
   <ul class="mk-start__schritte" style="list-style:disc">
     <li>3D-Szenen gibt es für: <?= Fmt::h(implode(', ', array_unique(array_map(static fn($b) => MkKampagne::branchen()[$b] ?? $b, array_keys(MkMedium::STUDIOS))))) ?>. Für andere Branchen baut Claude das Bild als Blender-Szene aus der Bildidee; Videos laufen dort über Kie.ai.</li>
     <li>Blender rechnet fotoreal mit Cycles auf deiner RTX 5070 — ohne Credits. Vor jedem Bild misst der PC die Belichtung an einer kleinen Probe und gleicht höchstens eine Blende aus.</li>
-    <li><?= $mo['unreal_bereit'] ? 'Unreal ist freigeschaltet: 3D-Videos rechnet der Path Tracer; vor jedem Film misst ein Probebild die Belichtung gegen Blender, scheitert Unreal, rechnet Blender.' : 'Unreal (Path Tracer) ist ausgeschaltet — 3D-Videos entstehen mit Blender.' ?></li>
+    <li>Ein <b>Werbespot</b> sind fünf Einstellungen wie beim Dreh: weit heran, nah mit Schärfeverlagerung, tief seitlich, Bogen ums Motiv, Kran ins Schlussbild — mit echter Bewegungsunschärfe, dezenter Farbe, Musik und Abspann (Name in Gold, Satz, Adresse). Vorher prüft der PC jede Kamerafahrt, ob etwas im Weg steht, und weicht aus.</li>
+    <li><?= $mo['unreal_bereit'] ? 'Unreal ist freigeschaltet: Wer „Unreal“ wählt, bekommt die eine Fahrt mit dem Path Tracer; vor jedem Film misst ein Probebild die Belichtung gegen Blender, scheitert Unreal, rechnet Blender.' : 'Unreal (Path Tracer) ist ausgeschaltet — 3D-Videos entstehen mit Blender.' ?></li>
     <li>Gerade <?= MkMedium::imFenster() ? 'darf der PC 3D rechnen' : 'ist keine Nachtschicht — 3D wartet bis ' . sprintf('%02d:00', $mo['nacht_von']) ?>. „3D jetzt rechnen“ am Stück geht immer.</li>
   </ul>
 </section>
@@ -243,7 +244,7 @@ require __DIR__ . '/mk_stil.php';
         <figure class="mk-galerie__stueck">
           <?php if ($g3['art'] === 'video'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" controls preload="metadata" playsinline></video>
           <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" alt="3D <?= Fmt::h((string) $g3['studio']) ?>" loading="lazy"><?php endif; ?>
-          <figcaption><span><?= Fmt::h(MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? ((string) $g3['studio'] !== '' ? (string) $g3['studio'] : 'eigene Idee')) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
+          <figcaption><span><?= Fmt::h((string) $g3['studio'] === 'vecom' ? 'Vecom-Werbespot' : (MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? ((string) $g3['studio'] !== '' ? (string) $g3['studio'] : 'eigene Idee'))) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
             <span class="mk-galerie__knoepfe">
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_freigeben"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein haupt">Für Partner freigeben</button></form>
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_verwerfen"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein">Verwerfen</button></form>
@@ -258,5 +259,12 @@ require __DIR__ . '/mk_stil.php';
   <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin-top:10px">
     <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_starter">
     <button class="knopf">Starterpaket rechnen: je Szene ein Bild, drei Filme (nächste Nachtschicht)</button>
+  </form>
+  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" class="mk-zeile" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="vecom_spot">
+    <span>Vecom-Werbespot: je Branche eine Einstellung (<?= count(MkMedium::VECOM_SPOT) ?>), am Ende das goldene V —</span>
+    <select name="sprache" aria-label="Sprache" style="width:auto"><option value="it">Italienisch</option><option value="de">Deutsch</option><option value="en">Englisch</option></select>
+    <select name="format" aria-label="Format" style="width:auto"><option value="9:16">hoch 9:16</option><option value="16:9">quer 16:9</option></select>
+    <button class="knopf">Rechnen (nächste Nachtschicht)</button>
   </form>
 </section>

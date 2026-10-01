@@ -709,6 +709,14 @@ if ($post) {
                 } else { $_SESSION['fehler'] = 'Dieser Wunsch ist schon entschieden.'; }
                 weiter('freigabe#partner3d');
 
+            case 'vecom_spot':
+                /* Werbespot (01.10.2026): Vecom-Spot über alle Branchen-Szenen, landet in der Galerie unten. */
+                require_once __DIR__ . '/src/MkMedium.php';
+                $vsR = MkMedium::anlegenVecomSpot((string) ($_POST['format'] ?? '9:16'), (string) ($_POST['sprache'] ?? 'it'));
+                if (is_int($vsR)) { $_SESSION['gut'] = 'Vecom-Werbespot liegt bereit — dein PC rechnet ihn in der nächsten Nachtschicht (etwa eine Stunde). Danach hier ansehen und freigeben.'; }
+                else { $_SESSION['fehler'] = $vsR; }
+                weiter('freigabe#partner3d');
+
             case 'galerie_starter':
             case 'galerie_freigeben':
             case 'galerie_verwerfen':

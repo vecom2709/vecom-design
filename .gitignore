@@ -112,3 +112,8 @@ __pycache__/
 /siti-web-*.html
 /sito-o-booking.html
 /contributi-sito-web.html
+
+# Spot-Musik (Suno ueber kie.ai, 01.10.2026) liegt nur auf dem PC -- im
+# Repository stehen nur die Auftraege (3d-produktion/musik/auftraege/*.json).
+3d-produktion/musik/*.mp3
+3d-produktion/musik/*.wav

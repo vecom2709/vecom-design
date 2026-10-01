@@ -30,11 +30,24 @@ final class MkMedium
                     'blender' => ['Blender · fotoreal (Cycles auf deinem PC)', 0]],
         'video' => ['veo3_fast' => ['Veo 3.1 Fast (Google) · 8 s mit Ton', 80], 'veo3' => ['Veo 3.1 Quality (Google) · 8 s mit Ton', 400],
                     'blender' => ['Blender · Kamerafahrt 8 s (Cycles auf deinem PC)', 0],
-                    'unreal' => ['Unreal Engine · Kamerafahrt 8 s (Path Tracer auf deinem PC)', 0]],
+                    'unreal' => ['Unreal Engine · Kamerafahrt 8 s (Path Tracer auf deinem PC)', 0],
+                    /* Werbespot (01.10.2026, Uwe: „hochprofessionelle, fotorealistische 3D-Werbevideos“) — marketing_spot.py */
+                    'spot' => ['Blender · Werbespot 20 s — fünf Einstellungen, Musik, Abspann (Cycles auf deinem PC)', 0]],
     ];
     /** Was auf Uwes PC gerechnet wird (keine Credits, Nachtschicht). */
-    public const DREI_D = ['blender', 'unreal'];
+    public const DREI_D = ['blender', 'unreal', 'spot'];
     public const DREI_D_PRO_TAG = 12;
+    /** Ein Spot sind ~480 Bilder mit Bewegungsunschärfe (gemessen: einfache Fahrt 3–5 s je Bild) — höchstens vier je Nacht. */
+    public const SPOT_PRO_TAG = 4;
+    /** Vecom-Spot: je Branche eine Einstellung, dann das gegossene goldene V. Reihenfolge = Schnitt. */
+    public const VECOM_SPOT = ['gastro', 'wein', 'salon', 'schmuck', 'kueche', 'mittelklasse'];
+    public const VECOM_SPOT_TEXTE = [
+        'titel' => ['it' => 'Ogni attività merita di essere vista.', 'de' => 'Jeder Betrieb verdient es, gesehen zu werden.', 'en' => 'Every business deserves to be seen.'],
+        'claim' => ['it' => 'Siti web per piccole imprese · prezzo chiaro', 'de' => 'Websites für kleine Betriebe · klarer Preis vorher', 'en' => 'Websites for small businesses · clear price upfront'],
+        'etiketten' => ['it' => ['Ristoranti', 'Cantine', 'Parrucchieri', 'Gioiellerie', 'Artigiani', 'Concessionari'],
+                        'de' => ['Restaurants', 'Weingüter', 'Friseure', 'Juweliere', 'Handwerk', 'Autohäuser'],
+                        'en' => ['Restaurants', 'Wineries', 'Hair salons', 'Jewellers', 'Craftsmen', 'Car dealers']],
+    ];
 
     /**
      * Branche → fertige 3D-Szene in 3d-produktion (branchen_ort.py: Modell am
@@ -51,7 +64,7 @@ final class MkMedium
         'lkw' => 'Sattelzug', 'schmuck' => 'Uhr beim Juwelier', 'auto' => 'Sportwagen an der Küstenstraße'];
     public const MOTOR_STANDARD = ['bild' => 'auto', 'video' => 'auto', 'nacht_an' => true, 'nacht_von' => 22, 'nacht_bis' => 7, 'unreal_bereit' => false];
     public const MOTOREN = ['bild' => ['auto' => 'Automatisch (Blender, wo es eine 3D-Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai', 'blender' => 'Blender', 'beides' => 'Kie.ai und Blender — du wählst'],
-                            'video' => ['auto' => 'Automatisch (3D, wo es eine Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai (Veo 3.1 Fast)', 'blender' => 'Blender', 'unreal' => 'Unreal Engine (Path Tracer, wenn freigeschaltet)']];
+                            'video' => ['auto' => 'Automatisch (Werbespot, wo es eine 3D-Szene gibt, sonst Kie.ai)', 'spot' => 'Blender-Werbespot (20 s, fünf Einstellungen, Musik)', 'kie' => 'Kie.ai (Veo 3.1 Fast)', 'blender' => 'Blender (eine Fahrt, 8 s)', 'unreal' => 'Unreal Engine (Path Tracer, wenn freigeschaltet)']];
 
     public static function studioFuer(string $branche): ?string
     {
@@ -110,10 +123,10 @@ final class MkMedium
                 default => $studio !== null ? ['blender'] : [$kie],
             };
         }
-        $dreiD = $m['unreal_bereit'] ? 'unreal' : 'blender';
+        /* Werbespot (01.10.2026): „Automatisch“ heißt jetzt der Spot aus mehreren Einstellungen, nicht mehr die eine Fahrt. */
         return match ($m['video']) {
             'kie' => [$kie], 'blender' => [$studio !== null ? 'blender' : $kie], 'unreal' => [$studio !== null ? 'unreal' : $kie],
-            default => [$studio !== null ? $dreiD : $kie],
+            default => [$studio !== null ? 'spot' : $kie],
         };
     }
 
@@ -207,6 +220,9 @@ final class MkMedium
         if ($dreiD && $heute(true) >= self::DREI_D_PRO_TAG) {
             return 'Heute sind schon ' . self::DREI_D_PRO_TAG . ' 3D-Aufträge in der Nachtschicht — mehr schafft der PC in einer Nacht nicht.';
         }
+        if ($modell === 'spot' && self::spotsHeute() >= self::SPOT_PRO_TAG) {
+            return 'Heute sind schon ' . self::SPOT_PRO_TAG . ' Werbespots in der Nachtschicht — mehr schafft der PC in einer Nacht nicht.';
+        }
         /* Bild → Video: ein gewähltes Bild, dessen Kie-Adresse noch frisch ist, wird erster Frame. */
         $start = null;
         if ($art === 'video') {
@@ -221,6 +237,7 @@ final class MkMedium
             $f = json_decode((string) ($x['felder'] ?? ''), true) ?: [];
             $param += ['drei_d' => true, 'studio' => $studio, 'generativ' => $studio === null, 'seed' => random_int(1, 999999), 'sofort' => $sofort, 'sprache' => (string) $x['sprache'],
                        'film_titel' => mb_substr(trim((string) ($f['hook'] ?? $f['ueberschrift'] ?? $x['titel'])), 0, 70), 'abspann' => 'vecom-design.it'];
+            if ($modell === 'spot') { $param['spot'] = self::spotTexte('Vecom Design', (string) ($f['cta'] ?? ''), 'vecom-design.it', (string) $x['sprache']); }
         }
         $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => (string) $x['branche'], 'land' => (string) $x['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
@@ -383,6 +400,48 @@ final class MkMedium
                 'blick' => $wahl('blick', self::WUNSCH_BLICK), 'naehe' => $wahl('naehe', self::WUNSCH_NAEHE), 'stimmung' => $wahl('stimmung', self::WUNSCH_STIMMUNG)];
     }
 
+    /** Werbespots, die heute angelegt wurden (nicht abgebrochen). */
+    public static function spotsHeute(): int
+    {
+        return (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND created_at >= CURDATE() AND status <> 'abgebrochen' AND parameter LIKE '%\"modell\":\"spot\"%'", [], 0);
+    }
+
+    /** Abspann eines Spots: Name groß in Gold, ein Satz, Adresse. Satz leer = der Vecom-Satz der Sprache. */
+    public static function spotTexte(string $marke, string $satz, string $url, string $sprache): array
+    {
+        $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        $rein = static fn(string $t): string => trim(preg_replace('/\s+/u', ' ', strip_tags($t)) ?? '');
+        $satz = $rein($satz);
+        return ['marke' => mb_substr($rein($marke), 0, 40), 'claim' => mb_substr($satz !== '' ? $satz : self::VECOM_SPOT_TEXTE['claim'][$sp], 0, 70),
+                'url' => mb_substr(preg_replace('~^https?://~', '', trim($url)) ?? '', 0, 60)];
+    }
+
+    /**
+     * Vecom-Werbespot (Uwe, 01.10.2026: „auch Vecom Design mega professionell“):
+     * je Branche eine Einstellung aus ihrer 3D-Szene, darunter die Branche in
+     * Gold, am Ende das gegossene goldene V mit Satz und Adresse.
+     * Landet in der Galerie unter „3D für Partner“ (erst nach deinem Ja sichtbar).
+     */
+    public static function anlegenVecomSpot(string $format = '9:16', string $sprache = 'it', bool $sofort = false): int|string
+    {
+        require_once __DIR__ . '/MkAuftrag.php';
+        if (!in_array($format, self::FORMATE['video'], true)) { $format = '9:16'; }
+        $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        if (self::spotsHeute() >= self::SPOT_PRO_TAG) { return 'Heute sind schon ' . self::SPOT_PRO_TAG . ' Werbespots in der Nachtschicht.'; }
+        $offen = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE '%\"studio\":\"vecom\"%'", [], 0);
+        if ($offen > 0) { return 'Ein Vecom-Spot wartet schon auf die Nachtschicht.'; }
+        $param = ['inhalt_id' => 0, 'medium' => 'video', 'modell' => 'spot', 'format' => $format, 'prompt' => '', 'startbild' => null, 'credits_ca' => 0,
+                  'titel' => 'Vecom-Werbespot · ' . strtoupper($sp) . ' · ' . $format,
+                  'drei_d' => true, 'studio' => 'vecom', 'generativ' => false, 'seed' => random_int(1, 999999), 'sofort' => $sofort, 'sprache' => $sp,
+                  'film_titel' => self::VECOM_SPOT_TEXTE['titel'][$sp], 'abspann' => 'vecom-design.it',
+                  'spot' => self::spotTexte('Vecom Design', '', 'vecom-design.it', $sp) + ['montage' => self::VECOM_SPOT, 'etiketten' => self::VECOM_SPOT_TEXTE['etiketten'][$sp], 'endclip' => true],
+                  'galerie' => 1, 'ende' => 1];
+        $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => '', 'land' => $sp === 'de' ? 'DE' : 'IT',
+                                                'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        Events::protokoll('medien_auftrag', 'Vecom-Werbespot angestoßen (' . $sp . ', ' . $format . ')', null, null, null, ['auftrag_id' => $id]);
+        return $id;
+    }
+
     public static function anlegenGalerie(string $studio, string $art, string $format = '', ?array $partner = null, string $sprache = 'it', array $wunsch = []): int|string
     {
         require_once __DIR__ . '/MkAuftrag.php';
@@ -464,7 +523,7 @@ final class MkMedium
         require_once __DIR__ . '/MkVeroeffentlichen.php';
         try {
             $zeilen = Db::all("SELECT m.* FROM mk_medien m LEFT JOIN mk_inhalte i ON i.id = m.inhalt_id
-                                WHERE m.status <> 'verworfen' AND m.modell IN ('blender', 'unreal')
+                                WHERE m.status <> 'verworfen' AND m.modell IN ('blender', 'unreal', 'spot')
                                   AND ((m.galerie = 1 AND m.status = 'gewaehlt') OR m.partner_id = ?
                                        OR (m.inhalt_id > 0 AND m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht') AND i.art = 'organisch'))
                              ORDER BY (m.partner_id = ?) DESC, m.id DESC LIMIT 24", [(int) $p['id'], (int) $p['id']]);

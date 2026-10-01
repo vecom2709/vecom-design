@@ -28,15 +28,48 @@ final class MkKanaele
         $me = MetaSeite::einstellungen();
         $k = Telegram::kanal();
         $fb = MetaSeite::bereit();
+        /* „Verbunden“ nur, wenn Meta den Schlüssel bei der letzten Prüfung auch
+           angenommen hat (01.10.2026: Seite und Schlüssel standen drin, Meta
+           antwortete „Invalid OAuth access token“ — die Verwaltung zeigte trotzdem
+           „verbunden“ und unter Anmeldungen „postet selbst“). */
+        $pr = self::letztePruefung();
+        $fbNein = $fb && isset($pr['facebook']) && empty($pr['facebook']['ok']);
+        $fbText = $fbNein ? 'Schlüssel abgelehnt (Prüfung ' . date('d.m. H:i', (int) strtotime((string) $pr['facebook']['am'])) . ') — neuen dauerhaften Schlüssel eintragen'
+            : ($fb ? 'verbunden (Seite ' . $me['seite_id'] . ')' : 'noch nicht verbunden — Seiten-ID und Schlüssel fehlen');
+        $fb = $fb && !$fbNein;
         return [
-            'facebook' => ['bereit' => $fb, 'text' => $fb ? 'verbunden (Seite ' . $me['seite_id'] . ')' : 'noch nicht verbunden — Seiten-ID und Schlüssel fehlen', 'einrichten' => '#meta'],
+            'facebook' => ['bereit' => $fb, 'text' => $fbText, 'einrichten' => '#meta'],
             'instagram' => ['bereit' => $fb && $me['ig_id'] !== '', 'text' => !$fb ? 'braucht zuerst die Facebook-Seite' : ($me['ig_id'] !== '' ? 'verbunden (Konto ' . $me['ig_id'] . ')' : 'Instagram-Konto-ID fehlt'), 'einrichten' => '#meta'],
             'telegram' => ['bereit' => Telegram::bereit() && $k['id'] !== '', 'text' => !Telegram::bereit() ? 'Bot noch nicht eingerichtet' : ($k['id'] !== '' ? 'verbunden' . ($k['titel'] !== '' ? ' („' . $k['titel'] . '“)' : '') : 'Kanal fehlt'), 'einrichten' => 'einstellungen?b=telegram'],
         ];
     }
 
-    /** Liest nur — postet nichts. @return array{ok:bool, text:string} */
+    /** Letzte Prüfung je Kanal: kanal => {ok, text, am}. */
+    public static function letztePruefung(): array
+    {
+        try { $j = json_decode((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', ['mk_kanal_pruefung'], ''), true); } catch (Throwable $e) { $j = null; }
+        return is_array($j) ? $j : [];
+    }
+
+    /** Merkt das Ergebnis (null = vergessen, etwa nach einem neuen Schlüssel). Der Text enthält nie den Schlüssel. */
+    public static function pruefungMerken(string $kanal, ?bool $ok, string $text = ''): void
+    {
+        $a = self::letztePruefung();
+        if ($ok === null) { unset($a[$kanal]); } else { $a[$kanal] = ['ok' => $ok, 'text' => mb_substr($text, 0, 200), 'am' => date('Y-m-d H:i:s')]; }
+        try {
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', ['mk_kanal_pruefung', json_encode($a, JSON_UNESCAPED_UNICODE)]);
+        } catch (Throwable $e) { /* nur Anzeige */ }
+    }
+
+    /** Liest nur — postet nichts. Das Ergebnis wird gemerkt (stand() zeigt es). @return array{ok:bool, text:string} */
     public static function pruefen(string $kanal): array
+    {
+        $r = self::pruefenRoh($kanal);
+        if (in_array($kanal, ['facebook', 'instagram', 'telegram'], true)) { self::pruefungMerken($kanal, $r['ok'], $r['text']); }
+        return $r;
+    }
+
+    private static function pruefenRoh(string $kanal): array
     {
         require_once __DIR__ . '/MetaSeite.php';
         require_once __DIR__ . '/Telegram.php';

@@ -78,6 +78,7 @@ final class MetaSeite
 
     public static function speichern(array $d): void
     {
+        $altSeite = AkquiseGate::einstellung('meta_seite_id', '');
         foreach (['meta_seite_id' => 'seite_id', 'meta_ig_id' => 'ig_id'] as $k => $feld) {
             $v = preg_replace('~\D~', '', (string) ($d[$feld] ?? '')) ?? '';
             if ($v !== '' || !empty($d['leeren'])) { AkquiseGate::setzen($k, mb_substr($v, 0, 30)); }
@@ -89,6 +90,12 @@ final class MetaSeite
             $blob = (string) Hosting::versiegeln(['wert' => $t]);
             if ($blob === '') { throw new RuntimeException('Der Schlüssel ließ sich nicht verschlüsselt ablegen (hosting_geheim fehlt in der Konfiguration).'); }
             Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', ['meta_seiten_token', $blob]);
+        }
+        /* Neuer Schlüssel oder neue Seite: eine frühere Ablehnung gilt nicht mehr (MkKanaele::stand). */
+        if ($t !== '' || AkquiseGate::einstellung('meta_seite_id', '') !== $altSeite) {
+            require_once __DIR__ . '/MkKanaele.php';
+            MkKanaele::pruefungMerken('facebook', null);
+            MkKanaele::pruefungMerken('instagram', null);
         }
     }
 

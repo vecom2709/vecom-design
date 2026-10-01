@@ -18101,12 +18101,14 @@ pruefe('Motoren: Blender und Unreal ohne Credits; Branchen mit fertiger 3D-Szene
     MkMedium::MODELLE['bild']['blender'][1] === 0 && MkMedium::MODELLE['video']['unreal'][1] === 0 && MkMedium::istDreiD('blender') && !MkMedium::istDreiD('veo3')
     && MkMedium::studioFuer('restaurant') === 'gastro' && MkMedium::studioFuer('friseur') === 'salon' && MkMedium::studioFuer('kanzlei') === null);
 $m3XR = MkInhalt::laden($m3R); $m3XK = MkInhalt::laden($m3K);
-pruefe('Automatisch (ab Werk): Blender, wo es eine Szene gibt, sonst Kie.ai — Videos mit Blender, bis Unreal freigeschaltet ist',
+pruefe('Automatisch (ab Werk): Blender, wo es eine Szene gibt, sonst Kie.ai — Videos als Werbespot (seit 01.10.2026)',
     MkMedium::motor()['bild'] === 'auto' && MkMedium::motorFuer($m3XR, 'bild') === ['blender'] && MkMedium::motorFuer($m3XK, 'bild') === ['nano-banana-pro']
-    && MkMedium::motorFuer($m3XR, 'video') === ['blender'] && MkMedium::motorFuer($m3XK, 'video') === ['veo3_fast']);
+    && MkMedium::motorFuer($m3XR, 'video') === ['spot'] && MkMedium::motorFuer($m3XK, 'video') === ['veo3_fast']);
 MkMedium::motorSpeichern(['bild' => 'beides', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '1']);
-pruefe('Einstellung „beides“ und Unreal freigeschaltet: Bild über Kie.ai UND Blender, Video über Unreal (Prüfspur)',
-    MkMedium::motorFuer($m3XR, 'bild') === ['nano-banana-pro', 'blender'] && MkMedium::motorFuer($m3XR, 'video') === ['unreal']
+$m3VAuto = MkMedium::motorFuer($m3XR, 'video');
+MkMedium::motorSpeichern(['bild' => 'beides', 'video' => 'unreal', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '1']);
+pruefe('Einstellung „beides“ und Unreal freigeschaltet: Bild über Kie.ai UND Blender; Video „Automatisch“ bleibt der Werbespot, „Unreal“ gewählt = Unreal (Prüfspur)',
+    MkMedium::motorFuer($m3XR, 'bild') === ['nano-banana-pro', 'blender'] && $m3VAuto === ['spot'] && MkMedium::motorFuer($m3XR, 'video') === ['unreal']
     && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'mk_motor'", [], 0) >= 1);
 MkMedium::motorSpeichern(['bild' => 'auto', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '']);
 $m3Rom = static fn(string $zeit): int => (new DateTimeImmutable($zeit, new DateTimeZone('Europe/Rome')))->getTimestamp();
@@ -18167,7 +18169,7 @@ $m3Ger = (string) file_get_contents($oben . '/3d-produktion/scripts/marketing_sz
 $m3Kie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
 $m3Mk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
 pruefe('PC: Blender rechnet die Branchen-Szene am echten Ort (Modus marketing/marketing_film) und misst vorher die Belichtung; Kie.ai nimmt keine 3D-Aufträge',
-    str_contains($m3Ts, "'branchen_ort.py'") && str_contains($m3Ts, "film ? 'marketing_film' : 'marketing'") && str_contains($m3Ort, "if MODUS in ('marketing', 'marketing_film', 'marketing_unreal'):")
+    str_contains($m3Ts, "'branchen_ort.py'") && str_contains($m3Ts, "film ? 'marketing_film' : 'marketing'") && str_contains($m3Ort, "if MODUS in ('marketing', 'marketing_film', 'marketing_unreal', 'marketing_spot'):")
     && str_contains($m3Ort, 'Belichtung messen statt vermuten') && str_contains($m3Kie, "a.drei_d || a.modell === 'blender'") && str_contains($m3Mk, "r.auftrag.drei_d) {"));
 pruefe('PC: Unreal-Film — Blender exportiert Szene, Kamerafahrt und Referenzbild; Unreal (Path Tracer) misst sein Probebild gegen Blender; scheitert es, rechnet Blender',
     str_contains($m3Ort, "if MODUS == 'marketing_unreal':") && str_contains($m3Ort, "'.ref.png'") && str_contains($m3Ts, "'ue-marketing.ps1'")
@@ -18176,6 +18178,42 @@ pruefe('PC: Unreal-Film — Blender exportiert Szene, Kamerafahrt und Referenzbi
 pruefe('PC: Claudes Szene entsteht ohne Werkzeuge (kein Netz, keine Dateien) und wird doppelt geprüft, bevor Blender sie rechnet',
     str_contains($m3Sz, "SCHEMA_SZENE, '')") && str_contains($m3Sz, 'szenePruefen') && str_contains($m3Ger, 'SZENE ABGELEHNT') && str_contains($m3Ger, '__import__')
     && str_contains($m3Ger, 'is_shadow_catcher') && str_contains($m3Mk, "...(werkzeuge !== '' ? ['--allowedTools', werkzeuge] : [])"));
+/* Werbespot (01.10.2026, Uwe: „hochprofessionelle, fotorealistische 3D-Werbevideos — individuell, je Branche und auch für Vecom Design“) */
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE status IN ('wartet', 'laeuft')");
+$wsA = MkMedium::anlegen($m3R, 'video', 'spot');
+$wsP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($wsA) ? $wsA : 0], '{}'), true) ?: [];
+pruefe('Werbespot am Stück: 3D-Auftrag ohne Credits mit Szene und Abspann (Vecom Design in Gold, Satz der Sprache, Adresse); Branche ohne Szene: Hinweis',
+    is_int($wsA) && MkMedium::istDreiD('spot') && MkMedium::MODELLE['video']['spot'][1] === 0 && $wsP['modell'] === 'spot' && $wsP['studio'] === 'gastro'
+    && ($wsP['spot']['marke'] ?? '') === 'Vecom Design' && ($wsP['spot']['url'] ?? '') === 'vecom-design.it' && ($wsP['spot']['claim'] ?? '') !== ''
+    && str_contains((string) MkMedium::anlegen($m3K, 'video', 'spot'), 'keine 3D-Szene'), json_encode($wsP));
+$wsT = MkMedium::spotTexte('  Trattoria <b>Da Rosa</b> ', '', 'https://trattoriadarosa.it', 'de');
+pruefe('Werbespot: Abspann bereinigt (kein HTML, keine Adresse mit https), leerer Satz = der Vecom-Satz der Sprache',
+    $wsT['marke'] === 'Trattoria Da Rosa' && $wsT['url'] === 'trattoriadarosa.it' && $wsT['claim'] === MkMedium::VECOM_SPOT_TEXTE['claim']['de'], json_encode($wsT));
+$wsV = MkMedium::anlegenVecomSpot('16:9', 'de');
+$wsVP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($wsV) ? $wsV : 0], '{}'), true) ?: [];
+pruefe('Vecom-Spot: je Branche eine Szene (alle vorhanden), Branchen-Zeilen in der Sprache, goldenes V am Ende, Galerie; ein zweiter wartet nicht doppelt',
+    is_int($wsV) && $wsVP['studio'] === 'vecom' && $wsVP['spot']['montage'] === MkMedium::VECOM_SPOT && !array_diff(MkMedium::VECOM_SPOT, array_keys(MkMedium::STUDIO_NAMEN))
+    && count($wsVP['spot']['etiketten']) === count(MkMedium::VECOM_SPOT) && $wsVP['spot']['etiketten'][0] === 'Restaurants' && $wsVP['spot']['endclip'] === true
+    && (int) $wsVP['galerie'] === 1 && $wsVP['format'] === '16:9' && is_string(MkMedium::anlegenVecomSpot('9:16', 'it')), json_encode($wsVP));
+Db::run("UPDATE mk_auftraege SET parameter = REPLACE(parameter, '\"sofort\":false', '\"sofort\":true') WHERE id = ?", [is_int($wsV) ? $wsV : 0]);
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE id = ?", [is_int($wsA) ? $wsA : 0]);
+$wsHol = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Vecom-Spot: der PC bekommt Szenenfolge und Abspann mit', ($wsHol['id'] ?? 0) === $wsV && ($wsHol['drei_d']['spot']['montage'] ?? []) === MkMedium::VECOM_SPOT
+    && ($wsHol['drei_d']['studio'] ?? '') === 'vecom' && ($wsHol['modell'] ?? '') === 'spot', json_encode($wsHol));
+Db::run('DELETE FROM mk_auftraege WHERE id IN (?, ?)', [is_int($wsV) ? $wsV : 0, is_int($wsA) ? $wsA : 0]);   /* die Galerie-Prüfungen unten zählen Aufträge */
+for ($wsI = 0; $wsI < MkMedium::SPOT_PRO_TAG; $wsI++) { Db::insert('mk_auftraege', ['art' => 'medien', 'status' => 'fertig', 'parameter' => json_encode(['medium' => 'video', 'modell' => 'spot', 'drei_d' => true])]); }
+pruefe('Werbespot: höchstens ' . MkMedium::SPOT_PRO_TAG . ' je Nacht', str_contains((string) MkMedium::anlegen($m3R, 'video', 'spot'), 'Werbespots'));
+Db::run("DELETE FROM mk_auftraege WHERE status = 'fertig' AND parameter LIKE '%\"modell\":\"spot\"%'");
+$wsPy = (string) file_get_contents($oben . '/3d-produktion/scripts/marketing_spot.py');
+$wsSch = (string) file_get_contents($oben . '/3d-produktion/scripts/marketing_schnitt.py');
+pruefe('Werbespot auf dem PC: fünf Einstellungen mit Prüfung auf Hindernisse, Kamera als Schlüssel (Bewegungsunschärfe), Schnitt mit Farbe, Vignette, Abspann und Musik; Vecom-Spot mit goldenem V',
+    str_contains($wsPy, "PLAN = [('auftakt', 4.0), ('detail', 3.5), ('gleiten', 4.0), ('bogen', 4.5), ('finale', 4.0)]") && str_contains($wsPy, 'def _frei(') && str_contains($wsPy, 'sc.ray_cast(')
+    && str_contains($wsPy, "keyframe_insert('location'") && str_contains($m3Ort, "elif MODUS == 'marketing_spot':") && str_contains($m3Ort, 'r.use_motion_blur = True')
+    && str_contains($wsSch, 'def spot_film(') && str_contains($wsSch, "'COLOR_BALANCE'") && str_contains($wsSch, '_vignette(') && str_contains($wsSch, "new_sound('Musik'")
+    && str_contains($m3Ts, "studio === 'vecom'") && str_contains($m3Ts, "'intro-hoch.mp4'") && is_file($oben . '/assets/video/intro-hoch.mp4') && is_file($oben . '/assets/video/intro-quer.mp4'));
+$wsIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Vecom-Spot: Knopf unter „3D für Partner“ hinter CSRF', strpos($wsIdx, "case 'vecom_spot':") > strpos($wsIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), 'value="vecom_spot"'));
 /* 3D für Partner (P1–P3) */
 require_once $wurzel . '/src/Partner.php';
 require_once $wurzel . '/src/PartnerWerbung.php';
@@ -19618,6 +19656,28 @@ $anIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Anmeldungen: Taten hinter Anmeldung und CSRF; Weiterleitung nur auf die geprüfte Adresse',
     strpos($anIdx, "case 'anmeldung_oeffnen':") > strpos($anIdx, 'Csrf::pruefen()') && strpos($anIdx, "case 'konto_vermerken':") > strpos($anIdx, 'Csrf::pruefen()')
     && str_contains($anIdx, "if (\$anO['ok']) { header('Location: ' . \$anO['url'], true, 303); exit; }"));
+/* Ehrlicher Stand (01.10.2026): Seite und Schlüssel standen drin, Meta lehnte den Schlüssel ab — die Verwaltung zeigte trotzdem „verbunden“ */
+require_once $wurzel . '/src/MetaSeite.php';
+require_once $wurzel . '/src/MkKanaele.php';
+$hkAlt = [AkquiseGate::einstellung('meta_seite_id', ''), (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'meta_seiten_token'", [], '')];
+MetaSeite::speichern(['seite_id' => '61594281671971', 'token' => 'test-schluessel-kette']);
+MetaSeite::$netz = static fn(string $m, string $u, ?array $b, string $t): array => ['status' => 400, 'json' => ['error' => ['message' => 'Invalid OAuth access token - Cannot parse access token']]];
+$hk1 = MkKanaele::stand()['facebook']['bereit'];
+$hkP = MkKanaele::pruefen('facebook');
+$hk2 = MkKanaele::stand();
+$hkK = MkAnmeldungen::kontoStand('facebook');
+MetaSeite::speichern(['seite_id' => '61594281671971', 'token' => '']);
+$hk3 = MkKanaele::stand()['facebook']['bereit'];
+MetaSeite::speichern(['seite_id' => '61594281671971', 'token' => 'neuer-test-schluessel']);
+$hk4 = MkKanaele::stand()['facebook']['bereit'];
+MetaSeite::$netz = null;
+pruefe('Kanäle: Lehnt Meta den Schlüssel bei der Prüfung ab, steht „Schlüssel abgelehnt“ statt „verbunden“ (auch für Instagram und Anmeldungen) — nur erneutes Speichern der Seite hebt es nicht auf, ein neuer Schlüssel schon; der Schlüssel steht nie im Merkzettel',
+    $hk1 && !$hkP['ok'] && !$hk2['facebook']['bereit'] && str_contains($hk2['facebook']['text'], 'Schlüssel abgelehnt') && !$hk2['instagram']['bereit']
+    && $hkK !== 'verbunden' && !$hk3 && $hk4 && !str_contains((string) json_encode(MkKanaele::letztePruefung()), 'schluessel'),
+    json_encode([$hk1, $hkP, $hk2['facebook'], $hkK, $hk3, $hk4]));
+AkquiseGate::setzen('meta_seite_id', $hkAlt[0]);
+if ($hkAlt[1] === '') { Db::run("DELETE FROM settings WHERE skey = 'meta_seiten_token'"); } else { Db::run("UPDATE settings SET svalue = ? WHERE skey = 'meta_seiten_token'", [$hkAlt[1]]); }
+MkKanaele::pruefungMerken('facebook', null);
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
 $land = 'IT'; $st = MkStart::schritte('IT'); $fehl = []; $anm = MkAnmeldungen::liste('IT');
 ob_start(); require $wurzel . '/views/mk_start.php'; $anHtml = (string) ob_get_clean();

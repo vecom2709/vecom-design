@@ -30,7 +30,7 @@ NUR = [t for t in argv[2:] if '=' not in t] or None
 # Format, Zufallszahl für Blickwinkel und Variante, Ausgabedatei, beim Film
 # Titel und Abspann. Texte gehen bewusst nicht über die Befehlszeile (Kommas).
 MK = {}
-if MODUS in ('marketing', 'marketing_film', 'marketing_unreal'):
+if MODUS in ('marketing', 'marketing_film', 'marketing_unreal', 'marketing_spot'):
     with open(EXTRA['auftrag'], encoding='utf-8') as _f:
         MK = json.load(_f)
 
@@ -688,7 +688,8 @@ sc.cycles.samples = int(EXTRA.get('samples', 32 if MODUS == 'reihe' else (96 if 
 sc.cycles.adaptive_threshold = 0.02 if PROBE else 0.004
 if MK:
     r.resolution_x, r.resolution_y, r.resolution_percentage = MK_PX[0], MK_PX[1], 100
-    sc.cycles.samples = int(MK.get('samples', 768 if MODUS == 'marketing' else 160))
+    # Werbespot: mehr Proben als die einfache Fahrt -- Bewegungsunschaerfe und Nahaufnahmen rauschen sonst
+    sc.cycles.samples = int(MK.get('samples', {'marketing': 768, 'marketing_spot': 224}.get(MODUS, 160)))
     sc.cycles.adaptive_threshold = 0.005 if MODUS == 'marketing' else 0.012
 sc.cycles.use_denoising = True
 sc.cycles.denoiser = 'OPTIX' if prefs.compute_device_type == 'OPTIX' else 'OPENIMAGEDENOISE'
@@ -1121,6 +1122,44 @@ if MK:
             json.dump(szene_ue, _f, ensure_ascii=False, indent=1)
         _bericht.update(glb=glb, bilder=N)
         print('MARKETING UNREAL EXPORT FERTIG', glb)
+    elif MODUS == 'marketing_spot':
+        # Werbespot (01.10.2026, marketing_spot.py): mehrere Einstellungen,
+        # Kamera je Bild als Schluessel, echte Bewegungsunschaerfe.
+        import marketing_spot as _spot
+        FPS = _spot.FPS
+        ordner = MK.get('ordner') or os.path.join(os.path.dirname(_aus), 'bilder-' + os.path.basename(_aus).rsplit('.', 1)[0])
+        os.makedirs(ordner, exist_ok=True)
+        r.use_persistent_data = True
+        r.use_motion_blur = True; r.motion_blur_shutter = 0.5      # 180-Grad-Verschluss wie beim Film
+        _B = _spot.basis(cam, cam_d, ziel, L, basis_z, boden_z)
+        _namen_e = [n for n in (MK.get('einstellungen') or [n for n, _ in _spot.PLAN])]
+        _dauer = dict(_spot.PLAN); _dauer['held'] = float(MK.get('sekunden_je', 2.6))
+        _ign = {faenger.name, 'Flagge'} | {o.name for o in sc.objects if not o.visible_camera}
+        bpy.context.view_layer.update()
+        _wahl = _spot.waehlen(sc, bpy.context.evaluated_depsgraph_get(), _B, _namen_e, 1 if int(MK.get('seed', 0)) % 2 else -1, _ign)
+        _stuecke = _spot.zeitleiste(cam, cam_d, _B, _wahl, _dauer)
+        N = sum(n for _n, _f, n in _stuecke)
+        t0 = time.time(); _k = 0; _schnitte = []
+        for _name, _f0, _n in _stuecke:
+            _von = _k
+            for _i in range(_n):
+                pfad = os.path.join(ordner, f'bild-{_k:04d}.png')
+                _k += 1
+                if os.path.exists(pfad):
+                    continue                         # abgebrochenen Lauf fortsetzen
+                sc.frame_set(_f0 + _i)
+                r.filepath = pfad
+                bpy.ops.render.render(write_still=True)
+                status(was=WAS, modus=MODUS, bild=_k, von=N, bericht=_bericht)
+                print('FILM', _k, '/', N, flush=True)
+            _schnitte.append({'name': _name, 'von': _von, 'bis': _k - 1})
+        with open(os.path.join(ordner, 'schnitte.json'), 'w', encoding='utf-8') as _f:
+            json.dump(_schnitte, _f)
+        _bericht.update(sekunden=round(time.time() - t0, 1), bilder=N,
+                        einstellungen=[{'name': w[0], 'seite': w[1], 'stufe': w[2], 'ausweg': w[3]} for w in _wahl])
+        if not MK.get('nur_bilder'):
+            _bericht.update(_schnitt.spot_film(ordner, _schnitte, FPS, _aus, MK_PX, MK.get('spot') or {}, MK.get('titel', '')))
+        print('MARKETING SPOT FERTIG', _aus)
     elif MODUS == 'marketing':
         t0 = time.time(); r.filepath = _aus
         bpy.ops.render.render(write_still=True)

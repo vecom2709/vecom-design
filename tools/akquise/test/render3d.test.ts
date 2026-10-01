@@ -76,3 +76,31 @@ test('Partner-Wunsch: Feinwahl geht ans Blender-Skript, freier Text nur als Moti
   assert.match(t, /1080x1920/);
   assert.match(t, /Keine Schrift, keine Logos, keine Menschen/);
 });
+
+/* Werbespot (01.10.2026, Uwe: hochprofessionelle 3D-Werbevideos) */
+test('Werbespot: Auftrag trägt den Abspann (Name, Satz, Adresse), keine Musik ohne Ordner; Vecom-Spot hängt das goldene V an', async () => {
+  const { istSpot, musikWahl, endclipPfad } = await import('../src/ki/render3d.js');
+  const spot = { ...basis, medium: 'video' as const, modell: 'spot', format: '9:16',
+    drei_d: { ...basis.drei_d, spot: { marke: 'Vecom Design', claim: 'Scopri quanto costa', url: 'vecom-design.it' } } } satisfies DreiDAuftrag;
+  assert.equal(istSpot(spot), true);
+  assert.equal(istSpot({ ...basis, medium: 'video' }), false);
+  assert.equal(istSpot({ ...spot, medium: 'bild' }), false);
+  const f = blenderAuftrag(spot, 'C:/x/mk-9.mp4') as any;
+  assert.equal(f.spot.marke, 'Vecom Design');
+  assert.equal(f.spot.claim, 'Scopri quanto costa');
+  assert.equal(f.spot.url, 'vecom-design.it');
+  assert.equal(f.titel, 'Il suo ristorante');
+  assert.equal(musikWahl(3, '/gibt/es/nicht'), null);
+  assert.match(endclipPfad('16:9'), /assets[\\/]video[\\/]intro-quer\.mp4$/);
+  assert.match(endclipPfad('9:16'), /intro-hoch\.mp4$/);
+  const v = blenderAuftrag({ ...spot, drei_d: { ...spot.drei_d, studio: 'vecom', spot: { ...spot.drei_d.spot, endclip: true, etiketten: ['Ristoranti'] } } }, 'C:/x/a.mp4') as any;
+  assert.match(v.spot.endclip, /intro-hoch\.mp4$/);
+  assert.deepEqual(v.spot.etiketten, ['Ristoranti']);
+});
+
+test('Werbespot: Bericht nennt Einstellungen, Dauer, Ausweichen und ob Musik dabei ist', () => {
+  const t = berichtText({ was: 'gastro', einstellungen_n: 5, dauer_s: 20, musik: false, sekunden: 2400, mittel: 0.41,
+    einstellungen: [{ name: 'gleiten', ausweg: 'Gegenseite' }, { name: 'bogen', ausweg: '' }] }, true);
+  assert.equal(t, 'Werbespot · 5 Einstellungen · 20 s · Szene gastro · ausgewichen: gleiten Gegenseite · ohne Musik (Ordner 3d-produktion/musik leer) · 40 min gerechnet · Belichtung gemessen 0,41 · ohne Credits');
+  assert.match(berichtText({ vecom: true, einstellungen_n: 6, dauer_s: 18.9, musik: true }, true), /^Vecom-Werbespot · 6 Einstellungen · 18,9 s · mit Musik/);
+});

@@ -272,7 +272,9 @@ final class MkAuftrag
                     'drei_d' => !empty($p['drei_d']) ? ['studio' => $p['studio'] ?? null, 'generativ' => !empty($p['generativ']), 'seed' => (int) ($p['seed'] ?? 0),
                         'sprache' => (string) ($p['sprache'] ?? 'it'), 'film_titel' => (string) ($p['film_titel'] ?? ''), 'abspann' => (string) ($p['abspann'] ?? ''),
                         /* Partner-Wunsch (W1–W3): Feinwahl für Branchen-Szenen; bei eigener Idee ist prompt der Wunschtext. */
-                        'wunsch' => isset($p['wunsch']) && is_array($p['wunsch']) ? $p['wunsch'] : null, 'partner_wunsch' => isset($p['wunschtext']) && $p['wunschtext'] !== ''] : null]];
+                        'wunsch' => isset($p['wunsch']) && is_array($p['wunsch']) ? $p['wunsch'] : null, 'partner_wunsch' => isset($p['wunschtext']) && $p['wunschtext'] !== '',
+                        /* Werbespot (01.10.2026): Abspann, beim Vecom-Spot die Szenenfolge und das goldene V */
+                        'spot' => isset($p['spot']) && is_array($p['spot']) ? $p['spot'] : null] : null]];
             }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
