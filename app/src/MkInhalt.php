@@ -218,7 +218,7 @@ final class MkInhalt
         $funde = [];
         foreach (is_array($d['fund_ids'] ?? null) ? $d['fund_ids'] : [] as $fi) { if ((int) $fi > 0) { $funde[] = (int) $fi; } }
         return ['format' => $format, 'art' => $art, 'plattform' => $plattform, 'sprache' => $sprache, 'titel' => $titel, 'felder' => $felder,
-                'bildidee' => self::text($d['bildidee'] ?? '', 1200), 'begruendung' => self::text($d['begruendung'] ?? '', 800),
+                'bildidee' => self::text($d['bildidee'] ?? '', 1200), 'bild_prompt' => self::text($d['bild_prompt'] ?? '', 2000), 'begruendung' => self::text($d['begruendung'] ?? '', 800),
                 'fund_ids' => implode(',', array_slice(array_unique($funde), 0, 20))];
     }
 
@@ -289,10 +289,10 @@ final class MkInhalt
         $felder = [];
         foreach ($post as $k => $v) { if (str_starts_with((string) $k, 'f_')) { $felder[substr((string) $k, 2)] = $v; } }
         $neu = self::pruefen(['format' => $x['format'], 'plattform' => $x['plattform'], 'sprache' => $x['sprache'], 'titel' => $post['titel'] ?? $x['titel'],
-            'felder' => $felder + $x['f'], 'bildidee' => $post['bildidee'] ?? $x['bildidee'], 'begruendung' => $x['begruendung'],
+            'felder' => $felder + $x['f'], 'bildidee' => $post['bildidee'] ?? $x['bildidee'], 'bild_prompt' => $post['bild_prompt'] ?? ($x['bild_prompt'] ?? ''), 'begruendung' => $x['begruendung'],
             'fund_ids' => array_filter(explode(',', (string) $x['fund_ids']))], (string) $x['land']);
         if (is_string($neu)) { return $neu; }
-        Db::update('mk_inhalte', $id, ['titel' => $neu['titel'], 'felder' => json_encode($neu['felder'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'bildidee' => $neu['bildidee']]);
+        Db::update('mk_inhalte', $id, ['titel' => $neu['titel'], 'felder' => json_encode($neu['felder'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'bildidee' => $neu['bildidee'], 'bild_prompt' => $neu['bild_prompt']]);
         if ($x['creative_id'] && $neu['titel'] !== $x['titel']) {
             Db::run('UPDATE mk_creatives SET name = ? WHERE id = ?', [mb_substr($neu['titel'], 0, 120), (int) $x['creative_id']]);
         }

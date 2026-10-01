@@ -19,6 +19,16 @@ $textVoll = trim(((string) ($f['hook'] ?? '') !== '' && !str_starts_with((string
 $posten = static fn(string $tat, string $wort, string $klasse = 'knopf', string $mehr = '') => '<form method="post" action="' . Fmt::h(url('inhalte/' . (int) $x['id'])) . '" style="margin:0;display:inline-flex;gap:8px;flex-wrap:wrap;align-items:center;max-width:100%;min-width:0">'
     . '<input type="hidden" name="_csrf" value="' . Fmt::h(Csrf::token()) . '"><input type="hidden" name="tat" value="' . $tat . '"><input type="hidden" name="id" value="' . (int) $x['id'] . '">' . $mehr
     . '<button class="' . $klasse . '">' . Fmt::h($wort) . '</button></form>';
+require_once dirname(__DIR__) . '/src/MkMedium.php';
+$medien = $medien ?? [];
+$medienAuftraege = $medienAuftraege ?? [];
+$pc = $pc ?? ['pc_wach' => false, 'pc_alter' => null];
+$bildGew = null; $videoGew = null;
+foreach ($medien as $m) { if ($m['status'] === 'gewaehlt' && $m['art'] === 'bild' && !$bildGew) { $bildGew = $m; } if ($m['status'] === 'gewaehlt' && $m['art'] === 'video' && !$videoGew) { $videoGew = $m; } }
+$medienBild = static fn(?array $m, string $ersatz): string => $m
+    ? ($m['art'] === 'video' ? '<video class="mk-medium" src="' . Fmt::h(url('medien/' . (int) $m['id'])) . '" controls preload="metadata" playsinline></video>'
+                             : '<img class="mk-medium" src="' . Fmt::h(url('medien/' . (int) $m['id'])) . '" alt="' . Fmt::h('Bild zu „' . $x['titel'] . '“') . '" loading="lazy">')
+    : '<div class="mk-vorschau__bild">' . Fmt::h($ersatz) . '</div>';
 $autoName = (MkKampagne::branchen()[$x['branche']] ?? $x['branche']) . ' ' . $x['land'] . ' · ' . trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '');
 require __DIR__ . '/mk_stil.php';
 ?>
@@ -82,7 +92,7 @@ require __DIR__ . '/mk_stil.php';
     <?php elseif ($x['format'] === 'telegram' || $x['format'] === 'profil'): ?>
       <div class="mk-vorschau">
         <div class="mk-vorschau__kopf"><span class="mk-vorschau__logo"></span><div><div class="mk-vorschau__name">Vecom Design</div><div class="mk-vorschau__zweit"><?= $x['format'] === 'telegram' ? 'Kanal' : 'Google-Unternehmensprofil' ?></div></div></div>
-        <div class="mk-vorschau__bild"><?= Fmt::h($x['bildidee'] !== '' && $x['bildidee'] !== null ? 'Bildidee: ' . $x['bildidee'] : 'Bild') ?></div>
+        <?= $medienBild($bildGew, $x['bildidee'] ? 'Bildidee: ' . $x['bildidee'] : 'Bild') ?>
         <div class="mk-vorschau__text"><?= Fmt::h((string) $f['text']) ?></div>
         <?php $knopf = (string) ($f['knopf'] ?? $f['cta'] ?? ''); if ($knopf !== ''): ?><div class="mk-vorschau__leiste"><small><?= $link ? Fmt::h(preg_replace('~^https?://~', '', $link)) : 'Link folgt mit der Freigabe' ?></small><span class="mk-vorschau__knopf"><?= Fmt::h($knopf) ?></span></div><?php endif; ?>
       </div>
@@ -96,7 +106,7 @@ require __DIR__ . '/mk_stil.php';
         <?php if (!empty($f['folien'])): ?>
           <div class="mk-folien"><?php foreach ($f['folien'] as $i => $fo): ?><div class="mk-folie"><i><?= $i + 1 ?>/<?= count($f['folien']) ?></i><b><?= Fmt::h($fo['titel']) ?></b><span><?= Fmt::h($fo['text']) ?></span></div><?php endforeach; ?></div>
         <?php else: ?>
-          <div class="mk-vorschau__bild"><?= Fmt::h($x['bildidee'] ? 'Bildidee: ' . $x['bildidee'] : ($x['format'] === 'reel' ? 'Kurzvideo — Skript unten' : 'Bild')) ?></div>
+          <?= $medienBild($x['format'] === 'reel' ? ($videoGew ?? $bildGew) : ($bildGew ?? $videoGew), $x['bildidee'] ? 'Bildidee: ' . $x['bildidee'] : ($x['format'] === 'reel' ? 'Kurzvideo — Skript unten' : 'Bild')) ?>
         <?php endif; ?>
         <?php if ($istAnzeige): ?>
           <div class="mk-vorschau__leiste"><div><small>VECOM-DESIGN.IT</small><b><?= Fmt::h((string) ($f['ueberschriften'][0] ?? '')) ?></b><?php if (($f['beschreibung'] ?? '') !== ''): ?><small><?= Fmt::h($f['beschreibung']) ?></small><?php endif; ?></div><span class="mk-vorschau__knopf"><?= Fmt::h(MkInhalt::META_CTA[$f['cta'] ?? ''] ?? 'Mehr dazu') ?></span></div>
@@ -129,6 +139,50 @@ require __DIR__ . '/mk_stil.php';
       <p class="mk-fein" style="margin:6px 0 0">Quellen dazu unter <a href="<?= Fmt::h(url('recherche')) ?>">Recherche</a>.</p><?php endif; ?>
   </div>
 </div>
+
+<section class="block mk-auftrag" id="medien" aria-labelledby="mk-medien-titel">
+  <div class="mk-auftrag__kopf">
+    <h2 id="mk-medien-titel">Bild und Video <span class="mehr">über Kie.ai auf deinem PC</span></h2>
+    <span class="mk-ampel <?= $pc['pc_wach'] ? 'gruen' : '' ?>"><i></i><?= $pc['pc_wach'] ? 'Dein PC ist an' : 'Dein PC ist aus — der Auftrag wartet' ?></span>
+  </div>
+  <?php if ($x['status'] !== 'verworfen'): ?>
+  <div class="mk-medien-knoepfe">
+    <form class="mk-filter" method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin:0">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="bild">
+      <label class="mk-sr" for="mm_bf">Format des Bildes</label>
+      <select id="mm_bf" name="format" style="width:auto"><?php foreach (MkMedium::FORMATE['bild'] as $fm): ?><option value="<?= $fm ?>"<?= MkMedium::formatFuer($x) === $fm ? ' selected' : '' ?>><?= $fm ?></option><?php endforeach; ?></select>
+      <button class="knopf haupt">Bild erzeugen · ca. <?= (int) MkMedium::MODELLE['bild']['nano-banana-pro'][1] ?> Credits</button>
+    </form>
+    <form class="mk-filter" method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin:0">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="video">
+      <label class="mk-sr" for="mm_vm">Videomodell</label>
+      <select id="mm_vm" name="modell" style="width:auto"><?php foreach (MkMedium::MODELLE['video'] as $mk => [$mw, $mc]): ?><option value="<?= $mk ?>"><?= Fmt::h($mw) ?> · ca. <?= (int) $mc ?> Credits</option><?php endforeach; ?></select>
+      <label class="mk-sr" for="mm_vf">Format des Videos</label>
+      <select id="mm_vf" name="format" style="width:auto"><?php foreach (MkMedium::FORMATE['video'] as $fm): ?><option value="<?= $fm ?>"<?= MkMedium::formatFuer($x, 'video') === $fm ? ' selected' : '' ?>><?= $fm ?></option><?php endforeach; ?></select>
+      <button class="knopf">Video erzeugen</button>
+    </form>
+  </div>
+  <p class="mk-fein" style="margin:8px 0 0;max-width:95ch;line-height:1.55">Vor jedem Lauf prüft dein PC das Kie-Guthaben; der Schlüssel bleibt auf dem PC. Preise laut Kie.ai (Stand 10/2026, 1 Credit ≈ 0,005 $): Bild etwa 24 Credits, Video Fast 80, Quality 400 — der echte Verbrauch steht danach beim Bild. <?= $bildGew ? 'Ein Video nimmt das gewählte Bild als ersten Frame, solange es jünger als zwei Tage ist.' : 'Wählst du vorher ein Bild, wird es zum ersten Frame des Videos.' ?></p>
+  <?php endif; ?>
+  <?php $auftraege = $medienAuftraege; $mkSeite = 'inhalte/' . (int) $x['id']; require __DIR__ . '/mk_auftraege.php'; ?>
+  <?php if ($medien): ?>
+  <div class="mk-galerie">
+    <?php foreach ($medien as $m): ?>
+      <figure class="mk-galerie__stueck<?= $m['status'] === 'gewaehlt' ? ' gewaehlt' : '' ?>">
+        <?= $medienBild($m, '') ?>
+        <figcaption>
+          <span><?php if ($m['status'] === 'gewaehlt'): ?><span class="marke2 gut">gewählt</span> <?php endif; ?><?= Fmt::h(MkMedium::ARTEN[$m['art']] ?? $m['art']) ?> · <?= Fmt::h($m['format']) ?> · <?= Fmt::h((int) $m['bytes'] >= 1048576 ? number_format((int) $m['bytes'] / 1048576, 1, ',', '.') . ' MB' : max(1, (int) round((int) $m['bytes'] / 1024)) . ' KB') ?><?= $m['credits'] !== null ? ' · ' . Fmt::h(rtrim(rtrim(number_format((float) $m['credits'], 2, ',', '.'), '0'), ',')) . ' Credits' : '' ?></span>
+          <span class="mk-galerie__knoepfe">
+            <?php if ($m['status'] !== 'gewaehlt'): ?><?= $posten('medium_status', 'Wählen', 'knopf klein', '<input type="hidden" name="medium_id" value="' . (int) $m['id'] . '"><input type="hidden" name="status" value="gewaehlt">') ?><?php endif; ?>
+            <a class="knopf klein" href="<?= Fmt::h(url('medien/' . (int) $m['id']) . '?laden=1') ?>">Herunterladen</a>
+            <?= $posten('medium_status', 'Verwerfen', 'knopf klein', '<input type="hidden" name="medium_id" value="' . (int) $m['id'] . '"><input type="hidden" name="status" value="verworfen">') ?>
+          </span>
+        </figcaption>
+      </figure>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
+</section>
 
 <?php if (in_array($x['status'], ['entwurf', 'freigegeben'], true)): ?>
 <details class="block mk-bearbeiten"<?= $x['status'] === 'entwurf' ? ' open' : '' ?>>
@@ -177,6 +231,7 @@ require __DIR__ . '/mk_stil.php';
       <div class="feld"><label for="e_kw">Keywords <span class="mk-fein">(eines je Zeile)</span></label><textarea id="e_kw" name="f_keywords" rows="4"><?= Fmt::h(implode("\n", (array) ($f['keywords'] ?? []))) ?></textarea></div>
     <?php endif; ?>
     <div class="feld"><label for="e_bild">Bild- bzw. Videoidee</label><textarea id="e_bild" name="bildidee" rows="3"><?= Fmt::h((string) $x['bildidee']) ?></textarea></div>
+    <div class="feld"><label for="e_bp">Bild-Prompt für Kie.ai <span class="mk-fein">(englisch; leer = Bildidee wird genommen)</span></label><textarea id="e_bp" name="bild_prompt" rows="3"><?= Fmt::h((string) ($x['bild_prompt'] ?? '')) ?></textarea></div>
     <button class="knopf haupt">Speichern</button>
   </form>
 </details>

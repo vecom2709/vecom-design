@@ -15,18 +15,19 @@ $mkN = static fn(int $n, string $eins, string $viele): string => $n . ' ' . ($n 
 <div class="tabellenrahmen"><table class="mk-tab">
   <thead><tr><th>Auftrag</th><th>Stand</th><th>Ergebnis</th></tr></thead>
   <tbody>
-  <?php foreach ($auftraege as $a): $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte'; ?>
+  <?php foreach ($auftraege as $a): $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte'; $istMedium = ($a['art'] ?? '') === 'medien';
+        $mkP = $istMedium ? (json_decode((string) $a['parameter'], true) ?: []) : []; ?>
     <tr>
       <td class="mk-name"><?= Fmt::h(MkAuftrag::beschreibung($a)) ?><div class="mk-fein">angestoßen <?= Fmt::h($mkUhr($a['created_at'])) ?></div></td>
       <td style="white-space:nowrap">
-        <?php if ($a['status'] === 'laeuft'): ?><span class="marke2 warnung mk-laeuft"><?= $istInhalt ? 'Claude schreibt' : 'Claude recherchiert' ?></span><div class="mk-fein">seit <?= $mkMin($a['gestartet_am']) ?> Min.</div>
+        <?php if ($a['status'] === 'laeuft'): ?><span class="marke2 warnung mk-laeuft"><?= $istMedium ? 'Kie.ai erzeugt' : ($istInhalt ? 'Claude schreibt' : 'Claude recherchiert') ?></span><div class="mk-fein">seit <?= $mkMin($a['gestartet_am']) ?> Min.</div>
         <?php elseif ($a['status'] === 'wartet'): ?><span class="marke2">wartet auf deinen PC</span>
-          <form method="post" action="<?= Fmt::h(url($mkSeite)) ?>" style="margin:6px 0 0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="<?= $istInhalt ? 'inhalte_abbrechen' : 'recherche_abbrechen' ?>"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><button class="knopf klein">Abbrechen</button></form>
+          <form method="post" action="<?= Fmt::h(url($mkSeite)) ?>" style="margin:6px 0 0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><?php if ($istMedium): ?><input type="hidden" name="tat" value="medien_abbrechen"><input type="hidden" name="auftrag" value="<?= (int) $a['id'] ?>"><input type="hidden" name="id" value="<?= (int) ($mkP['inhalt_id'] ?? 0) ?>"><?php else: ?><input type="hidden" name="tat" value="<?= $istInhalt ? 'inhalte_abbrechen' : 'recherche_abbrechen' ?>"><input type="hidden" name="id" value="<?= (int) $a['id'] ?>"><?php endif; ?><button class="knopf klein">Abbrechen</button></form>
         <?php elseif ($a['status'] === 'fertig'): ?><span class="marke2 gut">fertig</span><div class="mk-fein"><?= Fmt::h($mkUhr($a['fertig_am'])) ?> · <?= $mkMin($a['gestartet_am'], $a['fertig_am']) ?> Min.</div>
         <?php else: ?><span class="marke2 <?= $a['status'] === 'fehler' ? 'schlecht' : '' ?>"><?= Fmt::h(MkAuftrag::STATUS[$a['status']] ?? $a['status']) ?></span><?php endif; ?>
       </td>
       <td><?php if ($a['status'] === 'fertig'): ?>
-          <?php if ($istInhalt): ?><?= Fmt::h($mkN((int) ($a['inhalte'] ?? 0), 'Entwurf', 'Entwürfe')) ?><?php else: ?><?= Fmt::h($mkN((int) $a['zielgruppen'], 'Zielgruppe', 'Zielgruppen')) ?><?= (int) $a['zielgruppen'] > 0 ? ' (<a href="' . Fmt::h(url('zielgruppen')) . '">prüfen</a>)' : '' ?> · <?= Fmt::h($mkN((int) $a['funde'], 'neuer Fund', 'neue Funde')) ?><?php endif; ?>
+          <?php if ($istMedium): ?><?= Fmt::h(($mkP['medium'] ?? 'bild') === 'video' ? 'Video da' : 'Bild da') ?><?php elseif ($istInhalt): ?><?= Fmt::h($mkN((int) ($a['inhalte'] ?? 0), 'Entwurf', 'Entwürfe')) ?><?php else: ?><?= Fmt::h($mkN((int) $a['zielgruppen'], 'Zielgruppe', 'Zielgruppen')) ?><?= (int) $a['zielgruppen'] > 0 ? ' (<a href="' . Fmt::h(url('zielgruppen')) . '">prüfen</a>)' : '' ?> · <?= Fmt::h($mkN((int) $a['funde'], 'neuer Fund', 'neue Funde')) ?><?php endif; ?>
         <?php endif; ?>
         <?php if (!empty($a['ergebnis'])): ?><div class="mk-fein" style="max-width:60ch;white-space:pre-line"><?= Fmt::h((string) $a['ergebnis']) ?></div><?php endif; ?></td>
     </tr>

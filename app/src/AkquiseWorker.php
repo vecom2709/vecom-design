@@ -27,7 +27,9 @@ final class AkquiseWorker
                              /* Recherche per Knopf (01.10.2026): Auftrag abholen und zurückmelden. */
                              'marketing_auftrag_holen', 'marketing_auftrag_melden',
                              /* Content-Studio (01.10.2026): geschriebene Inhalte als Entwürfe abliefern. */
-                             'marketing_inhalte'];
+                             'marketing_inhalte',
+                             /* Bilder und Videos (01.10.2026): fertige Datei in Stücken hochladen. */
+                             'marketing_medium_teil'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -95,6 +97,7 @@ final class AkquiseWorker
             'marketing_auftrag_melden' => (static function () use ($d): array { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::melden($d); })(),
             'marketing_inhalte'        => (static function () use ($d): array { require_once __DIR__ . '/MkInhalt.php';
                 return MkInhalt::melden(is_array($d['inhalte'] ?? null) ? $d['inhalte'] : [], (int) ($d['auftrag_id'] ?? 0)); })(),
+            'marketing_medium_teil'    => (static function () use ($d): array { require_once __DIR__ . '/MkMedium.php'; return MkMedium::teilMelden($d); })(),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }

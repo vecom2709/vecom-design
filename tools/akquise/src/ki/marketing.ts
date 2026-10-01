@@ -20,6 +20,7 @@ import { join } from 'node:path';
 import { api } from '../api.js';
 import { datenOrdner } from '../konfig.js';
 import { log } from '../log.js';
+import { medienLauf, type MedienAuftrag } from './kie.js';
 
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
@@ -102,7 +103,7 @@ export const SCHEMA_INHALTE = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['format', 'plattform', 'sprache', 'titel', 'felder', 'bildidee', 'begruendung', 'fund_ids'],
+        required: ['format', 'plattform', 'sprache', 'titel', 'felder', 'bildidee', 'bild_prompt', 'begruendung', 'fund_ids'],
         properties: {
           format: { type: 'string', enum: ['beitrag', 'karussell', 'reel', 'story', 'telegram', 'profil', 'meta_anzeige', 'google_anzeige'] },
           plattform: { type: 'string' }, sprache: { type: 'string', enum: ['it', 'de', 'en'] }, titel: { type: 'string' },
@@ -116,7 +117,7 @@ export const SCHEMA_INHALTE = {
               pfad1: { type: 'string' }, pfad2: { type: 'string' }, keywords: LISTE,
             },
           },
-          bildidee: { type: 'string' }, begruendung: { type: 'string' },
+          bildidee: { type: 'string' }, bild_prompt: { type: 'string' }, begruendung: { type: 'string' },
           fund_ids: { type: 'array', items: { type: 'integer' } },
         },
       },
@@ -163,6 +164,7 @@ REGELN — unbedingt
 - Anzeigen: keine Aussagen, die persönliche Merkmale oder Notlagen unterstellen (Meta-Richtlinie) — „Per chi ha un ristorante …“ statt „Il tuo ristorante sta fallendo?“.
 - Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern; Aufrufe führen auf die Website (kostenloser Website-Check, Preis berechnen, Termin).
 - bildidee: ein konkretes Motiv aus dem echten Alltag der Branche, ruhiges Licht, keine Stockfoto-Klischees; Text im Bild höchstens 5 Wörter, groß und kontrastreich.
+- bild_prompt: dasselbe Motiv als ENGLISCHER Prompt für einen Bildgenerator (Nano Banana Pro bzw. Veo): Motiv, Ort, Menschen (ohne bekannte Gesichter), Licht, Perspektive, Brennweite, Stimmung; fotorealistisch, keine Marken oder Logos; Text im Bild nur, wenn er trägt — wörtlich in Anführungszeichen, höchstens 5 Wörter. Bei Reels die Kernszene beschreiben.
 - begruendung: 1–2 Sätze — welcher Punkt des Profils, warum dieses Format auf dieser Plattform.
 - Nicht wiederholen, was in „bisherige_titel“ steht.
 - zusammenfassung: 2–3 Sätze auf Deutsch für Uwe.
@@ -298,6 +300,7 @@ function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA)
 export async function marketingLauf(): Promise<boolean> {
   const r = await api('marketing_auftrag_holen');
   if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }
+  if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude recherchiert`);

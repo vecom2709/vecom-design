@@ -41,6 +41,13 @@ final class MkAuftrag
     /** Was der Auftrag tut — in einem Satz. */
     public static function beschreibung(array $a): string
     {
+        if (($a['art'] ?? 'recherche') === 'medien') {
+            $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            require_once __DIR__ . '/MkMedium.php';
+            $art = (string) ($p['medium'] ?? 'bild');
+            return ($art === 'video' ? 'Video' : 'Bild') . ' · ' . (string) ($p['titel'] ?? '') . ' · ' . (string) ($p['format'] ?? '')
+                . ' · ' . (MkMedium::MODELLE[$art][$p['modell'] ?? ''][0] ?? (string) ($p['modell'] ?? '')) . (!empty($p['startbild']) ? ' · aus dem gewählten Bild' : '');
+        }
         if (($a['art'] ?? 'recherche') === 'inhalte') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             $pl = implode(', ', array_map(static fn($x) => MkKampagne::PLATTFORMEN[$x] ?? $x, (array) ($p['plattformen'] ?? [])));
@@ -149,6 +156,14 @@ final class MkAuftrag
             $n = Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
             if (($a['art'] ?? 'recherche') === 'inhalte') { return ['ok' => true, 'auftrag' => self::inhalteAuftrag($a)]; }
+            if (($a['art'] ?? 'recherche') === 'medien') {
+                require_once __DIR__ . '/MkMedium.php';
+                $p = json_decode((string) $a['parameter'], true) ?: [];
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'medien', 'beschreibung' => self::beschreibung($a),
+                    'medium' => (string) ($p['medium'] ?? 'bild'), 'modell' => (string) ($p['modell'] ?? ''), 'format' => (string) ($p['format'] ?? ''),
+                    'prompt' => (string) ($p['prompt'] ?? ''), 'startbild' => $p['startbild'] ?? null, 'credits_ca' => (int) ($p['credits_ca'] ?? 0),
+                    'teil_bytes' => MkMedium::TEIL_BYTES, 'max_bytes' => MkMedium::MAX_BYTES]];
+            }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
             $daten = MkZielgruppe::datenFuerClaude($branche !== '' ? $branche : null, $land);
@@ -217,6 +232,13 @@ final class MkAuftrag
         if (!$a) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
         $in = max(0, min(999, (int) ($d['inhalte'] ?? 0)));
         $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte';
+        if (($a['art'] ?? '') === 'medien') {
+            if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
+            $p = json_decode((string) $a['parameter'], true) ?: [];
+            Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'fertig_am' => date('Y-m-d H:i:s')]);
+            if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text, 'inhalte/' . (int) ($p['inhalt_id'] ?? 0)), null); }
+            return ['ok' => true];
+        }
         if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
         Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null,
                                          'zielgruppen' => $zg, 'funde' => $fu, 'fertig_am' => date('Y-m-d H:i:s')] + ($istInhalt ? ['inhalte' => $in] : []));

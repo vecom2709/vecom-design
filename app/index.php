@@ -556,6 +556,29 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
                 weiter('inhalte#auftraege');
 
+            /* Bilder und Videos (Marketing-Studio Schritt 3, 01.10.2026) */
+            case 'medium_erzeugen':
+                require_once __DIR__ . '/src/MkMedium.php';
+                $mmInhalt = (int) ($_POST['id'] ?? 0);
+                $maErg = MkMedium::anlegen($mmInhalt, (string) ($_POST['medium'] ?? 'bild'), (string) ($_POST['modell'] ?? ''), (string) ($_POST['format'] ?? ''));
+                $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
+                    ? 'Angestoßen. Dein PC prüft zuerst dein Kie-Guthaben, dann entsteht ' . (($_POST['medium'] ?? 'bild') === 'video' ? 'das Video (etwa 2–5 Minuten)' : 'das Bild (etwa 1 Minute)') . '.'
+                    : $maErg;
+                weiter('inhalte/' . $mmInhalt . '#medien');
+
+            case 'medium_status':
+                require_once __DIR__ . '/src/MkMedium.php';
+                $mm = MkMedium::laden((int) ($_POST['medium_id'] ?? 0));
+                $f = MkMedium::status((int) ($_POST['medium_id'] ?? 0), (string) ($_POST['status'] ?? ''));
+                if ($f !== null) { $_SESSION['fehler'] = $f; }
+                weiter('inhalte/' . (int) ($mm['inhalt_id'] ?? 0) . '#medien');
+
+            case 'medien_abbrechen':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $f = MkAuftrag::abbrechen((int) ($_POST['auftrag'] ?? 0));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
+                weiter('inhalte/' . (int) ($_POST['id'] ?? 0) . '#medien');
+
             case 'inhalt_speichern':
             case 'inhalt_freigeben':
             case 'inhalt_veroeffentlicht':
@@ -4500,6 +4523,12 @@ switch ($route) {
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
 
+    case 'medien':    // Bilder und Videos (Schritt 3): nur angemeldet, nur über PHP
+        require_once __DIR__ . '/src/MkMedium.php';
+        $mm = $id !== null ? MkMedium::laden($id) : null;
+        if ($mm === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+        MkMedium::ausliefern($mm, isset($_GET['laden']));
+
     case 'inhalte':   // Content-Studio (Marketing-Studio Schritt 2, 01.10.2026)
         require_once __DIR__ . '/src/MkInhalt.php';
         require_once __DIR__ . '/src/MkAuftrag.php';
@@ -4507,7 +4536,11 @@ switch ($route) {
         if ($id !== null) {
             $mi = MkInhalt::laden($id);
             if ($mi === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            require_once __DIR__ . '/src/MkMedium.php';
             ansicht('inhalt', ['x' => $mi, 'zg' => $mi['zielgruppe_id'] ? MkZielgruppe::laden((int) $mi['zielgruppe_id']) : null,
+                'medien' => sicher(static fn() => MkMedium::zuInhalt($id), []),
+                'medienAuftraege' => sicher(static fn() => Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND parameter LIKE ? ORDER BY id DESC LIMIT 6", ['%"inhalt_id":' . $id . ',%']), []),
+                'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null]),
                 'kampagnen' => Db::all("SELECT id, name, code FROM mk_kampagnen WHERE status <> 'beendet' ORDER BY id DESC LIMIT 60"),
                 'funde' => $mi['fund_ids'] ? Db::all('SELECT id, art, titel FROM mk_recherche WHERE id IN (' . implode(',', array_map('intval', explode(',', (string) $mi['fund_ids']))) . ')') : []]);
             break;

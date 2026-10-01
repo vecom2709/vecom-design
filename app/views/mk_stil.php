@@ -124,6 +124,14 @@
   .mk-bearbeiten textarea{min-height:90px;font-size:14px;line-height:1.5}
   .mk-bearbeiten .feld{margin:0 0 12px}
   .mk-teilen > .mk-qr{flex:0 0 132px}
+  .mk-medium{display:block;width:calc(100% + 32px);margin:10px -16px;max-height:640px;object-fit:contain;background:#0b0b0b}
+  .mk-medien-knoepfe{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center}
+  .mk-galerie{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;margin-top:14px}
+  .mk-galerie__stueck{margin:0;border:1px solid var(--linie);border-radius:12px;overflow:hidden;background:var(--flaeche2);display:flex;flex-direction:column}
+  .mk-galerie__stueck.gewaehlt{border-color:var(--gruen)}
+  .mk-galerie__stueck .mk-medium{width:100%;margin:0;max-height:300px}
+  .mk-galerie__stueck figcaption{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:12.5px;color:var(--dim)}
+  .mk-galerie__knoepfe{display:flex;flex-wrap:wrap;gap:6px}
   @media(min-width:900px){.mk-schreiben > .feld:first-of-type{grid-column:span 2}}
   .mk-budget{display:inline-block;width:90px;height:6px;border-radius:99px;background:var(--flaeche2);overflow:hidden;vertical-align:middle;margin:6px 6px 2px 0}
   .mk-budget i{display:block;height:100%;border-radius:99px}

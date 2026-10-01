@@ -17223,6 +17223,81 @@ pruefe('PC: Schreibaufträge laufen über dieselbe sichere Claude-Code-Brücke (
 Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
+   Marketing-Studio Schritt 3: Bilder und Videos über Kie.ai (01.10.2026)
+   ============================================================================ */
+abschnitt('Marketing-Studio: Bilder und Videos');
+require_once $wurzel . '/src/MkMedium.php';
+Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_medien');
+$mmX = MkInhalt::laden($ciIdI);   // Instagram-Beitrag, freigegeben
+$mmR = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'reel'");
+Db::run("UPDATE mk_inhalte SET bild_prompt = 'A busy Sicilian trattoria kitchen at dusk' WHERE id = ?", [$mmR]);
+pruefe('Medien: passendes Format je Plattform (Instagram 4:5, Reel 9:16) und Prompt aus Claudes Bild-Prompt — sonst aus der Bildidee',
+    MkMedium::formatFuer($mmX) === '4:5' && MkMedium::formatFuer(MkInhalt::laden($mmR)) === '9:16' && MkMedium::formatFuer(MkInhalt::laden($ciIdG)) === '1:1'
+    && str_starts_with(MkMedium::prompt(MkInhalt::laden($mmR)), 'A busy Sicilian trattoria kitchen at dusk') && str_contains(MkMedium::prompt(MkInhalt::laden($mmR)), 'Photorealistic')
+    && str_starts_with(MkMedium::prompt($mmX), 'Prenotazioni') === false);
+pruefe('Medien-Auftrag: nicht für unbekannte oder verworfene Inhalte',
+    is_string(MkMedium::anlegen(999999, 'bild')) && is_string(MkMedium::anlegen($ciIdT, 'bild')) && is_string(MkMedium::anlegen($mmR, 'hologramm')));
+$mmA = MkMedium::anlegen($mmR, 'bild', '', '7:3');
+$mmP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$mmA]), true);
+pruefe('Medien-Auftrag: Bild angelegt (unbekanntes Format → passendes), mit Prompt und ungefähren Credits — derselbe Inhalt nicht zweimal gleichzeitig',
+    is_int($mmA) && $mmP['format'] === '9:16' && $mmP['modell'] === 'nano-banana-pro' && $mmP['credits_ca'] === 24 && $mmP['startbild'] === null
+    && is_string(MkMedium::anlegen($mmR, 'video')) && MkAuftrag::wartet() && str_starts_with(MkAuftrag::beschreibung(Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$mmA])), 'Bild · '));
+$mmH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Medien-Auftrag: der PC bekommt Medium, Modell, Format, Prompt, Credits und die Stückgröße — keinen Schlüssel',
+    ($mmH['art'] ?? '') === 'medien' && $mmH['medium'] === 'bild' && $mmH['teil_bytes'] === MkMedium::TEIL_BYTES && $mmH['prompt'] !== '' && !str_contains(json_encode($mmH), 'KIE'));
+$mmPng = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+$mmT = static fn(int $teil, int $von, string $roh, string $sha, array $mehr = []) => AkquiseWorker::ausfuehren('marketing_medium_teil', $mehr + ['auftrag_id' => $mmA, 'teil' => $teil, 'von' => $von, 'daten' => base64_encode($roh), 'sha256' => $sha]);
+pruefe('Upload in Stücken: Reihenfolge zählt, Prüfsumme muss stimmen — sonst wird verworfen',
+    $mmT(2, 2, 'x', '')['ok'] === false && $mmT(1, 2, substr($mmPng, 0, 30), '')['ok'] === true && $mmT(2, 2, substr($mmPng, 30), str_repeat('0', 64))['ok'] === false
+    && (int) Db::wert('SELECT COUNT(*) FROM mk_medien') === 0 && !is_file(MkMedium::ordner() . '/teil-' . $mmA . '.part'));
+$mmT(1, 1, 'Das ist kein Bild, sondern Text, der sich als Bild ausgibt.', hash('sha256', 'Das ist kein Bild, sondern Text, der sich als Bild ausgibt.'));
+pruefe('Upload: der Server prüft den echten Dateityp — Text als Bild wird abgelehnt', (int) Db::wert('SELECT COUNT(*) FROM mk_medien') === 0);
+$mmT(1, 2, substr($mmPng, 0, 30), '');
+$mmE = $mmT(2, 2, substr($mmPng, 30), hash('sha256', $mmPng), ['quelle_url' => 'https://tempfile.aiquickdraw.com/x/bild.png', 'credits' => 24]);
+$mmM = MkMedium::laden((int) ($mmE['id'] ?? 0));
+pruefe('Upload: fertiges Bild liegt als Zufallsname .bin in app/uploads/marketing hinter .htaccess, mit Format, Modell, Credits und Kie-Adresse',
+    $mmE['ok'] === true && $mmM !== null && $mmM['mime'] === 'image/png' && str_ends_with((string) $mmM['datei'], '.bin') && is_file(MkMedium::ordner() . '/' . $mmM['datei'])
+    && is_file(MkMedium::ordner() . '/.htaccess') && str_contains((string) file_get_contents(dirname(MkMedium::ordner()) . '/.htaccess'), 'Require all denied')
+    && $mmM['format'] === '9:16' && (float) $mmM['credits'] === 24.0 && $mmM['quelle_url'] === 'https://tempfile.aiquickdraw.com/x/bild.png' && (int) $mmM['inhalt_id'] === $mmR, json_encode($mmE));
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $mmA, 'ok' => true, 'text' => 'Bild fertig · 24 Credits']);
+pruefe('Medien-Auftrag: fertig gemeldet, kein zweites Mal', Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$mmA]) === 'fertig'
+    && AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $mmA, 'ok' => true])['ok'] === false);
+MkMedium::status((int) $mmM['id'], 'gewaehlt');
+$mmV = MkMedium::anlegen($mmR, 'video', 'veo3', '9:16');
+$mmVp = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$mmV]), true);
+pruefe('Video: ein frisch gewähltes Bild wird erster Frame; Veo 3.1 Quality mit 400 Credits',
+    MkMedium::gewaehlt($mmR)['id'] === $mmM['id'] && is_int($mmV) && $mmVp['startbild'] === 'https://tempfile.aiquickdraw.com/x/bild.png' && $mmVp['credits_ca'] === 400
+    && str_contains(MkAuftrag::beschreibung(Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$mmV])), 'aus dem gewählten Bild'));
+MkAuftrag::abbrechen($mmV);
+Db::insert('mk_medien', ['inhalt_id' => $mmR, 'art' => 'bild', 'datei' => 'x.bin', 'mime' => 'image/png', 'sha256' => str_repeat('a', 64), 'status' => 'neu']);
+$mmZweit = (int) Db::wert('SELECT MAX(id) FROM mk_medien');
+MkMedium::status($mmZweit, 'gewaehlt');
+pruefe('Medien: es gibt je Inhalt nur ein gewähltes Bild; Verworfenes verschwindet aus der Liste',
+    (int) Db::wert("SELECT COUNT(*) FROM mk_medien WHERE inhalt_id = ? AND status = 'gewaehlt'", [$mmR]) === 1 && MkMedium::gewaehlt($mmR)['id'] === $mmZweit
+    && MkMedium::status($mmZweit, 'verworfen') === null && count(MkMedium::zuInhalt($mmR)) === 1 && MkMedium::status($mmZweit, 'kaputt') !== null);
+for ($mmI = 0; $mmI < MkMedium::JE_INHALT; $mmI++) { Db::insert('mk_medien', ['inhalt_id' => $ciIdK, 'art' => 'bild', 'datei' => "f$mmI.bin", 'mime' => 'image/png', 'sha256' => str_repeat('b', 64)]); }
+pruefe('Medien: höchstens ' . MkMedium::JE_INHALT . ' je Inhalt', is_string(MkMedium::anlegen($ciIdK, 'bild')));
+$mmIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Bilder nur über PHP an den Angemeldeten; Erzeugen, Wählen, Abbrechen hinter CSRF; Worker-Tür nimmt Stücke an, freigeben weiterhin nicht',
+    strpos($mmIdx, "case 'medien':") > strpos($mmIdx, 'Auth::nurAdmin();') && strpos($mmIdx, "case 'medium_erzeugen':") > strpos($mmIdx, 'Csrf::pruefen()')
+    && in_array('marketing_medium_teil', AkquiseWorker::AKTIONEN, true) && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb')));
+$mmFehler = null; set_error_handler(static function (int $n, string $m) use (&$mmFehler): bool { $mmFehler = $m; return true; });
+$x = MkInhalt::laden($mmR); $zg = MkZielgruppe::laden($ciZid); $funde = []; $kampagnen = [];
+$medien = MkMedium::zuInhalt($mmR, false); $medienAuftraege = Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' ORDER BY id DESC"); $pc = ['pc_wach' => true, 'pc_alter' => 1];
+ob_start(); require $wurzel . '/views/inhalt.php'; $mmH1 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Bild und Video am Inhalt — Knöpfe mit Credits, Stand der Aufträge, Galerie mit Wählen/Herunterladen, gewähltes Bild in der Vorschau',
+    $mmFehler === null && str_contains($mmH1, 'value="medium_erzeugen"') && str_contains($mmH1, 'Bild erzeugen · ca. 24 Credits') && str_contains($mmH1, 'Veo 3.1 Quality')
+    && str_contains($mmH1, 'class="mk-galerie"') && str_contains($mmH1, 'medien/' . $mmM['id'] . '?laden=1') && substr_count($mmH1, 'src="' . Fmt::h(url('medien/' . $mmM['id'])) . '"') >= 1
+    && str_contains($mmH1, 'name="bild_prompt"') && str_contains($mmH1, 'abgebrochen'), (string) $mmFehler);
+$mmKie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
+pruefe('PC: Kie-Schlüssel nur aus der Umgebung, nie ausgegeben; Guthaben vor jedem Lauf; Datei in Stücken über die Tür',
+    str_contains($mmKie, "GetEnvironmentVariable('KIE_API_KEY','User')") && !str_contains($mmKie, 'console.') && !preg_match('/log\.\w+\([^)]*\bs\b\s*[,)]/', $mmKie)
+    && strpos($mmKie, 'const vorher = await guthaben(s)') < strpos($mmKie, "await video(s, a) : await bild(s, a)") && str_contains($mmKie, "api('marketing_medium_teil'"));
+@unlink(MkMedium::ordner() . '/' . $mmM['datei']);
+Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');
