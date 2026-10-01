@@ -12430,7 +12430,9 @@ pruefe('Brief-Serie: Senden fragt einmal vorher (TRAGWEITE), höchstens ' . Akqu
 
 // Wochenbericht erweitert
 Db::run("DELETE FROM settings WHERE skey = 'akq_wochenbericht'");
-$wbZ = Akquise::wochenberichtZusatz(time());
+/* Die Postfach-Mail der Kette ist vom 24.09.2026, 10:15 — „eingeordnet in den letzten 7 Tagen“ gilt nur bis eine Woche danach.
+   Mit time() riss die Prüfung ab dem 01.10.2026, 10:15 (gemessen); der Bericht wird deshalb am Tag nach der Mail gerechnet. */
+$wbZ = Akquise::wochenberichtZusatz(min(time(), strtotime('2026-09-25 12:00:00')));
 pruefe('Wochenbericht: Wochenziel, Trichter (30 Tage) und automatisch eingeordnete Antworten stehen drin',
     (bool) array_filter($wbZ, static fn($z) => str_starts_with($z, '• Wochenziel letzte Woche:')) && (bool) array_filter($wbZ, static fn($z) => str_contains($z, 'angesprochen →'))
     && (bool) array_filter($wbZ, static fn($z) => str_contains($z, 'automatisch aus dem Postfach')), json_encode($wbZ, JSON_UNESCAPED_UNICODE));
@@ -15146,7 +15148,9 @@ pruefe('Worker: „steuern“ alle fünf Minuten (leise), hört bei „Stoppen�
     && in_array('befehl_holen', AkquiseWorker::AKTIONEN, true));
 $fsA = AkquiseSteuerung::fortschritt(true);
 $fsB = AkquiseSteuerung::fortschritt();
-AkquiseGate::setzen('akq_worker_status', (string) json_encode(['art' => 'audit', 'stand' => 30, 'ziel' => 300, 'text' => 'x.it', 'zeit' => date('Y-m-d H:i:s'), 'beginn' => date('Y-m-d H:i:s', time() - 30 * 60)]));
+/* Der erwartete Beginn einmal festhalten — zweimal time() kann über eine Sekundengrenze fallen (01.10.2026 gemessen). */
+$fsErwartet = date('Y-m-d H:i:s', time() - 30 * 60);
+AkquiseGate::setzen('akq_worker_status', (string) json_encode(['art' => 'audit', 'stand' => 30, 'ziel' => 300, 'text' => 'x.it', 'zeit' => date('Y-m-d H:i:s'), 'beginn' => $fsErwartet]));
 $fsRest = AkquiseSteuerung::stand()['rest_min'];
 AkquiseWorker::ausfuehren('status_melden', ['art' => 'audit', 'stand' => 31, 'ziel' => 300]);
 $fsBeginn = json_decode(AkquiseGate::einstellung('akq_worker_status', ''), true)['beginn'] ?? '';
@@ -15156,7 +15160,7 @@ $fsZ = AkquiseSteuerung::zuletzt(5);
 pruefe('Fortschritt (F1–F4): Prozent und Restzeit des Laufs, Gesamtstand mit Gebieten, Weg zur Branchen-Seite, zuletzt geprüft; alle 30 Sekunden nur der Block',
     $fsA['gesamt']['n'] > 0 && $fsA['gesamt']['geprueft'] > 0 && $fsA['gebiete'] !== [] && is_array($fsA['gruppen']) && $fsB['zeit'] === $fsA['zeit']
     && (bool) array_filter($fsA['gruppen'], static fn($g) => $g['seite'] === 'restaurant-agrigento' && $g['geprueft'] >= BranchenStatistik::MIN)
-    && $fsRest === 270 && $fsBeginn === date('Y-m-d H:i:s', time() - 30 * 60) && $fsNeu !== $fsBeginn
+    && $fsRest === 270 && $fsBeginn === $fsErwartet && $fsNeu !== $fsBeginn
     && count($fsZ) >= 1 && array_key_exists('befunde', $fsZ[0])
     && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "if (\$teil === 'steuerung')")
     && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'setInterval(neu, 30000)'), json_encode([$fsA['gesamt'], $fsRest, $fsBeginn, $fsNeu]));
@@ -18302,6 +18306,74 @@ pruefe('T5: Reiter unter Marketing mit Hilfesatz und Zahl im Menü, Aktionen hin
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Verzeichnisse::erinnern()'));
 pruefe('T5: Keine Tat hier schickt etwas nach draußen oder gibt Geld aus — keine Rückfrage nötig (STILL)',
     Ablauf::wiegt('verzeichnis_stand') === Ablauf::STILL && Ablauf::wiegt('verzeichnis_vorbereiten') === Ablauf::STILL);
+/* Ausfüll-Knopf (01.10.2026, Uwe: „nicht kopieren, sondern per Knopfdruck“ → „ja“) */
+pruefe('Ausfüll-Knopf: Domain der Stelle — ohne www., Unterdomains zählen zur Domain, IP bleibt IP',
+    Verzeichnisse::basisDomain('www.tgstat.com') === 'tgstat.com' && Verzeichnisse::basisDomain('business.google.com') === 'google.com'
+    && Verzeichnisse::basisDomain('service.opendi.it') === 'opendi.it' && Verzeichnisse::basisDomain('127.0.0.1') === '127.0.0.1');
+pruefe('Ausfüll-Knopf: die Stelle zur Adresse wird gefunden, eine fremde nicht',
+    (Verzeichnisse::fuerHost('tgstat.com')['name'] ?? '') === 'TGStat' && (Verzeichnisse::fuerHost('it.tgstat.com')['name'] ?? '') === 'TGStat'
+    && (Verzeichnisse::fuerHost('www.hotfrog.it')['name'] ?? '') === 'Hotfrog Italia' && Verzeichnisse::fuerHost('unbekannt.example') === null);
+pruefe('Ausfüll-Knopf: Angaben gehen nur an genau die Seite, von der das Fenster geöffnet wurde (https, gleicher Host; http nur lokal)',
+    Verzeichnisse::zielOk('tgstat.com', 'https://tgstat.com') && !Verzeichnisse::zielOk('tgstat.com', 'https://boese.example')
+    && !Verzeichnisse::zielOk('tgstat.com', 'http://tgstat.com') && !Verzeichnisse::zielOk('tgstat.com', 'https://tgstat.com/pfad')
+    && !Verzeichnisse::zielOk('tgstat.com', 'https://tgstat.com.boese.example') && Verzeichnisse::zielOk('127.0.0.1', 'http://127.0.0.1:8098')
+    && !Verzeichnisse::zielOk('', 'https://'));
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('firma_ort', 'Aragona (AG)'), ('firma_inhaber', 'Uwe Vetter') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+(new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+$afMi = Verzeichnisse::fuerHost('www.misterimprese.it');
+$afD = Verzeichnisse::ausfuellDaten($afMi);
+pruefe('Ausfüll-Knopf: Angaben einer Stelle — ihr eigener Website-Link, italienische Texte, Ort ohne Provinzkürzel, Provinz und Region, Vor- und Nachname',
+    $afD['web'] === MkKampagne::basis() . '/k/vz-misterimprese' && $afD['kurz'] === Texte::VERZEICHNIS['kurz']['it'] && $afD['lang'] === Texte::VERZEICHNIS['lang']['it']
+    && $afD['ort'] === 'Aragona' && $afD['provinz'] === 'AG' && $afD['provinz_name'] === 'Agrigento' && $afD['region'] === 'Sicilia'
+    && $afD['vorname'] === 'Uwe' && $afD['nachname'] === 'Vetter' && $afD['kanal'] === 'https://t.me/vecomdesign' && $afD['kanal_name'] === '@vecomdesign', json_encode($afD));
+$afJson = (string) json_encode($afD);
+pruefe('Ausfüll-Knopf: es geht nur Öffentliches hinaus — kein Schlüssel, kein Token, keine Bankverbindung',
+    !preg_match('/token|csrf|passw|iban|secret|geheim/i', $afJson) && !str_contains($afJson, (string) Telegram::einstellung('tg_token')));
+pruefe('Ausfüll-Knopf: ohne Stelle allgemeine Angaben in der gewählten Sprache, Website ohne eigenen Link',
+    ($afA = Verzeichnisse::ausfuellDaten(null, 'de'))['kurz'] === Texte::VERZEICHNIS['kurz']['de'] && !str_contains($afA['web'], '/k/') && $afA['land'] === 'Italien');
+$afL = Verzeichnisse::lesezeichen();
+$afJs = rawurldecode(substr($afL, strlen('javascript:')));
+pruefe('Ausfüll-Knopf: das Lesezeichen enthält keine Daten, nur den Weg zur Verwaltung, prüft die Herkunft jeder Nachricht, schickt nie ab und lässt Häkchen und Passwörter in Ruhe',
+    str_starts_with($afL, 'javascript:') && strlen($afL) < 20000 && str_contains($afJs, "const O='https://pruefung.example',A='https://pruefung.example/app'")
+    && str_contains($afJs, 'e.origin!==O') && !str_contains($afJs, '__ORIGIN__') && !str_contains($afJs, "\n") && !str_contains($afJs, 'Vecom Design Pruefung')
+    && !str_contains($afJs, '.submit()') && !str_contains($afJs, '.click()') && str_contains($afJs, "'password','file','checkbox','radio','submit'"), substr($afJs, 0, 120));
+
+/* Das kleine Fenster */
+$afFenster = static function (string $host, string $origin, string $sp = 'it', array $get = []) use ($wurzel): string {
+    $afHost = $host; $afOrigin = $origin; $afSp = $sp; $afOk = Verzeichnisse::zielOk($host, $origin);
+    $afE = $afOk ? Verzeichnisse::fuerHost($host) : null;
+    $altGet = $_GET; $_GET = $get;
+    ob_start(); require $wurzel . '/views/ausfuellen.php'; $aus = (string) ob_get_clean();
+    $_GET = $altGet;
+    return $aus;
+};
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$afH1 = $afFenster('www.cylex-italia.it', 'https://www.cylex-italia.it');
+$afH2 = $afFenster('www.misterimprese.it', 'https://www.misterimprese.it');
+$afH3 = $afFenster('www.misterimprese.it', 'https://boese.example');
+$afH4 = $afFenster('www.awwwards.com', 'https://www.awwwards.com');
+$afH5 = $afFenster('www.misterimprese.it', 'https://www.misterimprese.it', 'it', ['s' => '1']);
+$afH6 = $afFenster('gibts-nicht.example', 'https://gibts-nicht.example', 'en');
+restore_error_handler();
+pruefe('Ausfüll-Fenster: ohne eigene Links legt es sie zuerst an (dieselbe Tat wie „Eintrag vorbereiten“) und kommt zum Ausfüllen zurück',
+    $kaFehler === null && str_contains($afH1, 'value="verzeichnis_vorbereiten"') && str_contains($afH1, "getElementById('af-vorbereiten').submit()")
+    && str_contains($afH1, 'value="ausfuellen?h=www.cylex-italia.it&amp;o=https%3A%2F%2Fwww.cylex-italia.it&amp;sp=it"') && !str_contains($afH1, 'vecomAusfuellen'), (string) $kaFehler);
+pruefe('Ausfüll-Fenster: mit Links füllt es von selbst aus — nur an die geprüfte Seite, mit dem eigenen Link der Stelle',
+    str_contains($afH2, 'AUTO = true') && str_contains($afH2, 'ZIEL = "https:\/\/www.misterimprese.it"') === false && str_contains($afH2, 'ZIEL = "https://www.misterimprese.it"')
+    && str_contains($afH2, 'postMessage({ vecomAusfuellen: DATEN }, ZIEL)') && str_contains($afH2, '/k/vz-misterimprese') && str_contains($afH2, 'value="eingereicht"'));
+pruefe('Ausfüll-Fenster: fremde Herkunft — keine Angaben, nur der Hinweis', !str_contains($afH3, 'vecomAusfuellen') && str_contains($afH3, 'nicht ausfüllen'));
+pruefe('Ausfüll-Fenster: „nicht eintragen“ oder Kosten — nur auf ausdrücklichen Klick', str_contains($afH4, 'AUTO = false') && str_contains($afH4, 'Nicht eintragen'));
+pruefe('Ausfüll-Fenster: nach dem Speichern eines Stands füllt es nicht noch einmal von selbst, der Stand kommt hierher zurück',
+    str_contains($afH5, 'AUTO = false') && str_contains($afH5, 'sp=it&amp;s=1"'));
+pruefe('Ausfüll-Fenster: ohne Stelle — allgemeine Angaben nur auf Klick, Sprache wählbar, Hinweis zum Aufnehmen',
+    str_contains($afH6, 'AUTO = false') && str_contains($afH6, 'Für diese Seite steht keine Stelle in der Liste') && str_contains($afH6, Texte::VERZEICHNIS['kurz']['en']));
+$afIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Ausfüll-Fenster: Route hinter der Anmeldung, Rückweg nur innerhalb der Verwaltung',
+    strpos($afIdx, "case 'ausfuellen':") > strpos($afIdx, 'Auth::nurAdmin();') && str_contains($afIdx, "zurueck('verzeichnisse?e=' . \$vzId . '#v-' . \$vzId);"));
+$liste = Verzeichnisse::liste(); $offen = 0;
+ob_start(); require $wurzel . '/views/verzeichnisse.php'; $afReg = (string) ob_get_clean();
+pruefe('Ausfüll-Knopf: in der Liste zum Ziehen in die Lesezeichenleiste, ein Klick dort zeigt nur den Hinweis',
+    str_contains($afReg, 'id="vz-lesezeichen" href="javascript:') && str_contains($afReg, "getElementById('vz-lesezeichen').addEventListener('click'"));
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', ''); Telegram::setzen('tg_bot_offen', '1');
 Db::run("DELETE FROM settings WHERE skey = 'firma_google_bewertung'");
 (new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);

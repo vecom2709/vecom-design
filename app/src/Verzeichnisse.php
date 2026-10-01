@@ -441,6 +441,120 @@ final class Verzeichnisse
         ], static fn($v) => trim((string) $v) !== '');
     }
 
+    /* ================================================================== */
+    /*  Ausfüll-Knopf (01.10.2026, Uwe: „nicht kopieren, sondern per       */
+    /*  Knopfdruck“ → „ja“)                                               */
+    /* ================================================================== */
+
+    /*
+     * WIE ER ARBEITET
+     *
+     * Ein Lesezeichen (javascript:) in Uwes Browser. Auf der Eintragsseite
+     * eines Verzeichnisses geklickt, öffnet es ein kleines Fenster der
+     * Verwaltung (Route „ausfuellen“, nur angemeldet). Das Fenster sucht die
+     * Stelle zur Adresse, legt bei Bedarf ihre eigenen Links an und schickt
+     * die Angaben per postMessage zurück — nur an genau die Seite, von der es
+     * geöffnet wurde. Das Lesezeichen füllt damit die Felder aus und rahmt
+     * sie gold. Absenden, Captcha und Bedingungen bleiben bei Uwe.
+     *
+     * WARUM SO
+     *
+     * Kein Server schickt Formulare an fremde Seiten (Captchas, Konten,
+     * Bedingungen — und es wäre ein Bot). Das Lesezeichen enthält keine
+     * Daten, nur den Weg zur Verwaltung: Es veraltet nicht, wenn sich Texte
+     * oder Links ändern. Es lädt kein fremdes Skript nach (die Sicherheits-
+     * regeln vieler Seiten würden das sperren), postMessage dagegen geht
+     * überall. Übertragen werden nur öffentliche Firmenangaben, Texte und
+     * die eigenen Links — kein Schlüssel, kein Token.
+     */
+
+    /** Die Domain, an der eine Stelle hängt: ohne www., die letzten zwei Teile (business.google.com → google.com). */
+    public static function basisDomain(string $host): string
+    {
+        $h = strtolower(trim($host, ". \t\n\r"));
+        if (str_starts_with($h, 'www.')) { $h = substr($h, 4); }
+        if (filter_var($h, FILTER_VALIDATE_IP) !== false) { return $h; }
+        $teile = explode('.', $h);
+        return count($teile) > 2 ? implode('.', array_slice($teile, -2)) : $h;
+    }
+
+    /** Die Stelle zu einer Adresse — offene und eingereichte zuerst. */
+    public static function fuerHost(string $host): ?array
+    {
+        $ziel = self::basisDomain($host);
+        if ($ziel === '') { return null; }
+        $treffer = null;
+        foreach (Db::all("SELECT v.*, k.code AS k_code FROM mk_verzeichnisse v LEFT JOIN mk_kampagnen k ON k.id = v.kampagne_id
+                           ORDER BY FIELD(v.status, 'offen', 'eingereicht', 'online', 'spaeter', 'abgelehnt', 'nein'), v.reihenfolge, v.id") as $e) {
+            $h = (string) parse_url((string) $e['url'], PHP_URL_HOST);
+            if ($h !== '' && self::basisDomain($h) === $ziel) { $treffer = $e; break; }
+        }
+        return $treffer;
+    }
+
+    /**
+     * Darf das Fenster seine Angaben an diese Seite schicken? Nur an genau die
+     * Seite, deren Adresse es kennt: https und derselbe Host (http nur für
+     * die eigene Maschine beim Prüfen).
+     */
+    public static function zielOk(string $host, string $origin): bool
+    {
+        if (!preg_match('~^(https?)://([a-z0-9.-]+)(?::(\d{1,5}))?$~i', $origin, $m)) { return false; }
+        if (strtolower($m[2]) !== strtolower($host) || $host === '') { return false; }
+        return strtolower($m[1]) === 'https' || in_array(strtolower($host), ['127.0.0.1', 'localhost'], true);
+    }
+
+    /**
+     * Was das Lesezeichen in die Felder schreibt — für eine Stelle (mit ihren
+     * eigenen Links und ihrer Sprache) oder allgemein.
+     */
+    public static function ausfuellDaten(?array $e, string $sprache = 'it'): array
+    {
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Telegram.php';
+        $sp = $e !== null && isset(self::SPRACHEN[(string) $e['sprache']]) ? (string) $e['sprache'] : (isset(self::SPRACHEN[$sprache]) ? $sprache : 'it');
+        $links = $e !== null ? self::links($e) : ['website' => '', 'fenster' => '', 'einladung' => '', 'oeffentlich' => (string) (Telegram::kanal()['link'] ?? '')];
+        $ortRoh = Firma::get('ort');
+        $prov = preg_match('/\(([A-Z]{2})\)/', $ortRoh, $m) ? $m[1] : '';
+        $ort = trim((string) preg_replace('/\s*\([^)]*\)\s*/', ' ', $ortRoh));
+        $inhaber = trim(Firma::get('inhaber'));
+        $teile = $inhaber !== '' ? preg_split('/\s+/', $inhaber) : [];
+        $web = $links['website'] !== '' ? $links['website'] : (string) Firma::get('web');
+        if ($web !== '' && !preg_match('~^https?://~i', $web)) { $web = 'https://' . $web; }
+        $kanal = (string) $links['oeffentlich'];
+        $laender = ['it' => ['Italia', 'Italy', 'Italien'], 'de' => ['Italien', 'Italy', 'Italia'], 'en' => ['Italy', 'Italia', 'Italien']];
+        $land = in_array(mb_strtolower(Firma::get('land')), ['', 'italien', 'italia', 'italy', 'it'], true) ? $laender[$sp][0] : Firma::get('land');
+        return [
+            'name' => Firma::get('name', 'Vecom Design'), 'inhaber' => $inhaber,
+            'vorname' => $teile[0] ?? '', 'nachname' => count($teile) > 1 ? implode(' ', array_slice($teile, 1)) : '',
+            'strasse' => Firma::get('strasse'), 'plz' => Firma::get('plz'), 'ort' => $ort,
+            'provinz' => $prov, 'provinz_name' => $prov === 'AG' ? 'Agrigento' : $prov, 'region' => $prov === 'AG' ? 'Sicilia' : '',
+            'land' => $land, 'land_namen' => $laender[$sp],
+            'telefon' => Firma::get('telefon'), 'email' => Firma::get('email'), 'piva' => Firma::get('piva'),
+            'web' => $web, 'kanal' => $kanal, 'kanal_name' => preg_match('~t\.me/([A-Za-z0-9_]{4,})~', $kanal, $k) ? '@' . $k[1] : '',
+            'fenster' => (string) $links['fenster'],
+            'kurz' => Texte::VERZEICHNIS['kurz'][$sp], 'lang' => Texte::VERZEICHNIS['lang'][$sp],
+            'stichworte' => ['it' => 'siti web, web design, Agrigento, Sicilia, piccole imprese', 'de' => 'Webdesign, Websites, Sizilien, Agrigent, kleine Betriebe',
+                             'en' => 'web design, websites, Sicily, Agrigento, small businesses'][$sp],
+            'sprache' => $sp, 'sprache_namen' => ['it' => ['italiano', 'italian', 'italienisch'], 'de' => ['tedesco', 'german', 'deutsch'], 'en' => ['inglese', 'english', 'englisch']][$sp],
+            'kategorien' => ['web design', 'webdesign', 'siti web', 'web agency', 'design', 'grafica', 'marketing', 'informatica', 'internet', 'tecnologia', 'technology', 'servizi'],
+            'meiden' => ['gruppi', 'group', 'adult', '18'],
+            'art' => $e !== null ? (string) $e['art'] : '',
+        ];
+    }
+
+    /** Das Lesezeichen: ein javascript:-Link ohne Daten, nur mit dem Weg zur eigenen Verwaltung. */
+    public static function lesezeichen(): string
+    {
+        require_once __DIR__ . '/Config.php';
+        $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $teile = parse_url($web);
+        $origin = ($teile['scheme'] ?? 'https') . '://' . ($teile['host'] ?? 'vecom-design.it') . (isset($teile['port']) ? ':' . $teile['port'] : '');
+        $js = strtr((string) file_get_contents(__DIR__ . '/ausfueller.js'), ['__ORIGIN__' => $origin, '__APP__' => $origin . Config::basis()]);
+        $js = (string) preg_replace('/\n\s*/', '', $js);
+        return 'javascript:' . rawurlencode($js);
+    }
+
     /** Ohne Konto und ohne Captcha — dort kann Claude nach Uwes Ja einreichen. */
     public static function ohneKonto(array $e): bool
     {

@@ -59,6 +59,10 @@ require __DIR__ . '/mk_stil.php';
   .vz-stand{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
   .vz-stand input[type=url]{flex:1 1 260px;min-width:0}
   .vz-vorher{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}
+  .vz-knopf{display:flex;flex-wrap:wrap;gap:12px 22px;align-items:flex-start}
+  .vz-knopf .knopf{cursor:grab;font-size:15px;padding:10px 18px}
+  .vz-knopf ol{margin:0;padding-left:20px;flex:1 1 380px;line-height:1.55;font-size:13.5px}
+  .vz-knopf li{margin:0 0 4px}
   .vz-daten{display:grid;grid-template-columns:auto 1fr;gap:4px 14px;font-size:13.5px;margin:0}
   .vz-daten dt{color:var(--leise)} .vz-daten dd{margin:0}
   @media(max-width:700px){.vz-innen{padding-left:0}.vz-wirkung{margin-left:0;width:100%}}
@@ -84,6 +88,23 @@ require __DIR__ . '/mk_stil.php';
     <div class="neben">eingetragen und sichtbar</div></div>
   <div class="karte"><h3>Gebracht</h3><div class="wert"><?= $zahl($summe['leads']) ?> <span class="leise" style="font-size:14px;font-weight:400"><?= $summe['leads'] === 1 ? 'Lead' : 'Leads' ?></span></div>
     <div class="neben"><?= Fmt::h($mal($summe['besuche'], 'Besuch', 'Besuche') . ' · ' . $mal($summe['fenster'], 'Fenster', 'Fenster') . ' · ' . $mal($summe['beitritte'], 'Beitritt', 'Beitritte') . ' · ' . $mal($summe['kunden'], 'Kunde', 'Kunden')) ?> — über die eigenen Links</div></div>
+</div>
+
+<div class="block" id="knopf">
+  <h2>Ausfüll-Knopf <span class="mehr">einmal einrichten, dann auf jeder Eintragsseite ein Klick statt Kopieren</span></h2>
+  <div class="vz-knopf">
+    <a class="knopf haupt" id="vz-lesezeichen" href="<?= Fmt::h(Verzeichnisse::lesezeichen()) ?>" title="In die Lesezeichenleiste ziehen">★ Vecom eintragen</a>
+    <ol>
+      <li>Diesen Knopf mit der Maus in die Lesezeichenleiste von Chrome ziehen — einmalig. Leiste nicht zu sehen: Strg + Umschalt + B.</li>
+      <li>Bei einer Stelle unten „Zur Eintragsseite ↗“ öffnen und dort auf das Lesezeichen klicken. Ein kleines Fenster der Verwaltung legt die eigenen Links an und füllt das Formular aus — die Felder sind danach gold umrandet.</li>
+      <li>Prüfen, ein Captcha lösen, auf der Seite absenden. Im kleinen Fenster dann „Eingereicht“.</li>
+    </ol>
+  </div>
+  <p class="mk-fein" id="vz-lesezeichen-hinweis" hidden>Nicht hier klicken — in die Lesezeichenleiste ziehen und auf der Eintragsseite drücken.</p>
+  <p class="mk-fein" style="margin:6px 0 0">Der Knopf schreibt nur, was hier steht — Firmendaten, Texte in der Sprache der Stelle, die eigenen Links — und schickt nichts ab. Konto, Captcha und Bedingungen bleiben bei dir. Bei ungewöhnlichen Formularen kann ein Feld leer bleiben; die Texte unten bleiben zum Kopieren da.</p>
+  <script>
+  document.getElementById('vz-lesezeichen').addEventListener('click', function (e) { e.preventDefault(); document.getElementById('vz-lesezeichen-hinweis').hidden = false; });
+  </script>
 </div>
 
 <div class="block">

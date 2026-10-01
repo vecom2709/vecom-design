@@ -737,7 +737,7 @@ if ($post) {
                 $vzId = (int) ($_POST['id'] ?? 0);
                 $vzE = Verzeichnisse::vorbereiten($vzId);
                 $_SESSION[$vzE['ok'] ? 'gut' : 'fehler'] = $vzE['text'];
-                weiter('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
+                zurueck('verzeichnisse?e=' . $vzId . '#v-' . $vzId);   // aus dem Ausfüll-Fenster zurück dorthin
 
             case 'verzeichnis_stand':
                 require_once __DIR__ . '/src/Verzeichnisse.php';
@@ -745,7 +745,7 @@ if ($post) {
                 $f = Verzeichnisse::status($vzId, (string) ($_POST['status'] ?? ''), (string) ($_POST['eintrag_url'] ?? ''),
                     isset($_POST['notiz']) ? (string) $_POST['notiz'] : null);
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert: ' . (Verzeichnisse::STATUS[(string) $_POST['status']] ?? '') . '.';
-                weiter('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
+                zurueck('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
 
             case 'verzeichnis_anlegen':
                 require_once __DIR__ . '/src/Verzeichnisse.php';
@@ -4601,6 +4601,18 @@ switch ($route) {
         Verzeichnisse::sicherstellen();
         ansicht('verzeichnisse', ['liste' => Verzeichnisse::liste(), 'offen' => (int) ($_GET['e'] ?? 0)]);
         break;
+
+    case 'ausfuellen':   // Ausfüll-Knopf für Verzeichnisse (01.10.2026, Uwe: „per Knopfdruck“ → „ja“) — kleines Fenster, ohne Rahmen
+        require_once __DIR__ . '/src/Verzeichnisse.php';
+        Verzeichnisse::sicherstellen();
+        $afHost = strtolower(trim((string) ($_GET['h'] ?? '')));
+        $afOrigin = trim((string) ($_GET['o'] ?? ''));
+        $afOk = Verzeichnisse::zielOk($afHost, $afOrigin);
+        $afE = $afOk ? Verzeichnisse::fuerHost($afHost) : null;
+        $afSp = in_array($_GET['sp'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['sp'] : 'it';
+        header('Cache-Control: no-store');
+        require __DIR__ . '/views/ausfuellen.php';
+        exit;
 
     case 'kampagnen':   // Kampagnen-Links (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“)
         require_once __DIR__ . '/src/MkKennzahlen.php';
