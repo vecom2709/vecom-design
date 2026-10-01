@@ -751,7 +751,7 @@ masz: {
       a6: "Ich arbeite von Aragona aus, und Kunden aus der Provinz kann ich die Hand geben. Aus der Ferne wird die Arbeit aber genauso gut: Ich habe Kunden in Italien, Deutschland, Österreich und der Schweiz, und die Website übergebe ich auf Italienisch, Deutsch und Englisch.",
 
       ortHead: "Aus Aragona, für alle, die hier arbeiten",
-      ortText: "Vecom Design ist ein Ein-Personen-Studio in Aragona, Provinz Agrigent. Ich baue Websites für Bäckereien, Friseure, Restaurants, Handwerksbetriebe und kleine Unternehmen aus der Gegend — und für alle, die von hier aus auch auf Deutsch und Englisch gefunden werden wollen. Wenn Ihnen ein Gespräch lieber ist als ein Formular: geht auch.",
+      ortText: "Vecom Design ist ein Ein-Personen-Studio in Aragona, Provinz Agrigent. Ich baue Websites für Bäckereien, Friseure, Restaurants, Handwerksbetriebe, Geschäfte, Kanzleien und Unternehmen aus der Gegend — und für alle, die von hier aus auch auf Deutsch und Englisch gefunden werden wollen. Wenn Ihnen ein Gespräch lieber ist als ein Formular: geht auch.",
       ortCta: "Schreiben Sie mir",
       bn_basis: "Grundgerüst der Website",
       bd_basis: "Einrichtung, eigene Gestaltung, Optimierung für das Handy, Kontaktformular, Veröffentlichung.",

@@ -48,7 +48,7 @@ AUFTRAG #${a.id}: ${a.beschreibung}
 SPRACHE DER SEITE: ${SPRACHE[a.sprache] ?? SPRACHE.it}
 
 VECOM DESIGN — NUR DIESE FAKTEN VERWENDEN
-- Websites für kleine Betriebe, gebaut von einem kleinen Studio in Sizilien (Aragona); ein Mensch begleitet den Kunden von Anfang bis Ende.
+- Websites für jeden Betrieb und jedes Unternehmen, gebaut von einem kleinen Studio in Sizilien (Aragona); ein Mensch begleitet den Kunden von Anfang bis Ende.
 - Der Preis steht vorher fest und ist auf der Preisseite offen sichtbar; im Preisrechner sieht man in etwa anderthalb Minuten seine Preisspanne.
 - Kostenloser Website-Check: zwölf Punkte als Ampel, in Sekunden, ohne Anmeldung (Handy-Tauglichkeit, Tempo, Auffindbarkeit, Kontakt mit einem Tipp …).
 - Auf Wunsch eine kostenlose Vorschau der neuen Startseite. ${it ? 'Seiten auf Italienisch, Deutsch und Englisch möglich.' : 'Seiten auf Deutsch, Italienisch und Englisch möglich.'}

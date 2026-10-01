@@ -4589,9 +4589,9 @@ final class Texte
                 'de' => "Alles Gute zum Muttertag! 💐 Blumen, Torte, ein Essen: Heute suchen viele am Handy nach einem Geschenk. Wer eine Website mit Öffnungszeiten und Kontakt hat, wird gewählt. Haben Sie eine?\n\n{link}\n\n#Werbung #website #kleinunternehmen",
                 'en' => "Happy Mother’s Day! 💐 Flowers, cake, lunch out: today lots of people look for a gift on their phone. Businesses with opening hours and contact online get chosen. Do you have that?\n\n{link}\n\n#ad #website #smallbusiness"]],
             'repubblica' => ['titel' => ['it' => "Festa della Repubblica", 'de' => "Tag der Republik", 'en' => "Italy’s Republic Day"],
-                'text' => ['it' => "Buon 2 giugno! 🇮🇹 Il made in Italy delle piccole attività merita di farsi trovare. Se vuoi un sito fatto bene e un prezzo chiaro prima di iniziare:\n\n{link}\n\n#adv #sitoweb #piccoleimprese",
-                'de' => "Heute feiert Italien den Tag der Republik. 🇮🇹 Das Made in Italy der kleinen Betriebe verdient es, gefunden zu werden. Wenn Sie eine gute Website und vorher einen klaren Preis möchten:\n\n{link}\n\n#Werbung #website #kleinunternehmen",
-                'en' => "Today Italy celebrates Republic Day. 🇮🇹 The made in Italy of small businesses deserves to be found. If you want a well-made website and a clear price before you start:\n\n{link}\n\n#ad #website #smallbusiness"]],
+                'text' => ['it' => "Buon 2 giugno! 🇮🇹 Il made in Italy delle nostre attività merita di farsi trovare. Se vuoi un sito fatto bene e un prezzo chiaro prima di iniziare:\n\n{link}\n\n#adv #sitoweb #piccoleimprese",
+                'de' => "Heute feiert Italien den Tag der Republik. 🇮🇹 Das Made in Italy der Betriebe vor Ort verdient es, gefunden zu werden. Wenn Sie eine gute Website und vorher einen klaren Preis möchten:\n\n{link}\n\n#Werbung #website #kleinunternehmen",
+                'en' => "Today Italy celebrates Republic Day. 🇮🇹 The made in Italy of local businesses deserves to be found. If you want a well-made website and a clear price before you start:\n\n{link}\n\n#ad #website #smallbusiness"]],
             'estate' => ['titel' => ['it' => "Inizio dell’estate", 'de' => "Sommeranfang", 'en' => "First day of summer"],
                 'text' => ['it' => "Arriva l’estate e arrivano i turisti. ☀️ Cercano su Google, dal telefono, spesso in inglese o tedesco. Il tuo sito parla anche la loro lingua?\n\nVecom Design lo prepara in più lingue: {link}\n\n#adv #sitoweb #piccoleimprese",
                 'de' => "Der Sommer beginnt — und mit ihm die Urlauber. ☀️ Sie suchen bei Google, am Handy, oft auf Englisch oder Deutsch. Spricht Ihre Website ihre Sprache?\n\nVecom Design baut sie mehrsprachig: {link}\n\n#Werbung #website #kleinunternehmen",
@@ -4613,8 +4613,8 @@ final class Texte
                 'de' => "Am 8. Dezember beginnt in Italien die Weihnachtszeit. 🎄 Geschenke, Essen, Reservierungen: Viele suchen am Handy. Öffnungszeiten, Kontakt und WhatsApp mit einem Klick machen den Unterschied.\n\n{link}\n\n#Werbung #website #kleinunternehmen",
                 'en' => "In Italy, 8 December opens the holiday season. 🎄 Gifts, dinners, bookings: lots of people search on their phone. Opening hours, contact and WhatsApp one tap away make the difference.\n\n{link}\n\n#ad #website #smallbusiness"]],
             'natale' => ['titel' => ['it' => "Natale", 'de' => "Weihnachten", 'en' => "Christmas"],
-                'text' => ['it' => "Buon Natale! ✨ Grazie a chi sostiene le piccole attività della propria zona. Se l’anno prossimo vuoi un sito tutto tuo, sai dove trovarmi:\n\n{link}\n\n#adv #sitoweb #piccoleimprese",
-                'de' => "Frohe Weihnachten! ✨ Danke an alle, die die kleinen Betriebe in ihrer Gegend unterstützen. Wenn Sie nächstes Jahr eine eigene Website möchten, wissen Sie, wo Sie mich finden:\n\n{link}\n\n#Werbung #website #kleinunternehmen",
+                'text' => ['it' => "Buon Natale! ✨ Grazie a chi sostiene le attività della propria zona. Se l’anno prossimo vuoi un sito tutto tuo, sai dove trovarmi:\n\n{link}\n\n#adv #sitoweb #piccoleimprese",
+                'de' => "Frohe Weihnachten! ✨ Danke an alle, die die Betriebe in ihrer Gegend unterstützen. Wenn Sie nächstes Jahr eine eigene Website möchten, wissen Sie, wo Sie mich finden:\n\n{link}\n\n#Werbung #website #kleinunternehmen",
                 'en' => "Merry Christmas! ✨ Thanks to everyone who supports small local businesses. If you want your own website next year, you know where to find me:\n\n{link}\n\n#ad #website #smallbusiness"]],
         ],
         'themen' => [
@@ -4762,7 +4762,7 @@ final class Texte
             'k_logo' => '🎨 Logo & Branding', 'k_3d' => '🧊 3D & Interactive', 'k_hosting' => '🗂 Domain & Hosting', 'k_kunde' => '👤 Ich bin bereits Kunde',
             'k_mensch' => '💬 Persönliche Beratung', 'k_sprache' => '🌍 Sprache', 'k_kanal' => '📢 Neuigkeiten im Kanal',
             // Der angeheftete Menü-Beitrag im Kanal (30.09.2026); die Knöpfe darunter sind die des Bot-Menüs.
-            'kanalMenue' => "👋 Willkommen bei Vecom Design!\n\nHier gibt es Neuigkeiten, Beispiele und Tipps rund um Websites für kleine Betriebe.\n\nUnd es geht gleich hier los: Tippen Sie auf einen Knopf — alles öffnet sich direkt hier in Telegram. Den Preis-Richtwert kennen Sie nach acht kurzen Fragen, bei Fragen antwortet ein Mensch.", 'k_menu' => '🏠 Menü', 'k_zurueck' => '⬅️ Zurück',
+            'kanalMenue' => "👋 Willkommen bei Vecom Design!\n\nHier gibt es Neuigkeiten, Beispiele und Tipps rund um Websites für Betriebe und Unternehmen.\n\nUnd es geht gleich hier los: Tippen Sie auf einen Knopf — alles öffnet sich direkt hier in Telegram. Den Preis-Richtwert kennen Sie nach acht kurzen Fragen, bei Fragen antwortet ein Mensch.", 'k_menu' => '🏠 Menü', 'k_zurueck' => '⬅️ Zurück',
             'k_abbrechen' => '✖️ Abbrechen', 'k_weiter' => 'Weiter ➜',
             'frageKopf' => 'Frage {n} von {gesamt}',
             'mehrfach' => 'Mehrere Antworten möglich — danach „Weiter“.',
@@ -4865,7 +4865,7 @@ final class Texte
             'k_neu' => '🌐 Nuovo sito', 'k_besser' => '✨ Migliorare il sito', 'k_preis' => '💰 Calcola il prezzo', 'k_pruefen' => '🔎 Analisi del sito',
             'k_logo' => '🎨 Logo & branding', 'k_3d' => '🧊 3D & interattivo', 'k_hosting' => '🗂 Dominio & hosting', 'k_kunde' => '👤 Sono già cliente',
             'k_mensch' => '💬 Consulenza personale', 'k_sprache' => '🌍 Lingua', 'k_kanal' => '📢 Novità sul canale',
-            'kanalMenue' => "👋 Benvenuti su Vecom Design!\n\nQui trova novità, esempi e consigli sui siti web per piccole imprese.\n\nE si comincia subito qui sotto: tocchi un pulsante — tutto si apre direttamente qui in Telegram. Il prezzo indicativo lo conosce dopo otto brevi domande, e per ogni dubbio risponde una persona.", 'k_menu' => '🏠 Menu', 'k_zurueck' => '⬅️ Indietro',
+            'kanalMenue' => "👋 Benvenuti su Vecom Design!\n\nQui trova novità, esempi e consigli sui siti web per attività e aziende.\n\nE si comincia subito qui sotto: tocchi un pulsante — tutto si apre direttamente qui in Telegram. Il prezzo indicativo lo conosce dopo otto brevi domande, e per ogni dubbio risponde una persona.", 'k_menu' => '🏠 Menu', 'k_zurueck' => '⬅️ Indietro',
             'k_abbrechen' => '✖️ Annulla', 'k_weiter' => 'Avanti ➜',
             'frageKopf' => 'Domanda {n} di {gesamt}',
             'mehrfach' => 'Può scegliere più risposte — poi «Avanti».',
@@ -4968,7 +4968,7 @@ final class Texte
             'k_neu' => '🌐 New website', 'k_besser' => '✨ Improve my website', 'k_preis' => '💰 Calculate the price', 'k_pruefen' => '🔎 Check my website',
             'k_logo' => '🎨 Logo & branding', 'k_3d' => '🧊 3D & interactive', 'k_hosting' => '🗂 Domain & hosting', 'k_kunde' => '👤 I am already a client',
             'k_mensch' => '💬 Personal advice', 'k_sprache' => '🌍 Language', 'k_kanal' => '📢 News on the channel',
-            'kanalMenue' => "👋 Welcome to Vecom Design!\n\nNews, examples and tips about websites for small businesses.\n\nAnd it starts right here: tap a button — everything opens right here in Telegram. You get the price estimate after eight short questions, and a real person answers any questions.", 'k_menu' => '🏠 Menu', 'k_zurueck' => '⬅️ Back',
+            'kanalMenue' => "👋 Welcome to Vecom Design!\n\nNews, examples and tips about websites for businesses and companies.\n\nAnd it starts right here: tap a button — everything opens right here in Telegram. You get the price estimate after eight short questions, and a real person answers any questions.", 'k_menu' => '🏠 Menu', 'k_zurueck' => '⬅️ Back',
             'k_abbrechen' => '✖️ Cancel', 'k_weiter' => 'Next ➜',
             'frageKopf' => 'Question {n} of {gesamt}',
             'mehrfach' => 'You can pick several — then “Next”.',
@@ -5126,21 +5126,21 @@ final class Texte
                {kanal} dessen Name, {inhaber} wer schreibt, {link} unser Kanal-Link
        ====================================================================== */
     public const VERZEICHNIS = [
-        'kanal' => "🇮🇹 Siti web per piccole imprese in Sicilia: novità, esempi e consigli.\n🇩🇪 Websites für kleine Betriebe aus Sizilien: Neuigkeiten, Beispiele und Tipps.\n🌐 vecom-design.it",
+        'kanal' => "🇮🇹 Siti web per attività e aziende in Sicilia: novità, esempi e consigli.\n🇩🇪 Websites für Betriebe und Unternehmen aus Sizilien: Neuigkeiten, Beispiele und Tipps.\n🌐 vecom-design.it",
         'kurz' => [
-            'it' => 'Siti web su misura per piccole imprese in provincia di Agrigento e in Sicilia. Trilingue IT/DE/EN, prezzi allo scoperto: il prezzo indicativo dopo otto brevi domande. Check del sito gratuito.',
-            'de' => 'Websites nach Maß für kleine Betriebe aus Sizilien (Aragona, Agrigent). Dreisprachig IT/DE/EN, Preise offen gelegt: den Richtwert gibt es nach acht kurzen Fragen. Website-Check kostenlos.',
-            'en' => 'Custom websites for small businesses in Sicily (Aragona, Agrigento). Trilingual IT/DE/EN, prices in the open: a price estimate after eight short questions. Free website check.',
+            'it' => 'Siti web su misura per attività e aziende in provincia di Agrigento e in Sicilia. Trilingue IT/DE/EN, prezzi allo scoperto: il prezzo indicativo dopo otto brevi domande. Check del sito gratuito.',
+            'de' => 'Websites nach Maß für Betriebe und Unternehmen aus Sizilien (Aragona, Agrigent). Dreisprachig IT/DE/EN, Preise offen gelegt: den Richtwert gibt es nach acht kurzen Fragen. Website-Check kostenlos.',
+            'en' => 'Custom websites for businesses and companies in Sicily (Aragona, Agrigento). Trilingual IT/DE/EN, prices in the open: a price estimate after eight short questions. Free website check.',
         ],
         'lang' => [
-            'it' => 'Vecom Design realizza siti web su misura, negozi online e loghi per piccole imprese – da Aragona (AG) per la provincia di Agrigento e tutta la Sicilia. I siti sono in tre lingue (italiano, tedesco, inglese), veloci e costruiti per Google. I prezzi sono pubblici: sul sito, dopo otto brevi domande, si conosce il prezzo indicativo. Inoltre: check gratuito del sito esistente, dominio e hosting, assistenza continuativa, automazioni con IA e bot Telegram. A ogni domanda risponde una persona.',
-            'de' => 'Vecom Design baut Websites nach Maß, Online-Shops und Logos für kleine Betriebe – aus Aragona (Agrigent) für die Provinz Agrigent und ganz Sizilien. Die Seiten sind dreisprachig (Italienisch, Deutsch, Englisch), schnell und für Google gebaut. Die Preise sind offen: Nach acht kurzen Fragen auf der Website steht der Richtwert fest. Dazu: kostenloser Check der bestehenden Website, Domain und Hosting, laufende Betreuung, KI-Automatisierung und Telegram-Bots. Jede Frage beantwortet ein Mensch.',
-            'en' => 'Vecom Design builds custom websites, online stores and logos for small businesses – from Aragona (Agrigento) for the province of Agrigento and all of Sicily. Sites are trilingual (Italian, German, English), fast and built for Google. Prices are public: after eight short questions on the website you know the price estimate. Also: a free check of your existing website, domain and hosting, ongoing support, AI automation and Telegram bots. A real person answers every question.',
+            'it' => 'Vecom Design realizza siti web su misura, negozi online e loghi per attività e aziende – da Aragona (AG) per la provincia di Agrigento e tutta la Sicilia. I siti sono in tre lingue (italiano, tedesco, inglese), veloci e costruiti per Google. I prezzi sono pubblici: sul sito, dopo otto brevi domande, si conosce il prezzo indicativo. Inoltre: check gratuito del sito esistente, dominio e hosting, assistenza continuativa, automazioni con IA e bot Telegram. A ogni domanda risponde una persona.',
+            'de' => 'Vecom Design baut Websites nach Maß, Online-Shops und Logos für Betriebe und Unternehmen – aus Aragona (Agrigent) für die Provinz Agrigent und ganz Sizilien. Die Seiten sind dreisprachig (Italienisch, Deutsch, Englisch), schnell und für Google gebaut. Die Preise sind offen: Nach acht kurzen Fragen auf der Website steht der Richtwert fest. Dazu: kostenloser Check der bestehenden Website, Domain und Hosting, laufende Betreuung, KI-Automatisierung und Telegram-Bots. Jede Frage beantwortet ein Mensch.',
+            'en' => 'Vecom Design builds custom websites, online stores and logos for businesses and companies – from Aragona (Agrigento) for the province of Agrigento and all of Sicily. Sites are trilingual (Italian, German, English), fast and built for Google. Prices are public: after eight short questions on the website you know the price estimate. Also: a free check of your existing website, domain and hosting, ongoing support, AI automation and Telegram bots. A real person answers every question.',
         ],
         'kooperation' => [
-            'it' => "Buongiorno! Ho visto che il canale {kanal} accoglie collaborazioni con attività locali. Sono {inhaber} di Vecom Design ad Aragona (AG): realizziamo siti web per piccole imprese e nel nostro canale Telegram pubblichiamo novità, esempi e consigli. Le interesserebbe una menzione reciproca? Presenteremmo volentieri il suo canale ai nostri iscritti.\n\nIl nostro canale: {link}\n\nGrazie e buona giornata!",
-            'de' => "Guten Tag! Ich habe gesehen, dass {kanal} Kooperationen mit lokalen Betrieben anbietet. Ich bin {inhaber} von Vecom Design in Aragona (AG): Wir bauen Websites für kleine Betriebe und zeigen in unserem Telegram-Kanal Neuigkeiten, Beispiele und Tipps. Hätten Sie Interesse an einer gegenseitigen Erwähnung? Wir stellen Ihren Kanal gern unseren Abonnenten vor.\n\nUnser Kanal: {link}\n\nDanke und einen schönen Tag!",
-            'en' => "Hello! I saw that {kanal} welcomes collaborations with local businesses. I am {inhaber} from Vecom Design in Aragona (Agrigento): we build websites for small businesses and share news, examples and tips in our Telegram channel. Would you be interested in a mutual mention? We would be happy to introduce your channel to our subscribers.\n\nOur channel: {link}\n\nThank you and have a nice day!",
+            'it' => "Buongiorno! Ho visto che il canale {kanal} accoglie collaborazioni con attività locali. Sono {inhaber} di Vecom Design ad Aragona (AG): realizziamo siti web per attività e aziende e nel nostro canale Telegram pubblichiamo novità, esempi e consigli. Le interesserebbe una menzione reciproca? Presenteremmo volentieri il suo canale ai nostri iscritti.\n\nIl nostro canale: {link}\n\nGrazie e buona giornata!",
+            'de' => "Guten Tag! Ich habe gesehen, dass {kanal} Kooperationen mit lokalen Betrieben anbietet. Ich bin {inhaber} von Vecom Design in Aragona (AG): Wir bauen Websites für Betriebe und Unternehmen und zeigen in unserem Telegram-Kanal Neuigkeiten, Beispiele und Tipps. Hätten Sie Interesse an einer gegenseitigen Erwähnung? Wir stellen Ihren Kanal gern unseren Abonnenten vor.\n\nUnser Kanal: {link}\n\nDanke und einen schönen Tag!",
+            'en' => "Hello! I saw that {kanal} welcomes collaborations with local businesses. I am {inhaber} from Vecom Design in Aragona (Agrigento): we build websites for businesses and companies and share news, examples and tips in our Telegram channel. Would you be interested in a mutual mention? We would be happy to introduce your channel to our subscribers.\n\nOur channel: {link}\n\nThank you and have a nice day!",
         ],
     ];
 }

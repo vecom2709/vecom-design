@@ -752,7 +752,7 @@ masz: {
       a6: "Lavoro da Aragona, e ai clienti della provincia posso stringere la mano. Ma il lavoro si fa bene anche a distanza: ho clienti in Italia, Germania, Austria e Svizzera, e il sito lo consegno in italiano, tedesco e inglese.",
 
       ortHead: "Da Aragona, per chi lavora qui",
-      ortText: "Vecom Design è uno studio di una persona sola, ad Aragona, in provincia di Agrigento. Costruisco siti per panifici, parrucchieri, ristoranti, artigiani e piccole imprese della zona — e per chi, da qui, vuole farsi trovare anche in tedesco e in inglese. Se preferisce parlarne di persona, si può fare.",
+      ortText: "Vecom Design è uno studio di una persona sola, ad Aragona, in provincia di Agrigento. Costruisco siti per panifici, parrucchieri, ristoranti, artigiani, negozi, studi professionali e aziende della zona — e per chi, da qui, vuole farsi trovare anche in tedesco e in inglese. Se preferisce parlarne di persona, si può fare.",
       ortCta: "Mi scriva",
       bn_basis: "Base del sito",
       bd_basis: "Impostazione, design su misura, ottimizzazione per cellulare, modulo di contatto, messa online.",

@@ -55,13 +55,13 @@ final class MkKooperation
     public static function leitfaden(string $gruppe, string $land): string
     {
         if ($land === 'IT') {
-            return "1. Mi presento: Vecom Design, siti web per piccole attività, da Aragona — prezzo chiaro prima, una persona che segue il cliente.\n"
+            return "1. Mi presento: Vecom Design, siti web per ogni attività e azienda, da Aragona — prezzo chiaro prima, una persona che segue il cliente.\n"
                 . "2. Domanda: i suoi clienti le chiedono mai chi può fare loro un sito?\n"
                 . "3. Proposta: le do un link personale; se un cliente acquista tramite quel link, lei riceve una provvigione. Nessun obbligo, nessun costo.\n"
                 . "4. Per il cliente: analisi gratuita del sito in pochi secondi e, se vuole, un'anteprima gratuita della nuova home page.\n"
                 . "5. Le lascio il link: si registra in due minuti e vede subito visite, richieste e provvigioni.";
         }
-        return "1. Kurz vorstellen: Vecom Design, Websites für kleine Betriebe — klarer Preis vorher, ein Mensch, der begleitet.\n"
+        return "1. Kurz vorstellen: Vecom Design, Websites für jeden Betrieb und jedes Unternehmen — klarer Preis vorher, ein Mensch, der begleitet.\n"
             . "2. Frage: Fragen Ihre Kunden Sie manchmal, wer ihnen eine Website macht?\n"
             . "3. Angebot: Sie bekommen einen eigenen Link; kauft ein Kunde darüber, erhalten Sie eine Provision. Keine Pflicht, keine Kosten.\n"
             . "4. Für den Kunden: kostenloser Website-Check in Sekunden und auf Wunsch eine kostenlose Vorschau der neuen Startseite.\n"

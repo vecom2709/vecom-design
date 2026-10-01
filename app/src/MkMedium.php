@@ -43,7 +43,7 @@ final class MkMedium
     public const VECOM_SPOT = ['gastro', 'wein', 'salon', 'schmuck', 'kueche', 'mittelklasse'];
     public const VECOM_SPOT_TEXTE = [
         'titel' => ['it' => 'Ogni attività merita di essere vista.', 'de' => 'Jeder Betrieb verdient es, gesehen zu werden.', 'en' => 'Every business deserves to be seen.'],
-        'claim' => ['it' => 'Siti web per piccole imprese · prezzo chiaro', 'de' => 'Websites für kleine Betriebe · klarer Preis vorher', 'en' => 'Websites for small businesses · clear price upfront'],
+        'claim' => ['it' => 'Siti web per ogni azienda · prezzo chiaro', 'de' => 'Websites für jeden Betrieb · klarer Preis vorher', 'en' => 'Websites for every business · clear price upfront'],
         'etiketten' => ['it' => ['Ristoranti', 'Cantine', 'Parrucchieri', 'Gioiellerie', 'Artigiani', 'Concessionari'],
                         'de' => ['Restaurants', 'Weingüter', 'Friseure', 'Juweliere', 'Handwerk', 'Autohäuser'],
                         'en' => ['Restaurants', 'Wineries', 'Hair salons', 'Jewellers', 'Craftsmen', 'Car dealers']],
@@ -170,8 +170,8 @@ final class MkMedium
     {
         $kern = trim((string) ($x['bild_prompt'] ?? '')) ?: trim((string) ($x['bildidee'] ?? '')) ?: trim((string) $x['titel']);
         $stil = $art === 'video'
-            ? 'Realistic handheld footage, natural light, calm camera, authentic small business in Sicily, no logos of other brands, no subtitles.'
-            : 'Photorealistic, natural light, authentic small business setting in Sicily, true-to-life colours, shallow depth of field, no logos of other brands, no watermark. Any text in the image: at most five words, large and legible.';
+            ? 'Realistic handheld footage, natural light, calm camera, authentic local business in Sicily, no logos of other brands, no subtitles.'
+            : 'Photorealistic, natural light, authentic local business setting in Sicily, true-to-life colours, shallow depth of field, no logos of other brands, no watermark. Any text in the image: at most five words, large and legible.';
         return mb_substr($kern . "\n\n" . $stil, 0, 2400);
     }
 

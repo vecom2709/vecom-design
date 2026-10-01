@@ -5003,7 +5003,7 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
 <body><div class="karte"><div class="marke">VECOM DESIGN</div><h1>Folgen Sie uns auf Telegram</h1><p class="de">Seguici su Telegram · Follow us on Telegram</p>
 <div class="qr" role="img" aria-label="QR-Code zum Telegram-Kanal"><?= $kkQr ?></div>
 <p class="name">@<?= Fmt::h($kkName) ?></p>
-<p class="klein">Neuigkeiten, Beispiele und Tipps rund um Websites für kleine Betriebe — auf Deutsch, Italienisch und Englisch.<br>Novità, esempi e consigli sui siti web per piccole imprese.</p></div>
+<p class="klein">Neuigkeiten, Beispiele und Tipps rund um Websites für Betriebe und Unternehmen — auf Deutsch, Italienisch und Englisch.<br>Novità, esempi e consigli sui siti web per attività e aziende.</p></div>
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
         exit;
 

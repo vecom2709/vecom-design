@@ -36,7 +36,7 @@ final class TelegramKanalPlan
     /** Wechselt jede Woche (ISO-Woche modulo Anzahl). Die Anweisung zur Zweisprachigkeit hängt immer dran. */
     public const THEMEN = [
         'Tipp der Woche: ein konkreter, sofort umsetzbarer Tipp für die eigene Website',
-        'Vorher/Nachher: was eine moderne Website für einen kleinen Betrieb ändert',
+        'Vorher/Nachher: was eine moderne Website für einen Betrieb ändert',
         'Aus dem Website-Check: drei typische Schwachstellen und wie man sie behebt',
         'Frage aus der Praxis: eine häufige Kundenfrage kurz und ehrlich beantwortet',
     ];

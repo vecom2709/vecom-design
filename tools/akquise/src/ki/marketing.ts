@@ -31,7 +31,7 @@ import { szeneBauen } from './szene3d.js';
 const ZEITLIMIT_MS = 45 * 60_000;
 
 /** Was Claude über Vecom wissen muss — Stand prezzi.html / de/preise.html (01.10.2026). */
-const ANBIETER = `Vecom Design — Webdesign für kleine Betriebe, Sitz Provinz Agrigento (Sizilien), Kunden in Italien und Deutschland.
+const ANBIETER = `Vecom Design — Webdesign für Betriebe und Unternehmen jeder Größe, Sitz Provinz Agrigento (Sizilien), Kunden in Italien und Deutschland.
 Preise (fest, im Kostenvoranschlag; Rechnung = Voranschlag): Ein-Seiten-Website 325–400 €, Website „vetrina“ 600–750 €,
 mit Speisekarte/mehreren Sprachen/Buchung 1.000–1.650 €; jede weitere Seite 65–85 €, jede weitere Sprache 40–55 € pro Seite.
 Betreuung („assistenza“) ab 39 €/Monat, freiwillig, eigener Vertrag. Domain gehört dem Kunden (15–30 €/Jahr).
