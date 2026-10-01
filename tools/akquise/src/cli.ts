@@ -86,7 +86,12 @@ async function steuern(): Promise<void> {
   /* Recherche per Knopf (01.10.2026): In Marketing → Recherche „Recherche starten“ gedrückt. */
   if (b.marketing_wartet) {
     if (!sperren()) return;
-    try { await marketingLauf(); }
+    /* Marketing-Studio 6: Eine Ein-Klick-Kampagne bringt nach den Texten mehrere Bilder — nacheinander abarbeiten
+       statt eins alle fünf Minuten (höchstens 12 Aufträge oder 40 Minuten je Lauf). */
+    try {
+      const t0 = Date.now();
+      for (let i = 0; i < 12 && Date.now() - t0 < 40 * 60_000; i++) { if (!(await marketingLauf())) break; }
+    }
     finally { freigeben(); await status('frei'); }
     return;
   }

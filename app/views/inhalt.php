@@ -115,6 +115,7 @@ require __DIR__ . '/mk_stil.php';
       <ul class="mk-zeilen"><?php foreach ((array) $f['ueberschriften'] as $u): ?><li><span><?= Fmt::h($u) ?></span><?= $zaehler($u, $G['g_ueberschrift']) ?></li><?php endforeach; ?></ul>
       <ul class="mk-zeilen" style="margin-top:10px"><?php foreach ((array) $f['beschreibungen'] as $b): ?><li><span><?= Fmt::h($b) ?></span><?= $zaehler($b, $G['g_beschreibung']) ?></li><?php endforeach; ?></ul>
       <?php if (!empty($f['keywords'])): ?><p class="mk-fein" style="margin:10px 0 0">Keywords: <?= Fmt::h(implode(' · ', $f['keywords'])) ?></p><?php endif; ?>
+      <?php if (!empty($f['ausschluesse'])): ?><p class="mk-fein" style="margin:6px 0 0">Ausschlüsse: <?= Fmt::h(implode(' · ', $f['ausschluesse'])) ?></p><?php endif; ?>
     <?php elseif ($x['format'] === 'telegram' || $x['format'] === 'profil'): ?>
       <div class="mk-vorschau">
         <div class="mk-vorschau__kopf"><span class="mk-vorschau__logo"></span><div><div class="mk-vorschau__name">Vecom Design</div><div class="mk-vorschau__zweit"><?= $x['format'] === 'telegram' ? 'Kanal' : 'Google-Unternehmensprofil' ?></div></div></div>
@@ -219,7 +220,7 @@ require __DIR__ . '/mk_stil.php';
 </section>
 
 <?php if (in_array($x['status'], ['entwurf', 'freigegeben'], true)): ?>
-<details class="block mk-bearbeiten"<?= $x['status'] === 'entwurf' ? ' open' : '' ?>>
+<details class="block mk-bearbeiten" id="bearbeiten"<?= $x['status'] === 'entwurf' ? ' open' : '' ?>>
   <summary style="cursor:pointer"><h2 style="display:inline">Bearbeiten</h2></summary>
   <form method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin-top:12px">
     <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="inhalt_speichern"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>">
@@ -263,6 +264,7 @@ require __DIR__ . '/mk_stil.php';
       <div class="feld"><label for="e_p1">Pfad 1 / Pfad 2 <span class="mk-fein">(je bis 15 Zeichen)</span></label>
         <div style="display:flex;gap:8px"><input id="e_p1" name="f_pfad1" maxlength="15" value="<?= Fmt::h((string) ($f['pfad1'] ?? '')) ?>"><input aria-label="Pfad 2" name="f_pfad2" maxlength="15" value="<?= Fmt::h((string) ($f['pfad2'] ?? '')) ?>"></div></div>
       <div class="feld"><label for="e_kw">Keywords <span class="mk-fein">(eines je Zeile)</span></label><textarea id="e_kw" name="f_keywords" rows="4"><?= Fmt::h(implode("\n", (array) ($f['keywords'] ?? []))) ?></textarea></div>
+      <div class="feld"><label for="e_aus">Ausschließende Keywords <span class="mk-fein">(eines je Zeile — wer „gratis“, „Kurs“, „Job“ sucht, soll nicht klicken)</span></label><textarea id="e_aus" name="f_ausschluesse" rows="4"><?= Fmt::h(implode("\n", (array) ($f['ausschluesse'] ?? []))) ?></textarea></div>
     <?php endif; ?>
     <div class="feld"><label for="e_bild">Bild- bzw. Videoidee</label><textarea id="e_bild" name="bildidee" rows="3"><?= Fmt::h((string) $x['bildidee']) ?></textarea></div>
     <div class="feld"><label for="e_bp">Bild-Prompt für Kie.ai <span class="mk-fein">(englisch; leer = Bildidee wird genommen)</span></label><textarea id="e_bp" name="bild_prompt" rows="3"><?= Fmt::h((string) ($x['bild_prompt'] ?? '')) ?></textarea></div>

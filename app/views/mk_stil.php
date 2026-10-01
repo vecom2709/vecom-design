@@ -167,4 +167,20 @@
   .mk-fehlt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
   .mk-fehlt form{margin:0} .mk-fehlt .knopf{width:auto}
   .mk-zg-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+  /* Marketing-Studio 6: Freigabe-Stapel und Ein-Klick-Kampagne */
+  .mk-stapel{border:1px solid var(--linie2);border-radius:16px;padding:16px 18px;background:var(--flaeche)}
+  .mk-stapel__kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  .mk-stapel__titel{font-size:19px;margin:0 0 14px;line-height:1.3}
+  .mk-stapel__rechts{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .mk-stapel__entscheid{border:1px solid var(--linie2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--flaeche2)}
+  .mk-stapel__knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+  .mk-stapel__knoepfe .knopf{min-height:48px;padding:0 18px;font-size:15px}
+  .mk-stapel__knoepfe kbd{font:600 11px/1 ui-monospace,monospace;border:1px solid currentColor;border-radius:4px;padding:2px 5px;opacity:.6;margin-left:6px}
+  @media(max-width:600px){.mk-stapel__knoepfe form{flex:1 1 100%}.mk-stapel__knoepfe .knopf{width:100%}.mk-stapel__knoepfe kbd{display:none}}
+  .mk-start{border-color:var(--linie2)}
+  .mk-start form{display:grid;gap:12px}
+  .mk-start__wahl{display:flex;flex-wrap:wrap;gap:6px 18px}
+  .mk-start__schritte{margin:4px 0 0;padding-left:20px;font-size:13px;color:var(--dim);line-height:1.6}
+  .mk-zahlen{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--dim);margin:0 0 10px}
+  .mk-zahlen b{color:var(--text);font-size:16px;margin-right:4px}
 </style>

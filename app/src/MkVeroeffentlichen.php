@@ -87,6 +87,76 @@ final class MkVeroeffentlichen
     /**
      * Jetzt veröffentlichen. @return array{ok:bool, grund:?string}
      */
+    /* ------------------------------------------------------------------ */
+    /* Freigabe-Stapel (Marketing-Studio 6, Uwe: „ja“ zu U3)               */
+    /* ------------------------------------------------------------------ */
+
+    /** Feste Sendezeit je Plattform und Tag — abends, wenn Inhaber nach Feierabend aufs Handy schauen. */
+    public const SENDEZEIT = '18:30';
+
+    /**
+     * Der nächste freie Sendeplatz einer Plattform: heute um 18:30 (wenn noch
+     * mindestens eine halbe Stunde Zeit ist), sonst morgen — und nie zwei am
+     * selben Tag auf derselben Plattform (geplant oder heute schon gepostet).
+     */
+    public static function naechsterSlot(string $plattform, ?int $jetzt = null): string
+    {
+        $jetzt ??= time();
+        $tag = strtotime(date('Y-m-d', $jetzt) . ' ' . self::SENDEZEIT);
+        if ($tag < $jetzt + 1800) { $tag = strtotime(date('Y-m-d', $jetzt + 86400) . ' ' . self::SENDEZEIT); }
+        $belegt = [];
+        foreach (Db::all("SELECT DATE(geplant_am) AS d FROM mk_inhalte WHERE status = 'freigegeben' AND plattform = ? AND geplant_am IS NOT NULL
+                          UNION SELECT DATE(veroeffentlicht_am) FROM mk_inhalte WHERE status = 'veroeffentlicht' AND plattform = ? AND veroeffentlicht_am >= CURDATE()", [$plattform, $plattform]) as $r) {
+            $belegt[(string) $r['d']] = true;
+        }
+        for ($i = 0; $i < 60 && isset($belegt[date('Y-m-d', $tag)]); $i++) { $tag = strtotime(date('Y-m-d', $tag + 86400) . ' ' . self::SENDEZEIT); }
+        return date('Y-m-d H:i', $tag);
+    }
+
+    /** Was „Ja“ im Stapel mit diesem Stück tut — in einem Satz, bevor Uwe klickt. */
+    public static function wasPassiert(array $x): string
+    {
+        $hatBild = (int) Db::wert("SELECT COUNT(*) FROM mk_medien WHERE inhalt_id = ? AND art = 'bild' AND status <> 'verworfen'", [(int) $x['id']], 0) > 0;
+        $m = self::moeglich($x);
+        /* Fehlt nur die Wahl des Bildes: „Ja“ wählt das vorhandene — dann geht es. */
+        if (!$m['auto'] && $hatBild && str_contains($m['grund'], 'Bild — erst eines erzeugen und wählen')) { $m = ['auto' => true, 'grund' => '']; }
+        if ($m['auto']) {
+            $t = strtotime(self::naechsterSlot((string) $x['plattform']));
+            return 'Ja gibt frei und veröffentlicht es am ' . ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][(int) date('w', $t)] . ' ' . date('d.m.', $t) . ' um ' . date('H:i', $t)
+                . ' auf ' . trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '') . '.';
+        }
+        return 'Ja gibt frei. ' . rtrim($m['grund'], '.') . '. Der eigene Link steht dann am Stück.';
+    }
+
+    /**
+     * „Ja“ im Stapel: ein vorhandenes Bild wählen (wenn noch keines gewählt
+     * ist), freigeben (eigener Link), und wo es geht auf den nächsten freien
+     * Sendeplatz legen. Nichts geht ohne diesen Klick raus.
+     * @return array{ok:bool, text:string}
+     */
+    public static function stapelJa(int $id): array
+    {
+        $x = MkInhalt::laden($id);
+        if ($x === null || $x['status'] !== 'entwurf') { return ['ok' => false, 'text' => 'Dieses Stück ist kein Entwurf mehr.']; }
+        foreach (['bild', 'video'] as $art) {
+            if (MkMedium::gewaehlt($id, $art) === null) {
+                $neu = Db::wert("SELECT id FROM mk_medien WHERE inhalt_id = ? AND art = ? AND status = 'neu' ORDER BY id DESC LIMIT 1", [$id, $art], null);
+                if ($neu !== null) { MkMedium::status((int) $neu, 'gewaehlt'); }
+            }
+        }
+        $f = MkInhalt::freigeben($id);
+        if ($f !== null) { return ['ok' => false, 'text' => $f]; }
+        $x = MkInhalt::laden($id);
+        $m = self::moeglich($x);
+        if ($m['auto']) {
+            $slot = self::naechsterSlot((string) $x['plattform']);
+            if (self::planen($id, $slot) === null) {
+                return ['ok' => true, 'text' => '„' . $x['titel'] . '“ freigegeben — geht am ' . date('d.m. \u\m H:i', strtotime($slot)) . ' raus.'];
+            }
+        }
+        return ['ok' => true, 'text' => '„' . $x['titel'] . '“ freigegeben — ' . rtrim($m['grund'] ?: 'Link und Paket stehen am Stück', '.') . '.'];
+    }
+
     public static function jetzt(int $id): array
     {
         $x = MkInhalt::laden($id);
@@ -247,6 +317,23 @@ final class MkVeroeffentlichen
             fputcsv($csv, $kopf, ',', '"', '\\'); fputcsv($csv, $zeile, ',', '"', '\\');
             rewind($csv); $dateien['google-ads-editor.csv'] = (string) stream_get_contents($csv); fclose($csv);
             if (!empty($f['keywords'])) { $dateien['keywords.txt'] = implode("\n", $f['keywords']) . "\n"; }
+            /* Marketing-Studio 6 (S5): Suchbegriffe als Wortgruppe und genau, dazu die Ausschlüsse — fertig für den Google Ads Editor. */
+            if (!empty($f['keywords']) || !empty($f['ausschluesse'])) {
+                $csv = fopen('php://temp', 'w+');
+                fputcsv($csv, ['Campaign', 'Ad group', 'Keyword', 'Criterion Type'], ',', '"', '\\');
+                foreach ((array) ($f['keywords'] ?? []) as $kw) {
+                    foreach (['Phrase', 'Exact'] as $typ) { fputcsv($csv, [$zeile[0], $zeile[1], (string) $kw, $typ], ',', '"', '\\'); }
+                }
+                foreach ((array) ($f['ausschluesse'] ?? []) as $kw) { fputcsv($csv, [$zeile[0], '', (string) $kw, 'Campaign Negative Phrase'], ',', '"', '\\'); }
+                rewind($csv); $dateien['google-keywords.csv'] = (string) stream_get_contents($csv); fclose($csv);
+            }
+            $istDe = ($x['land'] ?? 'IT') === 'DE';
+            $dateien['liesmich.txt'] .= "\nEINSTELLUNGEN DER KAMPAGNE (Vorschlag)\n"
+                . '- Standort: ' . ($istDe ? 'Deutschland (oder die Bundesländer, in denen du Kunden willst)' : 'Sizilien — für den Anfang die Provinz Agrigent und Nachbarprovinzen') . ", Option „Präsenz: Personen an diesem Ort“.\n"
+                . '- Sprache: ' . ($istDe ? 'Deutsch' : 'Italienisch') . ".\n"
+                . "- Budget: 5–10 € am Tag zum Start, Gebotsstrategie „Klicks maximieren“ mit Höchstgebot, nach 2–3 Wochen auf „Conversions“ umstellen.\n"
+                . "- google-keywords.csv: Suchbegriffe als Wortgruppe und genau, dazu ausschließende Keywords auf Kampagnenebene (Konto > Importieren).\n"
+                . "- Erfolg zählt die Verwaltung: Website-Checks und Leads über den Link — nicht die Klicks.\n";
         }
         foreach (MkMedium::zuInhalt((int) $x['id']) as $m) {
             if ($m['status'] === 'neu' && MkMedium::gewaehlt((int) $x['id'], (string) $m['art'])) { continue; }   // gewählte gehen vor

@@ -201,8 +201,10 @@ final class MkInhalt
                 [$ue, $ueWeg] = self::zeilen($f['ueberschriften'] ?? [], 15, $g['g_ueberschrift'], true);
                 [$be, $beWeg] = self::zeilen($f['beschreibungen'] ?? [], 4, $g['g_beschreibung'], true);
                 [$kw] = self::zeilen($f['keywords'] ?? [], 25, 80);
+                /* Marketing-Studio 6 (S5): Ausschlüsse, damit niemand klickt, der nur „gratis“, „Kurs“ oder „Job“ sucht. */
+                [$aus] = self::zeilen($f['ausschluesse'] ?? [], 30, 80);
                 $pfad = static fn($p) => mb_substr(preg_replace('/[\s\/]+/u', '-', trim((string) $p)) ?? '', 0, 15);
-                $felder = ['ueberschriften' => $ue, 'beschreibungen' => $be, 'pfad1' => $pfad($f['pfad1'] ?? ''), 'pfad2' => $pfad($f['pfad2'] ?? ''), 'keywords' => $kw];
+                $felder = ['ueberschriften' => $ue, 'beschreibungen' => $be, 'pfad1' => $pfad($f['pfad1'] ?? ''), 'pfad2' => $pfad($f['pfad2'] ?? ''), 'keywords' => $kw, 'ausschluesse' => $aus];
                 if (count($ue) < 3) { return 'Google-Anzeige: mindestens drei Überschriften bis 30 Zeichen' . ($ueWeg ? " ($ueWeg zu lang)" : '') . '.'; }
                 if (count($be) < 2) { return 'Google-Anzeige: mindestens zwei Beschreibungen bis 90 Zeichen' . ($beWeg ? " ($beWeg zu lang)" : '') . '.'; }
                 break;
@@ -322,18 +324,41 @@ final class MkInhalt
 
     private const MONATE = [1 => 'Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
 
-    /** Kampagne für ein Stück: die gewählte — sonst „Branche Land · Plattform · Monat“, angelegt oder wiederverwendet. */
+    /* Marketing-Studio 6 (S2, Uwe: „ja“): Alle Beiträge und Anzeigen führen auf
+       den kostenlosen Website-Check — ein Ziel, eine Zahl (Checks), und auf
+       der Seite selbst der Weg weiter (ausführliche Analyse, Preis). Für
+       Deutschland hängt der Kampagnenlink ?lang=de an (MkKampagne::zielAdresse). */
+    public const CHECK = '/analisi.php';
+
+    /**
+     * Kampagne für ein Stück: die gewählte — sonst „Branche Land · Plattform ·
+     * Website-Check · Monat“, angelegt oder wiederverwendet; mit Land und
+     * Zielgruppe, damit sie bei der Zielgruppe und im richtigen Land steht.
+     */
     public static function kampagneFuer(array $x): int|string
     {
         if ((int) ($x['kampagne_id'] ?? 0) > 0 && MkKampagne::laden((int) $x['kampagne_id']) !== null) { return (int) $x['kampagne_id']; }
         $plattform = trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '');
-        $name = (MkKampagne::branchen()[$x['branche']] ?? $x['branche']) . ' ' . $x['land'] . ' · ' . $plattform
+        $name = (MkKampagne::branchen()[$x['branche']] ?? $x['branche']) . ' ' . $x['land'] . ' · ' . $plattform . ' · Website-Check'
               . ' · ' . self::MONATE[(int) date('n')] . ' ' . date('Y') . ($x['art'] === 'bezahlt' ? ' · Anzeigen' : '');
         $da = Db::wert("SELECT id FROM mk_kampagnen WHERE name = ? AND status <> 'beendet' ORDER BY id DESC LIMIT 1", [$name], null);
         if ($da !== null) { return (int) $da; }
-        return MkKampagne::anlegen(['name' => $name, 'plattform' => $x['plattform'], 'ziel' => self::zielSeite((string) $x['branche'], (string) $x['land']),
-            'ziel_art' => 'leads', 'branche' => (string) $x['branche'], 'cta' => 'website_check',
+        return MkKampagne::anlegen(['name' => $name, 'plattform' => $x['plattform'], 'ziel' => self::CHECK, 'land' => (string) $x['land'],
+            'zielgruppe_id' => (int) ($x['zielgruppe_id'] ?? 0), 'ziel_art' => 'website_check', 'branche' => (string) $x['branche'], 'cta' => 'website_check',
             'notiz' => 'Automatisch angelegt vom Content-Studio (Inhalt #' . (int) $x['id'] . ').']);
+    }
+
+    /**
+     * Freigabe-Stapel (Marketing-Studio 6): der nächste Entwurf in diesem Land —
+     * ältester zuerst; was Uwe auf „später“ gelegt hat, kommt erst danach wieder.
+     */
+    public static function naechster(string $land, array $spaeter = []): ?array
+    {
+        $ids = array_map('intval', array_column(Db::all("SELECT id FROM mk_inhalte WHERE status = 'entwurf' AND land = ? ORDER BY id", [$land]), 'id'));
+        if ($ids === []) { return null; }
+        $spaeter = array_values(array_intersect(array_map('intval', $spaeter), $ids));
+        $vorn = array_values(array_diff($ids, $spaeter));
+        return self::laden($vorn[0] ?? $spaeter[0]);
     }
 
     /** Freigeben: Kampagne sichern, eigenes Werbemittel anlegen, benutzte Funde als verwendet merken. */
@@ -417,6 +442,7 @@ final class MkInhalt
                 if (($f['pfad1'] ?? '') !== '') { $teile[] = 'Pfad: ' . $f['pfad1'] . (($f['pfad2'] ?? '') !== '' ? ' / ' . $f['pfad2'] : ''); }
                 if ($link) { $teile[] = 'Finale URL: ' . $link; }
                 if (!empty($f['keywords'])) { $teile[] = 'Keywords: ' . implode(', ', $f['keywords']); }
+                if (!empty($f['ausschluesse'])) { $teile[] = 'Ausschließende Keywords: ' . implode(', ', $f['ausschluesse']); }
                 break;
         }
         return trim(implode("\n\n", array_filter(array_map('trim', array_map('strval', $teile)), static fn($t) => $t !== '')));

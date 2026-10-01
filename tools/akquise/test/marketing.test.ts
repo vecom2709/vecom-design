@@ -82,3 +82,20 @@ test('Übersetzungsauftrag: nur übersetzen, nichts erfinden — Profile und Inh
   assert.match(t, /"id": 8/);
   assert.deepEqual(SCHEMA_UEBERSETZEN.required, ['profile', 'inhalte']);
 });
+
+import { paketText } from '../src/ki/marketing.js';
+
+test('Ein-Klick-Kampagne (Marketing-Studio 6): feste Mischung je Umfang, Website-Check als einziges Ziel, Google mit Ausschlüssen', () => {
+  assert.equal(paketText({ umfang: 'beides', anzahl: 8 }).split(/, (?=\d)/).reduce((n, t) => n + Number(t.match(/^\d+/)?.[0] ?? 0), 0), 8);
+  assert.equal(paketText({ umfang: 'organisch', anzahl: 6 }).split(/, (?=\d)/).reduce((n, t) => n + Number(t.match(/^\d+/)?.[0] ?? 0), 0), 6);
+  assert.match(paketText({ umfang: 'bezahlt', anzahl: 4 }), /2 google_anzeige/);
+  const t = inhalteText({ id: 21, art: 'inhalte', branche: 'friseur', land: 'DE', beschreibung: 'Kampagne', paket: true,
+    zielgruppe: { id: 1, name: 'Friseur', profil: {} }, plattformen: ['instagram', 'google'], umfang: 'beides', anzahl: 8, thema: '',
+    formate: {}, grenzen: {}, meta_cta: { LEARN_MORE: 'Mehr dazu' }, zielseite: '/analisi.php?lang=de', funde: [], bisherige_titel: [] });
+  assert.match(t, /KAMPAGNEN-PAKET/);
+  assert.match(t, /analisi\.php\?lang=de — der kostenlose Website-Check/);
+  assert.match(t, /JEDER Aufruf/);
+  assert.match(t, /Website kostenlos prüfen/);
+  assert.match(t, /ausschluesse 10–25/);
+  assert.ok('ausschluesse' in ((SCHEMA_INHALTE.properties.inhalte as any).items.properties.felder.properties));
+});

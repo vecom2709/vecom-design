@@ -380,7 +380,10 @@ final class MkKampagne
     public static function zielAdresse(array $k, ?array $cr = null): string
     {
         $ziel = self::zielOk((string) $k['ziel']) ? (string) $k['ziel'] : '/';
-        return $ziel . '?' . http_build_query(self::utm($k, $cr));
+        $q = self::utm($k, $cr);
+        /* Marketing-Studio 6: Eine PHP-Seite für alle Sprachen (z. B. der Website-Check) erfährt das Land der Kampagne. */
+        if (str_ends_with($ziel, '.php') && in_array($k['land'] ?? '', ['IT', 'DE'], true)) { $q = ['lang' => strtolower((string) $k['land'])] + $q; }
+        return $ziel . '?' . http_build_query($q);
     }
 
     /** QR-Code als SVG (lokal erzeugt, kein fremder Dienst). */

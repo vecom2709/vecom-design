@@ -110,6 +110,8 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
   h1{font:800 clamp(30px,7vw,42px)/1.1 'Archivo',sans-serif;margin:0 0 12px;text-wrap:balance}
   h2{font:700 19px/1.3 'Archivo',sans-serif;margin:0 0 10px}
   .lead{color:var(--d);font-size:17px;margin:0 0 20px}
+  .ohne-website{margin:14px 0 0;color:var(--d);font-size:15px}
+  .ohne-website a{color:var(--a);font-weight:600}
   .karte{background:var(--f);border:1px solid var(--li);border-radius:18px;padding:20px;margin:18px 0 0}
   form.pruefen{display:flex;gap:8px;flex-wrap:wrap}
   input[type=text],input[type=email],input[type=tel]{width:100%;font-size:17px;padding:14px 15px;border-radius:12px;border:1px solid var(--li2);background:var(--f2);color:var(--t)}
@@ -157,6 +159,11 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
     <button class="knopf" type="submit"><?= $h($T['pruefen']) ?></button>
   </form>
   <?php if ($fehler !== ''): ?><p class="hinweis schlecht" role="alert"><?= $h($T['fehler'][$fehler] ?? $T['fehler']['zeit']) ?></p><?php endif; ?>
+  <?php /* Marketing-Studio 6 (01.10.2026): Alle Kampagnen führen hierher — wer noch keine Website hat, braucht den Weg zum Preis statt einer Prüfung. */
+        if (!$kc): $OHNE = ['it' => ['Non ha ancora un sito?', 'Veda subito quanto costa', '/prezzi.html'], 'de' => ['Noch keine Website?', 'Sehen Sie gleich, was sie kostet', '/de/preise.html'],
+                            'en' => ['No website yet?', 'See right away what it costs', '/en/pricing.html']][$sprache]; ?>
+    <p class="ohne-website"><?= $h($OHNE[0]) ?> <a href="<?= $h($OHNE[2]) ?>"><?= $h($OHNE[1]) ?> →</a></p>
+  <?php endif; ?>
 
   <?php if ($kc): ?>
     <p style="margin:14px 0 0"><a class="knopf leise" href="#ja"><?= $h($T['jaTitel']) ?> ↓</a></p>

@@ -55,7 +55,8 @@ final class MkAuftrag
         if (($a['art'] ?? 'recherche') === 'inhalte') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             $pl = implode(', ', array_map(static fn($x) => MkKampagne::PLATTFORMEN[$x] ?? $x, (array) ($p['plattformen'] ?? [])));
-            return 'Inhalte · ' . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
+            return (!empty($p['paket']) ? 'Kampagne · ' : 'Inhalte · ') . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
+                . (!empty($p['mit_bildern']) ? ' mit Bildern' : '')
                 . ($pl !== '' ? ' für ' . $pl : '') . (($p['umfang'] ?? 'beides') !== 'beides' ? ' (' . (MkInhalt::ARTEN[$p['umfang']] ?? $p['umfang']) . ')' : '');
         }
         $land = MkZielgruppe::LAENDER[$a['land']] ?? $a['land'];
@@ -129,11 +130,37 @@ final class MkAuftrag
         }
         if (self::heute('inhalte') >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Schreibaufträge gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
         $param = ['zielgruppe_id' => $zgId, 'zielgruppe_titel' => mb_substr((string) $zg['titel'], 0, 80), 'plattformen' => $pl, 'umfang' => $umfang,
-                  'anzahl' => $anzahl, 'thema' => mb_substr(trim(strip_tags((string) ($p['thema'] ?? ''))), 0, 200), 'kampagne_id' => $kampagne > 0 ? $kampagne : null];
+                  'anzahl' => $anzahl, 'thema' => mb_substr(trim(strip_tags((string) ($p['thema'] ?? ''))), 0, 200), 'kampagne_id' => $kampagne > 0 ? $kampagne : null,
+                  /* Marketing-Studio 6: Kampagnen-Paket (feste Mischung) und Bilder gleich mit (Kie.ai, nach der Lieferung). */
+                  'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern'])];
         $id = (int) Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => (string) $zg['branche'], 'land' => (string) $zg['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         Events::protokoll('inhalte_auftrag', 'Inhalte angestoßen: ' . self::beschreibung(['art' => 'inhalte', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]), null, null, null, ['auftrag_id' => $id]);
         return $id;
+    }
+
+    /** Was ein Kampagnen-Paket enthält — je nach Wahl organisch, Anzeigen oder beides. @return array{0:list<string>,1:string,2:int} [Plattformen, Umfang, Anzahl] */
+    public static function paketMischung(bool $organisch, bool $anzeigen): array
+    {
+        if ($organisch && $anzeigen) { return [['instagram', 'facebook', 'telegram', 'google'], 'beides', 8]; }
+        if ($anzeigen) { return [['instagram', 'facebook', 'google'], 'bezahlt', 4]; }
+        return [['instagram', 'facebook', 'telegram'], 'organisch', 6];
+    }
+
+    /**
+     * Ein-Klick-Kampagne (Marketing-Studio 6, Uwe: „ja“ zu U3): aus einer
+     * freigegebenen Zielgruppe ein fertiges Paket — Claude schreibt die feste
+     * Mischung, Kie.ai bebildert (wenn gewünscht), Uwe geht alles im
+     * Freigabe-Stapel durch. Jeder Link führt auf den Website-Check.
+     * @return int|string
+     */
+    public static function anlegenKampagne(int $zgId, array $p): int|string
+    {
+        $organisch = !empty($p['organisch']); $anzeigen = !empty($p['anzeigen']);
+        if (!$organisch && !$anzeigen) { return 'Bitte Beiträge, Anzeigen oder beides wählen.'; }
+        [$pl, $umfang, $anzahl] = self::paketMischung($organisch, $anzeigen);
+        return self::anlegenInhalte(['zielgruppe' => $zgId, 'plattformen' => $pl, 'umfang' => $umfang, 'anzahl' => $anzahl,
+            'thema' => (string) ($p['thema'] ?? ''), 'paket' => true, 'mit_bildern' => !empty($p['bilder'])]);
     }
 
     public static function abbrechen(int $id): ?string
@@ -247,7 +274,8 @@ final class MkAuftrag
             'thema' => (string) ($p['thema'] ?? ''),
             'formate' => MkInhalt::formateFuerClaude((array) ($p['plattformen'] ?? []), (string) ($p['umfang'] ?? 'beides')),
             'grenzen' => MkInhalt::G, 'meta_cta' => MkInhalt::META_CTA,
-            'zielseite' => $k ? (string) $k['ziel'] : MkInhalt::zielSeite((string) $a['branche'], (string) $a['land']),
+            'zielseite' => $k ? (string) $k['ziel'] : MkInhalt::CHECK . ($a['land'] === 'DE' ? '?lang=de' : ''),
+            'paket' => !empty($p['paket']),
             'funde' => array_values($funde), 'bisherige_titel' => $titel,
         ];
     }
@@ -277,14 +305,25 @@ final class MkAuftrag
             return ['ok' => true];
         }
         if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
+        /* Kampagnen-Paket mit Bildern: je geliefertem Stück (außer Google-Suchanzeigen) ein Bild über Kie.ai —
+           der PC prüft vor jedem Bild das Guthaben. */
+        $bilder = 0;
+        if ($ok && $istInhalt && !empty((json_decode((string) $a['parameter'], true) ?: [])['mit_bildern'])) {
+            require_once __DIR__ . '/MkMedium.php';
+            foreach (Db::all("SELECT id FROM mk_inhalte WHERE auftrag_id = ? AND status = 'entwurf' AND format <> 'google_anzeige' ORDER BY id", [$id]) as $r) {
+                if (is_int(self::still(static fn() => MkMedium::anlegen((int) $r['id'], 'bild'), 'x'))) { $bilder++; }
+            }
+            if ($bilder > 0) { $text = trim($text . "
+" . $bilder . ' Bilder entstehen jetzt über Kie.ai.'); }
+        }
         Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null,
                                          'zielgruppen' => $zg, 'funde' => $fu, 'fertig_am' => date('Y-m-d H:i:s')] + ($istInhalt ? ['inhalte' => $in] : []));
         $wort = $istInhalt ? 'Inhalte' : 'Recherche';
         self::still(static fn() => Events::melden($istInhalt ? 'inhalte_fertig' : 'recherche_fertig',
             $ok ? $wort . ' fertig: ' . self::beschreibung($a) : $wort . ' nicht geklappt: ' . self::beschreibung($a),
             $ok ? 'gut' : 'info',   // kein „warnung“: das klingelte als Störung auf dem Handy
-            $ok ? ($istInhalt ? $in . ' Entwürfe — bitte prüfen, ändern und freigeben.' : $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.') : $text,
-            $istInhalt ? 'inhalte?land=' . $a['land'] : 'zielgruppen?land=' . $a['land']), null);
+            $ok ? ($istInhalt ? $in . ' Entwürfe' . ($bilder > 0 ? ' (' . $bilder . ' Bilder entstehen)' : '') . ' — unter „Freigeben“ mit Ja oder Nein durchgehen.' : $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.') : $text,
+            $istInhalt ? 'freigabe?land=' . $a['land'] : 'zielgruppen?land=' . $a['land']), null);
         return ['ok' => true];
     }
 }

@@ -17140,7 +17140,7 @@ MkZielgruppe::rechercheStatus($ciFid, 'gemerkt');
 $ciH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
 pruefe('Content-Auftrag: der PC bekommt das freigegebene Profil, passende Formate, Grenzen, Zielseite und die Funde der Branche mit id',
     ($ciH['art'] ?? '') === 'inhalte' && ($ciH['zielgruppe']['profil']['titel'] ?? '') === 'Ristoranti in Sicilia' && isset($ciH['formate']['google_anzeige'], $ciH['formate']['telegram'], $ciH['formate']['meta_anzeige'])
-    && !isset($ciH['formate']['reel']['plattformen']) === false && $ciH['grenzen']['g_ueberschrift'] === 30 && $ciH['zielseite'] === '/siti-web-ristoranti.html'
+    && !isset($ciH['formate']['reel']['plattformen']) === false && $ciH['grenzen']['g_ueberschrift'] === 30 && $ciH['zielseite'] === '/analisi.php' /* seit Marketing-Studio 6: alles auf den Website-Check */
     && in_array($ciFid, array_column($ciH['funde'], 'id'), true) && !str_contains(json_encode($ciH), '@'), json_encode(array_keys($ciH)));
 $ciAb = AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $ciA, 'inhalte' => [
     $ciG(['fund_ids' => [$ciFid]]),
@@ -17159,7 +17159,7 @@ pruefe('Content: abgeliefert = Entwürfe mit Branche und Land der Zielgruppe; wa
 AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $ciA, 'ok' => true, 'inhalte' => 7, 'text' => 'Sieben Stück.']);
 pruefe('Content-Auftrag: zurückgemeldet mit Zahl der Entwürfe, Meldung „Inhalte fertig“ mit Link zu den Inhalten',
     (int) Db::wert('SELECT inhalte FROM mk_auftraege WHERE id = ?', [$ciA]) === 7
-    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'inhalte?land=IT'", [], 0) >= 1);
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'freigabe?land=IT'", [], 0) >= 1);
 
 /* Bearbeiten, freigeben, eigener Link */
 $ciIdG = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'google_anzeige'");
@@ -17173,9 +17173,10 @@ $ciLinkVor = MkInhalt::link(MkInhalt::laden($ciIdF));
 $ciFr = MkInhalt::freigeben($ciIdF);
 $ciX = MkInhalt::laden($ciIdF);
 [$ciK, $ciCr] = MkInhalt::kampagne($ciX);
-pruefe('Content: Freigabe legt die Kampagne „Branche Land · Plattform · Monat“ mit passender Zielseite an und ein eigenes Werbemittel — der Link entsteht erst jetzt',
-    $ciLinkVor === null && $ciFr === null && $ciX['status'] === 'freigegeben' && $ciK !== null && str_starts_with((string) $ciK['name'], 'Restaurant IT · Facebook · ')
-    && $ciK['ziel'] === '/siti-web-ristoranti.html' && $ciK['branche'] === 'restaurant' && $ciK['cta'] === 'website_check'
+pruefe('Content: Freigabe legt die Kampagne „Branche Land · Plattform · Website-Check · Monat“ an (Ziel Website-Check, Land, Zielgruppe) und ein eigenes Werbemittel — der Link entsteht erst jetzt',
+    $ciLinkVor === null && $ciFr === null && $ciX['status'] === 'freigegeben' && $ciK !== null && str_starts_with((string) $ciK['name'], 'Restaurant IT · Facebook · Website-Check · ')
+    && $ciK['ziel'] === '/analisi.php' && $ciK['ziel_art'] === 'website_check' && $ciK['land'] === 'IT' && (int) $ciK['zielgruppe_id'] === (int) $ciX['zielgruppe_id']
+    && $ciK['branche'] === 'restaurant' && $ciK['cta'] === 'website_check'
     && $ciCr !== null && $ciCr['art'] === 'beitrag' && MkInhalt::link($ciX) === MkKampagne::link($ciK, $ciCr) && MkInhalt::freigeben($ciIdF) !== null, json_encode($ciK));
 $ciIdK = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'karussell'");
 $ciFrK = MkInhalt::freigeben($ciIdK);
@@ -17206,7 +17207,7 @@ pruefe('Worker-Tür: marketing_inhalte gibt es, freigeben weiterhin nur in der V
 $ciLay = (string) file_get_contents($wurzel . '/views/layout.php');
 $ciIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Verwaltung: Reiter „Inhalte“ unter Marketing mit Hilfesatz und Zahl der Entwürfe; alle Taten hinter CSRF',
-    str_contains($ciLay, "['inhalte', 'Inhalte', 'inhalte']") && Hilfe::satz('inhalte') !== '' && str_contains($ciLay, "\$navZahlen['inhalte']")
+    str_contains($ciLay, "['inhalte', 'Inhalte', 'inhalte']") && Hilfe::satz('inhalte') !== '' && str_contains($ciLay, "\$navZahlen['freigabe']") /* Entwürfe zählen seit Marketing-Studio 6 am Reiter „Freigeben“ */
     && strpos($ciIdx, "case 'inhalte_erstellen':") > strpos($ciIdx, 'Csrf::pruefen()') && strpos($ciIdx, "case 'inhalt_freigeben':") > strpos($ciIdx, 'Csrf::pruefen()'));
 $ciFehler = null; set_error_handler(static function (int $n, string $m) use (&$ciFehler): bool { $ciFehler = $m; return true; });
 $f = ['status' => '', 'art' => '', 'plattform' => '', 'zielgruppe' => 0]; $liste = MkInhalt::liste($f); $zahl = MkInhalt::zaehlen();
@@ -17542,6 +17543,128 @@ pruefe('Verwaltung: italienische Kundensprache mit deutscher Fassung darunter; I
     str_contains($mlH2, '<span class="mk-de">Was kostet das?</span>') && str_contains($mlH2, 'italienisch · deutsch darunter') && str_contains($mlH2, 'mk-flagge--it')
     && str_contains($mlH3, '<span class="mk-de">Hallo</span>') && str_contains($mlH3, 'value="uebersetzen_starten"') && str_contains($mlH3, 'class="mk-laender"'));
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_recherche WHERE titel LIKE 'ML %'"); Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
+   Marketing-Studio 6: Ein-Klick-Kampagne, Freigabe-Stapel, Website-Check als
+   Ziel, Google-Ads-Pakete (01.10.2026, Uwe: „ja“ zu U3, S2, S5)
+   ============================================================================ */
+abschnitt('Marketing-Studio 6: Ein-Klick-Kampagne und Freigabe-Stapel');
+require_once $wurzel . '/src/MkVeroeffentlichen.php';
+Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'KS %'");
+pruefe('Kampagnen-Paket: feste Mischung je Wahl — beides 8 Stücke inkl. Google, nur Beiträge 6, nur Anzeigen 4',
+    MkAuftrag::paketMischung(true, true) === [['instagram', 'facebook', 'telegram', 'google'], 'beides', 8]
+    && MkAuftrag::paketMischung(true, false)[2] === 6 && MkAuftrag::paketMischung(false, true)[1] === 'bezahlt'
+    && is_string(MkAuftrag::anlegenKampagne($ciZid, [])));
+$ksZde = MkZielgruppe::melden($mzProfil(['branche' => 'friseur', 'land' => 'DE', 'titel' => 'KS Friseure DE']));
+MkZielgruppe::freigeben((int) $ksZde['id']);
+$ksA = MkAuftrag::anlegenKampagne((int) $ksZde['id'], ['organisch' => '1', 'anzeigen' => '1', 'bilder' => '1', 'thema' => 'Online-Termine']);
+$ksP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$ksA]), true) ?: [];
+$ksH = MkAuftrag::holen()['auftrag'] ?? [];
+pruefe('Ein-Klick-Kampagne: ein Auftrag mit Paket, Bildern, Thema — der PC bekommt als Zielseite den Website-Check, für Deutschland mit ?lang=de',
+    is_int($ksA) && $ksP['paket'] === true && $ksP['mit_bildern'] === true && $ksP['anzahl'] === 8 && $ksP['thema'] === 'Online-Termine'
+    && ($ksH['paket'] ?? null) === true && ($ksH['zielseite'] ?? '') === '/analisi.php?lang=de' && str_starts_with(MkAuftrag::beschreibung(Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$ksA])), 'Kampagne · KS Friseure DE'),
+    json_encode([$ksP, $ksH['zielseite'] ?? null]));
+$ksNeu = AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $ksA, 'inhalte' => [
+    ['format' => 'beitrag', 'plattform' => 'instagram', 'titel' => 'KS Termin', 'felder' => ['text' => 'Termine auch nachts.', 'cta' => 'Website kostenlos prüfen']],
+    ['format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'KS Telegram', 'felder' => ['text' => 'Kostenloser Website-Check', 'knopf' => 'Jetzt prüfen']],
+    ['format' => 'google_anzeige', 'plattform' => 'google', 'titel' => 'KS Google', 'felder' => ['ueberschriften' => ['Website für Friseure', 'Online-Termine für Salons', 'Festpreis ab 325 €'],
+        'beschreibungen' => ['Website mit Online-Terminen, Festpreis im Kostenvoranschlag.', 'Kostenlos prüfen, wie Ihre Website dasteht.'], 'keywords' => ['friseur website', 'website friseursalon'],
+        'ausschluesse' => ['kostenlos', 'kurs', 'job', 'kostenlos']]],
+]]);
+MkAuftrag::melden(['id' => $ksA, 'ok' => true, 'inhalte' => 3]);
+$ksMed = Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet'");
+$ksGo = MkInhalt::laden((int) Db::wert("SELECT id FROM mk_inhalte WHERE titel = 'KS Google'"));
+pruefe('Ein-Klick-Kampagne: nach der Lieferung entsteht je Stück ein Bild (Google-Suchanzeigen ohne) — die Meldung führt auf „Freigeben“',
+    $ksNeu['neu'] === 3 && count($ksMed) === 2 && !str_contains(json_encode($ksMed), 'KS Google')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'freigabe?land=DE' AND body LIKE '%Bilder entstehen%'", [], 0) >= 1
+    && $ksGo['f']['ausschluesse'] === ['kostenlos', 'kurs', 'job'], json_encode($ksMed));
+
+/* Website-Check als Ziel (S2) */
+$ksKde = ['id' => 1, 'code' => 'ks', 'plattform' => 'instagram', 'ziel' => '/analisi.php', 'land' => 'DE'];
+pruefe('Website-Check als Ziel: der Kampagnenlink gibt einer PHP-Seite das Land mit (?lang=de), statischen Seiten nicht',
+    str_starts_with(MkKampagne::zielAdresse($ksKde), '/analisi.php?lang=de&utm_source=instagram')
+    && str_starts_with(MkKampagne::zielAdresse(['ziel' => '/de/website-friseur.html', 'land' => 'DE'] + $ksKde), '/de/website-friseur.html?utm_source=')
+    && str_starts_with(MkKampagne::zielAdresse(['land' => 'IT'] + $ksKde), '/analisi.php?lang=it&')
+    && str_contains((string) file_get_contents($oben . '/k.php'), "strtolower((string) \$kamp['land'])"));
+$ksAn = (string) file_get_contents($oben . '/analisi.php');
+pruefe('Website-Check: wer noch keine Website hat, findet dort den Weg zum Preis — in allen drei Sprachen, nur vor dem Ergebnis',
+    str_contains($ksAn, 'class="ohne-website"') && str_contains($ksAn, "'/de/preise.html'") && str_contains($ksAn, "'/prezzi.html'") && str_contains($ksAn, "'/en/pricing.html'")
+    && str_contains($ksAn, 'if (!$kc): $OHNE'));
+
+/* Sendeplätze */
+$ksT = strtotime('2026-11-02 10:00:00');
+Db::run("UPDATE mk_inhalte SET geplant_am = NULL WHERE plattform = 'telegram' AND status = 'freigegeben'");
+$ksS1 = MkVeroeffentlichen::naechsterSlot('telegram', $ksT);
+$ksS2 = MkVeroeffentlichen::naechsterSlot('telegram', strtotime('2026-11-02 18:10:00'));
+$ksBel = (int) Db::insert('mk_inhalte', ['branche' => 'friseur', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'telegram', 'plattform' => 'telegram',
+    'titel' => 'KS belegt', 'felder' => '{}', 'status' => 'freigegeben', 'geplant_am' => '2026-11-02 18:30:00']);
+$ksS3 = MkVeroeffentlichen::naechsterSlot('telegram', $ksT);
+pruefe('Sendeplätze: heute ' . MkVeroeffentlichen::SENDEZEIT . ', wenn noch eine halbe Stunde Zeit ist, sonst morgen — und nie zwei am selben Tag auf derselben Plattform',
+    $ksS1 === '2026-11-02 18:30' && $ksS2 === '2026-11-03 18:30' && $ksS3 === '2026-11-03 18:30', json_encode([$ksS1, $ksS2, $ksS3]));
+Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$ksBel]);
+
+/* Freigabe-Stapel */
+$ksIg = (int) Db::wert("SELECT id FROM mk_inhalte WHERE titel = 'KS Termin'");
+$ksTg = (int) Db::wert("SELECT id FROM mk_inhalte WHERE titel = 'KS Telegram'");
+$ksGoId = (int) $ksGo['id'];
+$ksN1 = MkInhalt::naechster('DE');
+$ksN2 = MkInhalt::naechster('DE', [$ksIg]);
+$ksN3 = MkInhalt::naechster('DE', [$ksIg, $ksTg, $ksGoId]);
+pruefe('Freigabe-Stapel: ältester Entwurf zuerst, „später“ Gelegtes kommt danach wieder; nur dieses Land',
+    ($ksN1['id'] ?? 0) === $ksIg && ($ksN2['id'] ?? 0) === $ksTg && ($ksN3['id'] ?? 0) === $ksIg && MkInhalt::naechster('DE', [])['land'] === 'DE');
+$ksDatei = MkMedium::ordner() . '/ks-test-' . bin2hex(random_bytes(4)) . '.bin'; file_put_contents($ksDatei, 'x');
+$ksM = (int) Db::insert('mk_medien', ['inhalt_id' => $ksTg, 'art' => 'bild', 'datei' => basename($ksDatei), 'mime' => 'image/png', 'bytes' => 1, 'sha256' => str_repeat('0', 64), 'format' => '16:9', 'modell' => 'nano-banana-pro', 'status' => 'neu']);
+$ksTgAlt = Telegram::$netz; $ksKanalAlt = Telegram::einstellung('tg_kanal_id');
+Telegram::$netz = static fn(string $m, array $d): array => ['ok' => true, 'result' => ['message_id' => 1]];
+if (!Telegram::bereit()) { Telegram::tokenSpeichern('123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ'); Telegram::anmelden(); }
+Telegram::setzen('tg_kanal_id', '-1009876543210');
+$ksWas = MkVeroeffentlichen::wasPassiert(MkInhalt::laden($ksTg));
+$ksJa = MkVeroeffentlichen::stapelJa($ksTg);
+$ksX = MkInhalt::laden($ksTg);
+$ksJaGo = MkVeroeffentlichen::stapelJa($ksGoId);
+pruefe('Freigabe-Stapel: „Ja“ sagt vorher, was passiert; wählt das vorhandene Bild, gibt frei (eigener Link) und legt es auf den nächsten freien Abend',
+    str_contains($ksWas, 'veröffentlicht es am') && $ksJa['ok'] && $ksX['status'] === 'freigegeben' && $ksX['geplant_am'] !== null && str_ends_with((string) $ksX['geplant_am'], '18:30:00')
+    && Db::wert('SELECT status FROM mk_medien WHERE id = ?', [$ksM]) === 'gewaehlt' && MkInhalt::link($ksX) !== null && str_contains($ksJa['text'], 'geht am'),
+    json_encode([$ksWas, $ksJa, $ksX['geplant_am'] ?? null]));
+pruefe('Freigabe-Stapel: Anzeigen werden freigegeben, aber nie selbst geschaltet — dafür liegt das Paket bereit; zweimal „Ja“ geht nicht',
+    $ksJaGo['ok'] && MkInhalt::laden($ksGoId)['geplant_am'] === null && str_contains($ksJaGo['text'], 'Google Ads') && MkVeroeffentlichen::stapelJa($ksGoId)['ok'] === false);
+Telegram::$netz = $ksTgAlt; Telegram::setzen('tg_kanal_id', $ksKanalAlt); @unlink($ksDatei);
+
+/* Google-Ads-Paket (S5) */
+$ksPk = MkVeroeffentlichen::paketInhalt(MkInhalt::laden($ksGoId) + ['kampagne_name' => 'Friseur DE · Google']);
+pruefe('Google-Ads-Paket: Suchbegriffe als Wortgruppe und genau, Ausschlüsse auf Kampagnenebene, Einstellungen je Land (Standort, Sprache, Budget)',
+    isset($ksPk['google-keywords.csv']) && str_contains($ksPk['google-keywords.csv'], '"friseur website",Phrase') && str_contains($ksPk['google-keywords.csv'], '"friseur website",Exact')
+    && str_contains($ksPk['google-keywords.csv'], 'kostenlos,"Campaign Negative Phrase"') && str_contains($ksPk['liesmich.txt'], 'Standort: Deutschland')
+    && str_contains($ksPk['liesmich.txt'], 'Sprache: Deutsch') && str_contains($ksPk['liesmich.txt'], '5–10 € am Tag') && str_contains(MkInhalt::kopiertext(MkInhalt::laden($ksGoId)), 'Ausschließende Keywords: kostenlos, kurs, job'),
+    substr($ksPk['google-keywords.csv'] ?? '', 0, 300));
+
+/* Verwaltung */
+$ksIdx = (string) file_get_contents($wurzel . '/index.php');
+$ksLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Verwaltung: Reiter „Freigeben“ mit der Zahl der Entwürfe; Kampagne starten und Ja/Nein/Später nur hinter CSRF',
+    str_contains($ksLay, "['freigabe', 'Freigeben', 'freigabe']") && str_contains($ksLay, "\$navZahlen['freigabe']")
+    && strpos($ksIdx, "case 'kampagne_starten':") > strpos($ksIdx, 'Csrf::pruefen()') && strpos($ksIdx, "case 'stapel_ja':") > strpos($ksIdx, 'Csrf::pruefen()'));
+$ksFehler = null; set_error_handler(static function (int $n, string $m) use (&$ksFehler): bool { $ksFehler = $m; return true; });
+$land = 'DE'; $x = MkInhalt::laden($ksIg); $rest = 1; $offen = ['IT' => 0, 'DE' => 1]; $zg = MkZielgruppe::laden((int) $ksZde['id']); $medien = []; $bildLaeuft = 1;
+$geplant = Db::all("SELECT id, titel, plattform, land, geplant_am FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL ORDER BY geplant_am LIMIT 14");
+ob_start(); require $wurzel . '/views/freigabe.php'; $ksH1 = (string) ob_get_clean();
+$x = null; $rest = 0; $offen = ['IT' => 2, 'DE' => 0];
+ob_start(); require $wurzel . '/views/freigabe.php'; $ksH2 = (string) ob_get_clean();
+$z = MkZielgruppe::laden((int) $ksZde['id']); $daten = MkZielgruppe::datengrundlage('friseur', 'DE'); $funde = []; $kampagnen = []; $inhalteZahl = 3;
+$gegenstueck = ['id' => 1, 'titel' => 'x', 'status' => 'freigegeben']; $kampagneLaeuft = false; $zahlen = MkKampagne::LEER;
+ob_start(); require $wurzel . '/views/zielgruppe.php'; $ksH3 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: der Stapel zeigt ein Stück mit Vorschau, „Bild entsteht“, dem Satz, was Ja tut, und Ja/Nein/Später mit Tasten — leer der Weg ins andere Land',
+    $ksFehler === null && str_contains($ksH1, 'value="stapel_ja"') && str_contains($ksH1, 'value="stapel_nein"') && str_contains($ksH1, 'value="stapel_spaeter"')
+    && str_contains($ksH1, 'Das Bild entsteht gerade') && str_contains($ksH1, 'data-taste="j"') && str_contains($ksH1, 'Noch <b>1</b> Entwurf in Deutschland')
+    && str_contains($ksH1, 'Eingeplant') && str_contains($ksH2, 'Alles durchgesehen in Deutschland') && str_contains($ksH2, 'In Italien warten Entwürfe'), (string) $ksFehler);
+pruefe('Verwaltung: auf der freigegebenen Zielgruppe „Kampagne starten“ — Beiträge, Anzeigen, Bilder, auch fürs andere Land; was danach passiert in vier Schritten',
+    str_contains($ksH3, 'value="kampagne_starten"') && str_contains($ksH3, 'name="organisch"') && str_contains($ksH3, 'name="anzeigen"') && str_contains($ksH3, 'name="bilder"')
+    && str_contains($ksH3, 'name="beide"') && str_contains($ksH3, 'class="mk-start__schritte"') && str_contains($ksH3, 'Website-Check'));
+$ksTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+pruefe('PC: der Schreibauftrag kennt das Kampagnen-Paket, den Website-Check als einziges Ziel und die Ausschlüsse der Google-Anzeige',
+    str_contains($ksTs, 'KAMPAGNEN-PAKET') && str_contains($ksTs, 'JEDER Aufruf') && str_contains($ksTs, 'ausschluesse 10–25') && str_contains($ksTs, 'ausschluesse: LISTE'));
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'KS %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'KS %'"); Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)

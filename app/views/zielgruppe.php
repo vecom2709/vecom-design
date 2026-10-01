@@ -8,6 +8,7 @@
  * auf Deutsch anzeigen, dass wir es lesen können“.
  */
 require_once dirname(__DIR__) . '/src/MkLand.php';
+require_once dirname(__DIR__) . '/src/MkMedium.php';
 $p = $z['p'];
 $branchen = MkKampagne::branchen();
 $kampagnen = $kampagnen ?? [];
@@ -26,6 +27,9 @@ $liste = static function (array $eintraege, array $deutsch = []): void {
     echo '</ul>';
 };
 $nutzbar = $z['status'] === 'freigegeben' || $z['v'] !== null;
+$gegenstueck = $gegenstueck ?? null;
+$kampagneLaeuft = (bool) ($kampagneLaeuft ?? false);
+$zahlen = ($zahlen ?? []) + MkKampagne::LEER;
 $ohneDe = $istIt && MkZielgruppe::ohneDeutsch($p + ['land' => 'IT']);
 require __DIR__ . '/mk_stil.php';
 ?>
@@ -36,7 +40,7 @@ require __DIR__ . '/mk_stil.php';
     <div class="weg"><?= MkLand::marke((string) $z['land']) ?> · <?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?> · Stand <?= Fmt::h($datum($z['updated_at'])) ?><?= $z['freigegeben_am'] ? ' · freigegeben am ' . Fmt::h($datum($z['freigegeben_am'])) : '' ?> · von Claude recherchiert</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <?php if ($nutzbar): ?><a class="knopf haupt" href="<?= Fmt::h(url('inhalte') . '?zielgruppe=' . (int) $z['id']) ?>#auftraege">Inhalte schreiben lassen</a><?php endif; ?>
+    <?php if ($nutzbar): ?><a class="knopf haupt" href="#kampagne">Kampagne starten</a><?php endif; ?>
     <form method="post" action="<?= Fmt::h(url('zielgruppen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h((string) $z['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $z['land']) ?>"><button class="knopf" title="Claude überarbeitet dieses Profil mit frischer Recherche — als Entwurf, die freigegebene Fassung gilt bis dahin weiter">Neu recherchieren</button></form>
     <a class="knopf" href="<?= Fmt::h(url('zielgruppen') . '?land=' . $z['land']) ?>">‹ Alle in <?= Fmt::h(MkLand::name((string) $z['land'])) ?></a>
   </div>
@@ -58,6 +62,34 @@ require __DIR__ . '/mk_stil.php';
   <span style="font-size:14px;max-width:70ch;line-height:1.5">Einwände, Fragen, Suchbegriffe und Botschaften stehen auf Italienisch, weil Kunden sie so lesen und tippen. Die deutsche Übersetzung darunter fehlt bei diesem Profil noch.</span>
   <form method="post" action="<?= Fmt::h(url('zielgruppen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="uebersetzen_starten"><button class="knopf klein">Übersetzen lassen</button></form>
 </div>
+<?php endif; ?>
+
+<?php if ($nutzbar): ?>
+<section class="block mk-start" id="kampagne" aria-labelledby="mk-start-titel">
+  <h2 id="mk-start-titel">Kampagne starten <span class="mehr">ein Klick · alles führt auf den kostenlosen Website-Check</span></h2>
+  <?php if ($kampagneLaeuft): ?>
+    <p style="margin:0;line-height:1.6">Claude schreibt gerade für diese Zielgruppe — oder der Auftrag wartet auf deinen PC. Die Entwürfe landen unter <a href="<?= Fmt::h(url('freigabe') . '?land=' . $z['land']) ?>">Freigeben</a>.</p>
+  <?php else: ?>
+  <form method="post" action="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_starten"><input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+    <div class="mk-start__wahl">
+      <label class="mk-haken"><input type="checkbox" name="organisch" value="1" checked> Beiträge (Instagram, Facebook, Telegram)</label>
+      <label class="mk-haken"><input type="checkbox" name="anzeigen" value="1" checked> Anzeigen (Meta und Google)</label>
+      <label class="mk-haken"><input type="checkbox" name="bilder" value="1" checked> mit Bildern (Kie.ai, etwa <?= (int) MkMedium::MODELLE['bild'][array_key_first(MkMedium::MODELLE['bild'])][1] ?> Credits je Bild)</label>
+      <?php if ($gegenstueck): ?><label class="mk-haken"><input type="checkbox" name="beide" value="1"> auch für <?= MkLand::marke(MkLand::andere((string) $z['land'])) ?></label><?php endif; ?>
+    </div>
+    <div class="feld" style="margin:0"><label for="ks_thema">Thema <span class="mk-fein">(freiwillig — sonst wählt Claude aus Profil und Funden)</span></label>
+      <input id="ks_thema" name="thema" maxlength="200" placeholder="<?= $z['land'] === 'DE' ? 'z. B. Online-Termine ohne Telefon · Google-Profil' : 'z. B. Airbnb-Gebühr ab Mitte Oktober · Nebensaison' ?>"></div>
+    <div><button class="knopf haupt">Kampagne starten</button></div>
+  </form>
+  <ol class="mk-start__schritte">
+    <li>Claude schreibt die Mischung: Beiträge, ein Karussell, einen Telegram-Beitrag, eine Meta- und eine Google-Anzeige mit Suchbegriffen und Ausschlüssen (etwa 5–15 Minuten über dein Claude-Abo).</li>
+    <li>Kie.ai macht die Bilder — dein PC prüft vorher das Guthaben.</li>
+    <li>Unter <a href="<?= Fmt::h(url('freigabe') . '?land=' . $z['land']) ?>">Freigeben</a> gehst du Stück für Stück durch: Ja plant es auf den nächsten freien Abend, Nein verwirft.</li>
+    <li>Jeder Klick, Website-Check und Lead landet bei den Kampagnen dieser Zielgruppe — unten.</li>
+  </ol>
+  <?php endif; ?>
+</section>
 <?php endif; ?>
 
 <div class="block">
@@ -112,6 +144,7 @@ require __DIR__ . '/mk_stil.php';
 <div class="block">
   <h2>Kampagnen dieser Zielgruppe <span class="mehr"><?= count($kampagnen) ?> · <?= $inhalteZahl ?> <?= $inhalteZahl === 1 ? 'Inhalt' : 'Inhalte' ?></span></h2>
   <?php if ($kampagnen): ?>
+    <p class="mk-zahlen" aria-label="Letzte 30 Tage"><span><b><?= (int) $zahlen['klicks'] ?></b>Klicks</span><span><b><?= (int) $zahlen['checks'] ?></b>Website-Checks</span><span><b><?= (int) $zahlen['leads'] ?></b>Leads</span><span><b><?= (int) $zahlen['kunden'] ?></b>Kunden</span><span class="mk-fein">letzte 30 Tage</span></p>
     <ul class="mk-liste">
       <?php foreach ($kampagnen as $k): ?><li><a href="<?= Fmt::h(url('kampagnen/' . (int) $k['id'])) ?>"><?= Fmt::h((string) $k['name']) ?></a> <span class="mk-fein">· <?= Fmt::h(MkKampagne::STATUS[$k['status']] ?? $k['status']) ?> · /k/<?= Fmt::h((string) $k['code']) ?></span></li><?php endforeach; ?>
     </ul>

@@ -35,7 +35,8 @@ if (is_file(__DIR__ . '/app/config.local.php')) {
             $ziel = MkKampagne::zielAdresse($kamp, $wm);
             $ua = (string) ($_SERVER['HTTP_USER_AGENT'] ?? '');
             if (!isset($_GET['n']) && $ua !== '' && !Partner::istRoboter($ua) && !isset($_COOKIE['vecomadmin'])) {
-                $sprache = preg_match('~^/(de|en)/~', (string) $kamp['ziel'], $m) ? $m[1] : 'it';
+                $sprache = in_array($kamp['land'] ?? '', ['IT', 'DE'], true) ? strtolower((string) $kamp['land'])
+                         : (preg_match('~^/(de|en)/~', (string) $kamp['ziel'], $m) ? $m[1] : 'it');
                 $pfadK = '/k/' . $kamp['code'] . ($wm !== null ? '/' . $wm['code'] : '');
                 Spur::kampagnenBesuch($kamp, $wm, ['ua' => $ua, 'ip' => (string) ($_SERVER['REMOTE_ADDR'] ?? ''),
                     'referrer' => (string) ($_SERVER['HTTP_REFERER'] ?? ''), 'sprache' => $sprache, 'get' => MkKampagne::utm($kamp, $wm),

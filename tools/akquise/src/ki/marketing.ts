@@ -101,7 +101,18 @@ type InhalteAuftrag = {
   grenzen: Record<string, number>; meta_cta: Record<string, string>; zielseite: string;
   funde: { id: number; art: string; titel: string; text: string; relevanz: number; gemerkt: boolean; quellen: string[] }[];
   bisherige_titel: string[];
+  /** Marketing-Studio 6: Ein-Klick-Kampagne mit fester Mischung. */
+  paket?: boolean;
 };
+
+/** Die feste Mischung einer Ein-Klick-Kampagne — so, dass möglichst viel automatisch veröffentlicht werden kann. */
+export function paketText(a: Pick<InhalteAuftrag, 'umfang' | 'anzahl'>): string {
+  if (a.umfang === 'bezahlt') {
+    return '1 meta_anzeige (facebook), 1 meta_anzeige (instagram, andere Botschaft), 2 google_anzeige (zwei Anzeigengruppen mit verschiedenen Suchabsichten, z. B. „Website erstellen“ und „Direktbuchungen/Online-Termine“)';
+  }
+  const organisch = '2 beitrag (instagram, je ein anderes Problem), 1 beitrag (facebook), 1 karussell (facebook — Rechnung oder Schritt-für-Schritt), 1 telegram, 1 beitrag (instagram oder facebook, eine häufige Frage beantworten)';
+  return a.umfang === 'organisch' ? organisch : '2 beitrag (instagram), 1 beitrag (facebook), 1 karussell (facebook), 1 telegram, 1 meta_anzeige (facebook), 1 google_anzeige, 1 beitrag (instagram, eine häufige Frage beantworten)';
+}
 
 const FOLIEN = { type: 'array', items: { type: 'object', properties: { titel: { type: 'string' }, text: { type: 'string' } } } };
 /** Schema für geschriebene Inhalte. Die Grenzen prüft die Verwaltung (MkInhalt::pruefen) noch einmal. */
@@ -125,7 +136,7 @@ export const SCHEMA_INHALTE = {
               folien: FOLIEN,
               szenen: { type: 'array', items: { type: 'object', properties: { sekunden: { type: 'integer' }, bild: { type: 'string' }, einblendung: { type: 'string' }, sprecher: { type: 'string' } } } },
               primaertexte: LISTE, ueberschriften: LISTE, beschreibung: { type: 'string' }, beschreibungen: LISTE,
-              pfad1: { type: 'string' }, pfad2: { type: 'string' }, keywords: LISTE,
+              pfad1: { type: 'string' }, pfad2: { type: 'string' }, keywords: LISTE, ausschluesse: LISTE,
             },
           },
           bildidee: { type: 'string' }, bild_prompt: { type: 'string' }, begruendung: { type: 'string' },
@@ -147,7 +158,11 @@ AUFTRAG #${a.id}: ${a.beschreibung}
 Zielgruppe: ${a.zielgruppe.name} · ${a.land}
 Anzahl: genau ${a.anzahl} Stück · Umfang: ${a.umfang === 'beides' ? 'organisch und bezahlt (etwa zwei Drittel organisch)' : a.umfang === 'organisch' ? 'nur organische Beiträge' : 'nur Anzeigen'}
 Plattformen: ${a.plattformen.join(', ')}${a.thema ? `\nThema: ${a.thema}` : ''}
-Zielseite der Links: https://vecom-design.it${a.zielseite}
+Zielseite der Links: https://vecom-design.it${a.zielseite} — der kostenlose Website-Check (zwölf Punkte als Ampel in Sekunden, ohne Anmeldung;
+danach auf Wunsch die ausführliche Analyse per E-Mail, und wer noch keine Website hat, findet dort den Weg zum Preis).${a.paket ? `
+
+KAMPAGNEN-PAKET (Ein-Klick-Kampagne): genau diese Mischung, in dieser Reihenfolge — ${paketText(a)}.
+Alle Stücke zusammen erzählen eine Kampagne: ein roter Faden (das wichtigste Problem des Profils), aber jedes Stück mit eigenem Blickwinkel.` : ''}
 
 ERLAUBTE FORMATE (format → plattformen)
 ${Object.entries(a.formate).map(([k, v]) => `- ${k} (${v.wort}, ${v.art}): ${v.plattformen.join(', ')}`).join('\n')}
@@ -164,7 +179,9 @@ FELDER JE FORMAT (felder)
 - telegram: text (≤${g.telegram ?? 1024}), knopf (≤${g.knopf ?? 40})
 - profil (Google-Unternehmensprofil von Vecom): text (≤${g.profil ?? 1500}), cta
 - meta_anzeige: primaertexte 2–3 Varianten (das Wichtige in den ersten ${g.primaertext_sichtbar ?? 125} Zeichen), ueberschriften 3–5 (≤${g.meta_ueberschrift_empf ?? 40}), beschreibung (≤30), cta = einer von ${Object.keys(a.meta_cta ?? {}).join(', ')}
-- google_anzeige: ueberschriften 10–15 (JEDE ≤${g.g_ueberschrift ?? 30} Zeichen — zähle nach!), beschreibungen 4 (JEDE ≤${g.g_beschreibung ?? 90}), pfad1/pfad2 (≤15, ohne Leerzeichen), keywords 8–15 (ohne Match-Zeichen)
+- google_anzeige: ueberschriften 10–15 (JEDE ≤${g.g_ueberschrift ?? 30} Zeichen — zähle nach!), beschreibungen 4 (JEDE ≤${g.g_beschreibung ?? 90}), pfad1/pfad2 (≤15, ohne Leerzeichen),
+  keywords 8–15 (ohne Match-Zeichen; Wörter, die jemand tippt, der eine Website kaufen will — Branche + Ort/Region + Absicht),
+  ausschluesse 10–25 ausschließende Keywords in der Kundensprache (wer nur lernen, gratis basteln, einen Job oder Vorlagen sucht: z. B. „gratis“, „corso“, „lavoro“, „tutorial“, „wordpress“, „template“ bzw. „kostenlos“, „Kurs“, „Job“, „Vorlage“, „selber machen“)
 
 REGELN — unbedingt
 - Sprache: ${sprache}. titel, bildidee und begruendung auf Deutsch (für Uwe).
@@ -174,7 +191,8 @@ REGELN — unbedingt
 - Keine Links und keine Telefonnummern in die Texte — den eigenen Link setzt die Verwaltung bei der Freigabe. Auf Instagram/TikTok im Aufruf „Link in Bio“ verwenden.
 - Ton: ruhig, konkret, respektvoll; Nutzen vor Technik. Höchstens zwei Emojis je Stück, keine in Anzeigen-Überschriften. Keine Superlative („il migliore“), keine Garantien, keine künstliche Eile, keine Namen von Mitbewerbern.
 - Anzeigen: keine Aussagen, die persönliche Merkmale oder Notlagen unterstellen (Meta-Richtlinie) — „Per chi ha un ristorante …“ statt „Il tuo ristorante sta fallendo?“.
-- Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern; Aufrufe führen auf die Website (kostenloser Website-Check, Preis berechnen, Termin).
+- Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern. JEDER Aufruf (cta, knopf, Anzeigen-Knopf) führt zum kostenlosen Website-Check
+  — z. B. ${a.land === 'DE' ? '„Website kostenlos prüfen“, „Jetzt kostenlos testen“' : '„Verifichi gratis il suo sito“, „Analisi gratuita“'}; bei Meta-Anzeigen cta LEARN_MORE oder SIGN_UP, wenn passend.
 - bildidee: ein konkretes Motiv aus dem echten Alltag der Branche, ruhiges Licht, keine Stockfoto-Klischees; Text im Bild höchstens 5 Wörter, groß und kontrastreich.
 - bild_prompt: dasselbe Motiv als ENGLISCHER Prompt für einen Bildgenerator (Nano Banana Pro bzw. Veo): Motiv, Ort, Menschen (ohne bekannte Gesichter), Licht, Perspektive, Brennweite, Stimmung; fotorealistisch, keine Marken oder Logos; Text im Bild nur, wenn er trägt — wörtlich in Anführungszeichen, höchstens 5 Wörter. Bei Reels die Kernszene beschreiben.
 - begruendung: 1–2 Sätze — welcher Punkt des Profils, warum dieses Format auf dieser Plattform.

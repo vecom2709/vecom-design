@@ -549,6 +549,43 @@ if ($post) {
                 if ($maFehl) { $_SESSION['fehler'] = implode(' · ', $maFehl); }
                 weiter('zielgruppen?land=' . $maLand . '#auftraege');
 
+            /* Ein-Klick-Kampagne (Marketing-Studio 6, Uwe: „ja“ zu U3) — auf Wunsch auch für dieselbe Branche im anderen Land. */
+            case 'kampagne_starten':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                require_once __DIR__ . '/src/MkLand.php';
+                $mkZgId = (int) ($_POST['id'] ?? 0);
+                $mkZgs = [$mkZgId];
+                if (!empty($_POST['beide']) && ($mkZg = Db::one('SELECT branche, land FROM mk_zielgruppen WHERE id = ?', [$mkZgId]))) {
+                    $mkGegen = Db::wert("SELECT id FROM mk_zielgruppen WHERE branche = ? AND land = ? AND (status = 'freigegeben' OR vorher IS NOT NULL)", [$mkZg['branche'], MkLand::andere((string) $mkZg['land'])], null);
+                    if ($mkGegen !== null) { $mkZgs[] = (int) $mkGegen; }
+                }
+                $mkGut = 0; $mkFehl = [];
+                foreach ($mkZgs as $mkZi) {
+                    $maErg = MkAuftrag::anlegenKampagne($mkZi, $_POST);
+                    if (is_int($maErg)) { $mkGut++; } else { $mkFehl[] = $maErg; }
+                }
+                if ($mkGut > 0) { $_SESSION['gut'] = ($mkGut > 1 ? 'Zwei Kampagnen gestartet (beide Länder).' : 'Kampagne gestartet.') . ' Dein PC holt den Auftrag in den nächsten fünf Minuten ab; Claude schreibt etwa 5–15 Minuten' . (!empty($_POST['bilder']) ? ', danach entstehen die Bilder' : '') . '. Die Entwürfe gehst du unter „Freigeben“ durch.'; }
+                if ($mkFehl) { $_SESSION['fehler'] = implode(' · ', array_unique($mkFehl)); }
+                weiter('zielgruppen/' . $mkZgId . '#kampagne');
+
+            /* Freigabe-Stapel (Marketing-Studio 6): Ja gibt frei und plant ein, Nein verwirft, Später legt nach hinten. */
+            case 'stapel_ja':
+            case 'stapel_nein':
+            case 'stapel_spaeter':
+                require_once __DIR__ . '/src/MkVeroeffentlichen.php';
+                $msId = (int) ($_POST['id'] ?? 0);
+                $_SESSION['mk_spaeter'] = array_values(array_diff(array_map('intval', (array) ($_SESSION['mk_spaeter'] ?? [])), [$msId]));
+                if ($tat === 'stapel_ja') {
+                    $msE = MkVeroeffentlichen::stapelJa($msId);
+                    $_SESSION[$msE['ok'] ? 'gut' : 'fehler'] = $msE['text'];
+                } elseif ($tat === 'stapel_nein') {
+                    $f = MkInhalt::verwerfen($msId);
+                    $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Verworfen.';
+                } else {
+                    $_SESSION['mk_spaeter'][] = $msId;
+                }
+                weiter('freigabe');
+
             case 'uebersetzen_starten':
                 require_once __DIR__ . '/src/MkAuftrag.php';
                 $maErg = MkAuftrag::anlegenUebersetzen();
@@ -4594,6 +4631,16 @@ switch ($route) {
                 'kampagnen' => sicher(static fn() => Db::all("SELECT id, name, code, status, plattform FROM mk_kampagnen WHERE zielgruppe_id = ? OR (branche = ? AND land = ?)
                                                                ORDER BY FIELD(status, 'aktiv', 'pausiert', 'beendet'), id DESC LIMIT 12", [$id, (string) $mz['branche'], (string) $mz['land']]), []),
                 'inhalteZahl' => (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE zielgruppe_id = ? AND status <> 'verworfen'", [$id], 0), 0),
+                'gegenstueck' => sicher(static fn() => Db::one("SELECT id, titel, status FROM mk_zielgruppen WHERE branche = ? AND land = ? AND (status = 'freigegeben' OR vorher IS NOT NULL)", [(string) $mz['branche'], MkLand::andere((string) $mz['land'])]), null),
+                'kampagneLaeuft' => (bool) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'inhalte' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"zielgruppe_id":' . $id . ',%'], 0), false),
+                'zahlen' => sicher(static function () use ($id, $mz): array {   // was die Kampagnen dieser Zielgruppe gebracht haben (30 Tage)
+                    $z = MkKampagne::zahlen(date('Y-m-d', strtotime('-30 days')), date('Y-m-d'));
+                    $s = MkKampagne::LEER;
+                    foreach (Db::all('SELECT id FROM mk_kampagnen WHERE zielgruppe_id = ? OR (branche = ? AND land = ?)', [$id, (string) $mz['branche'], (string) $mz['land']]) as $r) {
+                        foreach ($s as $k => $_) { $s[$k] += (int) ($z[(int) $r['id']][$k] ?? 0); }
+                    }
+                    return $s;
+                }, MkKampagne::LEER),
                 'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
             break;
         }
@@ -4610,6 +4657,20 @@ switch ($route) {
         $mrQ = array_filter(['art' => (string) ($_GET['art'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')],
             static fn($v) => preg_match('/^[a-z_]{1,30}$/', $v) === 1);
         weiter('zielgruppen' . ($mrQ ? '?' . http_build_query($mrQ) : '') . '#funde');
+
+    case 'freigabe':   // Freigabe-Stapel (Marketing-Studio 6, Uwe: „ja“ zu U3)
+        require_once __DIR__ . '/src/MkVeroeffentlichen.php';
+        require_once __DIR__ . '/src/MkLand.php';
+        require_once __DIR__ . '/src/AkquiseSteuerung.php';
+        $msLand = MkLand::wahl();
+        $msX = MkInhalt::naechster($msLand, (array) ($_SESSION['mk_spaeter'] ?? []));
+        ansicht('freigabe', ['land' => $msLand, 'x' => $msX, 'offen' => MkLand::offen(),
+            'rest' => (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf' AND land = ?", [$msLand], 0),
+            'zg' => $msX && $msX['zielgruppe_id'] ? MkZielgruppe::laden((int) $msX['zielgruppe_id']) : null,
+            'medien' => $msX ? sicher(static fn() => MkMedium::zuInhalt((int) $msX['id']), []) : [],
+            'bildLaeuft' => $msX ? (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"inhalt_id":' . (int) $msX['id'] . ',%'], 0), 0) : 0,
+            'geplant' => sicher(static fn() => Db::all("SELECT id, titel, plattform, land, geplant_am FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL ORDER BY geplant_am LIMIT 14"), [])]);
+        break;
 
     case 'medien':    // Bilder und Videos (Schritt 3): nur angemeldet, nur über PHP
         require_once __DIR__ . '/src/MkMedium.php';
