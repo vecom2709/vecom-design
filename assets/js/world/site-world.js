@@ -20,28 +20,6 @@ const saveData = navigator.connection && navigator.connection.saveData;
 const coarse = window.matchMedia('(pointer: coarse)').matches;
 const weak = coarse && ((navigator.deviceMemory || 4) < 4 || (navigator.hardwareConcurrency || 4) < 6);
 
-/* DER HERO GEHOERT DEM GERECHNETEN V (30.09.2026)
-   Auf der Startseite steht im Hero das Bild aus dem Intro-Film (.hero-marke).
-   Solange der Hero ueberwiegend im Bild ist, bleibt die Echtzeit-Buehne
-   dahinter unsichtbar (app.css: html.im-hero .stage) und blendet erst ein,
-   wenn man weiterscrollt. Die Klasse setzt schon der Kopf der Seite, damit
-   im allerersten Bild kein zweites V aufblitzt. */
-{
-  const marke = document.querySelector('.hero-marke');
-  const heroEl = marke && marke.closest('.hero');
-  if (heroEl && 'IntersectionObserver' in window) {
-    /* Gemessen wird am Bildschirm, nicht am Hero: Auf niedrigen Fenstern ist
-       der Hero hoeher als der Schirm und erreichte nie 42 % Sichtbarkeit --
-       dann stand das Echtzeit-V schon ganz oben ueber dem Bild (live
-       30.09.2026, 1280x495). Jetzt: im Hero, solange seine Unterkante
-       tiefer als 42 % der Bildschirmhoehe liegt. */
-    new IntersectionObserver(([e]) => root.classList.toggle('im-hero', e.isIntersecting),
-      { rootMargin: '-42% 0px 0px 0px', threshold: 0 }).observe(heroEl);
-  } else {
-    root.classList.remove('im-hero');
-  }
-}
-
 function off(reason) {
   root.setAttribute('data-world', reason);
   if (canvas) canvas.hidden = true;

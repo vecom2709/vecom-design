@@ -640,35 +640,6 @@ body.nav-open .burger span:nth-child(3) { transform: translateY(-7.5px) rotate(-
 }
 
 .hero__inner { position: relative; z-index: 2; }
-
-/* Das goldene V als gerechnetes Bild im Hero (30.09.2026). Steht ab dem
-   ersten Bild -- ohne Skript, ohne WebGL, auf jedem Geraet --, und der
-   Intro-Film endet genau auf diesem Bild. Unten laeuft es weich aus, damit
-   die Kante zum naechsten Abschnitt nicht als Linie steht. Die gemalten
-   Ersatzteile (Leuchtmarke, Lichtkegel, Streifen, Raster) wuerden daneben
-   ein zweites V malen und entfallen. */
-.hero-marke {
-  position: absolute; inset: 0 0 auto 0; z-index: 0; pointer-events: none;
-  /* nie hoeher als der erste Schirm: sonst wuerde das V in hohen Heros
-     riesig aufgezogen und angeschnitten */
-  height: min(100%, max(100svh, 560px));
-  -webkit-mask-image: linear-gradient(180deg, #000 72%, rgba(0,0,0,.6) 88%, transparent 100%);
-          mask-image: linear-gradient(180deg, #000 72%, rgba(0,0,0,.6) 88%, transparent 100%);
-}
-.hero-marke img {
-  display: block; width: 100%; height: 100%;
-  object-fit: cover; object-position: 62% 22%; /* niedrige Fenster schneiden unten (Boden) statt oben (V) */
-}
-.hero-marke ~ .hero__mark,
-.hero-marke ~ .hero__light,
-.hero-marke ~ .hero__sweep,
-.hero-marke ~ .hero__grid { display: none; }
-/* Solange der Hero im Bild ist, bleibt die Echtzeit-Buehne darunter
-   unsichtbar -- sonst stuende beim Wegscrollen kurz ein zweites V da. */
-html.im-hero .stage { opacity: 0 !important; }
-@media (max-width: 899px) {
-  .hero-marke img { object-position: 50% 30%; }
-}
 .eyebrow {
   font-family: var(--f-display); font-stretch: 92%;
   display: inline-flex; align-items: center; gap: .7rem;

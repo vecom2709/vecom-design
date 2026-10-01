@@ -6601,11 +6601,26 @@ foreach (['auto', 'kleinwagen', 'mittelklasse', 'schuh'] as $m_) {
 pruefe('Autos und Laufschuh stehen am echten Ort (Hintergrund und Kontaktschatten vorhanden)', $ortAutos);
 pruefe('am echten Ort baut die Echtzeit keinen Bodenspiegel',
     str_contains((string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js"), 'if (ORT) an = false;'));
+/* HERO: DAS BEWEGTE V, KEIN STANDBILD DAVOR (01.10.2026, Uwe: "nimm das v
+   wieder heraus und nimm das was vorher war, sieht besser aus"). Das
+   gerechnete Hero-Bild vom 30.09. ist wieder draussen; im Hero arbeitet
+   wieder allein die Echtzeit-Buehne mit Eroeffnungsflug, darunter liegt fuer
+   schwache Geraete das Standbild der Buehne. Wer das Hero-Bild zurueckholt,
+   faellt hier auf. */
 $heroHtml_ = (string) @file_get_contents("$oben/index.html");
-pruefe('das goldene V steht ab dem ersten Bild im Hero (Endbild des Intros, vorrangig geladen)',
-    str_contains($heroHtml_, '<picture class="hero-marke"') && str_contains($heroHtml_, 'fetchpriority="high"')
-    && is_file("$oben/assets/img/3d/hero-marke-quer.avif") && is_file("$oben/assets/img/3d/hero-marke-hoch.avif")
-    && str_contains((string) @file_get_contents("$oben/assets/css/app.css"), 'html.im-hero .stage { opacity: 0 !important; }'));
+$heroCss_ = (string) @file_get_contents("$oben/assets/css/app.css");
+$heroWelt_ = (string) @file_get_contents("$oben/assets/js/world/site-world.js");
+$heroBeats_ = (string) @file_get_contents("$oben/assets/js/world/site-beats.js");
+pruefe('im Hero steht kein gerechnetes V-Bild vor der Buehne (kein hero-marke, kein im-hero)',
+    !str_contains($heroHtml_, 'hero-marke') && !str_contains($heroHtml_, 'im-hero')
+    && !str_contains($heroCss_, '.hero-marke') && !str_contains($heroCss_, 'im-hero')
+    && !str_contains($heroWelt_, 'im-hero'));
+pruefe('die Echtzeit-Buehne startet wieder mit Eroeffnungsflug und Aufbau der Marke',
+    str_contains($heroBeats_, 'applyTween(OPENING, true);') && str_contains($heroBeats_, 'w.logo.scale.setScalar(0.55);')
+    && !str_contains($heroBeats_, 'AUFTAKT'));
+pruefe('fuer schwache Geraete liegt das Standbild der Buehne wieder in der Seite',
+    str_contains($heroHtml_, '<picture class="buehne-standbild"')
+    && is_file("$oben/assets/img/3d/buehne-standbild.avif") && is_file("$oben/assets/img/3d/buehne-standbild.webp"));
 $echtzeit_ = (string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js");
 pruefe('am echten Ort wird die Sonne aus dem Rundumbild geloest und als eigenes Licht mit Schatten gesetzt (kein fleckiger Lack)',
     str_contains($echtzeit_, 'function sonneAbtrennen(') && str_contains($echtzeit_, 'sonnenLicht.castShadow = true;'));
