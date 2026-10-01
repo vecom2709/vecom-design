@@ -121,6 +121,14 @@ final class MetaSeite
         return mb_substr((string) ($r['json']['error']['message'] ?? ('HTTP ' . $r['status'])), 0, 200);
     }
 
+    /** Für das Content-Studio (01.10.2026): ein Graph-Aufruf mit dem Seiten-Schlüssel — der Schlüssel bleibt hier. */
+    public static function graph(string $methode, string $pfad, ?array $body = null): array
+    {
+        return self::anfrage($methode, self::API . '/' . ltrim($pfad, '/'), $body);
+    }
+
+    public static function fehler(array $r): string { return self::fehlerText($r); }
+
     /* ------------------------------ Z4 Beiträge -------------------------- */
 
     public static function analyseLink(string $sprache): string

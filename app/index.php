@@ -579,6 +579,22 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
                 weiter('inhalte/' . (int) ($_POST['id'] ?? 0) . '#medien');
 
+            /* Veröffentlichen (Marketing-Studio Schritt 4, 01.10.2026) */
+            case 'inhalt_posten':
+            case 'inhalt_planen':
+                require_once __DIR__ . '/src/MkVeroeffentlichen.php';
+                $miId = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'inhalt_posten') {
+                    $mvE = MkVeroeffentlichen::jetzt($miId);
+                    $_SESSION[$mvE['ok'] ? 'gut' : 'fehler'] = $mvE['ok']
+                        ? (!empty($mvE['wartet']) ? 'Instagram verarbeitet das Video noch — der nächste Cronlauf veröffentlicht es.' : 'Veröffentlicht.')
+                        : (string) $mvE['grund'];
+                } else {
+                    $f = MkVeroeffentlichen::planen($miId, trim((string) ($_POST['wann'] ?? '')));
+                    $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? (trim((string) ($_POST['wann'] ?? '')) === '' ? 'Planung aufgehoben.' : 'Geplant — der Cronlauf veröffentlicht es zur gewählten Zeit.');
+                }
+                weiter('inhalte/' . $miId . '#posten');
+
             case 'inhalt_speichern':
             case 'inhalt_freigeben':
             case 'inhalt_veroeffentlicht':
@@ -4536,6 +4552,10 @@ switch ($route) {
         if ($id !== null) {
             $mi = MkInhalt::laden($id);
             if ($mi === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            if (isset($_GET['paket']) && in_array($mi['status'], ['freigegeben', 'veroeffentlicht'], true)) {
+                require_once __DIR__ . '/src/MkVeroeffentlichen.php';
+                MkVeroeffentlichen::paketSenden($mi);
+            }
             require_once __DIR__ . '/src/MkMedium.php';
             ansicht('inhalt', ['x' => $mi, 'zg' => $mi['zielgruppe_id'] ? MkZielgruppe::laden((int) $mi['zielgruppe_id']) : null,
                 'medien' => sicher(static fn() => MkMedium::zuInhalt($id), []),

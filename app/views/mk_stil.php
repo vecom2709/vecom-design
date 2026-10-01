@@ -132,7 +132,9 @@
   .mk-galerie__stueck .mk-medium{width:100%;margin:0;max-height:300px}
   .mk-galerie__stueck figcaption{display:flex;flex-direction:column;gap:8px;padding:10px 12px;font-size:12.5px;color:var(--dim)}
   .mk-galerie__knoepfe{display:flex;flex-wrap:wrap;gap:6px}
-  @media(min-width:900px){.mk-schreiben > .feld:first-of-type{grid-column:span 2}}
+  .mk-posten{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:center;margin:0 0 16px;padding:0 0 14px;border-bottom:1px solid var(--linie)}
+  @media(min-width:900px){.mk-schreiben > div.feld:first-of-type{grid-column:span 2}}
+  .mk-schreiben > .breit{grid-column:1/-1}
   .mk-budget{display:inline-block;width:90px;height:6px;border-radius:99px;background:var(--flaeche2);overflow:hidden;vertical-align:middle;margin:6px 6px 2px 0}
   .mk-budget i{display:block;height:100%;border-radius:99px}
   .mk-budget.gross{width:100%;height:9px;margin:4px 0 6px}

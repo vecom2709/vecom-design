@@ -54,8 +54,32 @@ require __DIR__ . '/mk_stil.php';
   </div>
 </div>
 <?php elseif ($link): ?>
-<div class="block" style="border-color:var(--linie2)">
+<?php require_once dirname(__DIR__) . '/src/MkVeroeffentlichen.php';
+  $mv = $x['status'] === 'freigegeben' ? MkVeroeffentlichen::moeglich($x) : ['auto' => false, 'grund' => '', 'medium' => null];
+  $mvIds = json_decode((string) ($x['post_ids'] ?? ''), true) ?: [];
+  $mvPl = MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']; ?>
+<div class="block" id="posten" style="border-color:var(--linie2)">
   <h2><?= $x['status'] === 'veroeffentlicht' ? 'Veröffentlicht' : 'Freigegeben — jetzt posten' ?> <span class="mehr">eigener Link, zählt bis zum Kunden</span></h2>
+  <?php if (!empty($x['post_fehler'])): ?><div class="hinweis schlecht" style="margin:0 0 12px">Zuletzt nicht geklappt: <?= Fmt::h((string) $x['post_fehler']) ?></div><?php endif; ?>
+  <?php if ($x['status'] === 'freigegeben'): ?>
+  <div class="mk-posten">
+    <?php if ($mv['auto']): ?>
+      <?= $posten('inhalt_posten', 'Jetzt auf ' . $mvPl . ' veröffentlichen', 'knopf haupt') ?>
+      <form method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" class="mk-filter" style="margin:0">
+        <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="inhalt_planen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>">
+        <label class="mk-sr" for="mv_wann">Zeitpunkt</label>
+        <input id="mv_wann" type="datetime-local" name="wann" style="width:auto" min="<?= date('Y-m-d\TH:i', time() + 300) ?>" value="<?= $x['geplant_am'] ? Fmt::h(date('Y-m-d\TH:i', strtotime((string) $x['geplant_am']))) : '' ?>">
+        <button class="knopf"><?= $x['geplant_am'] ? 'Neu planen' : 'Planen' ?></button>
+      </form>
+      <?php if ($x['geplant_am']): ?><?= $posten('inhalt_planen', 'Planung aufheben', 'knopf klein') ?><span class="marke2 warnung">geplant für <?= Fmt::h(date('d.m. H:i', strtotime((string) $x['geplant_am']))) ?></span><?php endif; ?>
+    <?php else: ?>
+      <p class="mk-fein" style="margin:0;max-width:70ch"><?= Fmt::h($mv['grund']) ?></p>
+    <?php endif; ?>
+    <a class="knopf" href="<?= Fmt::h(url('inhalte/' . (int) $x['id']) . '?paket=1') ?>">Paket herunterladen (ZIP)</a>
+  </div>
+  <?php elseif ($mvIds): ?>
+  <p class="mk-fein" style="margin:0 0 10px">Automatisch veröffentlicht<?= !empty($mvIds['fb']) ? ' · <a href="https://www.facebook.com/' . Fmt::h(rawurlencode((string) $mvIds['fb'])) . '" target="_blank" rel="noopener noreferrer">auf Facebook ansehen</a>' : '' ?><?= !empty($mvIds['ig']) ? ' · Instagram-Beitrag ' . Fmt::h((string) $mvIds['ig']) : '' ?><?= !empty($mvIds['tg']) ? ' · Telegram-Nachricht ' . Fmt::h((string) $mvIds['tg']) : '' ?></p>
+  <?php endif; ?>
   <div class="mk-teilen">
     <div>
       <div class="mk-link"><input id="mi_link" readonly value="<?= Fmt::h($link) ?>" aria-label="Eigener Link"><button class="knopf" type="button" data-kopieren="mi_link">Link kopieren</button></div>
@@ -66,7 +90,8 @@ require __DIR__ . '/mk_stil.php';
       <textarea id="mi_text" readonly rows="8" style="font-size:13.5px;line-height:1.5"><?= Fmt::h(MkInhalt::kopiertext($x)) ?></textarea>
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <button class="knopf haupt" type="button" data-kopieren="mi_text">Text kopieren</button>
-        <?php if ($x['status'] === 'freigegeben'): ?><?= $posten('inhalt_veroeffentlicht', 'Als veröffentlicht markieren') ?><?php endif; ?>
+        <?php if ($x['status'] === 'freigegeben'): ?><?= $posten('inhalt_veroeffentlicht', 'Selbst gepostet — als veröffentlicht markieren') ?><?php endif; ?>
+        <?php if ($x['status'] === 'veroeffentlicht'): ?><a class="knopf" href="<?= Fmt::h(url('inhalte/' . (int) $x['id']) . '?paket=1') ?>">Paket (ZIP)</a><?php endif; ?>
         <?php if ($kamp): ?><a class="knopf" href="<?= Fmt::h(url('kampagnen/' . (int) $kamp['id'])) ?>">Kampagne „<?= Fmt::h($kamp['name']) ?>“ · Zahlen</a><?php endif; ?>
       </div>
       <p class="mk-fein" style="margin:0">Werbemittel <span class="mk-code"><?= Fmt::h(($kamp['code'] ?? '') . '/' . ($cr['code'] ?? '')) ?></span><?= $x['veroeffentlicht_am'] ? ' · veröffentlicht am ' . Fmt::h(date('d.m.Y', strtotime((string) $x['veroeffentlicht_am']))) : '' ?></p>

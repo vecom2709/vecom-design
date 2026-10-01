@@ -17298,6 +17298,129 @@ pruefe('PC: Kie-Schlüssel nur aus der Umgebung, nie ausgegeben; Guthaben vor je
 Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
+   Marketing-Studio Schritt 4: Veröffentlichen nach Freigabe (01.10.2026)
+   ============================================================================ */
+abschnitt('Marketing-Studio: Veröffentlichen');
+require_once $wurzel . '/src/MkVeroeffentlichen.php';
+require_once $wurzel . '/src/MetaSeite.php';
+require_once $wurzel . '/src/Telegram.php';
+$mvMeta = []; $mvIgStatus = 'IN_PROGRESS'; $mvMetaFehler = false;
+MetaSeite::$netz = static function (string $m, string $url, ?array $body, string $token) use (&$mvMeta, &$mvIgStatus, &$mvMetaFehler): array {
+    $mvMeta[] = [$m, $url, $body];
+    if ($mvMetaFehler) { return ['status' => 400, 'json' => ['error' => ['message' => '(#200) Permissions error']]]; }
+    if (str_ends_with($url, '/111/feed')) { return ['status' => 200, 'json' => ['id' => '111_801']]; }
+    if (str_ends_with($url, '/111/photos')) { return ['status' => 200, 'json' => ['id' => 'ph2', 'post_id' => '111_802']]; }
+    if (str_ends_with($url, '/111/videos')) { return ['status' => 200, 'json' => ['id' => 'v803']]; }
+    if (str_ends_with($url, '/222/media')) { return ['status' => 200, 'json' => ['id' => 'cont' . count($mvMeta)]]; }
+    if (str_contains($url, '?fields=status_code')) { return ['status' => 200, 'json' => ['status_code' => $mvIgStatus]]; }
+    if (str_ends_with($url, '/222/media_publish')) { return ['status' => 200, 'json' => ['id' => 'igp' . count($mvMeta)]]; }
+    return ['status' => 404, 'json' => null];
+};
+MetaSeite::speichern(['seite_id' => '111', 'ig_id' => '222', 'token' => 'EAAP-seiten-test', 'sprache' => 'it']);
+$mvTg = []; $mvTgAlt = Telegram::$netz;
+Telegram::$netz = static function (string $m, array $d) use (&$mvTg): array { $mvTg[] = [$m, $d]; return ['ok' => true, 'result' => ['message_id' => 77, 'url' => 'x', 'id' => 5]]; };
+if (!Telegram::bereit()) { Telegram::tokenSpeichern('123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ'); Telegram::anmelden(); }
+$mvKanalAlt = Telegram::einstellung('tg_kanal_id');
+Telegram::setzen('tg_kanal_id', '-1009876543210');
+
+/* Stücke: Facebook ohne Bild, Instagram mit Bild, Instagram-Reel mit Video, Telegram */
+$mvNeu = static function (string $format, string $plattform, array $felder, string $titel) use ($ciZid): int {
+    $id = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => $ciZid, 'branche' => 'restaurant', 'land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => $format,
+        'plattform' => $plattform, 'titel' => $titel, 'felder' => json_encode($felder, JSON_UNESCAPED_UNICODE)]);
+    MkInhalt::freigeben($id);
+    return $id;
+};
+$mvFb = $mvNeu('beitrag', 'facebook', ['text' => 'Testo per Facebook', 'hashtags' => ['#ristoranti']], 'FB ohne Bild');
+$mvIg = $mvNeu('beitrag', 'instagram', ['text' => 'Testo per Instagram', 'cta' => 'Link in bio'], 'IG mit Bild');
+$mvRe = $mvNeu('reel', 'instagram', ['hook' => 'Uno', 'szenen' => [['sekunden' => 3, 'bild' => 'a'], ['sekunden' => 3, 'bild' => 'b']], 'text' => 'Reel'], 'IG-Reel');
+$mvTe = $mvNeu('telegram', 'telegram', ['text' => 'Nuovo nel canale', 'knopf' => 'Check gratuito'], 'Telegram');
+$mvDatei = static function (int $inhalt, string $art, string $mime) use ($mmPng): int {
+    $name = bin2hex(random_bytes(16)) . '.bin';
+    file_put_contents(MkMedium::ordner() . '/' . $name, $mmPng);
+    return (int) Db::insert('mk_medien', ['inhalt_id' => $inhalt, 'art' => $art, 'datei' => $name, 'mime' => $mime, 'bytes' => strlen($mmPng), 'sha256' => hash('sha256', $mmPng), 'status' => 'gewaehlt']);
+};
+pruefe('Veröffentlichen: was automatisch geht — Instagram nur mit gewähltem Bild/Video, Anzeigen und Google nur als Paket',
+    MkVeroeffentlichen::moeglich(MkInhalt::laden($mvFb))['auto'] === true && MkVeroeffentlichen::moeglich(MkInhalt::laden($mvIg))['auto'] === false
+    && str_contains(MkVeroeffentlichen::moeglich(MkInhalt::laden($mvIg))['grund'], 'Bild') && MkVeroeffentlichen::moeglich(MkInhalt::laden($ciIdG))['auto'] === false
+    && MkVeroeffentlichen::moeglich(MkInhalt::laden($mvTe))['auto'] === true && MkVeroeffentlichen::moeglich(MkInhalt::laden($mvRe))['auto'] === false);
+$mvE1 = MkVeroeffentlichen::jetzt($mvFb);
+$mvX1 = MkInhalt::laden($mvFb);
+pruefe('Facebook ohne Bild: Beitrag mit Text und eigenem Link, danach „veröffentlicht“ mit Beitrags-ID',
+    $mvE1['ok'] === true && $mvX1['status'] === 'veroeffentlicht' && json_decode((string) $mvX1['post_ids'], true)['fb'] === '111_801'
+    && str_ends_with($mvMeta[0][1], '/111/feed') && $mvMeta[0][2]['link'] === MkInhalt::link($mvX1) && str_contains($mvMeta[0][2]['message'], 'Testo per Facebook')
+    && MkVeroeffentlichen::jetzt($mvFb)['ok'] === false, json_encode($mvMeta));
+$mvM = $mvDatei($mvIg, 'bild', 'image/png');
+$mvE2 = MkVeroeffentlichen::jetzt($mvIg);
+$mvTok = (string) Db::wert('SELECT token FROM mk_medien WHERE id = ?', [$mvM]);
+$mvMedia = array_values(array_filter($mvMeta, static fn($r) => str_ends_with($r[1], '/222/media')))[0] ?? null;
+pruefe('Instagram mit Bild: Container mit öffentlicher Adresse (Zufallsschlüssel, als JPEG), veröffentlicht, ohne Link im Text',
+    $mvE2['ok'] === true && MkInhalt::laden($mvIg)['status'] === 'veroeffentlicht' && preg_match('/^[a-f0-9]{32}$/', $mvTok) === 1
+    && $mvMedia !== null && str_ends_with($mvMedia[2]['image_url'], '/m.php?t=' . $mvTok . '&f=jpg') && !str_contains($mvMedia[2]['caption'], '/k/'), json_encode($mvMedia));
+$_GET = ['t' => $mvTok];
+set_error_handler(static fn(int $n, string $m): bool => str_contains($m, 'headers already sent'));   // CLI: Kopfzeilen gehen nicht, der Inhalt schon
+ob_start(); require $oben . '/m.php'; $mvAus = (string) ob_get_clean(); $_GET = [];
+restore_error_handler();
+pruefe('m.php liefert das gewählte Bild eines freigegebenen Inhalts unter dem Zufallsschlüssel — als JPEG, wenn verlangt; nur gewählte Medien, nicht im Index',
+    $mvAus === $mmPng && str_contains((string) file_get_contents($oben . '/m.php'), "m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht')")
+    && str_contains((string) file_get_contents($oben . '/m.php'), "X-Robots-Tag: noindex"));
+$mvDatei($mvRe, 'video', 'video/mp4');
+$mvE3 = MkVeroeffentlichen::jetzt($mvRe);
+$mvX3 = MkInhalt::laden($mvRe);
+pruefe('Instagram-Reel: solange Meta das Video verarbeitet, wartet der Container — der Cronlauf veröffentlicht, sobald es fertig ist',
+    $mvE3['ok'] === true && !empty($mvE3['wartet']) && $mvX3['status'] === 'freigegeben' && $mvX3['geplant_am'] !== null && !empty(json_decode((string) $mvX3['post_ids'], true)['ig_container'])
+    && (static function () use (&$mvIgStatus, $mvRe): bool { $r1 = MkVeroeffentlichen::faellige(); $mvIgStatus = 'FINISHED'; $r2 = MkVeroeffentlichen::faellige();
+        return $r1['gepostet'] === 0 && $r2['gepostet'] === 1 && MkInhalt::laden($mvRe)['status'] === 'veroeffentlicht'; })());
+$mvE4 = MkVeroeffentlichen::jetzt($mvTe);
+$mvSend = end($mvTg);
+pruefe('Telegram: Beitrag in den hinterlegten Kanal, Knopf führt auf den eigenen Link',
+    $mvE4['ok'] === true && MkInhalt::laden($mvTe)['status'] === 'veroeffentlicht' && $mvSend[0] === 'sendMessage' && $mvSend[1]['chat_id'] === '-1009876543210'
+    && $mvSend[1]['reply_markup']['inline_keyboard'][0][0]['url'] === MkInhalt::link(MkInhalt::laden($mvTe)) && $mvSend[1]['reply_markup']['inline_keyboard'][0][0]['text'] === 'Check gratuito', json_encode($mvSend));
+
+/* Planen und Fehler */
+$mvFb2 = $mvNeu('beitrag', 'facebook', ['text' => 'Geplant'], 'FB geplant');
+pruefe('Planen: nur Zukunft (5 Minuten bis 60 Tage), nur was automatisch geht; der Cronlauf postet erst, wenn es soweit ist',
+    MkVeroeffentlichen::planen($mvFb2, date('Y-m-d\TH:i', time() - 3600)) !== null && MkVeroeffentlichen::planen($ciIdG, date('Y-m-d\TH:i', time() + 3600)) !== null
+    && MkVeroeffentlichen::planen($mvFb2, date('Y-m-d\TH:i', time() + 3600)) === null && MkVeroeffentlichen::faellige()['gepostet'] === 0
+    && MkInhalt::laden($mvFb2)['status'] === 'freigegeben');
+Db::run('UPDATE mk_inhalte SET geplant_am = NOW() - INTERVAL 1 MINUTE WHERE id = ?', [$mvFb2]);
+$mvMetaFehler = true;
+$mvF = MkVeroeffentlichen::faellige();
+$mvX5 = MkInhalt::laden($mvFb2);
+pruefe('Fehler beim geplanten Posten: Grund steht am Inhalt, Planung aufgehoben, Uwe bekommt eine Meldung',
+    $mvF['fehler'] === 1 && $mvX5['status'] === 'freigegeben' && $mvX5['geplant_am'] === null && str_contains((string) $mvX5['post_fehler'], 'Permissions error')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalt_post_fehler'", [], 0) >= 1);
+$mvMetaFehler = false;
+pruefe('Planung aufheben geht mit leerem Zeitpunkt', MkVeroeffentlichen::planen($mvFb2, date('Y-m-d\TH:i', time() + 7200)) === null
+    && MkVeroeffentlichen::planen($mvFb2, '') === null && MkInhalt::laden($mvFb2)['geplant_am'] === null);
+
+/* Paket */
+$mvP = MkVeroeffentlichen::paketInhalt(MkInhalt::laden($ciIdG) + ['kampagne_name' => 'Restaurant IT · Google']);
+$mvPi = MkVeroeffentlichen::paketInhalt(MkInhalt::laden($mvIg));
+pruefe('Paket: Text mit Link, Anleitung; Google-Anzeige zusätzlich als Datei für den Google Ads Editor mit 15 Überschriften, 4 Beschreibungen und finaler URL; Bilder als Datei',
+    isset($mvP['text.txt'], $mvP['link.txt'], $mvP['liesmich.txt'], $mvP['google-ads-editor.csv'], $mvP['keywords.txt'])
+    && str_contains($mvP['google-ads-editor.csv'], 'Headline 15') && str_contains($mvP['google-ads-editor.csv'], 'Description 4') && str_contains($mvP['google-ads-editor.csv'], MkInhalt::link(MkInhalt::laden($ciIdG)))
+    && str_contains($mvP['liesmich.txt'], 'Google Ads Editor') && count(array_filter(array_keys($mvPi), static fn($k) => str_starts_with($k, 'bild-'))) === 1
+    && str_starts_with((string) $mvPi['bild-' . $mvM . '.png'], '@') && is_file(substr((string) $mvPi['bild-' . $mvM . '.png'], 1)));
+pruefe('Cronlauf: geplante Inhalte werden mit veröffentlicht', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'marketing_posten'"));
+$mvIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Posten und Planen hinter CSRF; Paket nur für Freigegebenes', strpos($mvIdx, "case 'inhalt_posten':") > strpos($mvIdx, 'Csrf::pruefen()')
+    && str_contains($mvIdx, "isset(\$_GET['paket']) && in_array(\$mi['status'], ['freigegeben', 'veroeffentlicht'], true)"));
+$mvFehler = null; set_error_handler(static function (int $n, string $m) use (&$mvFehler): bool { $mvFehler = $m; return true; });
+$mvSeite = static function (int $id) use ($wurzel, $ciZid): string {
+    $x = MkInhalt::laden($id); $zg = MkZielgruppe::laden($ciZid); $funde = []; $kampagnen = []; $medien = MkMedium::zuInhalt($id); $medienAuftraege = []; $pc = ['pc_wach' => true, 'pc_alter' => 1];
+    ob_start(); require $wurzel . '/views/inhalt.php'; return (string) ob_get_clean();
+};
+Db::run("UPDATE mk_inhalte SET post_fehler = 'Facebook: (#200) Permissions error' WHERE id = ?", [$mvFb2]);
+$mvH1 = $mvSeite($mvFb2); $mvH2 = $mvSeite($ciIdG); $mvH3 = $mvSeite($mvFb);
+restore_error_handler();
+pruefe('Verwaltung: „Jetzt veröffentlichen“, Planen und Paket am freigegebenen Inhalt; ohne Automatik der Grund; nach dem Posten der Link zum Beitrag',
+    $mvFehler === null && str_contains($mvH1, 'Jetzt auf Facebook veröffentlichen') && str_contains($mvH1, 'type="datetime-local"') && str_contains($mvH1, '?paket=1')
+    && str_contains($mvH1, 'Zuletzt nicht geklappt') && !str_contains($mvH2, 'Jetzt auf') && str_contains($mvH2, 'Google Ads Editor')
+    && str_contains($mvH3, 'facebook.com/111_801'), (string) $mvFehler);
+foreach (Db::all('SELECT datei FROM mk_medien WHERE inhalt_id IN (?, ?)', [$mvIg, $mvRe]) as $mvR) { @unlink(MkMedium::ordner() . '/' . $mvR['datei']); @unlink(MkMedium::ordner() . '/' . basename((string) $mvR['datei'], '.bin') . '-jpg.bin'); }
+MetaSeite::$netz = null; Telegram::$netz = $mvTgAlt; Telegram::setzen('tg_kanal_id', $mvKanalAlt);
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

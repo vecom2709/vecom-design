@@ -286,6 +286,11 @@ final class Cron
                 try { require_once __DIR__ . '/WebTipp.php'; $tp = WebTipp::lauf(); if ($tp['geschickt'] > 0) { $wa['tipps'] = $tp['geschickt']; } } catch (Throwable $e) { $wa['tipp_fehler'] = mb_substr($e->getMessage(), 0, 120); }
                 return AkquiseFolge::lauf() + $wa;
             },
+            /* Content-Studio (01.10.2026): geplante, freigegebene Inhalte auf Facebook, Instagram und Telegram veröffentlichen. */
+            'marketing_posten' => static function () {
+                require_once __DIR__ . '/MkVeroeffentlichen.php';
+                return MkVeroeffentlichen::faellige();
+            },
             /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */
             'akquise_termine' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }

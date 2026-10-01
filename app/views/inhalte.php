@@ -85,7 +85,7 @@ require __DIR__ . '/mk_stil.php';
         <span class="mk-inhalt-karte__text"><?= Fmt::h($kurz($x)) ?></span>
         <span class="mk-inhalt-karte__fuss">
           <span class="marke2 <?= ['entwurf' => 'warnung', 'freigegeben' => 'gut', 'veroeffentlicht' => 'gut', 'verworfen' => ''][$x['status']] ?? '' ?>"><?= Fmt::h(MkInhalt::STATUS[$x['status']] ?? $x['status']) ?></span>
-          <span class="mk-fein"><?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?><?= $x['creative_id'] ? ' · eigener Link' : '' ?></span>
+          <span class="mk-fein"><?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?><?= $x['creative_id'] ? ' · eigener Link' : '' ?><?= !empty($x['geplant_am']) && $x['status'] === 'freigegeben' ? ' · geplant ' . Fmt::h(date('d.m. H:i', strtotime((string) $x['geplant_am']))) : '' ?></span>
         </span>
       </a>
     <?php endforeach; ?>
