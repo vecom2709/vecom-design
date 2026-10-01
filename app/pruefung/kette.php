@@ -13172,7 +13172,8 @@ pruefe('Termine: auch ohne die Prüfung davor lässt die Datenbank keine zweite 
 pruefe('Termine: erfundene Uhrzeit, fehlender Name, zweiter Termin derselben Adresse — abgelehnt',
     (AkquiseTermin::buchen(['slot' => $tmMorgen . ' 03:00', 'name' => 'X Y', 'email' => 'x@termin.example'])['grund'] ?? '') === 'zeit'
     && (AkquiseTermin::buchen(['slot' => $tmSlot, 'name' => '', 'email' => 'x@termin.example'])['grund'] ?? '') === 'angaben'
-    && (AkquiseTermin::buchen(['slot' => substr($tmSlot, 0, 11) . AkquiseTermin::freie()[substr($tmSlot, 0, 10)][0], 'name' => 'Giulia', 'email' => 'giulia@termin.example'])['grund'] ?? '') === 'zuviel');
+    /* Irgendeine freie Zeit (01.10.2026): „derselbe Tag“ hatte zwischen 10:30 und 12 Uhr nach 24 h Vorlauf nur eine Zeit — dann gab es dort keine zweite, und der Lauf riss uhrzeitabhängig. */
+    && (AkquiseTermin::buchen(['slot' => (static function (): string { $f = AkquiseTermin::freie(); $t = (string) array_key_first($f); return $t . ' ' . ($f[$t][0] ?? ''); })(), 'name' => 'Giulia', 'email' => 'giulia@termin.example'])['grund'] ?? '') === 'zuviel');
 $tmIcs = AkquiseTermin::ics($tmT);
 pruefe('Termine: Kalenderdatei mit Beginn in UTC, Absagelink und CRLF', str_contains($tmIcs, "BEGIN:VEVENT\r\n") && str_contains($tmIcs, 'DTSTART:' . gmdate('Ymd\THis\Z', strtotime((string) $tmT['beginn'])))
     && str_contains($tmIcs, 'termin.php?t=' . $tmT['token']));
