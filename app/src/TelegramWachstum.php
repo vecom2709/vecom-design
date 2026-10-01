@@ -61,6 +61,9 @@ final class TelegramWachstum
         'beratung'       => 'Beratung gestartet',
         'lead'           => 'Anfrage abgeschickt',
         'app_start'      => 'Mini-App geöffnet',
+        // Kommentare unter dem Kanal (01.10.2026, TelegramGruppe): nur Zahlen, kein Inhalt, kein Absender.
+        'kommentar'      => 'Kommentare unter dem Kanal',
+        'kommentar_weg'  => 'Kommentare gelöscht (Werbung)',
     ];
 
     /** Die Stufen, die ein Chat einmal erreichen kann (telegram_chats.stufen). */
@@ -431,6 +434,7 @@ final class TelegramWachstum
             $z[] = 'Woher: ' . implode(' · ', $namen);
         }
         $z[] = 'Vecom-Fenster geöffnet: ' . $n('app_start') . ' · Preisrechner: ' . $n('rechner') . ' (' . $n('rechner_fertig') . ' fertig) · Anfragen: ' . $n('lead');
+        if ($n('kommentar') > 0 || $n('kommentar_weg') > 0) { $z[] = 'Kommentare: ' . $n('kommentar') . ($n('kommentar_weg') > 0 ? ' · davon als Werbung gelöscht: ' . $n('kommentar_weg') : ''); }
         try {
             require_once __DIR__ . '/Verzeichnisse.php';
             $f = array_sum(Verzeichnisse::faellig());

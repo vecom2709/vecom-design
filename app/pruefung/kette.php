@@ -15244,10 +15244,11 @@ $tgNetz = [];
 $tgAn = Telegram::anmelden();
 $tgSet = array_values(array_filter($tgNetz, static fn($x) => $x[0] === 'setWebhook'))[0][1] ?? [];
 $tgCmds = array_filter($tgNetz, static fn($x) => $x[0] === 'setMyCommands');
-pruefe('Webhook anmelden: eigene Adresse, 64-stelliges Prüfwort, nur message + callback_query (+ chat_member für Kanal-Beitritte seit T1), Stau verwerfen, Befehle in drei Sprachen',
+pruefe('Webhook anmelden: eigene Adresse, 64-stelliges Prüfwort, nur message + callback_query (+ chat_member für Kanal-Beitritte seit T1; edited_message, my_chat_member, poll für Kommentare und Umfragen seit 01.10.2026), Stau verwerfen, Befehle in drei Sprachen',
     $tgAn['ok'] && ($tgSet['url'] ?? '') === 'https://pruefung.example/telegram-webhook.php'
-    && strlen((string) ($tgSet['secret_token'] ?? '')) === 64 && ($tgSet['allowed_updates'] ?? []) === ['message', 'callback_query', 'chat_member']
-    && Telegram::einstellung('tg_updates') === 'message,callback_query,chat_member'
+    && strlen((string) ($tgSet['secret_token'] ?? '')) === 64
+    && ($tgSet['allowed_updates'] ?? []) === ['message', 'edited_message', 'callback_query', 'chat_member', 'my_chat_member', 'poll']
+    && Telegram::einstellung('tg_updates') === 'message,edited_message,callback_query,chat_member,my_chat_member,poll'
     && !empty($tgSet['drop_pending_updates']) && Telegram::pruefwort() === $tgSet['secret_token'] && Telegram::bereit()
     && count($tgCmds) === 4, json_encode($tgSet));
 
@@ -18645,7 +18646,7 @@ ob_start(); require $wurzel . '/views/telegram.php'; $t2Html2 = (string) ob_get_
 restore_error_handler();
 pruefe('T2: Reiter „Telegram“ rendert ohne Warnung — Kacheln, Funnel, Quellen mit Score, Grenzen offen benannt, auch ohne Zahlen',
     $kaFehler === null && str_contains($t2Html, 'Kampagne „Gastro Telegram“') && str_contains($t2Html, 'Growth Score') && str_contains($t2Html, 'Weg zum Kunden')
-    && str_contains($t2Html, 'Noch nicht messbar') && str_contains($t2Html, 'Umsatz aus Telegram') && str_contains($t2Html, Fmt::geld(120000))
+    && str_contains($t2Html, 'Bester Beitrag im Kanal') && str_contains($t2Html, 'Umsatz aus Telegram') && str_contains($t2Html, Fmt::geld(120000))
     && str_contains($t2Html2, 'Im Zeitraum kam noch niemand über Telegram'), (string) $kaFehler);
 $t2Lay = (string) file_get_contents($wurzel . '/views/layout.php');
 pruefe('T2: Reiter unter Marketing, mit Hilfesatz, Route in der Verwaltung',
@@ -19271,6 +19272,216 @@ pruefe('Wochenbericht: keine Namen, keine Chat-Kennungen', !str_contains($kvWb, 
 pruefe('Wochenbericht: geht an Uwes Telegram oder ersatzweise an den gewohnten Zuruf', TelegramWachstum::wochenberichtSenden(strtotime('2026-09-28 08:00')));
 Telegram::$netz = $kvTgAlt;
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', ''); Telegram::setzen('tg_bot_offen', '1'); Telegram::setzen('tg_kanal_menue_id', '');
+
+/* ============================================================================
+   Telegram-Kanal: Kommentare mit Schutz, Umfragen, Redaktionsplan
+   (01.10.2026, Uwe: „Alles“ — Vorschläge 5, 6, 2)
+   ============================================================================ */
+abschnitt('Telegram-Kanal: Kommentare mit Schutz, Umfragen, Redaktionsplan');
+require_once $wurzel . '/src/TelegramGruppe.php';
+require_once $wurzel . '/src/TelegramUmfrage.php';
+require_once $wurzel . '/src/TelegramKanalPlan.php';
+require_once $wurzel . '/src/TelegramMarketing.php';
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }
+$kgNetz = []; $kgRolle = ['status' => 'member']; $kgVerknuepft = ''; $kgTeam = [];
+$kgTgAlt = Telegram::$netz;
+Telegram::$netz = static function (string $m, array $d) use (&$kgNetz, &$kgRolle, &$kgVerknuepft, &$kgTeam): array {
+    $kgNetz[] = [$m, $d];
+    if ($m === 'getChat') {
+        if ((string) $d['chat_id'] === '-1004410953446') {
+            return ['ok' => true, 'result' => ['id' => -1004410953446, 'type' => 'channel', 'title' => 'Vecom Design'] + ($kgVerknuepft !== '' ? ['linked_chat_id' => (int) $kgVerknuepft] : [])];
+        }
+        return ['ok' => true, 'result' => ['id' => (int) $d['chat_id'], 'type' => 'supergroup', 'title' => 'Vecom Design · Commenti']];
+    }
+    if ($m === 'getMe') { return ['ok' => true, 'result' => ['id' => 9990001, 'is_bot' => true, 'username' => 'vecom_pruef_bot']]; }
+    if ($m === 'getChatMember') {
+        if ((int) $d['user_id'] === 9990001) { return ['ok' => true, 'result' => $kgRolle]; }
+        return ['ok' => true, 'result' => ['status' => in_array((int) $d['user_id'], $kgTeam, true) ? 'administrator' : 'member']];
+    }
+    if ($m === 'sendPoll') {
+        return ['ok' => true, 'result' => ['message_id' => 4242, 'poll' => ['id' => '5551234567890', 'question' => $d['question'],
+            'options' => array_map(static fn($o) => ['text' => $o['text'], 'voter_count' => 0], $d['options']), 'total_voter_count' => 0, 'is_closed' => false]]];
+    }
+    if ($m === 'stopPoll') {
+        return ['ok' => true, 'result' => ['id' => '5551234567890', 'options' => [['text' => 'a', 'voter_count' => 3], ['text' => 'b', 'voter_count' => 1]], 'total_voter_count' => 4, 'is_closed' => true]];
+    }
+    return ['ok' => true, 'result' => true];
+};
+$kgM = static function (string $m) use (&$kgNetz): array { return array_values(array_filter($kgNetz, static fn($x) => $x[0] === $m)); };
+
+/* Vorschlag 5: Diskussionsgruppe finden und prüfen */
+$kgP1 = TelegramGruppe::pruefen();
+pruefe('Kommentare: ohne Diskussionsgruppe am Kanal sagt die Prüfung, was in Telegram zu tun ist', !$kgP1['ok'] && str_contains($kgP1['text'], 'Diskussion') && TelegramGruppe::id() === '', $kgP1['text']);
+$kgVerknuepft = '-1009876543210';
+$kgP2 = TelegramGruppe::pruefen();
+pruefe('Kommentare: Gruppe gefunden, aber ohne „Nachrichten löschen“ — kein Schutz, klarer Hinweis', !$kgP2['ok'] && str_contains($kgP2['text'], 'Nachrichten löschen')
+    && TelegramGruppe::id() === '-1009876543210' && !TelegramGruppe::stand()['schutz'], $kgP2['text']);
+$kgRolle = ['status' => 'administrator', 'can_delete_messages' => true];
+Telegram::setzen('tg_updates', 'message,callback_query,chat_member');
+$kgP3 = TelegramGruppe::pruefen();
+pruefe('Kommentare: mit Löschrecht geschützt, Titel gemerkt, Webhook bekommt edited_message, my_chat_member und poll',
+    $kgP3['ok'] && TelegramGruppe::stand()['schutz'] && TelegramGruppe::stand()['titel'] === 'Vecom Design · Commenti'
+    && Telegram::einstellung('tg_updates') === implode(',', Telegram::UPDATES) && in_array('my_chat_member', Telegram::UPDATES, true), $kgP3['text']);
+
+$kgMsg = static fn(array $extra, int $von = 555777): array => $extra + ['message_id' => 77, 'chat' => ['id' => -1009876543210, 'type' => 'supergroup'],
+    'from' => ['id' => $von, 'is_bot' => false, 'first_name' => 'Fremd'], 'date' => time()];
+$kgHeute = date('Y-m-d');
+$kgZ = static fn(string $art): int => (int) Db::wert("SELECT COALESCE(SUM(zahl), 0) FROM tg_tage WHERE tag = ? AND art = ?", [$kgHeute, $art], 0);
+$kgK0 = $kgZ('kommentar'); $kgW0 = $kgZ('kommentar_weg');
+$kgNetz = [];
+$kgV = [
+    'normal'   => TelegramGruppe::nachricht($kgMsg(['text' => 'Bel lavoro, complimenti!'])),
+    'link'     => TelegramGruppe::nachricht($kgMsg(['text' => 'Guarda https://spam.example/x', 'entities' => [['type' => 'url', 'offset' => 7, 'length' => 22]]])),
+    'eigen'    => TelegramGruppe::nachricht($kgMsg(['text' => 'Prezzi: https://vecom-design.it/prezzi', 'entities' => [['type' => 'url', 'offset' => 8, 'length' => 30]]])),
+    'erwaehn'  => TelegramGruppe::nachricht($kgMsg(['text' => 'Seguite @altrocanale', 'entities' => [['type' => 'mention', 'offset' => 8, 'length' => 12]]])),
+    'eigenErw' => TelegramGruppe::nachricht($kgMsg(['text' => 'Grazie @vecomdesign', 'entities' => [['type' => 'mention', 'offset' => 7, 'length' => 12]]])),
+    'textlink' => TelegramGruppe::nachricht($kgMsg(['text' => 'Clicca qui', 'entities' => [['type' => 'text_link', 'offset' => 0, 'length' => 10, 'url' => 'https://casino.example']]])),
+    'weiter'   => TelegramGruppe::nachricht($kgMsg(['text' => 'Offerta', 'forward_origin' => ['type' => 'channel', 'date' => time()]])),
+    'alsKanal' => TelegramGruppe::nachricht($kgMsg(['text' => 'Ciao', 'sender_chat' => ['id' => -1005550001111, 'type' => 'channel']])),
+    'versteckt'=> TelegramGruppe::nachricht($kgMsg(['text' => 'scrivete a t . me/spamkanal adesso'])),
+    'emoji'    => TelegramGruppe::nachricht($kgMsg(['text' => "\u{1F600} https://spam.example", 'entities' => [['type' => 'url', 'offset' => 3, 'length' => 20]]])),
+    'emojiOk'  => TelegramGruppe::nachricht($kgMsg(['text' => "\u{1F600} https://vecom-design.it", 'entities' => [['type' => 'url', 'offset' => 3, 'length' => 23]]])),
+    'telefon'  => TelegramGruppe::nachricht($kgMsg(['text' => 'Chiama 333 1234567', 'entities' => [['type' => 'phone_number', 'offset' => 7, 'length' => 11]]])),
+    'kanal'    => TelegramGruppe::nachricht($kgMsg(['text' => 'Nuovo post', 'is_automatic_forward' => true, 'sender_chat' => ['id' => -1004410953446, 'type' => 'channel']])),
+    'anonym'   => TelegramGruppe::nachricht($kgMsg(['text' => 'https://altro.example', 'sender_chat' => ['id' => -1009876543210, 'type' => 'supergroup']])),
+    'dienst'   => TelegramGruppe::nachricht($kgMsg(['new_chat_members' => [['id' => 555777, 'is_bot' => false, 'first_name' => 'Fremd']]])),
+];
+$kgTeam = [555778];
+$kgV['team'] = TelegramGruppe::nachricht($kgMsg(['text' => 'Il nostro listino: https://partner.example', 'entities' => [['type' => 'url', 'offset' => 19, 'length' => 22]]], 555778));
+$kgV['frage'] = TelegramGruppe::nachricht($kgMsg(['text' => 'Quanto costa un sito per un B&B?']));
+$kgV['bearbeitet'] = TelegramGruppe::nachricht($kgMsg(['text' => 'ora con link https://spam.example', 'edit_date' => time(), 'entities' => [['type' => 'url', 'offset' => 13, 'length' => 20]]]));
+pruefe('Kommentare: gewöhnliche Kommentare bleiben, Werbung geht — Link, @Erwähnung, versteckter Link, Weiterleitung, „als Kanal“, Telefonnummer',
+    $kgV['normal'] === 'ok' && $kgV['link'] === 'geloescht:Link' && $kgV['erwaehn'] === 'geloescht:@-Erwähnung' && $kgV['textlink'] === 'geloescht:Link'
+    && $kgV['weiter'] === 'geloescht:Weiterleitung' && $kgV['alsKanal'] === 'geloescht:fremder Kanal' && $kgV['versteckt'] === 'geloescht:Link'
+    && $kgV['telefon'] === 'geloescht:Telefonnummer', json_encode($kgV, JSON_UNESCAPED_UNICODE));
+pruefe('Kommentare: Links und Erwähnungen von Vecom selbst bleiben stehen; Emojis vor dem Link verschieben die Erkennung nicht (UTF-16)',
+    $kgV['eigen'] === 'ok' && $kgV['eigenErw'] === 'ok' && $kgV['emoji'] === 'geloescht:Link' && $kgV['emojiOk'] === 'ok');
+pruefe('Kommentare: Kanal-Beitrag, anonyme Admins, Dienstmeldungen und Admins der Gruppe sind kein Fall für den Schutz',
+    $kgV['kanal'] === 'kanal' && $kgV['anonym'] === 'team' && $kgV['dienst'] === 'dienst' && $kgV['team'] === 'team');
+pruefe('Kommentare: eine Frage wird gemeldet, ein nachträglich eingefügter Link gelöscht', $kgV['frage'] === 'frage' && $kgV['bearbeitet'] === 'geloescht:Link');
+$kgDel = $kgM('deleteMessage');
+pruefe('Kommentare: gelöscht wird genau die eine Nachricht in der eigenen Gruppe — niemand gesperrt',
+    count($kgDel) === 9 && !array_filter($kgDel, static fn($x) => (string) $x[1]['chat_id'] !== '-1009876543210' || (int) $x[1]['message_id'] !== 77)
+    && !$kgM('banChatMember') && !$kgM('restrictChatMember'),
+    (string) count($kgDel));
+pruefe('Kommentare: gezählt je Tag, ohne Quelle (kein Absender) — bearbeitete zählen nicht doppelt',
+    $kgZ('kommentar') - $kgK0 === 14 && $kgZ('kommentar_weg') - $kgW0 === 9
+    && (int) Db::wert("SELECT COUNT(*) FROM tg_tage WHERE art IN ('kommentar','kommentar_weg') AND quelle <> ''", [], 0) === 0, ($kgZ('kommentar') - $kgK0) . '/' . ($kgZ('kommentar_weg') - $kgW0));
+pruefe('Kommentare: nichts vom Kommentar landet in der Datenbank (Text, Name, Kennung)',
+    (int) Db::wert("SELECT COUNT(*) FROM settings WHERE svalue LIKE '%spam.example%' OR svalue LIKE '%555777%'", [], 0) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM zurufe WHERE text LIKE '%Fremd%' OR text LIKE '%spam%' OR text LIKE '%555777%'", [], 0) === 0);
+pruefe('Kommentare: der Link zu einem Kommentar für Uwe (private Gruppe)', TelegramGruppe::link('-1009876543210', 77) === 'https://t.me/c/9876543210/77');
+
+/* Fremde Gruppen und eigene Rechte */
+$kgNetz = [];
+$kgF = TelegramGruppe::nachricht(['message_id' => 5, 'chat' => ['id' => -1001112223334, 'type' => 'supergroup'], 'from' => ['id' => 555777, 'is_bot' => false], 'text' => 'ciao']);
+pruefe('Fremde Gruppe: der Bot verlässt sie bei der ersten Nachricht und liest nichts', $kgF === 'fremde_gruppe_verlassen'
+    && ($kgM('leaveChat')[0][1]['chat_id'] ?? '') === '-1001112223334' && !$kgM('deleteMessage'));
+$kgMcm = static fn(string $id, string $typ, string $neu): array => ['chat' => ['id' => (int) $id, 'type' => $typ], 'from' => ['id' => 555777, 'is_bot' => false], 'date' => time(),
+    'old_chat_member' => ['user' => ['id' => 9990001, 'is_bot' => true], 'status' => 'left'], 'new_chat_member' => ['user' => ['id' => 9990001, 'is_bot' => true], 'status' => $neu]];
+$kgNetz = [];
+$kgS1 = TelegramGruppe::meinStatus($kgMcm('-1002223334445', 'group', 'member'));
+Telegram::setzen('tg_gruppe_id', '');
+$kgS2 = TelegramGruppe::meinStatus($kgMcm('-1009876543210', 'supergroup', 'administrator'));
+$kgS3 = TelegramGruppe::meinStatus($kgMcm('-1009876543210', 'supergroup', 'left'));
+$kgS4 = TelegramGruppe::meinStatus($kgMcm('-1004410953446', 'channel', 'member'));
+$kgS5 = TelegramGruppe::meinStatus($kgMcm('555777', 'private', 'kicked'));
+pruefe('my_chat_member: fremde Gruppe verlassen, die eigene Diskussionsgruppe von selbst erkannt, Rauswurf und verlorene Kanal-Rechte gemeldet',
+    $kgS1 === 'fremde_gruppe_verlassen' && $kgS2 === 'gruppe_erkannt' && TelegramGruppe::id() === '-1009876543210' && $kgS3 === 'gruppe_raus'
+    && !TelegramGruppe::stand()['schutz'] && $kgS4 === 'kanal:member' && $kgS5 === 'privat', json_encode([$kgS1, $kgS2, $kgS3, $kgS4, $kgS5]));
+$kgWh = (string) file_get_contents($oben . '/telegram-webhook.php');
+pruefe('Webhook: Gruppen-Nachrichten und my_chat_member gehen an TelegramGruppe, poll an TelegramUmfrage — der Bot-Chat bleibt nur privat',
+    str_contains($kgWh, 'TelegramGruppe::nachricht((array) $u[$typ])') && str_contains($kgWh, "TelegramGruppe::meinStatus((array) \$u['my_chat_member'])")
+    && str_contains($kgWh, "TelegramUmfrage::stand((array) \$u['poll'])") && str_contains($kgWh, "['group', 'supergroup']")
+    && TelegramBot::verarbeiten(['update_id' => 1, 'edited_message' => ['message_id' => 1, 'chat' => ['id' => 555777, 'type' => 'private'], 'from' => ['id' => 555777, 'is_bot' => false], 'text' => 'x']]) === 'ignoriert');
+$kgLegal = true;
+foreach (['de' => 'Diskussionsgruppe', 'it' => 'gruppo di discussione', 'en' => 'discussion group'] as $kgSp => $kgWort) {
+    $kgL = (string) file_get_contents($oben . '/assets/js/legal-' . $kgSp . '.js');
+    $kgLegal = $kgLegal && str_contains($kgL, $kgWort) && (str_contains($kgL, 'anonym') || str_contains($kgL, 'anonimi'));
+}
+pruefe('Datenschutzerklärung: Kommentarprüfung und anonyme Umfragen in allen drei Sprachen', $kgLegal);
+
+/* Vorschlag 6: Umfragen */
+pruefe('Umfrage: ohne Frage, mit einer Antwort, mit doppelten oder zu langen Antworten nicht gesendet',
+    !TelegramUmfrage::senden('', ['a', 'b'])['ok'] && !TelegramUmfrage::senden('Frage?', ['nur eine'])['ok'] && !TelegramUmfrage::senden('Frage?', ['Ja', 'ja'])['ok']
+    && !TelegramUmfrage::senden('Frage?', ['Ja', str_repeat('x', 101)])['ok'] && !$kgM('sendPoll'));
+pruefe('Umfrage: die Vorlagen passen in Telegrams Grenzen', !array_filter(TelegramUmfrage::VORSCHLAEGE, static fn($v) => mb_strlen($v[0]) > TelegramUmfrage::FRAGE_MAX
+    || count($v[1]) < 2 || count($v[1]) > TelegramUmfrage::ANTWORTEN_MAX || array_filter($v[1], static fn($a) => mb_strlen($a) > TelegramUmfrage::ANTWORT_MAX)));
+$kgNetz = [];
+$kgU = TelegramUmfrage::senden('  Il vostro sito vi porta clienti? · Bringt Ihre Website Kunden? ', ['Sì · Ja', '', 'No · Nein']);
+$kgPoll = $kgM('sendPoll')[0][1] ?? [];
+$kgUz = Db::one('SELECT * FROM tg_umfragen WHERE id = ?', [(int) ($kgU['id'] ?? 0)]);
+pruefe('Umfrage: anonym in den Kanal, Antworten als Objekte, leere fallen weg — gemerkt mit Telegram-Kennung und Beitrag',
+    $kgU['ok'] && ($kgPoll['chat_id'] ?? '') === '-1004410953446' && ($kgPoll['is_anonymous'] ?? false) === true
+    && ($kgPoll['options'] ?? []) === [['text' => 'Sì · Ja'], ['text' => 'No · Nein']] && ($kgPoll['question'] ?? '') === 'Il vostro sito vi porta clienti? · Bringt Ihre Website Kunden?'
+    && $kgUz && $kgUz['poll_id'] === '5551234567890' && (int) $kgUz['message_id'] === 4242 && $kgUz['stimmen'] === '[0,0]' && $kgUz['status'] === 'offen', json_encode([$kgU, $kgPoll]));
+pruefe('Umfrage: Stimmen kommen als reine Zahlen (Update „poll“), fremde Umfragen werden übergangen',
+    TelegramUmfrage::stand(['id' => '5551234567890', 'options' => [['text' => 'Sì · Ja', 'voter_count' => 2], ['text' => 'No · Nein', 'voter_count' => 5]], 'total_voter_count' => 7, 'is_closed' => false]) === 'umfrage'
+    && TelegramUmfrage::stand(['id' => '999', 'options' => []]) === 'unbekannt'
+    && TelegramUmfrage::liste(1)[0]['antworten'] === [['text' => 'Sì · Ja', 'stimmen' => 2], ['text' => 'No · Nein', 'stimmen' => 5]] && (int) TelegramUmfrage::liste(1)[0]['gesamt'] === 7);
+$kgNetz = [];
+$kgE1 = TelegramUmfrage::beenden((int) $kgU['id']);
+$kgE2 = TelegramUmfrage::beenden((int) $kgU['id']);
+$kgUz = Db::one('SELECT * FROM tg_umfragen WHERE id = ?', [(int) $kgU['id']]);
+pruefe('Umfrage: beenden stoppt sie im Kanal und übernimmt das Endergebnis; ein zweites Mal fragt Telegram nicht noch einmal',
+    $kgE1['ok'] && $kgE2['ok'] && count($kgM('stopPoll')) === 1 && $kgUz['status'] === 'beendet' && $kgUz['stimmen'] === '[3,1]' && (int) $kgUz['gesamt'] === 4 && $kgUz['beendet_am'] !== null);
+pruefe('Umfrage: Senden und Beenden fragen vorher nach (TRAGWEITE), die Taten liegen hinter Anmeldung und CSRF',
+    Ablauf::wiegt('telegram_umfrage') === Ablauf::RAUS && Ablauf::wiegt('telegram_umfrage_ende') === Ablauf::RAUS
+    && strpos($kvIdx = (string) file_get_contents($wurzel . '/index.php'), "case 'telegram_umfrage':") > strpos($kvIdx, 'Csrf::pruefen()')
+    && strpos($kvIdx, "case 'telegram_gruppe_pruefen':") > strpos($kvIdx, 'Csrf::pruefen()') && strpos($kvIdx, "case 'telegram_plan_jetzt':") > strpos($kvIdx, 'Csrf::pruefen()'));
+
+/* Vorschlag 2: Redaktionsplan */
+$kgThemen = array_map(static fn($w) => TelegramKanalPlan::thema(strtotime('2026-01-05 +' . $w . ' weeks')), range(0, 7));
+pruefe('Redaktionsplan: das Thema wechselt jede Woche, trägt die Anweisung „zweisprachig“ und passt in die 200 Zeichen des Auftrags',
+    count(array_unique($kgThemen)) === count(TelegramKanalPlan::THEMEN) && !array_filter($kgThemen, static fn($t) => mb_strlen($t) > 200 || !str_contains($t, 'zweisprachig')));
+Db::run("DELETE FROM settings WHERE skey IN ('tg_plan', 'tg_plan_woche')");
+pruefe('Redaktionsplan: ab Werk an (Uwe: „Alles“), Mittwoch ab 8 Uhr', TelegramKanalPlan::einstellung() === ['an' => true, 'tag' => 3, 'stunde' => 8]);
+Db::run("INSERT INTO mk_zielgruppen (branche, land, titel, profil, status, freigegeben_am) VALUES ('kanalplan-pruef', 'IT', 'Kanalplan Prüfung', '{}', 'freigegeben', NOW())
+         ON DUPLICATE KEY UPDATE status = 'freigegeben'");
+Db::run("UPDATE mk_auftraege SET status = 'fertig' WHERE art = 'inhalte' AND status IN ('wartet', 'laeuft')");
+Db::run("UPDATE mk_auftraege SET created_at = created_at - INTERVAL 2 DAY WHERE created_at >= CURDATE()");
+$kgL0 = TelegramKanalPlan::lauf(strtotime('2026-10-07 07:30'));
+$kgL1 = TelegramKanalPlan::lauf(strtotime('2026-10-07 09:00'));
+$kgAuftrag = Db::one("SELECT * FROM mk_auftraege WHERE art = 'inhalte' ORDER BY id DESC LIMIT 1");
+$kgPar = json_decode((string) ($kgAuftrag['parameter'] ?? '{}'), true) ?: [];
+$kgL2 = TelegramKanalPlan::lauf(strtotime('2026-10-08 10:00'));
+pruefe('Redaktionsplan: vor der Stunde nichts; dann ein Schreibauftrag nur für Telegram — drei Stück, organisch, ohne Bilder, mit dem Thema der Woche — und nur einmal je Woche',
+    $kgL0['hinweis'] === 'noch nicht dran' && $kgL1['gestartet'] === 1 && $kgPar['plattformen'] === ['telegram'] && (int) $kgPar['anzahl'] === 3 && $kgPar['umfang'] === 'organisch'
+    && empty($kgPar['mit_bildern']) && !empty($kgPar['kanalplan']) && $kgPar['thema'] === TelegramKanalPlan::thema(strtotime('2026-10-07 09:00'))
+    && $kgL2['hinweis'] === 'diese Woche schon' && str_starts_with(MkAuftrag::beschreibung($kgAuftrag), 'Kanal-Plan Telegram · '), json_encode([$kgL0, $kgL1, $kgL2, $kgPar], JSON_UNESCAPED_UNICODE));
+Telegram::setzen('tg_kanal_id', '');
+$kgL3 = TelegramKanalPlan::lauf(strtotime('2026-10-14 09:00'));
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+TelegramKanalPlan::speichern(['an' => '', 'tag' => '3', 'stunde' => '8']);
+pruefe('Redaktionsplan: ohne Kanal und ausgeschaltet läuft nichts', $kgL3['hinweis'] === 'kein Kanal verbunden' && TelegramKanalPlan::lauf(strtotime('2026-10-14 09:00'))['hinweis'] === 'aus'
+    && TelegramKanalPlan::naechsterLauf() === null);
+TelegramKanalPlan::speichern(['an' => '1', 'tag' => '3', 'stunde' => '8']);
+pruefe('Redaktionsplan: fertige Entwürfe melden sich wie ein Kampagnen-Paket zur Freigabe (Telegram: Ja / Nein / Später)',
+    str_contains((string) file_get_contents($wurzel . '/src/TelegramMarketing.php'), "if (empty(\$p['paket']) && empty(\$p['kanalplan'])) { return false; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'TelegramKanalPlan::lauf()'));
+$kgIn = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'format' => 'beitrag', 'plattform' => 'telegram', 'titel' => 'Kanal-Prüfbeitrag', 'felder' => '{}',
+    'status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'creative_id' => 999999]);
+$kgBeste = TelegramKanalPlan::beste(10);
+pruefe('Bester Beitrag im Kanal: veröffentlichte Telegram-Beiträge mit ihren Klicks (Kachel im Telegram-Reiter)', (bool) array_filter($kgBeste, static fn($b) => $b['id'] === $kgIn && $b['klicks'] === 0), json_encode($kgBeste));
+Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$kgIn]);
+
+/* Verwaltung: Einstellungen › Telegram */
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$daten = ['telegram' => Telegram::stand(), 'telegramPruefung' => null, 'telegramAdmin' => null, 'telegramEntwurf' => '',
+    'tgGruppe' => TelegramGruppe::stand(), 'tgUmfragen' => TelegramUmfrage::liste(5), 'tgUmfrageEntwurf' => ['frage' => 'Entwurf?', 'antwort' => ['A', 'B']],
+    'tgPlan' => ['e' => TelegramKanalPlan::einstellung(), 'naechster' => TelegramKanalPlan::naechsterLauf(), 'thema' => TelegramKanalPlan::thema()]];
+ob_start(); require $wurzel . '/views/einstellungen/telegram.php'; $kgHtml = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Einstellungen › Telegram: Redaktionsplan, Umfrage (mit Vorlagen, Entwurf zurück, Ergebnis, Beenden) und Kommentare — ohne Warnung',
+    $kaFehler === null && str_contains($kgHtml, 'id="plan"') && str_contains($kgHtml, 'value="telegram_plan_jetzt"') && str_contains($kgHtml, 'id="umfrage"')
+    && str_contains($kgHtml, 'value="Entwurf?"') && str_contains($kgHtml, 'value="telegram_umfrage_ende"') === false && str_contains($kgHtml, '3 · 75 %')
+    && str_contains($kgHtml, 'id="kommentare"') && str_contains($kgHtml, 'value="telegram_gruppe_pruefen"') && str_contains($kgHtml, 'tg-umfrage-vorlage'), (string) $kaFehler);
+unset($daten);
+Telegram::$netz = $kgTgAlt;
+Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_menue_id', '');
+foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }
 
 /* ============================================================================
    Aufräumen und Bilanz

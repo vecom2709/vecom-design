@@ -113,6 +113,14 @@ final class Ablauf
             'Der Menü-Beitrag mit den zwölf Knöpfen erscheint im Telegram-Kanal und wird oben angeheftet '
             . '(steht er schon da, wird er nur aktualisiert).',
             'Ja, Menü veröffentlichen'],
+        /* Umfragen im Kanal (01.10.2026, Kanal-Vorschlag 6) */
+        'telegram_umfrage' => [self::RAUS,
+            'Die Umfrage erscheint sofort im Telegram-Kanal — bei allen Abonnenten. Abgestimmt wird anonym; '
+            . 'Frage und Antworten lassen sich danach nicht mehr ändern.',
+            'Ja, Umfrage senden'],
+        'telegram_umfrage_ende' => [self::RAUS,
+            'Die Umfrage wird im Kanal beendet — danach kann niemand mehr abstimmen, das Ergebnis bleibt stehen.',
+            'Ja, Umfrage beenden'],
         'kunde_loeschen' => [self::SCHWER,
             'Der Kunde und alles, was an ihm hängt, wird gelöscht. Das lässt sich nicht rückgängig machen.',
             'Ja, endgültig löschen'],

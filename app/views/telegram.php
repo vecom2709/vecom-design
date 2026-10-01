@@ -152,7 +152,11 @@ $tgBotName = (string) Telegram::einstellung('tg_name');
     <?php $beste('Beste Kampagne', $b['kampagne'], $b['kampagne_nach'], 'Noch kein Start über den Telegram-Link einer Kampagne.'); ?>
     <?php $beste('Bester Partner', $b['partner'], $b['partner_nach'], 'Noch niemand über einen Partner-Link im Bot.'); ?>
     <?php $beste('Bester Eintrag (Verzeichnis, Kanal)', $b['eintrag'] ?? null, (string) ($b['eintrag_nach'] ?? ''), 'Noch kein Eintrag mit eigenem Link gebracht — Marketing → Verzeichnisse.'); ?>
-    <div class="mk-best"><h3>Beste Inhalte</h3><p class="mk-best__leer">Noch nicht messbar — kommt mit dem Redaktionsplan (T6): jeder Beitrag bekommt seinen eigenen Link.</p></div>
+    <?php /* Kanal-Vorschlag 2 (01.10.2026): der Kanal-Beitrag mit den meisten Klicks auf seinen eigenen Link (60 Tage). */
+      $tgBeste = []; try { require_once dirname(__DIR__) . '/src/TelegramKanalPlan.php'; $tgBeste = array_values(array_filter(TelegramKanalPlan::beste(2), static fn($x) => $x['klicks'] > 0)); } catch (Throwable $e) { }
+      $beste('Bester Beitrag im Kanal (60 Tage)', $tgBeste ? ['name' => $tgBeste[0]['titel'], 'zahl' => $tgBeste[0]['klicks'], 'zweiter' => $tgBeste[1]['titel'] ?? null,
+          'zweiter_zahl' => $tgBeste[1]['klicks'] ?? 0, 'wenig' => $tgBeste[0]['klicks'] < 5] : null, 'Klicks',
+          'Noch kein Klick auf einen Kanal-Beitrag — der Redaktionsplan (Einstellungen › Telegram) schreibt drei je Woche zur Freigabe, jeder mit eigenem Link.'); ?>
   </div>
 </div>
 

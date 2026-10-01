@@ -297,6 +297,11 @@ final class Cron
                 require_once __DIR__ . '/MkAutopilot.php';
                 return MkAutopilot::lauf();
             },
+            /* Redaktionsplan des Telegram-Kanals (01.10.2026, Kanal-Vorschlag 2): einmal je Woche drei Beiträge zur Freigabe. */
+            'telegram_plan' => static function () {
+                require_once __DIR__ . '/TelegramKanalPlan.php';
+                return TelegramKanalPlan::lauf();
+            },
             /* Z1 (01.10.2026, Uwe: „immer zweisprachig“): Was in Italien noch ohne deutsche Fassung
                steht, holt der PC von selbst nach — kein Knopf mehr nötig (Tagesgrenze gilt weiter). */
             'marketing_deutsch' => static function () {

@@ -138,6 +138,107 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
         <input name="knopf" maxlength="40" value="💬 Preis-Richtwert im Bot"></div>
       <button class="knopf<?= Telegram::einstellung('tg_kanal_menue_id') !== '' ? ' haupt' : '' ?>">Im Kanal veröffentlichen</button>
     </form>
+
+    <?php /* ---- Kanal-Vorschläge 2, 5, 6 (01.10.2026, Uwe: „Alles“) ---- */
+      $tgP = $daten['tgPlan'] ?? null; $tgG = (array) ($daten['tgGruppe'] ?? []); $tgU = (array) ($daten['tgUmfragen'] ?? []);
+      $tgUE = (array) ($daten['tgUmfrageEntwurf'] ?? []); require_once dirname(__DIR__, 2) . '/src/TelegramUmfrage.php'; ?>
+    <details id="plan" style="margin-top:16px"<?= $tgP && !$tgP['e']['an'] ? ' open' : '' ?>>
+      <summary>Redaktionsplan — <?= $tgP && $tgP['e']['an'] ? 'an, nächster Lauf ' . Fmt::h(date('d.m.', (int) $tgP['naechster'])) . ' ' . Fmt::h(MkAutopilot::TAGE[(int) date('N', (int) $tgP['naechster'])] ?? '') : 'aus' ?></summary>
+      <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:10px 0">
+        Einmal je Woche schreibt Claude drei Beiträge für den Kanal — für die italienische Zielgruppe, die am längsten nichts bekommen hat,
+        zweisprachig (erst Italienisch, dann Deutsch), ohne Bilder. Das Thema wechselt jede Woche (Tipp, Vorher/Nachher, aus dem Website-Check, Frage aus der Praxis).
+        Die Entwürfe kommen zur Freigabe per Telegram und unter <a href="<?= Fmt::h(url('freigabe?land=IT')) ?>">Freigabe</a>; was du freigibst, geht zur nächsten freien Zeit raus (einer je Tag, 18:30).
+        Ohne deinen Klick geht nichts in den Kanal.
+        <?php if ($tgP && $tgP['e']['an']): ?><br>Nächstes Thema: <i><?= Fmt::h(explode(' · ', (string) $tgP['thema'])[0]) ?></i><?php endif; ?>
+      </p>
+      <?php if ($tgP): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_plan">
+        <label style="display:flex;gap:8px;align-items:center;margin:0 4px 11px 0;cursor:pointer"><input type="checkbox" name="an" value="1"<?= $tgP['e']['an'] ? ' checked' : '' ?>> Plan an</label>
+        <div class="feld" style="margin:0"><label>Tag</label><select name="tag"><?php foreach (MkAutopilot::TAGE as $tn => $tw): ?><option value="<?= $tn ?>"<?= $tn === $tgP['e']['tag'] ? ' selected' : '' ?>><?= Fmt::h($tw) ?></option><?php endforeach; ?></select></div>
+        <div class="feld" style="margin:0"><label>ab</label><select name="stunde"><?php for ($th = 5; $th <= 22; $th++): ?><option value="<?= $th ?>"<?= $th === $tgP['e']['stunde'] ? ' selected' : '' ?>><?= $th ?>:00</option><?php endfor; ?></select></div>
+        <button class="knopf">Speichern</button>
+      </form>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_plan_jetzt">
+        <button class="knopf">Diese Woche jetzt schreiben lassen</button>
+      </form>
+      <?php endif; ?>
+    </details>
+
+    <details id="umfrage" style="margin-top:12px"<?= $tgUE ? ' open' : '' ?>>
+      <summary>Umfrage im Kanal<?= $tgU ? ' — zuletzt: ' . Fmt::h(mb_strimwidth((string) $tgU[0]['frage'], 0, 48, '…')) : '' ?></summary>
+      <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:10px 0">
+        Ein Tipp statt eines Formulars: Leser stimmen anonym ab — wir sehen nur die Zahl der Stimmen je Antwort.
+        Zweisprachig wie der Kanal (Italienisch · Deutsch). Vorlage wählen oder selbst schreiben.
+      </p>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" id="tg-umfrage">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_umfrage">
+        <div class="feld"><label>Vorlage</label>
+          <select id="tg-umfrage-vorlage"><option value="">— eigene Frage —</option><?php foreach (TelegramUmfrage::VORSCHLAEGE as $vi => $v): ?><option value="<?= $vi ?>"><?= Fmt::h(mb_strimwidth($v[0], 0, 70, '…')) ?></option><?php endforeach; ?></select></div>
+        <div class="feld"><label>Frage <span style="color:var(--leise);font-weight:400">— höchstens <?= TelegramUmfrage::FRAGE_MAX ?> Zeichen</span></label>
+          <input name="frage" maxlength="<?= TelegramUmfrage::FRAGE_MAX ?>" required value="<?= Fmt::h((string) ($tgUE['frage'] ?? '')) ?>"></div>
+        <?php for ($ai = 0; $ai < 6; $ai++): ?>
+          <div class="feld" style="margin-bottom:6px"><label><?= $ai === 0 ? 'Antworten <span style="color:var(--leise);font-weight:400">— 2 bis ' . TelegramUmfrage::ANTWORTEN_MAX . ', je höchstens ' . TelegramUmfrage::ANTWORT_MAX . ' Zeichen; leere fallen weg</span>' : '' ?></label>
+            <input name="antwort[]" maxlength="<?= TelegramUmfrage::ANTWORT_MAX ?>" aria-label="Antwort <?= $ai + 1 ?>"<?= $ai < 2 ? ' required' : '' ?> value="<?= Fmt::h((string) ($tgUE['antwort'][$ai] ?? '')) ?>"></div>
+        <?php endfor; ?>
+        <button class="knopf">Umfrage im Kanal senden</button>
+      </form>
+      <script>
+      (function () {
+        var V = <?= json_encode(TelegramUmfrage::VORSCHLAEGE, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+        var f = document.getElementById('tg-umfrage'), w = document.getElementById('tg-umfrage-vorlage');
+        if (!f || !w) { return; }
+        w.addEventListener('change', function () {
+          var v = V[w.value]; if (!v) { return; }
+          f.elements['frage'].value = v[0];
+          var a = f.querySelectorAll('input[name="antwort[]"]');
+          for (var i = 0; i < a.length; i++) { a[i].value = v[1][i] || ''; }
+        });
+      })();
+      </script>
+      <?php if ($tgU): ?>
+        <div style="margin-top:14px;display:grid;gap:12px">
+          <?php foreach ($tgU as $u): $um = max(1, max(array_column($u['antworten'], 'stimmen') ?: [0])); ?>
+            <div style="border:1px solid var(--linie);border-radius:12px;padding:12px 14px">
+              <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:14px"><?= Fmt::h((string) $u['frage']) ?></b>
+                <span style="color:var(--leise);font-size:12.5px"><?= Fmt::h(date('d.m.Y', strtotime((string) $u['angelegt_am']))) ?> · <?= (int) $u['gesamt'] ?> Stimmen · <?= $u['status'] === 'beendet' ? 'beendet' : 'läuft' ?></span></div>
+              <?php foreach ($u['antworten'] as $an): ?>
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin-top:8px;font-size:13px">
+                  <span><?= Fmt::h($an['text']) ?></span><span><?= (int) $an['stimmen'] ?><?= (int) $u['gesamt'] > 0 ? ' · ' . round(100 * (int) $an['stimmen'] / (int) $u['gesamt']) . ' %' : '' ?></span>
+                  <span style="grid-column:1/-1;height:6px;border-radius:3px;background:var(--linie)"><span style="display:block;height:6px;border-radius:3px;background:var(--gelb);width:<?= (int) round(100 * (int) $an['stimmen'] / $um) ?>%"></span></span>
+                </div>
+              <?php endforeach; ?>
+              <?php if ($u['status'] !== 'beendet'): ?>
+                <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+                  <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_umfrage_ende"><input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+                  <button class="knopf">Umfrage beenden</button>
+                </form>
+              <?php endif; ?>
+            </div>
+          <?php endforeach; ?>
+        </div>
+      <?php endif; ?>
+    </details>
+
+    <details id="kommentare" style="margin-top:12px"<?= empty($tgG['schutz']) ? ' open' : '' ?>>
+      <summary>Kommentare unter den Beiträgen — <?= !empty($tgG['schutz']) ? 'geschützt' . ($tgG['titel'] !== '' ? ' (' . Fmt::h((string) $tgG['titel']) . ')' : '') : ($tgG['id'] !== '' ? 'Gruppe gefunden, Bot darf noch nicht löschen' : 'noch nicht eingerichtet') ?></summary>
+      <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:10px 0">
+        Kommentare laufen in Telegram über eine Diskussionsgruppe, die am Kanal hängt. Der Bot ist dort Admin mit einem einzigen Recht,
+        <b>Nachrichten löschen</b>, und entfernt Kommentare mit Link, @Erwähnung, E-Mail-Adresse, Telefonnummer, Weiterleitung, Knöpfen
+        oder „als fremder Kanal“ — außer sie kommen vom Team oder zeigen auf Vecom selbst. Er sperrt niemanden und speichert keinen Kommentar,
+        nur die Zahl je Tag (Wochenbericht). Fragen von außen meldet er dir mit Link. In fremde Gruppen geholt, verlässt er sie sofort.
+      </p>
+      <ol style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 10px;padding-left:20px">
+        <li>In Telegram: Kanal › Bearbeiten › <b>Diskussion</b> › Gruppe hinzufügen (neue Gruppe anlegen).</li>
+        <li>In der Gruppe: Verwalten › Administratoren › <b>@<?= Fmt::h((string) ($tg['name'] ?? '')) ?></b> hinzufügen, nur „Nachrichten löschen“.</li>
+        <li>Hier prüfen.</li>
+      </ol>
+      <form method="post" action="<?= Fmt::h(url('')) ?>">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="telegram_gruppe_pruefen">
+        <button class="knopf<?= empty($tgG['schutz']) ? ' haupt' : '' ?>">Kommentare prüfen</button>
+      </form>
+    </details>
   <?php else: ?>
     <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:0 0 14px">
       Im Kanal veröffentlichst du Neuigkeiten; der Bot postet sie für dich. Dafür muss er dort Admin sein —

@@ -2869,6 +2869,49 @@ if ($post) {
                 $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
                 weiter('einstellungen?b=telegram');
 
+            case 'telegram_gruppe_pruefen':   // Kanal-Vorschlag 5 (01.10.2026): Kommentare mit Schutz
+                require_once __DIR__ . '/src/TelegramGruppe.php';
+                $e = TelegramGruppe::pruefen();
+                Events::protokoll('telegram_kanal', 'Kommentare unter dem Kanal geprüft: ' . ($e['ok'] ? 'geschützt' : 'noch nicht bereit'));
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram#kommentare');
+
+            case 'telegram_umfrage':   // Kanal-Vorschlag 6 (01.10.2026): Umfrage im Kanal (Rückfrage über TRAGWEITE)
+                require_once __DIR__ . '/src/TelegramUmfrage.php';
+                $tuFrage = (string) ($_POST['frage'] ?? '');
+                $tuAntw = array_slice(array_map('strval', (array) ($_POST['antwort'] ?? [])), 0, TelegramUmfrage::ANTWORTEN_MAX);
+                $e = TelegramUmfrage::senden($tuFrage, $tuAntw);
+                if ($e['ok']) {
+                    Events::protokoll('telegram_kanal', 'Umfrage im Telegram-Kanal gesendet: ' . mb_substr(preg_replace('/\s+/u', ' ', $tuFrage), 0, 80));
+                } else {
+                    $_SESSION['telegram_umfrage_entwurf'] = ['frage' => mb_substr($tuFrage, 0, 400), 'antwort' => array_map(static fn($a) => mb_substr($a, 0, 140), $tuAntw)];
+                }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram#umfrage');
+
+            case 'telegram_umfrage_ende':
+                require_once __DIR__ . '/src/TelegramUmfrage.php';
+                $e = TelegramUmfrage::beenden((int) ($_POST['id'] ?? 0));
+                if ($e['ok']) { Events::protokoll('telegram_kanal', 'Umfrage im Telegram-Kanal beendet'); }
+                $_SESSION[$e['ok'] ? 'gut' : 'fehler'] = $e['text'];
+                weiter('einstellungen?b=telegram#umfrage');
+
+            case 'telegram_plan':   // Kanal-Vorschlag 2 (01.10.2026): Redaktionsplan
+                require_once __DIR__ . '/src/TelegramKanalPlan.php';
+                TelegramKanalPlan::speichern($_POST);
+                $tpE = TelegramKanalPlan::einstellung();
+                $_SESSION['gut'] = $tpE['an'] ? 'Redaktionsplan an: jeden ' . MkAutopilot::TAGE[$tpE['tag']] . ' ab ' . $tpE['stunde'] . ' Uhr schreibt Claude drei Kanal-Beiträge zur Freigabe.'
+                    : 'Redaktionsplan aus.';
+                weiter('einstellungen?b=telegram#plan');
+
+            case 'telegram_plan_jetzt':
+                require_once __DIR__ . '/src/TelegramKanalPlan.php';
+                [$tpR, $tpZ] = TelegramKanalPlan::anstossen();
+                $_SESSION[is_int($tpR) ? 'gut' : 'fehler'] = is_int($tpR)
+                    ? 'Claude schreibt drei Kanal-Beiträge für „' . $tpZ['titel'] . '“ (Italienisch und Deutsch). Sind sie da, kommen sie zur Freigabe — per Telegram und unter Freigabe.'
+                    : (string) $tpR;
+                weiter('einstellungen?b=telegram#plan');
+
             case 'telegram_weg':
                 require_once __DIR__ . '/src/Telegram.php';
                 Telegram::entfernen();
@@ -4575,7 +4618,13 @@ switch ($route) {
             $daten['telegramPruefung'] = $_SESSION['telegram_pruefung'] ?? null;
             $daten['telegramAdmin'] = sicher(static function () { require_once __DIR__ . '/src/TelegramAdmin.php'; return TelegramAdmin::chat((int) Auth::id()); }, null);
             $daten['telegramEntwurf'] = (string) ($_SESSION['telegram_entwurf'] ?? '');
-            unset($_SESSION['telegram_pruefung'], $_SESSION['telegram_entwurf']);
+            /* Kanal-Vorschläge 2, 5, 6 (01.10.2026): Kommentare, Umfragen, Redaktionsplan — alles aus der eigenen Datenbank. */
+            $daten['tgGruppe'] = sicher(static function () { require_once __DIR__ . '/src/TelegramGruppe.php'; return TelegramGruppe::stand(); }, ['id' => '', 'titel' => '', 'name' => '', 'schutz' => false]);
+            $daten['tgUmfragen'] = sicher(static function () { require_once __DIR__ . '/src/TelegramUmfrage.php'; return TelegramUmfrage::liste(5); }, []);
+            $daten['tgUmfrageEntwurf'] = (array) ($_SESSION['telegram_umfrage_entwurf'] ?? []);
+            $daten['tgPlan'] = sicher(static function () { require_once __DIR__ . '/src/TelegramKanalPlan.php';
+                return ['e' => TelegramKanalPlan::einstellung(), 'naechster' => TelegramKanalPlan::naechsterLauf(), 'thema' => TelegramKanalPlan::thema(TelegramKanalPlan::naechsterLauf() ?? time())]; }, null);
+            unset($_SESSION['telegram_pruefung'], $_SESSION['telegram_entwurf'], $_SESSION['telegram_umfrage_entwurf']);
         }
 
         if ($b === 'telefon') {

@@ -35,7 +35,10 @@ final class Telegram
     public const API = 'https://api.telegram.org';
 
     /** Nur diese Arten von Updates bestellen wir — alles andere schickt Telegram gar nicht erst. */
-    public const UPDATES = ['message', 'callback_query', 'chat_member'];   // chat_member: Kanal-Beitritte je Einladungslink (Growth Engine T1)
+    /* chat_member: Kanal-Beitritte je Einladungslink (Growth Engine T1). Seit 01.10.2026 (Kanal-Vorschläge 5 und 6):
+       edited_message — nachträglich eingefügte Links in Kommentaren; my_chat_member — der Bot wurde in eine Gruppe
+       geholt oder hat Rechte verloren; poll — Stimmen der eigenen Umfragen (nur Zahlen). */
+    public const UPDATES = ['message', 'edited_message', 'callback_query', 'chat_member', 'my_chat_member', 'poll'];
 
     /** Für die Kette: ersetzt das Netz. fn(string $methode, array $daten): array{ok:bool,...} */
     public static $netz = null;

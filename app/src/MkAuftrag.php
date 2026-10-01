@@ -66,7 +66,7 @@ final class MkAuftrag
         if (($a['art'] ?? 'recherche') === 'inhalte') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             $pl = implode(', ', array_map(static fn($x) => MkKampagne::PLATTFORMEN[$x] ?? $x, (array) ($p['plattformen'] ?? [])));
-            return (!empty($p['autopilot']) ? 'Autopilot · ' : (!empty($p['paket']) ? 'Kampagne · ' : 'Inhalte · ')) . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
+            return (!empty($p['kanalplan']) ? 'Kanal-Plan Telegram · ' : (!empty($p['autopilot']) ? 'Autopilot · ' : (!empty($p['paket']) ? 'Kampagne · ' : 'Inhalte · '))) . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
                 . (!empty($p['mit_bildern']) ? ' mit Bildern' : '')
                 . ($pl !== '' ? ' für ' . $pl : '') . (($p['umfang'] ?? 'beides') !== 'beides' ? ' (' . (MkInhalt::ARTEN[$p['umfang']] ?? $p['umfang']) . ')' : '');
         }
@@ -143,7 +143,9 @@ final class MkAuftrag
         $param = ['zielgruppe_id' => $zgId, 'zielgruppe_titel' => mb_substr((string) $zg['titel'], 0, 80), 'plattformen' => $pl, 'umfang' => $umfang,
                   'anzahl' => $anzahl, 'thema' => mb_substr(trim(strip_tags((string) ($p['thema'] ?? ''))), 0, 200), 'kampagne_id' => $kampagne > 0 ? $kampagne : null,
                   /* Marketing-Studio 6: Kampagnen-Paket (feste Mischung) und Bilder gleich mit (Kie.ai, nach der Lieferung). */
-                  'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern']), 'autopilot' => !empty($p['autopilot'])];
+                  'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern']), 'autopilot' => !empty($p['autopilot']),
+                  /* Redaktionsplan des Telegram-Kanals (01.10.2026, TelegramKanalPlan): meldet sich wie ein Paket, wenn die Entwürfe da sind. */
+                  'kanalplan' => !empty($p['kanalplan'])];
         $id = (int) Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => (string) $zg['branche'], 'land' => (string) $zg['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         Events::protokoll('inhalte_auftrag', 'Inhalte angestoßen: ' . self::beschreibung(['art' => 'inhalte', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]), null, null, null, ['auftrag_id' => $id]);

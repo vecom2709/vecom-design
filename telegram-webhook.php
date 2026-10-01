@@ -68,16 +68,26 @@ if (strlen($roh) > 262144) { $aus(413); }
 $u = json_decode($roh, true);
 if (!is_array($u) || !isset($u['update_id']) || !is_int($u['update_id'])) { $aus(400); }
 
-$typ = isset($u['callback_query']) ? 'callback_query' : (isset($u['message']) ? 'message' : (isset($u['chat_member']) ? 'chat_member' : 'anderes'));
+$typ = 'anderes';
+foreach (['callback_query', 'message', 'edited_message', 'chat_member', 'my_chat_member', 'poll'] as $art) { if (isset($u[$art])) { $typ = $art; break; } }
 $annahme = Webhook::annehmen('telegram', (string) $u['update_id'], $typ, json_encode(['typ' => $typ]));
 if (!$annahme['weiter']) { $aus($annahme['code'], $annahme['text']); }
 $eid = (int) $annahme['id'];
 
 try {
+    $gruppe = in_array($typ, ['message', 'edited_message'], true) && in_array((string) ($u[$typ]['chat']['type'] ?? ''), ['group', 'supergroup'], true);
     if ($typ === 'chat_member') {
         // Beitritt/Austritt im Kanal (Growth Engine T1): nur gezählt, nie die Person gespeichert.
         require_once __DIR__ . '/app/src/TelegramWachstum.php';
         $vermerk = TelegramWachstum::mitglied((array) $u['chat_member']);
+    } elseif ($typ === 'my_chat_member' || $gruppe) {
+        // Kommentare unter dem Kanal (01.10.2026): prüfen, Werbung löschen, fremde Gruppen verlassen — nichts speichern.
+        require_once __DIR__ . '/app/src/TelegramGruppe.php';
+        $vermerk = $gruppe ? TelegramGruppe::nachricht((array) $u[$typ]) : TelegramGruppe::meinStatus((array) $u['my_chat_member']);
+    } elseif ($typ === 'poll') {
+        // Umfragen im Kanal (01.10.2026): nur die Zahl der Stimmen je Antwort.
+        require_once __DIR__ . '/app/src/TelegramUmfrage.php';
+        $vermerk = TelegramUmfrage::stand((array) $u['poll']);
     } else {
         $vermerk = TelegramBot::verarbeiten($u);
     }

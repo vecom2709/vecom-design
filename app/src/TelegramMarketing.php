@@ -56,13 +56,13 @@ final class TelegramMarketing
             $a = Db::one("SELECT * FROM mk_auftraege WHERE id = ? AND art = 'inhalte' AND status = 'fertig' AND gemeldet_am IS NULL", [$auftragId]);
             if (!$a) { return false; }
             $p = json_decode((string) $a['parameter'], true) ?: [];
-            if (empty($p['paket'])) { return false; }
+            if (empty($p['paket']) && empty($p['kanalplan'])) { return false; }
             $offen = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege m JOIN mk_inhalte i ON i.auftrag_id = ? AND m.parameter LIKE CONCAT('%\"inhalt_id\":', i.id, ',%')
                                       WHERE m.art = 'medien' AND m.status IN ('wartet', 'laeuft')", [$auftragId], 0);
             if ($offen > 0) { return false; }
             $n = Db::run('UPDATE mk_auftraege SET gemeldet_am = NOW() WHERE id = ? AND gemeldet_am IS NULL', [$auftragId])->rowCount();
             if ($n === 0) { return false; }
-            return self::melden((string) $a['land'], (string) ($p['zielgruppe_titel'] ?? ''), !empty($p['autopilot']));
+            return self::melden((string) $a['land'], (!empty($p['kanalplan']) ? 'Kanal-Plan Telegram · ' : '') . (string) ($p['zielgruppe_titel'] ?? ''), !empty($p['autopilot']));
         } catch (Throwable $e) { return false; }
     }
 
