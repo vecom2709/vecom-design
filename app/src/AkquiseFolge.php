@@ -362,6 +362,27 @@ final class AkquiseFolge
                 continue;
             }
             if ($wa !== null && !empty($wa['grund'])) { Akquise::protokoll((int) $f['id'], 'folge', 'WhatsApp für Schritt ' . $schritt . ' nicht möglich (' . $wa['grund'] . ') — es geht die Mail.'); }
+            /* WhatsApp von Hand (02.10.2026): Ist WhatsApp Business nicht angebunden, bereitet die
+               Verwaltung die Nachricht vor, und Uwe schickt sie mit einem Tipp aus seiner App. */
+            if ($wa === null && self::handMoeglich($fo, $f, $schritt)) {
+                if ($test) {
+                    Db::update('akq_folgen', (int) $fo['id'], ['simuliert' => $schritt, 'grund' => 'Testbetrieb: Schritt ' . $schritt . ' per WhatsApp (von Hand) simuliert']);
+                    $bilanz['simuliert']++;
+                    continue;
+                }
+                if ((int) ($fo['wa_hand_schritt'] ?? 0) !== $schritt) {
+                    Db::update('akq_folgen', (int) $fo['id'], ['wa_hand_schritt' => $schritt, 'wa_hand_seit' => date('Y-m-d H:i:s'),
+                        'grund' => 'Wartet auf dich: Schritt ' . $schritt . ' per WhatsApp senden (Folge-Mails → WhatsApp von Hand)']);
+                    Akquise::protokoll((int) $f['id'], 'folge', 'Folge ' . $schritt . '/5 liegt zum Senden per WhatsApp bereit');
+                    try { Events::melden('akquise_wa_hand', 'WhatsApp senden: ' . $f['name'] . ' (Schritt ' . $schritt . ')', 'info', 'Ein Tipp öffnet WhatsApp mit dem fertigen Text.', 'akquise/folgen#whatsapp'); } catch (Throwable $e) { }
+                    $bilanz['wartet']++;
+                    continue;
+                }
+                $seit = strtotime((string) ($fo['wa_hand_seit'] ?? '')) ?: time();
+                if (empty($f['email']) || time() - $seit < self::HAND_FRIST) { $bilanz['wartet']++; continue; }
+                Db::update('akq_folgen', (int) $fo['id'], ['wa_hand_schritt' => null, 'wa_hand_seit' => null]);
+                Akquise::protokoll((int) $f['id'], 'folge', 'Schritt ' . $schritt . ' lag zwei Tage für WhatsApp bereit — es geht die Mail.');
+            }
             if (!$v) {
                 Db::update('akq_folgen', (int) $fo['id'], ['grund' => 'Wartet: Text für Schritt ' . $schritt . ' (' . strtoupper((string) $fo['sprache']) . ') ist nicht freigegeben']);
                 $bilanz['wartet']++;
@@ -409,6 +430,72 @@ final class AkquiseFolge
         return $bilanz;
     }
 
+    /* ------------------------- WhatsApp von Hand ------------------------ */
+
+    /** So lange wartet ein Schritt auf den Tipp, dann geht die Mail (wenn eine Adresse da ist). */
+    public const HAND_FRIST = 2 * 86400;
+
+    /**
+     * Darf dieser Schritt per WhatsApp von Hand gehen? (02.10.2026, Uwe: „halbautomatisch,
+     * kostenlos“.) Nur mit ausdrücklicher WhatsApp-Einwilligung für genau diese Nummer, mit
+     * Schalter „Folge per WhatsApp“, innerhalb der Grenzen -- und nur, solange WhatsApp
+     * Business NICHT angebunden ist: Dann schickt es die Schnittstelle selbst.
+     */
+    public static function handMoeglich(array $fo, array $f, int $schritt): bool
+    {
+        if (!AkquiseGate::schalter('whatsapp') || (int) ($fo['wa_schritt'] ?? 0) >= $schritt) { return false; }
+        if (!AkquiseGate::einwilligungDeckt($f, 'whatsapp') || strlen((string) preg_replace('~\D~', '', (string) ($f['whatsapp'] ?? ''))) < 8) { return false; }
+        require_once __DIR__ . '/WhatsAppCloud.php';
+        return !WhatsAppCloud::bereit() && AkquiseGate::versandSperre($f, true) === null;
+    }
+
+    /** Der fertige Text: derselbe Wortlaut wie die Meta-Vorlage, mit STOP-Hinweis darunter. */
+    public static function handText(array $f, int $schritt, string $sprache): string
+    {
+        require_once __DIR__ . '/WhatsAppCloud.php';
+        $sp = isset(WhatsAppCloud::TEXTE[$schritt][$sprache]) ? $sprache : 'it';
+        $link = $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $sp : self::dashboardLink($f, $sp);
+        return strtr(WhatsAppCloud::TEXTE[$schritt][$sp], ['{{1}}' => (string) $f['name'], '{{2}}' => $link]) . "\n\n" . WhatsAppCloud::FUSS[$sp];
+    }
+
+    /** Was gerade auf den Tipp wartet. @return list<array> */
+    public static function handOffen(): array
+    {
+        return Db::all("SELECT fo.*, f.name, f.stadt, f.whatsapp FROM akq_folgen fo JOIN akq_firmen f ON f.id = fo.firma_id
+                         WHERE fo.status = 'laeuft' AND fo.wa_hand_schritt IS NOT NULL AND fo.wa_hand_schritt > fo.schritt ORDER BY fo.wa_hand_seit");
+    }
+
+    /**
+     * Uwe tippt auf „In WhatsApp öffnen“: Gate neu prüfen, den Schritt als verschickt
+     * vermerken (wie bei der Schnittstelle) und die wa.me-Adresse mit dem Text liefern.
+     * Vermerkt wird beim Tipp, nicht nach dem Senden -- was danach im Handy passiert,
+     * sieht die Verwaltung nicht. Deshalb sagt der Knopf das auch so.
+     */
+    public static function handGesendet(int $folgeId): string
+    {
+        $fo = Db::one('SELECT * FROM akq_folgen WHERE id = ?', [$folgeId]);
+        $schritt = (int) ($fo['wa_hand_schritt'] ?? 0);
+        if (!$fo || $fo['status'] !== 'laeuft' || $schritt <= (int) $fo['schritt']) { throw new RuntimeException('Dieser Schritt wartet nicht mehr auf WhatsApp.'); }
+        $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $fo['firma_id']]);
+        if (!$f) { throw new RuntimeException('Betrieb fehlt.'); }
+        $h = self::hindernis($fo, $f);
+        if ($h !== null) { throw new RuntimeException('Folge hält an: ' . $h[1]); }
+        if (AkquiseGate::pruefen($f, 'whatsapp')['status'] !== AkquiseGate::ERLAUBT) { throw new RuntimeException('Das Gate erlaubt WhatsApp für diesen Betrieb nicht (mehr).'); }
+        $ziffern = (string) preg_replace('~\D~', '', (string) $f['whatsapp']);
+        $adresse = 'https://wa.me/' . $ziffern . '?text=' . rawurlencode(self::handText($f, $schritt, (string) $fo['sprache']));
+        $jetzt = time(); $naechster = $schritt + 1;
+        Db::update('akq_folgen', $folgeId, [
+            'schritt' => $schritt, 'wa_schritt' => $schritt, 'wa_hand_schritt' => null, 'wa_hand_seit' => null, 'letzte_am' => date('Y-m-d H:i:s', $jetzt),
+            'grund' => isset(self::TAGE[$naechster]) ? null : 'Alle Schritte verschickt',
+            'status' => isset(self::TAGE[$naechster]) ? 'laeuft' : 'beendet',
+            'naechst_am' => isset(self::TAGE[$naechster]) ? date('Y-m-d H:i:s', $jetzt + (self::TAGE[$naechster] - self::TAGE[$schritt]) * 86400) : null,
+        ]);
+        Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'gesendet', 'kontakt_status' => in_array((string) $f['kontakt_status'], ['geantwortet', 'kunde'], true) ? $f['kontakt_status'] : 'kontaktiert']);
+        Akquise::protokoll((int) $f['id'], 'folge', 'Folge ' . $schritt . '/5 per WhatsApp von Hand geöffnet: „' . self::SCHRITT_NAME[$schritt] . '“');
+        Events::pruefspur('akquise_wa_hand', 'akq_folgen', $folgeId, [], ['schritt' => $schritt]);
+        return $adresse;
+    }
+
     public static function pausieren(int $id, string $grund = 'Von Hand pausiert'): void
     {
         Db::run("UPDATE akq_folgen SET status = 'pausiert', grund = ?, naechst_am = NULL WHERE id = ? AND status = 'laeuft'", [mb_substr($grund, 0, 255), $id]);
@@ -423,7 +510,7 @@ final class AkquiseFolge
         /* Nach einer Antwort zählt nur eine Antwort ab jetzt als neue -- sonst hielte die alte die Folge ewig an. */
         $h = $f ? self::hindernis(['gestartet_am' => date('Y-m-d H:i:s')] + $fo, $f) : ['beendet', 'Betrieb fehlt'];
         if ($h !== null) { throw new RuntimeException('Kann nicht weiterlaufen: ' . $h[1]); }
-        Db::update('akq_folgen', $id, ['status' => 'laeuft', 'grund' => null, 'naechst_am' => date('Y-m-d H:i:s'), 'gestartet_am' => date('Y-m-d H:i:s')]);
+        Db::update('akq_folgen', $id, ['status' => 'laeuft', 'grund' => null, 'naechst_am' => date('Y-m-d H:i:s'), 'gestartet_am' => date('Y-m-d H:i:s'), 'wa_hand_schritt' => null, 'wa_hand_seit' => null]);
         Akquise::protokoll((int) $fo['firma_id'], 'folge', 'Folge-Mails von Hand fortgesetzt');
     }
 

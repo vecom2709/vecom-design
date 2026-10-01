@@ -349,6 +349,24 @@ if ($post) {
                 };
                 weiter('akquise/folgen#laufend');
 
+            /* WhatsApp von Hand (02.10.2026): ein Tipp vermerkt den Schritt und öffnet WhatsApp mit dem Text. */
+            case 'akq_folge_wa_hand':
+                require_once __DIR__ . '/src/AkquiseFolge.php';
+                try { $waAdr = AkquiseFolge::handGesendet((int) ($_POST['folge'] ?? 0)); }
+                catch (Throwable $e) { $_SESSION['fehler'] = $e->getMessage(); weiter('akquise/folgen#whatsapp'); }
+                header('Location: ' . $waAdr);
+                exit;
+
+            case 'akq_folge_wa_stop':
+                require_once __DIR__ . '/src/AkquiseFolge.php';
+                $foS = Db::one('SELECT firma_id FROM akq_folgen WHERE id = ?', [(int) ($_POST['folge'] ?? 0)]);
+                if ($foS) {
+                    AkquiseGate::sperren((int) $foS['firma_id'], 'Per WhatsApp mit STOP geantwortet', 'whatsapp');
+                    AkquiseFolge::beenden((int) ($_POST['folge'] ?? 0), 'STOP per WhatsApp');
+                    $_SESSION['gut'] = 'Gesperrt — dieser Betrieb bekommt nichts mehr, auf keinem Weg.';
+                }
+                weiter('akquise/folgen#whatsapp');
+
             case 'akq_termin_einstellungen':
                 require_once __DIR__ . '/src/AkquiseTermin.php';
                 AkquiseTermin::einstellungenSetzen((array) ($_POST['plan'] ?? []), (int) ($_POST['dauer'] ?? 30), (int) ($_POST['vorlauf'] ?? 18),
@@ -704,6 +722,7 @@ if ($teil === 'folgen') {
     ansicht('akquise_folgen', [
         'vorlagen' => AkquiseFolge::vorlagen(),
         'folgen' => AkquiseFolge::liste(),
+        'waHand' => AkquiseFolge::handOffen(),
         'an' => AkquiseGate::schalter('folge'),
         'test' => AkquiseGate::testbetrieb(),
         'versandAn' => AkquiseGate::grenzen()['versand_an'],

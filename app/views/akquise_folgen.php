@@ -1,5 +1,5 @@
 <?php
-/** @var array $vorlagen @var array $folgen @var bool $an @var bool $test @var bool $versandAn */
+/** @var array $vorlagen @var array $folgen @var bool $an @var bool $test @var bool $versandAn @var array $waHand */
 /* Folge-Mails (27.09.2026). Oben: läuft es, und wenn nicht, warum nicht --
    in einem Satz. Darunter die laufenden Folgen, dann die fünf Texte je
    Sprache. Freigegeben wird je Text; jede Änderung macht ihn wieder zum
@@ -45,6 +45,32 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
 <div class="fo-stand"><span class="akq-ampel <?= $ampel ?>"><i aria-hidden="true"></i><span><?= Fmt::h($satz) ?>
   <span class="fo-zahlen"><span><?= $frei ?> von <?= $gesamt ?> Texten freigegeben</span><span><?= $laufend ?> Folgen laufen</span>
     <a href="<?= Fmt::h(url('akquise/regeln#schalter')) ?>" style="text-decoration:underline">Schalter</a></span></span></span></div>
+
+<?php if (!empty($waHand)): ?>
+<div class="block" id="whatsapp">
+  <h2>WhatsApp von Hand — <?= count($waHand) ?> bereit</h2>
+  <p class="akq-klein" style="max-width:72ch">Diese Betriebe haben WhatsApp ausdrücklich erlaubt. Ein Tipp öffnet WhatsApp auf deinem Handy mit dem fertigen Text — du drückst nur noch auf Senden.
+    Der Schritt gilt mit dem Tipp als verschickt. Antworten kommen in deiner WhatsApp-App an: Schreibt jemand „STOP“, hier auf „STOP bekommen“ tippen; bei jeder anderen Antwort „Antwort kam“.
+    Liegt ein Schritt zwei Tage hier, geht stattdessen die Mail (wenn eine Adresse da ist).</p>
+  <div class="tabellenrahmen"><table><thead><tr><th>Betrieb</th><th>Text</th><th></th></tr></thead><tbody>
+  <?php foreach ($waHand as $wh): $whText = AkquiseFolge::handText($wh, (int) $wh['wa_hand_schritt'], (string) $wh['sprache']); ?>
+    <tr><td><a href="<?= Fmt::h(url('akquise/' . (int) $wh['firma_id'])) ?>" style="color:var(--cyan)"><?= Fmt::h((string) $wh['name']) ?></a>
+          <div class="akq-klein"><?= (int) $wh['wa_hand_schritt'] ?>. <?= Fmt::h(AkquiseFolge::SCHRITT_NAME[(int) $wh['wa_hand_schritt']] ?? '') ?> · <?= Fmt::h(strtoupper((string) $wh['sprache'])) ?></div></td>
+        <td class="akq-klein" style="max-width:46ch;white-space:pre-line"><?= Fmt::h($whText) ?></td>
+        <td style="text-align:right">
+          <form method="post" action="<?= Fmt::h(url('akquise')) ?>" target="_blank" style="margin:0 0 6px"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="akq_folge_wa_hand"><input type="hidden" name="folge" value="<?= (int) $wh['id'] ?>">
+            <button class="knopf">In WhatsApp öffnen</button></form>
+          <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:inline"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="akq_folge_pausieren"><input type="hidden" name="folge" value="<?= (int) $wh['id'] ?>">
+            <button class="knopf klein">Antwort kam</button></form>
+          <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:inline" data-frage="Diesen Betrieb dauerhaft sperren? Er bekommt dann auf keinem Weg mehr etwas." data-ja="Ja, sperren"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="akq_folge_wa_stop"><input type="hidden" name="folge" value="<?= (int) $wh['id'] ?>">
+            <button class="knopf klein">STOP bekommen</button></form></td></tr>
+  <?php endforeach; ?>
+  </tbody></table></div>
+</div>
+<?php endif; ?>
 
 <div class="block" id="laufend">
   <h2>Betriebe in der Folge</h2>

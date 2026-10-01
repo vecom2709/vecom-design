@@ -13111,6 +13111,48 @@ pruefe('V3: eine Antwort per WhatsApp landet bei den Antworten und pausiert die 
 WhatsAppCloud::verarbeiten(['entry' => [['changes' => [['value' => ['messages' => [['from' => '393331234567', 'type' => 'text', 'text' => ['body' => 'STOP']]]]]]]]]);
 pruefe('V3: „STOP“ sperrt den Betrieb sofort für alle Kanäle', (int) Db::wert('SELECT gesperrt FROM akq_firmen WHERE id = ?', [$v3F], 0) === 1
     && AkquiseGate::pruefen(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$v3F]), 'whatsapp')['status'] === AkquiseGate::NICHT);
+/* 02.10.2026: WhatsApp von Hand — ohne angebundenes WhatsApp Business (Uwe behält seine Nummer in der App) */
+$whNr = AkquiseGate::einstellung('wa_nummer_id', ''); AkquiseGate::setzen('wa_nummer_id', '');
+$whA = Akquise::firmaMelden(['name' => 'Panificio Mano', 'land' => 'IT', 'stadt' => 'Favara', 'url' => 'https://panificio-mano.example/', 'quelle' => 'test:wahand']);
+$whF = (int) $whA['id'];
+$whEw = AkquiseEinwilligung::link($whF, 'vorort');
+AkquiseEinwilligung::anfragen((string) $whEw['link_token'], 'forno@panificio-mano.example', true, 'it', '203.0.113.8', '+39 333 765 4321');
+AkquiseEinwilligung::bestaetigen((string) Db::wert("SELECT doi_token FROM akq_einwilligungen WHERE firma_id = ? AND status = 'angefragt'", [$whF], ''));
+Db::run("UPDATE akq_folgen SET status = 'beendet' WHERE firma_id <> ?", [$whF]);
+Db::run('UPDATE akq_folgen SET naechst_am = ? WHERE firma_id = ?', [date('Y-m-d H:i:s'), $whF]);
+$whPost = count($v3Post); $whMeta = count($v3Anfragen); $whStart = (int) Db::wert('SELECT schritt FROM akq_folgen WHERE firma_id = ?', [$whF], 0);
+$whL = AkquiseFolge::lauf();
+$whFo = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [$whF]);
+$whS = $whStart + 1;
+pruefe('WhatsApp von Hand: ohne angebundenes WhatsApp Business liegt der Schritt bereit — keine Mail, nichts an Meta, eine Meldung',
+    (int) $whFo['wa_hand_schritt'] === $whS && (int) $whFo['schritt'] === $whStart && count($v3Post) === $whPost && count($v3Anfragen) === $whMeta
+    && count(AkquiseFolge::handOffen()) === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title LIKE 'WhatsApp senden: Panificio Mano%'", [], 0) === 1, json_encode($whL) . ' ' . json_encode($whFo));
+AkquiseFolge::lauf();
+pruefe('WhatsApp von Hand: der nächste Lauf wartet weiter, ohne Mail und ohne zweite Meldung',
+    count($v3Post) === $whPost && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title LIKE 'WhatsApp senden: Panificio Mano%'", [], 0) === 1);
+$whAdr = AkquiseFolge::handGesendet((int) $whFo['id']);
+$whFo2 = Db::one('SELECT * FROM akq_folgen WHERE firma_id = ?', [$whF]);
+pruefe('WhatsApp von Hand: der Tipp öffnet wa.me mit Nummer, Name, persönlichem Bereich und STOP — und vermerkt den Schritt',
+    str_starts_with($whAdr, 'https://wa.me/393337654321?text=') && str_contains(rawurldecode($whAdr), 'Panificio Mano') && str_contains(rawurldecode($whAdr), 'STOP')
+    && (int) $whFo2['schritt'] === $whS && (int) $whFo2['wa_schritt'] === $whS && $whFo2['wa_hand_schritt'] === null && $whFo2['status'] === 'laeuft' && $whFo2['naechst_am'] !== null);
+$whDoppelt = null;
+try { AkquiseFolge::handGesendet((int) $whFo['id']); } catch (RuntimeException $e) { $whDoppelt = $e->getMessage(); }
+pruefe('WhatsApp von Hand: ein zweiter Tipp vermerkt nichts doppelt', $whDoppelt !== null && (int) Db::wert('SELECT schritt FROM akq_folgen WHERE firma_id = ?', [$whF], 0) === $whS);
+Db::run("UPDATE akq_folge_vorlagen SET status = 'freigegeben' WHERE schritt = ? AND sprache = 'it'", [$whS + 1]);
+Db::run('UPDATE akq_folgen SET naechst_am = ? WHERE firma_id = ?', [date('Y-m-d H:i:s'), $whF]);
+AkquiseFolge::lauf();
+Db::run('UPDATE akq_folgen SET wa_hand_seit = ? WHERE firma_id = ?', [date('Y-m-d H:i:s', time() - 3 * 86400), $whF]);
+AkquiseFolge::lauf();
+pruefe('WhatsApp von Hand: liegt ein Schritt zwei Tage ohne Tipp, geht die Mail',
+    count($v3Post) === $whPost + 1 && $v3Post[count($v3Post) - 1][0] === 'forno@panificio-mano.example' && (int) Db::wert('SELECT schritt FROM akq_folgen WHERE firma_id = ?', [$whF], 0) === $whS + 1);
+pruefe('WhatsApp von Hand: ohne WhatsApp-Einwilligung nie', !AkquiseFolge::handMoeglich(['wa_schritt' => 0], $v3OhneWa, 1));
+AkquiseGate::setzen('wa_nummer_id', $whNr);
+pruefe('WhatsApp von Hand: ist WhatsApp Business angebunden, schickt die Schnittstelle — nicht die Hand',
+    WhatsAppCloud::bereit() && !AkquiseFolge::handMoeglich(['wa_schritt' => 0], Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$whF]), 5));
+pruefe('WhatsApp von Hand: Knöpfe „In WhatsApp öffnen“ und „STOP bekommen“ (sperrt) in der Verwaltung',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_folgen.php'), 'value="akq_folge_wa_hand"')
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "AkquiseGate::sperren((int) \$foS['firma_id'], 'Per WhatsApp mit STOP geantwortet'"));
+Db::run("UPDATE akq_folgen SET status = 'beendet' WHERE firma_id = ?", [$whF]);
 WhatsAppCloud::$netz = null; AkquiseVersand::$postbote = null;
 AkquiseGate::schalterSetzen('folge', false); AkquiseGate::testbetriebSetzen(true); AkquiseGate::setzen('akq_fehler_grenze', '3'); AkquiseGate::setzen('akq_limit_stunde', '3'); AkquiseGate::setzen('akq_versand_an', '0');
 $v1Seite = (string) file_get_contents($wurzel . '/views/akquise_vorort.php');
