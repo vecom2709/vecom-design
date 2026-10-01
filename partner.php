@@ -351,6 +351,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Partner::stripeFehlerMelden($p, $r, 'Stripe-Land nicht geändert');
                 $meldung = Partner::stripeGrundOeffentlich($r);
                 $p = Partner::ausToken($token) ?? $p;
+            } elseif ($tat === 'g3_bestellen' && $p) {
+                /* 3D-Motiv bestellen (Marketing-Studio 11): rechnet in Vecoms Nachtschicht, höchstens 2 je Woche. */
+                require_once __DIR__ . '/app/src/MkMedium.php';
+                $g3R = MkMedium::anlegenGalerie((string) ($_POST['studio'] ?? ''), ($_POST['art'] ?? '') === 'video' ? 'video' : 'bild', '', $p, $sprache);
+                $g3Meldung = is_int($g3R) ? 'b_ok' : ($g3R === 'zuviel' ? 'b_zuviel' : 'b_fehler');
             } elseif ($tat === 'konto' && $p) {
                 /* Gehosteter Weg (ohne Skript oder als Rückfall): Land speichern,
                    Konto mit diesem Land anlegen, weiter zu Stripe. */
@@ -562,6 +567,15 @@ if ($p && isset($_GET['karte'])) {
   .text-kopie{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
   .text-kopie textarea{flex:1;min-height:74px;font-size:13.5px;line-height:1.5;padding:10px 12px}
   .knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  /* 3D-Galerie (Marketing-Studio 11) */
+  .g3-raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:6px 0 12px}
+  .g3-stueck{position:relative;padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;background:#111;cursor:pointer;aspect-ratio:4/5;min-height:44px}
+  .g3-stueck[aria-pressed="true"]{border-color:#f1d38b}
+  .g3-stueck img,.g3-stueck video{width:100%;height:100%;object-fit:cover;display:block}
+  .g3-marke{position:absolute;left:6px;bottom:6px;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(10,9,8,.78);color:#f7f3ea}
+  .g3-eigen{left:auto;right:6px;top:6px;bottom:auto;background:#f1d38b;color:#17130b}
+  .g3-bestellen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .g3-bestellen select{min-height:44px}
   /* minmax(0,1fr): Ein Grid-Eintrag ist sonst mindestens so breit wie sein
      Inhalt -- die lange Adresse schob die Seite auf 519 px, das Abschneiden
      im code griff nie. */
@@ -1352,6 +1366,7 @@ if ($p && isset($_GET['karte'])) {
 
   <script src="/assets/js/qrcode.js"></script>
   <script src="/assets/js/partner-medien.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-medien.js') ?>" defer></script>
+  <script src="/assets/js/partner-3d.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-3d.js') ?>" defer></script>
   <script src="/assets/js/partner-plus.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-plus.js') ?>" defer></script>
 <?php endif; ?>
 

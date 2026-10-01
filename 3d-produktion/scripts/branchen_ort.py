@@ -25,6 +25,15 @@ MODUS = argv[1] if len(argv) > 1 else 'probe'
 EXTRA = {k: v for k, v in (t.split('=', 1) for t in argv[2:] if '=' in t)}
 NUR = [t for t in argv[2:] if '=' not in t] or None
 
+# Marketing (01.10.2026, Uwe: „Bilder und Videos zusätzlich hochqualitativ mit
+# Blender“): Die Verwaltung schickt über den Worker einen Auftrag als JSON --
+# Format, Zufallszahl für Blickwinkel und Variante, Ausgabedatei, beim Film
+# Titel und Abspann. Texte gehen bewusst nicht über die Befehlszeile (Kommas).
+MK = {}
+if MODUS in ('marketing', 'marketing_film'):
+    with open(EXTRA['auftrag'], encoding='utf-8') as _f:
+        MK = json.load(_f)
+
 # Je Demo: Ort (HDRI), Aufnahmehoehe der HDRI, Kamera, Zubehoer
 ORTE = {
     'gastro': dict(hdri='bush_restaurant_4k.exr', hdri_web='bush_restaurant_2k.hdr', dreh=120.0, staerke=1.0,
@@ -110,6 +119,12 @@ K = dict(O['kamera'])
 for k in ('winkel', 'hoehe', 'lens', 'ziel_hoehe', 'fuellung', 'blende'):
     if k in EXTRA:
         K[k] = float(EXTRA[k])
+# Jeder Marketing-Auftrag bekommt seinen eigenen Standpunkt: Winkel ±14°,
+# Höhe ±7 % -- reproduzierbar über die Zufallszahl, Licht (HDRI) bleibt gleich.
+if MK:
+    _rnd = random.Random(int(MK.get('seed', 0)))
+    K['winkel'] += _rnd.uniform(-14.0, 14.0)
+    K['hoehe'] *= _rnd.uniform(0.94, 1.07)
 
 AUSGABE = os.path.join(P, 'render', WAS + '-ort')
 os.makedirs(AUSGABE, exist_ok=True)
@@ -589,6 +604,18 @@ cam_d.dof.use_dof = True
 cam_d.dof.focus_distance = (ziel - ort).length
 cam_d.dof.aperture_fstop = K['blende']
 cam_d.dof.aperture_blades = 9            # runde Unschaerfescheiben wie ein echtes Objektiv
+MK_PX = (1080, 1350)
+if MK:
+    MK_PX = tuple(int(v) for v in str(MK.get('px', '1080x1350')).lower().split('x'))
+    # Der Sensor passt horizontal: im Hochformat stuende das Motiv sonst klein
+    # in viel Boden und Himmel. Naeher heran (Faktor je Seitenverhaeltnis).
+    _hoch = MK_PX[1] / MK_PX[0]
+    # Probe 01.10.2026: 9:16 mit 0,72 zeigte unten 40 % Boden (Salon) -> 0,64; 4:5 mit 0,86 passte.
+    # Gastro 9:16 mit 0,64 schnitt den Tisch rechts an (Film-Probe 01.10.2026) -> je Szene ein Zuschlag.
+    _zuschlag = {'gastro': 1.2, 'kueche': 1.15, 'lkw': 1.1}.get(WAS, 1.0) if _hoch > 1.3 else 1.0
+    _faktor = (1.0 if _hoch <= 1.0 else (0.86 if _hoch <= 1.3 else 0.64)) * _zuschlag * float(MK.get('naeher', 1.0))
+    cam.location = ziel + (cam.location - ziel) * _faktor
+    cam_d.dof.focus_distance = (ziel - cam.location).length
 
 # Schwarze Flagge hinter der Kamera, wie sie jeder Produktfotograf aufstellt:
 # Dunkles Flaschenglas spiegelte den hellen Kellerteil hinter der Kamera als
@@ -650,6 +677,10 @@ r.resolution_x, r.resolution_y = 3840, 2160
 r.resolution_percentage = int(EXTRA.get('prozent', 12 if MODUS == 'reihe' else (25 if PROBE else 100)))
 sc.cycles.samples = int(EXTRA.get('samples', 32 if MODUS == 'reihe' else (96 if PROBE else 1024)))
 sc.cycles.adaptive_threshold = 0.02 if PROBE else 0.004
+if MK:
+    r.resolution_x, r.resolution_y, r.resolution_percentage = MK_PX[0], MK_PX[1], 100
+    sc.cycles.samples = int(MK.get('samples', 768 if MODUS == 'marketing' else 160))
+    sc.cycles.adaptive_threshold = 0.005 if MODUS == 'marketing' else 0.012
 sc.cycles.use_denoising = True
 sc.cycles.denoiser = 'OPTIX' if prefs.compute_device_type == 'OPTIX' else 'OPENIMAGEDENOISE'
 sc.cycles.max_bounces = 32; sc.cycles.glossy_bounces = 16; sc.cycles.transmission_bounces = 32
@@ -949,6 +980,146 @@ if MODUS == 'web':
     status(was=WAS, modus='web', schritt='fertig')
     print('WEB FERTIG')
     MODUS = 'web_fertig'
+
+
+
+# ------------------------------------------------------------------ Marketing
+def _leuchtdichte(pfad):
+    """Mittlere Leuchtdichte (sRGB-Werte 0..1) und Anteil ausgebrannter Pixel."""
+    import numpy as np
+    bild = bpy.data.images.load(pfad, check_existing=False)
+    px = np.array(bild.pixels[:], dtype=np.float32).reshape(-1, 4)[:, :3]
+    bpy.data.images.remove(bild)
+    lum = px @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
+    return float(lum.mean()), float((px.max(axis=1) > 0.985).mean())
+
+
+def _titel_film(ordner, n, fps, aus):
+    """Bildfolge + Titel + Abspann -> MP4 (gleiche Schrift und Kasten wie die Branchen-Filme)."""
+    sn = bpy.data.scenes.new('Marketing-Schnitt')
+    sn.render.resolution_x, sn.render.resolution_y, sn.render.resolution_percentage = MK_PX[0], MK_PX[1], 100
+    sn.render.fps = fps; sn.frame_start = 1; sn.frame_end = n
+    sn.sequence_editor_create()
+    seq = sn.sequence_editor.strips if hasattr(sn.sequence_editor, 'strips') else sn.sequence_editor.sequences
+    dateien = sorted(x for x in os.listdir(ordner) if x.startswith('bild-') and x.endswith('.png'))
+    try:
+        bild = seq.new_image('Film', os.path.join(ordner, dateien[0]), channel=1, frame_start=1, fit_method='FIT')
+    except TypeError:
+        bild = seq.new_image('Film', os.path.join(ordner, dateien[0]), channel=1, frame_start=1)
+    for d in dateien[1:]:
+        bild.elements.append(d)
+    schrift = None
+    for kandidat in (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'archivo-film.ttf'), r'C:\Windows\Fonts\segoeuib.ttf'):
+        if os.path.exists(kandidat):
+            schrift = bpy.data.fonts.load(kandidat, check_existing=True); break
+    # Gut lesbar (Uwe, 03.09.2026): gross, Kasten dahinter, Schatten. Groesse an der kurzen Bildkante.
+    kurz = min(MK_PX)
+
+    def text(name, inhalt, von, bis, faktor, y, kanal):
+        von, bis = max(1, von), min(n + 1, bis)
+        try:
+            ts = seq.new_effect(name, 'TEXT', channel=kanal, frame_start=von, length=bis - von)
+        except TypeError:
+            ts = seq.new_effect(name, 'TEXT', channel=kanal, frame_start=von, frame_end=bis)
+        ts.text = inhalt; ts.font_size = int(kurz * faktor); ts.location = (0.5, y)
+        if schrift:
+            ts.font = schrift
+        ts.color = (1, 1, 1, 1); ts.use_shadow = True; ts.shadow_color = (0, 0, 0, 0.85)
+        for a, v in (('alignment_x', 'CENTER'), ('anchor_x', 'CENTER'), ('anchor_y', 'CENTER'), ('wrap_width', 0.9),
+                     ('use_box', True), ('box_color', (0.02, 0.03, 0.05, 0.55)), ('box_margin', 0.02)):
+            try:
+                setattr(ts, a, v)
+            except Exception:
+                pass
+    if str(MK.get('titel', '')).strip():
+        text('Titel', str(MK['titel']).strip()[:80], 1, int(fps * 2.8), 0.072, 0.86, 2)
+    if str(MK.get('abspann', '')).strip():
+        text('Abspann', str(MK['abspann']).strip()[:60], n - int(fps * 2.4), n + 1, 0.075, 0.14, 3)
+    try:
+        sn.render.image_settings.media_type = 'VIDEO'
+    except Exception:
+        pass
+    sn.render.image_settings.file_format = 'FFMPEG'
+    sn.render.ffmpeg.format = 'MPEG4'; sn.render.ffmpeg.codec = 'H264'
+    sn.render.ffmpeg.constant_rate_factor = 'HIGH'; sn.render.ffmpeg.ffmpeg_preset = 'GOOD'
+    sn.render.ffmpeg.gopsize = fps
+    sn.render.filepath = aus
+    sn.view_settings.view_transform = 'Standard'          # die Bilder sind schon fertig belichtet
+    with bpy.context.temp_override(scene=sn):
+        bpy.ops.render.render(animation=True, scene=sn.name)
+
+
+if MK:
+    _liste = [i for i in (list(range(len(namen))) or [0]) if not namen or not namen[i].startswith('Innen')] or [0]
+    _wahl = MK.get('variante')
+    _idx = namen.index(_wahl) if namen and _wahl in namen else _liste[int(MK.get('seed', 0)) % len(_liste)]
+    if namen:
+        variante_setzen(_idx)
+    _aus = MK['aus']
+    os.makedirs(os.path.dirname(_aus), exist_ok=True)
+    _bericht = {'was': WAS, 'modus': MODUS, 'variante': namen[_idx] if namen else 'standard', 'px': list(MK_PX),
+                'winkel': round(K['winkel'], 1), 'belichtung_vorher': round(sc.view_settings.exposure, 2)}
+    # Belichtung messen statt vermuten (Reality Check): kleine Probe, Leuchtdichte,
+    # hoechstens ±1 Blende nachfuehren -- die Orte sind eingemessen, ein neuer
+    # Blickwinkel zeigt aber einen anderen Teil des Hintergrunds.
+    _probe = os.path.join(os.path.dirname(_aus), 'probe-' + os.path.basename(_aus).rsplit('.', 1)[0] + '.png')
+    _alt = (r.resolution_percentage, sc.cycles.samples)
+    r.resolution_percentage = 25; sc.cycles.samples = 48; r.filepath = _probe
+    r.image_settings.file_format = 'PNG'
+    bpy.ops.render.render(write_still=True)
+    _mittel, _hell = _leuchtdichte(_probe)
+    _ev = 0.0
+    # Band bewusst weit: Keller und Abendlicht duerfen dunkel bleiben (eingemessene Stimmung), nur Ausreisser werden geholt.
+    if _mittel < 0.16 or _mittel > 0.66 or _hell > 0.03:
+        _ziel = 0.42 if _hell <= 0.03 else min(0.40, _mittel * 0.8)
+        _ev = max(-1.0, min(1.0, math.log2(max(1e-4, _ziel) / max(1e-4, _mittel)) * 2.2))
+        sc.view_settings.exposure += _ev
+    _bericht.update(probe_mittel=round(_mittel, 3), probe_ausgebrannt=round(_hell, 4), korrektur_ev=round(_ev, 2))
+    r.resolution_percentage, sc.cycles.samples = _alt
+    try:
+        os.remove(_probe)
+    except OSError:
+        pass
+    status(was=WAS, modus=MODUS, schritt='rendert', bericht=_bericht)
+    if MODUS == 'marketing':
+        t0 = time.time(); r.filepath = _aus
+        bpy.ops.render.render(write_still=True)
+        _m2, _h2 = _leuchtdichte(_aus)
+        _bericht.update(sekunden=round(time.time() - t0, 1), mittel=round(_m2, 3), ausgebrannt=round(_h2, 4))
+        print('MARKETING FERTIG', _aus, _bericht['sekunden'], 's')
+    else:
+        FPS = 24
+        N = max(48, int(FPS * float(MK.get('sekunden', 8))))
+        ordner = MK.get('ordner') or os.path.join(os.path.dirname(_aus), 'bilder-' + os.path.basename(_aus).rsplit('.', 1)[0])
+        os.makedirs(ordner, exist_ok=True)
+        r.use_persistent_data = True                 # Szene bleibt zwischen den Bildern im Speicher
+        d0 = cam.location - ziel
+        w0 = math.atan2(-d0.x, -d0.y); rad0 = math.hypot(d0.x, d0.y); h0 = d0.z
+        spanne = math.radians(float(MK.get('spanne', 34.0)))
+        t0 = time.time()
+        for f in range(N):
+            t = f / (N - 1)
+            e = t * t * (3 - 2 * t)                  # weich an- und auslaufen
+            w = w0 - spanne / 2 + spanne * e
+            rad = rad0 * (1.0 - 0.09 * e)            # leichtes Heranfahren
+            pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0 * (0.95 + 0.07 * e)))
+            cam.location = pos
+            cam.rotation_euler = (ziel - pos).to_track_quat('-Z', 'Y').to_euler()
+            cam_d.dof.focus_distance = (ziel - pos).length
+            pfad = os.path.join(ordner, f'bild-{f:04d}.png')
+            if os.path.exists(pfad):
+                continue                             # abgebrochenen Lauf fortsetzen
+            r.filepath = pfad
+            bpy.ops.render.render(write_still=True)
+            status(was=WAS, modus=MODUS, bild=f + 1, von=N, bericht=_bericht)
+            print('FILM', f + 1, '/', N, flush=True)
+        _titel_film(ordner, N, FPS, _aus)
+        _bericht.update(sekunden=round(time.time() - t0, 1), bilder=N)
+        print('MARKETING FILM FERTIG', _aus)
+    with open(_aus.rsplit('.', 1)[0] + '.json', 'w', encoding='utf-8') as _f:
+        json.dump(_bericht, _f, ensure_ascii=False, indent=1)
+    status(was=WAS, modus=MODUS, schritt='fertig', bericht=_bericht)
+    raise SystemExit(0)
 
 if MODUS == 'web_fertig':
     pass

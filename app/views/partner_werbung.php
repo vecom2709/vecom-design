@@ -213,6 +213,73 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   </div>
 </div>
 <?php endif; ?>
+<?php /* 3D-Galerie (Marketing-Studio 11, 01.10.2026, Uwe: Ja zu P1–P3): fotoreal von Vecoms PC — Text, Link und QR legt partner-3d.js im Browser drauf. */
+  require_once __DIR__ . '/../src/MkMedium.php';
+  $g3Liste = MkMedium::galerieFuerPartner($p);
+  $g3Bestellt = MkMedium::bestellungenVon($p);
+  $g3Motive = [];
+  foreach (MkMedium::STUDIO_MOTIV as $g3St => $g3Mo) {
+      $g3M = Texte::PARTNER_MEDIEN['motive'][$g3Mo] ?? Texte::PARTNER_MEDIEN['motive']['allgemein'];
+      $g3Motive[$g3St] = ['titel' => Texte::h($g3M['titel'], $sprache), 'unter' => Texte::h($g3M['unter'], $sprache)];
+  }
+  $g3Daten = ['items' => $g3Liste, 'motive' => $g3Motive, 'allgemein' => ['titel' => Texte::h(Texte::PARTNER_MEDIEN['motive']['allgemein']['titel'], $sprache), 'unter' => Texte::h(Texte::PARTNER_MEDIEN['motive']['allgemein']['unter'], $sprache)],
+              'code' => (string) $p['code'], 'kurz' => preg_replace('~^https?://~', '', Partner::link($p)), 'link' => PartnerWerbung::link($p, 'video3d'), 'linkBild' => PartnerWerbung::link($p, 'bild3d'),
+              'empf' => strtr(Texte::h(Texte::PARTNER_MEDIEN['empf'], $sprache), ['{name}' => (string) $p['name']]), 'scan' => Texte::h(Texte::PARTNER_MEDIEN['scan'], $sprache),
+              't' => ['v_laeuft' => MkMedium::gt('v_laeuft', $sprache), 'v_fertig' => MkMedium::gt('v_fertig', $sprache), 'v_nein' => MkMedium::gt('v_nein', $sprache)]]; ?>
+<div class="block pt" id="galerie3d" data-reiter="werben">
+  <h2><?= $h(MkMedium::gt('titel', $sprache)) ?></h2>
+  <p class="klein" style="margin-top:0"><?= $h(MkMedium::gt('text', $sprache)) ?></p>
+  <?php if (!empty($g3Meldung)): ?><div class="hinweis <?= $g3Meldung === 'b_ok' ? 'gut' : 'schlecht' ?>" role="status"><?= $h(MkMedium::gt($g3Meldung, $sprache)) ?></div><?php endif; ?>
+  <script type="application/json" id="g3_daten"><?= json_encode($g3Daten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+  <?php if ($g3Liste): ?>
+    <div class="g3-raster" role="group" aria-label="<?= $h(MkMedium::gt('titel', $sprache)) ?>">
+      <?php foreach ($g3Liste as $i => $g3): ?>
+        <button type="button" class="g3-stueck" data-g3="<?= $i ?>" aria-pressed="<?= $i === 0 ? 'true' : 'false' ?>">
+          <?php if ($g3['art'] === 'video'): ?><video src="<?= $h($g3['url']) ?>#t=1" muted playsinline preload="metadata"></video><span class="g3-marke"><?= $h(MkMedium::gt('video', $sprache)) ?></span>
+          <?php else: ?><img src="<?= $h($g3['url']) ?>" alt="<?= $h((string) (MkMedium::GALERIE_SZENEN[$g3['studio']][$sprache] ?? '3D')) ?>" loading="lazy"><?php endif; ?>
+          <?php if ($g3['eigen']): ?><span class="g3-marke g3-eigen"><?= $h(MkMedium::gt('eigen', $sprache)) ?></span><?php endif; ?>
+        </button>
+      <?php endforeach; ?>
+    </div>
+    <p class="md-l"><?= $h(MkMedium::gt('format', $sprache)) ?></p>
+    <div class="chips">
+      <?php foreach (['quadrat', 'hoch', 'story'] as $i => $fk): ?>
+        <button type="button" data-g3format="<?= $fk ?>" aria-pressed="<?= $i === 1 ? 'true' : 'false' ?>"><?= $h(MkMedium::gt($fk, $sprache)) ?></button>
+      <?php endforeach; ?>
+    </div>
+    <div class="md-buehne"><canvas id="g3_vorschau" width="1080" height="1350" role="img" aria-label="<?= $h(MkMedium::gt('titel', $sprache)) ?>"></canvas></div>
+    <div class="knoepfe">
+      <button class="knopf haupt" type="button" id="g3_laden"><?= $h(MkMedium::gt('laden', $sprache)) ?></button>
+      <button class="knopf" type="button" id="g3_teilen" hidden><?= $h(MkMedium::gt('teilen', $sprache)) ?></button>
+      <button class="knopf haupt" type="button" id="g3_video" hidden><?= $h(MkMedium::gt('v_machen', $sprache)) ?></button>
+    </div>
+    <p class="klein" id="g3_stand" role="status" aria-live="polite"></p>
+    <video id="g3_ergebnis" class="md-video" controls playsinline muted hidden></video>
+    <div class="knoepfe">
+      <button class="knopf" type="button" id="g3_vladen" hidden><?= $h(MkMedium::gt('v_laden', $sprache)) ?></button>
+      <button class="knopf" type="button" id="g3_vteilen" hidden><?= $h(MkMedium::gt('teilen', $sprache)) ?></button>
+    </div>
+  <?php else: ?>
+    <p class="klein"><?= $h(MkMedium::gt('leer', $sprache)) ?></p>
+  <?php endif; ?>
+
+  <h3 class="md-h" style="margin-top:22px"><?= $h(MkMedium::gt('b_titel', $sprache)) ?></h3>
+  <p class="klein" style="margin-top:0"><?= $h(MkMedium::gt('b_text', $sprache)) ?></p>
+  <form method="post" action="<?= $h($selbst()) ?>#galerie3d" class="g3-bestellen">
+    <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="g3_bestellen">
+    <label><span class="sr"><?= $h(MkMedium::gt('b_szene', $sprache)) ?></span>
+      <select name="studio"><?php foreach (MkMedium::GALERIE_SZENEN as $g3k => $g3n): ?><option value="<?= $h($g3k) ?>"><?= $h($g3n[$sprache] ?? $g3n['it']) ?></option><?php endforeach; ?></select></label>
+    <label><span class="sr"><?= $h(MkMedium::gt('b_art', $sprache)) ?></span>
+      <select name="art"><option value="bild"><?= $h(MkMedium::gt('b_bild', $sprache)) ?> 4:5</option><option value="video"><?= $h(MkMedium::gt('video', $sprache)) ?> 9:16</option></select></label>
+    <button class="knopf"><?= $h(MkMedium::gt('b_knopf', $sprache)) ?></button>
+  </form>
+  <?php if ($g3Bestellt): ?>
+    <ul class="klein" style="margin:10px 0 0;padding-left:18px">
+      <?php foreach ($g3Bestellt as $g3b): ?><li><?= $h((string) (MkMedium::GALERIE_SZENEN[$g3b['studio']][$sprache] ?? $g3b['studio'])) ?> · <?= $h($g3b['art'] === 'video' ? MkMedium::gt('video', $sprache) : MkMedium::gt('b_bild', $sprache)) ?> · <?= $h(MkMedium::gt($g3b['status'] === 'fehler' ? 'b_fehler' : 'b_offen', $sprache)) ?></li><?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
+</div>
+
 <div class="block pt" id="medien" data-reiter="werben">
   <h2><?= $h($T('md_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($T('md_text')) ?></p>

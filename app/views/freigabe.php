@@ -102,7 +102,22 @@ require __DIR__ . '/mk_stil.php';
             <?php if ($bild['art'] === 'video'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $bild['id'])) ?>" controls preload="metadata" playsinline></video>
             <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $bild['id'])) ?>" alt="<?= Fmt::h('Bild zu „' . $x['titel'] . '“') ?>"><?php endif; ?>
           <?php elseif ($x['format'] !== 'google_anzeige'): ?>
-            <div class="mk-vorschau__bild"><?= $bildLaeuft ? 'Das Bild entsteht gerade über Kie.ai …' : Fmt::h($x['bildidee'] ? 'Bildidee: ' . $x['bildidee'] : 'noch kein Bild') ?></div>
+            <div class="mk-vorschau__bild"><?= ($dreiDWartet ?? 0) > 0 && !$bildLaeuft ? 'Blender rechnet das Bild in der Nachtschicht …' : ($bildLaeuft ? 'Das Bild entsteht gerade …' : Fmt::h($x['bildidee'] ? 'Bildidee: ' . $x['bildidee'] : 'noch kein Bild')) ?></div>
+          <?php endif; ?>
+          <?php /* Marketing-Studio 11: Mehrere Bilder (z. B. Kie.ai und Blender) — hier das bessere wählen. */
+            $msWahl = array_values(array_filter($medien, static fn($m) => $m['status'] !== 'verworfen' && $bild && $m['art'] === $bild['art']));
+            if (count($msWahl) > 1): ?>
+            <div class="mk-wahl" role="group" aria-label="Welches Bild?">
+              <?php foreach ($msWahl as $mw): ?>
+                <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0">
+                  <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="stapel_medium"><input type="hidden" name="medium_id" value="<?= (int) $mw['id'] ?>"><input type="hidden" name="land" value="<?= Fmt::h($land) ?>">
+                  <button class="mk-wahl__knopf<?= (int) $mw['id'] === (int) $bild['id'] ? ' ist' : '' ?>" aria-pressed="<?= (int) $mw['id'] === (int) $bild['id'] ? 'true' : 'false' ?>">
+                    <?php if ($mw['art'] === 'video'): ?><span class="mk-wahl__video">Video</span><?php else: ?><img src="<?= Fmt::h(url('medien/' . (int) $mw['id'])) ?>" alt="" loading="lazy"><?php endif; ?>
+                    <span><?= Fmt::h(['blender' => 'Blender', 'unreal' => 'Unreal'][(string) $mw['modell']] ?? 'Kie.ai') ?></span>
+                  </button>
+                </form>
+              <?php endforeach; ?>
+            </div>
           <?php endif; ?>
           <div class="mk-vorschau__text"><?= Fmt::h(MkInhalt::kopiertext($x)) ?></div>
           <?php if (!empty($f['folien'])): ?>
@@ -172,3 +187,53 @@ require __DIR__ . '/mk_stil.php';
 </section>
 <?php endif; ?>
 
+<?php $mo = MkMedium::motor();   /* Marketing-Studio 11: womit Bilder und Videos entstehen, und wann der PC 3D rechnet */ ?>
+<section class="block mk-start" id="motor" aria-labelledby="mk-mo-titel" style="margin-top:16px">
+  <h2 id="mk-mo-titel">Bilder und Videos <span class="mehr">Kie.ai, Blender oder Unreal · gilt für Kampagnen, Autopilot und „Automatisch“ am Stück</span></h2>
+  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="motor_speichern"><input type="hidden" name="land" value="<?= Fmt::h($land) ?>">
+    <div class="mk-start__wahl">
+      <label class="mk-haken">Bilder <select name="bild" style="width:auto"><?php foreach (MkMedium::MOTOREN['bild'] as $mk => $mw): ?><option value="<?= $mk ?>"<?= $mo['bild'] === $mk ? ' selected' : '' ?>><?= Fmt::h($mw) ?></option><?php endforeach; ?></select></label>
+      <label class="mk-haken">Videos <select name="video" style="width:auto"><?php foreach (MkMedium::MOTOREN['video'] as $mk => $mw): ?><option value="<?= $mk ?>"<?= $mo['video'] === $mk ? ' selected' : '' ?>><?= Fmt::h($mw) ?></option><?php endforeach; ?></select></label>
+    </div>
+    <div class="mk-start__wahl">
+      <label class="mk-haken"><input type="checkbox" name="nacht_an" value="1"<?= $mo['nacht_an'] ? ' checked' : '' ?>> <b>Nachtschicht</b> — 3D nur</label>
+      <label class="mk-haken">von <select name="nacht_von" style="width:auto"><?php for ($st = 0; $st <= 23; $st++): ?><option value="<?= $st ?>"<?= $mo['nacht_von'] === $st ? ' selected' : '' ?>><?= sprintf('%02d:00', $st) ?></option><?php endfor; ?></select></label>
+      <label class="mk-haken">bis <select name="nacht_bis" style="width:auto"><?php for ($st = 0; $st <= 23; $st++): ?><option value="<?= $st ?>"<?= $mo['nacht_bis'] === $st ? ' selected' : '' ?>><?= sprintf('%02d:00', $st) ?></option><?php endfor; ?></select></label>
+    </div>
+    <div><button class="knopf haupt">Speichern</button></div>
+  </form>
+  <ul class="mk-start__schritte" style="list-style:disc">
+    <li>3D-Szenen gibt es für: <?= Fmt::h(implode(', ', array_unique(array_map(static fn($b) => MkKampagne::branchen()[$b] ?? $b, array_keys(MkMedium::STUDIOS))))) ?>. Für andere Branchen baut Claude das Bild als Blender-Szene aus der Bildidee; Videos laufen dort über Kie.ai.</li>
+    <li>Blender rechnet fotoreal mit Cycles auf deiner RTX 5070 — ohne Credits. Vor jedem Bild misst der PC die Belichtung an einer kleinen Probe und gleicht höchstens eine Blende aus.</li>
+    <li>Unreal (Path Tracer) wird nach dem Probelauf freigeschaltet<?= $mo['unreal_bereit'] ? ' — ist freigeschaltet' : '' ?>. Bis dahin entstehen 3D-Videos mit Blender.</li>
+    <li>Gerade <?= MkMedium::imFenster() ? 'darf der PC 3D rechnen' : 'ist keine Nachtschicht — 3D wartet bis ' . sprintf('%02d:00', $mo['nacht_von']) ?>. „3D jetzt rechnen“ am Stück geht immer.</li>
+  </ul>
+</section>
+
+<?php $g3Offen = MkMedium::galerieOffen();   /* Marketing-Studio 11: 3D-Galerie für Partner — erst nach deinem Ja sichtbar */ ?>
+<section class="block mk-start" id="partner3d" aria-labelledby="mk-g3-titel" style="margin-top:16px">
+  <h2 id="mk-g3-titel">3D für Partner <span class="mehr">Galerie im Partnerportal (Reiter Werben) · Partner bestellen selbst höchstens <?= MkMedium::PARTNER_JE_WOCHE ?> je Woche · ihr Link kommt drauf</span></h2>
+  <?php if ($g3Offen): ?>
+    <div class="mk-galerie">
+      <?php foreach ($g3Offen as $g3): ?>
+        <figure class="mk-galerie__stueck">
+          <?php if ($g3['art'] === 'video'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" controls preload="metadata" playsinline></video>
+          <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" alt="3D <?= Fmt::h((string) $g3['studio']) ?>" loading="lazy"><?php endif; ?>
+          <figcaption><span><?= Fmt::h(MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? (string) $g3['studio']) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
+            <span class="mk-galerie__knoepfe">
+              <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_freigeben"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein haupt">Für Partner freigeben</button></form>
+              <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_verwerfen"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein">Verwerfen</button></form>
+            </span>
+          </figcaption>
+        </figure>
+      <?php endforeach; ?>
+    </div>
+  <?php else: ?>
+    <p class="mk-fein" style="margin:0 0 10px">Nichts wartet. Freigegebene 3D-Bilder deiner eigenen Beiträge stehen automatisch mit in der Partner-Galerie.</p>
+  <?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin-top:10px">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_starter">
+    <button class="knopf">Starterpaket rechnen: je Szene ein Bild, drei Filme (nächste Nachtschicht)</button>
+  </form>
+</section>

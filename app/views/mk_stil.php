@@ -170,6 +170,12 @@
   /* Marketing-Studio 6: Freigabe-Stapel und Ein-Klick-Kampagne */
   .mk-stapel{border:1px solid var(--linie2);border-radius:16px;padding:16px 18px;background:var(--flaeche)}
   .mk-stapel__kopf{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:8px}
+  /* Marketing-Studio 11: zwei Bilder (Kie.ai/Blender) nebeneinander — das bessere wählen */
+  .mk-wahl{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 0}
+  .mk-wahl__knopf{display:flex;flex-direction:column;gap:4px;align-items:center;padding:4px;border-radius:10px;border:1px solid var(--li2,#333);background:transparent;color:inherit;cursor:pointer;font-size:12px;min-height:44px}
+  .mk-wahl__knopf img{width:84px;height:84px;object-fit:cover;border-radius:7px;display:block}
+  .mk-wahl__knopf.ist{border-color:var(--gold,#c79a43);box-shadow:0 0 0 1px var(--gold,#c79a43)}
+  .mk-wahl__video{width:84px;height:84px;display:grid;place-items:center;border-radius:7px;background:rgba(255,255,255,.06)}
   .mk-stapel__titel{font-size:19px;margin:0 0 14px;line-height:1.3}
   .mk-stapel__rechts{display:flex;flex-direction:column;gap:14px;min-width:0}
   .mk-stapel__entscheid{border:1px solid var(--linie2);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px;background:var(--flaeche2)}
@@ -180,6 +186,10 @@
   .mk-start{border-color:var(--linie2)}
   .mk-start form{display:grid;gap:12px}
   .mk-start__wahl{display:flex;flex-wrap:wrap;gap:6px 18px}
+  /* Handy: lange Auswahl (Motor, Autopilot) darf nicht über den Rand (Vorschau 01.10.2026: 168 px) */
+  .mk-start__wahl .mk-haken{max-width:100%;flex-wrap:wrap}
+  .mk-start__wahl select{max-width:100%;min-width:0}
+  .mk-start form > *, .mk-start__wahl{min-width:0}
   .mk-start__schritte{margin:4px 0 0;padding-left:20px;font-size:13px;color:var(--dim);line-height:1.6}
   .mk-zahlen{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:13.5px;color:var(--dim);margin:0 0 10px}
   .mk-zahlen b{color:var(--text);font-size:16px;margin-right:4px}

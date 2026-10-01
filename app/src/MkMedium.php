@@ -25,9 +25,102 @@ final class MkMedium
     public const STATUS = ['neu' => 'Neu', 'gewaehlt' => 'Gewählt', 'verworfen' => 'Verworfen'];
     /** art => modell => [Wort, Credits ungefähr] */
     public const MODELLE = [
-        'bild'  => ['nano-banana-pro' => ['Nano Banana Pro (Google) · 2K', 24]],
-        'video' => ['veo3_fast' => ['Veo 3.1 Fast (Google) · 8 s mit Ton', 80], 'veo3' => ['Veo 3.1 Quality (Google) · 8 s mit Ton', 400]],
+        'bild'  => ['nano-banana-pro' => ['Nano Banana Pro (Google) · 2K', 24],
+                    /* Marketing-Studio 11 (01.10.2026, Uwe: „zusätzlich oder alternativ hochqualitativ mit Blender und Unreal“) */
+                    'blender' => ['Blender · fotoreal (Cycles auf deinem PC)', 0]],
+        'video' => ['veo3_fast' => ['Veo 3.1 Fast (Google) · 8 s mit Ton', 80], 'veo3' => ['Veo 3.1 Quality (Google) · 8 s mit Ton', 400],
+                    'blender' => ['Blender · Kamerafahrt 8 s (Cycles auf deinem PC)', 0],
+                    'unreal' => ['Unreal Engine · Kamerafahrt 8 s (Path Tracer auf deinem PC)', 0]],
     ];
+    /** Was auf Uwes PC gerechnet wird (keine Credits, Nachtschicht). */
+    public const DREI_D = ['blender', 'unreal'];
+    public const DREI_D_PRO_TAG = 12;
+
+    /**
+     * Branche → fertige 3D-Szene in 3d-produktion (branchen_ort.py: Modell am
+     * echten Ort, HDRI-Licht). Ohne Szene baut Claude sie für Bilder aus der
+     * Bildidee; Videos gibt es dann über Kie.ai.
+     */
+    public const STUDIOS = [
+        'restaurant' => 'gastro', 'bar_cafe' => 'gastro', 'agriturismo' => 'wein', 'produzent' => 'wein',
+        'friseur' => 'salon', 'beauty' => 'salon', 'autohaus' => 'mittelklasse', 'werkstatt' => 'kleinwagen',
+        'handwerk' => 'kueche', 'einzelhandel' => 'schuh', 'industrie' => 'lkw', 'dienstleister' => 'lkw',
+    ];
+    public const STUDIO_NAMEN = ['gastro' => 'gedeckter Tisch im Restaurant', 'wein' => 'Wein im Gewölbekeller', 'salon' => 'Platz im Friseursalon',
+        'mittelklasse' => 'Auto auf der Piazza', 'kleinwagen' => 'Kleinwagen am Parkplatz', 'kueche' => 'Küche mit Kochinsel', 'schuh' => 'Schuh im Schaufenster',
+        'lkw' => 'Sattelzug', 'schmuck' => 'Uhr beim Juwelier', 'auto' => 'Sportwagen an der Küstenstraße'];
+    public const MOTOR_STANDARD = ['bild' => 'auto', 'video' => 'auto', 'nacht_an' => true, 'nacht_von' => 22, 'nacht_bis' => 7, 'unreal_bereit' => false];
+    public const MOTOREN = ['bild' => ['auto' => 'Automatisch (Blender, wo es eine 3D-Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai', 'blender' => 'Blender', 'beides' => 'Kie.ai und Blender — du wählst'],
+                            'video' => ['auto' => 'Automatisch (3D, wo es eine Szene gibt, sonst Kie.ai)', 'kie' => 'Kie.ai (Veo 3.1 Fast)', 'blender' => 'Blender', 'unreal' => 'Unreal Engine (nach dem Probelauf)']];
+
+    public static function studioFuer(string $branche): ?string
+    {
+        return self::STUDIOS[$branche] ?? null;
+    }
+
+    public static function istDreiD(string $modell): bool
+    {
+        return in_array($modell, self::DREI_D, true);
+    }
+
+    /** @return array{bild:string, video:string, nacht_an:bool, nacht_von:int, nacht_bis:int, unreal_bereit:bool} */
+    public static function motor(): array
+    {
+        $j = json_decode((string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_motor'", [], ''), ''), true);
+        $e = (is_array($j) ? $j : []) + self::MOTOR_STANDARD;
+        return ['bild' => isset(self::MOTOREN['bild'][$e['bild']]) ? (string) $e['bild'] : 'auto', 'video' => isset(self::MOTOREN['video'][$e['video']]) ? (string) $e['video'] : 'auto',
+                'nacht_an' => (bool) $e['nacht_an'], 'nacht_von' => max(0, min(23, (int) $e['nacht_von'])), 'nacht_bis' => max(0, min(23, (int) $e['nacht_bis'])),
+                'unreal_bereit' => (bool) $e['unreal_bereit']];
+    }
+
+    public static function motorSpeichern(array $d): ?string
+    {
+        $alt = self::motor();
+        $neu = ['bild' => isset(self::MOTOREN['bild'][$d['bild'] ?? '']) ? (string) $d['bild'] : $alt['bild'],
+                'video' => isset(self::MOTOREN['video'][$d['video'] ?? '']) ? (string) $d['video'] : $alt['video'],
+                'nacht_an' => !empty($d['nacht_an']), 'nacht_von' => max(0, min(23, (int) ($d['nacht_von'] ?? $alt['nacht_von']))),
+                'nacht_bis' => max(0, min(23, (int) ($d['nacht_bis'] ?? $alt['nacht_bis']))), 'unreal_bereit' => $alt['unreal_bereit'] || !empty($d['unreal_bereit'])];
+        if (array_key_exists('unreal_bereit', $d) && empty($d['unreal_bereit'])) { $neu['unreal_bereit'] = false; }
+        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', ['mk_motor', (string) json_encode($neu)]);
+        Events::pruefspur('mk_motor', 'settings', 0, $alt, $neu);
+        return null;
+    }
+
+    /** Darf der PC jetzt 3D rechnen? Nachtfenster in italienischer Zeit (über Mitternacht möglich). */
+    public static function imFenster(?int $jetzt = null): bool
+    {
+        $m = self::motor();
+        if (!$m['nacht_an']) { return true; }
+        $h = (int) (new DateTimeImmutable('@' . ($jetzt ?? time())))->setTimezone(new DateTimeZone('Europe/Rome'))->format('G');
+        return $m['nacht_von'] <= $m['nacht_bis'] ? ($h >= $m['nacht_von'] && $h < $m['nacht_bis']) : ($h >= $m['nacht_von'] || $h < $m['nacht_bis']);
+    }
+
+    /**
+     * Welche Modelle „Automatisch“ bzw. die Einstellung für ein Stück ergeben.
+     * @return list<string>
+     */
+    public static function motorFuer(array $x, string $art): array
+    {
+        $m = self::motor();
+        $studio = self::studioFuer((string) $x['branche']);
+        $kie = (string) array_key_first(self::MODELLE[$art]);
+        if ($art === 'bild') {
+            return match ($m['bild']) {
+                'kie' => [$kie], 'blender' => ['blender'], 'beides' => [$kie, 'blender'],
+                default => $studio !== null ? ['blender'] : [$kie],
+            };
+        }
+        $dreiD = $m['unreal_bereit'] ? 'unreal' : 'blender';
+        return match ($m['video']) {
+            'kie' => [$kie], 'blender' => [$studio !== null ? 'blender' : $kie], 'unreal' => [$studio !== null ? 'unreal' : $kie],
+            default => [$studio !== null ? $dreiD : $kie],
+        };
+    }
+
+    private static function still(callable $f, mixed $ersatz): mixed
+    {
+        try { return $f(); } catch (Throwable $e) { return $ersatz; }
+    }
     public const FORMATE = ['bild' => ['4:5', '1:1', '9:16', '16:9', '4:3', '3:4'], 'video' => ['9:16', '16:9']];
     public const MIME = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'video/mp4' => 'mp4'];
     public const MAX_BYTES = 60 * 1024 * 1024;
@@ -73,24 +166,46 @@ final class MkMedium
      * Auftrag „Bild/Video erzeugen“ für einen Inhalt.
      * @return int|string
      */
-    public static function anlegen(int $inhaltId, string $art, string $modell = '', string $format = ''): int|string
+    public static function anlegen(int $inhaltId, string $art, string $modell = '', string $format = '', bool $sofort = false): int|string
     {
         require_once __DIR__ . '/MkAuftrag.php';
         $x = MkInhalt::laden($inhaltId);
         if ($x === null) { return 'Inhalt nicht gefunden.'; }
         if ($x['status'] === 'verworfen') { return 'Für verworfene Inhalte entstehen keine Bilder.'; }
         if (!isset(self::MODELLE[$art])) { return 'Bild oder Video?'; }
-        if ($modell === '' || !isset(self::MODELLE[$art][$modell])) { $modell = (string) array_key_first(self::MODELLE[$art]); }
+        /* Marketing-Studio 11: leer oder „auto“ = Einstellung „Motor“; „beides“ = Kie.ai und Blender, Uwe wählt. */
+        if ($modell === '' || $modell === 'auto' || $modell === 'beides') {
+            $liste = $modell === 'beides' && $art === 'bild' ? [(string) array_key_first(self::MODELLE['bild']), 'blender'] : self::motorFuer($x, $art);
+            $erst = null; $fehler = null;
+            foreach ($liste as $mod) {
+                $r = self::anlegen($inhaltId, $art, $mod, $format, $sofort);
+                if (is_int($r)) { $erst ??= $r; } else { $fehler ??= $r; }
+            }
+            return $erst ?? (string) $fehler;
+        }
+        if (!isset(self::MODELLE[$art][$modell])) { $modell = (string) array_key_first(self::MODELLE[$art]); }
         if (!in_array($format, self::FORMATE[$art], true)) { $format = self::formatFuer($x, $art); }
+        $dreiD = self::istDreiD($modell);
+        $studio = self::studioFuer((string) $x['branche']);
+        if ($dreiD && $art === 'video' && $studio === null) { return 'Für diese Branche gibt es noch keine 3D-Szene — Videos dafür über Kie.ai.'; }
         MkAuftrag::aufraeumen();
-        if (Db::one("SELECT id FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE ? LIMIT 1", ['%"inhalt_id":' . $inhaltId . ',%'])) {
-            return 'Für diesen Inhalt entsteht gerade schon ein Bild oder Video.';
+        /* Gleichzeitig höchstens ein Kie- und ein 3D-Auftrag je Inhalt (sonst blockierte „beides“ sich selbst). */
+        foreach (Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"inhalt_id":' . $inhaltId . ',%']) as $lauf) {
+            $lp = json_decode((string) $lauf['parameter'], true) ?: [];
+            if (self::istDreiD((string) ($lp['modell'] ?? '')) === $dreiD) {
+                return $dreiD ? 'Für diesen Inhalt rechnet dein PC schon ein 3D-Bild oder -Video.' : 'Für diesen Inhalt entsteht gerade schon ein Bild oder Video.';
+            }
         }
         if ((int) Db::wert("SELECT COUNT(*) FROM mk_medien WHERE inhalt_id = ? AND status <> 'verworfen'", [$inhaltId], 0) >= self::JE_INHALT) {
             return 'Schon ' . self::JE_INHALT . ' Bilder/Videos zu diesem Inhalt — erst welche verwerfen.';
         }
-        if ((int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND created_at >= CURDATE() AND status <> 'abgebrochen'", [], 0) >= self::PRO_TAG) {
+        $heute = static fn(bool $d): int => count(array_filter(Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND created_at >= CURDATE() AND status <> 'abgebrochen'"),
+            static fn($z) => self::istDreiD((string) ((json_decode((string) $z['parameter'], true) ?: [])['modell'] ?? '')) === $d));
+        if (!$dreiD && $heute(false) >= self::PRO_TAG) {
             return 'Heute sind schon ' . self::PRO_TAG . ' Bilder/Videos entstanden — das schont dein Kie-Guthaben. Morgen geht es weiter.';
+        }
+        if ($dreiD && $heute(true) >= self::DREI_D_PRO_TAG) {
+            return 'Heute sind schon ' . self::DREI_D_PRO_TAG . ' 3D-Aufträge in der Nachtschicht — mehr schafft der PC in einer Nacht nicht.';
         }
         /* Bild → Video: ein gewähltes Bild, dessen Kie-Adresse noch frisch ist, wird erster Frame. */
         $start = null;
@@ -99,8 +214,14 @@ final class MkMedium
                                 AND created_at > NOW() - INTERVAL 48 HOUR ORDER BY id DESC LIMIT 1", [$inhaltId], null);
         }
         $param = ['inhalt_id' => $inhaltId, 'medium' => $art, 'modell' => $modell, 'format' => $format, 'prompt' => self::prompt($x, $art),
-                  'startbild' => $start ? (string) $start : null, 'credits_ca' => self::MODELLE[$art][$modell][1],
+                  'startbild' => $start && !$dreiD ? (string) $start : null, 'credits_ca' => self::MODELLE[$art][$modell][1],
                   'titel' => mb_substr((string) $x['titel'], 0, 80)];
+        if ($dreiD) {
+            /* Für den PC: welche Szene, welcher Blickwinkel (Zufallszahl), im Film Titel und Abspann — groß und lesbar. */
+            $f = json_decode((string) ($x['felder'] ?? ''), true) ?: [];
+            $param += ['drei_d' => true, 'studio' => $studio, 'generativ' => $studio === null, 'seed' => random_int(1, 999999), 'sofort' => $sofort, 'sprache' => (string) $x['sprache'],
+                       'film_titel' => mb_substr(trim((string) ($f['hook'] ?? $f['ueberschrift'] ?? $x['titel'])), 0, 70), 'abspann' => 'vecom-design.it'];
+        }
         $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => (string) $x['branche'], 'land' => (string) $x['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         Events::protokoll('medien_auftrag', ($art === 'video' ? 'Video' : 'Bild') . ' angestoßen: ' . $param['titel'], null, null, null, ['auftrag_id' => $id, 'inhalt_id' => $inhaltId]);
@@ -142,7 +263,10 @@ final class MkMedium
         $name = bin2hex(random_bytes(16)) . '.bin';
         if (!rename($tmp, self::ordner() . '/' . $name)) { @unlink($tmp); return ['ok' => false, 'hinweis' => 'Ablegen fehlgeschlagen.']; }
         $url = trim((string) ($d['quelle_url'] ?? ''));
-        $id = (int) Db::insert('mk_medien', [
+        /* Marketing-Studio 11: 3D-Galerie (Vecom, nach Uwes Ja) und Partner-Bestellungen haben keinen Inhalt. */
+        $galerie = !empty($p['galerie']) ? ['galerie' => 1, 'studio' => mb_substr((string) ($p['studio'] ?? ''), 0, 20) ?: null] : [];
+        if (!empty($p['partner_id'])) { $galerie = ['partner_id' => (int) $p['partner_id'], 'studio' => mb_substr((string) ($p['studio'] ?? ''), 0, 20) ?: null]; }
+        $id = (int) Db::insert('mk_medien', $galerie + [
             'inhalt_id' => (int) ($p['inhalt_id'] ?? 0), 'auftrag_id' => $auftrag, 'art' => $art, 'datei' => $name, 'mime' => $mime, 'bytes' => $bytes, 'sha256' => $sha,
             'format' => mb_substr((string) ($p['format'] ?? ''), 0, 8), 'modell' => mb_substr((string) ($p['modell'] ?? ''), 0, 60),
             'credits' => is_numeric($d['credits'] ?? null) ? round((float) $d['credits'], 2) : null, 'prompt' => (string) ($p['prompt'] ?? ''),
@@ -156,6 +280,145 @@ final class MkMedium
         return Db::one('SELECT * FROM mk_medien WHERE id = ?', [$id]) ?: null;
     }
 
+    /* ======================================================================
+       3D-Galerie für Partner (Marketing-Studio 11, 01.10.2026, Uwe: Ja zu
+       P1–P3). Gerechnet wird auf Uwes PC in der Nachtschicht, nur aus den
+       fertigen Branchen-Szenen (keine von Claude gebauten Szenen für Partner).
+       ====================================================================== */
+    public const PARTNER_JE_WOCHE = 2;
+    /** Szene → Motiv der Partnerbilder (Texte::PARTNER_MEDIEN['motive']) für Filmtitel und Text. */
+    public const STUDIO_MOTIV = ['gastro' => 'gastro', 'wein' => 'gastro', 'salon' => 'laden', 'schmuck' => 'laden', 'schuh' => 'laden',
+        'kueche' => 'handwerk', 'lkw' => 'allgemein', 'mittelklasse' => 'allgemein', 'kleinwagen' => 'allgemein', 'auto' => 'allgemein'];
+    public const GALERIE_SZENEN = [
+        'gastro' => ['it' => 'Ristorante: tavola apparecchiata', 'de' => 'Restaurant: gedeckter Tisch', 'en' => 'Restaurant: set table'],
+        'wein' => ['it' => 'Vino in cantina', 'de' => 'Wein im Gewölbekeller', 'en' => 'Wine in the cellar'],
+        'salon' => ['it' => 'Salone di parrucchiere', 'de' => 'Friseursalon', 'en' => 'Hair salon'],
+        'schmuck' => ['it' => 'Orologio in gioielleria', 'de' => 'Uhr beim Juwelier', 'en' => 'Watch at the jeweller'],
+        'schuh' => ['it' => 'Scarpa in vetrina', 'de' => 'Schuh im Schaufenster', 'en' => 'Shoe in the shop window'],
+        'kueche' => ['it' => 'Cucina con isola', 'de' => 'Küche mit Kochinsel', 'en' => 'Kitchen with island'],
+        'lkw' => ['it' => 'Camion', 'de' => 'Sattelzug', 'en' => 'Truck'],
+        'mittelklasse' => ['it' => 'Auto in piazza', 'de' => 'Auto auf der Piazza', 'en' => 'Car on the piazza'],
+        'kleinwagen' => ['it' => 'Utilitaria al parcheggio', 'de' => 'Kleinwagen am Parkplatz', 'en' => 'Small car at the car park'],
+        'auto' => ['it' => 'Sportiva sulla costa', 'de' => 'Sportwagen an der Küste', 'en' => 'Sports car on the coast'],
+    ];
+    public const GALERIE_TEXTE = [
+        'titel'   => ['it' => 'Immagini e video 3D', 'de' => '3D-Bilder und -Videos', 'en' => '3D images and videos'],
+        'text'    => ['it' => 'Fotorealistici, calcolati sul computer di Vecom. Scelga immagine e formato: il suo codice QR e il suo link ci vanno sopra da soli.',
+                      'de' => 'Fotorealistisch, gerechnet auf dem Rechner von Vecom. Bild und Format wählen — Ihr QR-Code und Ihr Link kommen automatisch drauf.',
+                      'en' => 'Photorealistic, rendered on Vecom’s computer. Pick an image and a format — your QR code and your link go on automatically.'],
+        'leer'    => ['it' => 'I primi motivi 3D sono in preparazione: ripassi domani.', 'de' => 'Die ersten 3D-Motive entstehen gerade — schauen Sie morgen wieder vorbei.', 'en' => 'The first 3D motifs are being rendered — check back tomorrow.'],
+        'eigen'   => ['it' => 'Suo', 'de' => 'Ihres', 'en' => 'Yours'],
+        'video'   => ['it' => 'Video', 'de' => 'Video', 'en' => 'Video'],
+        'format'  => ['it' => 'Formato', 'de' => 'Format', 'en' => 'Format'],
+        'quadrat' => ['it' => 'Quadrato', 'de' => 'Quadrat', 'en' => 'Square'],
+        'hoch'    => ['it' => 'Verticale 4:5', 'de' => 'Hochformat 4:5', 'en' => 'Portrait 4:5'],
+        'story'   => ['it' => 'Storia 9:16', 'de' => 'Story 9:16', 'en' => 'Story 9:16'],
+        'laden'   => ['it' => 'Scarica immagine', 'de' => 'Bild laden', 'en' => 'Download image'],
+        'teilen'  => ['it' => 'Condividi', 'de' => 'Teilen', 'en' => 'Share'],
+        'v_machen'=> ['it' => 'Crea il video con il suo link', 'de' => 'Video mit Ihrem Link erzeugen', 'en' => 'Create the video with your link'],
+        'v_laeuft'=> ['it' => 'Il video si sta creando… ancora {s} s', 'de' => 'Das Video entsteht … noch {s} s', 'en' => 'Creating the video… {s} s left'],
+        'v_fertig'=> ['it' => 'Pronto. Scarichi o condivida il video.', 'de' => 'Fertig. Video laden oder teilen.', 'en' => 'Done. Download or share the video.'],
+        'v_laden' => ['it' => 'Scarica video', 'de' => 'Video laden', 'en' => 'Download video'],
+        'v_nein'  => ['it' => 'Questo browser non sa creare video. Provi con Chrome o Safari aggiornato.', 'de' => 'Dieser Browser kann keine Videos erzeugen. Bitte mit aktuellem Chrome oder Safari.', 'en' => 'This browser cannot create videos. Please use an up-to-date Chrome or Safari.'],
+        'b_titel' => ['it' => 'Ordinare un motivo 3D', 'de' => '3D-Motiv bestellen', 'en' => 'Order a 3D motif'],
+        'b_text'  => ['it' => 'Vecom lo calcola stanotte; domattina è nella sua galleria. Al massimo 2 a settimana. Nei video il suo link compare alla fine.',
+                      'de' => 'Vecom rechnet es heute Nacht; morgen früh liegt es in Ihrer Galerie. Höchstens 2 je Woche. Im Video steht am Ende Ihr Link.',
+                      'en' => 'Vecom renders it tonight; tomorrow morning it is in your gallery. At most 2 per week. Videos end with your link.'],
+        'b_szene' => ['it' => 'Scena', 'de' => 'Szene', 'en' => 'Scene'],
+        'b_art'   => ['it' => 'Immagine o video', 'de' => 'Bild oder Video', 'en' => 'Image or video'],
+        'b_bild'  => ['it' => 'Immagine', 'de' => 'Bild', 'en' => 'Image'],
+        'b_knopf' => ['it' => 'Ordina', 'de' => 'Bestellen', 'en' => 'Order'],
+        'b_ok'    => ['it' => 'Ordinato. Domattina è nella sua galleria.', 'de' => 'Bestellt. Morgen früh liegt es in Ihrer Galerie.', 'en' => 'Ordered. It will be in your gallery tomorrow morning.'],
+        'b_zuviel'=> ['it' => 'Questa settimana ha già ordinato 2 motivi. Riprovi tra qualche giorno.', 'de' => 'Diese Woche haben Sie schon 2 Motive bestellt. In ein paar Tagen wieder.', 'en' => 'You already ordered 2 motifs this week. Try again in a few days.'],
+        'b_offen' => ['it' => 'In preparazione', 'de' => 'In Arbeit', 'en' => 'In progress'],
+        'b_fehler'=> ['it' => 'Non riuscito — riordini più tardi', 'de' => 'Nicht geklappt — bitte später neu bestellen', 'en' => 'Failed — please order again later'],
+    ];
+    public static function gt(string $k, string $sprache): string
+    {
+        return (string) (self::GALERIE_TEXTE[$k][$sprache] ?? self::GALERIE_TEXTE[$k]['it'] ?? '');
+    }
+
+    /** Starterpaket: je Szene ein Bild 4:5, dazu drei Filme 9:16. */
+    public const STARTER_FILME = ['gastro', 'salon', 'wein'];
+
+    /**
+     * Ein 3D-Auftrag ohne Inhalt: Vecom-Galerie (partnerId null) oder Bestellung eines Partners.
+     * @return int|string
+     */
+    public static function anlegenGalerie(string $studio, string $art, string $format = '', ?array $partner = null, string $sprache = 'it'): int|string
+    {
+        require_once __DIR__ . '/MkAuftrag.php';
+        require_once __DIR__ . '/Texte.php';
+        if (!isset(self::STUDIO_NAMEN[$studio])) { return 'unbekannte_szene'; }
+        if (!isset(self::MODELLE[$art])) { return 'unbekannt'; }
+        if (!in_array($format, self::FORMATE[$art], true)) { $format = $art === 'video' ? '9:16' : '4:5'; }
+        $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        if ($partner !== null) {
+            $woche = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status <> 'abgebrochen' AND created_at >= NOW() - INTERVAL 7 DAY AND parameter LIKE ?",
+                ['%"partner_id":' . (int) $partner['id'] . ',%'], 0);
+            if ($woche >= self::PARTNER_JE_WOCHE) { return 'zuviel'; }
+        }
+        $motiv = Texte::PARTNER_MEDIEN['motive'][self::STUDIO_MOTIV[$studio] ?? 'allgemein'] ?? Texte::PARTNER_MEDIEN['motive']['allgemein'];
+        $abspann = 'vecom-design.it';
+        if ($partner !== null) {
+            require_once __DIR__ . '/Partner.php';
+            $abspann = preg_replace('~^https?://~', '', Partner::link($partner));
+        }
+        $param = ['inhalt_id' => 0, 'medium' => $art, 'modell' => 'blender', 'format' => $format, 'prompt' => '', 'startbild' => null, 'credits_ca' => 0,
+                  'titel' => mb_substr('3D ' . self::STUDIO_NAMEN[$studio] . ($partner !== null ? ' · Partner ' . (string) $partner['name'] : ' · Galerie'), 0, 80),
+                  'drei_d' => true, 'studio' => $studio, 'generativ' => false, 'seed' => random_int(1, 999999), 'sofort' => false, 'sprache' => $sp,
+                  'film_titel' => mb_substr(Texte::h($motiv['titel'], $sp), 0, 70), 'abspann' => mb_substr((string) $abspann, 0, 60)]
+                + ($partner !== null ? ['partner_id' => (int) $partner['id']] : ['galerie' => 1]);
+        /* partner_id muss für die Wochengrenze mit Komma folgen — darum hinten ein fester Schlüssel. */
+        $param['ende'] = 1;
+        $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => '', 'land' => $sp === 'de' ? 'DE' : 'IT',
+                                                'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        return $id;
+    }
+
+    /** Starterpaket für die Galerie: je Szene ein Bild, drei Filme — rechnet in der nächsten Nachtschicht. @return int Anzahl */
+    public static function starterpaket(string $sprache = 'it'): int
+    {
+        $n = 0;
+        foreach (array_keys(self::STUDIO_NAMEN) as $st) { if (is_int(self::anlegenGalerie($st, 'bild', '4:5', null, $sprache))) { $n++; } }
+        foreach (self::STARTER_FILME as $st) { if (is_int(self::anlegenGalerie($st, 'video', '9:16', null, $sprache))) { $n++; } }
+        Events::protokoll('galerie3d', '3D-Starterpaket für Partner angestoßen: ' . $n . ' Aufträge', null, null, null, []);
+        return $n;
+    }
+
+    /** Was ein Partner im Reiter „Werben“ sieht: freigegebene Galerie, freigegebene 3D-Medien aus dem Marketing, seine eigenen. */
+    public static function galerieFuerPartner(array $p): array
+    {
+        require_once __DIR__ . '/MkVeroeffentlichen.php';
+        try {
+            $zeilen = Db::all("SELECT m.* FROM mk_medien m LEFT JOIN mk_inhalte i ON i.id = m.inhalt_id
+                                WHERE m.status <> 'verworfen' AND m.modell IN ('blender', 'unreal')
+                                  AND ((m.galerie = 1 AND m.status = 'gewaehlt') OR m.partner_id = ?
+                                       OR (m.inhalt_id > 0 AND m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht') AND i.art = 'organisch'))
+                             ORDER BY (m.partner_id = ?) DESC, m.id DESC LIMIT 24", [(int) $p['id'], (int) $p['id']]);
+        } catch (Throwable $e) { return []; }
+        return array_map(static fn(array $m): array => ['id' => (int) $m['id'], 'art' => (string) $m['art'], 'format' => (string) $m['format'],
+            'url' => MkVeroeffentlichen::oeffentlich($m), 'studio' => (string) ($m['studio'] ?? ''), 'eigen' => (int) ($m['partner_id'] ?? 0) === (int) $p['id']], $zeilen);
+    }
+
+    /** Laufende Bestellungen eines Partners (für den Stand im Portal). */
+    public static function bestellungenVon(array $p): array
+    {
+        try {
+            return array_map(static function (array $a): array {
+                $pa = json_decode((string) $a['parameter'], true) ?: [];
+                return ['status' => (string) $a['status'], 'art' => (string) ($pa['medium'] ?? 'bild'), 'studio' => (string) ($pa['studio'] ?? ''), 'am' => (string) $a['created_at']];
+            }, Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet', 'laeuft', 'fehler') AND parameter LIKE ? AND created_at >= NOW() - INTERVAL 7 DAY ORDER BY id DESC",
+                ['%"partner_id":' . (int) $p['id'] . ',%']));
+        } catch (Throwable $e) { return []; }
+    }
+
+    /** Vecom-Galerie, die auf Uwes Ja wartet (Verwaltung, Reiter „Freigeben“). */
+    public static function galerieOffen(): array
+    {
+        try { return Db::all("SELECT * FROM mk_medien WHERE galerie = 1 AND status = 'neu' ORDER BY id DESC LIMIT 30"); } catch (Throwable $e) { return []; }
+    }
+
     public static function zuInhalt(int $inhaltId, bool $mitVerworfenen = false): array
     {
         return Db::all('SELECT * FROM mk_medien WHERE inhalt_id = ?' . ($mitVerworfenen ? '' : " AND status <> 'verworfen'") . " ORDER BY status = 'gewaehlt' DESC, id DESC", [$inhaltId]);
@@ -167,7 +430,8 @@ final class MkMedium
         $m = self::laden($id);
         if ($m === null) { return 'Bild nicht gefunden.'; }
         if (!isset(self::STATUS[$status])) { return 'Unbekannter Status.'; }
-        if ($status === 'gewaehlt') {
+        /* Galerie und Partner-Bestellungen (inhalt_id 0, Marketing-Studio 11): mehrere dürfen gewählt sein. */
+        if ($status === 'gewaehlt' && (int) $m['inhalt_id'] > 0) {
             Db::run("UPDATE mk_medien SET status = 'neu' WHERE inhalt_id = ? AND art = ? AND status = 'gewaehlt'", [(int) $m['inhalt_id'], (string) $m['art']]);
         }
         Db::run('UPDATE mk_medien SET status = ? WHERE id = ?', [$status, $id]);

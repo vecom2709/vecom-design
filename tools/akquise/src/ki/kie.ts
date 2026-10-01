@@ -29,6 +29,8 @@ export type MedienAuftrag = {
   prompt: string; startbild: string | null; credits_ca: number; teil_bytes: number; max_bytes: number;
   /** Marketing-Studio 9: Vorher/Nachher — macht der PC selbst (ki/vorhernachher.ts), nie Kie.ai. */
   vn?: { url: string; betrieb: string; sprache: string; kunde_id: number; vorher: boolean; geschwister: number[] } | null;
+  /** Marketing-Studio 11: Blender/Unreal auf dem PC (ki/render3d.ts), nie Kie.ai. */
+  drei_d?: { studio: string | null; generativ: boolean; seed: number; sprache: string; film_titel: string; abspann: string } | null;
 };
 
 /** Der Schlüssel aus Uwes Umgebung — Prozess, sonst Benutzer-Umgebung (Windows). Nie ausgeben. */
@@ -131,6 +133,7 @@ export async function medienLauf(a: MedienAuftrag): Promise<void> {
   try {
     /* Sicherung: Ein Vorher/Nachher-Auftrag hat keinen Prompt und darf nie Credits kosten. */
     if (a.vn || a.modell === 'vorher-nachher' || a.prompt.trim() === '') throw new Error('Kein Prompt — dieser Auftrag ist nicht für Kie.ai.');
+    if (a.drei_d || a.modell === 'blender' || a.modell === 'unreal') throw new Error('3D-Auftrag — der gehört zu Blender/Unreal, nicht zu Kie.ai.');
     const s = schluessel();
     if (!s) throw new Error('Kein KIE_API_KEY in deiner Benutzer-Umgebung — Windows: „Umgebungsvariablen für dieses Konto bearbeiten“ → Neu → KIE_API_KEY.');
     const vorher = await guthaben(s);

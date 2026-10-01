@@ -3604,6 +3604,7 @@ final class Texte
             'website' => ['it' => 'Pulsante sito', 'de' => 'Website-Knopf', 'en' => 'Website button'],
             'karte' => ['it' => 'Cartolina', 'de' => 'Karte', 'en' => 'Card'], 'flyer' => 'Flyer',
             'bild' => ['it' => 'Immagini', 'de' => 'Bilder', 'en' => 'Images'], 'video' => 'Video',
+            'bild3d' => ['it' => 'Immagini 3D', 'de' => '3D-Bilder', 'en' => '3D images'], 'video3d' => ['it' => 'Video 3D', 'de' => '3D-Videos', 'en' => '3D videos'],
             'check' => ['it' => 'Verifica veloce', 'de' => 'Schnellcheck', 'en' => 'Quick check'],
             'erfolg' => ['it' => 'Post «È online»', 'de' => 'Beitrag „Ist online“', 'en' => '“It’s live” post'],
             'weiter' => ['it' => 'Inoltrata da clienti', 'de' => 'Von Kunden weitergeleitet', 'en' => 'Forwarded by customers'],

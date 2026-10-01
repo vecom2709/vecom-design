@@ -605,6 +605,39 @@ if ($post) {
                 };
                 weiter(MkDemo::freigabeLink((string) ($dmD['sprache'] ?? 'it')));
 
+            /* Marketing-Studio 11: Motor für Bilder/Videos und Nachtschicht; im Stapel das bessere Bild wählen. */
+            case 'motor_speichern':
+                require_once __DIR__ . '/src/MkMedium.php';
+                $f = MkMedium::motorSpeichern($_POST);
+                $mo = MkMedium::motor();
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert: Bilder ' . MkMedium::MOTOREN['bild'][$mo['bild']] . ', Videos ' . MkMedium::MOTOREN['video'][$mo['video']]
+                    . ($mo['nacht_an'] ? ', 3D nachts ' . sprintf('%02d–%02d Uhr', $mo['nacht_von'], $mo['nacht_bis']) : ', 3D jederzeit') . '.';
+                weiter('freigabe?land=' . (strtoupper((string) ($_POST['land'] ?? '')) === 'DE' ? 'DE' : 'IT') . '#motor');
+
+            case 'galerie_starter':
+            case 'galerie_freigeben':
+            case 'galerie_verwerfen':
+                require_once __DIR__ . '/src/MkMedium.php';
+                if ($tat === 'galerie_starter') {
+                    $g3N = MkMedium::starterpaket('it');
+                    $_SESSION['gut'] = $g3N . ' 3D-Aufträge für die Partner-Galerie liegen bereit — dein PC rechnet sie in der nächsten Nachtschicht. Danach hier ansehen und freigeben.';
+                } else {
+                    $g3M = MkMedium::laden((int) ($_POST['medium_id'] ?? 0));
+                    if ($g3M === null || (int) $g3M['galerie'] !== 1) { $_SESSION['fehler'] = 'Kein Galerie-Bild.'; }
+                    else {
+                        MkMedium::status((int) $g3M['id'], $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen');
+                        Events::pruefspur($tat, 'mk_medien', (int) $g3M['id'], ['status' => $g3M['status']], ['status' => $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen']);
+                        $_SESSION['gut'] = $tat === 'galerie_freigeben' ? 'Steht jetzt in der Galerie aller Partner.' : 'Verworfen.';
+                    }
+                }
+                weiter('freigabe#partner3d');
+
+            case 'stapel_medium':
+                require_once __DIR__ . '/src/MkMedium.php';
+                $f = MkMedium::status((int) ($_POST['medium_id'] ?? 0), 'gewaehlt');
+                if ($f !== null) { $_SESSION['fehler'] = $f; }
+                weiter('freigabe?land=' . (strtoupper((string) ($_POST['land'] ?? '')) === 'DE' ? 'DE' : 'IT'));
+
             /* Wochen-Autopilot (Marketing-Studio 7, Uwe: „ja“ zu U4) — je Land, ab Werk aus. */
             case 'autopilot_speichern':
                 require_once __DIR__ . '/src/MkAutopilot.php';
@@ -643,9 +676,15 @@ if ($post) {
             case 'medium_erzeugen':
                 require_once __DIR__ . '/src/MkMedium.php';
                 $mmInhalt = (int) ($_POST['id'] ?? 0);
-                $maErg = MkMedium::anlegen($mmInhalt, (string) ($_POST['medium'] ?? 'bild'), (string) ($_POST['modell'] ?? ''), (string) ($_POST['format'] ?? ''));
+                $maErg = MkMedium::anlegen($mmInhalt, (string) ($_POST['medium'] ?? 'bild'), (string) ($_POST['modell'] ?? ''), (string) ($_POST['format'] ?? ''), !empty($_POST['sofort']));
+                /* Marketing-Studio 11: Was angestoßen wurde, steht in den Aufträgen — Kie.ai sofort, 3D in der Nachtschicht (oder sofort). */
+                $mmNeu = is_int($maErg) ? Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet' AND parameter LIKE ?", ['%"inhalt_id":' . $mmInhalt . ',%']) : [];
+                $mmDrei = (bool) array_filter($mmNeu, static fn($z) => str_contains((string) $z['parameter'], '"drei_d":true'));
+                $mmKie = (bool) array_filter($mmNeu, static fn($z) => !str_contains((string) $z['parameter'], '"drei_d":true'));
+                $mmM = MkMedium::motor();
                 $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
-                    ? 'Angestoßen. Dein PC prüft zuerst dein Kie-Guthaben, dann entsteht ' . (($_POST['medium'] ?? 'bild') === 'video' ? 'das Video (etwa 2–5 Minuten)' : 'das Bild (etwa 1 Minute)') . '.'
+                    ? trim(($mmKie ? 'Kie.ai: Dein PC prüft zuerst dein Guthaben, dann entsteht ' . (($_POST['medium'] ?? 'bild') === 'video' ? 'das Video (etwa 2–5 Minuten).' : 'das Bild (etwa 1 Minute).') : '')
+                        . ($mmDrei ? ' 3D: ' . (!empty($_POST['sofort']) || MkMedium::imFenster() ? 'dein PC rechnet jetzt' : 'dein PC rechnet in der Nachtschicht (ab ' . $mmM['nacht_von'] . ' Uhr)') . ' — Bild etwa 5–10 Minuten, Film etwa 1–2 Stunden.' : ''))
                     : $maErg;
                 weiter('inhalte/' . $mmInhalt . '#medien');
 
@@ -4736,7 +4775,8 @@ switch ($route) {
             'rest' => (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf' AND land = ?", [$msLand], 0),
             'zg' => $msX && $msX['zielgruppe_id'] ? MkZielgruppe::laden((int) $msX['zielgruppe_id']) : null,
             'medien' => $msX ? sicher(static fn() => MkMedium::zuInhalt((int) $msX['id']), []) : [],
-            'bildLaeuft' => $msX ? (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"inhalt_id":' . (int) $msX['id'] . ',%'], 0), 0) : 0,
+            'bildLaeuft' => $msX ? (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND (status = 'laeuft' OR (status = 'wartet' AND parameter NOT LIKE '%\"drei_d\":true%')) AND parameter LIKE ?", ['%"inhalt_id":' . (int) $msX['id'] . ',%'], 0), 0) : 0,
+            'dreiDWartet' => $msX ? (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet' AND parameter LIKE '%\"drei_d\":true%' AND parameter LIKE ?", ['%"inhalt_id":' . (int) $msX['id'] . ',%'], 0), 0) : 0,
             'geplant' => sicher(static fn() => Db::all("SELECT id, titel, plattform, land, geplant_am FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL ORDER BY geplant_am LIMIT 14"), []),
             'autopilot' => (static function () use ($msLand): array {   // Marketing-Studio 7
                 require_once __DIR__ . '/src/MkAutopilot.php';

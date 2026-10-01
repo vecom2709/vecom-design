@@ -184,6 +184,53 @@ final class Spur
 
     public static function quelleName(string $q): string { return self::QUELLEN[$q] ?? ucfirst($q); }
 
+    /* ------------------------------------------------------------------
+       Journey in ganzen Sätzen (01.10.2026, Uwe: „Was bedeutet Anfrage,
+       Partnerlink geöffnet … mache es verständlicher“).
+       ------------------------------------------------------------------ */
+    public const SAETZE = [
+        'partner_visit' => 'Kam über den Link von Partner {partner} auf die Website',
+        'campaign_visit' => 'Kam über einen Kampagnenlink (Werbung/Beitrag) auf die Website',
+        'price_calculator_opened' => 'Hat den Preisrechner geöffnet',
+        'price_calculator_started' => 'Hat im Preisrechner angefangen, Fragen zu beantworten',
+        'price_calculator_completed' => 'Hat den Preisrechner fertig ausgefüllt und einen Preis gesehen',
+        'questionnaire_opened' => 'Hat den Fragebogen zu seinem Vorhaben geöffnet',
+        'questionnaire_started' => 'Hat angefangen, den Fragebogen auszufüllen',
+        'questionnaire_completed' => 'Hat den Fragebogen vollständig abgeschickt',
+        'contact_form_opened' => 'Hat das Kontaktformular geöffnet',
+        'lead_created' => 'Hat eine Anfrage abgeschickt (mit Name und E-Mail) — ab jetzt ein Interessent, der auf Sie wartet',
+        'offer_created' => 'Sie haben ihm ein Angebot geschickt',
+        'customer_created' => 'Ist Kunde geworden',
+        'order_created' => 'Hat den Auftrag angenommen',
+        'payment_completed' => 'Hat bezahlt',
+        'website_check_completed' => 'Hat den kostenlosen Website-Check gemacht',
+        'appointment_requested' => 'Hat einen Termin gebucht',
+    ];
+    /** Was der Stand eines Besuchs bedeutet — für die Zeile über der Journey. */
+    public const STATUS_ERKLAERT = [
+        'besucher' => 'hat sich nur umgesehen', 'interessent' => 'hat etwas ausprobiert (Rechner, Formular oder Check), sich aber noch nicht gemeldet',
+        'rechner' => 'kennt seinen Preis aus dem Preisrechner, hat sich aber noch nicht gemeldet',
+        'anfrage' => 'hat sich gemeldet — wartet auf Ihre Antwort bzw. Ihr Angebot', 'angebot' => 'hat ein Angebot von Ihnen bekommen',
+        'kunde' => 'ist Kunde geworden', 'abgeschlossen' => 'hat bezahlt — fertig',
+    ];
+    public const SEITEN = ['/' => 'Startseite (Italienisch)', '/de/' => 'Startseite (Deutsch)', '/en/' => 'Startseite (Englisch)', '/index.html' => 'Startseite (Italienisch)',
+        '/prezzi.html' => 'Preise (Italienisch)', '/de/preise.html' => 'Preise (Deutsch)', '/showroom.html' => 'Showroom (Italienisch)', '/de/showroom.html' => 'Showroom (Deutsch)',
+        '/analisi.php' => 'Kostenloser Website-Check', '/bedarf.php' => 'Preisrechner', '/kunde.php' => 'Persönlicher Bereich', '/zugang.php' => 'Persönlichen Bereich anfordern'];
+
+    public static function seiteName(string $pfad): string
+    {
+        $pfad = '/' . ltrim((string) parse_url($pfad, PHP_URL_PATH), '/');
+        return self::SEITEN[$pfad] ?? $pfad;
+    }
+
+    /** Ein Schritt als Satz: „Hat die Seite Startseite (Deutsch) angesehen“. */
+    public static function satz(string $art, string $seite = '', string $partner = '', bool $erneut = false): string
+    {
+        if ($art === 'page_view') { return 'Hat die Seite „' . self::seiteName($seite) . '“ angesehen'; }
+        $t = strtr(self::SAETZE[$art] ?? (self::NAMEN[$art] ?? $art), ['{partner}' => $partner !== '' ? $partner : '?']);
+        return $erneut ? $t . ' (zum wiederholten Mal)' : $t;
+    }
+
     /** Täglich wechselnder Hash — reicht gegen Mehrfachklicks, taugt nicht zum Wiedererkennen über Tage. */
     public static function ipHash(string $ip): string
     {

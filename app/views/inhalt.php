@@ -181,7 +181,7 @@ require __DIR__ . '/mk_stil.php';
 
 <section class="block mk-auftrag" id="medien" aria-labelledby="mk-medien-titel">
   <div class="mk-auftrag__kopf">
-    <h2 id="mk-medien-titel">Bild und Video <span class="mehr">über Kie.ai auf deinem PC</span></h2>
+    <h2 id="mk-medien-titel">Bild und Video <span class="mehr">Kie.ai, Blender oder Unreal — alles auf deinem PC</span></h2>
     <span class="mk-ampel <?= $pc['pc_wach'] ? 'gruen' : '' ?>"><i></i><?= $pc['pc_wach'] ? 'Dein PC ist an' : 'Dein PC ist aus — der Auftrag wartet' ?></span>
   </div>
   <?php if ($x['status'] !== 'verworfen'): ?>
@@ -190,14 +190,25 @@ require __DIR__ . '/mk_stil.php';
       <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="bild">
       <label class="mk-sr" for="mm_bf">Format des Bildes</label>
       <select id="mm_bf" name="format" style="width:auto"><?php foreach (MkMedium::FORMATE['bild'] as $fm): ?><option value="<?= $fm ?>"<?= MkMedium::formatFuer($x) === $fm ? ' selected' : '' ?>><?= $fm ?></option><?php endforeach; ?></select>
-      <button class="knopf haupt">Bild erzeugen · ca. <?= (int) MkMedium::MODELLE['bild']['nano-banana-pro'][1] ?> Credits</button>
+      <?php /* Marketing-Studio 11: Motor je Stück — Automatisch folgt der Einstellung unter „Freigeben“. */
+        $mmAuto = MkMedium::motorFuer($x, 'bild'); $mmStudio = MkMedium::studioFuer((string) $x['branche']); ?>
+      <label class="mk-sr" for="mm_bm">Womit</label>
+      <select id="mm_bm" name="modell" style="width:auto">
+        <option value="auto">Automatisch (<?= Fmt::h(implode(' + ', array_map(static fn($mo) => MkMedium::istDreiD($mo) ? 'Blender' : 'Kie.ai', $mmAuto))) ?>)</option>
+        <option value="nano-banana-pro">Kie.ai · ca. <?= (int) MkMedium::MODELLE['bild']['nano-banana-pro'][1] ?> Credits</option>
+        <option value="blender">Blender · ohne Credits<?= $mmStudio ? ' · ' . Fmt::h(MkMedium::STUDIO_NAMEN[$mmStudio] ?? $mmStudio) : ' · Claude baut die Szene' ?></option>
+        <option value="beides">Kie.ai und Blender — du wählst</option>
+      </select>
+      <label class="mk-haken" title="3D läuft sonst in der Nachtschicht"><input type="checkbox" name="sofort" value="1"> 3D jetzt rechnen</label>
+      <button class="knopf haupt">Bild erzeugen</button>
     </form>
     <form class="mk-filter" method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin:0">
       <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="video">
       <label class="mk-sr" for="mm_vm">Videomodell</label>
-      <select id="mm_vm" name="modell" style="width:auto"><?php foreach (MkMedium::MODELLE['video'] as $mk => [$mw, $mc]): ?><option value="<?= $mk ?>"><?= Fmt::h($mw) ?> · ca. <?= (int) $mc ?> Credits</option><?php endforeach; ?></select>
+      <select id="mm_vm" name="modell" style="width:auto"><option value="auto">Automatisch (<?= Fmt::h(implode(', ', array_map(static fn($mo) => MkMedium::MODELLE['video'][$mo][0] ?? $mo, MkMedium::motorFuer($x, 'video')))) ?>)</option><?php foreach (MkMedium::MODELLE['video'] as $mk => [$mw, $mc]): if (MkMedium::istDreiD($mk) && (!MkMedium::studioFuer((string) $x['branche']) || ($mk === 'unreal' && !MkMedium::motor()['unreal_bereit']))) { continue; } ?><option value="<?= $mk ?>"><?= Fmt::h($mw) ?> · <?= MkMedium::istDreiD($mk) ? 'ohne Credits, Nachtschicht' : 'ca. ' . (int) $mc . ' Credits' ?></option><?php endforeach; ?></select>
       <label class="mk-sr" for="mm_vf">Format des Videos</label>
       <select id="mm_vf" name="format" style="width:auto"><?php foreach (MkMedium::FORMATE['video'] as $fm): ?><option value="<?= $fm ?>"<?= MkMedium::formatFuer($x, 'video') === $fm ? ' selected' : '' ?>><?= $fm ?></option><?php endforeach; ?></select>
+      <label class="mk-haken"><input type="checkbox" name="sofort" value="1"> 3D jetzt rechnen</label>
       <button class="knopf">Video erzeugen</button>
     </form>
   </div>

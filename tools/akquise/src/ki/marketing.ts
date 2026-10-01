@@ -23,6 +23,8 @@ import { log } from '../log.js';
 import { medienLauf, type MedienAuftrag } from './kie.js';
 import { vnLauf, type VnDaten } from './vorhernachher.js';
 import { demoLauf, type DemoAuftrag } from './demo.js';
+import { dreiDLauf, type DreiDAuftrag } from './render3d.js';
+import { szeneBauen } from './szene3d.js';
 
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
@@ -362,15 +364,15 @@ export function ergebnisLesen(roh: string): Ergebnis {
   return { zielgruppen: innen.zielgruppen, funde: innen.funde, zusammenfassung: String(innen.zusammenfassung ?? '') };
 }
 
-function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA): Promise<string> {
+function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA, werkzeuge = 'WebSearch,WebFetch'): Promise<string> {
   /* Nur Uwes Anmeldung (claude.ai, Max-Abo): ein API-Schlüssel in der Umgebung
      würde stattdessen pro Aufruf abrechnen — Uwe: „soll über mein Abo“. */
   const umgebung: NodeJS.ProcessEnv = { ...process.env };
   for (const k of ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'ANTHROPIC_BASE_URL', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX']) delete umgebung[k];
   const argumente = [
     '-p', '--output-format', 'json',
-    '--tools', 'WebSearch,WebFetch',          // nichts anderes: keine Dateien, keine Befehle
-    '--allowedTools', 'WebSearch,WebFetch',
+    '--tools', werkzeuge,                     // höchstens WebSearch/WebFetch: keine Dateien, keine Befehle ('' = gar keine)
+    ...(werkzeuge !== '' ? ['--allowedTools', werkzeuge] : []),
     '--permission-mode', 'dontAsk',
     '--safe-mode',                            // ohne CLAUDE.md, Skills, Plugins, MCP, Hooks
     '--no-session-persistence',
@@ -399,6 +401,11 @@ export async function marketingLauf(): Promise<boolean> {
   if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }
   /* Marketing-Studio 9: Vorher/Nachher fotografiert der PC selbst — ohne Kie.ai, ohne Credits. */
   if (r.auftrag?.art === 'medien' && r.auftrag.vn) { await vnLauf(r.auftrag as MedienAuftrag & { vn: VnDaten }); return true; }
+  /* Marketing-Studio 11: Blender/Unreal auf dem PC — keine Credits; die Verwaltung gibt sie nur im Nachtfenster heraus. */
+  if (r.auftrag?.art === 'medien' && r.auftrag.drei_d) {
+    await dreiDLauf(r.auftrag as DreiDAuftrag, (a, ordner) => szeneBauen(a, ordner, { ausfuehren: claudeAusfuehren, lesen: innenLesen }));
+    return true;
+  }
   if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
   if (r.auftrag?.art === 'uebersetzen') { await uebersetzenLauf(r.auftrag as UebersetzenAuftrag); return true; }
   /* Marketing-Studio 10: Demo-Vorschau — Claude baut eine Startseite, Uwe gibt frei. */

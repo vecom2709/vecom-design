@@ -30,6 +30,8 @@ final class MkAuftrag
     public const PRO_TAG = 8;
     /** Meldet der PC sich so lange nicht zurück, gilt der Auftrag als gescheitert. */
     public const HOECHSTENS_MIN = 75;
+    /** 3D-Läufe (Blender/Unreal, Marketing-Studio 11): bis zu acht Stunden. */
+    public const DREI_D_MIN = 480;
     /** So viele fehlende Zielgruppen nimmt ein Lauf „alle Branchen“ mit. */
     public const FEHLENDE_JE_LAUF = 2;
 
@@ -177,9 +179,13 @@ final class MkAuftrag
     /** Hängengebliebene Läufe beenden (PC aus, Claude abgestürzt …). */
     public static function aufraeumen(): void
     {
+        /* 3D-Aufträge (Marketing-Studio 11) rechnen länger — ein Film mit 192 Bildern dauert auf der RTX 5070 eine gute Stunde. */
         Db::run("UPDATE mk_auftraege SET status = 'fehler', fertig_am = NOW(),
                         ergebnis = 'Keine Rückmeldung vom PC — vermutlich ausgeschaltet oder abgebrochen. Einfach neu starten.'
-                  WHERE status = 'laeuft' AND gestartet_am < NOW() - INTERVAL " . self::HOECHSTENS_MIN . " MINUTE");
+                  WHERE status = 'laeuft' AND gestartet_am < NOW() - INTERVAL " . self::HOECHSTENS_MIN . " MINUTE AND (parameter IS NULL OR parameter NOT LIKE '%\"drei_d\":true%')");
+        Db::run("UPDATE mk_auftraege SET status = 'fehler', fertig_am = NOW(),
+                        ergebnis = 'Keine Rückmeldung vom PC nach " . intdiv(self::DREI_D_MIN, 60) . " Stunden — 3D-Lauf abgebrochen? Einfach neu starten.'
+                  WHERE status = 'laeuft' AND gestartet_am < NOW() - INTERVAL " . self::DREI_D_MIN . " MINUTE AND parameter LIKE '%\"drei_d\":true%'");
     }
 
     /** Für befehl_holen: wartet etwas? (vor der Migration still: nein) */
@@ -212,7 +218,20 @@ final class MkAuftrag
     {
         self::aufraeumen();
         for ($versuch = 0; $versuch < 3; $versuch++) {
-            $a = Db::one("SELECT * FROM mk_auftraege WHERE status = 'wartet' ORDER BY id LIMIT 1");
+            /* Nachtschicht (Marketing-Studio 11): 3D-Aufträge nur im Fenster oder mit „Jetzt rechnen“ — alles andere wie bisher der Reihe nach. */
+            $a = null;
+            $fenster = null;
+            foreach (Db::all("SELECT * FROM mk_auftraege WHERE status = 'wartet' ORDER BY id LIMIT 40") as $kand) {
+                if (($kand['art'] ?? '') === 'medien' && str_contains((string) $kand['parameter'], '"drei_d":true')) {
+                    $kp = json_decode((string) $kand['parameter'], true) ?: [];
+                    if (empty($kp['sofort'])) {
+                        require_once __DIR__ . '/MkMedium.php';
+                        $fenster ??= MkMedium::imFenster();
+                        if (!$fenster) { continue; }
+                    }
+                }
+                $a = $kand; break;
+            }
             if (!$a) { return ['ok' => true, 'auftrag' => null]; }
             $n = Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
@@ -235,7 +254,10 @@ final class MkAuftrag
                     'prompt' => (string) ($p['prompt'] ?? ''), 'startbild' => $p['startbild'] ?? null, 'credits_ca' => (int) ($p['credits_ca'] ?? 0),
                     'teil_bytes' => MkMedium::TEIL_BYTES, 'max_bytes' => MkMedium::MAX_BYTES,
                     /* Marketing-Studio 9: Vorher/Nachher — der PC fotografiert statt Kie.ai. */
-                    'vn' => $p['vn'] ?? null]];
+                    'vn' => $p['vn'] ?? null,
+                    /* Marketing-Studio 11: 3D auf dem PC — Szene, Blickwinkel, Filmtexte. */
+                    'drei_d' => !empty($p['drei_d']) ? ['studio' => $p['studio'] ?? null, 'generativ' => !empty($p['generativ']), 'seed' => (int) ($p['seed'] ?? 0),
+                        'sprache' => (string) ($p['sprache'] ?? 'it'), 'film_titel' => (string) ($p['film_titel'] ?? ''), 'abspann' => (string) ($p['abspann'] ?? '')] : null]];
             }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
@@ -321,7 +343,8 @@ final class MkAuftrag
             if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
             $p = json_decode((string) $a['parameter'], true) ?: [];
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'fertig_am' => date('Y-m-d H:i:s')]);
-            if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text, 'inhalte/' . (int) ($p['inhalt_id'] ?? 0)), null); }
+            if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text,
+                (int) ($p['inhalt_id'] ?? 0) > 0 ? 'inhalte/' . (int) $p['inhalt_id'] : 'freigabe#partner3d'), null); }
             if ($ok && !empty($p['vn'])) { require_once __DIR__ . '/MkVorherNachher.php'; self::still(static fn() => MkVorherNachher::verteilen($a), null); }
             /* Marketing-Studio 7: War das das letzte Bild einer Kampagne, kommt jetzt der Stapel per Telegram. */
             $elternId = (int) Db::wert('SELECT auftrag_id FROM mk_inhalte WHERE id = ?', [(int) ($p['inhalt_id'] ?? 0)], 0);

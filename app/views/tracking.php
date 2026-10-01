@@ -123,15 +123,16 @@ $trichter = static function (array $stufen): void { $max = max(1, (int) ($stufen
     <div><span class="leise" style="margin:0">Besuch</span><br><?= Fmt::h(date('d.m.Y H:i', strtotime((string) $jb['start_am']))) ?> · <?= Fmt::h($dauer((string) $jb['start_am'], (string) $jb['zuletzt_am'])) ?> · <?= (int) $jb['neu'] === 1 ? 'neu' : 'wiederkehrend' ?><?= (int) $jb['verdacht'] === 1 ? ' · <span class="marke2 schlecht">Mehrfachklick-Verdacht</span>' : '' ?></div>
     <div><span class="leise" style="margin:0">Person</span><br><?php if (!empty($jb['customer_id'])): ?><a href="<?= Fmt::h(url('kunden/' . (int) $jb['customer_id'])) ?>">Kunde #<?= (int) $jb['customer_id'] ?> (hat selbst die E-Mail eingetragen)</a><?php else: ?>unbekannt — anonymer Besuch<?php endif; ?></div>
   </div>
+  <p style="margin:0 0 10px;line-height:1.55"><b>Stand „<?= Fmt::h(Spur::STATUS[(string) $jb['status']] ?? (string) $jb['status']) ?>“:</b> <?= Fmt::h(Spur::STATUS_ERKLAERT[(string) $jb['status']] ?? '') ?>.
+    <span class="leise" style="display:inline">Darunter Schritt für Schritt, was diese Person auf der Website getan hat (Uhrzeit links).</span></p>
   <ol class="st-zeit">
     <?php foreach ($journey['schritte'] as $s):
-      $wort = $s['event_type'] === 'page_view' ? ($s['seite'] ?: '/') : (Spur::NAMEN[$s['event_type']] ?? $s['event_type']);
-      if ($s['event_type'] === 'partner_visit') { $wort = 'Partnerlink ' . $jb['partner'] . ' geöffnet' . (str_contains((string) $s['meta'], 'wiederholt') ? ' (erneut)' : ''); }
+      $wort = Spur::satz((string) $s['event_type'], (string) ($s['seite'] ?? ''), (string) $jb['partner'], str_contains((string) $s['meta'], 'wiederholt'));
       $wichtig = !in_array($s['event_type'], ['page_view', 'partner_visit'], true); ?>
       <li class="<?= $wichtig ? 'wichtig' : '' ?>"><time datetime="<?= Fmt::h($s['created_at']) ?>"><?= Fmt::h($uhr((string) $s['created_at'])) ?></time><?= Fmt::h($wort) ?><?= $s['betrag_cents'] !== null ? ' · ' . Fmt::h($geld((int) $s['betrag_cents'])) : '' ?></li>
     <?php endforeach; ?>
     <?php foreach ($journey['danach'] as $s): ?>
-      <li class="wichtig"><time datetime="<?= Fmt::h($s['created_at']) ?>"><?= Fmt::h(date('d.m. H:i', strtotime((string) $s['created_at']))) ?></time><?= Fmt::h(Spur::NAMEN[$s['event_type']] ?? $s['event_type']) ?><?= $s['betrag_cents'] !== null ? ' · ' . Fmt::h($geld((int) $s['betrag_cents'])) : '' ?> <span class="leise" style="display:inline">(später, am Kunden)</span></li>
+      <li class="wichtig"><time datetime="<?= Fmt::h($s['created_at']) ?>"><?= Fmt::h(date('d.m. H:i', strtotime((string) $s['created_at']))) ?></time><?= Fmt::h(Spur::satz((string) $s['event_type'])) ?><?= $s['betrag_cents'] !== null ? ' · ' . Fmt::h($geld((int) $s['betrag_cents'])) : '' ?> <span class="leise" style="display:inline">(später, am Kunden)</span></li>
     <?php endforeach; ?>
   </ol>
   <?php if ($journey['andere']): ?>

@@ -17092,7 +17092,7 @@ pruefe('Verwaltung: während Claude recherchiert, lädt die Seite alle 30 Sekund
     str_contains($maH4, 'Claude recherchiert') && str_contains($maH4, 'location.reload()') && !str_contains($maH3, 'location.reload()'));
 $maTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
 pruefe('PC: Claude Code nur mit Websuche und Webseiten, über Uwes Anmeldung — ein API-Schlüssel wird aus der Umgebung entfernt',
-    str_contains($maTs, "'--tools', 'WebSearch,WebFetch'") && str_contains($maTs, "'ANTHROPIC_API_KEY'") && str_contains($maTs, 'delete umgebung[k]')
+    str_contains($maTs, "werkzeuge = 'WebSearch,WebFetch'") && str_contains($maTs, "'--tools', werkzeuge") && str_contains($maTs, "'ANTHROPIC_API_KEY'") && str_contains($maTs, 'delete umgebung[k]')
     && str_contains($maTs, "'--json-schema'") && !str_contains($maTs, 'dangerously') && !str_contains($maTs, 'bypassPermissions')
     && str_contains((string) file_get_contents($oben . '/tools/akquise/src/cli.ts'), 'if (b.marketing_wartet)'));
 Db::run('DELETE FROM mk_auftraege');
@@ -17252,6 +17252,9 @@ Db::run('DELETE FROM mk_auftraege');
 abschnitt('Marketing-Studio: Bilder und Videos');
 require_once $wurzel . '/src/MkMedium.php';
 Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_medien');
+/* Seit Marketing-Studio 11 entscheidet „Automatisch“ zwischen Kie.ai und Blender. Die Prüfungen bis dahin gelten Kie.ai — Motor fest auf Kie.ai (Marketing-Studio 11 räumt die Einstellung wieder ab). */
+require_once $wurzel . '/src/MkMedium.php';
+MkMedium::motorSpeichern(['bild' => 'kie', 'video' => 'kie', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7']);
 $mmX = MkInhalt::laden($ciIdI);   // Instagram-Beitrag, freigegeben
 $mmR = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'reel'");
 Db::run("UPDATE mk_inhalte SET bild_prompt = 'A busy Sicilian trattoria kitchen at dusk' WHERE id = ?", [$mmR]);
@@ -17311,7 +17314,7 @@ $medien = MkMedium::zuInhalt($mmR, false); $medienAuftraege = Db::all("SELECT * 
 ob_start(); require $wurzel . '/views/inhalt.php'; $mmH1 = (string) ob_get_clean();
 restore_error_handler();
 pruefe('Verwaltung: Bild und Video am Inhalt — Knöpfe mit Credits, Stand der Aufträge, Galerie mit Wählen/Herunterladen, gewähltes Bild in der Vorschau',
-    $mmFehler === null && str_contains($mmH1, 'value="medium_erzeugen"') && str_contains($mmH1, 'Bild erzeugen · ca. 24 Credits') && str_contains($mmH1, 'Veo 3.1 Quality')
+    $mmFehler === null && str_contains($mmH1, 'value="medium_erzeugen"') && str_contains($mmH1, 'Kie.ai · ca. 24 Credits') && str_contains($mmH1, 'Veo 3.1 Quality')
     && str_contains($mmH1, 'class="mk-galerie"') && str_contains($mmH1, 'medien/' . $mmM['id'] . '?laden=1') && substr_count($mmH1, 'src="' . Fmt::h(url('medien/' . $mmM['id'])) . '"') >= 1
     && str_contains($mmH1, 'name="bild_prompt"') && str_contains($mmH1, 'abgebrochen'), (string) $mmFehler);
 $mmKie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
@@ -18068,9 +18071,159 @@ $dmTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/demo.ts');
 $dmMk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
 pruefe('PC: Claude baut über dein Abo (nur WebSearch/WebFetch), erfindet nichts, kein JavaScript; Route im Marketing-Lauf',
     str_contains($dmTs, 'Erfinde nichts') && str_contains($dmTs, 'KEIN JavaScript') && str_contains($dmTs, "api('marketing_demo_melden'")
-    && str_contains($dmMk, "r.auftrag?.art === 'demo') { await demoLauf(") && str_contains($dmMk, "'--tools', 'WebSearch,WebFetch'"));
+    && str_contains($dmMk, "r.auftrag?.art === 'demo') { await demoLauf(") && str_contains($dmMk, "werkzeuge = 'WebSearch,WebFetch'"));
 Db::run('DELETE FROM mk_demos WHERE customer_id IN (?, ?, ?)', [$dmK, $dmK0, $dmK2]);
 Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
+   Marketing-Studio 11: Bilder und Videos auch mit Blender und Unreal auf
+   Uwes PC — Motor-Wahl, Nachtschicht (01.10.2026, Uwe: Ja zu B1–B4)
+   ============================================================================ */
+abschnitt('Marketing-Studio 11: Blender und Unreal');
+require_once $wurzel . '/src/MkMedium.php';
+Db::run('DELETE FROM mk_auftraege');
+Db::run("DELETE FROM settings WHERE skey = 'mk_motor'");
+$m3Neu = static function (string $branche, string $titel, string $plattform = 'instagram'): int {
+    return (int) Db::insert('mk_inhalte', ['branche' => $branche, 'land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => $plattform,
+        'titel' => $titel, 'felder' => json_encode(['hook' => 'Il suo ristorante, visto dai clienti', 'text' => 'Testo di prova.'], JSON_UNESCAPED_UNICODE), 'bildidee' => 'Tavolo apparecchiato al tramonto']);
+};
+$m3R = $m3Neu('restaurant', 'M3 Ristorante');
+$m3K = $m3Neu('kanzlei', 'M3 Studio legale');
+pruefe('Motoren: Blender und Unreal ohne Credits; Branchen mit fertiger 3D-Szene (Restaurant → gedeckter Tisch, Friseur → Salon …)',
+    MkMedium::MODELLE['bild']['blender'][1] === 0 && MkMedium::MODELLE['video']['unreal'][1] === 0 && MkMedium::istDreiD('blender') && !MkMedium::istDreiD('veo3')
+    && MkMedium::studioFuer('restaurant') === 'gastro' && MkMedium::studioFuer('friseur') === 'salon' && MkMedium::studioFuer('kanzlei') === null);
+$m3XR = MkInhalt::laden($m3R); $m3XK = MkInhalt::laden($m3K);
+pruefe('Automatisch (ab Werk): Blender, wo es eine Szene gibt, sonst Kie.ai — Videos mit Blender, bis Unreal freigeschaltet ist',
+    MkMedium::motor()['bild'] === 'auto' && MkMedium::motorFuer($m3XR, 'bild') === ['blender'] && MkMedium::motorFuer($m3XK, 'bild') === ['nano-banana-pro']
+    && MkMedium::motorFuer($m3XR, 'video') === ['blender'] && MkMedium::motorFuer($m3XK, 'video') === ['veo3_fast']);
+MkMedium::motorSpeichern(['bild' => 'beides', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '1']);
+pruefe('Einstellung „beides“ und Unreal freigeschaltet: Bild über Kie.ai UND Blender, Video über Unreal (Prüfspur)',
+    MkMedium::motorFuer($m3XR, 'bild') === ['nano-banana-pro', 'blender'] && MkMedium::motorFuer($m3XR, 'video') === ['unreal']
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'mk_motor'", [], 0) >= 1);
+MkMedium::motorSpeichern(['bild' => 'auto', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => '22', 'nacht_bis' => '7', 'unreal_bereit' => '']);
+$m3Rom = static fn(string $zeit): int => (new DateTimeImmutable($zeit, new DateTimeZone('Europe/Rome')))->getTimestamp();
+pruefe('Nachtschicht 22–7 Uhr italienischer Zeit (über Mitternacht); ausgeschaltet = jederzeit',
+    MkMedium::imFenster($m3Rom('2026-10-01 23:30')) && MkMedium::imFenster($m3Rom('2026-10-02 06:59')) && !MkMedium::imFenster($m3Rom('2026-10-01 12:00'))
+    && !MkMedium::imFenster($m3Rom('2026-10-02 07:00')));
+$m3A = MkMedium::anlegen($m3R, 'bild');
+$m3P = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($m3A) ? $m3A : 0], '{}'), true) ?: [];
+pruefe('Bild „Automatisch“ für das Restaurant: Blender-Auftrag mit Szene, Zufallszahl für den Blickwinkel, 0 Credits, ohne Kie-Startbild',
+    is_int($m3A) && $m3P['modell'] === 'blender' && $m3P['drei_d'] === true && $m3P['studio'] === 'gastro' && $m3P['generativ'] === false
+    && $m3P['seed'] > 0 && $m3P['credits_ca'] === 0 && $m3P['startbild'] === null && $m3P['format'] === '4:5', json_encode($m3P));
+$m3B = MkMedium::anlegen($m3R, 'bild', 'nano-banana-pro');
+pruefe('Ein Kie-Bild und ein 3D-Bild dürfen gleichzeitig entstehen — zwei 3D-Aufträge für dasselbe Stück nicht',
+    is_int($m3B) && is_string(MkMedium::anlegen($m3R, 'bild', 'blender')) && is_string(MkMedium::anlegen($m3R, 'bild', 'nano-banana-pro')));
+pruefe('3D-Video für eine Branche ohne Szene: klarer Hinweis (dafür Kie.ai)', str_contains((string) MkMedium::anlegen($m3K, 'video', 'blender'), 'keine 3D-Szene'));
+$m3G = MkMedium::anlegen($m3K, 'bild', 'blender');
+$m3GP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($m3G) ? $m3G : 0], '{}'), true) ?: [];
+pruefe('Blender-Bild ohne Szene: Claude baut sie (generativ) — mit Bildidee als Grundlage', is_int($m3G) && $m3GP['generativ'] === true && $m3GP['studio'] === null && str_contains((string) $m3GP['prompt'], 'Tavolo'));
+/* Nachtschicht beim Abholen */
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE id IN (?, ?)", [is_int($m3B) ? $m3B : 0, is_int($m3G) ? $m3G : 0]);
+$m3H = (int) (new DateTimeImmutable('now', new DateTimeZone('Europe/Rome')))->format('G');
+MkMedium::motorSpeichern(['bild' => 'auto', 'video' => 'auto', 'nacht_an' => '1', 'nacht_von' => (string) (($m3H + 2) % 24), 'nacht_bis' => (string) (($m3H + 3) % 24)]);
+$m3Leer = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? null;
+Db::run("UPDATE mk_auftraege SET parameter = REPLACE(parameter, '\"sofort\":false', '\"sofort\":true') WHERE id = ?", [is_int($m3A) ? $m3A : 0]);
+$m3Hol = AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] ?? [];
+pruefe('Außerhalb der Nachtschicht gibt die Verwaltung keinen 3D-Auftrag heraus — mit „3D jetzt rechnen“ schon, samt Szene und Filmtexten für den PC',
+    $m3Leer === null && ($m3Hol['id'] ?? 0) === $m3A && ($m3Hol['drei_d']['studio'] ?? '') === 'gastro' && ($m3Hol['drei_d']['film_titel'] ?? '') === 'Il suo ristorante, visto dai clienti'
+    && ($m3Hol['modell'] ?? '') === 'blender' && ($m3Hol['credits_ca'] ?? -1) === 0, json_encode([$m3Leer, $m3Hol]));
+Db::run("UPDATE mk_auftraege SET gestartet_am = NOW() - INTERVAL 3 HOUR WHERE id = ?", [is_int($m3A) ? $m3A : 0]);
+$m3Kurz = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'status' => 'laeuft', 'gestartet_am' => date('Y-m-d H:i:s', time() - 3 * 3600), 'parameter' => json_encode(['inhalt_id' => $m3K, 'medium' => 'bild', 'modell' => 'nano-banana-pro'])]);
+MkAuftrag::aufraeumen();
+pruefe('Ein 3D-Lauf darf Stunden dauern (Film); ein Kie-Lauf nach 75 Minuten ohne Rückmeldung gilt als abgebrochen',
+    Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [is_int($m3A) ? $m3A : 0], '') === 'laeuft' && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$m3Kurz], '') === 'fehler'
+    && MkAuftrag::DREI_D_MIN >= 360);
+/* Zwei Bilder im Stapel: wählen */
+$m3Png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==');
+AkquiseWorker::ausfuehren('marketing_medium_teil', ['auftrag_id' => $m3A, 'teil' => 1, 'von' => 1, 'daten' => base64_encode($m3Png), 'sha256' => hash('sha256', $m3Png)]);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $m3A, 'ok' => true, 'text' => 'Blender-Bild · Szene gastro · ohne Credits']);
+Db::insert('mk_medien', ['inhalt_id' => $m3R, 'art' => 'bild', 'datei' => 'm3-kie.bin', 'mime' => 'image/png', 'sha256' => str_repeat('c', 64), 'modell' => 'nano-banana-pro', 'status' => 'neu']);
+$m3Fehler = null; set_error_handler(static function (int $n, string $m) use (&$m3Fehler): bool { $m3Fehler = $m; return true; });
+$land = 'IT'; $x = MkInhalt::naechster('IT', []); $x = $x && (int) $x['id'] === $m3R ? $x : MkInhalt::naechster('IT', array_map('intval', array_column(Db::all("SELECT id FROM mk_inhalte WHERE status = 'entwurf' AND id <> ?", [$m3R]), 'id')));
+$rest = 1; $offen = ['IT' => 1, 'DE' => 0]; $zg = null; $medien = MkMedium::zuInhalt($m3R); $bildLaeuft = 0; $dreiDWartet = 0; $geplant = []; $demos = [];
+ob_start(); require $wurzel . '/views/freigabe.php'; $m3V = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Freigeben: zwei Bilder (Kie.ai und Blender) nebeneinander zum Wählen; darunter der Block „Bilder und Videos“ mit Motor und Nachtschicht',
+    $m3Fehler === null && ($x['id'] ?? 0) === $m3R && str_contains($m3V, 'class="mk-wahl"') && str_contains($m3V, 'value="stapel_medium"') && str_contains($m3V, '<span>Kie.ai</span>')
+    && str_contains($m3V, '<span>Blender</span>') && str_contains($m3V, 'id="motor"') && str_contains($m3V, 'value="motor_speichern"') && str_contains($m3V, 'name="nacht_von"'), (string) $m3Fehler);
+$m3Idx = (string) file_get_contents($wurzel . '/index.php');
+$m3Iv = (string) file_get_contents($wurzel . '/views/inhalt.php');
+pruefe('Verwaltung: Motor speichern und Bild wählen hinter CSRF; am Stück „Automatisch / Kie.ai / Blender / beides“ und „3D jetzt rechnen“',
+    strpos($m3Idx, "case 'motor_speichern':") > strpos($m3Idx, 'Csrf::pruefen()') && strpos($m3Idx, "case 'stapel_medium':") > strpos($m3Idx, 'Csrf::pruefen()')
+    && str_contains($m3Iv, '<option value="beides">') && str_contains($m3Iv, 'name="sofort"') && str_contains($m3Idx, "!empty(\$_POST['sofort'])"));
+/* PC */
+$m3Ts = (string) file_get_contents($oben . '/tools/akquise/src/ki/render3d.ts');
+$m3Sz = (string) file_get_contents($oben . '/tools/akquise/src/ki/szene3d.ts');
+$m3Ort = (string) file_get_contents($oben . '/3d-produktion/scripts/branchen_ort.py');
+$m3Ger = (string) file_get_contents($oben . '/3d-produktion/scripts/marketing_szene.py');
+$m3Kie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
+$m3Mk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+pruefe('PC: Blender rechnet die Branchen-Szene am echten Ort (Modus marketing/marketing_film) und misst vorher die Belichtung; Kie.ai nimmt keine 3D-Aufträge',
+    str_contains($m3Ts, "'branchen_ort.py'") && str_contains($m3Ts, "film ? 'marketing_film' : 'marketing'") && str_contains($m3Ort, "if MODUS in ('marketing', 'marketing_film'):")
+    && str_contains($m3Ort, 'Belichtung messen statt vermuten') && str_contains($m3Kie, "a.drei_d || a.modell === 'blender'") && str_contains($m3Mk, "r.auftrag.drei_d) {"));
+pruefe('PC: Claudes Szene entsteht ohne Werkzeuge (kein Netz, keine Dateien) und wird doppelt geprüft, bevor Blender sie rechnet',
+    str_contains($m3Sz, "SCHEMA_SZENE, '')") && str_contains($m3Sz, 'szenePruefen') && str_contains($m3Ger, 'SZENE ABGELEHNT') && str_contains($m3Ger, '__import__')
+    && str_contains($m3Ger, 'is_shadow_catcher') && str_contains($m3Mk, "...(werkzeuge !== '' ? ['--allowedTools', werkzeuge] : [])"));
+/* 3D für Partner (P1–P3) */
+require_once $wurzel . '/src/Partner.php';
+require_once $wurzel . '/src/PartnerWerbung.php';
+$g3P = Partner::laden(Partner::anlegen(['name' => 'Gina Galerie', 'email' => 'gina-g3@partner.example', 'status' => 'aktiv']));
+$g3P2 = Partner::laden(Partner::anlegen(['name' => 'Otto Ohne', 'email' => 'otto-g3@partner.example', 'status' => 'aktiv']));
+$g3A1 = MkMedium::anlegenGalerie('gastro', 'video', '', $g3P, 'it');
+$g3A2 = MkMedium::anlegenGalerie('salon', 'bild', '', $g3P, 'it');
+$g3Pa = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($g3A1) ? $g3A1 : 0], '{}'), true) ?: [];
+pruefe('Partner bestellt 3D: Nachtschicht-Auftrag aus der fertigen Szene (nie von Claude gebaut), sein Link im Abspann, höchstens 2 je Woche, unbekannte Szene abgelehnt',
+    is_int($g3A1) && is_int($g3A2) && $g3Pa['partner_id'] === (int) $g3P['id'] && $g3Pa['studio'] === 'gastro' && $g3Pa['generativ'] === false && $g3Pa['drei_d'] === true
+    && $g3Pa['format'] === '9:16' && $g3Pa['abspann'] === preg_replace('~^https?://~', '', Partner::link($g3P)) && $g3Pa['credits_ca'] === 0
+    && MkMedium::anlegenGalerie('wein', 'bild', '', $g3P, 'it') === 'zuviel' && MkMedium::anlegenGalerie('erfunden', 'bild', '', $g3P2, 'it') === 'unbekannte_szene'
+    && count(MkMedium::bestellungenVon($g3P)) === 2 && MkMedium::bestellungenVon($g3P2) === [], json_encode($g3Pa));
+Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$g3A2]);
+AkquiseWorker::ausfuehren('marketing_medium_teil', ['auftrag_id' => $g3A2, 'teil' => 1, 'von' => 1, 'daten' => base64_encode($m3Png), 'sha256' => hash('sha256', $m3Png)]);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $g3A2, 'ok' => true, 'text' => 'Blender-Bild']);
+$g3M = Db::one('SELECT * FROM mk_medien WHERE auftrag_id = ?', [$g3A2]);
+pruefe('Fertig gerechnet: das Bild gehört dem Partner (partner_id, Szene), ohne Inhalt', $g3M && (int) $g3M['partner_id'] === (int) $g3P['id'] && $g3M['studio'] === 'salon' && (int) $g3M['inhalt_id'] === 0 && (int) $g3M['galerie'] === 0, json_encode($g3M));
+$g3S = MkMedium::starterpaket('it');
+pruefe('Starterpaket: je Szene ein Bild 4:5 und drei Filme 9:16 für die Vecom-Galerie (zählt nicht gegen die Partnergrenze)',
+    $g3S === count(MkMedium::STUDIO_NAMEN) + count(MkMedium::STARTER_FILME)
+    && (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE parameter LIKE '%\"galerie\":1%'", [], 0) === $g3S);
+$g3Gal = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'bild', 'datei' => 'g3-gal.bin', 'mime' => 'image/png', 'sha256' => str_repeat('d', 64), 'modell' => 'blender', 'status' => 'neu', 'galerie' => 1, 'studio' => 'wein']);
+$g3Gal2 = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'bild', 'datei' => 'g3-gal2.bin', 'mime' => 'image/png', 'sha256' => str_repeat('e', 64), 'modell' => 'blender', 'status' => 'gewaehlt', 'galerie' => 1, 'studio' => 'kueche']);
+$g3Ids = static fn(array $p): array => array_column(MkMedium::galerieFuerPartner($p), 'id');
+pruefe('Galerie im Portal: Vecom-Motive erst nach Uwes Ja; eigene Bestellungen nur beim Besteller; alles über m.php mit Zufallsschlüssel',
+    !in_array($g3Gal, $g3Ids($g3P), true) && in_array($g3Gal2, $g3Ids($g3P), true) && in_array((int) $g3M['id'], $g3Ids($g3P), true) && !in_array((int) $g3M['id'], $g3Ids($g3P2), true)
+    && str_contains((string) (MkMedium::galerieFuerPartner($g3P)[0]['url'] ?? ''), '/m.php?t=') && in_array($g3Gal, array_map('intval', array_column(MkMedium::galerieOffen(), 'id')), true));
+MkMedium::status($g3Gal, 'gewaehlt');
+pruefe('Freigeben in der Galerie wählt eines, ohne die anderen abzuwählen (kein Inhalt dahinter)',
+    Db::wert('SELECT status FROM mk_medien WHERE id = ?', [$g3Gal2], '') === 'gewaehlt' && in_array($g3Gal, $g3Ids($g3P2), true));
+$g3Mp = (string) file_get_contents($oben . '/m.php');
+$g3Pw = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+$g3Js = (string) file_get_contents($oben . '/assets/js/partner-3d.js');
+$g3Pp = (string) file_get_contents($oben . '/partner.php');
+pruefe('m.php: Galerie (gewählt) und Partner-Medien ausliefern, Videos mit Byte-Bereichen (Safari)',
+    str_contains($g3Mp, "inhalt_id = 0 AND ((galerie = 1 AND status = 'gewaehlt') OR (partner_id IS NOT NULL AND status <> 'verworfen'))") && str_contains($g3Mp, 'http_response_code(206)'));
+pruefe('Partnerportal: Block „3D-Bilder und -Videos“ im Reiter Werben — Text, QR und Link im Browser, Film mit Abspann, Bestellung hinter CSRF, eigene Kanäle bild3d/video3d',
+    str_contains($g3Pw, '<div class="block pt" id="galerie3d" data-reiter="werben">') && str_contains($g3Pw, 'name="tat" value="g3_bestellen"') && str_contains($g3Js, 'function abspann(')
+    && str_contains($g3Js, 'captureStream') && strpos($g3Pp, "} elseif (\$tat === 'g3_bestellen' && \$p) {") > strpos($g3Pp, "hash_equals((string) \$_SESSION['csrf']")
+    && in_array('video3d', PartnerWerbung::WERKZEUGE, true) && PartnerWerbung::name('bild3d', 'de') === '3D-Bilder' && MkMedium::gt('titel', 'de') === '3D-Bilder und -Videos');
+$g3Idx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Galerie freigeben/verwerfen und Starterpaket hinter CSRF; Block „3D für Partner“ unter Freigeben',
+    strpos($g3Idx, "case 'galerie_freigeben':") > strpos($g3Idx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), 'id="partner3d"'));
+Db::run('DELETE FROM mk_medien WHERE inhalt_id = 0');
+Db::run('DELETE FROM mk_auftraege');
+
+/* Journey in ganzen Sätzen (Uwe: „mache es verständlicher“) */
+require_once $wurzel . '/src/Spur.php';
+pruefe('Tracking: Journey in Sätzen — „Kam über den Link von Partner Anika“, Seiten mit Namen, Anfrage erklärt, Stand erklärt',
+    Spur::satz('partner_visit', '', 'Anika') === 'Kam über den Link von Partner Anika auf die Website'
+    && Spur::satz('page_view', '/de/') === 'Hat die Seite „Startseite (Deutsch)“ angesehen'
+    && str_starts_with(Spur::satz('lead_created'), 'Hat eine Anfrage abgeschickt (mit Name und E-Mail)')
+    && Spur::satz('contact_form_opened') === 'Hat das Kontaktformular geöffnet' && str_contains(Spur::STATUS_ERKLAERT['anfrage'], 'wartet auf Ihre Antwort')
+    && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), 'Spur::satz('));
+
+Db::run('DELETE FROM mk_medien WHERE inhalt_id IN (?, ?)', [$m3R, $m3K]);
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'M3 %'");
+Db::run('DELETE FROM mk_auftraege');
+Db::run("DELETE FROM settings WHERE skey = 'mk_motor'");
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)

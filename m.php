@@ -18,6 +18,10 @@ if (!preg_match('~^[a-f0-9]{32}$~', $t)) { http_response_code(404); exit; }
 try {
     $m = Db::one("SELECT m.* FROM mk_medien m JOIN mk_inhalte i ON i.id = m.inhalt_id
                    WHERE m.token = ? AND m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht')", [$t]);
+    /* Marketing-Studio 11: 3D-Galerie für Partner (nach Uwes Ja) und die eigenen 3D-Bestellungen eines Partners. */
+    if (!$m) {
+        $m = Db::one("SELECT * FROM mk_medien WHERE token = ? AND inhalt_id = 0 AND ((galerie = 1 AND status = 'gewaehlt') OR (partner_id IS NOT NULL AND status <> 'verworfen'))", [$t]);
+    }
 } catch (Throwable $e) { $m = null; }
 if (!$m) { http_response_code(404); exit; }
 $ordner = __DIR__ . '/app/uploads/marketing';
@@ -39,6 +43,21 @@ if (($_GET['f'] ?? '') === 'jpg' && in_array($mime, ['image/png', 'image/webp'],
     if (is_file($jpg)) { $pfad = $jpg; $mime = 'image/jpeg'; }
 }
 header('Content-Type: ' . $mime);
-header('Content-Length: ' . filesize($pfad));
 header('Cache-Control: public, max-age=86400');
+header('Accept-Ranges: bytes');
+/* Marketing-Studio 11: Videos im Partnerportal — Safari spielt MP4 nur mit Byte-Bereichen (206). */
+$groesse = (int) filesize($pfad);
+if (preg_match('~^bytes=(\d*)-(\d*)$~', (string) ($_SERVER['HTTP_RANGE'] ?? ''), $br) && ($br[1] !== '' || $br[2] !== '')) {
+    $von = $br[1] === '' ? max(0, $groesse - (int) $br[2]) : (int) $br[1];
+    $bis = ($br[1] !== '' && $br[2] !== '') ? min((int) $br[2], $groesse - 1) : $groesse - 1;
+    if ($von > $bis || $von >= $groesse) { http_response_code(416); header('Content-Range: bytes */' . $groesse); exit; }
+    http_response_code(206);
+    header('Content-Range: bytes ' . $von . '-' . $bis . '/' . $groesse);
+    header('Content-Length: ' . ($bis - $von + 1));
+    $fh = fopen($pfad, 'rb'); fseek($fh, $von); $rest = $bis - $von + 1;
+    while ($rest > 0 && !feof($fh)) { $stueck = fread($fh, min(65536, $rest)); if ($stueck === false) { break; } echo $stueck; $rest -= strlen($stueck); }
+    fclose($fh);
+    exit;
+}
+header('Content-Length: ' . $groesse);
 readfile($pfad);
