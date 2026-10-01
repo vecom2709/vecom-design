@@ -19800,6 +19800,54 @@ foreach ($seAlt as $seK => $seV) {
     if ($seV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$seK]); } else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', [$seV, $seK]); }
 }
 MkKanaele::pruefungMerken('facebook', null);
+/* Karussells gehen von selbst raus (01.10.2026): Folien als Bilder über m.php, Instagram mit Sammel-Container, Facebook als Mehrfoto-Beitrag */
+require_once $wurzel . '/src/MkKarussell.php';
+require_once $wurzel . '/src/MkVeroeffentlichen.php';
+$kaAlt = [];
+foreach (['meta_seite_id', 'meta_ig_id', 'meta_seiten_token'] as $kaK) { $kaAlt[$kaK] = Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$kaK], null); }
+MetaSeite::speichern(['seite_id' => '111', 'ig_id' => '222', 'token' => 'ka-test-schluessel']);
+AkquiseGate::setzen('meta_ig_id', '222');
+MkKanaele::pruefungMerken('facebook', null);
+$kaFelder = json_encode(['hook' => 'Cosa cerca un ospite tedesco?', 'text' => 'Testo.', 'folien' => [['titel' => 'Prezzi chiari', 'text' => 'Subito il prezzo.'], ['titel' => 'Prenotare', 'text' => 'Anche dal telefono.']]], JSON_UNESCAPED_UNICODE);
+$kaIg = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'karussell', 'plattform' => 'instagram', 'titel' => 'Karussell IG', 'felder' => $kaFelder, 'status' => 'freigegeben']);
+$kaFb = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'karussell', 'plattform' => 'facebook', 'titel' => 'Karussell FB', 'felder' => $kaFelder, 'status' => 'freigegeben']);
+$kaM = MkVeroeffentlichen::moeglich(MkInhalt::laden($kaIg));
+$kaRufe = [];
+MetaSeite::$netz = static function (string $m, string $u, ?array $b, string $t) use (&$kaRufe): array {
+    $kaRufe[] = [$m, $u, $b];
+    if (str_ends_with($u, '/222/media')) { return ['status' => 200, 'json' => ['id' => ($b['media_type'] ?? '') === 'CAROUSEL' ? 'car1' : 'kind' . count($kaRufe)]]; }
+    if (str_contains($u, 'car1?fields=status_code')) { return ['status' => 200, 'json' => ['status_code' => 'FINISHED']]; }
+    if (str_ends_with($u, '/222/media_publish')) { return ['status' => 200, 'json' => ['id' => 'igkarussell']]; }
+    if (str_ends_with($u, '/111/photos')) { return ['status' => 200, 'json' => ['id' => 'ph' . count($kaRufe)]]; }
+    if (str_ends_with($u, '/111/feed')) { return ['status' => 200, 'json' => ['id' => '111_karussell']]; }
+    return ['status' => 404, 'json' => null];
+};
+$kaE1 = MkVeroeffentlichen::jetzt($kaIg);
+$kaE2 = MkVeroeffentlichen::jetzt($kaFb);
+MetaSeite::$netz = null;
+$kaKinder = array_values(array_filter($kaRufe, static fn($r) => str_ends_with($r[1], '/222/media') && !empty($r[2]['is_carousel_item'])));
+$kaSammel = array_values(array_filter($kaRufe, static fn($r) => ($r[2]['media_type'] ?? '') === 'CAROUSEL'));
+$kaFeed = array_values(array_filter($kaRufe, static fn($r) => str_ends_with($r[1], '/111/feed')));
+pruefe('Karussell: Instagram bekommt je Folie ein Element (Titelbild + Folien) und einen Sammel-Container, Facebook einen Beitrag mit allen Folien — beide veröffentlicht',
+    $kaM['auto'] === true && $kaE1['ok'] === true && $kaE2['ok'] === true && count($kaKinder) === 3 && count($kaSammel) === 1
+    && $kaSammel[0][2]['children'] === implode(',', array_map(static fn($i) => 'kind' . $i, [1, 2, 3])) && str_contains((string) $kaKinder[0][2]['image_url'], '/m.php?k=' . MkKarussell::schluessel($kaIg) . '&i=' . $kaIg . '&n=0')
+    && count($kaFeed[0][2]['attached_media'] ?? []) === 3 && MkInhalt::laden($kaIg)['status'] === 'veroeffentlicht' && MkInhalt::laden($kaFb)['status'] === 'veroeffentlicht',
+    json_encode([$kaM['grund'], $kaE1, $kaE2, $kaSammel]));
+$_GET = ['k' => MkKarussell::schluessel($kaIg), 'i' => (string) $kaIg, 'n' => '1'];
+set_error_handler(static fn(int $n, string $m): bool => str_contains($m, 'headers already sent'));
+ob_start(); require $oben . '/m.php'; $kaBild = (string) ob_get_clean();
+$_GET = ['k' => str_repeat('0', 32), 'i' => (string) $kaIg, 'n' => '1'];
+ob_start(); require $oben . '/m.php'; $kaFalsch = (string) ob_get_clean();
+$_GET = ['k' => MkKarussell::schluessel($kaIg), 'i' => (string) $kaIg, 'n' => '7'];
+ob_start(); require $oben . '/m.php'; $kaZuweit = (string) ob_get_clean();
+$_GET = [];
+restore_error_handler();
+pruefe('m.php liefert eine Karussell-Folie nur mit dem richtigen Schlüssel (JPEG 1080×1350) — falscher Schlüssel oder Folie außerhalb: nichts',
+    str_starts_with($kaBild, "\xFF\xD8") && ($kaGr = @getimagesizefromstring($kaBild)) && $kaGr[0] === 1080 && $kaGr[1] === 1350 && $kaFalsch === '' && $kaZuweit === '');
+foreach ($kaAlt as $kaK => $kaV) {
+    if ($kaV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$kaK]); } else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', [$kaV, $kaK]); }
+}
+foreach (glob($wurzel . '/uploads/marketing/karussell-' . $kaIg . '-*') ?: [] as $kaD) { @unlink($kaD); }
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
 $land = 'IT'; $st = MkStart::schritte('IT'); $fehl = []; $anm = MkAnmeldungen::liste('IT');
 ob_start(); require $wurzel . '/views/mk_start.php'; $anHtml = (string) ob_get_clean();

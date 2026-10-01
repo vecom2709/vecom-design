@@ -70,6 +70,9 @@ final class MkVeroeffentlichen
             if (MetaSeite::einstellungen()['ig_id'] === '') { return $nein('Instagram ist an der Facebook-Seite noch nicht verbunden.'); }
             if ($x['format'] === 'reel') { return $video ? ['auto' => true, 'grund' => '', 'medium' => $video] : $nein('Für ein Instagram-Reel erst ein Video erzeugen und wählen.'); }
             if ($x['format'] === 'beitrag') { return $bild ? ['auto' => true, 'grund' => '', 'medium' => $bild] : $nein('Instagram braucht ein Bild — erst eines erzeugen und wählen.'); }
+            /* 01.10.2026: Karussells gehen mit selbst gezeichneten Folien raus (MkKarussell). */
+            require_once __DIR__ . '/MkKarussell.php';
+            if (MkKarussell::moeglich($x)) { return ['auto' => true, 'grund' => '', 'medium' => null]; }
             return $nein((MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) . ' auf Instagram lädst du mit dem Paket hoch.');
         }
         /* Facebook */
@@ -197,9 +200,19 @@ final class MkVeroeffentlichen
     private static function facebook(array $x, ?array $medium): array
     {
         require_once __DIR__ . '/MetaSeite.php';
+        require_once __DIR__ . '/MkKarussell.php';
         $seite = MetaSeite::einstellungen()['seite_id'];
         $text = self::text($x, 5000);
-        if ($medium && $medium['art'] === 'video') {
+        if (($x['format'] ?? '') === 'karussell' && MkKarussell::moeglich($x)) {
+            /* Mehrere Fotos in einem Beitrag: erst unveröffentlicht hochladen, dann gemeinsam posten. */
+            $fotos = [];
+            foreach (array_keys(MkKarussell::folien($x)) as $n) {
+                $f = MetaSeite::graph('POST', $seite . '/photos', ['url' => MkKarussell::url($x, $n), 'published' => false]);
+                if (($f['status'] ?? 0) !== 200 || empty($f['json']['id'])) { return ['ok' => false, 'grund' => 'Facebook (Folie ' . ($n + 1) . '): ' . MetaSeite::fehler($f)]; }
+                $fotos[] = ['media_fbid' => (string) $f['json']['id']];
+            }
+            $r = MetaSeite::graph('POST', $seite . '/feed', ['message' => $text, 'attached_media' => $fotos]);
+        } elseif ($medium && $medium['art'] === 'video') {
             $r = MetaSeite::graph('POST', $seite . '/videos', ['file_url' => self::oeffentlich($medium), 'description' => $text, 'published' => true]);
         } elseif ($medium) {
             $r = MetaSeite::graph('POST', $seite . '/photos', ['url' => self::oeffentlich($medium) . '&f=jpg', 'caption' => $text, 'published' => true]);
@@ -216,6 +229,20 @@ final class MkVeroeffentlichen
         require_once __DIR__ . '/MetaSeite.php';
         $ig = MetaSeite::einstellungen()['ig_id'];
         $container = (string) ($ids['ig_container'] ?? '');
+        require_once __DIR__ . '/MkKarussell.php';
+        $karussell = ($x['format'] ?? '') === 'karussell' && $medium === null && MkKarussell::moeglich($x);
+        if ($container === '' && $karussell) {
+            /* Karussell: je Folie ein Element, dann der Sammel-Container (Instagram: höchstens zehn). */
+            $kinder = [];
+            foreach (array_keys(MkKarussell::folien($x)) as $n) {
+                $k = MetaSeite::graph('POST', $ig . '/media', ['image_url' => MkKarussell::url($x, $n), 'is_carousel_item' => true]);
+                if (($k['status'] ?? 0) !== 200 || empty($k['json']['id'])) { return ['ok' => false, 'grund' => 'Instagram (Folie ' . ($n + 1) . '): ' . MetaSeite::fehler($k)]; }
+                $kinder[] = (string) $k['json']['id'];
+            }
+            $r = MetaSeite::graph('POST', $ig . '/media', ['media_type' => 'CAROUSEL', 'children' => implode(',', $kinder), 'caption' => self::text($x, 2200)]);
+            $container = (string) ($r['json']['id'] ?? '');
+            if ($r['status'] !== 200 || $container === '') { return ['ok' => false, 'grund' => 'Instagram: ' . MetaSeite::fehler($r)]; }
+        }
         if ($container === '') {
             $text = self::text($x, 2200);
             $body = $medium['art'] === 'video'
@@ -225,7 +252,7 @@ final class MkVeroeffentlichen
             $container = (string) ($r['json']['id'] ?? '');
             if ($r['status'] !== 200 || $container === '') { return ['ok' => false, 'grund' => 'Instagram: ' . MetaSeite::fehler($r)]; }
         }
-        if ($medium['art'] === 'video') {
+        if ($karussell || $medium['art'] === 'video') {
             $st = MetaSeite::graph('GET', $container . '?fields=status_code');
             $code = (string) ($st['json']['status_code'] ?? '');
             if ($code === 'ERROR' || $code === 'EXPIRED') { return ['ok' => false, 'grund' => 'Instagram konnte das Video nicht verarbeiten (' . $code . ').', 'ids' => ['ig_container' => null]]; }

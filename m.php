@@ -13,6 +13,20 @@ header('X-Content-Type-Options: nosniff');
 // Die Kette (app/pruefung/kette.php) bindet diese Seite mit ihrer eigenen Konfiguration ein — dort steht Config schon.
 if (!is_file(__DIR__ . '/app/config.local.php') && !class_exists('Config', false)) { http_response_code(503); exit; }
 foreach (['Config', 'Db', 'Events'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+/* Karussell-Folien (01.10.2026, MkKarussell): Schlüssel = HMAC über die Inhalts-ID, gilt nur für freigegebene/veröffentlichte Karussells. */
+if (isset($_GET['k'])) {
+    require_once __DIR__ . '/app/src/MkKarussell.php';
+    $kk = (string) $_GET['k']; $ki = (int) ($_GET['i'] ?? 0); $kn = (int) ($_GET['n'] ?? -1);
+    if (!preg_match('~^[a-f0-9]{32}$~', $kk) || $ki <= 0 || $kn < 0 || !hash_equals(MkKarussell::schluessel($ki), $kk)) { http_response_code(404); return; }
+    try { $kx = Db::one("SELECT * FROM mk_inhalte WHERE id = ? AND format = 'karussell' AND status IN ('freigegeben', 'veroeffentlicht')", [$ki]); } catch (Throwable $e) { $kx = null; }
+    $kb = $kx ? MkKarussell::bild($kx, $kn) : null;
+    if ($kb === null) { http_response_code(404); return; }
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: public, max-age=86400');
+    header('Content-Length: ' . strlen($kb));
+    echo $kb;
+    return;   // return statt exit: die Kette bindet m.php per require ein
+}
 $t = (string) ($_GET['t'] ?? '');
 if (!preg_match('~^[a-f0-9]{32}$~', $t)) { http_response_code(404); exit; }
 try {
