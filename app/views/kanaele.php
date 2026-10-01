@@ -135,7 +135,26 @@ $pfAntrag = [
 
 <div class="block" id="meta">
   <h2>Facebook-Seite und Instagram verbinden <span class="mehr">einmal, etwa 15 Minuten — dieselbe Meta-App wie bei WhatsApp</span></h2>
-  <details<?= $stand['facebook']['bereit'] ? '' : ' open' ?>><summary style="cursor:pointer">So geht es Schritt für Schritt — ein Schlüssel für Facebook, Instagram und WhatsApp</summary>
+  <?php $ml = $ml ?? ['app_id' => '', 'config_id' => '', 'geheim' => false, 'rueckruf' => '']; ?>
+  <div class="mk-metalogin">
+    <p style="margin:0 0 8px;max-width:80ch;line-height:1.6"><b>Ein Klick statt Schlüssel abschreiben:</b> „Mit Meta verbinden“ öffnet das Meta-Fenster. Dort <b>Vecom Design</b> und <b>@vecom.design</b> anhaken und weiter — der Server holt den dauerhaften Schlüssel selbst und trägt Seite, Instagram und WhatsApp ein.</p>
+    <?php if (!empty($ml['geheim'])): ?>
+      <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" style="margin:0 0 10px"><?= $csrf() ?><input type="hidden" name="tat" value="meta_login"><button class="knopf haupt">Mit Meta verbinden</button></form>
+    <?php else: ?>
+      <p class="mk-fein" style="margin:0 0 8px">Noch nötig: das <b>App-Geheimnis</b> der App „Vecom Design Marketing“ (developers.facebook.com › App › Einstellungen › Allgemein › App-Geheimcode „Anzeigen“). Einmal unten speichern — danach erscheint der Knopf.</p>
+    <?php endif; ?>
+    <details><summary style="cursor:pointer">App-Einstellungen für den Knopf</summary>
+      <p style="margin:6px 0;max-width:80ch;line-height:1.6">In der Meta-App unter <b>Facebook Login for Business › Einstellungen</b> diese Adresse bei „Gültige OAuth-Redirect-URIs“ eintragen:<br><code><?= Fmt::h((string) $ml['rueckruf']) ?></code></p>
+      <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" class="mk-formular">
+        <?= $csrf() ?><input type="hidden" name="tat" value="meta_login_speichern">
+        <div class="feld"><label for="ml_app">App-ID</label><input id="ml_app" name="app_id" inputmode="numeric" value="<?= Fmt::h((string) $ml['app_id']) ?>"></div>
+        <div class="feld"><label for="ml_conf">Konfigurations-ID <span class="mk-fein">(nur bei Login for Business, sonst leer)</span></label><input id="ml_conf" name="config_id" inputmode="numeric" value="<?= Fmt::h((string) $ml['config_id']) ?>"></div>
+        <div class="feld breit"><label for="ml_geheim">App-Geheimnis <span class="mk-fein"><?= !empty($ml['geheim']) ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="ml_geheim" name="app_geheim" type="password" autocomplete="off"></div>
+        <div class="breit"><button class="knopf">Speichern</button></div>
+      </form>
+    </details>
+  </div>
+  <details<?= $stand['facebook']['bereit'] ? '' : ' open' ?>><summary style="cursor:pointer">Oder von Hand: so geht es Schritt für Schritt — ein Schlüssel für Facebook, Instagram und WhatsApp</summary>
     <p style="margin:0 0 6px;max-width:80ch">Schon eingerichtet (01.10.2026): Business-Portfolio <b>„Vecom Design Sicilia“</b> mit der Seite, App <b>„Vecom Design Marketing“</b> (Seiten, Instagram, WhatsApp, Leads) und Systemnutzer <b>„Vecom Verwaltung“</b> mit Seite und App. Offen sind nur noch Instagram, WhatsApp-Nummer und der Schlüssel (Schritt 1, 4 und 5).</p>
     <ol style="line-height:1.7;max-width:80ch">
       <li><b>Instagram</b> (falls noch nicht da): in der Instagram-App ein Konto anlegen, unter Einstellungen auf <b>Professionelles Konto</b> umstellen und auf der Facebook-Seite unter Einstellungen › Verknüpfte Konten mit der Seite verbinden.</li>
@@ -169,4 +188,5 @@ $pfAntrag = [
   .mk-kanal__kopf i{width:12px;height:12px;border-radius:50%;background:var(--gelb,#e0b84a);flex:none}
   .mk-kanal.gut .mk-kanal__kopf i{background:var(--gruen,#3fb27f)}
   .mk-kanal.gut{border-color:rgba(63,178,127,.45)}
+  .mk-metalogin{border:1px solid var(--linie2);border-radius:12px;padding:14px 16px;margin:0 0 12px}
 </style>

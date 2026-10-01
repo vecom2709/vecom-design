@@ -169,6 +169,15 @@ final class MetaSeite
 
     public static function fehler(array $r): string { return self::fehlerText($r); }
 
+    /** Für „Mit Meta verbinden“ (MetaLogin): den Seiten-Schlüssel mit einem Nutzer-Schlüssel abholen. Gibt '' zurück, wenn Meta keinen liefert. */
+    public static function seitenSchluessel(string $nutzerToken, string $seite): string
+    {
+        $seite = preg_replace('~\D~', '', $seite) ?? '';
+        if ($nutzerToken === '' || $seite === '') { return ''; }
+        $r = self::roh('GET', self::API . '/' . $seite . '?fields=access_token', null, $nutzerToken);
+        return ($r['status'] ?? 0) === 200 && is_string($r['json']['access_token'] ?? null) ? (string) $r['json']['access_token'] : '';
+    }
+
     /**
      * Alles, was sich aus dem einen Schlüssel ablesen lässt, selbst eintragen
      * (01.10.2026, Uwe: „Richte mit Facebook alles automatisch ein, auch

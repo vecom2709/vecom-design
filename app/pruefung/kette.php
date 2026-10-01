@@ -18635,6 +18635,68 @@ MkPlattform::$netz = null;
 Db::run("DELETE FROM mk_medien WHERE datei = ?", [$pfDatei]); Db::run("DELETE FROM mk_inhalte WHERE plattform IN ('linkedin','youtube','tiktok') AND titel IN ('LinkedIn-Probe','Reel youtube','Reel tiktok')");
 Db::run("DELETE FROM settings WHERE skey LIKE 'pf\\_%'");
 
+/* „Mit Meta verbinden“ (01.10.2026): ein Klick statt Schlüssel abschreiben */
+abschnitt('Mit Meta verbinden');
+require_once $wurzel . '/src/MetaLogin.php';
+$mlAlt = [];
+foreach (['meta_seiten_token', 'meta_seite_id', 'meta_ig_id', 'meta_app_id', 'meta_login_config', 'meta_app_geheim', 'wa_app_geheim', 'mk_kanal_pruefung'] as $mlK) { $mlAlt[$mlK] = Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$mlK], null); }
+Db::run("DELETE FROM settings WHERE skey IN ('meta_app_geheim','wa_app_geheim','meta_login_config','meta_app_id')");
+$mlOhne = MetaLogin::adresse('z1');
+$mlF = MetaLogin::speichern(['app_id' => '1096956489415912', 'app_geheim' => 'kein geheimnis!']);
+MetaLogin::speichern(['app_id' => '1096956489415912', 'config_id' => '', 'app_geheim' => str_repeat('ab12', 8)]);
+$mlE = MetaLogin::einstellungen();
+$mlAdr = (string) MetaLogin::adresse('zustand77');
+pruefe('Meta-Login: ohne App-Geheimnis kein Knopf; falsches Geheimnis abgelehnt; gespeichert wird es nie angezeigt; die Adresse trägt App, Rückruf, Zustand und alle Rechte',
+    $mlOhne === null && is_string($mlF) && $mlE['geheim'] === true && !str_contains((string) json_encode($mlE), 'ab12ab12')
+    && str_contains($mlAdr, 'client_id=1096956489415912') && str_contains($mlAdr, 'state=zustand77') && str_contains($mlAdr, rawurlencode('/meta-rueckruf'))
+    && str_contains($mlAdr, 'instagram_content_publish') && str_contains($mlAdr, 'whatsapp_business_management') && !str_contains($mlAdr, 'config_id'), $mlAdr);
+MetaLogin::speichern(['config_id' => '4242']);
+$mlAdr2 = (string) MetaLogin::adresse('z');
+pruefe('Meta-Login: mit Konfigurations-ID (Login for Business) fragt Meta nach der Konfiguration statt nach einzelnen Rechten', str_contains($mlAdr2, 'config_id=4242') && !str_contains($mlAdr2, 'scope='));
+MetaLogin::speichern(['config_id' => '']);
+Db::run("DELETE FROM settings WHERE skey = 'meta_app_geheim'");
+(static function () { require_once dirname(__DIR__) . '/src/Hosting.php'; Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', ['wa_app_geheim', (string) Hosting::versiegeln(['wert' => 'cd34cd34cd34cd34cd34cd34cd34cd34'])]); })();
+pruefe('Meta-Login: das WhatsApp-App-Geheimnis (dieselbe App) reicht', MetaLogin::bereit());
+/* Rückruf: Code → kurz → lang → einrichten → Seiten-Schlüssel ablegen */
+$mlUrls = [];
+MetaLogin::$netz = static function (string $u) use (&$mlUrls): array {
+    $mlUrls[] = $u;
+    if (str_contains($u, 'fb_exchange_token')) { return ['status' => 200, 'json' => ['access_token' => 'NUTZER-LANG', 'expires_in' => 5184000]]; }
+    if (str_contains($u, 'code=')) { return ['status' => 200, 'json' => ['access_token' => 'NUTZER-KURZ']]; }
+    return ['status' => 400, 'json' => ['error' => ['message' => 'unerwartet']]];
+};
+$mlGraph = [];
+MetaSeite::$netz = static function (string $m, string $u, ?array $b, string $t) use (&$mlGraph): array {
+    $mlGraph[] = [$u, $t];
+    if (str_contains($u, '/me/accounts') && $t === 'NUTZER-LANG') { return ['status' => 200, 'json' => ['data' => [['id' => '1371332072727581', 'name' => 'Vecom Design', 'instagram_business_account' => ['id' => '17841426670385013', 'username' => 'vecom.design']]]]]; }
+    if (str_contains($u, '/me/accounts')) { return ['status' => 400, 'json' => ['error' => ['message' => 'page token']]]; }
+    if (str_contains($u, '/me?fields=')) { return ['status' => 200, 'json' => ['id' => '1371332072727581', 'name' => 'Vecom Design', 'instagram_business_account' => ['id' => '17841426670385013', 'username' => 'vecom.design']]]; }
+    if (str_contains($u, '/debug_token')) { return ['status' => 200, 'json' => ['data' => ['scopes' => MetaLogin::RECHTE, 'granular_scopes' => []]]]; }
+    if (str_contains($u, '?fields=access_token')) { return ['status' => 200, 'json' => ['access_token' => 'SEITE-DAUERHAFT', 'id' => '1371332072727581']]; }
+    if (str_contains($u, '?fields=name')) { return ['status' => 200, 'json' => ['name' => 'Vecom Design']]; }
+    if (str_contains($u, '?fields=username')) { return ['status' => 200, 'json' => ['username' => 'vecom.design']]; }
+    return ['status' => 404, 'json' => null];
+};
+AkquiseGate::setzen('meta_ig_id', '');
+$mlR = MetaLogin::rueckruf('code-xyz');
+$mlMe = MetaSeite::einstellungen();
+$mlTok = (static function (): string { $r = new ReflectionMethod(MetaSeite::class, 'geheim'); $r->setAccessible(true); return (string) $r->invoke(null); })();
+$mlLangGenutzt = (bool) array_filter($mlGraph, static fn($g) => str_contains($g[0], '/me/accounts') && $g[1] === 'NUTZER-LANG');
+pruefe('Meta-Login: der Rückruf tauscht den Code gegen einen langen Schlüssel, trägt Seite und Instagram selbst ein und legt den dauerhaften Seiten-Schlüssel ab — kein Schlüssel im Text',
+    $mlR['ok'] && $mlMe['seite_id'] === '1371332072727581' && $mlMe['ig_id'] === '17841426670385013' && $mlTok === 'SEITE-DAUERHAFT' && $mlLangGenutzt
+    && count($mlUrls) === 2 && str_contains($mlUrls[0], 'client_secret=') && str_contains($mlUrls[1], 'fb_exchange_token=NUTZER-KURZ')
+    && str_contains($mlR['text'], 'Instagram @vecom.design verbunden') && !preg_match('~NUTZER|SEITE-DAUER|cd34~', $mlR['text']) && MkKanaele::stand()['instagram']['bereit'],
+    json_encode([$mlR, $mlMe, $mlUrls]));
+MetaLogin::$netz = static fn(string $u): array => ['status' => 400, 'json' => ['error' => ['message' => 'Invalid verification code format.']]];
+$mlR2 = MetaLogin::rueckruf('kaputt');
+pruefe('Meta-Login: lehnt Meta den Code ab, bleibt der bisherige Schlüssel und der Grund steht da', !$mlR2['ok'] && str_contains($mlR2['text'], 'Invalid verification code') && $mlTok === 'SEITE-DAUERHAFT');
+MetaLogin::$netz = null; MetaSeite::$netz = null;
+$mlIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Meta-Login: Rückruf prüft den Zustand aus der Sitzung (nur der eigene Klick zählt)', str_contains($mlIdx, "case 'meta-rueckruf':") && str_contains($mlIdx, "hash_equals((string) (\$_SESSION['meta_zustand']"));
+foreach ($mlAlt as $mlK => $mlV) {
+    if ($mlV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$mlK]); } else { Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$mlK, $mlV]); }
+}
+
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */

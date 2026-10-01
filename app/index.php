@@ -916,6 +916,21 @@ if ($post) {
                 }
                 weiter('kanaele');
 
+            /* „Mit Meta verbinden“ (01.10.2026): ein Klick statt Schlüssel abschreiben */
+            case 'meta_login_speichern':
+            case 'meta_login':
+                require_once __DIR__ . '/src/MetaLogin.php';
+                if ($tat === 'meta_login_speichern') {
+                    try { $f = MetaLogin::speichern($_POST); } catch (Throwable $e) { $f = $e->getMessage(); }
+                    $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert. Jetzt „Mit Meta verbinden“ drücken.';
+                    weiter('kanaele#meta');
+                }
+                $_SESSION['meta_zustand'] = bin2hex(random_bytes(16));
+                $mlUrl = MetaLogin::adresse($_SESSION['meta_zustand']);
+                if ($mlUrl === null) { $_SESSION['fehler'] = 'Erst das App-Geheimnis der Meta-App speichern (App-Einstellungen › Allgemein).'; weiter('kanaele#meta'); }
+                header('Location: ' . $mlUrl);
+                exit;
+
             /* P4 (01.10.2026): LinkedIn, Google-Profil, YouTube, TikTok verbinden */
             case 'plattform_speichern':
             case 'plattform_verbinden':
@@ -4964,6 +4979,17 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
         exit;
 
+    case 'meta-rueckruf':   // „Mit Meta verbinden“: Rückruf (nur angemeldet, Zustand aus der Sitzung)
+        require_once __DIR__ . '/src/MetaLogin.php';
+        $mlOk = hash_equals((string) ($_SESSION['meta_zustand'] ?? ''), (string) ($_GET['state'] ?? '')) && ($_SESSION['meta_zustand'] ?? '') !== '';
+        unset($_SESSION['meta_zustand']);
+        if (!$mlOk) { $_SESSION['fehler'] = 'Die Rückmeldung von Meta passt nicht zu deinem Klick — bitte noch einmal „Mit Meta verbinden“ drücken.'; weiter('kanaele#meta'); }
+        if (isset($_GET['error'])) { $_SESSION['fehler'] = 'Meta hat abgebrochen: ' . mb_substr((string) ($_GET['error_description'] ?? $_GET['error']), 0, 200); weiter('kanaele#meta'); }
+        $mlR = MetaLogin::rueckruf((string) ($_GET['code'] ?? ''));
+        Events::pruefspur('meta_verbunden', 'settings', null, [], ['ok' => $mlR['ok'], 'seite_id' => MetaSeite::einstellungen()['seite_id'], 'ig_id' => MetaSeite::einstellungen()['ig_id']]);
+        $_SESSION[$mlR['ok'] ? 'gut' : 'fehler'] = $mlR['text'];
+        weiter('kanaele');
+
     case 'plattform-rueckruf':   // P4: OAuth-Rückruf von LinkedIn, Google, YouTube, TikTok (nur angemeldet, Zustand aus der Sitzung)
         require_once __DIR__ . '/src/MkPlattform.php';
         $pfP = (string) ($_GET['p'] ?? '');
@@ -4982,6 +5008,7 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
         require_once __DIR__ . '/src/MkLand.php';
         ansicht('kanaele', ['stand' => MkKanaele::stand(), 'fehl' => MkKanaele::fehlgeschlagen(MkLand::wahl()), 'geplant' => MkKanaele::geplant(),
             'me' => MetaSeite::einstellungen(),
+            'ml' => (static function (): array { require_once __DIR__ . '/src/MetaLogin.php'; return MetaLogin::einstellungen(); })(),
             'pf' => (static function (): array { require_once __DIR__ . '/src/MkPlattform.php'; $a = []; foreach (array_keys(MkPlattform::ALLE) as $p) { $a[$p] = MkPlattform::einstellungen($p) + ['bereit' => MkPlattform::bereit($p)]; } return $a; })(),
             'handy' => sicher(static function (): array { if (!is_file(__DIR__ . '/src/MkHandy.php')) { return ['bereit' => false, 'text' => '']; } require_once __DIR__ . '/src/MkHandy.php'; return MkHandy::stand(); }, ['bereit' => false, 'text' => ''])]);
         break;
