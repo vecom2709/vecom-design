@@ -1095,6 +1095,14 @@ if MK:
                         o.data.materials[_i] = _m
         if hasattr(sc, 'gltf2_KHR_materials_variants_variants'):
             sc.gltf2_KHR_materials_variants_variants.clear()
+        # Glas (Probefilm 01.10.2026): Unreals Path Tracer liest die Grundfarbe
+        # als Durchlassfarbe je Strecke -- der leichte Gruenstich aus Blender
+        # (0,93/0,975/0,955) wurde dort sichtbar gruen. Fuer Unreal neutral.
+        for _m in bpy.data.materials:
+            if _m.name.startswith('Glas') and _m.use_nodes:
+                for _n in _m.node_tree.nodes:
+                    if _n.type == 'BSDF_PRINCIPLED' and not _n.inputs['Base Color'].is_linked:
+                        _n.inputs['Base Color'].default_value = (0.985, 0.99, 0.988, 1.0)
         _gltf = dict(filepath=glb, export_format='GLB', use_selection=True, export_yup=True, export_apply=True, export_cameras=False, export_lights=False)
         try:
             bpy.ops.export_scene.gltf(**_gltf, export_variants=False)

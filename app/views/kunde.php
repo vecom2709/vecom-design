@@ -24,10 +24,10 @@ $eing = !empty($eingebettet);
 <div class="kopf"><div><div class="weg"><a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a><?php
   if ($knr !== ''): ?> · <span style="font-variant-numeric:tabular-nums"><?= Fmt::h($knr) ?></span><?php
   endif; ?></div>
-<h1><?= Fmt::h($k['name']) ?></h1></div>
+<h1><?= Fmt::h(Fmt::name($k['name'], $k['company'] ?? null, $k['email'] ?? null)) ?></h1></div>
 <div class="rechts"><?php if (!($anonym ?? false)): ?>
 <a class="knopf" href="<?= Fmt::h(url('kunden/' . $k['id'] . '/bearbeiten')) ?>">Bearbeiten</a>
-<a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu')) ?>">Bestellung erfassen</a>
+<a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu') . '?kunde=' . (int) $k['id']) ?>">Bestellung erfassen</a>
 <?php else: ?><span class="marke2 schlecht">Anonymisiert</span><?php endif; ?></div></div>
 <div class="zwei"><div>
   <div class="block"><h2>Bestellungen</h2><div class="tabellenrahmen"><table>

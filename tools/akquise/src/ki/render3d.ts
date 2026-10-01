@@ -131,7 +131,8 @@ async function unrealLauf(a: DreiDAuftrag, ordner: string, studio: string, aus: 
   if (!probe) throw new Error('Unreal-Probebild ohne Ergebnis.');
   const nach = abgleichBlenden(probe);
   melden(`Unreal rechnet den Film (Belichtung ${nach >= 0 ? '+' : ''}${nach} EV nachgeführt)`);
-  await ue(['-Aus', aus, '-Spp', '32', '-Raumproben', '8', '-Blenden', String(Math.round((basis + nach) * 10) / 10)], `${stamm}.ue.log`, 360);
+  // Proben je Bild = Raumabtastung der Render Queue (das CVar zählt dort nicht; gemessen 01.10.2026: 8 → 0,13 s je Bild).
+  await ue(['-Aus', aus, '-Spp', '32', '-Raumproben', '64', '-Blenden', String(Math.round((basis + nach) * 10) / 10)], `${stamm}.ue.log`, 360);
   if (!existsSync(aus) || statSync(aus).size < 10_000) throw new Error('Unreal endete ohne Film.');
   const b = jsonLesen(aus.replace(/\.mp4$/, '.json')) ?? {};
   return { ...b, was: studio, motor: 'unreal', probe_mittel: probe.mittel, korrektur_ev: nach, sekunden: b.render_sekunden ?? b.sekunden };

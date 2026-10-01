@@ -32,8 +32,17 @@
 <form method="post" action="<?= Fmt::h(url('')) ?>">
 <?= Csrf::feld() ?><input type="hidden" name="tat" value="bestellung_anlegen">
 <input type="hidden" name="zurueck" value="bestellungen/neu">
+<?php /* Jede Zeile lesbar, auch ohne Namen (01.10.2026: Interessenten aus dem
+         E-Mail-Einstieg haben oft nur eine Adresse — die Auswahl war leer). */
+      $bfWahl = (int) ($_GET['kunde'] ?? 0); ?>
 <div class="feld"><label>Kunde *</label><select name="customer_id" required>
-<?php foreach ($kunden as $k): ?><option value="<?= (int) $k['id'] ?>"><?= Fmt::h($k['name'] . ($k['company'] ? ' — ' . $k['company'] : '')) ?></option><?php endforeach; ?>
+<option value="" disabled <?= $bfWahl === 0 ? 'selected' : '' ?>>— Kunde wählen —</option>
+<?php foreach ($kunden as $k): $bfName = trim((string) $k['name']); $bfMail = trim((string) ($k['email'] ?? '')); ?>
+  <option value="<?= (int) $k['id'] ?>" <?= $bfWahl === (int) $k['id'] ? 'selected' : '' ?>><?= Fmt::h(
+    Fmt::name($bfName, $k['company'], $bfMail, $k['kundennr'] ?? null)
+    . ($bfName !== '' && $k['company'] ? ' — ' . $k['company'] : '')
+    . ($bfMail !== '' && ($bfName !== '' || $k['company']) ? ' · ' . $bfMail : '')
+    . (trim((string) ($k['kundennr'] ?? '')) !== '' ? ' (' . $k['kundennr'] . ')' : '')) ?></option><?php endforeach; ?>
 </select></div>
 <div class="feld"><label>Paket *</label><select name="package_id" required>
 <?php foreach ($pakete as $p): ?><option value="<?= (int) $p['id'] ?>"><?= Fmt::h($p['name']) ?> — <?= Fmt::geld((int) $p['price_cents']) ?></option><?php endforeach; ?>

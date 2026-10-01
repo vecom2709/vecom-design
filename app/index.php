@@ -3873,7 +3873,8 @@ switch ($route) {
         require_once __DIR__ . '/src/Mail.php';   // die Ansicht fragt, ob der Link schon raus ist
         if ($unter === 'neu') {
             ansicht('bestellung_form', [
-                'kunden' => Db::all('SELECT id, name, company, email FROM customers ORDER BY name'),
+                /* Neueste zuerst (01.10.2026: Kunden ohne Namen standen als leere Zeile oben). */
+                'kunden' => Db::all('SELECT id, name, company, email, kundennr FROM customers ORDER BY created_at DESC, id DESC'),
                 /* Liegt fuer einen Kunden schon ein Angebot, ist das die
                    bessere Grundlage als ein Paket plus abgetippter Preis:
                    Dort stehen Betrag, Posten und Anzahlung schon richtig. */
