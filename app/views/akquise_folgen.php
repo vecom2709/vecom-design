@@ -46,7 +46,6 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
   <span class="fo-zahlen"><span><?= $frei ?> von <?= $gesamt ?> Texten freigegeben</span><span><?= $laufend ?> Folgen laufen</span>
     <a href="<?= Fmt::h(url('akquise/regeln#schalter')) ?>" style="text-decoration:underline">Schalter</a></span></span></span></div>
 
-<?php if (!empty($waHand)): ?>
 <style>
   .wh-liste{display:grid;gap:12px;margin-top:12px}
   .wh-karte{border:1px solid var(--linie);border-radius:14px;padding:14px 16px;background:var(--flaeche);display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px 18px;align-items:start}
@@ -56,7 +55,10 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
   @media (min-width:800px){.wh-text{grid-column:1}.wh-knoepfe{grid-column:2;grid-row:1/span 2;flex-direction:column;align-items:stretch}}
 </style>
 <div class="block" id="whatsapp">
-  <h2>WhatsApp von Hand — <?= count($waHand) ?> bereit</h2>
+  <h2>WhatsApp von Hand<?= $waHand ? ' — ' . count($waHand) . ' bereit' : '' ?></h2>
+  <?php if (!$waHand): ?>
+  <p class="akq-klein" style="max-width:72ch">Gerade liegt nichts bereit. Sobald bei einem Betrieb, der WhatsApp ausdrücklich erlaubt hat, ein Folge-Schritt fällig ist, steht er hier mit fertigem Text und dem Knopf „In WhatsApp öffnen“ — und du bekommst eine Meldung.</p>
+  <?php else: ?>
   <p class="akq-klein" style="max-width:72ch">Diese Betriebe haben WhatsApp ausdrücklich erlaubt. „In WhatsApp öffnen“ öffnet deine App mit dem fertigen Text — du drückst nur noch auf Senden; der Schritt gilt damit als verschickt.
     Antwort im Handy? „Antwort kam“ hält die Folge an, „STOP bekommen“ sperrt den Betrieb. Nach zwei Tagen ohne Tipp geht die Mail (wenn eine Adresse da ist).</p>
   <div class="wh-liste">
@@ -79,8 +81,8 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
     </div>
   <?php endforeach; ?>
   </div>
+  <?php endif; ?>
 </div>
-<?php endif; ?>
 
 <div class="block" id="laufend">
   <h2>Betriebe in der Folge</h2>
