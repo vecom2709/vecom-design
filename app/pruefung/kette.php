@@ -17532,7 +17532,7 @@ pruefe('Übersetzung: zurück kommt die deutsche Fassung — Original, Status un
 /* Verwaltung */
 $mlIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Verwaltung: „in beiden Ländern“ legt je Land einen Auftrag an; Übersetzen nur hinter CSRF; die alte Seite „Recherche“ führt auf die neue',
-    str_contains($mlIdx, "!empty(\$_POST['beide']) ? [\$maLand, MkLand::andere(\$maLand)] : [\$maLand]") && strpos($mlIdx, "case 'uebersetzen_starten':") > strpos($mlIdx, 'Csrf::pruefen()')
+    str_contains($mlIdx, "!empty(\$_POST['beide']) || (string) (\$_POST['branche'] ?? '') === '' ? [\$maLand, MkLand::andere(\$maLand)] : [\$maLand]") && strpos($mlIdx, "case 'uebersetzen_starten':") > strpos($mlIdx, 'Csrf::pruefen()')
     && preg_match("~case 'recherche':.*?weiter\\('zielgruppen'~s", $mlIdx) === 1 && !is_file($wurzel . '/views/recherche.php'));
 $mlFehler = null; set_error_handler(static function (int $n, string $m) use (&$mlFehler): bool { $mlFehler = $m; return true; });
 $land = 'DE'; $liste = MkZielgruppe::alle('DE'); $fehlend = MkZielgruppe::fehlend(12, 'DE'); $f = ['art' => '', 'branche' => '', 'status' => ''];
@@ -17545,13 +17545,13 @@ $zielgruppen = []; $alleZg = []; $kampagnen = []; $auftraege = []; $ohneDeutsch 
 ob_start(); require $wurzel . '/views/inhalte.php'; $mlH3 = (string) ob_get_clean();
 restore_error_handler();
 pruefe('Verwaltung: Länderschalter oben (Zahl der offenen Entwürfe am anderen Land), drei Schritte, Recherche-Knopf „auch in Italien“, Funde unten — alles auf einer Seite',
-    $mlFehler === null && str_contains($mlH1, 'class="mk-laender"') && preg_match('~aria-current="page">\s*<i class="mk-flagge mk-flagge--de"~', $mlH1) === 1
-    && str_contains($mlH1, 'Entwürfe warten auf deine Prüfung') && str_contains($mlH1, 'class="mk-schritte"') && str_contains($mlH1, 'auch in Italien')
+    /* Seit M1 (01.10.2026) steht der Schalter oben im Gerüst, für alle Marketing-Seiten. */
+    $mlFehler === null && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), 'Entwürfe warten auf deine Prüfung') && str_contains($mlH1, 'class="mk-schritte"') && str_contains($mlH1, 'auch in Italien')
     && str_contains($mlH1, 'id="funde"') && str_contains($mlH1, 'ML Google-Profil in Deutschland') && !str_contains($mlH1, 'ML Profilo Google in Italia')
     && str_contains($mlH1, 'Kfz-Werkstatt recherchieren'), (string) $mlFehler);
 pruefe('Verwaltung: italienische Kundensprache mit deutscher Fassung darunter; Inhalte zeigen ihre deutsche Fassung und den Knopf „Übersetzen lassen“',
     str_contains($mlH2, '<span class="mk-de">Was kostet das?</span>') && str_contains($mlH2, 'italienisch · deutsch darunter') && str_contains($mlH2, 'mk-flagge--it')
-    && str_contains($mlH3, '<span class="mk-de">Hallo</span>') && str_contains($mlH3, 'value="uebersetzen_starten"') && str_contains($mlH3, 'class="mk-laender"'));
+    && str_contains($mlH3, '<span class="mk-de">Hallo</span>') && str_contains($mlH3, 'value="uebersetzen_starten"'));
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_recherche WHERE titel LIKE 'ML %'"); Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
@@ -18299,6 +18299,59 @@ pruefe('Verwaltung: „Als Kunde anlegen“ und „Link noch einmal schicken“ 
     && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), "require __DIR__ . '/anfrage_karte.php'")
     && str_contains((string) file_get_contents($wurzel . '/src/Zugang.php'), "Events::melden('zugang_neu'"));
 Db::run('DELETE FROM zugaenge WHERE id = ?', [$azId]);
+
+/* ============================================================================
+   Marketing einfacher (01.10.2026, Uwe: Ja zu K1, M1–M3, Z1–Z4)
+   ============================================================================ */
+abschnitt('Marketing einfacher: Heute, ein Land, vier Reiter, Zielgruppe → Kampagne');
+require_once $wurzel . '/src/Vorgang.php';
+require_once $wurzel . '/src/MkAutopilot.php';
+/* K1: neuer Interessent aus dem E-Mail-Einstieg steht unter „Heute“ */
+$k1Mail = 'k1-' . bin2hex(random_bytes(3)) . '@example.org';
+$k1Id = (int) Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => $k1Mail, 'name' => null, 'sprache' => 'de', 'quelle' => 'seite', 'wunsch' => 'neu']);
+$k1O = Zugang::oeffnen((string) Db::wert('SELECT token FROM zugaenge WHERE id = ?', [$k1Id], ''));
+$k1Kid = (int) ($k1O['kunde_id'] ?? 0);
+$k1A = (array) Db::one('SELECT * FROM anfragen WHERE customer_id = ?', [$k1Kid]);
+$k1V = array_column(Vorgang::alle(false), 'schluessel');
+pruefe('K1: Wer über den E-Mail-Einstieg Kunde wird, bekommt eine Anfrage und steht unter „Heute“ — auch ohne Namen (die E-Mail steht dort)',
+    $k1Kid > 0 && ($k1A['name'] ?? '') === $k1Mail && ($k1A['sprache'] ?? '') === 'de' && str_contains((string) ($k1A['nachricht'] ?? ''), 'Wunsch: neue Website')
+    && in_array('a' . (int) ($k1A['id'] ?? 0), $k1V, true));
+Zugang::anfrageSicherstellen($k1Kid, ['email' => $k1Mail]);
+pruefe('K1: keine zweite Anfrage für denselben Kunden', (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ?', [$k1Kid], 0) === 1);
+pruefe('K1: Migration 134 trägt die schon vorhandenen Fälle nach (ohne Doppelte, ohne Kunden mit Auftrag)',
+    str_contains((string) file_get_contents($wurzel . '/migrations/134_anfrage_aus_einstieg.sql'), 'NOT EXISTS (SELECT 1 FROM anfragen a WHERE a.customer_id = c.id)'));
+/* M1/M3 */
+$m1L = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('M1/M3: ein Land-Schalter oben für das ganze Marketing, vier Reiter (Heute · Zielgruppen · Beiträge & Kampagnen · Kanäle), keine Seite fällt weg',
+    str_contains($m1L, '<nav class="mk-oben mk-oben--') && str_contains($m1L, "['Beiträge & Kampagnen', ['inhalte' => 'Beiträge', 'kampagnen' => 'Kampagnen']]")
+    && str_contains($m1L, "['Kanäle', ['telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']]") && substr_count($m1L, "    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],") === 1
+    && !str_contains((string) file_get_contents($wurzel . '/views/zielgruppen.php'), "require __DIR__ . '/mk_land.php';"));
+/* M2 + Z4 */
+Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_woche_%'");
+Db::run("DELETE FROM mk_zielgruppen WHERE land = 'DE'");
+[$m2R] = MkAutopilot::jetzt('DE');
+pruefe('M2: „Diese Woche werben“ ohne freigegebene Zielgruppe sagt, was fehlt', is_string($m2R) && str_contains($m2R, 'noch keine Zielgruppe freigegeben'));
+$m2Zg = (int) Db::insert('mk_zielgruppen', ['branche' => 'friseur', 'land' => 'DE', 'titel' => 'Friseure DE (Kette)', 'profil' => json_encode(['titel' => 'Friseure DE']), 'status' => 'freigegeben']);
+[$m2R2, $m2Z2] = MkAutopilot::jetzt('DE');
+$m2P = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($m2R2) ? $m2R2 : 0], ''), true) ?: [];
+pruefe('M2: ein Klick legt die Kampagne an (Paket, Telegram-Freigabe) und zählt als Lauf dieser Woche',
+    is_int($m2R2) && (int) ($m2Z2['id'] ?? 0) === $m2Zg && !empty($m2P['paket']) && !empty($m2P['autopilot'])
+    && (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_autopilot_woche_DE'", [], '') === date('o-\WW'));
+$m2Idx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('M2/Z4/Z2: Knopf „Diese Woche werben“ auf Zahlen und Freigeben; Freigeben der Zielgruppe startet die Kampagne; Recherche-Runde immer in beiden Ländern',
+    strpos($m2Idx, "case 'woche_werben':") > strpos($m2Idx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/views/marketing.php'), "require __DIR__ . '/mk_woche.php'")
+    && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), "require __DIR__ . '/mk_woche.php'")
+    && str_contains($m2Idx, "\$mzK = MkAuftrag::anlegenKampagne(\$mzId,") && str_contains($m2Idx, "(string) (\$_POST['branche'] ?? '') === '' ? [\$maLand, MkLand::andere(\$maLand)]"));
+Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_zielgruppen WHERE id = ?', [$m2Zg]); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_woche_%'");
+/* Z1 + Z3 */
+$z3P = MkZielgruppe::pruefen($mzProfil(['kundenweg' => ['weg' => 'kommentar', 'warum' => 'Gastgeber sind auf Instagram', 'angebot' => 'Gratis-Check', 'stichwort' => 'sito!', 'zweiter' => 'kommentar']]));
+$z3X = MkZielgruppe::pruefen($mzProfil(['kundenweg' => ['weg' => 'kaltakquise']]));
+pruefe('Z3: Kundenweg je Zielgruppe — nur eingehende Wege, Stichwort sauber in Großbuchstaben, der zweite Weg ist ein anderer',
+    is_array($z3P) && ($z3P['kundenweg']['weg'] ?? '') === 'kommentar' && ($z3P['kundenweg']['stichwort'] ?? '') === 'SITO' && ($z3P['kundenweg']['zweiter'] ?? 'x') === ''
+    && is_array($z3X) && !isset($z3X['kundenweg']) && !isset(MkZielgruppe::KUNDENWEGE['kaltakquise']));
+pruefe('Z1: Italienisches ohne deutsche Fassung holt der Cronlauf von selbst nach — kein Knopf nötig',
+    str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'marketing_deutsch'") && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'MkAuftrag::anlegenUebersetzen()'));
+Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)

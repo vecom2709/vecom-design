@@ -80,7 +80,7 @@ final class Anfrage
             if ($p) { $paketId = (int) $p['id']; $paketName = (string) $p['name']; }
         }
 
-        $id = Db::insert('anfragen', [
+        $felder = [
             'customer_id' => $kundeId,
             'package_id'  => $paketId,
             'paket_slug'  => $slug !== '' ? mb_substr($slug, 0, 60) : null,
@@ -92,7 +92,19 @@ final class Anfrage
             'sprache'     => $sprache,
             'nachricht'   => mb_substr((string) ($d['nachricht'] ?? ''), 0, 20000) ?: null,
             'status'      => 'neu',
-        ]);
+        ];
+        /* Kam er über den E-Mail-Einstieg, hat er schon eine Platzhalter-Anfrage
+           (Zugang::anfrageSicherstellen, K1 01.10.2026). Die wird jetzt die echte —
+           sonst stünde derselbe Mensch mit zwei Anfragen da. */
+        require_once __DIR__ . '/Zugang.php';
+        $platz = (int) Db::wert("SELECT id FROM anfragen WHERE customer_id = ? AND order_id IS NULL AND status = 'neu' AND package_id IS NULL AND nachricht LIKE ? ORDER BY id DESC LIMIT 1",
+            [$kundeId, Zugang::EINSTIEG_TEXT . '%'], 0);
+        if ($platz > 0) {
+            Db::update('anfragen', $platz, $felder + ['created_at' => date('Y-m-d H:i:s')]);
+            $id = $platz;
+        } else {
+            $id = Db::insert('anfragen', $felder);
+        }
 
         // Der Zugang entsteht sofort mit. Er laeuft nach GUELTIG_TAGE ab: Wird
         // nichts daraus, soll kein Link ewig offen stehen.

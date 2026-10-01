@@ -40,7 +40,7 @@ require __DIR__ . '/mk_stil.php';
 </div>
 
 <?php require_once dirname(__DIR__) . '/src/MkLand.php';
-  $mkLand = (string) ($f['land'] ?? 'IT'); $mkLandSeite = 'kampagnen'; $mkLandOffen = $offen ?? MkLand::offen(); require __DIR__ . '/mk_land.php'; ?>
+  $mkLand = (string) ($f['land'] ?? 'IT'); $mkLandSeite = 'kampagnen'; $mkLandOffen = $offen ?? MkLand::offen(); /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
 <?php if (!$leer): ?>
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('kampagnen')) ?>">

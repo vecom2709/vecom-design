@@ -70,6 +70,7 @@ $sozial = array_intersect_key($a['plattformen'], array_flip(MkKennzahlen::SOZIAL
 $quellen = array_diff_key($a['plattformen'], ['Direkt / unbekannt' => 0]);
 ?>
 <?php require __DIR__ . '/mk_stil.php'; ?>
+<?php $wwZurueck = 'marketing'; require __DIR__ . '/mk_woche.php'; ?>
 
 <div class="mk-kopf">
   <div>

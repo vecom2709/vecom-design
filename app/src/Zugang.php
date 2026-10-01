@@ -74,6 +74,8 @@ final class Zugang
     }
 
     /** Was der Besucher auf der Partnerseite angetippt hat (28.09.2026, R3) -- Schlüssel => Wortlaut für die Akte. */
+    /** So beginnt die Anfrage, die ein Interessent aus dem E-Mail-Einstieg beim Kundwerden bekommt (K1). */
+    public const EINSTIEG_TEXT = 'Hat auf der Website seine E-Mail eingetragen';
     public const WUENSCHE = ['neu' => 'neue Website', 'ueberarbeitung' => 'bestehende Website überarbeiten', 'shop' => 'Online-Shop', 'unsicher' => 'noch unsicher'];
 
     public static function wunsch(mixed $roh): ?string
@@ -363,6 +365,7 @@ final class Zugang
                 Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', 'Persönliches Dashboard zum ersten Mal geöffnet (Kunde #' . $kid . ')');
             } catch (Throwable $e) { /* nachtragbar */ }
         }
+        self::anfrageSicherstellen($kid, $z);
         if ($selbst) {
             Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
             Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
@@ -371,6 +374,35 @@ final class Zugang
             Events::protokoll('zugang_angelegt', 'Aus der Anfrage als Kunde angelegt (Zugangslink noch nicht geöffnet)', $kid);
         }
         return $kid;
+    }
+
+    /**
+     * Neue Interessenten unter „Heute“ (01.10.2026, Uwe: Ja zu K1). Die
+     * Arbeitsliste kennt Bestellungen, Anfragen und Betreuungen — wer über den
+     * E-Mail-Einstieg kam, war keins davon und stand nirgends als „dran“.
+     * Jetzt bekommt er beim Kundwerden eine Anfrage (ohne Mail, ohne zweiten
+     * Kunden), mit dem, was wir wissen. Hat er schon eine, bleibt es dabei.
+     */
+    public static function anfrageSicherstellen(int $kid, array $z): void
+    {
+        try {
+            if ((int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ?', [$kid], 0) > 0) { return; }
+            if ((int) Db::wert('SELECT COUNT(*) FROM orders WHERE customer_id = ?', [$kid], 0) > 0) { return; }
+            $k = (array) Db::one('SELECT name, email, sprache FROM customers WHERE id = ?', [$kid]);
+            $wunsch = self::WUENSCHE[(string) ($z['wunsch'] ?? '')] ?? '';
+            $text = self::EINSTIEG_TEXT . ' und den Zugangslink bekommen.'
+                . ($wunsch !== '' ? ' Wunsch: ' . $wunsch . '.' : '')
+                . (!empty($z['partner_code']) ? ' Über Partner ' . (string) $z['partner_code'] . '.' : '')
+                . ' Noch kein Fragebogen ausgefüllt.';
+            Db::insert('anfragen', [
+                'customer_id' => $kid,
+                'name'        => mb_substr(trim((string) ($k['name'] ?? '')) !== '' ? (string) $k['name'] : (string) $z['email'], 0, 120),
+                'email'       => mb_substr((string) $z['email'], 0, 190),
+                'sprache'     => self::spr((string) ($k['sprache'] ?? $z['sprache'] ?? 'it')),
+                'nachricht'   => $text,
+                'status'      => 'neu',
+            ]);
+        } catch (Throwable $e) { /* Beiwerk: der Kunde steht trotzdem in der Liste */ }
     }
 
     /** Mail-Stand des Zugangslinks: zuletzt versendet / Fehler / nie. */
@@ -556,8 +588,8 @@ final class Zugang
             $kid = (int) $z['customer_id'];
             $feld = $z['vorhaben_erinnert1_am'] === null ? 'vorhaben_erinnert1_am' : 'vorhaben_erinnert2_am';
             if (!self::vorhabenOffen($kid)
-                || (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ? AND created_at >= ?',
-                                  [$kid, (string) $z['geoeffnet_am']], 0) > 0) {
+                || (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ? AND created_at >= ? AND (nachricht IS NULL OR nachricht NOT LIKE ?)',
+                                  [$kid, (string) $z['geoeffnet_am'], self::EINSTIEG_TEXT . '%'], 0) > 0) {
                 /* Er ist weiter, oder er hat geschrieben: dann keine Mail, und
                    beide Stufen gelten als erledigt. */
                 Db::update('zugaenge', (int) $z['id'], [

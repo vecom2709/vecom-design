@@ -296,6 +296,15 @@ final class Cron
                 require_once __DIR__ . '/MkAutopilot.php';
                 return MkAutopilot::lauf();
             },
+            /* Z1 (01.10.2026, Uwe: „immer zweisprachig“): Was in Italien noch ohne deutsche Fassung
+               steht, holt der PC von selbst nach — kein Knopf mehr nötig (Tagesgrenze gilt weiter). */
+            'marketing_deutsch' => static function () {
+                require_once __DIR__ . '/MkAuftrag.php';
+                require_once __DIR__ . '/MkZielgruppe.php';
+                if (MkZielgruppe::zahlOhneUebersetzung() === 0) { return ['offen' => 0]; }
+                $r = MkAuftrag::anlegenUebersetzen();
+                return ['offen' => MkZielgruppe::zahlOhneUebersetzung(), 'auftrag' => is_int($r) ? $r : $r];
+            },
             /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */
             'akquise_termine' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }

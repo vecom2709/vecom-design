@@ -314,6 +314,8 @@ final class MkAuftrag
             'grenzen' => MkInhalt::G, 'meta_cta' => MkInhalt::META_CTA,
             'zielseite' => $k ? (string) $k['ziel'] : MkInhalt::CHECK . ($a['land'] === 'DE' ? '?lang=de' : ''),
             'paket' => !empty($p['paket']),
+            /* S1: Ist die automatische Antwort auf Kommentare eingeschaltet, dürfen Beiträge „Kommentiere STICHWORT“ sagen. */
+            'kommentar_automatik' => (string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_kommentar_an'", [], ''), '') === '1',
             'funde' => array_values($funde), 'bisherige_titel' => $titel,
         ];
     }

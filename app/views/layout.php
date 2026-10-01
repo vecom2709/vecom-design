@@ -509,7 +509,59 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
        damit jede Seite ihn an einer Stelle bekommt. Leise, eine Zeile. */
     require_once __DIR__ . '/../src/Hilfe.php';
     $seitenSatz = Hilfe::satz($aktiv);
-    if (isset($reiter[$aktivMenue])): ?>
+    if ($aktivMenue === 'marketing'):
+      /* MARKETING IN VIER REITERN, EIN LAND FÜR ALLES (01.10.2026, Uwe: Ja zu
+         M1 und M3). Oben ein Schalter Deutschland | Italien, der für jede
+         Marketing-Seite gilt (MkLand::wahl, in der Sitzung gemerkt) und die
+         Seite in der Landesfarbe rahmt. Darunter vier Reiter statt sieben;
+         wo ein Reiter zwei Seiten hat, stehen sie klein darunter. Keine Seite
+         fällt weg — $reiter['marketing'] bleibt die vollständige Liste. */
+      require_once __DIR__ . '/../src/MkLand.php';
+      $mkOben = MkLand::wahl(); $mkObenOffen = MkLand::offen();
+      $mkGruppen = [
+        ['Heute', ['marketing' => 'Zahlen', 'freigabe' => 'Freigeben']],
+        ['Zielgruppen', ['zielgruppen' => 'Zielgruppen']],
+        ['Beiträge & Kampagnen', ['inhalte' => 'Beiträge', 'kampagnen' => 'Kampagnen']],
+        ['Kanäle', ['telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']],
+      ];
+      $mkSchl = array_column($reiter['marketing'], 2, 0); ?>
+      <nav class="mk-oben mk-oben--<?= strtolower($mkOben) ?>" aria-label="Land wählen — gilt für das ganze Marketing">
+        <?php foreach (MkLand::NAMEN as $mkL => $mkLName): $mkN = (int) ($mkObenOffen[$mkL] ?? 0); ?>
+          <a href="<?= Fmt::h(url($aktiv) . '?land=' . $mkL) ?>"<?= $mkOben === $mkL ? ' aria-current="true"' : '' ?>><i class="mk-flagge mk-flagge--<?= strtolower($mkL) ?>" aria-hidden="true"></i><?= Fmt::h($mkLName) ?><?php if ($mkN > 0): ?> <b title="<?= $mkN ?> Entwürfe warten auf deine Prüfung"><?= $mkN ?></b><?php endif; ?></a>
+        <?php endforeach; ?>
+      </nav>
+      <nav class="reiter" aria-label="Bereich">
+        <?php foreach ($mkGruppen as [$gWort, $gSeiten]):
+          $gAn = isset($gSeiten[$aktiv]); $gn = 0;
+          foreach ($gSeiten as $gZ => $gW) { $gn += (int) ($navZahlen[$mkSchl[$gZ] ?? $gZ] ?? 0); } ?>
+          <a href="<?= Fmt::h(url((string) array_key_first($gSeiten))) ?>" class="<?= $gAn ? 'an' : '' ?>" <?= $gAn ? 'aria-current="page"' : '' ?>><?= Fmt::h($gWort) ?><?php if ($gn > 0): ?> <span class="zahl warn"><?= $gn ?></span><?php endif; ?></a>
+        <?php endforeach; ?>
+      </nav>
+      <?php foreach ($mkGruppen as [, $gSeiten]): if (!isset($gSeiten[$aktiv]) || count($gSeiten) < 2) { continue; } ?>
+        <nav class="unterreiter" aria-label="Unterbereich">
+          <?php foreach ($gSeiten as $gZ => $gW): $rn = (int) ($navZahlen[$mkSchl[$gZ] ?? $gZ] ?? 0); ?>
+            <a href="<?= Fmt::h(url($gZ)) ?>" <?= $aktiv === $gZ ? 'aria-current="page"' : '' ?>><?= Fmt::h($gW) ?><?php if ($rn > 0): ?> <span class="zahl warn"><?= $rn ?></span><?php endif; ?></a>
+          <?php endforeach; ?>
+        </nav>
+      <?php endforeach; ?>
+      <style>
+        .mk-oben{display:flex;gap:6px;padding:5px;border-radius:14px;border:1px solid var(--linie2);background:var(--flaeche2);margin:0 0 12px;max-width:100%;width:max-content}
+        .mk-oben a{display:inline-flex;gap:10px;align-items:center;min-height:46px;padding:0 20px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:16px;font-weight:600}
+        .mk-oben a:hover{color:var(--text,inherit)}
+        .mk-oben a[aria-current]{background:var(--metall);color:#16120b;font-weight:750}
+        .mk-oben b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--rot);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+        .mk-oben .mk-flagge{display:inline-block;width:22px;height:15px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
+        .mk-oben .mk-flagge--it,.mk-flagge--it{background:linear-gradient(90deg,#009246 0 33.4%,#f4f5f0 33.4% 66.6%,#ce2b37 66.6%)}
+        .mk-oben .mk-flagge--de,.mk-flagge--de{background:linear-gradient(180deg,#141414 0 33.4%,#dd0000 33.4% 66.6%,#ffce00 66.6%)}
+        main:has(.mk-oben--it){box-shadow:inset 0 3px 0 0 #009246}
+        main:has(.mk-oben--de){box-shadow:inset 0 3px 0 0 #dd0000}
+        .unterreiter{display:flex;gap:6px;flex-wrap:wrap;margin:-4px 0 14px}
+        .unterreiter a{padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim);text-decoration:none;font-size:13.5px}
+        .unterreiter a[aria-current]{color:var(--text,inherit);border-color:rgba(241,211,139,.6);background:rgba(241,211,139,.08)}
+        .mk-laender{display:none}
+        @media (max-width:520px){.mk-oben{width:auto}.mk-oben a{flex:1;justify-content:center;padding:0 10px}}
+      </style>
+    <?php elseif (isset($reiter[$aktivMenue])): ?>
       <nav class="reiter" aria-label="Bereich">
         <?php foreach ($reiter[$aktivMenue] as [$rZiel, $rWort, $rSchl]): $rn = (int) ($navZahlen[$rSchl] ?? 0); ?>
           <a href="<?= Fmt::h(url($rZiel)) ?>" class="<?= $aktiv === $rZiel ? 'an' : '' ?>" <?= $aktiv === $rZiel ? 'aria-current="page"' : '' ?>><?= Fmt::h($rWort) ?><?php if ($rn > 0): ?> <span class="zahl warn"><?= $rn ?></span><?php endif; ?></a>

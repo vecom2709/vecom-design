@@ -39,7 +39,7 @@ require __DIR__ . '/mk_stil.php';
   </div>
 </div>
 
-<?php $mkLand = $land; $mkLandSeite = 'zielgruppen'; $mkLandOffen = $offen; require __DIR__ . '/mk_land.php'; ?>
+<?php $mkLand = $land; $mkLandSeite = 'zielgruppen'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
 <ol class="mk-schritte" aria-label="So läuft es in <?= Fmt::h($name) ?>">
   <li class="<?= $dran === 1 ? 'dran' : '' ?>"><b>Recherchieren</b>
@@ -60,7 +60,8 @@ require __DIR__ . '/mk_stil.php';
         <h3><?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?></h3>
         <b class="mk-best__name"><?= Fmt::h($z['titel']) ?></b>
         <span class="mk-best__zahl">Stand <?= Fmt::h($datum($z['updated_at'])) ?></span>
-        <?php if ($land === 'IT' && $zp && MkZielgruppe::ohneDeutsch($zp + ['land' => 'IT'])): ?><span class="mk-best__zweit">ohne deutsche Übersetzung</span><?php endif; ?>
+        <?php if (isset(MkZielgruppe::KUNDENWEGE[(string) ($zp['kundenweg']['weg'] ?? '')])): ?><span class="mk-best__zweit">Weg: <?= Fmt::h(MkZielgruppe::KUNDENWEGE[$zp['kundenweg']['weg']][0]) ?></span><?php endif; ?>
+        <?php if ($land === 'IT' && $zp && MkZielgruppe::ohneDeutsch($zp + ['land' => 'IT'])): ?><span class="mk-best__zweit">deutsche Fassung wird nachgeholt</span><?php endif; ?>
         <?php if ($z['status'] === 'freigegeben'): ?><span class="marke2 gut mk-best__marke">freigegeben</span>
         <?php elseif ((int) $z['ueberarbeitung'] === 1): ?><span class="marke2 warnung mk-best__marke">Überarbeitung prüfen</span>
         <?php else: ?><span class="marke2 warnung mk-best__marke">Entwurf prüfen</span><?php endif; ?>

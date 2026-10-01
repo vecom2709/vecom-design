@@ -41,6 +41,15 @@ final class MkZielgruppe
         'botschaften'  => ['Botschaften, die tragen', 10],
         'organisch'    => ['Ideen für organische Inhalte', 12],
     ];
+    /** Z3 (01.10.2026, Uwe: „Mit Kundenweg“): Wege, auf denen ein Betrieb selbst anfragt — nie Kaltakquise. */
+    public const KUNDENWEGE = [
+        'kommentar'     => ['Kommentar → Nachricht', 'Reel oder Beitrag „Kommentiere STICHWORT“, die Antwort mit dem Link kommt automatisch'],
+        'website_check' => ['Kostenloser Website-Check', 'Zwölf Punkte als Ampel in Sekunden, danach auf Wunsch die Analyse per E-Mail'],
+        'demo'          => ['Kostenlose Demo-Vorschau', 'Die neue Startseite als Vorschau — nur auf Anfrage des Betriebs'],
+        'anzeige'       => ['Anzeige mit Sofortformular', 'Meta-Anzeige ortsgenau, die Anfrage landet sofort in der Verwaltung'],
+        'partner'       => ['Empfehlung über Partner', 'Steuerberater/commercialisti, Fotografen, Druckereien, Großhandel mit Partnerlink'],
+        'google_profil' => ['Google-Unternehmensprofil', 'Profil einrichten und pflegen (89 €) als kleiner Einstieg'],
+    ];
     /** Felder für bezahlte Werbung. */
     public const BEZAHLT = ['zielgruppe' => 'Zielgruppe für Anzeigen (Meta)', 'keywords' => 'Suchwörter für Google-Anzeigen', 'budget' => 'Budget-Einschätzung', 'hinweise' => 'Worauf achten'];
 
@@ -171,6 +180,12 @@ final class MkZielgruppe
         if ($land === 'IT') {
             $de = self::deutsch(is_array($d['de'] ?? null) ? $d['de'] : []);
             if ($de !== []) { $p['de'] = $de; }
+        }
+        $kw = is_array($d['kundenweg'] ?? null) ? $d['kundenweg'] : [];
+        if (isset(self::KUNDENWEGE[(string) ($kw['weg'] ?? '')])) {
+            $p['kundenweg'] = ['weg' => (string) $kw['weg'], 'warum' => self::text($kw['warum'] ?? '', 400), 'angebot' => self::text($kw['angebot'] ?? '', 200),
+                'stichwort' => mb_strtoupper(mb_substr(preg_replace('/[^\p{L}\p{N}]/u', '', (string) ($kw['stichwort'] ?? '')) ?? '', 0, 20)),
+                'zweiter' => isset(self::KUNDENWEGE[(string) ($kw['zweiter'] ?? '')]) && $kw['zweiter'] !== $kw['weg'] ? (string) $kw['zweiter'] : ''];
         }
         return $p;
     }

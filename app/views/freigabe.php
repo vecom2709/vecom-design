@@ -33,7 +33,8 @@ require __DIR__ . '/mk_stil.php';
   </div>
 </div>
 
-<?php $mkLand = $land; $mkLandSeite = 'freigabe'; $mkLandOffen = $offen; require __DIR__ . '/mk_land.php'; ?>
+<?php $mkLand = $land; $mkLandSeite = 'freigabe'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
+<?php $wwZurueck = 'freigabe'; require __DIR__ . '/mk_woche.php'; ?>
 
 <?php $demos = $demos ?? []; if ($demos): require_once dirname(__DIR__) . '/src/MkDemo.php';   /* Marketing-Studio 10: Demo-Vorschauen */
   $dmForm = static fn(string $tat, int $id, string $wort, string $klasse, string $mehr = ''): string => '<form method="post" action="' . Fmt::h(url('freigabe')) . '" style="margin:0;display:flex;gap:6px;flex-wrap:wrap">'

@@ -119,4 +119,25 @@ final class MkAutopilot
         }
         return $aus;
     }
+
+    /**
+     * „Diese Woche werben“ (01.10.2026, Uwe: Ja zu M2): derselbe Lauf wie der
+     * Autopilot, aber sofort und für ein Land — Zielgruppe wählen, Beiträge
+     * und Anzeigen schreiben lassen, bebildern, zur Freigabe per Telegram.
+     * Zählt als Lauf dieser Woche, damit der Autopilot nicht doppelt startet.
+     * @return array{0:int|string, 1:?array} [Auftrag oder Hinweis, Zielgruppe]
+     */
+    public static function jetzt(string $land): array
+    {
+        if (!isset(MkLand::NAMEN[$land])) { return ['Unbekanntes Land.', null]; }
+        $e = self::einstellung($land);
+        $z = self::naechsteZielgruppe($land);
+        if ($z === null) { return ['In ' . MkLand::name($land) . ' ist noch keine Zielgruppe freigegeben — erst unter „Zielgruppen“ recherchieren lassen und freigeben.', null]; }
+        $r = MkAuftrag::anlegenKampagne((int) $z['id'], ['organisch' => '1', 'anzeigen' => $e['anzeigen'] ? '1' : '', 'bilder' => $e['bilder'] ? '1' : '', 'autopilot' => '1']);
+        if (is_int($r)) {
+            self::schreiben('mk_autopilot_woche_' . $land, date('o-\WW'));
+            Events::protokoll('autopilot', 'Diese Woche werben ' . MkLand::name($land) . ': Kampagne für „' . $z['titel'] . '“ angestoßen', null, null, null, ['auftrag_id' => $r]);
+        }
+        return [$r, $z];
+    }
 }

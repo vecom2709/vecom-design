@@ -97,6 +97,16 @@ require __DIR__ . '/mk_stil.php';
   <p style="margin:0;max-width:75ch;line-height:1.65"><?= Fmt::h((string) ($p['kurz'] ?? '')) ?></p>
   <?php if (!empty($p['ansprache'])): ?><p style="margin:12px 0 0;max-width:75ch;line-height:1.65"><b>Ansprache:</b> <?= Fmt::h((string) $p['ansprache']) ?></p><?php endif; ?>
 </div>
+<?php $kw = (array) ($p['kundenweg'] ?? []); if (isset(MkZielgruppe::KUNDENWEGE[(string) ($kw['weg'] ?? '')])): [$kwName, $kwText] = MkZielgruppe::KUNDENWEGE[$kw['weg']]; ?>
+<div class="block" id="kundenweg" style="border-color:rgba(241,211,139,.45)">
+  <h2>Weg zum Kunden <span class="mehr">aus der Recherche · danach richtet sich die Kampagne</span></h2>
+  <p style="margin:0 0 6px;font-size:17px"><b><?= Fmt::h($kwName) ?></b><?= ($kw['stichwort'] ?? '') !== '' && $kw['weg'] === 'kommentar' ? ' · Stichwort <b>' . Fmt::h((string) $kw['stichwort']) . '</b>' : '' ?></p>
+  <p class="mk-fein" style="margin:0 0 8px"><?= Fmt::h($kwText) ?></p>
+  <?php if (($kw['angebot'] ?? '') !== ''): ?><p style="margin:0 0 6px;max-width:75ch;line-height:1.6"><b>Was der Betrieb bekommt:</b> <?= Fmt::h((string) $kw['angebot']) ?></p><?php endif; ?>
+  <?php if (($kw['warum'] ?? '') !== ''): ?><p style="margin:0 0 6px;max-width:75ch;line-height:1.6"><b>Warum:</b> <?= Fmt::h((string) $kw['warum']) ?></p><?php endif; ?>
+  <?php if (isset(MkZielgruppe::KUNDENWEGE[(string) ($kw['zweiter'] ?? '')])): ?><p class="mk-fein" style="margin:0">Zweitbester Weg: <?= Fmt::h(MkZielgruppe::KUNDENWEGE[$kw['zweiter']][0]) ?></p><?php endif; ?>
+</div>
+<?php endif; ?>
 
 <div class="block">
   <h2>Datengrundlage <span class="mehr">selbst gemessen, nicht geschätzt</span></h2>

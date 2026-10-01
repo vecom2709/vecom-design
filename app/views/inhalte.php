@@ -38,7 +38,7 @@ require __DIR__ . '/mk_stil.php';
   </div>
 </div>
 
-<?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; require __DIR__ . '/mk_land.php'; ?>
+<?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
 <section class="block mk-auftrag" id="auftraege" aria-labelledby="mk-schreib-titel">
   <div class="mk-auftrag__kopf">

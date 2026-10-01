@@ -530,6 +530,21 @@ if ($post) {
                 $mzId = (int) ($_POST['id'] ?? 0);
                 $f = $tat === 'zielgruppe_freigeben' ? MkZielgruppe::freigeben($mzId) : MkZielgruppe::verwerfen($mzId);
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($tat === 'zielgruppe_freigeben' ? 'Freigegeben — jetzt kann Claude Inhalte und Kampagnen dafür schreiben (Knopf oben).' : 'Verworfen.');
+                /* Z4 (01.10.2026, Uwe: „Freigeben = Kampagne läuft“): Das Ja startet gleich die Kampagne —
+                   Beiträge, auf Wunsch Anzeigen und Bilder wie im Autopilot des Landes, Freigabe per Telegram. */
+                if ($f === null && $tat === 'zielgruppe_freigeben') {
+                    require_once __DIR__ . '/src/MkAuftrag.php';
+                    require_once __DIR__ . '/src/MkAutopilot.php';
+                    $mzZ = MkZielgruppe::laden($mzId);
+                    $mzSchon = (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'inhalte' AND status <> 'abgebrochen' AND created_at >= NOW() - INTERVAL 7 DAY AND parameter LIKE ?", ['%"zielgruppe_id":' . $mzId . ',%'], 0);
+                    if ($mzZ !== null && $mzSchon === 0) {
+                        $mzE = MkAutopilot::einstellung((string) $mzZ['land']);
+                        $mzK = MkAuftrag::anlegenKampagne($mzId, ['organisch' => '1', 'anzeigen' => $mzE['anzeigen'] ? '1' : '', 'bilder' => $mzE['bilder'] ? '1' : '', 'autopilot' => '1']);
+                        $_SESSION['gut'] = is_int($mzK)
+                            ? 'Freigegeben — und die Kampagne läuft: Claude schreibt die Beiträge' . ($mzE['anzeigen'] ? ' und Anzeigen' : '') . ($mzE['bilder'] ? ', Kie.ai oder Blender machen die Bilder' : '') . '. Sind sie fertig, kommt eine Telegram-Nachricht zum Absegnen.'
+                            : 'Freigegeben. Die Kampagne startet noch nicht: ' . $mzK;
+                    }
+                }
                 weiter($tat === 'zielgruppe_freigeben' || MkZielgruppe::laden($mzId) !== null ? 'zielgruppen/' . $mzId : 'zielgruppen');
 
             /* Recherche per Knopf (01.10.2026, Uwe: „soll automatisch starten, wenn … geklickt wird“) */
@@ -541,7 +556,8 @@ if ($post) {
                 $maLand = strtoupper((string) ($_POST['land'] ?? 'IT'));
                 $maLand = isset(MkLand::NAMEN[$maLand]) ? $maLand : 'IT';
                 $maGut = []; $maFehl = [];
-                foreach (!empty($_POST['beide']) ? [$maLand, MkLand::andere($maLand)] : [$maLand] as $maL) {
+                /* Z2 (01.10.2026, Uwe: „DE und IT gleich oft“): Die Runde über alle Branchen läuft immer in beiden Ländern. */
+                foreach (!empty($_POST['beide']) || (string) ($_POST['branche'] ?? '') === '' ? [$maLand, MkLand::andere($maLand)] : [$maLand] as $maL) {
                     $maErg = MkAuftrag::anlegen((string) ($_POST['branche'] ?? ''), $maL);
                     if (is_int($maErg)) { $maGut[] = MkLand::name($maL); } else { $maFehl[] = MkLand::name($maL) . ': ' . $maErg; }
                 }
@@ -550,6 +566,19 @@ if ($post) {
                 weiter('zielgruppen?land=' . $maLand . '#auftraege');
 
             /* Ein-Klick-Kampagne (Marketing-Studio 6, Uwe: „ja“ zu U3) — auf Wunsch auch für dieselbe Branche im anderen Land. */
+            case 'woche_werben':
+                /* M2 (01.10.2026, Uwe: „Ein Knopf je Woche“): Zielgruppe, Beiträge, Bilder, Plan — ein Klick, ein Ja per Telegram. */
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                require_once __DIR__ . '/src/MkAutopilot.php';
+                require_once __DIR__ . '/src/MkLand.php';
+                $wwLand = strtoupper((string) ($_POST['land'] ?? ''));
+                $wwLand = isset(MkLand::NAMEN[$wwLand]) ? $wwLand : MkLand::wahl();
+                [$wwR, $wwZ] = MkAutopilot::jetzt($wwLand);
+                $_SESSION[is_int($wwR) ? 'gut' : 'fehler'] = is_int($wwR)
+                    ? MkLand::name($wwLand) . ': Diese Woche wird für „' . (string) $wwZ['titel'] . '“ geworben. Claude schreibt jetzt, die Bilder folgen; sind sie fertig, kommt die Telegram-Nachricht — Stück für Stück Ja oder Nein.'
+                    : $wwR;
+                weiter((string) ($_POST['zurueck'] ?? '') === 'marketing' ? 'marketing' : 'freigabe');
+
             case 'kampagne_starten':
                 require_once __DIR__ . '/src/MkAuftrag.php';
                 require_once __DIR__ . '/src/MkLand.php';

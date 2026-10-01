@@ -53,6 +53,9 @@ const QUELLEN = {
   type: 'array', minItems: 1, maxItems: 20,
   items: { type: 'object', required: ['titel', 'url'], properties: { titel: { type: 'string' }, url: { type: 'string' }, datum: { type: 'string' } } },
 };
+/** Wege zum Kunden (Z3) — dieselben Schlüssel wie MkZielgruppe::KUNDENWEGE. Alle eingehend: der Betrieb meldet sich selbst. */
+export const KUNDENWEGE = ['kommentar', 'website_check', 'demo', 'anzeige', 'partner', 'google_profil'] as const;
+
 /** Das Schema, das Claude einhalten muss. Grenzen wie in MkZielgruppe::pruefen/rechercheMelden. */
 export const SCHEMA = {
   type: 'object',
@@ -63,7 +66,7 @@ export const SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['branche', 'land', 'titel', 'kurz', 'ansprache', 'probleme', 'wuensche', 'einwaende', 'fragen', 'suchbegriffe', 'kanaele', 'botschaften', 'organisch', 'bezahlt', 'quellen', 'de'],
+        required: ['branche', 'land', 'titel', 'kurz', 'ansprache', 'probleme', 'wuensche', 'einwaende', 'fragen', 'suchbegriffe', 'kanaele', 'botschaften', 'organisch', 'bezahlt', 'quellen', 'de', 'kundenweg'],
         properties: {
           branche: { type: 'string' }, land: { type: 'string' }, titel: { type: 'string' }, kurz: { type: 'string' }, ansprache: { type: 'string' },
           probleme: LISTE, wuensche: LISTE, einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, kanaele: LISTE, botschaften: LISTE, organisch: LISTE,
@@ -73,6 +76,10 @@ export const SCHEMA = {
           /* Marketing-Studio 5: deutsche Fassung der Kundensprache (nur für Italien; bei Deutschland leere Listen). */
           de: { type: 'object', required: ['einwaende', 'fragen', 'suchbegriffe', 'botschaften', 'keywords'],
             properties: { einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, botschaften: LISTE, keywords: LISTE } },
+          /* Z3 (01.10.2026, Uwe: „Mit Kundenweg“): der beste Weg vom ersten Kontakt zur Anfrage für genau diese Zielgruppe. */
+          kundenweg: { type: 'object', required: ['weg', 'warum', 'angebot', 'stichwort', 'zweiter'],
+            properties: { weg: { type: 'string', enum: [...KUNDENWEGE] }, warum: { type: 'string' }, angebot: { type: 'string' },
+              stichwort: { type: 'string' }, zweiter: { type: 'string', enum: [...KUNDENWEGE] } } },
         },
       },
     },
@@ -109,6 +116,8 @@ type InhalteAuftrag = {
   bisherige_titel: string[];
   /** Marketing-Studio 6: Ein-Klick-Kampagne mit fester Mischung. */
   paket?: boolean;
+  /** S1: Antwort auf „Kommentiere STICHWORT“ läuft automatisch (sonst Link-Aufruf). */
+  kommentar_automatik?: boolean;
 };
 
 /** Die feste Mischung einer Ein-Klick-Kampagne — so, dass möglichst viel automatisch veröffentlicht werden kann. */
@@ -197,6 +206,9 @@ REGELN — unbedingt
 - Keine Links und keine Telefonnummern in die Texte — den eigenen Link setzt die Verwaltung bei der Freigabe. Auf Instagram/TikTok im Aufruf „Link in Bio“ verwenden.
 - Ton: ruhig, konkret, respektvoll; Nutzen vor Technik. Höchstens zwei Emojis je Stück, keine in Anzeigen-Überschriften. Keine Superlative („il migliore“), keine Garantien, keine künstliche Eile, keine Namen von Mitbewerbern.
 - Anzeigen: keine Aussagen, die persönliche Merkmale oder Notlagen unterstellen (Meta-Richtlinie) — „Per chi ha un ristorante …“ statt „Il tuo ristorante sta fallendo?“.
+- KUNDENWEG des Profils (profil.kundenweg) bestimmt den roten Faden: ${a.kommentar_automatik
+    ? 'ist er „kommentar“, enden die Reels und Beiträge auf Instagram/Facebook mit „Kommentiere STICHWORT“ (Stichwort aus dem Profil, in der Kundensprache) — die Antwort mit dem Link kommt automatisch; '
+    : 'ist er „kommentar“, nutze vorerst den Link-Aufruf (die automatische Antwort ist noch nicht eingeschaltet); '}bei „demo“ wird die kostenlose Demo-Vorschau angeboten (auf Anfrage), sonst der Website-Check.
 - Nie zu Kaltakquise per E-Mail, WhatsApp oder Anruf auffordern. JEDER Aufruf (cta, knopf, Anzeigen-Knopf) führt zum kostenlosen Website-Check
   — z. B. ${a.land === 'DE' ? '„Website kostenlos prüfen“, „Jetzt kostenlos testen“' : '„Verifichi gratis il suo sito“, „Analisi gratuita“'}; bei Meta-Anzeigen cta LEARN_MORE oder SIGN_UP, wenn passend.
 - bildidee: ein konkretes Motiv aus dem echten Alltag der Branche, ruhiges Licht, keine Stockfoto-Klischees; Text im Bild höchstens 5 Wörter, groß und kontrastreich.
@@ -261,6 +273,13 @@ REGELN — unbedingt
   Fund: titel ≤200, text ≤1500, relevanz 1–5 (5 = Vecom sollte sofort etwas daraus machen), 1–8 Quellen.
   branche = Schlüssel aus „wortschatz“ (z. B. restaurant) oder leer; land = ${a.land}.
 - Vorhandenes Profil: überarbeiten statt neu erfinden — Tragendes behalten, Veraltetes ersetzen, Neues ergänzen; immer das vollständige Profil liefern.
+- kundenweg: der Weg, auf dem diese Zielgruppe am wahrscheinlichsten selbst anfragt — begründet mit Recherche oder Vecom-Daten:
+  kommentar (Reel/Beitrag „Kommentiere STICHWORT“, die Antwort mit dem Link kommt automatisch), website_check (kostenloser Website-Check),
+  demo (kostenlose Demo-Vorschau der neuen Startseite, auf Anfrage), anzeige (Meta-Anzeige mit Sofortformular, ortsgenau),
+  partner (Empfehlung über Steuerberater/commercialisti, Fotografen, Druckereien, Großhandel), google_profil (Google-Unternehmensprofil, 89 €).
+  warum (Deutsch, ≤400), angebot (Deutsch, ≤200: was der Betrieb konkret bekommt), stichwort (EIN Wort in Großbuchstaben in der
+  Kundensprache für die Kommentar-Aktion, z. B. ${a.land === 'DE' ? 'CHECK, WEBSITE, DEMO' : 'SITO, ANALISI, DEMO'}), zweiter (zweitbester Weg, anderer als weg).
+  Nie Kaltakquise als Weg.
 - Funde, deren Titel schon in „letzte_funde“ steht, nicht noch einmal liefern.
 - zusammenfassung: 2–4 Sätze auf Deutsch für Uwe — was ist neu, was ist am wichtigsten.
 
