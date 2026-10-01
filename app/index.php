@@ -683,6 +683,42 @@ if ($post) {
                 $_SESSION[$tgE['ok'] ? 'gut' : 'fehler'] = $tgE['text'];
                 weiter('kampagnen/' . $mkId . '#telegram');
 
+            /* Telegram Growth Engine T5 (01.10.2026, Uwe: „ja“): Verzeichnisse und Kooperationen. */
+            case 'verzeichnis_vorbereiten':
+                require_once __DIR__ . '/src/Verzeichnisse.php';
+                $vzId = (int) ($_POST['id'] ?? 0);
+                $vzE = Verzeichnisse::vorbereiten($vzId);
+                $_SESSION[$vzE['ok'] ? 'gut' : 'fehler'] = $vzE['text'];
+                weiter('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
+
+            case 'verzeichnis_stand':
+                require_once __DIR__ . '/src/Verzeichnisse.php';
+                $vzId = (int) ($_POST['id'] ?? 0);
+                $f = Verzeichnisse::status($vzId, (string) ($_POST['status'] ?? ''), (string) ($_POST['eintrag_url'] ?? ''),
+                    isset($_POST['notiz']) ? (string) $_POST['notiz'] : null);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert: ' . (Verzeichnisse::STATUS[(string) $_POST['status']] ?? '') . '.';
+                weiter('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
+
+            case 'verzeichnis_anlegen':
+                require_once __DIR__ . '/src/Verzeichnisse.php';
+                $vzErg = Verzeichnisse::anlegen($_POST);
+                $_SESSION[is_string($vzErg) ? 'fehler' : 'gut'] = is_string($vzErg) ? $vzErg : 'Aufgenommen.';
+                weiter(is_string($vzErg) ? 'verzeichnisse#neu' : 'verzeichnisse?e=' . $vzErg . '#v-' . $vzErg);
+
+            case 'verzeichnis_kanal_link':
+                require_once __DIR__ . '/src/Verzeichnisse.php';
+                require_once __DIR__ . '/src/TelegramWachstum.php';
+                $vzId = (int) ($_POST['id'] ?? 0);
+                $vzE = Verzeichnisse::laden($vzId);
+                if ($vzE === null || empty($vzE['kampagne_id'])) {
+                    $_SESSION['fehler'] = 'Erst „Eintrag vorbereiten“ — dann gibt es eine Kampagne, an der der Kanal-Link hängt.';
+                } else {
+                    $tgE = TelegramWachstum::einladungAnlegen((int) $vzE['kampagne_id'], Auth::name());
+                    if ($tgE['ok']) { Events::pruefspur('telegram_einladung', 'mk_kampagnen', (int) $vzE['kampagne_id'], [], ['link' => $tgE['link'] ?? '', 'verzeichnis' => $vzId]); }
+                    $_SESSION[$tgE['ok'] ? 'gut' : 'fehler'] = $tgE['text'];
+                }
+                weiter('verzeichnisse?e=' . $vzId . '#v-' . $vzId);
+
             case 'kampagne_kosten_loeschen':
                 require_once __DIR__ . '/src/MkKampagne.php';
                 $mkId = MkKampagne::kostenLoeschen((int) ($_POST['kosten_id'] ?? 0));
@@ -4509,6 +4545,13 @@ switch ($route) {
         require_once __DIR__ . '/src/TelegramZahlen.php';
         $tgZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
         ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ)]);
+        break;
+
+    case 'verzeichnisse':   // Telegram Growth Engine T5 (01.10.2026, Uwe: „ja“) — Verzeichnisse und Kooperationen
+        require_once __DIR__ . '/src/Verzeichnisse.php';
+        require_once __DIR__ . '/src/Telegram.php';
+        Verzeichnisse::sicherstellen();
+        ansicht('verzeichnisse', ['liste' => Verzeichnisse::liste(), 'offen' => (int) ($_GET['e'] ?? 0)]);
         break;
 
     case 'kampagnen':   // Kampagnen-Links (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“)

@@ -400,6 +400,13 @@ final class Cron
                     'tageszahlen_geloescht' => TelegramWachstum::aufraeumen()];
             };
         }
+        // Verzeichnisse (T5, 01.10.2026): Einträge, die seit einer Woche liegen — ein Zuruf je Woche.
+        if (self::heuteNochNicht('cron_verzeichnisse')) {
+            $aufgaben['verzeichnisse'] = static function () {
+                require_once __DIR__ . '/Verzeichnisse.php';
+                return ['faellig' => Verzeichnisse::erinnern()];
+            };
+        }
         // Partner-Tracking (30.09.2026): Einzeldaten nach der Frist zu Tageszahlen,
         // und die anonymen Zähldateien auf 400 Tage kürzen.
         if (self::heuteNochNicht('cron_spur')) {

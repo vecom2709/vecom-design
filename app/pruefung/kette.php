@@ -90,6 +90,21 @@ date_default_timezone_set('Europe/Rome');
    ============================================================================ */
 $GLOBALS['gut'] = 0; $GLOBALS['schlecht'] = []; $GLOBALS['abschnitt'] = '';
 
+/* EIN EXIT MITTEN IN DER KETTE IST KEIN ERFOLG (01.10.2026)
+   Ein Seitenskript, das die Kette per require einbindet, darf mit exit
+   aufhören — dann endete bis heute auch die Kette, still und mit Status 0.
+   GitHub Actions nahm das als bestanden, und alles danach lief nie: Seit dem
+   Test für m.php (dessen Wächter ohne config.local.php sofort exit macht)
+   wurden die Abschnitte dahinter in CI gar nicht mehr geprüft. Wer die
+   Bilanz nicht erreicht, scheitert jetzt laut. */
+$GLOBALS['bilanz_erreicht'] = false;
+register_shutdown_function(static function (): void {
+    if (!empty($GLOBALS['bilanz_erreicht'])) { return; }
+    echo "\n\033[31mDie Kette brach vor der Bilanz ab — zuletzt im Abschnitt „" . $GLOBALS['abschnitt'] . "“ (ein exit oder ein Absturz).\033[0m\n"
+        . "Nicht ausliefern.\n";
+    exit(1);
+});
+
 function abschnitt(string $t): void {
     $GLOBALS['abschnitt'] = $t;
     echo "\n\033[1m$t\033[0m\n";
@@ -17871,9 +17886,184 @@ pruefe('Vecom-Fenster: eigener Datenschutzhinweis ohne Chat-Nummer und /delete, 
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', '');
 
 /* ============================================================================
+   Telegram Growth Engine T5: Verzeichnisse und Kooperationen (01.10.2026, Uwe:
+   „ist es drin, dass sich die Seite in Wegweiser-Seiten eintragen lässt und
+   sich bei Kanälen bewirbt, wo es erlaubt ist?“ → Plan → „ja“)
+   ============================================================================ */
+abschnitt('Telegram Growth Engine T5: Verzeichnisse und Kooperationen');
+require_once $wurzel . '/src/Verzeichnisse.php';
+require_once $wurzel . '/src/Firma.php';
+Telegram::setzen('tg_bot_offen', '0');
+Telegram::setzen('tg_app_name', 'rechner');
+Telegram::setzen('tg_kanal_id', '-1004410953446');
+Telegram::setzen('tg_kanal_link', 'https://t.me/vecomdesign');
+$vzNetz = [];
+Telegram::$netz = static function (string $m, array $d) use (&$vzNetz): array {
+    $vzNetz[] = [$m, $d];
+    if ($m === 'createChatInviteLink') { return ['ok' => true, 'result' => ['invite_link' => 'https://t.me/+VzPruefLink0' . count($vzNetz)]]; }
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => 9900 + count($vzNetz)]]; }
+    return ['ok' => true, 'result' => true];
+};
+/* Ein Google-Bewertungslink in den Firmendaten heißt: das Profil gibt es schon. */
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('firma_google_bewertung', 'https://g.page/r/VzPruef123/review') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+(new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+Verzeichnisse::sicherstellen();
+Verzeichnisse::sicherstellen();
+$vzAlle = Db::all('SELECT * FROM mk_verzeichnisse ORDER BY reihenfolge');
+pruefe('T5: Vorschläge einmal angelegt — zweimal sicherstellen legt nichts doppelt an, die Fassung ist gemerkt',
+    count($vzAlle) === count(Verzeichnisse::VORSCHLAEGE) && (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'verzeichnisse_vorschlaege'", [], '') === Verzeichnisse::VORSCHLAEGE_FASSUNG,
+    (string) count($vzAlle));
+$vzOffen = array_filter($vzAlle, static fn($e) => $e['status'] === 'offen');
+pruefe('T5: Vorgeschlagen (offen) wird nur, was einen kostenlosen Grundeintrag hat — mit Regeln, Datum der Prüfung und https-Adresse',
+    count($vzOffen) >= 10 && !array_filter($vzOffen, static fn($e) => (int) $e['kostenlos'] !== 1 || trim((string) $e['regeln']) === '' || $e['geprueft_am'] === null
+        || !Verzeichnisse::urlOk((string) $e['url']) || !str_starts_with((string) $e['url'], 'https://')));
+pruefe('T5: Was Geld oder Fremdwerbung im Kanal verlangt, steht als „nicht eintragen“ da (Awwwards, WebGram), Italle erst später (200 Abonnenten)',
+    Db::wert("SELECT status FROM mk_verzeichnisse WHERE schluessel = 'awwwards'", [], '') === 'nein' && Db::wert("SELECT status FROM mk_verzeichnisse WHERE schluessel = 'webgram'", [], '') === 'nein'
+    && Db::wert("SELECT status FROM mk_verzeichnisse WHERE schluessel = 'italle'", [], '') === 'spaeter');
+pruefe('T5: Kein Kanal vorgeschlagen, den niemand geprüft hat — Kooperationen nimmt Uwe selbst auf',
+    !array_filter($vzAlle, static fn($e) => $e['art'] === 'kanal'));
+pruefe('T5: Mit Bewertungslink in den Firmendaten steht das Google-Profil schon als online da, mit Begründung',
+    Db::one("SELECT status, eintrag_url, notiz FROM mk_verzeichnisse WHERE schluessel = 'google'") == ['status' => 'online', 'eintrag_url' => 'https://g.page/r/VzPruef123/review',
+        'notiz' => 'In den Firmendaten steht ein Google-Bewertungslink — das Profil besteht also schon.']);
+pruefe('T5: Ohne Konto und Captcha (Claude darf nach Ja einreichen) — CanaliTelegram ja, TGStat (Captcha) nein',
+    Verzeichnisse::ohneKonto(Db::one("SELECT * FROM mk_verzeichnisse WHERE schluessel = 'canalitelegram'")) && !Verzeichnisse::ohneKonto(Db::one("SELECT * FROM mk_verzeichnisse WHERE schluessel = 'tgstat'")));
+
+/* Eigene Einträge */
+$vzKanalOhne = Verzeichnisse::anlegen(['art' => 'kanal', 'name' => 'Agrigento Eventi', 'url' => 'https://t.me/agrigentoeventi', 'regeln' => 'Collaborazioni benvenute: scriveteci.', 'kostenlos' => '1']);
+$vzKanalUrl = Verzeichnisse::anlegen(['art' => 'kanal', 'name' => 'Agrigento Eventi', 'url' => 'https://agrigento.example/gruppe', 'regeln' => 'Collaborazioni benvenute: scriveteci.', 'kostenlos' => '1', 'erlaubt' => '1']);
+$vzKanalKurz = Verzeichnisse::anlegen(['art' => 'kanal', 'name' => 'Agrigento Eventi', 'url' => 'https://t.me/agrigentoeventi', 'regeln' => 'ja', 'kostenlos' => '1', 'erlaubt' => '1']);
+pruefe('T5: Ein Kanal nur mit Bestätigung, dass er Kooperationen erlaubt, mit t.me-Adresse und dem Wortlaut seiner Regeln',
+    is_string($vzKanalOhne) && str_contains($vzKanalOhne, 'ausdrücklich') && is_string($vzKanalUrl) && is_string($vzKanalKurz));
+pruefe('T5: Keine Adresse ohne https, kein javascript:, nichts Bezahltes ohne Angabe der Kosten',
+    is_string(Verzeichnisse::anlegen(['art' => 'branche', 'name' => 'Böse', 'url' => 'javascript:alert(1)', 'kostenlos' => '1']))
+    && is_string(Verzeichnisse::anlegen(['art' => 'branche', 'name' => 'Ohne', 'url' => 'beispiel.it', 'kostenlos' => '1']))
+    && is_string(Verzeichnisse::anlegen(['art' => 'branche', 'name' => 'Teuer', 'url' => 'https://teuer.example']))
+    && !Verzeichnisse::urlOk('https://a.example/"><script>') && Verzeichnisse::urlOk('https://www.canalitelegram.it/segnala-canale'));
+$vzKanalId = Verzeichnisse::anlegen(['art' => 'kanal', 'name' => 'Agrigento <b>Eventi</b>', 'url' => 'https://t.me/agrigentoeventi', 'regeln' => 'Descrizione: «Collaborazioni con attività locali benvenute».', 'kostenlos' => '1', 'erlaubt' => '1', 'sprache' => 'it']);
+pruefe('T5: Ein erlaubter Kanal wird aufgenommen — offen, mit Prüfspur', is_int($vzKanalId) && Verzeichnisse::laden($vzKanalId)['status'] === 'offen'
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'verzeichnis_angelegt' AND entity_id = ?", [$vzKanalId], 0) === 1, is_string($vzKanalId) ? $vzKanalId : '');
+
+/* Vorbereiten: eine gewöhnliche Kampagne je Eintrag */
+$vzTg = Db::one("SELECT * FROM mk_verzeichnisse WHERE schluessel = 'tgstat'");
+$vzV1 = Verzeichnisse::vorbereiten((int) $vzTg['id']);
+$vzV2 = Verzeichnisse::vorbereiten((int) $vzTg['id']);
+$vzTgK = MkKampagne::laden((int) ($vzV1['kampagne_id'] ?? 0));
+pruefe('T5: Vorbereiten legt genau eine Kampagne an (Code vz-tgstat, Telegram) — ein zweiter Klick keine zweite',
+    $vzV1['ok'] && $vzV2['ok'] && ($vzV1['kampagne_id'] ?? 0) === ($vzV2['kampagne_id'] ?? -1) && $vzTgK !== null && $vzTgK['code'] === 'vz-tgstat' && $vzTgK['plattform'] === 'telegram'
+    && (int) Db::wert("SELECT COUNT(*) FROM mk_kampagnen WHERE code LIKE 'vz-tgstat%'", [], 0) === 1, json_encode([$vzV1, $vzV2]));
+$vzBr = Db::one("SELECT * FROM mk_verzeichnisse WHERE schluessel = 'misterimprese'");
+Verzeichnisse::vorbereiten((int) $vzBr['id']);
+$vzBr = Verzeichnisse::laden((int) $vzBr['id']);
+$vzBrK = MkKampagne::laden((int) $vzBr['kampagne_id']);
+pruefe('T5: Ein Branchenverzeichnis zählt als „Verzeichnis“ — Ziel die italienische Startseite, UTM-Medium referral',
+    $vzBrK !== null && $vzBrK['plattform'] === 'verzeichnis' && $vzBrK['ziel'] === '/' && MkKampagne::zielAdresse($vzBrK) === '/?utm_source=verzeichnis&utm_medium=referral&utm_campaign=vz-misterimprese');
+$vzTgE = Verzeichnisse::laden((int) $vzTg['id']) + ['k_code' => 'vz-tgstat'];
+$vzL = Verzeichnisse::links($vzTgE);
+pruefe('T5: Links eines Katalogs — öffentlicher Kanal fürs Formular, Fenster-Link mit eigener Quelle für die Beschreibung',
+    $vzL['oeffentlich'] === 'https://t.me/vecomdesign' && $vzL['fenster'] === 'https://t.me/vecom_pruef_bot/rechner?startapp=m_vz-tgstat'
+    && $vzL['website'] === MkKampagne::basis() . '/k/vz-tgstat', json_encode($vzL));
+$vzTx = Verzeichnisse::texte($vzTgE, $vzL);
+pruefe('T5: Texte in der Sprache der Stelle — beim Katalog die Kurzbeschreibung (unter 250 Zeichen), keine lange Firmenbeschreibung',
+    count($vzTx) === 1 && $vzTx[0]['text'] === Texte::VERZEICHNIS['kurz']['it'] && mb_strlen($vzTx[0]['text']) <= 250);
+
+/* Kooperation: eigener Kanal-Link, Anfrage mit dem Namen des Kanals */
+Verzeichnisse::vorbereiten($vzKanalId);
+$vzK = Verzeichnisse::laden($vzKanalId);
+$vzKTx1 = Verzeichnisse::texte($vzK, Verzeichnisse::links($vzK));
+$vzKL = TelegramWachstum::einladungAnlegen((int) $vzK['kampagne_id'], 'Prüfung');
+$vzKLinks = Verzeichnisse::links($vzK);
+$vzKTx2 = Verzeichnisse::texte($vzK, $vzKLinks);
+pruefe('T5: Kooperation — erst mit öffentlichem Link und Hinweis, mit eigenem Kanal-Link dann dieser in der Anfrage (italienisch, Name des Kanals, wer schreibt)',
+    str_contains($vzKTx1[0]['text'], 'https://t.me/vecomdesign') && str_contains($vzKTx1[0]['hinweis'], 'Kanal-Link anlegen')
+    && $vzKL['ok'] && $vzKLinks['einladung'] === ($vzKL['link'] ?? '-') && str_contains($vzKTx2[0]['text'], (string) $vzKL['link'])
+    && str_contains($vzKTx2[0]['text'], 'Agrigento <b>Eventi</b>') && str_contains($vzKTx2[0]['text'], 'menzione reciproca')
+    && !str_contains($vzKTx2[0]['text'], '{'), json_encode([$vzKL, $vzKTx2[0]['text'] ?? '']));
+pruefe('T5: Der Kanal-Link heißt wie die Quelle (m_vz-…) — Beitritte darüber zählen für den Eintrag',
+    (string) Db::wert('SELECT name FROM tg_einladungen WHERE kampagne_id = ?', [(int) $vzK['kampagne_id']], '') === 'm_' . MkKampagne::laden((int) $vzK['kampagne_id'])['code']);
+
+/* Stand */
+pruefe('T5: Stand — unbekannter Stand und kaputte Adresse werden abgelehnt',
+    is_string(Verzeichnisse::status((int) $vzTg['id'], 'erledigt')) && is_string(Verzeichnisse::status((int) $vzTg['id'], 'online', 'javascript:alert(1)')));
+pruefe('T5: Eingereicht merkt das Datum (für die Erinnerung), mit Prüfspur',
+    Verzeichnisse::status((int) $vzTg['id'], 'eingereicht') === null && Verzeichnisse::laden((int) $vzTg['id'])['eingereicht_am'] !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'verzeichnis_stand' AND entity_id = ?", [(int) $vzTg['id']], 0) === 1);
+
+/* Erinnerung: nach einer Woche offen oder eingereicht */
+pruefe('T5: Frisch angelegt ist nichts fällig', array_sum(Verzeichnisse::faellig()) === 0, json_encode(Verzeichnisse::faellig()));
+Db::run("UPDATE mk_verzeichnisse SET eingereicht_am = NOW() - INTERVAL 8 DAY WHERE id = ?", [(int) $vzTg['id']]);
+Db::run("UPDATE mk_verzeichnisse SET angelegt_am = NOW() - INTERVAL 8 DAY, status_am = NOW() - INTERVAL 8 DAY WHERE schluessel IN ('apple', 'bing')");
+Db::run("UPDATE mk_verzeichnisse SET angelegt_am = NOW() - INTERVAL 8 DAY, status_am = NOW() - INTERVAL 2 DAY WHERE schluessel = 'cylex'");
+Db::run("UPDATE mk_verzeichnisse SET angelegt_am = NOW() - INTERVAL 30 DAY, status_am = NOW() - INTERVAL 30 DAY WHERE schluessel IN ('italle', 'awwwards')");
+$vzF = Verzeichnisse::faellig();
+pruefe('T5: Fällig nach einer Woche — offen (2) und eingereicht (1); frisch geänderte, spätere und abgelehnte Stellen nicht',
+    $vzF === ['offen' => 2, 'eingereicht' => 1], json_encode($vzF));
+pruefe('T5: Erinnerung zählt dieselben Einträge', Verzeichnisse::erinnern() === 3);
+
+/* Zahlen: über die eigenen Links, keine zweite Zählung */
+$vzAltC = [$_COOKIE, $_SERVER['SCRIPT_NAME'] ?? null];
+$_COOKIE = []; $_SERVER['SCRIPT_NAME'] = '/k.php'; Spur::vergessen();
+$vzBesuch = Spur::kampagnenBesuch($vzBrK, null, ['ua' => 'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36',
+    'ip' => '151.99.125.9', 'referrer' => 'https://www.misterimprese.it/x', 'sprache' => 'it', 'get' => MkKampagne::utm($vzBrK), 'einstieg' => '/k/vz-misterimprese']);
+TelegramWachstum::zaehlen('kanal_bei', 'm_' . MkKampagne::laden((int) $vzK['kampagne_id'])['code'], 2);
+TelegramWachstum::zaehlen('app_start', 'm_vz-tgstat');
+$vzListe = Verzeichnisse::liste();
+$vzZ = static function (string $name) use ($vzListe): ?array { foreach ($vzListe as $e) { if ($e['name'] === $name) { return $e['zahl']; } } return null; };
+$vzBeste1 = Verzeichnisse::beste(date('Y-m-d'), date('Y-m-d'));
+pruefe('T5: Zahlen je Eintrag — Website-Besuch über /k/vz-…, Beitritte über den Kanal-Link, Fenster über m_vz-…',
+    $vzBesuch !== null && ($vzZ('MisterImprese')['besuche'] ?? -1) === 1 && ($vzZ('Agrigento <b>Eventi</b>')['beitritte'] ?? -1) === 2 && ($vzZ('TGStat')['fenster'] ?? -1) === 1
+    && $vzZ('Cylex Italia') === null, json_encode([$vzZ('MisterImprese'), $vzZ('Agrigento <b>Eventi</b>'), $vzZ('TGStat')]));
+pruefe('T5: Ohne Lead ist der beste Eintrag der mit den meisten Wegen — ausgewiesen als „noch kein Lead“',
+    ($vzBeste1['eintrag']['name'] ?? '') === 'Agrigento <b>Eventi</b>' && str_contains($vzBeste1['nach'], 'noch kein Lead'), json_encode($vzBeste1));
+$vzKunde = (int) Db::insert('customers', ['name' => 'Panificio Verzeichnis', 'email' => 'panificio@verzeichnis.example', 'company' => 'Panificio V']);
+Spur::ereignis('lead_created', ['customer_id' => $vzKunde]);
+$vzBeste2 = Verzeichnisse::beste(date('Y-m-d'), date('Y-m-d'));
+pruefe('T5: Mit einem Lead zählt der Lead — MisterImprese vorn', ($vzBeste2['eintrag']['name'] ?? '') === 'MisterImprese' && $vzBeste2['nach'] === 'Leads', json_encode($vzBeste2));
+$_COOKIE = $vzAltC[0]; $_SERVER['SCRIPT_NAME'] = $vzAltC[1]; Spur::vergessen();
+$vzDash = TelegramZahlen::dashboard(MkKennzahlen::zeitraum('heute'));
+pruefe('T5: Das Telegram-Dashboard zeigt den besten Eintrag und erinnert an liegen gebliebene',
+    ($vzDash['beste']['eintrag']['name'] ?? '') === 'MisterImprese' && str_contains(implode('|', $vzDash['hinweise']), 'Verzeichnisse: 3 Einträge'), json_encode([$vzDash['beste']['eintrag'] ?? null, $vzDash['hinweise']]));
+
+/* Texte */
+pruefe('T5: Kanalbeschreibung passt in Telegrams 255 Zeichen, IT und DE', mb_strlen(Texte::VERZEICHNIS['kanal']) <= 255
+    && str_contains(Texte::VERZEICHNIS['kanal'], 'Siti web') && str_contains(Texte::VERZEICHNIS['kanal'], 'Websites'));
+foreach (['it', 'de', 'en'] as $vzS) {
+    pruefe('T5: Texte ' . $vzS . ' — kurz (≤ 250), lang, Anfrage mit {kanal}, {inhaber}, {link}; keine Zahlen, die nicht auf der Website stehen',
+        mb_strlen(Texte::VERZEICHNIS['kurz'][$vzS]) <= 250 && mb_strlen(Texte::VERZEICHNIS['lang'][$vzS]) > 300
+        && !preg_match('/\d/', Texte::VERZEICHNIS['kurz'][$vzS] . Texte::VERZEICHNIS['lang'][$vzS])
+        && str_contains(Texte::VERZEICHNIS['kooperation'][$vzS], '{kanal}') && str_contains(Texte::VERZEICHNIS['kooperation'][$vzS], '{inhaber}') && str_contains(Texte::VERZEICHNIS['kooperation'][$vzS], '{link}'));
+}
+
+/* Verwaltung */
+$kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
+$liste = Verzeichnisse::liste(); $offen = $vzKanalId;
+ob_start(); require $wurzel . '/views/verzeichnisse.php'; $vzHtml = (string) ob_get_clean();
+$z = MkKennzahlen::zeitraum('heute'); $d = $vzDash;
+ob_start(); require $wurzel . '/views/telegram.php'; $vzTgHtml = (string) ob_get_clean();
+restore_error_handler();
+pruefe('T5: Reiter „Verzeichnisse“ rendert ohne Warnung — Gruppen, Vorher-Kasten, Texte zum Kopieren, geöffneter Eintrag mit Kanal-Link, Namen maskiert',
+    $kaFehler === null && str_contains($vzHtml, 'Bevor du einträgst') && str_contains($vzHtml, 'Telegram-Kataloge') && str_contains($vzHtml, 'Kanäle &amp; Gruppen')
+    && str_contains($vzHtml, 'id="v-' . $vzKanalId . '" open') && str_contains($vzHtml, Fmt::h((string) $vzKL['link'])) && str_contains($vzHtml, 'data-kopieren')
+    && str_contains($vzHtml, 'Agrigento &lt;b&gt;Eventi&lt;/b&gt;') && !str_contains($vzHtml, 'Agrigento <b>Eventi</b>')
+    && str_contains($vzHtml, 'Nicht eintragen') && str_contains($vzHtml, 'ohne Konto und Captcha'), (string) $kaFehler);
+pruefe('T5: Im Telegram-Dashboard steht der beste Eintrag statt „noch nicht messbar“',
+    str_contains($vzTgHtml, 'Bester Eintrag') && str_contains($vzTgHtml, 'MisterImprese') && !str_contains($vzTgHtml, 'Beste Telegram-Gruppe'));
+$vzIdx = (string) file_get_contents($wurzel . '/index.php');
+$vzLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('T5: Reiter unter Marketing mit Hilfesatz und Zahl im Menü, Aktionen hinter Anmeldung und CSRF, täglicher Zuruf im Cron',
+    str_contains($vzLay, "['verzeichnisse', 'Verzeichnisse', 'verzeichnisse']") && str_contains($vzLay, "\$navZahlen['verzeichnisse']") && Hilfe::satz('verzeichnisse') !== ''
+    && strpos($vzIdx, "case 'verzeichnis_stand':") > strpos($vzIdx, 'Csrf::pruefen()') && strpos($vzIdx, "case 'verzeichnis_anlegen':") > strpos($vzIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'Verzeichnisse::erinnern()'));
+pruefe('T5: Keine Tat hier schickt etwas nach draußen oder gibt Geld aus — keine Rückfrage nötig (STILL)',
+    Ablauf::wiegt('verzeichnis_stand') === Ablauf::STILL && Ablauf::wiegt('verzeichnis_vorbereiten') === Ablauf::STILL);
+Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_app_name', ''); Telegram::setzen('tg_bot_offen', '1');
+Db::run("DELETE FROM settings WHERE skey = 'firma_google_bewertung'");
+(new ReflectionProperty(Firma::class, 'werte'))->setValue(null, null);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');
+$GLOBALS['bilanz_erreicht'] = true;
 
 $gesamt = $GLOBALS['gut'] + count($GLOBALS['schlecht']);
 if ($GLOBALS['schlecht']) {

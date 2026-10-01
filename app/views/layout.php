@@ -37,6 +37,11 @@ $navZahlen['stimmen'] = (int) sicher(static function (): int {
 /* Marketing-Studio (01.10.2026): Entwürfe, die auf Uwes Freigabe warten, sind eine Handlung. */
 $navZahlen['zielgruppen'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_zielgruppen WHERE status = 'entwurf'", [], 0), 0);
 $navZahlen['inhalte'] = (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf'", [], 0), 0);
+/* Verzeichnisse (T5, 01.10.2026): nur Einträge, die seit einer Woche liegen — offen oder eingereicht und nicht nachgesehen. */
+$navZahlen['verzeichnisse'] = (int) sicher(static function (): int {
+    require_once dirname(__DIR__) . '/src/Verzeichnisse.php';
+    return array_sum(Verzeichnisse::faellig());
+}, 0);
 /* Einmal rechnen, zweimal benutzt: fuer die Zahl im Menue und fuer die
    Leiste "Jetzt dran". Zweimal rechnen hiesse, jede Seite zweimal durch alle
    Vorgaenge zu schicken. */
@@ -191,6 +196,7 @@ $reiter = [
     ['inhalte', 'Inhalte', 'inhalte'],
     ['kampagnen', 'Kampagnen', 'kampagnen'],
     ['telegram', 'Telegram', 'telegram'],
+    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],
   ],
   'dashboard' => [
     ['dashboard', 'Zahlen', 'dashboard'],

@@ -48,6 +48,7 @@ require __DIR__ . '/mk_stil.php';
   </div>
   <nav class="mk-chips" aria-label="Weiter">
     <a href="<?= Fmt::h(url('kampagnen')) ?>">Kampagnen</a>
+    <a href="<?= Fmt::h(url('verzeichnisse')) ?>">Verzeichnisse</a>
     <a href="<?= Fmt::h(url('einstellungen') . '?b=telegram') ?>">Bot &amp; Kanal</a>
   </nav>
 </div>
@@ -97,7 +98,7 @@ require __DIR__ . '/mk_stil.php';
     <?php $beste('Beste Quelle', $b['quelle'], 'Punkte (Growth Score)', 'Noch keine Quelle mit Nutzern oder Anfragen im Zeitraum.'); ?>
     <?php $beste('Beste Kampagne', $b['kampagne'], $b['kampagne_nach'], 'Noch kein Start über den Telegram-Link einer Kampagne.'); ?>
     <?php $beste('Bester Partner', $b['partner'], $b['partner_nach'], 'Noch niemand über einen Partner-Link im Bot.'); ?>
-    <div class="mk-best"><h3>Beste Telegram-Gruppe</h3><p class="mk-best__leer">Noch nicht messbar — kommt mit den Verzeichnissen und Kooperationen (T5): jede Gruppe bekommt dort ihren eigenen Link.</p></div>
+    <?php $beste('Bester Eintrag (Verzeichnis, Kanal)', $b['eintrag'] ?? null, (string) ($b['eintrag_nach'] ?? ''), 'Noch kein Eintrag mit eigenem Link gebracht — Marketing → Verzeichnisse.'); ?>
     <div class="mk-best"><h3>Beste Inhalte</h3><p class="mk-best__leer">Noch nicht messbar — kommt mit dem Redaktionsplan (T6): jeder Beitrag bekommt seinen eigenen Link.</p></div>
   </div>
 </div>

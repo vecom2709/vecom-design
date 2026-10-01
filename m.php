@@ -10,7 +10,8 @@ declare(strict_types=1);
    ========================================================================== */
 header('X-Robots-Tag: noindex, nofollow');
 header('X-Content-Type-Options: nosniff');
-if (!is_file(__DIR__ . '/app/config.local.php')) { http_response_code(503); exit; }
+// Die Kette (app/pruefung/kette.php) bindet diese Seite mit ihrer eigenen Konfiguration ein — dort steht Config schon.
+if (!is_file(__DIR__ . '/app/config.local.php') && !class_exists('Config', false)) { http_response_code(503); exit; }
 foreach (['Config', 'Db', 'Events'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
 $t = (string) ($_GET['t'] ?? '');
 if (!preg_match('~^[a-f0-9]{32}$~', $t)) { http_response_code(404); exit; }

@@ -201,6 +201,13 @@ final class TelegramZahlen
             'partner' => MkKennzahlen::erster($paLeads ?: $nurArt('partner', 'bot_neu'), 5),
             'partner_nach' => $paLeads ? 'Leads' : 'neue Nutzer (noch kein Lead)',
         ];
+        /* T5 (01.10.2026): Verzeichnisse und Kooperationen — jeder Eintrag zählt über seine eigenen Links. */
+        $vz = (array) self::still(static function () use ($von, $bis): array {
+            require_once __DIR__ . '/Verzeichnisse.php';
+            return Verzeichnisse::beste($von, $bis) + ['faellig' => array_sum(Verzeichnisse::faellig())];
+        }, ['eintrag' => null, 'nach' => '', 'faellig' => 0]);
+        $beste['eintrag'] = $vz['eintrag'];
+        $beste['eintrag_nach'] = $vz['nach'];
 
         $d = [
             'summe' => $s, 'vorher' => $sv, 'tage' => $tage,
@@ -211,6 +218,7 @@ final class TelegramZahlen
             'kunden_vorher' => array_sum(array_column($vorher, 'kunden')), 'umsatz_vorher' => array_sum(array_column($vorher, 'umsatz')),
             'partner_leads' => array_sum($nurArt('partner', 'lead')),
             'kosten' => $sum('kosten'),
+            'verzeichnisse_faellig' => (int) $vz['faellig'],
         ];
         $d['hinweise'] = self::hinweise($d);
         return $d;
@@ -235,6 +243,9 @@ final class TelegramZahlen
             if ($q['kosten'] > 0 && $q['lead'] === 0) {
                 $h[] = $q['name'] . ': ' . Fmt::geld($q['kosten']) . ' Kosten im Zeitraum, noch kein Lead über Telegram.';
             }
+        }
+        if ((int) ($d['verzeichnisse_faellig'] ?? 0) > 0) {
+            $h[] = 'Verzeichnisse: ' . (int) $d['verzeichnisse_faellig'] . ' Einträge liegen seit über einer Woche (offen oder eingereicht) — Marketing → Verzeichnisse.';
         }
         $r = (int) ($s['rechner'] ?? 0); $rf = (int) ($s['rechner_fertig'] ?? 0);
         if ($r >= 10 && $rf / $r < 0.3) {

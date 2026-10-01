@@ -34,10 +34,10 @@ final class MkKampagne
         'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube',
         'pinterest' => 'Pinterest', 'threads' => 'Threads', 'x' => 'X', 'telegram' => 'Telegram', 'whatsapp' => 'WhatsApp',
         'google' => 'Google (Anzeige, Profil)', 'email' => 'E-Mail / Newsletter', 'sms' => 'SMS', 'flyer' => 'Flyer / Druck',
-        'qr' => 'QR-Code', 'sonstige' => 'Sonstiges',
+        'qr' => 'QR-Code', 'verzeichnis' => 'Verzeichnis / Eintrag', 'sonstige' => 'Sonstiges',
     ];
     /** utm_medium je Plattform — damit auch fremde Werkzeuge den Link richtig einordnen. */
-    private const MEDIUM = ['email' => 'email', 'sms' => 'sms', 'flyer' => 'print', 'qr' => 'print', 'google' => 'cpc', 'sonstige' => 'link'];
+    private const MEDIUM = ['email' => 'email', 'sms' => 'sms', 'flyer' => 'print', 'qr' => 'print', 'google' => 'cpc', 'verzeichnis' => 'referral', 'sonstige' => 'link'];
 
     public const ARTEN = ['beitrag' => 'Beitrag', 'reel' => 'Reel / Kurzvideo', 'story' => 'Story', 'karussell' => 'Karussell', 'video' => 'Video',
         'anzeige' => 'Anzeige', 'newsletter' => 'Newsletter', 'flyer' => 'Flyer / Druck', 'sonstiges' => 'Sonstiges'];

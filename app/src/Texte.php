@@ -5083,4 +5083,38 @@ final class Texte
         'getrennt'  => ['it' => 'Il collegamento con Telegram è stato rimosso.', 'de' => 'Die Verbindung mit Telegram ist gelöst.', 'en' => 'The Telegram connection has been removed.'],
         'nichtJetzt'=> ['it' => 'Telegram al momento non è disponibile. Riprovi più tardi.', 'de' => 'Telegram ist gerade nicht verfügbar. Bitte später noch einmal.', 'en' => 'Telegram is not available right now. Please try again later.'],
     ];
+
+    /* ======================================================================
+       VERZEICHNIS — Texte für Einträge in Verzeichnissen und für Anfragen an
+       Kanäle (Telegram Growth Engine T5, 01.10.2026, Uwe: „ja“). Sie stehen
+       öffentlich bei Google, in Branchenbüchern und Telegram-Katalogen —
+       deshalb nur, was auch auf der Website steht (Aragona, dreisprachig,
+       offene Preise, acht Fragen bis zum Richtwert, kostenloser Check). Keine
+       Kundenzahlen, keine Sterne, keine Versprechen, die niemand geprüft hat.
+
+       kanal   die Beschreibung des Telegram-Kanals, IT und DE in einem Text —
+               italienische Kataloge übernehmen sie (Telegram: höchstens 255 Zeichen)
+       kurz    Kurzbeschreibung für Kataloge (CanaliTelegram: höchstens 250 Zeichen)
+       lang    Firmenbeschreibung für Branchenverzeichnisse und Karten
+       kooperation  Anfrage an den Admin eines Kanals, der Kooperationen anbietet;
+               {kanal} dessen Name, {inhaber} wer schreibt, {link} unser Kanal-Link
+       ====================================================================== */
+    public const VERZEICHNIS = [
+        'kanal' => "🇮🇹 Siti web per piccole imprese in Sicilia: novità, esempi e consigli.\n🇩🇪 Websites für kleine Betriebe aus Sizilien: Neuigkeiten, Beispiele und Tipps.\n🌐 vecom-design.it",
+        'kurz' => [
+            'it' => 'Siti web su misura per piccole imprese in provincia di Agrigento e in Sicilia. Trilingue IT/DE/EN, prezzi allo scoperto: il prezzo indicativo dopo otto brevi domande. Check del sito gratuito.',
+            'de' => 'Websites nach Maß für kleine Betriebe aus Sizilien (Aragona, Agrigent). Dreisprachig IT/DE/EN, Preise offen gelegt: den Richtwert gibt es nach acht kurzen Fragen. Website-Check kostenlos.',
+            'en' => 'Custom websites for small businesses in Sicily (Aragona, Agrigento). Trilingual IT/DE/EN, prices in the open: a price estimate after eight short questions. Free website check.',
+        ],
+        'lang' => [
+            'it' => 'Vecom Design realizza siti web su misura, negozi online e loghi per piccole imprese – da Aragona (AG) per la provincia di Agrigento e tutta la Sicilia. I siti sono in tre lingue (italiano, tedesco, inglese), veloci e costruiti per Google. I prezzi sono pubblici: sul sito, dopo otto brevi domande, si conosce il prezzo indicativo. Inoltre: check gratuito del sito esistente, dominio e hosting, assistenza continuativa, automazioni con IA e bot Telegram. A ogni domanda risponde una persona.',
+            'de' => 'Vecom Design baut Websites nach Maß, Online-Shops und Logos für kleine Betriebe – aus Aragona (Agrigent) für die Provinz Agrigent und ganz Sizilien. Die Seiten sind dreisprachig (Italienisch, Deutsch, Englisch), schnell und für Google gebaut. Die Preise sind offen: Nach acht kurzen Fragen auf der Website steht der Richtwert fest. Dazu: kostenloser Check der bestehenden Website, Domain und Hosting, laufende Betreuung, KI-Automatisierung und Telegram-Bots. Jede Frage beantwortet ein Mensch.',
+            'en' => 'Vecom Design builds custom websites, online stores and logos for small businesses – from Aragona (Agrigento) for the province of Agrigento and all of Sicily. Sites are trilingual (Italian, German, English), fast and built for Google. Prices are public: after eight short questions on the website you know the price estimate. Also: a free check of your existing website, domain and hosting, ongoing support, AI automation and Telegram bots. A real person answers every question.',
+        ],
+        'kooperation' => [
+            'it' => "Buongiorno! Ho visto che il canale {kanal} accoglie collaborazioni con attività locali. Sono {inhaber} di Vecom Design ad Aragona (AG): realizziamo siti web per piccole imprese e nel nostro canale Telegram pubblichiamo novità, esempi e consigli. Le interesserebbe una menzione reciproca? Presenteremmo volentieri il suo canale ai nostri iscritti.\n\nIl nostro canale: {link}\n\nGrazie e buona giornata!",
+            'de' => "Guten Tag! Ich habe gesehen, dass {kanal} Kooperationen mit lokalen Betrieben anbietet. Ich bin {inhaber} von Vecom Design in Aragona (AG): Wir bauen Websites für kleine Betriebe und zeigen in unserem Telegram-Kanal Neuigkeiten, Beispiele und Tipps. Hätten Sie Interesse an einer gegenseitigen Erwähnung? Wir stellen Ihren Kanal gern unseren Abonnenten vor.\n\nUnser Kanal: {link}\n\nDanke und einen schönen Tag!",
+            'en' => "Hello! I saw that {kanal} welcomes collaborations with local businesses. I am {inhaber} from Vecom Design in Aragona (Agrigento): we build websites for small businesses and share news, examples and tips in our Telegram channel. Would you be interested in a mutual mention? We would be happy to introduce your channel to our subscribers.\n\nOur channel: {link}\n\nThank you and have a nice day!",
+        ],
+    ];
 }

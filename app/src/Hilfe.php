@@ -47,6 +47,7 @@ final class Hilfe
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',
         'marketing'          => 'Hier siehst du, welche Maßnahme Besucher bringt und wer davon Kunde wird — Aufrufe, Leads, Kunden, Umsatz und Kosten aus den vorhandenen Daten, mit dem, was klemmt, und dem, was du tun kannst.',
         'telegram'           => 'Hier siehst du, was Telegram bringt: neue Nutzer, Kanal-Mitglieder, den Weg bis zum Kunden und welche Quelle am meisten bewirkt — nur aus Gemessenem.',
+        'verzeichnisse'      => 'Hier stehen die Stellen, an denen Vecom Design eingetragen werden kann — Karten, Verzeichnisse, Telegram-Kataloge und Kanäle, die Kooperationen erlauben. Du reichst ein, die Liste merkt sich den Stand und zählt, was jeder Eintrag bringt.',
         'kampagnen'          => 'Hier legst du für jeden Beitrag, jede Anzeige und jeden Flyer einen eigenen Link an und siehst, was er bringt — Klicks, Leads, Kunden, Umsatz und Kosten.',
         'zielgruppen'        => 'Hier wählst du oben das Land und startest die Recherche: Claude sucht im Netz und baut je Branche eine Zielgruppe mit Quellen — du prüfst und gibst frei. Italienisches steht mit deutscher Übersetzung darunter.',
         'inhalte'            => 'Hier schreibt Claude aus einer freigegebenen Zielgruppe Beiträge, Reel-Skripte und Anzeigen. Du prüfst, änderst und gibst frei — dann bekommt jedes Stück seinen eigenen Link.',
