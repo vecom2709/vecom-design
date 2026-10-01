@@ -118,8 +118,9 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
       Beitritte je Quelle zählen über eigene Einladungslinks, die eine <a href="<?= Fmt::h(url('kampagnen')) ?>">Kampagne</a> anlegt. Dafür braucht der Bot im Kanal das Recht „Nutzer einladen“.</p>
 
     <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin:12px 0 8px">
-      <b>Menü im Kanal:</b> ein angehefteter Beitrag mit denselben Knöpfen wie im Bot (Preis-Richtwert, neue Website,
-      Website prüfen, Beratung …). Ein Tipp öffnet den Bot direkt an dieser Stelle.
+      <b>Menü im Kanal:</b> ein angehefteter Beitrag mit zwölf Knöpfen (Preis berechnen, Website prüfen, KI &amp; Automatisierung,
+      Telegram-Bots erstellen, Partner werden …).
+      <?php require_once dirname(__DIR__, 2) . '/src/TelegramApp.php'; ?><?= TelegramApp::name() !== '' ? 'Ein Tipp öffnet das Vecom-Fenster (Mini-App) direkt über dem Kanal, an dieser Stelle.' : 'Ein Tipp öffnet den Bot direkt an dieser Stelle.' ?>
       <?= Telegram::einstellung('tg_kanal_menue_id') !== '' ? 'Steht im Kanal — erneut klicken aktualisiert denselben Beitrag.' : 'Noch nicht veröffentlicht.' ?>
     </p>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 6px">

@@ -110,7 +110,7 @@ final class Ablauf
             . 'Zurücknehmen geht nur in Telegram selbst.',
             'Ja, veröffentlichen'],
         'telegram_kanal_menue' => [self::RAUS,
-            'Der Menü-Beitrag mit den Knöpfen in den Bot erscheint im Telegram-Kanal und wird oben angeheftet '
+            'Der Menü-Beitrag mit den zwölf Knöpfen erscheint im Telegram-Kanal und wird oben angeheftet '
             . '(steht er schon da, wird er nur aktualisiert).',
             'Ja, Menü veröffentlichen'],
         'kunde_loeschen' => [self::SCHWER,
