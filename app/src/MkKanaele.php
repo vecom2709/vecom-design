@@ -80,7 +80,9 @@ final class MkKanaele
             return $r['ok'] ? ['ok' => true, 'text' => 'Telegram antwortet: Kanal „' . (string) ($r['result']['title'] ?? $k['id']) . '“ erreichbar.']
                             : ['ok' => false, 'text' => 'Telegram: ' . ($r['beschreibung'] ?: 'Kanal nicht erreichbar') . ' — ist der Bot Admin im Kanal?'];
         }
-        if (!MetaSeite::bereit()) { return ['ok' => false, 'text' => 'Die Facebook-Seite ist noch nicht verbunden.']; }
+        /* Mit dem einen Schlüssel trägt die Prüfung Seite, Instagram und WhatsApp selbst ein (01.10.2026). */
+        $se = $kanal === 'facebook' && MetaSeite::einstellungen()['token'] ? MetaSeite::selbstEinrichten() : null;
+        if (!MetaSeite::bereit()) { return ['ok' => false, 'text' => 'Die Facebook-Seite ist noch nicht verbunden.' . ($se && !$se['ok'] ? ' ' . implode(' ', $se['zeilen']) : '')]; }
         $me = MetaSeite::einstellungen();
         if ($kanal === 'instagram') {
             if ($me['ig_id'] === '') { return ['ok' => false, 'text' => 'Instagram-Konto-ID fehlt.']; }
@@ -91,7 +93,7 @@ final class MkKanaele
         }
         $r = MetaSeite::graph('GET', $me['seite_id'] . '?fields=name');
         return ($r['status'] ?? 0) === 200 && !empty($r['json']['name'])
-            ? ['ok' => true, 'text' => 'Facebook antwortet: Seite „' . (string) $r['json']['name'] . '“ ist verbunden.']
+            ? ['ok' => true, 'text' => 'Facebook antwortet: Seite „' . (string) $r['json']['name'] . '“ ist verbunden.' . ($se && $se['ok'] ? ' ' . implode(' · ', $se['zeilen']) . '.' : '')]
             : ['ok' => false, 'text' => 'Facebook: ' . MetaSeite::fehler($r)];
     }
 

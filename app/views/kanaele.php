@@ -135,12 +135,14 @@ $pfAntrag = [
 
 <div class="block" id="meta">
   <h2>Facebook-Seite und Instagram verbinden <span class="mehr">einmal, etwa 15 Minuten — dieselbe Meta-App wie bei WhatsApp</span></h2>
-  <details<?= $stand['facebook']['bereit'] ? '' : ' open' ?>><summary style="cursor:pointer">So geht es Schritt für Schritt</summary>
+  <details<?= $stand['facebook']['bereit'] ? '' : ' open' ?>><summary style="cursor:pointer">So geht es Schritt für Schritt — ein Schlüssel für Facebook, Instagram und WhatsApp</summary>
     <ol style="line-height:1.7;max-width:80ch">
-      <li>Auf <b>business.facebook.com</b> → Unternehmenseinstellungen: deine <b>Facebook-Seite</b> und dein <b>Instagram-Konto</b> (Business-Konto, mit der Seite verknüpft) zum Unternehmen „Vecom Design“ hinzufügen.</li>
-      <li>Auf <b>developers.facebook.com</b> in derselben App wie bei WhatsApp die Produkte <b>„Facebook Login for Business“</b> und <b>„Instagram“</b> hinzufügen.</li>
-      <li>Beim <b>Systembenutzer</b> Seite und Instagram-Konto zuweisen und einen dauerhaften Schlüssel erzeugen mit <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>pages_manage_metadata</code>, <code>leads_retrieval</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>instagram_manage_comments</code>, <code>instagram_manage_messages</code>, <code>pages_messaging</code>.</li>
-      <li><b>Seiten-ID</b>: auf der Seite unter Info → Seitentransparenz. <b>Instagram-Konto-ID</b>: im Business Manager unter Instagram-Konten. Beides unten eintragen, dazu den Schlüssel — dann „Verbindung prüfen“.</li>
+      <li><b>Instagram</b> (falls noch nicht da): in der Instagram-App ein Konto anlegen, unter Einstellungen auf <b>Professionelles Konto</b> umstellen und auf der Facebook-Seite unter Einstellungen › Verknüpfte Konten mit der Seite verbinden.</li>
+      <li>Auf <b>business.facebook.com</b> ein Business-Portfolio <b>„Vecom Design“</b> anlegen und dort unter Konten die <b>Seite</b>, das <b>Instagram-Konto</b> und (für WhatsApp) ein <b>WhatsApp-Konto</b> hinzufügen.</li>
+      <li>Auf <b>developers.facebook.com</b> eine App vom Typ <b>Business</b> im Portfolio „Vecom Design“ anlegen; Produkte <b>Facebook Login for Business</b>, <b>Instagram</b> und <b>WhatsApp</b> hinzufügen.</li>
+      <li>Im Portfolio unter Nutzer › <b>Systemnutzer</b>: einen Admin-Systemnutzer anlegen, ihm App, Seite, Instagram-Konto und WhatsApp-Konto zuweisen (volle Kontrolle) und <b>Token generieren</b> — Ablauf „Nie“, Rechte:
+        <code>pages_show_list</code>, <code>pages_read_engagement</code>, <code>pages_manage_posts</code>, <code>pages_manage_metadata</code>, <code>pages_messaging</code>, <code>leads_retrieval</code>, <code>instagram_basic</code>, <code>instagram_content_publish</code>, <code>instagram_manage_comments</code>, <code>instagram_manage_messages</code>, <code>whatsapp_business_management</code>, <code>whatsapp_business_messaging</code>.</li>
+      <li>Den Schlüssel unten einfügen, <b>Speichern</b>, dann bei Facebook <b>„Verbindung prüfen“</b>. Die Prüfung trägt Seite, Instagram-Konto, WhatsApp-Konto und -Nummer selbst ein — IDs abschreiben ist nicht nötig.</li>
     </ol></details>
   <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" class="mk-formular" style="margin-top:10px">
     <?= $csrf() ?><input type="hidden" name="tat" value="kanal_meta_speichern">

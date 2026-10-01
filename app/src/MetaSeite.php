@@ -31,6 +31,10 @@ final class MetaSeite
     public const API = 'https://graph.facebook.com/v21.0';
     /** @var null|callable(string $methode, string $url, ?array $body, string $token): array{status:int, json:?array} Für die Kette. */
     public static $netz = null;
+    /** Die Kette schaltet den Seiten-Schlüssel-Tausch nur für ihre eigene Prüfung ein (andere Prüfungen zählen Aufrufe). */
+    public static bool $tauschImTest = false;
+    /** Seiten-Schlüssel dieses Aufrufs (nie gespeichert). */
+    private static ?string $seitenToken = null;
 
     /** Themen: die zwölf Punkte des Kurz-Checks und ein allgemeiner. Titel = Satz auf dem Bild. */
     public const THEMEN = [
@@ -79,6 +83,7 @@ final class MetaSeite
     public static function speichern(array $d): void
     {
         $altSeite = AkquiseGate::einstellung('meta_seite_id', '');
+        self::$seitenToken = null;
         foreach (['meta_seite_id' => 'seite_id', 'meta_ig_id' => 'ig_id'] as $k => $feld) {
             $v = preg_replace('~\D~', '', (string) ($d[$feld] ?? '')) ?? '';
             if ($v !== '' || !empty($d['leeren'])) { AkquiseGate::setzen($k, mb_substr($v, 0, 30)); }
@@ -107,10 +112,38 @@ final class MetaSeite
         return (string) (Hosting::entsiegeln($blob)['wert'] ?? '');
     }
 
+    /**
+     * Welcher Schlüssel an die Graph-Schnittstelle geht. Ein Systembenutzer-Schlüssel
+     * darf Seiten nur über deren eigenen Seiten-Schlüssel beschreiben (Meta: „(#200)
+     * … page access token“). Darum einmal je Aufruf GET /{seite}?fields=access_token —
+     * klappt das, gilt der Seiten-Schlüssel, sonst (schon ein Seiten-Schlüssel) der
+     * hinterlegte. Der Seiten-Schlüssel wird nie gespeichert.
+     */
+    private static function schluessel(): string
+    {
+        $token = self::geheim();
+        if ($token === '' || (self::$netz && !self::$tauschImTest)) { return $token; }
+        if (self::$seitenToken !== null) { return self::$seitenToken !== '' ? self::$seitenToken : $token; }
+        self::$seitenToken = '';
+        $seite = AkquiseGate::einstellung('meta_seite_id', '');
+        if ($seite !== '') {
+            $r = self::roh('GET', self::API . '/' . $seite . '?fields=access_token', null, $token);
+            if (($r['status'] ?? 0) === 200 && is_string($r['json']['access_token'] ?? null) && $r['json']['access_token'] !== '') {
+                self::$seitenToken = (string) $r['json']['access_token'];
+            }
+        }
+        return self::$seitenToken !== '' ? self::$seitenToken : $token;
+    }
+
     /** @return array{status:int, json:?array} */
     private static function anfrage(string $methode, string $url, ?array $body = null): array
     {
-        $token = self::geheim();
+        return self::roh($methode, $url, $body, self::schluessel());
+    }
+
+    /** @return array{status:int, json:?array} */
+    private static function roh(string $methode, string $url, ?array $body, string $token): array
+    {
         if (self::$netz) { return (self::$netz)($methode, $url, $body, $token); }
         if ($token === '') { return ['status' => 0, 'json' => ['error' => ['message' => 'Kein Seiten-Schlüssel hinterlegt.']]]; }
         $ch = curl_init($url);
@@ -135,6 +168,76 @@ final class MetaSeite
     }
 
     public static function fehler(array $r): string { return self::fehlerText($r); }
+
+    /**
+     * Alles, was sich aus dem einen Schlüssel ablesen lässt, selbst eintragen
+     * (01.10.2026, Uwe: „Richte mit Facebook alles automatisch ein, auch
+     * Instagram … auch WhatsApp“): Seite (Graph-ID statt der Profil-Nummer
+     * aus der Adresszeile), das mit ihr verknüpfte Instagram-Profikonto und —
+     * hat der Schlüssel die WhatsApp-Rechte — WhatsApp-Konto und Nummer.
+     * Liest nur bei Meta; ändert nur die eigenen Einstellungen.
+     * @return array{ok:bool, zeilen:list<string>}
+     */
+    public static function selbstEinrichten(): array
+    {
+        $token = self::geheim();
+        if ($token === '') { return ['ok' => false, 'zeilen' => ['Kein Schlüssel hinterlegt.']]; }
+        self::$seitenToken = null;
+        $z = [];
+        $alt = AkquiseGate::einstellung('meta_seite_id', '');
+        $seiten = self::roh('GET', self::API . '/me/accounts?fields=id,name,instagram_business_account%7Bid,username%7D&limit=50', null, $token);
+        $liste = ($seiten['status'] ?? 0) === 200 ? (array) ($seiten['json']['data'] ?? []) : [];
+        if ($liste === []) {
+            /* Schon ein Seiten-Schlüssel: /me ist dann die Seite selbst. */
+            $ich = self::roh('GET', self::API . '/me?fields=id,name,instagram_business_account%7Bid,username%7D', null, $token);
+            if (($ich['status'] ?? 0) === 200 && !empty($ich['json']['id']) && isset($ich['json']['name'])) { $liste = [$ich['json']]; }
+        }
+        if ($liste === []) { return ['ok' => false, 'zeilen' => ['Meta: ' . self::fehlerText($seiten)]]; }
+        $treffer = null;
+        foreach ($liste as $sx) { if ((string) ($sx['id'] ?? '') === $alt) { $treffer = $sx; } }
+        if ($treffer === null) {
+            foreach ($liste as $sx) { if (mb_stripos((string) ($sx['name'] ?? ''), 'vecom') !== false) { $treffer ??= $sx; } }
+        }
+        $treffer ??= count($liste) === 1 ? $liste[0] : null;
+        if ($treffer === null) {
+            return ['ok' => false, 'zeilen' => ['Der Schlüssel sieht ' . count($liste) . ' Seiten, keine heißt „Vecom“: ' . implode(', ', array_map(static fn($x) => (string) ($x['name'] ?? '?'), array_slice($liste, 0, 5)))]];
+        }
+        $seite = preg_replace('~\D~', '', (string) $treffer['id']) ?? '';
+        if ($seite !== $alt) { AkquiseGate::setzen('meta_seite_id', $seite); }
+        $z[] = 'Seite „' . (string) ($treffer['name'] ?? '') . '“' . ($seite !== $alt ? ' eingetragen (ID ' . $seite . ')' : ' passt');
+        $ig = (array) ($treffer['instagram_business_account'] ?? []);
+        if (!empty($ig['id'])) {
+            AkquiseGate::setzen('meta_ig_id', preg_replace('~\D~', '', (string) $ig['id']) ?? '');
+            $z[] = 'Instagram @' . (string) ($ig['username'] ?? '?') . ' verbunden';
+        } else {
+            $z[] = 'Instagram: mit der Seite ist noch kein Instagram-Profikonto verknüpft';
+        }
+        /* WhatsApp: welche Konten der Schlüssel verwalten darf, steht in seinen Rechten. */
+        $dbg = self::roh('GET', self::API . '/debug_token?input_token=' . rawurlencode($token), null, $token);
+        $waba = '';
+        foreach ((array) ($dbg['json']['data']['granular_scopes'] ?? []) as $gs) {
+            if (($gs['scope'] ?? '') === 'whatsapp_business_management' && !empty($gs['target_ids'][0])) { $waba = preg_replace('~\D~', '', (string) $gs['target_ids'][0]) ?? ''; }
+        }
+        if ($waba !== '') {
+            require_once __DIR__ . '/WhatsAppCloud.php';
+            $nr = self::roh('GET', self::API . '/' . $waba . '/phone_numbers?fields=id,display_phone_number,verified_name', null, $token);
+            $nummern = (array) ($nr['json']['data'] ?? []);
+            $wunsch = preg_replace('~\D~', '', AkquiseGate::einstellung('wa_anzeige', '')) ?? '';
+            $wahl = null;
+            foreach ($nummern as $n) { if ($wunsch !== '' && (preg_replace('~\D~', '', (string) ($n['display_phone_number'] ?? '')) ?? '') === $wunsch) { $wahl = $n; } }
+            $wahl ??= $nummern[0] ?? null;
+            if ($wahl !== null) {
+                $wa = WhatsAppCloud::einstellungen();
+                WhatsAppCloud::speichern(['konto_id' => $waba, 'nummer_id' => (string) $wahl['id']] + (WhatsAppCloud::bereit() && $wa['nummer_id'] === (string) $wahl['id'] ? [] : ['token' => $token]));
+                $z[] = 'WhatsApp ' . (string) ($wahl['display_phone_number'] ?? '') . ' verbunden';
+            } else {
+                $z[] = 'WhatsApp: im Konto ist noch keine Nummer';
+            }
+        } else {
+            $z[] = 'WhatsApp: dieser Schlüssel hat keine WhatsApp-Rechte';
+        }
+        return ['ok' => true, 'zeilen' => $z];
+    }
 
     /* ------------------------------ Z4 Beiträge -------------------------- */
 

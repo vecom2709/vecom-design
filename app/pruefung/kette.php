@@ -19678,6 +19678,38 @@ pruefe('Kanäle: Lehnt Meta den Schlüssel bei der Prüfung ab, steht „Schlüs
 AkquiseGate::setzen('meta_seite_id', $hkAlt[0]);
 if ($hkAlt[1] === '') { Db::run("DELETE FROM settings WHERE skey = 'meta_seiten_token'"); } else { Db::run("UPDATE settings SET svalue = ? WHERE skey = 'meta_seiten_token'", [$hkAlt[1]]); }
 MkKanaele::pruefungMerken('facebook', null);
+/* Ein Schlüssel für alles (01.10.2026, Uwe: „Richte mit Facebook alles automatisch ein, auch Instagram … auch WhatsApp“) */
+require_once $wurzel . '/src/WhatsAppCloud.php';
+$seAlt = [];
+foreach (['meta_seite_id', 'meta_ig_id', 'meta_seiten_token', 'wa_nummer_id', 'wa_konto_id', 'wa_anzeige', 'wa_token'] as $seK) { $seAlt[$seK] = Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$seK], null); }
+$seAufrufe = [];
+MetaSeite::$netz = static function (string $m, string $u, ?array $b, string $t) use (&$seAufrufe): array {
+    $seAufrufe[] = [$m, $u, $t];
+    if (str_contains($u, '/me/accounts')) { return ['status' => 200, 'json' => ['data' => [['id' => '1234567890', 'name' => 'Mensaena'],
+        ['id' => '987654321', 'name' => 'Vecom Design', 'instagram_business_account' => ['id' => '17841400000000001', 'username' => 'vecomdesign']]]]]; }
+    if (str_contains($u, '/debug_token')) { return ['status' => 200, 'json' => ['data' => ['granular_scopes' => [['scope' => 'pages_manage_posts', 'target_ids' => ['987654321']], ['scope' => 'whatsapp_business_management', 'target_ids' => ['555000111']]]]]]; }
+    if (str_contains($u, '/555000111/phone_numbers')) { return ['status' => 200, 'json' => ['data' => [['id' => '777', 'display_phone_number' => '+39 380 000 0000'], ['id' => '778', 'display_phone_number' => '+39 380 190 7017']]]]; }
+    if (str_contains($u, '/987654321?fields=access_token')) { return ['status' => 200, 'json' => ['access_token' => 'SEITEN-SCHLUESSEL-TEST', 'id' => '987654321']]; }
+    if (str_contains($u, '/987654321?fields=name')) { return ['status' => 200, 'json' => ['name' => 'Vecom Design']]; }
+    return ['status' => 404, 'json' => null];
+};
+MetaSeite::$tauschImTest = true;
+AkquiseGate::setzen('wa_anzeige', '393801907017');
+MetaSeite::speichern(['seite_id' => '61594281671971', 'token' => 'system-schluessel-test']);
+$seP = MkKanaele::pruefen('facebook');
+$seMe = MetaSeite::einstellungen(); $seWa = WhatsAppCloud::einstellungen();
+$seName = array_values(array_filter($seAufrufe, static fn($x) => str_contains($x[1], '?fields=name')));
+$seIgBereit = MkKanaele::stand()['instagram']['bereit'];
+MetaSeite::$netz = null; MetaSeite::$tauschImTest = false;
+pruefe('Ein Schlüssel für alles: „Verbindung prüfen“ trägt Seite (Graph-ID statt Profil-Nummer), Instagram-Konto, WhatsApp-Konto und die eigene Nummer selbst ein; Seiten-Aufrufe laufen mit dem Seiten-Schlüssel, der nirgends erscheint',
+    $seP['ok'] && $seMe['seite_id'] === '987654321' && $seMe['ig_id'] === '17841400000000001' && $seWa['konto_id'] === '555000111' && $seWa['nummer_id'] === '778' && WhatsAppCloud::bereit()
+    && str_contains($seP['text'], 'Instagram @vecomdesign verbunden') && str_contains($seP['text'], 'WhatsApp +39 380 190 7017 verbunden') && $seIgBereit
+    && ($seName[0][2] ?? '') === 'SEITEN-SCHLUESSEL-TEST' && !str_contains($seP['text'], 'SCHLUESSEL') && !str_contains((string) json_encode(MkKanaele::letztePruefung()), 'schluessel'),
+    json_encode([$seP, $seMe, $seWa, $seName]));
+foreach ($seAlt as $seK => $seV) {
+    if ($seV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$seK]); } else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', [$seV, $seK]); }
+}
+MkKanaele::pruefungMerken('facebook', null);
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
 $land = 'IT'; $st = MkStart::schritte('IT'); $fehl = []; $anm = MkAnmeldungen::liste('IT');
 ob_start(); require $wurzel . '/views/mk_start.php'; $anHtml = (string) ob_get_clean();
