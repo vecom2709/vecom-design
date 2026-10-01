@@ -18546,7 +18546,8 @@ $kxSt = MkKanaele::stand();
 pruefe('P1: Kanal-Zentrale kennt Facebook, Instagram und Telegram mit Stand; Prüfen liest nur und sagt, was fehlt',
     isset($kxSt['facebook'], $kxSt['instagram'], $kxSt['telegram']) && !MkKanaele::pruefen('facebook')['ok']
     && str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), "name=\"tat\" value=\"kanal_meta_speichern\"")
-    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'kanal_pruefen':"));
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'kanal_pruefen':")
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "'Gespeichert und geprüft: ' . \$kmR['text']"));
 /* G1 */
 $kxS = MkStart::schritte('IT');
 pruefe('G1: Start zeigt vier Schritte mit genau einem „jetzt dran“ und je einem Knopf',

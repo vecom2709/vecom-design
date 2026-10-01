@@ -906,7 +906,14 @@ if ($post) {
                 require_once __DIR__ . '/src/MetaSeite.php';
                 MetaSeite::speichern($_POST);
                 Events::pruefspur('meta_einstellungen', 'settings', null, [], ['seite_id' => MetaSeite::einstellungen()['seite_id'], 'ig_id' => MetaSeite::einstellungen()['ig_id']]);
-                $_SESSION['gut'] = 'Gespeichert. Jetzt „Verbindung prüfen“ drücken.';
+                /* 01.10.2026: Mit neuem Schlüssel gleich prüfen — das trägt Seite, Instagram und WhatsApp selbst ein. */
+                if (trim((string) ($_POST['token'] ?? '')) !== '') {
+                    require_once __DIR__ . '/src/MkKanaele.php';
+                    $kmR = MkKanaele::pruefen('facebook');
+                    $_SESSION[$kmR['ok'] ? 'gut' : 'fehler'] = 'Gespeichert und geprüft: ' . $kmR['text'];
+                } else {
+                    $_SESSION['gut'] = 'Gespeichert. Jetzt „Verbindung prüfen“ drücken.';
+                }
                 weiter('kanaele');
 
             /* P4 (01.10.2026): LinkedIn, Google-Profil, YouTube, TikTok verbinden */
