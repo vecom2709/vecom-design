@@ -323,6 +323,25 @@ if ($post) {
                 if ($neu !== null) { weiter('angebote/' . $neu); }
                 zurueck('bedarf');
 
+            /* Festpreis-Angebot (01.10.2026): Betrag fest, Bausteine teilen ihn */
+            case 'angebot_festpreis_neu':
+                require_once __DIR__ . '/src/Angebot.php';
+                require_once __DIR__ . '/src/Baukasten.php';
+                $afK = (int) ($_POST['customer_id'] ?? 0);
+                $afN = Angebot::festpreisNeu($afK, Baukasten::centsAus((string) ($_POST['festpreis'] ?? '0')), (string) ($_POST['sprache'] ?? ''));
+                if (!is_int($afN)) { $_SESSION['fehler'] = $afN; weiter('kunden/' . $afK); }
+                $_SESSION['gut'] = 'Festpreis-Angebot angelegt. Jetzt die Bausteine hinzufügen — sie teilen sich den Betrag.';
+                weiter('angebote/' . $afN);
+
+            case 'angebot_festpreis':
+                require_once __DIR__ . '/src/Angebot.php';
+                require_once __DIR__ . '/src/Baukasten.php';
+                $aid = (int) ($_POST['id'] ?? 0);
+                $afT = trim((string) ($_POST['festpreis'] ?? ''));
+                $f = Angebot::festpreisSetzen($aid, $afT === '' || !empty($_POST['aus']) ? null : Baukasten::centsAus($afT));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($afT === '' || !empty($_POST['aus']) ? 'Festpreis entfernt — die Zeilen behalten ihre Preise.' : 'Festpreis gesetzt und auf die Zeilen verteilt.');
+                zurueck('angebote/' . $aid);
+
             case 'angebot_zeilen':
                 require_once __DIR__ . '/src/Angebot.php';
                 $aid = (int) ($_POST['id'] ?? 0);

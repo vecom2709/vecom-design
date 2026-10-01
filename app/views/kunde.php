@@ -30,6 +30,33 @@ $eing = !empty($eingebettet);
 <a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu') . '?kunde=' . (int) $k['id']) ?>">Bestellung erfassen</a>
 <?php else: ?><span class="marke2 schlecht">Anonymisiert</span><?php endif; ?></div></div>
 <div class="zwei"><div>
+  <?php /* Festpreis-Angebot (01.10.2026): auch ohne Fragebogen — Betrag fest, Bausteine teilen ihn. */
+        $kAngebote = sicher(static fn() => Db::all('SELECT id, nummer, status, summe_cents, festpreis_cents FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 6', [(int) $k['id']]), []); ?>
+  <?php if (empty($k['anonym_am'])): ?>
+  <div class="block" id="festpreis-angebot"><h2>Individuelles Angebot</h2>
+    <?php if ($kAngebote): ?>
+      <div class="tabellenrahmen" style="margin-bottom:10px"><table><tbody>
+        <?php foreach ($kAngebote as $ka): ?>
+          <tr><td><a href="<?= Fmt::h(url('angebote/' . (int) $ka['id'])) ?>"><?= Fmt::h((string) $ka['nummer']) ?></a><?= $ka['festpreis_cents'] !== null ? ' <span class="marke2">Festpreis</span>' : '' ?></td>
+            <td><?= Fmt::h(['entwurf' => 'Entwurf', 'gesendet' => 'beim Kunden', 'angenommen' => 'angenommen', 'abgelehnt' => 'abgelehnt', 'abgelaufen' => 'abgelaufen', 'zurueckgezogen' => 'zurückgezogen'][(string) $ka['status']] ?? (string) $ka['status']) ?></td>
+            <td class="num"><?= Fmt::geld((int) $ka['summe_cents']) ?></td></tr>
+        <?php endforeach; ?>
+      </tbody></table></div>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" class="reihe" style="gap:8px;margin:0">
+      <?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="angebot_festpreis_neu">
+      <input type="hidden" name="customer_id" value="<?= (int) $k['id'] ?>">
+      <input name="festpreis" placeholder="Betrag in €" inputmode="decimal" required style="width:120px;text-align:right" aria-label="Festpreis in Euro">
+      <select name="sprache" style="width:auto" aria-label="Sprache des Angebots">
+        <?php foreach (['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'] as $kSp => $kSw): ?><option value="<?= $kSp ?>"<?= (string) ($k['sprache'] ?? 'it') === $kSp ? ' selected' : '' ?>><?= $kSw ?></option><?php endforeach; ?>
+      </select>
+      <button class="knopf haupt">Festpreis-Angebot anlegen</button>
+    </form>
+    <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0;line-height:1.55">Auch ohne Fragebogen. Danach klickst du die Bausteine hinein; sie teilen sich den Betrag und stehen so auf Angebot und Beleg. Den Fragebogen bekommt der Kunde wie bisher nach der Anzahlung.</p>
+  </div>
+  <?php endif; ?>
+
   <div class="block"><h2>Bestellungen</h2><div class="tabellenrahmen"><table>
     <thead><tr><th>Nummer</th><th>Paket</th><th class="num">Preis</th><th>Status</th><th>Datum</th></tr></thead><tbody>
     <?php if (!$bestellungen): ?><tr><td colspan="5"><div class="leer">Noch keine Bestellung.</div></td></tr><?php endif; ?>

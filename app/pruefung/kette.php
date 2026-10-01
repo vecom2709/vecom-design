@@ -18743,6 +18743,70 @@ pruefe('Per Prompt: Formular unter Beiträge und Feld am Beitrag sind verdrahtet
 Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE art = 'medien' AND status IN ('wartet','laeuft')");
 Db::run('DELETE FROM mk_inhalte WHERE id = ?', [(int) $ppId]);
 
+/* Individuelles Angebot zum Festpreis (01.10.2026, Uwe: „950 € und Bausteine reinklicken — die Preise werden anhand des Betrages berechnet und stehen auf Rechnung oder Beleg“) */
+abschnitt('Festpreis-Angebot');
+require_once $wurzel . '/src/Angebot.php';
+require_once $wurzel . '/src/Baukasten.php';
+require_once $wurzel . '/src/Onboarding.php';
+require_once $wurzel . '/src/Rechnung.php';
+require_once $wurzel . '/src/Vorgang.php';
+$fpK = (int) Db::insert('customers', ['name' => 'Festpreis Kunde', 'email' => 'festpreis@probe.example', 'company' => 'Bottega Festpreis', 'sprache' => 'de']);
+$fpZu = Angebot::festpreisNeu($fpK, 50);
+$fpA = Angebot::festpreisNeu($fpK, 95000, 'de');
+$fpKat = Baukasten::katalog();
+$fpHat = isset($fpKat['basis'], $fpKat['seite'], $fpKat['sprache'], $fpKat['logo']);
+Angebot::bausteinDazu((int) $fpA, 'basis'); Angebot::bausteinDazu((int) $fpA, 'seite', 5); Angebot::bausteinDazu((int) $fpA, 'sprache'); Angebot::bausteinDazu((int) $fpA, 'logo');
+if (isset($fpKat['betreuung_basis'])) { Angebot::bausteinDazu((int) $fpA, 'betreuung_basis'); }
+$fpZ = static fn(): array => Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id', [(int) $fpA]);
+$fpEin = static fn(): int => (int) array_sum(array_map(static fn($z) => (int) $z['monatlich'] ? 0 : (int) $z['summe_cents'], $fpZ()));
+$fpRow = Db::one('SELECT * FROM angebote WHERE id = ?', [(int) $fpA]);
+$fpGanz = (bool) array_filter($fpZ(), static fn($z) => !(int) $z['monatlich'] && (int) $z['einzel_cents'] % 100 === 0) && count(array_filter($fpZ(), static fn($z) => !(int) $z['monatlich'] && (int) $z['einzel_cents'] % 100 !== 0)) === 0;
+pruefe('Festpreis: unter 1 € abgelehnt; die Bausteine teilen sich genau 950 € auf ganze Euro, Monatliches bleibt extra, ohne Bedarf und Fragebogen',
+    is_string($fpZu) && is_int($fpA) && $fpHat && $fpEin() === 95000 && (int) $fpRow['summe_cents'] === 95000 && $fpRow['bedarf_id'] === null && $fpGanz
+    && (!isset($fpKat['betreuung_basis']) || (int) $fpRow['monatlich_cents'] > 0), json_encode(array_map(static fn($z) => [$z['bezeichnung'], $z['menge'], $z['einzel_cents'], $z['summe_cents']], $fpZ())));
+/* Verhältnis: die Seiten (5 × Mitte) wiegen mehr als die eine Sprache */
+$fpBy = []; foreach ($fpZ() as $z) { $fpBy[(string) $z['baustein_slug']] = $z; }
+pruefe('Festpreis: Anteile im Verhältnis der Baustein-Preise', (int) $fpBy['seite']['summe_cents'] > (int) $fpBy['sprache']['summe_cents'] && (int) $fpBy['basis']['summe_cents'] > (int) $fpBy['sprache']['summe_cents'] && (int) $fpBy['seite']['menge'] === 5);
+/* Von Hand: Logo auf 300 € — bleibt, die anderen gleichen aus */
+Angebot::zeilenSpeichern((int) $fpA, [(int) $fpBy['logo']['id'] => 1], [(int) $fpBy['logo']['id'] => '300,00']);
+$fpLogo = (int) Db::wert('SELECT summe_cents FROM angebot_positionen WHERE id = ?', [(int) $fpBy['logo']['id']], 0);
+pruefe('Festpreis: ein von Hand gesetzter Zeilenpreis bleibt, die übrigen gleichen auf 950 € aus', $fpLogo === 30000 && $fpEin() === 95000
+    && (int) Db::wert('SELECT von_hand FROM angebot_positionen WHERE id = ?', [(int) $fpBy['logo']['id']], 0) === 1);
+/* Betrag ändern → neu verteilt */
+Angebot::festpreisSetzen((int) $fpA, 120000);
+pruefe('Festpreis: anderer Betrag wird sofort neu verteilt', $fpEin() === 120000 && (int) Db::wert('SELECT summe_cents FROM angebote WHERE id = ?', [(int) $fpA], 0) === 120000);
+/* Führung und Senden ohne Fragebogen; PDF */
+$fpSent = false; $fpErr = '';
+try { $fpSent = Angebot::senden((int) $fpA); } catch (Throwable $e) { $fpErr = $e->getMessage(); }
+$fpPdf = Angebot::pdf((int) $fpA);
+pruefe('Festpreis: geht ohne Fragebogen raus, mit Angebots-Mail; das PDF entsteht (und hängt an der Mail)',
+    $fpSent === true && !Onboarding::fertig($fpK) && (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [(int) $fpA], '') === 'gesendet'
+    && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$fpK], 0) === 1
+    && str_starts_with($fpPdf, '%PDF') && str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "self::istFestpreis(\$a)) {\n                    try {\n                        \$pdf = self::pdf(\$angebotId);"), $fpErr);
+/* Gesendet: nichts verschiebt sich mehr */
+$fpVor = json_encode($fpZ()); Angebot::verteilen((int) $fpA);
+pruefe('Festpreis: ein verschicktes Angebot verteilt nicht mehr neu', json_encode($fpZ()) === $fpVor);
+/* Annahme → Bestellung → Zahlungslink ohne Fragebogen → Beleg mit Positionen */
+$fpTok = (string) Db::wert('SELECT token FROM angebote WHERE id = ?', [(int) $fpA], '');
+$fpBest = (int) Angebot::annehmen($fpTok, ['text' => 'AGB und Widerruf gelesen', 'sprache' => 'de']);
+pruefe('Festpreis: Annahme ergibt die Bestellung über 1.200 €; der Zahlungslink braucht keinen Fragebogen', $fpBest > 0
+    && (int) Db::wert('SELECT price_cents FROM orders WHERE id = ?', [$fpBest], 0) === 120000 && Onboarding::brauchtVorPreis($fpBest) === false);
+$fpZa = (int) Db::wert("SELECT id FROM payments WHERE order_id = ? AND art IN ('anzahlung','gesamt') ORDER BY id LIMIT 1", [$fpBest], 0);
+Events::zahlungBestaetigen($fpZa, 'probe-festpreis', 'manuell');
+$fpR = Db::one('SELECT * FROM invoices WHERE payment_id = ? ORDER BY id DESC LIMIT 1', [$fpZa]);
+$fpPo = $fpR ? Rechnung::posten($fpR, 'de') : [];
+$fpPoSum = array_sum(array_map(static fn($x) => (int) $x['brutto'], $fpPo));
+$fpPoN = array_sum(array_map(static fn($x) => (int) $x['netto'], $fpPo));
+pruefe('Festpreis: der Beleg der Anzahlung führt jede Position anteilig auf und ergibt genau den Betrag',
+    $fpR !== null && count($fpPo) >= 4 && $fpPoSum === (int) $fpR['total_cents'] && $fpPoN === (int) $fpR['net_cents']
+    && str_contains((string) $fpPo[0]['text'], 'Anzahlung') && str_contains((string) $fpPo[0]['text'], '50 %') && str_contains(implode(' ', array_column($fpPo, 'text')), '× 5'),
+    json_encode($fpPo, JSON_UNESCAPED_UNICODE));
+/* Andere Belege bleiben wie gehabt */
+$fpAlt = Db::one("SELECT i.* FROM invoices i JOIN orders o ON o.id = i.order_id WHERE i.order_id <> ? AND i.art IN ('anzahlung','gesamt') ORDER BY i.id LIMIT 1", [$fpBest]);
+pruefe('Festpreis: andere Belege behalten ihre eine Zeile', $fpAlt === null || count(Rechnung::posten($fpAlt, 'de')) === 1);
+/* Normales Angebot: weiter nur mit Fragebogen */
+pruefe('Festpreis: ohne Festpreis bleibt die Fragebogen-Sperre', str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "if (!self::istFestpreis(\$a) && !Onboarding::fertig("));
+
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */

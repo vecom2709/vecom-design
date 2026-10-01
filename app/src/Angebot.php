@@ -142,6 +142,105 @@ final class Angebot
     }
 
     /* ----------------------------------------------------------------------
+       FESTPREIS  (01.10.2026, Uwe: „Wir schreiben das Angebot z. B. 950 €
+       und klicken Bausteine rein; die Preise der Bausteine werden anhand
+       des Betrages berechnet und stehen auf Rechnung oder Beleg.“)
+
+       Nur beim individuellen Angebot. Der Betrag steht fest, die einmaligen
+       Zeilen teilen ihn im Verhältnis ihres Gewichts (Mitte der Spanne je
+       Stück) — auf ganze Euro, die Rundung nimmt eine Zeile mit Menge 1.
+       Setzt Uwe einen Zeilenpreis selbst, bleibt der, der Rest gleicht aus.
+       Monatliches zählt nicht zum Festpreis. Ein Festpreis-Angebot geht auch
+       ohne Fragebogen raus; den gibt es wie bisher nach der Anzahlung.
+       ---------------------------------------------------------------------- */
+
+    /** Legt für einen Kunden ein Festpreis-Angebot im Entwurf an. @return int|string ID oder Fehler */
+    public static function festpreisNeu(int $kundeId, int $cents, string $sprache = ''): int|string
+    {
+        $k = Db::one('SELECT id, name, company, sprache FROM customers WHERE id = ?', [$kundeId]);
+        if (!$k) { return 'Kunde nicht gefunden.'; }
+        if ($cents < 100) { return 'Bitte einen Festpreis eintragen (mindestens 1 €).'; }
+        $sprache = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache
+                 : (in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : 'it');
+        $tage = max(1, (int) Db::wert("SELECT svalue FROM settings WHERE skey = 'angebot_gueltig_tage'", [], '14'));
+        $wer  = trim((string) $k['company']) !== '' ? trim((string) $k['company']) : trim((string) $k['name']);
+        $titel = ['it' => 'Sito web per ', 'de' => 'Website für ', 'en' => 'Website for '][$sprache] . $wer;
+        return (int) Db::insert('angebote', [
+            'nummer'          => self::naechsteNummer(),
+            'customer_id'     => $kundeId,
+            'sprache'         => $sprache,
+            'status'          => 'entwurf',
+            'titel'           => mb_substr($titel, 0, 200),
+            'token'           => bin2hex(random_bytes(24)),
+            'gueltig_bis'     => date('Y-m-d', strtotime("+$tage days")),
+            'festpreis_cents' => $cents,
+        ]);
+    }
+
+    /** Setzt oder entfernt (null) den Festpreis eines Entwurfs. @return ?string Fehler */
+    public static function festpreisSetzen(int $angebotId, ?int $cents): ?string
+    {
+        $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
+        if (!$a || !self::aenderbar($a)) { return 'Nur ein Entwurf lässt sich ändern.'; }
+        if ($cents !== null && $cents < 100) { return 'Bitte einen Festpreis eintragen (mindestens 1 €).'; }
+        Db::update('angebote', $angebotId, ['festpreis_cents' => $cents]);
+        if ($cents === null) { Db::run('UPDATE angebot_positionen SET von_hand = 0 WHERE angebot_id = ?', [$angebotId]); }
+        self::summenNeu($angebotId);
+        return null;
+    }
+
+    public static function istFestpreis(array $a): bool
+    {
+        return isset($a['festpreis_cents']) && $a['festpreis_cents'] !== null;
+    }
+
+    /**
+     * Verteilt den Festpreis auf die einmaligen Zeilen. Gibt zurück, was nicht
+     * aufgeht (null = alles gut) — die Ansicht zeigt es.
+     */
+    public static function verteilen(int $angebotId): ?string
+    {
+        $a = Db::one('SELECT festpreis_cents, status FROM angebote WHERE id = ?', [$angebotId]);
+        /* Nur im Entwurf: Was beim Kunden liegt, bewegt sich nicht mehr. */
+        if (!$a || $a['festpreis_cents'] === null || $a['status'] !== 'entwurf') { return null; }
+        $fest = (int) $a['festpreis_cents'];
+        /* Das Gewicht wird einmal festgehalten — sonst wanderte es mit jeder Verteilung. */
+        Db::run('UPDATE angebot_positionen SET gewicht_cents = einzel_cents WHERE angebot_id = ? AND gewicht_cents IS NULL', [$angebotId]);
+        $zeilen = Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 ORDER BY sortierung, id', [$angebotId]);
+        if (!$zeilen) { return 'Noch keine Baustein-Zeile — der Festpreis verteilt sich, sobald du Bausteine hinzufügst.'; }
+        $hand = array_values(array_filter($zeilen, static fn($z) => (int) $z['von_hand'] === 1));
+        $frei = array_values(array_filter($zeilen, static fn($z) => (int) $z['von_hand'] !== 1));
+        $rest = $fest - array_sum(array_map(static fn($z) => (int) $z['summe_cents'], $hand));
+        if (!$frei) { return $rest !== 0 ? 'Alle Zeilen sind von Hand gesetzt und ergeben nicht den Festpreis.' : null; }
+        $fehler = null;
+        if ($rest < 0) { $fehler = 'Die von Hand gesetzten Zeilen liegen schon über dem Festpreis.'; $rest = 0; }
+        $gewicht = static fn(array $z): int => max(1, (int) ($z['gewicht_cents'] ?? 0) ?: (int) $z['einzel_cents'] ?: 100) * max(1, (int) $z['menge']);
+        $summeW = array_sum(array_map($gewicht, $frei));
+        /* Die Rundung nimmt die gewichtigste Zeile mit Menge 1 — sonst die letzte. */
+        $ausgleich = null;
+        foreach ($frei as $i => $z) {
+            if ((int) $z['menge'] === 1 && ($ausgleich === null || $gewicht($z) > $gewicht($frei[$ausgleich]))) { $ausgleich = $i; }
+        }
+        $ausgleich ??= count($frei) - 1;
+        $vergeben = 0; $neu = [];
+        foreach ($frei as $i => $z) {
+            if ($i === $ausgleich) { continue; }
+            $menge  = max(1, (int) $z['menge']);
+            $einzel = (int) (round($rest * $gewicht($z) / $summeW / $menge / 100) * 100);
+            $neu[(int) $z['id']] = [$einzel, $einzel * $menge];
+            $vergeben += $einzel * $menge;
+        }
+        $za = $frei[$ausgleich];
+        $sa = max(0, $rest - $vergeben);
+        if ($rest - $vergeben < 0) { $fehler ??= 'Der Festpreis ist für so viele Zeilen zu klein.'; }
+        $neu[(int) $za['id']] = [intdiv($sa, max(1, (int) $za['menge'])), $sa];
+        foreach ($neu as $pid => [$einzel, $summe]) {
+            Db::run('UPDATE angebot_positionen SET einzel_cents = ?, summe_cents = ? WHERE id = ?', [$einzel, $summe, $pid]);
+        }
+        return $fehler;
+    }
+
+    /* ----------------------------------------------------------------------
        Der Gegenvorschlag des Kunden
        ---------------------------------------------------------------------- */
 
@@ -325,6 +424,8 @@ final class Angebot
                 'anzahlung_prozent' => (int) $alt['anzahlung_prozent'],
                 'token'             => bin2hex(random_bytes(24)),
                 'gueltig_bis'       => date('Y-m-d', strtotime("+$tage days")),
+                /* Festpreis bleibt in der Neufassung — außer sie folgt dem Wunsch des Kunden. */
+                'festpreis_cents'   => !$ausWunsch && ($alt['festpreis_cents'] ?? null) !== null ? (int) $alt['festpreis_cents'] : null,
             ]);
 
             /* Zwei Quellen fuer dieselbe Liste: Ohne Wunsch werden die Zeilen
@@ -368,6 +469,8 @@ final class Angebot
                         'menge'         => (int) $p['menge'],
                         'einzel_cents'  => (int) $p['einzel_cents'],
                         'summe_cents'   => (int) $p['summe_cents'],
+                        'gewicht_cents' => $p['gewicht_cents'] ?? null,
+                        'von_hand'      => (int) ($p['von_hand'] ?? 0),
                         'monatlich'     => (int) $p['monatlich'],
                         'sortierung'    => (int) $p['sortierung'],
                     ];
@@ -440,6 +543,7 @@ final class Angebot
             'menge'         => $menge,
             'einzel_cents'  => $einzel,
             'summe_cents'   => $einzel * $menge,
+            'gewicht_cents' => $einzel,
             'monatlich'     => (int) $b['monatlich'],
             'sortierung'    => $letzte + 10,
         ]);
@@ -462,6 +566,7 @@ final class Angebot
             'menge'        => $menge,
             'einzel_cents' => max(0, $einzelCents),
             'summe_cents'  => max(0, $einzelCents) * $menge,
+            'gewicht_cents' => max(0, $einzelCents),
             'monatlich'    => $monatlich ? 1 : 0,
             'sortierung'   => $letzte + 10,
         ]);
@@ -476,7 +581,7 @@ final class Angebot
         if (!$a || !self::aenderbar($a)) { return 0; }
 
         $wie = 0;
-        Db::transaktion(static function () use ($angebotId, $mengen, $preise, &$wie) {
+        Db::transaktion(static function () use ($angebotId, $mengen, $preise, $a, &$wie) {
             foreach ($mengen as $pid => $menge) {
                 $pid = (int) $pid;
                 $z = Db::one('SELECT * FROM angebot_positionen WHERE id = ? AND angebot_id = ?', [$pid, $angebotId]);
@@ -484,9 +589,10 @@ final class Angebot
                 require_once __DIR__ . '/Baukasten.php';
                 $m = max(1, (int) $menge);
                 $e = Baukasten::centsAus((string) ($preise[$pid] ?? '0'));
-                Db::update('angebot_positionen', $pid, [
-                    'menge' => $m, 'einzel_cents' => $e, 'summe_cents' => $e * $m,
-                ]);
+                $feld = ['menge' => $m, 'einzel_cents' => $e, 'summe_cents' => $e * $m];
+                /* Festpreis: Wer den Preis einer Zeile ändert, setzt ihn fest; die anderen gleichen aus. */
+                if (self::istFestpreis($a) && !(int) $z['monatlich'] && $e !== (int) $z['einzel_cents']) { $feld['von_hand'] = 1; }
+                Db::update('angebot_positionen', $pid, $feld);
                 $wie++;
             }
         });
@@ -506,6 +612,7 @@ final class Angebot
     /** Rechnet die Summen aus den Zeilen. Einmalig und monatlich getrennt. */
     public static function summenNeu(int $angebotId): void
     {
+        self::verteilen($angebotId);   // Festpreis (01.10.2026): erst verteilen, dann summieren
         $einmal = (int) Db::wert(
             'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0',
             [$angebotId], 0);
@@ -536,7 +643,8 @@ final class Angebot
            Wer hier an der Fuehrung vorbei klickt, soll lesen, warum nichts
            rausging -- nicht vor einer Seite stehen, auf der sich nichts tut. */
         require_once __DIR__ . '/Onboarding.php';
-        if (!Onboarding::fertig((int) $a['customer_id'])) {
+        /* Festpreis-Angebot (01.10.2026): Der Preis steht fest — es geht auch ohne Fragebogen raus. */
+        if (!self::istFestpreis($a) && !Onboarding::fertig((int) $a['customer_id'])) {
             throw new RuntimeException('Das Angebot geht erst raus, wenn der Kunde den großen Fragebogen '
                 . 'abgeschickt hat — erst seine Antworten legen fest, was gebaut wird und was es kostet.');
         }
@@ -599,10 +707,19 @@ final class Angebot
                     'gueltigsatz' => $gueltigsatz,
                     'link'        => $ziel,
                 ]);
+                /* Festpreis-Angebot (01.10.2026): das Angebot als PDF mit allen Positionen dazu. */
+                $anhaenge = [];
+                if (self::istFestpreis($a)) {
+                    try {
+                        $pdf = self::pdf($angebotId);
+                        $neuA = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]) ?: $a;
+                        if ($pdf !== '') { $anhaenge[] = ['name' => self::dateiname($neuA), 'daten' => $pdf]; }
+                    } catch (Throwable $e) { /* ohne Anhang ist besser als ohne Mail */ }
+                }
                 Mail::senden('angebot', (string) $k['email'], $betreff, $text, [
                     'customer_id' => (int) $a['customer_id'],
                     'antwortAn'   => Mail::eigeneAdresse(),
-                ]);
+                ] + ($anhaenge ? ['anhaenge' => $anhaenge] : []));
             }
         } catch (Throwable $e) { /* der Link steht in der Verwaltung, das Angebot ist raus */ }
 

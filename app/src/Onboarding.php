@@ -177,6 +177,10 @@ final class Onboarding
      */
     public static function brauchtVorPreis(int $bestellId): bool
     {
+        /* Festpreis-Angebot (01.10.2026): Der Preis steht fest — der Fragebogen kommt nach der Anzahlung. */
+        try {
+            if ((int) Db::wert('SELECT COUNT(*) FROM angebote WHERE order_id = ? AND festpreis_cents IS NOT NULL', [$bestellId], 0) > 0) { return false; }
+        } catch (Throwable $e) { /* Spalte fehlt noch: wie bisher */ }
         $p = Db::one('SELECT pk.art, pk.slug FROM orders o LEFT JOIN packages pk ON pk.id = o.package_id
                        WHERE o.id = ?', [$bestellId]);
         return $p ? self::brauchtVorPreisPaket($p) : false;

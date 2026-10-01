@@ -71,6 +71,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
               <tr>
                 <td><strong><?= Fmt::h((string) $p['bezeichnung']) ?></strong>
                   <?php if ((int) $p['monatlich']): ?> <span class="marke2 warnung">monatlich</span><?php endif; ?>
+                  <?php if (!empty($p['von_hand']) && Angebot::istFestpreis($a)): ?> <span class="marke2" title="Preis von dir gesetzt — die anderen Zeilen gleichen aus">von Hand</span><?php endif; ?>
                   <?php if (trim((string) $p['beschreibung']) !== ''): ?>
                     <div style="color:var(--leise);font-size:12.5px;line-height:1.5;margin-top:3px">
                       <?= Fmt::h((string) $p['beschreibung']) ?></div>
@@ -143,6 +144,31 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
   </div>
 
   <div>
+    <?php $istFest = Angebot::istFestpreis($a); $festHinweis = $istFest ? Angebot::verteilen((int) $a['id']) : null; ?>
+    <?php if ($aenderbar || $istFest): ?>
+    <div class="block" id="festpreis">
+      <h2 style="font-size:15px;margin:0 0 10px">Festpreis <?php if ($istFest): ?><span class="marke2 gut">aktiv</span><?php endif; ?></h2>
+      <?php if ($istFest): ?>
+        <p style="font-size:20px;font-weight:600;margin:0 0 4px"><?= Fmt::geld((int) $a['festpreis_cents'], (string) $a['currency']) ?></p>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0 0 8px">Die einmaligen Zeilen teilen sich diesen Betrag im Verhältnis der Baustein-Preise, auf ganze Euro. Änderst du einen Zeilenpreis, bleibt er fest und die übrigen gleichen aus. Monatliches zählt extra. Geht auch ohne Fragebogen raus — mit dem Angebot als PDF in der Mail.</p>
+        <?php if ($festHinweis !== null): ?><div class="hinweis" style="margin:0 0 8px"><?= Fmt::h($festHinweis) ?></div><?php endif; ?>
+      <?php else: ?>
+        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0 0 8px">Betrag eintragen, dann teilen die Zeilen ihn unter sich auf — so stehen die Positionen mit ihren Beträgen auf Angebot und Beleg.</p>
+      <?php endif; ?>
+      <?php if ($aenderbar): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" class="reihe" style="gap:8px;margin:0">
+        <?= Csrf::feld() ?>
+        <input type="hidden" name="tat" value="angebot_festpreis">
+        <input type="hidden" name="id" value="<?= (int) $a['id'] ?>">
+        <input type="hidden" name="zurueck" value="angebote/<?= (int) $a['id'] ?>">
+        <input name="festpreis" value="<?= $istFest ? Fmt::h($eur((int) $a['festpreis_cents'])) : '' ?>" placeholder="Betrag in €" inputmode="decimal" style="width:120px;text-align:right" aria-label="Festpreis in Euro">
+        <button class="knopf<?= $istFest ? '' : ' haupt' ?>"><?= $istFest ? 'Ändern' : 'Festpreis setzen' ?></button>
+        <?php if ($istFest): ?><button class="knopf stumm" name="aus" value="1">Festpreis entfernen</button><?php endif; ?>
+      </form>
+      <?php endif; ?>
+    </div>
+    <?php endif; ?>
+
     <div class="block">
       <h2 style="font-size:15px;margin:0 0 10px">Summe</h2>
       <p style="font-size:24px;font-weight:600;margin:0 0 2px">

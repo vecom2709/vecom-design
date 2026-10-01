@@ -323,6 +323,9 @@ final class Rechnung
                 return self::mitRabatt($r, $bez, (string) ($p['detail'] ?? ''), $s);
             }
         }
+        /* Festpreis-Angebot (01.10.2026): alle Positionen auf dem Beleg, anteilig zur Rate. */
+        $festZeilen = self::festpreisPosten($r, $was, $s);
+        if ($festZeilen !== null) { return $festZeilen; }
         $paket = $r['order_id'] !== null
             ? (string) Db::wert('SELECT package_name FROM orders WHERE id = ?',
                 [(int) $r['order_id']], '')
@@ -334,6 +337,43 @@ final class Rechnung
             'steuer' => (int) $r['tax_cents'],
             'brutto' => (int) $r['total_cents'],
         ]];
+    }
+
+    /**
+     * Beleg zu einer Bestellung aus einem Festpreis-Angebot (01.10.2026, Uwe:
+     * „die Positionen stehen auf Rechnung oder Beleg“): jede einmalige
+     * Position des Angebots als eigene Zeile, anteilig zur bezahlten Rate —
+     * die Zeilen ergeben zusammen genau den Betrag des Belegs (die letzte
+     * nimmt die Rundung). Andere Belege bleiben, wie sie sind.
+     * @return ?list<array{text:string, netto:int, steuer:int, brutto:int}>
+     */
+    private static function festpreisPosten(array $r, string $was, string $s): ?array
+    {
+        if ($r['order_id'] === null || !in_array((string) $r['art'], ['anzahlung', 'restzahlung', 'gesamt'], true)) { return null; }
+        try {
+            $ang = Db::one('SELECT id FROM angebote WHERE order_id = ? AND festpreis_cents IS NOT NULL ORDER BY id DESC LIMIT 1', [(int) $r['order_id']]);
+        } catch (Throwable $e) { return null; }
+        if (!$ang) { return null; }
+        $pos = Db::all('SELECT bezeichnung, menge, summe_cents FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 AND summe_cents > 0 ORDER BY sortierung, id', [(int) $ang['id']]);
+        $gesamt = array_sum(array_map(static fn($p) => (int) $p['summe_cents'], $pos));
+        $brutto = (int) $r['total_cents'];
+        if (!$pos || $gesamt <= 0 || $brutto <= 0) { return null; }
+        require_once __DIR__ . '/Fmt.php';
+        $voll = abs($brutto - $gesamt) < 1;
+        $prozent = (int) round($brutto * 100 / $gesamt);
+        $von = ['it' => 'di', 'de' => 'von', 'en' => 'of'][$s] ?? 'von';
+        $aus = []; $sb = 0; $sn = 0; $st = 0; $n = count($pos);
+        foreach ($pos as $i => $p) {
+            $letzte = $i === $n - 1;
+            $b  = $letzte ? $brutto - $sb : (int) round((int) $p['summe_cents'] * $brutto / $gesamt);
+            $nt = $letzte ? (int) $r['net_cents'] - $sn : (int) round((int) $r['net_cents'] * (int) $p['summe_cents'] / $gesamt);
+            $sx = $letzte ? (int) $r['tax_cents'] - $st : (int) round((int) $r['tax_cents'] * (int) $p['summe_cents'] / $gesamt);
+            $sb += $b; $sn += $nt; $st += $sx;
+            $name = trim((string) $p['bezeichnung']) . ((int) $p['menge'] > 1 ? ' × ' . (int) $p['menge'] : '');
+            $text = $voll ? $name : $name . ' — ' . $was . ' ' . $prozent . ' % ' . $von . ' ' . Fmt::geld((int) $p['summe_cents']);
+            $aus[] = ['text' => $text, 'netto' => $nt, 'steuer' => $sx, 'brutto' => $b];
+        }
+        return $aus;
     }
 
     /**

@@ -952,6 +952,8 @@ final class Vorgang
     private static function brauchtFragebogenVorPreis(array $v): bool
     {
         if (($v['bestell_id'] ?? null) === null) { return true; }
+        /* Festpreis-Angebot (01.10.2026): Zahlungslink auch ohne Fragebogen. */
+        if ((int) self::wert('SELECT COUNT(*) FROM angebote WHERE order_id = ? AND festpreis_cents IS NOT NULL', [(int) $v['bestell_id']]) > 0) { return false; }
         return (bool) self::wert(
             "SELECT COUNT(*) FROM orders o LEFT JOIN packages pk ON pk.id = o.package_id
               WHERE o.id = ? AND (pk.art = 'website' OR pk.slug = 'individuelles-angebot')",
@@ -973,7 +975,8 @@ final class Vorgang
             $ziel = 'angebote/' . (int) $angebot['id'];
             switch ((string) $angebot['status']) {
                 case 'entwurf':
-                    $schritt = self::fragebogenVorPreis($v, (int) $kid);
+                    /* Festpreis-Angebot (01.10.2026): geht ohne Fragebogen raus. */
+                    $schritt = ($angebot['festpreis_cents'] ?? null) !== null ? null : self::fragebogenVorPreis($v, (int) $kid);
                     if ($schritt !== null) { return $schritt; }
                     return self::setzen($v, 'gespraech', self::DU, 'Angebot senden',
                         'Das Angebot steht als Entwurf. Der Kunde hat es noch nicht.',
