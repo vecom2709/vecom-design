@@ -40,7 +40,7 @@ require __DIR__ . '/mk_stil.php';
 
 <?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
-<details class="block mk-auftrag mk-mehr" id="auftraege"><summary style="cursor:pointer"><b>Mehr: Beiträge frei zusammenstellen</b> <span class="mk-fein">— Plattformen, Anzahl und Thema selbst wählen. Für den Alltag reicht „Diese Woche werben“ auf Start.</span></summary>
+<details class="block mk-auftrag mk-mehr" id="auftraege"><summary style="cursor:pointer"><b>Mehr: Beiträge frei zusammenstellen</b> <span class="mk-fein">— Plattformen, Anzahl und Thema selbst wählen. Für den Alltag reicht „Diese Woche werben“ unter „Jetzt dran“.</span></summary>
 <section aria-labelledby="mk-schreib-titel" style="margin-top:12px">
   <div class="mk-auftrag__kopf">
     <h2 id="mk-schreib-titel">Claude Inhalte schreiben lassen</h2>
@@ -112,11 +112,12 @@ require __DIR__ . '/mk_stil.php';
         <span class="mk-inhalt-karte__marken">
           <span class="marke2"><?= Fmt::h(MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']) ?></span>
           <span class="marke2 <?= $x['art'] === 'bezahlt' ? 'warnung' : '' ?>"><?= Fmt::h(MkInhalt::ARTEN[$x['art']] ?? $x['art']) ?></span>
-          <span class="mk-fein"><?= Fmt::h(MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) ?> · <?= Fmt::h(strtoupper((string) $x['sprache'])) ?></span>
+          <?= MkInhalt::spracheMarke((string) $x['sprache']) ?>
+          <span class="mk-fein"><?= Fmt::h(MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) ?></span>
         </span>
         <b class="mk-inhalt-karte__titel"><?= Fmt::h($x['titel']) ?></b>
         <span class="mk-inhalt-karte__text"><?= Fmt::h($kurz($x)) ?></span>
-        <?php if ($x['sprache'] !== 'de' && $deKurz($x) !== ''): ?><span class="mk-de"><?= Fmt::h($deKurz($x)) ?></span><?php endif; ?>
+        <?php if ($x['sprache'] !== 'de' && $deKurz($x) !== ''): ?><span class="mk-de">🇩🇪 Auf Deutsch: <?= Fmt::h($deKurz($x)) ?></span><?php endif; ?>
         <span class="mk-inhalt-karte__fuss">
           <span class="marke2 <?= ['entwurf' => 'warnung', 'freigegeben' => 'gut', 'veroeffentlicht' => 'gut', 'verworfen' => ''][$x['status']] ?? '' ?>"><?= Fmt::h(MkInhalt::STATUS[$x['status']] ?? $x['status']) ?></span>
           <span class="mk-fein"><?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?><?= $x['creative_id'] ? ' · eigener Link' : '' ?><?= !empty($x['geplant_am']) && $x['status'] === 'freigegeben' ? ' · geplant ' . Fmt::h(date('d.m. H:i', strtotime((string) $x['geplant_am']))) : '' ?></span>

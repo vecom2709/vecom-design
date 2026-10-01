@@ -61,6 +61,8 @@ require __DIR__ . '/mk_stil.php';
         <h3><?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?></h3>
         <b class="mk-best__name"><?= Fmt::h($z['titel']) ?></b>
         <span class="mk-best__zahl">Stand <?= Fmt::h($datum($z['updated_at'])) ?></span>
+        <?php require_once dirname(__DIR__) . '/src/MkInhalt.php'; /* 01.10.2026: Beiträge für diese Gruppe entstehen in der Landessprache */ ?>
+        <span class="mk-best__zweit">Beiträge: <?= MkInhalt::spracheMarke((string) ($z['land'] ?? $land) === 'DE' ? 'de' : 'it') ?></span>
         <?php if (isset(MkZielgruppe::KUNDENWEGE[(string) ($zp['kundenweg']['weg'] ?? '')])): ?><span class="mk-best__zweit">Weg: <?= Fmt::h(MkZielgruppe::KUNDENWEGE[$zp['kundenweg']['weg']][0]) ?></span><?php endif; ?>
         <?php $zs = $zgSeiten[(int) $z['id']] ?? null; if ($zs): ?><span class="mk-best__zweit">Landingpage: <?= $zs['status'] === 'freigegeben' ? 'online · ' . number_format((int) $zs['aufrufe'], 0, ',', '.') . ' Aufrufe' : 'wartet auf dein Ja' ?><?= $zs['entwurf'] && $zs['status'] === 'freigegeben' ? ' · neuer Entwurf' : '' ?></span><?php endif; ?>
         <?php if ($land === 'IT' && $zp && MkZielgruppe::ohneDeutsch($zp + ['land' => 'IT'])): ?><span class="mk-best__zweit">deutsche Fassung wird nachgeholt</span><?php endif; ?>

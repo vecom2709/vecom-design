@@ -29,6 +29,37 @@ final class MkInhalt
     public const STATUS = ['entwurf' => 'Entwurf', 'freigegeben' => 'Freigegeben', 'veroeffentlicht' => 'Veröffentlicht', 'verworfen' => 'Verworfen'];
     public const SPRACHEN = ['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'];
 
+    /**
+     * Die Sprache des Textes, sichtbar wie das Land (01.10.2026, Uwe: „nicht alles korrekt
+     * einsortiert zwischen Italienisch, Deutsch und Englisch“ → Vorschlag 1). Der Titel ist
+     * immer deutsch (für Uwe); diese Marke sagt, in welcher Sprache gepostet wird.
+     */
+    public const FLAGGEN = ['it' => "\u{1F1EE}\u{1F1F9}", 'de' => "\u{1F1E9}\u{1F1EA}", 'en' => "\u{1F1EC}\u{1F1E7}"];
+
+    /**
+     * Was im Telegram-Kanal steht (01.10.2026, Uwe: Ja zu „Telegram passend zum Kanal“):
+     * Der Kanal ist deutsch zuerst. Ein italienisches Stück geht deshalb mit der deutschen
+     * Fassung davor raus — 🇩🇪 Deutsch, Leerzeile, 🇮🇹 Original. Schreibt Claude das Stück
+     * schon zweisprachig (Fähnchen im Text), bleibt es, wie es ist; passt beides nicht in die
+     * Grenze von Telegram, geht das Original allein. Dieselbe Fassung zeigt die Freigabe.
+     */
+    public static function telegramText(array $x, int $max = 4000): string
+    {
+        $t = trim((string) ($x['f']['text'] ?? ''));
+        $sp = (string) ($x['sprache'] ?? 'de');
+        if ($sp === 'de' || preg_match('/\x{1F1E9}\x{1F1EA}/u', $t)) { return $t; }
+        $de = trim((string) ($x['uebersetzung'] ?? ''));
+        if ($de === '' || $t === '') { return $t; }
+        $zus = self::FLAGGEN['de'] . ' ' . $de . "\n\n" . (self::FLAGGEN[$sp] ?? '') . ' ' . $t;
+        return mb_strlen($zus) <= $max ? $zus : $t;
+    }
+
+    public static function spracheMarke(string $sp): string
+    {
+        $sp = isset(self::SPRACHEN[$sp]) ? $sp : 'it';
+        return '<span class="marke2 mk-sprache" title="In dieser Sprache wird gepostet">' . self::FLAGGEN[$sp] . ' Text auf ' . htmlspecialchars(self::SPRACHEN[$sp], ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+
     /** Format => [Wort, Art, Plattformen, Werbemittel-Art] */
     public const FORMATE = [
         'beitrag'        => ['Beitrag', 'organisch', ['instagram', 'facebook', 'linkedin', 'threads'], 'beitrag'],
@@ -426,7 +457,7 @@ final class MkInhalt
                 if ($link) { $teile[] = 'Link-Sticker: ' . $link; }
                 break;
             case 'telegram': case 'profil':
-                $teile[] = (string) ($f['text'] ?? '');
+                $teile[] = $x['format'] === 'telegram' ? self::telegramText($x) : (string) ($f['text'] ?? '');
                 if ($link) { $teile[] = $link; }
                 break;
             case 'meta_anzeige':

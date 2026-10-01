@@ -143,7 +143,7 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
   </section>
 
   <section class="block" aria-labelledby="vz-w-titel">
-    <h2 id="vz-w-titel">Wo eintragen — <?= Fmt::h(MkLand::name($vzLand)) ?> <span class="mehr">zuerst die Stellen, die Kunden bringen</span></h2>
+    <h2 id="vz-w-titel"><?= $vzLand === 'DE' ? '🇩🇪' : '🇮🇹' ?> Wo eintragen — <?= Fmt::h(MkLand::name($vzLand)) ?> <span class="mehr">zuerst die Stellen, die Kunden bringen · <?= $vzLand === 'DE' ? 'deutsch' : 'italienisch' ?></span></h2>
     <?php foreach ($vzT['wirkt'] as $e): ?>
       <div class="vz-zeile">
         <span class="vz-name"><b><?= Fmt::h((string) $e['name']) ?></b> <span class="mk-fein">· <?= Fmt::h((string) $e['kosten']) ?></span></span>
@@ -158,6 +158,23 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
     <?php if (!$vzT['wirkt']): ?><p class="mk-fein" style="margin:0">Hier gibt es für <?= Fmt::h(MkLand::name($vzLand)) ?> keine Stelle, die sich lohnt.</p><?php endif; ?>
     <p class="mk-fein" style="margin:10px 0 0"><?= count($vzT['weitere']) ?> weitere Stellen (Telegram-Kataloge, kleinere Verzeichnisse) stehen unten unter „Alle Stellen und Werkzeuge“.</p>
   </section>
+
+  <?php if ($vzT['international']): ?>
+  <section class="block" id="international" aria-labelledby="vz-i-titel">
+    <h2 id="vz-i-titel">🇬🇧 International <span class="mehr">englische Plattformen · gelten für Italien und Deutschland zugleich — einmal eintragen reicht</span></h2>
+    <?php foreach ($vzT['international'] as $e): ?>
+      <div class="vz-zeile">
+        <span class="vz-name"><b><?= Fmt::h((string) $e['name']) ?></b> <span class="mk-fein">· <?= Fmt::h((string) $e['kosten']) ?></span></span>
+        <?= $stMarke($e) ?>
+        <span class="vz-tun">
+          <?php if ($e['status'] === 'offen'): ?><a class="knopf klein" href="<?= Fmt::h((string) $e['url']) ?>" target="_blank" rel="noopener noreferrer">Eintragen ↗</a><?= $vzStandKnopf($e, 'eingereicht', 'Eingereicht') ?>
+          <?php elseif ($e['status'] === 'eingereicht'): ?><?= $vzStandKnopf($e, 'online', 'Ist online') ?>
+          <?php elseif ($e['status'] === 'online' && !empty($e['eintrag_url'])): ?><a class="knopf klein" href="<?= Fmt::h((string) $e['eintrag_url']) ?>" target="_blank" rel="noopener noreferrer">Ansehen ↗</a><?php endif; ?>
+        </span>
+      </div>
+    <?php endforeach; ?>
+  </section>
+  <?php endif; ?>
 
   <section class="block" id="partner-gewinnen" aria-labelledby="vz-p-titel">
     <h2 id="vz-p-titel">Partner gewinnen — <?= Fmt::h(MkLand::name($vzLand)) ?> <span class="mehr">Menschen, die täglich mit Kleinbetrieben zu tun haben · Provision über das Partnerprogramm</span></h2>

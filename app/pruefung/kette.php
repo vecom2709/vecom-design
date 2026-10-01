@@ -17559,7 +17559,7 @@ pruefe('Verwaltung: Länderschalter oben (Zahl der offenen Entwürfe am anderen 
     && str_contains($mlH1, 'Kfz-Werkstatt recherchieren'), (string) $mlFehler);
 pruefe('Verwaltung: italienische Kundensprache mit deutscher Fassung darunter; Inhalte zeigen ihre deutsche Fassung und den Knopf „Übersetzen lassen“',
     str_contains($mlH2, '<span class="mk-de">Was kostet das?</span>') && str_contains($mlH2, 'italienisch · deutsch darunter') && str_contains($mlH2, 'mk-flagge--it')
-    && str_contains($mlH3, '<span class="mk-de">Hallo</span>') && str_contains($mlH3, 'value="uebersetzen_starten"'));
+    && str_contains($mlH3, '<span class="mk-de">🇩🇪 Auf Deutsch: Hallo</span>') && str_contains($mlH3, 'Text auf Italienisch') && str_contains($mlH3, 'value="uebersetzen_starten"'));
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_recherche WHERE titel LIKE 'ML %'"); Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
@@ -18331,9 +18331,9 @@ pruefe('K1: Migration 134 trägt die schon vorhandenen Fälle nach (ohne Doppelt
 /* M1/M3 */
 $m1L = (string) file_get_contents($wurzel . '/views/layout.php');
 pruefe('M1/M3 + G1: ein Land-Schalter oben für das ganze Marketing, fünf Reiter (Start · Zielgruppen · Beiträge · Kanäle · Zahlen), keine Seite fällt weg',
-    str_contains($m1L, '<nav class="mk-oben mk-oben--') && str_contains($m1L, "['Beiträge', ['freigabe' => 'Freigeben', 'inhalte' => 'Alle Beiträge']]")
-    && str_contains($m1L, "['Kanäle', ['kanaele' => 'Verbinden & Posten', 'telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']]") && substr_count($m1L, "    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],") === 1
-    && str_contains($m1L, "['Zahlen', ['zahlen' => 'Überblick', 'kampagnen' => 'Links & Kampagnen']]")
+    str_contains($m1L, '<nav class="mk-oben mk-oben--') && str_contains($m1L, "['Beiträge', ['freigabe' => 'Prüfen & freigeben', 'inhalte' => 'Alle Beiträge']]")
+    && str_contains($m1L, "['Wo gepostet wird', ['kanaele' => 'Kanäle verbinden', 'telegram' => 'Telegram', 'verzeichnisse' => 'Einträge im Netz']]") && substr_count($m1L, "    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],") === 1
+    && str_contains($m1L, "['Was es bringt', ['zahlen' => 'Überblick', 'kampagnen' => 'Links je Beitrag']]")
     && !str_contains((string) file_get_contents($wurzel . '/views/zielgruppen.php'), "require __DIR__ . '/mk_land.php';"));
 /* M2 + Z4 */
 Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_woche_%'");
@@ -18374,7 +18374,11 @@ $vgIt = Verzeichnisse::fuerLand($vgL, 'IT'); $vgDe = Verzeichnisse::fuerLand($vg
 $vgNamen = static fn(array $l): array => array_column($l, 'schluessel');
 pruefe('V2: nach Land getrennt — Italien zuerst Google, Apple, Bing, PagineGialle; Deutschland nur, was dort gilt (Agentur-Listen), keine italienischen Kataloge',
     array_slice($vgNamen($vgIt['wirkt']), 0, 4) === ['google', 'apple', 'bing', 'paginegialle'] && in_array('tgstat', $vgNamen($vgIt['weitere']), true)
-    && !in_array('google', $vgNamen($vgDe['wirkt']), true) && in_array('clutch', $vgNamen($vgDe['wirkt']), true) && !in_array('tgstat', $vgNamen(array_merge($vgDe['wirkt'], $vgDe['weitere'])), true));
+    && !in_array('google', $vgNamen($vgDe['wirkt']), true) && in_array('clutch', $vgNamen($vgDe['international']), true) && !in_array('tgstat', $vgNamen(array_merge($vgDe['wirkt'], $vgDe['weitere'])), true));
+pruefe('Sprachen sauber getrennt (01.10.2026): englische Plattformen stehen als „international“ für sich, nie zwischen den italienischen oder deutschen',
+    in_array('clutch', $vgNamen($vgIt['international']), true) && !in_array('clutch', $vgNamen(array_merge($vgIt['wirkt'], $vgIt['weitere'], $vgDe['wirkt'], $vgDe['weitere'])), true)
+    && !array_filter(array_merge($vgIt['wirkt'], $vgIt['weitere']), static fn($e) => Verzeichnisse::land($e) !== 'IT')
+    && !array_filter(array_merge($vgDe['wirkt'], $vgDe['weitere']), static fn($e) => Verzeichnisse::land($e) !== 'DE'));
 $vgN = Verzeichnisse::naechster($vgL, 'IT');
 pruefe('V1: oben steht genau ein nächster Eintrag — der nützlichste offene', ($vgN['schluessel'] ?? '') === 'google' || ($vgN['status'] ?? '') === 'offen');
 $vgLink = MkKooperation::link('steuerberater', 'DE');
@@ -19622,6 +19626,17 @@ pruefe('Marketing › Start: Block „Anmeldungen“ mit „Zur Anmeldung“ (ne
     $kaFehler === null && str_contains($anHtml, 'id="anmeldungen"') && str_contains($anHtml, 'https://www.linkedin.com/company/setup/new/')
     && str_contains($anHtml, 'value="anmeldung_oeffnen"') && str_contains($anHtml, 'target="_blank"') && str_contains($anHtml, 'value="konto_vermerken"')
     && str_contains($anHtml, 'name="zurueck" value="marketing#anmeldungen"'), (string) $kaFehler);
+/* Telegram-Beiträge deutsch zuerst (01.10.2026, Uwe: Ja) */
+$ttIt = ['format' => 'telegram', 'sprache' => 'it', 'f' => ['text' => 'Il suo sito parla inglese?'], 'uebersetzung' => 'Spricht Ihre Website Englisch?'];
+pruefe('Telegram-Text: italienisches Stück geht mit der deutschen Fassung davor raus; schon zweisprachige, deutsche und zu lange bleiben, wie sie sind',
+    MkInhalt::telegramText($ttIt) === "\u{1F1E9}\u{1F1EA} Spricht Ihre Website Englisch?\n\n\u{1F1EE}\u{1F1F9} Il suo sito parla inglese?"
+    && MkInhalt::telegramText(['sprache' => 'de', 'f' => ['text' => 'Hallo'], 'uebersetzung' => null]) === 'Hallo'
+    && MkInhalt::telegramText(['sprache' => 'it', 'f' => ['text' => "\u{1F1E9}\u{1F1EA} Hallo\n\n\u{1F1EE}\u{1F1F9} Ciao"], 'uebersetzung' => 'Hallo']) === "\u{1F1E9}\u{1F1EA} Hallo\n\n\u{1F1EE}\u{1F1F9} Ciao"
+    && MkInhalt::telegramText($ttIt, 20) === 'Il suo sito parla inglese?'
+    && str_contains((string) file_get_contents($wurzel . '/src/MkVeroeffentlichen.php'), 'MkInhalt::telegramText($x, $medium ? 1024 : Telegram::KANAL_MAX)')
+    && str_contains((string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts'), 'IMMER zweisprachig'));
+pruefe('Sprache sichtbar: jede Beitragskarte trägt „Text auf …“ mit Fähnchen', MkInhalt::spracheMarke('it') === '<span class="marke2 mk-sprache" title="In dieser Sprache wird gepostet">' . "\u{1F1EE}\u{1F1F9}" . ' Text auf Italienisch</span>'
+    && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), 'MkInhalt::spracheMarke((string) $x[\'sprache\'])'));
 Telegram::$netz = $kgTgAlt;
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_menue_id', '');
 foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }

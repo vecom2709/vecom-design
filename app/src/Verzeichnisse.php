@@ -164,25 +164,35 @@ final class Verzeichnisse
         return (string) ($e['sprache'] ?? 'it') === 'de' ? 'DE' : 'IT';
     }
 
-    /** Die Stellen eines Landes, geteilt in „bringt Kunden“ und „weitere“. @return array{wirkt:list<array>, weitere:list<array>} */
+    /**
+     * Die Stellen eines Landes, geteilt in „bringt Kunden“ und „weitere“ — und,
+     * seit 01.10.2026 (Uwe: „nicht korrekt einsortiert zwischen Italienisch,
+     * Deutsch und Englisch“), getrennt davon „international“: englische
+     * Plattformen, die für beide Länder gelten, stehen nicht mehr doppelt
+     * zwischen den italienischen bzw. deutschen, sondern in einem eigenen Teil.
+     * @return array{wirkt:list<array>, weitere:list<array>, international:list<array>}
+     */
     public static function fuerLand(array $liste, string $land): array
     {
-        $aus = ['wirkt' => [], 'weitere' => []];
+        $aus = ['wirkt' => [], 'weitere' => [], 'international' => []];
         foreach ($liste as $e) {
             $l = self::land($e);
-            if ($l !== 'beide' && $l !== $land) { continue; }
+            if ($l === 'beide') { $aus['international'][] = $e; continue; }
+            if ($l !== $land) { continue; }
             $aus[in_array((string) ($e['schluessel'] ?? ''), self::WIRKT, true) ? 'wirkt' : 'weitere'][] = $e;
         }
         $rang = array_flip(self::WIRKT);
-        usort($aus['wirkt'], static fn($a, $b) => ($rang[$a['schluessel']] ?? 99) <=> ($rang[$b['schluessel']] ?? 99));
+        foreach (['wirkt', 'international'] as $t) {
+            usort($aus[$t], static fn($a, $b) => ($rang[$a['schluessel']] ?? 99) <=> ($rang[$b['schluessel']] ?? 99));
+        }
         return $aus;
     }
 
-    /** Der nächste Eintrag für dieses Land: der nützlichste, der noch offen ist. */
+    /** Der nächste Eintrag für dieses Land: der nützlichste, der noch offen ist — erst im Land, dann international. */
     public static function naechster(array $liste, string $land): ?array
     {
         $t = self::fuerLand($liste, $land);
-        foreach (array_merge($t['wirkt'], $t['weitere']) as $e) { if ($e['status'] === 'offen') { return $e; } }
+        foreach (array_merge($t['wirkt'], $t['weitere'], $t['international']) as $e) { if ($e['status'] === 'offen') { return $e; } }
         return null;
     }
 

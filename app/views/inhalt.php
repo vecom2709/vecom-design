@@ -37,7 +37,7 @@ require __DIR__ . '/mk_stil.php';
   <div>
     <h1><?= Fmt::h($x['titel']) ?>
       <span class="marke2 <?= ['entwurf' => 'warnung', 'freigegeben' => 'gut', 'veroeffentlicht' => 'gut'][$x['status']] ?? '' ?>" style="vertical-align:4px"><?= Fmt::h(MkInhalt::STATUS[$x['status']] ?? $x['status']) ?></span></h1>
-    <div class="weg"><?= MkLand::marke((string) $x['land']) ?> · <?= Fmt::h((MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']) . ' · ' . (MkInhalt::ARTEN[$x['art']] ?? $x['art']) . ' · ' . (MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) . ' · ' . (MkInhalt::SPRACHEN[$x['sprache']] ?? $x['sprache'])) ?>
+    <div class="weg"><?= MkLand::marke((string) $x['land']) ?> · <?= MkInhalt::spracheMarke((string) $x['sprache']) ?> · <?= Fmt::h((MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']) . ' · ' . (MkInhalt::ARTEN[$x['art']] ?? $x['art']) . ' · ' . (MkInhalt::FORMATE[$x['format']][0] ?? $x['format'])) ?>
       <?php if ($zg): ?> · für <a href="<?= Fmt::h(url('zielgruppen/' . (int) $zg['id'])) ?>"><?= Fmt::h($zg['titel']) ?></a><?php endif; ?> · von Claude geschrieben am <?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?></div>
   </div>
   <a class="knopf" href="<?= Fmt::h(url('inhalte') . '?land=' . $x['land']) ?>">‹ Alle Inhalte in <?= Fmt::h(MkLand::name((string) $x['land'])) ?></a>

@@ -24,6 +24,27 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
   </div>
 </div>
 
+<?php /* „Jetzt für dich“ (01.10.2026, Uwe: Ja zu „Heute in Marketing“): nur, was gerade Uwe braucht. */
+  $jdEntwuerfe = (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'entwurf' AND land = ?", [$land], 0);
+  $jdZiel = (int) Db::wert("SELECT COUNT(*) FROM mk_zielgruppen WHERE status = 'entwurf' AND land = ?", [$land], 0);
+  $jdAnm = (int) ($anm['offen'] ?? 0);
+  $jdPunkte = array_filter([
+      $jdEntwuerfe ? [$jdEntwuerfe . ' ' . ($jdEntwuerfe === 1 ? 'Beitrag wartet' : 'Beiträge warten') . ' auf dein Ja oder Nein', url('freigabe') . '?land=' . $land, 'Durchgehen'] : null,
+      $jdZiel ? [$jdZiel . ' ' . ($jdZiel === 1 ? 'Zielgruppe wartet' : 'Zielgruppen warten') . ' auf deine Prüfung', url('zielgruppen') . '?land=' . $land, 'Prüfen'] : null,
+      $fehl ? [count($fehl) . ' ' . (count($fehl) === 1 ? 'Beitrag ist' : 'Beiträge sind') . ' nicht rausgegangen', url('kanaele#fehler'), 'Ansehen'] : null,
+      $jdAnm ? [$jdAnm . ' ' . ($jdAnm === 1 ? 'Anmeldung fehlt' : 'Anmeldungen fehlen') . ' noch — Konto anlegen, dann „Erledigt“', '#anmeldungen', 'Zur Liste'] : null,
+  ]); ?>
+<div class="block" id="jetzt" style="border-color:var(--metall)">
+  <h2>Jetzt für dich <span class="mehr"><?= $jdPunkte ? count($jdPunkte) . ' Sache' . (count($jdPunkte) === 1 ? '' : 'n') : 'nichts' ?> · alles andere läuft von selbst</span></h2>
+  <?php if (!$jdPunkte): ?><p style="margin:0">Nichts zu tun — Beiträge, Kanäle und Zählung laufen.</p><?php else: ?>
+  <ul style="list-style:none;margin:0;padding:0;display:grid;gap:8px">
+    <?php foreach (array_values($jdPunkte) as $ji => [$jText, $jZiel, $jKnopf]): ?>
+      <li style="display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap"><span><?= Fmt::h($jText) ?></span><a class="knopf<?= $ji === 0 ? ' haupt' : '' ?>" href="<?= Fmt::h($jZiel) ?>"><?= Fmt::h($jKnopf) ?></a></li>
+    <?php endforeach; ?>
+  </ul>
+  <?php endif; ?>
+</div>
+
 <ol class="mk-weg" aria-label="Die vier Schritte in <?= Fmt::h($name) ?>">
   <?php foreach ($st['schritte'] as $x): $istDran = $x['nr'] === $st['dran']; ?>
     <li class="mk-weg__schritt<?= $x['fertig'] ? ' fertig' : '' ?><?= $istDran ? ' dran' : '' ?>"<?= $istDran ? ' aria-current="step"' : '' ?>>
@@ -51,7 +72,7 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
 <?php endif; ?>
 
 <?php if (!empty($anm)): /* Anmeldungen (01.10.2026): direkt zur Seite, danach „Erledigt“ — der Rest geht von selbst */
-  $anErster = true;   /* „Ein Ding je Bildschirm“: nur die erste offene Anmeldung ist gold */ ?>
+  $anErster = false;   /* „Ein Ding je Bildschirm“: Gold trägt schon „Jetzt für dich“ oben */ ?>
 <div class="block" id="anmeldungen">
   <h2>Anmeldungen <span class="mehr"><?= (int) $anm['offen'] ?> offen · Konto und Passwort legst du an, alles davor und danach macht Vecom</span></h2>
   <p class="mk-fein" style="margin:0 0 10px;max-width:86ch;line-height:1.6">„Zur Anmeldung“ öffnet die Seite in einem neuen Tab — bei Verzeichnissen legt derselbe Klick vorher die eigenen Zähl-Links an.
@@ -75,7 +96,10 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
             </div></td>
           </tr>
         <?php endforeach; ?>
-        <?php foreach ($anm['eintraege'] as $e): ?>
+        <?php $anTeil = ''; foreach ($anm['eintraege'] as $e): ?>
+          <?php if (($e['teil'] ?? 'land') !== $anTeil): $anTeil = (string) ($e['teil'] ?? 'land'); ?>
+            <tr><td colspan="3" class="mk-fein" style="padding-top:14px"><b><?= $anTeil === 'international' ? '🇬🇧 International — englische Plattformen, gelten für beide Länder' : ($land === 'DE' ? '🇩🇪 Verzeichnisse in Deutschland' : '🇮🇹 Verzeichnisse in Italien') ?></b></td></tr>
+          <?php endif; ?>
           <tr>
             <td class="mk-name"><b><?= Fmt::h((string) $e['name']) ?></b><br><span class="mk-fein"><?= Fmt::h((string) $e['kosten']) ?><?= trim((string) $e['konto']) !== '' ? ' · ' . Fmt::h((string) $e['konto']) : '' ?><br>→ <?= $e['status'] === 'eingereicht' ? 'Erinnerung nach einer Woche, falls noch nicht online; Besuche und Anfragen zählen über den eigenen Link' : 'Zähl-Links entstehen beim Öffnen; nach „Erledigt“ Erinnerung und Zählung' ?></span></td>
             <td><span class="marke2<?= $e['status'] === 'eingereicht' ? '' : ' warnung' ?>"><?= $e['status'] === 'eingereicht' ? 'eingereicht' : 'offen' ?></span></td>
@@ -93,15 +117,15 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
 </div>
 <?php endif; ?>
 
-<div class="block">
-  <h2>Was die Wörter heißen</h2>
+<details class="block">
+  <summary style="cursor:pointer"><b>Was die Wörter heißen</b></summary>
   <dl class="mk-woerter">
     <dt>Zielgruppe</dt><dd>Eine Branche in einem Land, von Claude recherchiert: Probleme, Fragen, Einwände, der beste Weg zum Kunden. Alles Weitere stützt sich darauf.</dd>
     <dt>Beitrag</dt><dd>Ein Stück zum Posten (Beitrag, Reel, Karussell, Anzeige) mit Bild oder Video — entsteht als Entwurf, geht erst nach deinem Ja raus.</dd>
-    <dt>Link &amp; Kampagne</dt><dd>Jeder freigegebene Beitrag bekommt einen eigenen Kurzlink. Darüber siehst du unter „Zahlen“, welcher Beitrag Besucher und Kunden bringt.</dd>
+    <dt>Link &amp; Kampagne</dt><dd>Jeder freigegebene Beitrag bekommt einen eigenen Kurzlink. Darüber siehst du unter „Was es bringt“, welcher Beitrag Besucher und Kunden bringt.</dd>
     <dt>Kanal</dt><dd>Wo gepostet wird. Facebook, Instagram und Telegram postet Vecom selbst; TikTok, LinkedIn, Google-Profil und YouTube kommen dir aufs Handy.</dd>
   </dl>
-</div>
+</details>
 
 <style>
   .mk-weg{list-style:none;margin:0 0 18px;padding:0;display:grid;gap:10px}

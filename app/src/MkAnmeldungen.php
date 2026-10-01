@@ -92,9 +92,11 @@ final class MkAnmeldungen
         try {
             require_once __DIR__ . '/Verzeichnisse.php';
             $t = Verzeichnisse::fuerLand(Verzeichnisse::liste(), $land);
-            foreach (array_merge($t['wirkt'], $t['weitere']) as $e) {
-                if ($e['art'] === 'kanal' || !in_array($e['status'], ['offen', 'eingereicht'], true)) { continue; }
-                $eintraege[] = $e;
+            foreach (['land' => array_merge($t['wirkt'], $t['weitere']), 'international' => $t['international']] as $teil => $reihe) {
+                foreach ($reihe as $e) {
+                    if ($e['art'] === 'kanal' || !in_array($e['status'], ['offen', 'eingereicht'], true)) { continue; }
+                    $eintraege[] = $e + ['teil' => $teil];
+                }
             }
         } catch (Throwable $e) { /* Migration noch offen */ }
         $offen = count(array_filter($konten, static fn($k) => $k['stand'] === 'offen')) + count(array_filter($eintraege, static fn($e) => $e['status'] === 'offen'));

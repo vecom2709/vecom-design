@@ -192,7 +192,7 @@ FELDER JE FORMAT (felder)
 - karussell: hook, folien 4–8 [{titel ≤${g.folie_titel ?? 60}, text ≤${g.folie_text ?? 250}}], text (Begleittext), hashtags, cta
 - reel: hook (die ersten 2 Sekunden), szenen 4–8 [{sekunden, bild (was man sieht), einblendung (Text im Bild, ≤6 Wörter), sprecher}], text, hashtags, cta — 15–45 Sekunden gesamt
 - story: folien 2–4 [{titel, text}], cta (Sticker-Text)
-- telegram: text (≤${g.telegram ?? 1024}), knopf (≤${g.knopf ?? 40})
+- telegram: text (≤${g.telegram ?? 1024}) — IMMER zweisprachig, weil der Kanal deutsch zuerst ist: „🇩🇪 “ + deutscher Text, Leerzeile, „🇮🇹 “ + derselbe Inhalt auf Italienisch (zusammen ≤${g.telegram ?? 1024}); knopf (≤${g.knopf ?? 40}) auf Deutsch
 - profil (Google-Unternehmensprofil von Vecom): text (≤${g.profil ?? 1500}), cta
 - meta_anzeige: primaertexte 2–3 Varianten (das Wichtige in den ersten ${g.primaertext_sichtbar ?? 125} Zeichen), ueberschriften 3–5 (≤${g.meta_ueberschrift_empf ?? 40}), beschreibung (≤30), cta = einer von ${Object.keys(a.meta_cta ?? {}).join(', ')}
 - google_anzeige: ueberschriften 10–15 (JEDE ≤${g.g_ueberschrift ?? 30} Zeichen — zähle nach!), beschreibungen 4 (JEDE ≤${g.g_beschreibung ?? 90}), pfad1/pfad2 (≤15, ohne Leerzeichen),
@@ -200,7 +200,7 @@ FELDER JE FORMAT (felder)
   ausschluesse 10–25 ausschließende Keywords in der Kundensprache (wer nur lernen, gratis basteln, einen Job oder Vorlagen sucht: z. B. „gratis“, „corso“, „lavoro“, „tutorial“, „wordpress“, „template“ bzw. „kostenlos“, „Kurs“, „Job“, „Vorlage“, „selber machen“)
 
 REGELN — unbedingt
-- Sprache: ${sprache}. titel, bildidee und begruendung auf Deutsch (für Uwe).
+- Sprache: ${sprache} (Ausnahme: Format telegram ist deutsch und italienisch, siehe oben). titel, bildidee und begruendung auf Deutsch (für Uwe).
 - Grundlage ist das freigegebene Zielgruppen-Profil unten: seine Probleme, Wünsche, Einwände, Fragen und Botschaften. Jedes Stück greift genau EINEN Punkt daraus auf.
 - Zahlen und Fakten nur aus dem Profil, den Funden unten oder „Über Vecom“ — mit Herkunft im Text, wo es passt („laut FIPE 2025“). Nichts erfinden: keine Kundenstimmen, keine Ergebnisse, keine Rabatte, keine Fristen, die nicht belegt sind.
 - Benutzte Funde in fund_ids eintragen (ihre id). Gemerkte Funde zuerst.

@@ -243,7 +243,8 @@ final class MkVeroeffentlichen
         $link = MkInhalt::link($x);
         $knopf = trim((string) ($x['f']['knopf'] ?? '')) ?: 'vecom-design.it';
         $mark = $link ? ['inline_keyboard' => [[['text' => mb_substr($knopf, 0, 40), 'url' => $link]]]] : null;
-        $text = trim((string) ($x['f']['text'] ?? ''));
+        /* Deutsch zuerst wie der Kanal (01.10.2026) — dieselbe Fassung, die die Freigabe zeigt. */
+        $text = MkInhalt::telegramText($x, $medium ? 1024 : Telegram::KANAL_MAX);
         if ($medium) {
             $methode = $medium['art'] === 'video' ? 'sendVideo' : 'sendPhoto';
             $daten = ['chat_id' => $k['id'], $medium['art'] === 'video' ? 'video' : 'photo' => self::oeffentlich($medium) . ($medium['art'] === 'video' ? '' : '&f=jpg'),

@@ -522,11 +522,12 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       $mkOben = MkLand::wahl(); $mkObenOffen = MkLand::offen();
       $mkGruppen = [
         /* G1/G2 (01.10.2026): Start mit den vier Schritten vorn, dann der Weg — Zielgruppen, Beiträge, Kanäle — und hinten die Zahlen. */
-        ['Start', ['marketing' => 'Start']],
-        ['Zielgruppen', ['zielgruppen' => 'Zielgruppen']],
-        ['Beiträge', ['freigabe' => 'Freigeben', 'inhalte' => 'Alle Beiträge']],
-        ['Kanäle', ['kanaele' => 'Verbinden & Posten', 'telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']],
-        ['Zahlen', ['zahlen' => 'Überblick', 'kampagnen' => 'Links & Kampagnen']],
+        /* Einfache Wörter (01.10.2026, Uwe: „gesamtes Marketing leichter verständlich“ → Ja): die Reiter sagen, was dort passiert. */
+        ['Jetzt dran', ['marketing' => 'Jetzt dran']],
+        ['Wen wir ansprechen', ['zielgruppen' => 'Zielgruppen']],
+        ['Beiträge', ['freigabe' => 'Prüfen & freigeben', 'inhalte' => 'Alle Beiträge']],
+        ['Wo gepostet wird', ['kanaele' => 'Kanäle verbinden', 'telegram' => 'Telegram', 'verzeichnisse' => 'Einträge im Netz']],
+        ['Was es bringt', ['zahlen' => 'Überblick', 'kampagnen' => 'Links je Beitrag']],
       ];
       $mkSchl = array_column($reiter['marketing'], 2, 0); ?>
       <nav class="mk-oben mk-oben--<?= strtolower($mkOben) ?>" aria-label="Land wählen — gilt für das ganze Marketing">
