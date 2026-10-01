@@ -53,16 +53,72 @@ $csrf = static fn(): string => '<input type="hidden" name="_csrf" value="' . Fmt
   <h2>Kommt aufs Handy <span class="mehr">TikTok, LinkedIn, Google-Profil und YouTube erlauben kleinen Konten kein automatisches Posten ohne Prüfung</span></h2>
   <p style="margin:0 0 10px;max-width:75ch;line-height:1.6">Zur Sendezeit schickt dir der Vecom-Bot das fertige Stück per Telegram: Bild oder Video und den Text mit Link. Du tippst auf „Teilen“, wählst die App, fügst den Text ein — dann im Bot „Gepostet“ drücken. So zählt jeder Klick trotzdem.</p>
   <div class="mk-kanaele">
-    <?php foreach (MkKanaele::HANDY as $kk => $kn): $g = $geplant[$kk] ?? null; ?>
-      <div class="mk-kanal <?= $handy['bereit'] ? 'gut' : 'offen' ?>">
+    <?php foreach (MkKanaele::HANDY as $kk => $kn): $g = $geplant[$kk] ?? null; $kAuto = !empty(($pf ?? [])[$kk]['bereit']); ?>
+      <div class="mk-kanal <?= $handy['bereit'] || $kAuto ? 'gut' : 'offen' ?>">
         <div class="mk-kanal__kopf"><i aria-hidden="true"></i><b><?= Fmt::h($kn) ?></b></div>
+        <?php if ($kAuto): ?><p class="mk-fein">postet jetzt automatisch</p><?php endif; ?>
         <p class="mk-fein"><?= $g ? $g['n'] . ' eingeplant · nächster ' . Fmt::h($fmtZeit($g['naechst'])) : 'nichts eingeplant' ?></p>
       </div>
     <?php endforeach; ?>
   </div>
   <p class="mk-fein" style="margin:10px 0 0"><?= Fmt::h($handy['text']) ?></p>
-  <p class="mk-fein" style="margin:4px 0 0">Voll automatisch geht es, sobald die Plattformen die App geprüft haben — die Anträge stehen unten.</p>
+  <p class="mk-fein" style="margin:4px 0 0">Voll automatisch geht es, sobald die Plattformen die App geprüft haben — <a href="#voll">die Anträge stehen unten</a>.</p>
 </div>
+
+<?php require_once dirname(__DIR__) . '/src/MkPlattform.php'; $pf = $pf ?? [];
+$pfAntrag = [
+  'linkedin' => ['Dauer: meist Tage bis wenige Wochen · braucht eingetragene Firma und eine geschäftliche E-Mail (keine gmx-Adresse)', [
+     'Auf <b>linkedin.com/developers</b> eine neue App anlegen und mit der Vecom-Unternehmensseite verknüpfen; der Seiten-Admin bestätigt.',
+     'Unter „Products“ nur <b>„Community Management API“</b> beantragen (Firmenname, Adresse, Website, Datenschutzerklärung).',
+     'Unter „Auth“ die Rückruf-Adresse unten eintragen, Client-ID und Client-Secret hier speichern, die Organisations-ID der Seite eintragen.',
+     'Nach der Freigabe: „Verbinden“ drücken (du musst Admin der Seite sein), dann den Haken setzen. Nach 12 Monaten verlangt LinkedIn die Standard-Stufe mit kurzem Bildschirmvideo.']],
+  'google' => ['Dauer: laut Google bis zu 14 Tage · das Profil muss bestätigt und mindestens 60 Tage alt sein, mit eingetragener Website', [
+     'Auf <b>console.cloud.google.com</b> ein Projekt anlegen, die Projektnummer notieren.',
+     'Das <b>„GBP API contact form“</b> ausfüllen, Option „Application for Basic API Access“, mit der E-Mail, die Inhaber des Profils ist.',
+     'Nach der Freigabe die APIs „My Business Account Management“, „Business Information“ und „Google My Business API“ aktivieren; OAuth-Zustimmungsbildschirm auf <b>„In production“</b> stellen (sonst verfällt die Verbindung nach 7 Tagen).',
+     'OAuth-Client (Webanwendung) mit der Rückruf-Adresse unten anlegen, Client-ID und -Secret hier speichern, accountId/locationId eintragen, „Verbinden“, Haken setzen.']],
+  'youtube' => ['Dauer: meist einige Wochen · bis zur Prüfung lädt YouTube jedes Video nur privat hoch', [
+     'Im selben oder einem eigenen Google-Cloud-Projekt die <b>YouTube Data API v3</b> aktivieren, Zustimmungsbildschirm auf „In production“.',
+     'OAuth-Client (Webanwendung) mit der Rückruf-Adresse unten anlegen, Client-ID und -Secret hier speichern, „Verbinden“ mit dem Vecom-Kanal.',
+     'Das Formular <b>„YouTube API Services – Audit and Quota Extension“</b> (support.google.com/youtube/contact/yt_api_form) ausfüllen: Zweck „eigene Shorts vom eigenen Server“, Datenschutzerklärung, Screenshot dieser Seite.',
+     'Nach bestandener Prüfung den Haken setzen. Bis 100 Uploads am Tag sind frei.']],
+  'tiktok' => ['Dauer: Tage bis Wochen · bis zur Prüfung nur „nur ich“ sichtbar und das Konto muss privat sein', [
+     'Auf <b>developers.tiktok.com</b> eine App anlegen, Produkt <b>„Content Posting API“</b> mit „Direct Post“ hinzufügen, Rechte video.publish und video.upload beantragen.',
+     'Rückruf-Adresse unten eintragen, Client-Key und -Secret hier speichern, „Verbinden“ mit dem Vecom-Konto.',
+     'Prüfung beantragen. TikTok verlangt, dass vor dem Posten Konto, Vorschau, Sichtbarkeit und Kennzeichnung gezeigt werden — das übernimmt der Freigabe-Stapel (dein Ja je Stück).',
+     'Nach der Freigabe den Haken setzen; sonst bleibt TikTok beim Handy-Weg.']],
+]; ?>
+<div class="block" id="voll">
+  <h2>Voll automatisch: LinkedIn, Google, YouTube, TikTok <span class="mehr">nach Prüfung durch die Plattform — bis dahin kommt alles aufs Handy</span></h2>
+  <p style="margin:0 0 12px;max-width:80ch;line-height:1.6">Alle vier lassen eigene Beiträge vom eigenen Server posten, aber erst, wenn sie die App geprüft haben. Je Plattform: Antrag stellen (Schritte unten), Schlüssel hier eintragen, „Verbinden“, Haken „Freigabe erhalten“. Die Schlüssel liegen verschlüsselt auf dem Server und werden nie angezeigt.</p>
+  <?php foreach (MkPlattform::ALLE as $pk => [$pn]): $e = $pf[$pk] ?? MkPlattform::einstellungen($pk) + ['bereit' => false]; [$pDauer, $pSchritte] = $pfAntrag[$pk]; ?>
+    <details class="mk-pf" id="pf-<?= $pk ?>"<?= $e['client_id'] !== '' && !$e['bereit'] ? ' open' : '' ?>>
+      <summary><i class="mk-pf__punkt <?= $e['bereit'] ? 'gut' : ($e['verbunden'] ? 'halb' : '') ?>" aria-hidden="true"></i><b><?= Fmt::h($pn) ?></b>
+        <span class="mk-fein"><?= $e['bereit'] ? 'postet automatisch' : ($e['verbunden'] ? 'verbunden — wartet auf den Haken „Freigabe erhalten“' : ($e['client_id'] !== '' ? 'Schlüssel gespeichert — noch nicht verbunden' : 'noch nicht beantragt · kommt per Handy')) ?></span></summary>
+      <p class="mk-fein" style="margin:8px 0 4px"><?= Fmt::h($pDauer) ?></p>
+      <ol style="line-height:1.65;max-width:82ch;margin:0 0 10px"><?php foreach ($pSchritte as $sch): ?><li><?= $sch ?></li><?php endforeach; ?></ol>
+      <p style="margin:0 0 10px"><span class="mk-fein">Rückruf-Adresse (Redirect URI) für die Plattform:</span><br><code style="overflow-wrap:anywhere"><?= Fmt::h(MkPlattform::rueckrufAdresse($pk)) ?></code></p>
+      <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" class="mk-formular">
+        <?= $csrf() ?><input type="hidden" name="tat" value="plattform_speichern"><input type="hidden" name="plattform" value="<?= $pk ?>">
+        <div class="feld"><label for="pf_<?= $pk ?>_id"><?= $pk === 'tiktok' ? 'Client-Key' : 'Client-ID' ?></label><input id="pf_<?= $pk ?>_id" name="client_id" autocomplete="off" value="<?= Fmt::h((string) $e['client_id']) ?>"></div>
+        <div class="feld"><label for="pf_<?= $pk ?>_s">Client-Secret <span class="mk-fein"><?= $e['secret'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="pf_<?= $pk ?>_s" name="secret" type="password" autocomplete="off"></div>
+        <?php if (MkPlattform::OAUTH[$pk]['id_wort'] !== ''): ?><div class="feld breit"><label for="pf_<?= $pk ?>_k"><?= Fmt::h(MkPlattform::OAUTH[$pk]['id_wort']) ?></label><input id="pf_<?= $pk ?>_k" name="konto" inputmode="numeric" value="<?= Fmt::h((string) $e['konto']) ?>"></div><?php else: ?><input type="hidden" name="konto" value="<?= Fmt::h((string) $e['konto']) ?>"><?php endif; ?>
+        <label class="mk-haken breit"><input type="checkbox" name="freigabe" value="1"<?= $e['freigabe'] ? ' checked' : '' ?>> Freigabe der Plattform erhalten — ab jetzt automatisch posten</label>
+        <div class="breit" style="display:flex;gap:8px;flex-wrap:wrap"><button class="knopf">Speichern</button></div>
+      </form>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <?php if ($e['client_id'] !== '' && $e['secret']): ?><form method="post" action="<?= Fmt::h(url('kanaele')) ?>" style="margin:0"><?= $csrf() ?><input type="hidden" name="tat" value="plattform_verbinden"><input type="hidden" name="plattform" value="<?= $pk ?>"><button class="knopf haupt"><?= $e['verbunden'] ? 'Neu verbinden' : 'Verbinden' ?></button></form><?php endif; ?>
+        <?php if ($e['verbunden']): ?><form method="post" action="<?= Fmt::h(url('kanaele')) ?>" style="margin:0"><?= $csrf() ?><input type="hidden" name="tat" value="plattform_trennen"><input type="hidden" name="plattform" value="<?= $pk ?>"><button class="knopf">Trennen</button></form><span class="mk-fein" style="align-self:center">verbunden seit <?= Fmt::h((string) $e['verbunden_am']) ?></span><?php endif; ?>
+      </div>
+    </details>
+  <?php endforeach; ?>
+</div>
+<style>
+  .mk-pf{border-top:1px solid var(--linie);padding:12px 0}
+  .mk-pf summary{cursor:pointer;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:16px}
+  .mk-pf__punkt{width:12px;height:12px;border-radius:50%;background:var(--linie2);flex:none}
+  .mk-pf__punkt.halb{background:var(--gelb,#e0b84a)} .mk-pf__punkt.gut{background:var(--gruen,#3fb27f)}
+</style>
 
 <?php require_once dirname(__DIR__) . '/src/MkKampagne.php'; require __DIR__ . '/mk_eingehend.php'; ?>
 

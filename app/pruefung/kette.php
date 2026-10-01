@@ -18528,6 +18528,70 @@ pruefe('P3: fällig, aber kein Handy erreichbar — Grund am Stück, keine Endlo
 Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$kxT]);
 pruefe('G3: Freigeben in der Einzelansicht plant wie Stapel und Telegram', str_contains((string) file_get_contents($wurzel . '/index.php'), "return MkVeroeffentlichen::nachFreigabe(\$miId);"));
 
+/* P4: LinkedIn, Google-Profil, YouTube, TikTok voll automatisch (nach Freigabe der Plattform) */
+abschnitt('P4: weitere Plattformen automatisch');
+require_once $wurzel . '/src/MkPlattform.php';
+$pfAufrufe = [];
+MkPlattform::$netz = static function (string $m, string $url, array $kopf, $body) use (&$pfAufrufe): array {
+    $pfAufrufe[] = [$m, $url, $kopf, $body];
+    if (str_contains($url, '/oauth') || str_contains($url, 'oauth2.googleapis.com/token')) {
+        parse_str(is_string($body) ? $body : '', $f);
+        return ['status' => 200, 'json' => ['access_token' => 'zugang-' . ($f['grant_type'] ?? ''), 'expires_in' => 86400, 'refresh_token' => 'erneuern-neu', 'open_id' => 'tt-open-1'], 'kopf' => []];
+    }
+    if (str_contains($url, 'api.linkedin.com/rest/posts')) { return ['status' => 201, 'json' => null, 'kopf' => ['x-restli-id' => 'urn:li:share:77']]; }
+    if (str_contains($url, 'upload/youtube/v3/videos')) { return ['status' => 200, 'json' => null, 'kopf' => ['location' => 'https://upload.example/yt-sitzung']]; }
+    if (str_contains($url, 'upload.example/yt-sitzung')) { return ['status' => 200, 'json' => ['id' => 'yt-abc'], 'kopf' => []]; }
+    if (str_contains($url, 'creator_info')) { return ['status' => 200, 'json' => ['data' => ['privacy_level_options' => ['SELF_ONLY']]], 'kopf' => []]; }
+    if (str_contains($url, 'publish/video/init')) { return ['status' => 200, 'json' => ['data' => ['upload_url' => 'https://upload.example/tt', 'publish_id' => 'pub-9']], 'kopf' => []]; }
+    if (str_contains($url, 'upload.example/tt')) { return ['status' => 201, 'json' => null, 'kopf' => []]; }
+    if (str_contains($url, 'localPosts')) { return ['status' => 200, 'json' => ['name' => 'accounts/1/locations/2/localPosts/3'], 'kopf' => []]; }
+    return ['status' => 404, 'json' => ['message' => 'unerwartet'], 'kopf' => []];
+};
+MkPlattform::speichern('linkedin', ['client_id' => 'li-client', 'secret' => 'li-geheim', 'konto' => '123456']);
+$pfE = MkPlattform::einstellungen('linkedin');
+$pfAdr = (string) MkPlattform::verbindenAdresse('linkedin', 'zustand42');
+pruefe('P4: Schlüssel gespeichert, aber nie angezeigt; ohne Verbindung und Haken geht nichts automatisch; Verbinden-Adresse trägt Client, Rückruf, Zustand und Rechte',
+    $pfE['client_id'] === 'li-client' && $pfE['secret'] === true && !isset($pfE['geheim']) && !str_contains(json_encode($pfE), 'li-geheim') && !MkPlattform::bereit('linkedin')
+    && str_contains($pfAdr, 'client_id=li-client') && str_contains($pfAdr, 'state=zustand42') && str_contains($pfAdr, rawurlencode('/plattform-rueckruf?p=linkedin')) && str_contains($pfAdr, 'w_organization_social'));
+$pfR = MkPlattform::rueckruf('linkedin', 'code-1');
+MkPlattform::speichern('linkedin', ['konto' => '123456', 'freigabe' => '1']);
+pruefe('P4: Rückruf tauscht den Code; mit Haken „Freigabe erhalten“ ist LinkedIn bereit', $pfR === null && MkPlattform::einstellungen('linkedin')['verbunden'] && MkPlattform::bereit('linkedin'));
+$pfLi = (int) Db::insert('mk_inhalte', ['land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => 'linkedin', 'titel' => 'LinkedIn-Probe', 'felder' => json_encode(['text' => 'Hallo LinkedIn']), 'status' => 'freigegeben']);
+$pfM = MkVeroeffentlichen::moeglich(MkInhalt::laden($pfLi));
+$pfJ = MkVeroeffentlichen::jetzt($pfLi);
+$pfPost = array_values(array_filter($pfAufrufe, static fn($a) => str_contains($a[1], 'rest/posts')))[0] ?? null;
+pruefe('P4: LinkedIn-Beitrag geht automatisch raus — Seite als Autor, aktuelle LinkedIn-Version, öffentlich',
+    $pfM['auto'] && $pfJ['ok'] && MkInhalt::laden($pfLi)['status'] === 'veroeffentlicht' && $pfPost !== null && ($pfPost[3]['author'] ?? '') === 'urn:li:organization:123456'
+    && in_array('LinkedIn-Version: ' . MkPlattform::LINKEDIN_VERSION, $pfPost[2], true) && ($pfPost[3]['visibility'] ?? '') === 'PUBLIC' && str_contains((string) MkInhalt::laden($pfLi)['post_ids'], 'urn:li:share:77'));
+/* YouTube und TikTok mit Video */
+require_once $wurzel . '/src/MkMedium.php';
+$pfDatei = 'kette-pf-' . bin2hex(random_bytes(3)) . '.mp4';
+file_put_contents(MkMedium::ordner() . '/' . $pfDatei, str_repeat('v', 2048));
+foreach (['youtube', 'tiktok'] as $pfP) { MkPlattform::speichern($pfP, ['client_id' => $pfP . '-client', 'secret' => 's', 'freigabe' => '1']); MkPlattform::rueckruf($pfP, 'c'); }
+$pfVideo = static function (string $pl) use ($pfDatei): int {
+    $i = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'reel', 'plattform' => $pl, 'titel' => 'Reel ' . $pl, 'felder' => json_encode(['hook' => 'Il tuo sito', 'text' => 'Testo']), 'status' => 'freigegeben']);
+    Db::insert('mk_medien', ['inhalt_id' => $i, 'art' => 'video', 'status' => 'gewaehlt', 'datei' => $pfDatei, 'mime' => 'video/mp4', 'sha256' => str_repeat('0', 64)]);
+    return $i;
+};
+$pfYt = $pfVideo('youtube'); $pfTt = $pfVideo('tiktok');
+$pfJy = MkVeroeffentlichen::jetzt($pfYt); $pfJt = MkVeroeffentlichen::jetzt($pfTt);
+$pfInit = array_values(array_filter($pfAufrufe, static fn($a) => str_contains($a[1], 'publish/video/init')))[0] ?? null;
+pruefe('P4: YouTube-Short und TikTok hochgeladen; TikTok nimmt die erlaubte Sichtbarkeit (vor der Prüfung nur „nur ich“) und merkt sie sich',
+    $pfJy['ok'] && str_contains((string) MkInhalt::laden($pfYt)['post_ids'], 'yt-abc') && $pfJt['ok'] && ($pfInit[3]['post_info']['privacy_level'] ?? '') === 'SELF_ONLY'
+    && str_contains((string) MkInhalt::laden($pfTt)['post_ids'], 'SELF_ONLY') && MkPlattform::einstellungen('tiktok')['konto'] === 'tt-open-1');
+/* Erneuern */
+$pfVor = count($pfAufrufe);
+Db::run("UPDATE settings SET svalue = svalue WHERE skey = 'pf_tiktok_geheim'");
+(static function () { $r = new ReflectionMethod(MkPlattform::class, 'geheimSetzen'); $r->setAccessible(true); $r->invoke(null, 'tiktok', ['laeuft_ab' => time() - 10]); })();
+$pfAuf = MkPlattform::auffrischen();
+pruefe('P4: der Cronlauf erneuert abgelaufene Schlüssel (TikTok gilt nur 24 Stunden) — nur die fälligen', ($pfAuf['tiktok'] ?? '') === 'ok' && !isset($pfAuf['linkedin']) && count($pfAufrufe) === $pfVor + 1);
+MkPlattform::speichern('youtube', ['client_id' => 'youtube-client', 'freigabe' => '']);
+pruefe('P4: ohne Haken bleibt es beim Handy-Weg', !MkPlattform::bereit('youtube') && MkHandy::istHandy(MkInhalt::laden($pfVideo('youtube'))));
+MkPlattform::$netz = null;
+@unlink(MkMedium::ordner() . '/' . $pfDatei);
+Db::run("DELETE FROM mk_medien WHERE datei = ?", [$pfDatei]); Db::run("DELETE FROM mk_inhalte WHERE plattform IN ('linkedin','youtube','tiktok') AND titel IN ('LinkedIn-Probe','Reel youtube','Reel tiktok')");
+Db::run("DELETE FROM settings WHERE skey LIKE 'pf\\_%'");
+
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */

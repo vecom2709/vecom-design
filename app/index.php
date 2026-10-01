@@ -901,6 +901,26 @@ if ($post) {
                 $_SESSION['gut'] = 'Gespeichert. Jetzt „Verbindung prüfen“ drücken.';
                 weiter('kanaele');
 
+            /* P4 (01.10.2026): LinkedIn, Google-Profil, YouTube, TikTok verbinden */
+            case 'plattform_speichern':
+            case 'plattform_verbinden':
+            case 'plattform_trennen':
+                require_once __DIR__ . '/src/MkPlattform.php';
+                $pfP = (string) ($_POST['plattform'] ?? '');
+                if (!isset(MkPlattform::ALLE[$pfP])) { $_SESSION['fehler'] = 'Unbekannte Plattform.'; weiter('kanaele#voll'); }
+                if ($tat === 'plattform_speichern') {
+                    try { $f = MkPlattform::speichern($pfP, $_POST); } catch (Throwable $e) { $f = $e->getMessage(); }
+                    $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? MkPlattform::ALLE[$pfP][0] . ' gespeichert.';
+                    weiter('kanaele#pf-' . $pfP);
+                }
+                if ($tat === 'plattform_trennen') { MkPlattform::trennen($pfP); $_SESSION['gut'] = MkPlattform::ALLE[$pfP][0] . ' getrennt.'; weiter('kanaele#pf-' . $pfP); }
+                $_SESSION['pf_zustand'] = bin2hex(random_bytes(16));
+                $_SESSION['pf_plattform'] = $pfP;
+                $pfUrl = MkPlattform::verbindenAdresse($pfP, $_SESSION['pf_zustand']);
+                if ($pfUrl === null) { $_SESSION['fehler'] = 'Erst Client-ID und Client-Secret speichern.'; weiter('kanaele#pf-' . $pfP); }
+                header('Location: ' . $pfUrl);
+                exit;
+
             case 'inhalt_neu_versuchen':
                 require_once __DIR__ . '/src/MkVeroeffentlichen.php';
                 $kzE = MkVeroeffentlichen::jetzt((int) ($_POST['id'] ?? 0));
@@ -4908,12 +4928,25 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
         exit;
 
+    case 'plattform-rueckruf':   // P4: OAuth-Rückruf von LinkedIn, Google, YouTube, TikTok (nur angemeldet, Zustand aus der Sitzung)
+        require_once __DIR__ . '/src/MkPlattform.php';
+        $pfP = (string) ($_GET['p'] ?? '');
+        $pfOk = isset(MkPlattform::ALLE[$pfP]) && ($_SESSION['pf_plattform'] ?? '') === $pfP
+             && hash_equals((string) ($_SESSION['pf_zustand'] ?? ''), (string) ($_GET['state'] ?? ''));
+        unset($_SESSION['pf_zustand'], $_SESSION['pf_plattform']);
+        if (!$pfOk) { $_SESSION['fehler'] = 'Die Rückmeldung der Plattform passt nicht zu deinem Klick — bitte noch einmal „Verbinden“ drücken.'; weiter('kanaele#voll'); }
+        if (isset($_GET['error'])) { $_SESSION['fehler'] = 'Die Plattform hat abgelehnt: ' . mb_substr((string) ($_GET['error_description'] ?? $_GET['error']), 0, 200); weiter('kanaele#pf-' . $pfP); }
+        $pfF = MkPlattform::rueckruf($pfP, (string) ($_GET['code'] ?? ''));
+        $_SESSION[$pfF === null ? 'gut' : 'fehler'] = $pfF ?? MkPlattform::ALLE[$pfP][0] . ' ist verbunden.';
+        weiter('kanaele#pf-' . $pfP);
+
     case 'kanaele':   // P1 (01.10.2026): Kanäle verbinden — Stand, Prüfen, was nicht rausging
         require_once __DIR__ . '/src/MkKanaele.php';
         require_once __DIR__ . '/src/MetaSeite.php';
         require_once __DIR__ . '/src/MkLand.php';
         ansicht('kanaele', ['stand' => MkKanaele::stand(), 'fehl' => MkKanaele::fehlgeschlagen(MkLand::wahl()), 'geplant' => MkKanaele::geplant(),
             'me' => MetaSeite::einstellungen(),
+            'pf' => (static function (): array { require_once __DIR__ . '/src/MkPlattform.php'; $a = []; foreach (array_keys(MkPlattform::ALLE) as $p) { $a[$p] = MkPlattform::einstellungen($p) + ['bereit' => MkPlattform::bereit($p)]; } return $a; })(),
             'handy' => sicher(static function (): array { if (!is_file(__DIR__ . '/src/MkHandy.php')) { return ['bereit' => false, 'text' => '']; } require_once __DIR__ . '/src/MkHandy.php'; return MkHandy::stand(); }, ['bereit' => false, 'text' => ''])]);
         break;
 

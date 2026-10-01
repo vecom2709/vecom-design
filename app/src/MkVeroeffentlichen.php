@@ -50,6 +50,12 @@ final class MkVeroeffentlichen
             return $nein($x['format'] === 'google_anzeige' ? 'Google-Anzeigen schaltest du in Google Ads — das Paket enthält alle Felder und eine Datei für den Google Ads Editor.'
                                                           : 'Anzeigen schaltest du im Werbeanzeigenmanager — das Paket enthält alle Felder.');
         }
+        /* P4: LinkedIn, Google-Profil, YouTube, TikTok — automatisch, sobald verbunden und von der Plattform freigegeben. */
+        require_once __DIR__ . '/MkPlattform.php';
+        if (isset(MkPlattform::ALLE[$x['plattform']])) {
+            $pm = MkPlattform::moeglich($x, $bild, $video);
+            if ($pm['auto'] || $pm['grund'] !== '') { return $pm; }
+        }
         if (!in_array($x['plattform'], self::AUTO, true)) {
             return $nein('Für ' . trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '') . ' gibt es ein Paket zum Hochladen.');
         }
@@ -166,6 +172,7 @@ final class MkVeroeffentlichen
             $erg = match ($x['plattform']) {
                 'telegram' => self::telegram($x, $m['medium']),
                 'instagram' => self::instagram($x, $m['medium'], $ids),
+                'linkedin', 'google', 'youtube', 'tiktok' => MkPlattform::posten($x, $m['medium']),
                 default => self::facebook($x, $m['medium']),
             };
         } catch (Throwable $e) {

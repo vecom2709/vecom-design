@@ -290,7 +290,10 @@ final class Cron
             /* Content-Studio (01.10.2026): geplante, freigegebene Inhalte auf Facebook, Instagram und Telegram veröffentlichen. */
             'marketing_posten' => static function () {
                 require_once __DIR__ . '/MkVeroeffentlichen.php';
-                return MkVeroeffentlichen::faellige();
+                require_once __DIR__ . '/MkPlattform.php';
+                /* P4: Schlüssel von LinkedIn, Google, YouTube, TikTok rechtzeitig erneuern (TikTok gilt nur 24 Stunden). */
+                $pf = []; try { $pf = MkPlattform::auffrischen(); } catch (Throwable $e) { $pf = ['fehler' => mb_substr($e->getMessage(), 0, 120)]; }
+                return MkVeroeffentlichen::faellige() + ($pf ? ['schluessel' => $pf] : []);
             },
             /* Marketing-Studio 7: Wochen-Autopilot — je eingeschaltetem Land einmal je Woche eine Kampagne (ab Werk aus). */
             'marketing_autopilot' => static function () {
