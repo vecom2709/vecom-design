@@ -614,6 +614,38 @@ if ($post) {
                     . ($mo['nacht_an'] ? ', 3D nachts ' . sprintf('%02d–%02d Uhr', $mo['nacht_von'], $mo['nacht_bis']) : ', 3D jederzeit') . '.';
                 weiter('freigabe?land=' . (strtoupper((string) ($_POST['land'] ?? '')) === 'DE' ? 'DE' : 'IT') . '#motor');
 
+            case 'anfrage_annehmen':
+            case 'anfrage_erneut':
+                /* Anfrage aus dem E-Mail-Einstieg (01.10.2026): als Kunde anlegen, um gleich
+                   antworten und ein Angebot schicken zu können -- oder den Link neu senden. */
+                require_once __DIR__ . '/src/Zugang.php';
+                $azId = (int) ($_POST['zugang_id'] ?? 0);
+                $az = Db::one('SELECT * FROM zugaenge WHERE id = ?', [$azId]);
+                if (!$az) { $_SESSION['fehler'] = 'Diese Anfrage gibt es nicht mehr.'; weiter('kunden#anfragen'); }
+                if ($tat === 'anfrage_erneut') {
+                    $azOk = Zugang::erneutSenden($azId);
+                    $_SESSION[$azOk ? 'gut' : 'fehler'] = $azOk ? 'Zugangslink noch einmal an ' . (string) $az['email'] . ' verschickt.'
+                        : 'Die Mail ging nicht raus — Stand unter Einstellungen › E-Mail ansehen.';
+                    $azZu = (string) ($_POST['zurueck'] ?? '');
+                    weiter(preg_match('~^[a-z][a-z0-9/_?=&#.-]{0,120}$~i', $azZu) ? $azZu : 'kunden#anfragen');
+                }
+                if ($az['customer_id'] !== null) { weiter('kunden/' . (int) $az['customer_id']); }
+                $azKid = Zugang::annehmen((array) $az, false);
+                Events::pruefspur('anfrage_annehmen', 'zugaenge', $azId, ['customer_id' => null], ['customer_id' => $azKid]);
+                $_SESSION['gut'] = 'Als Kunde angelegt. Hier können Sie antworten und ein Angebot schicken — der Interessent kann seinen Link aus der Mail weiterhin öffnen.';
+                weiter('kunden/' . $azKid);
+
+            case 'g3_wunsch_ja':
+            case 'g3_wunsch_nein':
+                /* W4: Wunsch eines Partners — erst nach Uwes Ja rechnet der PC. */
+                require_once __DIR__ . '/src/MkMedium.php';
+                $g3wId = (int) ($_POST['auftrag_id'] ?? 0);
+                if (MkMedium::wunschEntscheiden($g3wId, $tat === 'g3_wunsch_ja')) {
+                    Events::pruefspur($tat, 'mk_auftraege', $g3wId, ['status' => 'pruefen'], ['status' => $tat === 'g3_wunsch_ja' ? 'wartet' : 'abgebrochen']);
+                    $_SESSION['gut'] = $tat === 'g3_wunsch_ja' ? 'Freigegeben — dein PC rechnet es in der nächsten Nachtschicht.' : 'Abgelehnt. Der Partner sieht „bitte anders formulieren“.';
+                } else { $_SESSION['fehler'] = 'Dieser Wunsch ist schon entschieden.'; }
+                weiter('freigabe#partner3d');
+
             case 'galerie_starter':
             case 'galerie_freigeben':
             case 'galerie_verwerfen':
@@ -3567,7 +3599,8 @@ switch ($route) {
         $wo = $q !== ''
             ? "WHERE CONCAT_WS(' ', c.kundennr, c.name, c.email, c.company) LIKE :q"
             : '';
-        ansicht('kunden', ['q' => $q, 'liste' => Db::all(
+        require_once __DIR__ . '/src/Zugang.php';
+        ansicht('kunden', ['q' => $q, 'anfragen' => sicher(static fn() => Zugang::offene(30), []), 'liste' => Db::all(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS bestellungen,
                     (SELECT COUNT(*) FROM projects p WHERE p.customer_id = c.id) AS projekte

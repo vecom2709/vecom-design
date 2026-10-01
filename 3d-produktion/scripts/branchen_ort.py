@@ -30,7 +30,7 @@ NUR = [t for t in argv[2:] if '=' not in t] or None
 # Format, Zufallszahl für Blickwinkel und Variante, Ausgabedatei, beim Film
 # Titel und Abspann. Texte gehen bewusst nicht über die Befehlszeile (Kommas).
 MK = {}
-if MODUS in ('marketing', 'marketing_film'):
+if MODUS in ('marketing', 'marketing_film', 'marketing_unreal'):
     with open(EXTRA['auftrag'], encoding='utf-8') as _f:
         MK = json.load(_f)
 
@@ -123,8 +123,17 @@ for k in ('winkel', 'hoehe', 'lens', 'ziel_hoehe', 'fuellung', 'blende'):
 # Höhe ±7 % -- reproduzierbar über die Zufallszahl, Licht (HDRI) bleibt gleich.
 if MK:
     _rnd = random.Random(int(MK.get('seed', 0)))
-    K['winkel'] += _rnd.uniform(-14.0, 14.0)
-    K['hoehe'] *= _rnd.uniform(0.94, 1.07)
+    # Partner-Wunsch (W3, 01.10.2026): Blickwinkel. Positiver Winkel = Kamera
+    # links vom Motiv (ort = ziel + (-sin w, -cos w) * abstand), 0 = frontal.
+    _blick = str(MK.get('blick', 'zufall'))
+    if _blick == 'frontal':
+        K['winkel'] = _rnd.uniform(-4.0, 4.0)
+    elif _blick in ('links', 'rechts'):
+        K['winkel'] = (30.0 if _blick == 'links' else -30.0) + _rnd.uniform(-4.0, 4.0)
+    else:
+        K['winkel'] += _rnd.uniform(-14.0, 14.0)
+    K['hoehe'] *= 1.45 if _blick == 'oben' else _rnd.uniform(0.94, 1.07)
+    MK['naeher'] = float(MK.get('naeher', 1.0)) * {'nah': 0.82, 'weit': 1.22}.get(str(MK.get('naehe', '')), 1.0)
 
 AUSGABE = os.path.join(P, 'render', WAS + '-ort')
 os.makedirs(AUSGABE, exist_ok=True)
@@ -984,69 +993,15 @@ if MODUS == 'web':
 
 
 # ------------------------------------------------------------------ Marketing
-def _leuchtdichte(pfad):
-    """Mittlere Leuchtdichte (sRGB-Werte 0..1) und Anteil ausgebrannter Pixel."""
-    import numpy as np
-    bild = bpy.data.images.load(pfad, check_existing=False)
-    px = np.array(bild.pixels[:], dtype=np.float32).reshape(-1, 4)[:, :3]
-    bpy.data.images.remove(bild)
-    lum = px @ np.array([0.2126, 0.7152, 0.0722], dtype=np.float32)
-    return float(lum.mean()), float((px.max(axis=1) > 0.985).mean())
+# Messen und Schnitt liegen in marketing_schnitt.py, damit auch der
+# Unreal-Weg (Bilder aus der Render Queue) denselben Titel und Abspann bekommt.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import marketing_schnitt as _schnitt
+_leuchtdichte = _schnitt.leuchtdichte
 
 
 def _titel_film(ordner, n, fps, aus):
-    """Bildfolge + Titel + Abspann -> MP4 (gleiche Schrift und Kasten wie die Branchen-Filme)."""
-    sn = bpy.data.scenes.new('Marketing-Schnitt')
-    sn.render.resolution_x, sn.render.resolution_y, sn.render.resolution_percentage = MK_PX[0], MK_PX[1], 100
-    sn.render.fps = fps; sn.frame_start = 1; sn.frame_end = n
-    sn.sequence_editor_create()
-    seq = sn.sequence_editor.strips if hasattr(sn.sequence_editor, 'strips') else sn.sequence_editor.sequences
-    dateien = sorted(x for x in os.listdir(ordner) if x.startswith('bild-') and x.endswith('.png'))
-    try:
-        bild = seq.new_image('Film', os.path.join(ordner, dateien[0]), channel=1, frame_start=1, fit_method='FIT')
-    except TypeError:
-        bild = seq.new_image('Film', os.path.join(ordner, dateien[0]), channel=1, frame_start=1)
-    for d in dateien[1:]:
-        bild.elements.append(d)
-    schrift = None
-    for kandidat in (os.path.join(os.path.dirname(os.path.abspath(__file__)), 'archivo-film.ttf'), r'C:\Windows\Fonts\segoeuib.ttf'):
-        if os.path.exists(kandidat):
-            schrift = bpy.data.fonts.load(kandidat, check_existing=True); break
-    # Gut lesbar (Uwe, 03.09.2026): gross, Kasten dahinter, Schatten. Groesse an der kurzen Bildkante.
-    kurz = min(MK_PX)
-
-    def text(name, inhalt, von, bis, faktor, y, kanal):
-        von, bis = max(1, von), min(n + 1, bis)
-        try:
-            ts = seq.new_effect(name, 'TEXT', channel=kanal, frame_start=von, length=bis - von)
-        except TypeError:
-            ts = seq.new_effect(name, 'TEXT', channel=kanal, frame_start=von, frame_end=bis)
-        ts.text = inhalt; ts.font_size = int(kurz * faktor); ts.location = (0.5, y)
-        if schrift:
-            ts.font = schrift
-        ts.color = (1, 1, 1, 1); ts.use_shadow = True; ts.shadow_color = (0, 0, 0, 0.85)
-        for a, v in (('alignment_x', 'CENTER'), ('anchor_x', 'CENTER'), ('anchor_y', 'CENTER'), ('wrap_width', 0.9),
-                     ('use_box', True), ('box_color', (0.02, 0.03, 0.05, 0.55)), ('box_margin', 0.02)):
-            try:
-                setattr(ts, a, v)
-            except Exception:
-                pass
-    if str(MK.get('titel', '')).strip():
-        text('Titel', str(MK['titel']).strip()[:80], 1, int(fps * 2.8), 0.072, 0.86, 2)
-    if str(MK.get('abspann', '')).strip():
-        text('Abspann', str(MK['abspann']).strip()[:60], n - int(fps * 2.4), n + 1, 0.075, 0.14, 3)
-    try:
-        sn.render.image_settings.media_type = 'VIDEO'
-    except Exception:
-        pass
-    sn.render.image_settings.file_format = 'FFMPEG'
-    sn.render.ffmpeg.format = 'MPEG4'; sn.render.ffmpeg.codec = 'H264'
-    sn.render.ffmpeg.constant_rate_factor = 'HIGH'; sn.render.ffmpeg.ffmpeg_preset = 'GOOD'
-    sn.render.ffmpeg.gopsize = fps
-    sn.render.filepath = aus
-    sn.view_settings.view_transform = 'Standard'          # die Bilder sind schon fertig belichtet
-    with bpy.context.temp_override(scene=sn):
-        bpy.ops.render.render(animation=True, scene=sn.name)
+    _schnitt.titel_film(ordner, n, fps, aus, MK_PX, MK.get('titel', ''), MK.get('abspann', ''))
 
 
 if MK:
@@ -1075,13 +1030,90 @@ if MK:
         _ev = max(-1.0, min(1.0, math.log2(max(1e-4, _ziel) / max(1e-4, _mittel)) * 2.2))
         sc.view_settings.exposure += _ev
     _bericht.update(probe_mittel=round(_mittel, 3), probe_ausgebrannt=round(_hell, 4), korrektur_ev=round(_ev, 2))
+    # Stimmung „abendlich“ (W3): nach der Messung eine gute halbe Blende dunkler
+    # und waermer -- dasselbe Licht, wie es ein Fotograf am Abend belichten wuerde.
+    if str(MK.get('stimmung', '')) == 'abend':
+        sc.view_settings.exposure -= 0.6
+        try:
+            sc.view_settings.use_white_balance = True
+            sc.view_settings.white_balance_temperature = 8200.0
+        except Exception:
+            pass
+        _bericht['stimmung'] = 'abend'
     r.resolution_percentage, sc.cycles.samples = _alt
     try:
         os.remove(_probe)
     except OSError:
         pass
     status(was=WAS, modus=MODUS, schritt='rendert', bericht=_bericht)
-    if MODUS == 'marketing':
+    if MODUS == 'marketing_unreal':
+        # Blender baut, Unreal rendert (Uwe, 26.09.2026): Szene als GLB, Kamerafahrt
+        # und Ort als JSON. Gleiche Fahrt wie marketing_film, Bild fuer Bild.
+        FPS = 24
+        N = max(48, int(FPS * float(MK.get('sekunden', 8))))
+        d0 = cam.location - ziel
+        w0 = math.atan2(-d0.x, -d0.y); rad0 = math.hypot(d0.x, d0.y); h0 = d0.z
+        spanne = math.radians(float(MK.get('spanne', 34.0)))
+        bilder = []
+        for f in range(N):
+            t = f / (N - 1); e = t * t * (3 - 2 * t)
+            w = w0 - spanne / 2 + spanne * e; rad = rad0 * (1.0 - 0.09 * e)
+            pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0 * (0.95 + 0.07 * e)))
+            bilder.append({'ort': [round(pos.x, 5), round(pos.y, 5), round(pos.z, 5)], 'fokus_m': round((ziel - pos).length, 4)})
+        ordner = os.path.dirname(_aus)
+        glb = os.path.join(ordner, os.path.basename(_aus).rsplit('.', 1)[0] + '.glb')
+        # Referenz: das erste Bild der Fahrt in Cycles (halbe Groesse). Daran
+        # misst ue-marketing.ps1 Belichtung und Lage des Unreal-Bildes.
+        _p0 = Vector(bilder[0]['ort'])
+        cam.location = _p0
+        cam.rotation_euler = (ziel - _p0).to_track_quat('-Z', 'Y').to_euler()
+        cam_d.dof.focus_distance = (ziel - _p0).length
+        _ref = os.path.join(ordner, os.path.basename(_aus).rsplit('.', 1)[0] + '.ref.png')
+        r.resolution_percentage = 50; r.filepath = _ref
+        bpy.ops.render.render(write_still=True)
+        r.resolution_percentage = 100
+        _bericht['referenz'] = _ref
+        bpy.ops.object.select_all(action='DESELECT')
+        _weg = {faenger.name} | ({'Flagge'} if 'Flagge' in bpy.data.objects else set())
+        for o in sc.objects:
+            if o.type == 'MESH' and o.name not in _weg and not o.hide_render:
+                o.select_set(True)
+        # Ohne Materialvarianten: sonst nimmt Unreal die Grundfassung (Probelauf
+        # 01.10.2026: Tischdecke weiss statt der gewaehlten Farbe). Exportiert
+        # wird, was gerade im Slot steckt -- die Variante dieses Auftrags.
+        # GEMESSEN (Probe 5): nur die Varianten zu leeren reicht nicht -- der
+        # Exporter schreibt die Grundfassung aus gltf2_variant_default_materials
+        # (Leinen Weiss statt Terrakotta). Beides leeren; was im Slot steckt, gilt.
+        for o in sc.objects:
+            if o.select_get() and o.type == 'MESH':
+                _slots = [sl.material for sl in o.material_slots]
+                for _feld in ('gltf2_variant_mesh_data', 'gltf2_variant_default_materials'):
+                    if hasattr(o.data, _feld):
+                        getattr(o.data, _feld).clear()
+                for _i, _m in enumerate(_slots):
+                    if _m is not None and _i < len(o.data.materials):
+                        o.data.materials[_i] = _m
+        if hasattr(sc, 'gltf2_KHR_materials_variants_variants'):
+            sc.gltf2_KHR_materials_variants_variants.clear()
+        _gltf = dict(filepath=glb, export_format='GLB', use_selection=True, export_yup=True, export_apply=True, export_cameras=False, export_lights=False)
+        try:
+            bpy.ops.export_scene.gltf(**_gltf, export_variants=False)
+        except TypeError:
+            bpy.ops.export_scene.gltf(**_gltf)
+        # Grenzen der exportierten Geometrie (Blender-Koordinaten), damit Unreal die
+        # Achsen nach dem Import gegenpruefen kann (Spiegelung Y, Zentimeter).
+        _ecken = [o.matrix_world @ Vector(c) for o in sc.objects if o.select_get() for c in o.bound_box]
+        _grenzen = {'min': [round(min(v[i] for v in _ecken), 4) for i in range(3)], 'max': [round(max(v[i] for v in _ecken), 4) for i in range(3)]} if _ecken else None
+        _hdri = O.get('hdri_web') if str(O.get('hdri_web', '')).endswith('.hdr') else O['hdri']
+        szene_ue = {'glb': glb, 'px': list(MK_PX), 'fps': FPS, 'bilder': bilder, 'ziel': [ziel.x, ziel.y, ziel.z],
+                    'brennweite_mm': cam_d.lens, 'blende': cam_d.dof.aperture_fstop, 'hdri': os.path.join(Q, _hdri), 'hdri_drehung_grad': O['dreh'],
+                    'hdri_staerke': O['staerke'], 'kamera_hoehe_m': cam.location.z - boden_z, 'boden_z': boden_z, 'belichtung': sc.view_settings.exposure,
+                    'titel': MK.get('titel', ''), 'abspann': MK.get('abspann', ''), 'probe_mittel': _bericht.get('probe_mittel'), 'grenzen': _grenzen, 'referenz': _ref}
+        with open(_aus, 'w', encoding='utf-8') as _f:
+            json.dump(szene_ue, _f, ensure_ascii=False, indent=1)
+        _bericht.update(glb=glb, bilder=N)
+        print('MARKETING UNREAL EXPORT FERTIG', glb)
+    elif MODUS == 'marketing':
         t0 = time.time(); r.filepath = _aus
         bpy.ops.render.render(write_still=True)
         _m2, _h2 = _leuchtdichte(_aus)
@@ -1116,7 +1148,8 @@ if MK:
         _titel_film(ordner, N, FPS, _aus)
         _bericht.update(sekunden=round(time.time() - t0, 1), bilder=N)
         print('MARKETING FILM FERTIG', _aus)
-    with open(_aus.rsplit('.', 1)[0] + '.json', 'w', encoding='utf-8') as _f:
+    # Beim Unreal-Export ist _aus selbst die Szenen-JSON -- Bericht daneben.
+    with open(_aus.rsplit('.', 1)[0] + ('.bericht.json' if MODUS == 'marketing_unreal' else '.json'), 'w', encoding='utf-8') as _f:
         json.dump(_bericht, _f, ensure_ascii=False, indent=1)
     status(was=WAS, modus=MODUS, schritt='fertig', bericht=_bericht)
     raise SystemExit(0)

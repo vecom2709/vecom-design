@@ -6,6 +6,12 @@
   <form class="leiste"><input type="search" name="q" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Name, E-Mail, Firma">
   <button class="knopf">Suchen</button></form>
   <a class="knopf haupt" href="<?= Fmt::h(url('kunden/neu')) ?>">Neuer Kunde</a></div></div>
+<?php if (!empty($anfragen)): require_once dirname(__DIR__) . '/src/Zugang.php'; ?>
+<div class="block" id="anfragen">
+  <h2>Neue Anfragen <span class="mehr">E-Mail eingetragen, Link aus der Mail noch nicht geöffnet · letzte 30 Tage</span></h2>
+  <?php foreach ($anfragen as $az): $azZurueck = 'kunden#anfragen'; require __DIR__ . '/anfrage_karte.php'; endforeach; ?>
+</div>
+<?php endif; ?>
 <div class="block"><div class="tabellenrahmen"><table>
 <thead><tr><th>Nummer</th><th>Name</th><th>Firma</th><th>E-Mail</th><th class="num">Bestellungen</th><th class="num">Projekte</th><th>Seit</th></tr></thead>
 <tbody>

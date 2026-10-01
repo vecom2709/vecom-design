@@ -14,6 +14,9 @@ Uwes PC ein kurzes Blender-Skript aus der Bildidee. Dieses Geruest
 
 Aufruf (headless, vom Worker):
   blender -b -P marketing_szene.py -- claude marketing auftrag=<json>
+  blender -b -P marketing_szene.py -- claude marketing_film auftrag=<json>
+    (Film, 01.10.2026 W2: langsame Fahrt um das Ziel, Titel und Abspann
+     aus marketing_schnitt.py)
   Auftrag: {"px": "1080x1350", "seed": 7, "aus": "...png", "szene": "...py"}
 """
 import bpy, bmesh, json, math, os, re, sys, time, random
@@ -23,6 +26,7 @@ Q = r'C:\Users\manue\Desktop\Vecom Design\3d-produktion\quellen\polyhaven'
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 argv = [t for a in argv for t in a.split(',') if t]
 EXTRA = {k: v for k, v in (t.split('=', 1) for t in argv[2:] if '=' in t)}
+MODUS = argv[1] if len(argv) > 1 else 'marketing'
 with open(EXTRA['auftrag'], encoding='utf-8') as _f:
     MK = json.load(_f)
 PX = tuple(int(v) for v in str(MK.get('px', '1080x1350')).lower().split('x'))
@@ -253,9 +257,39 @@ try:
 except OSError:
     pass
 r.resolution_percentage = 100; sc.cycles.samples = _s
-t0 = time.time(); r.filepath = AUS
-bpy.ops.render.render(write_still=True)
-_m2, _h2 = _leuchtdichte(AUS)
+t0 = time.time()
+if MODUS == 'marketing_film':
+    # Fahrt um den Schaerfepunkt: +-15 Grad, leicht heran, weich an- und auslaufen.
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    import marketing_schnitt
+    cam = sc.camera; cd = cam.data
+    vorne = cam.matrix_world.to_quaternion() @ Vector((0.0, 0.0, -1.0))
+    ziel = cam.location + vorne * (cd.dof.focus_distance or 3.0)
+    d0 = cam.location - ziel
+    w0 = math.atan2(-d0.x, -d0.y); rad0 = math.hypot(d0.x, d0.y); h0 = d0.z
+    FPS = 24; N = max(48, int(FPS * float(MK.get('sekunden', 8))))
+    spanne = math.radians(float(MK.get('spanne', 30.0)))
+    sc.cycles.samples = int(MK.get('samples', 160)); sc.cycles.adaptive_threshold = 0.012
+    r.use_persistent_data = True
+    ordner = os.path.join(os.path.dirname(AUS), 'bilder-' + os.path.basename(AUS).rsplit('.', 1)[0])
+    os.makedirs(ordner, exist_ok=True)
+    for f in range(N):
+        t = f / (N - 1); e = t * t * (3 - 2 * t)
+        w = w0 - spanne / 2 + spanne * e; rad = rad0 * (1.0 - 0.08 * e)
+        pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0))
+        cam.location = pos; cam.rotation_euler = (ziel - pos).to_track_quat('-Z', 'Y').to_euler()
+        cd.dof.focus_distance = (ziel - pos).length
+        pfad = os.path.join(ordner, 'bild-%04d.png' % f)
+        if not os.path.exists(pfad):
+            r.filepath = pfad; bpy.ops.render.render(write_still=True)
+        print('FILM', f + 1, '/', N, flush=True)
+    marketing_schnitt.titel_film(ordner, N, FPS, AUS, PX, MK.get('titel', ''), MK.get('abspann', ''))
+    _m2, _h2 = _leuchtdichte(os.path.join(ordner, 'bild-%04d.png' % (N // 2)))
+    BERICHT.update(modus='marketing_film', bilder=N)
+else:
+    r.filepath = AUS
+    bpy.ops.render.render(write_still=True)
+    _m2, _h2 = _leuchtdichte(AUS)
 BERICHT.update(sekunden=round(time.time() - t0, 1), mittel=round(_m2, 3), ausgebrannt=round(_h2, 4))
 with open(AUS.rsplit('.', 1)[0] + '.json', 'w', encoding='utf-8') as _f:
     json.dump(BERICHT, _f, ensure_ascii=False, indent=1)

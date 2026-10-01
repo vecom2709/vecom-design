@@ -354,8 +354,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'g3_bestellen' && $p) {
                 /* 3D-Motiv bestellen (Marketing-Studio 11): rechnet in Vecoms Nachtschicht, höchstens 2 je Woche. */
                 require_once __DIR__ . '/app/src/MkMedium.php';
-                $g3R = MkMedium::anlegenGalerie((string) ($_POST['studio'] ?? ''), ($_POST['art'] ?? '') === 'video' ? 'video' : 'bild', '', $p, $sprache);
-                $g3Meldung = is_int($g3R) ? 'b_ok' : ($g3R === 'zuviel' ? 'b_zuviel' : 'b_fehler');
+                /* Eigene Wünsche (W1–W4): freier Text oder Feinwahl; freier Text wartet auf Uwes Ja. */
+                $g3R = MkMedium::anlegenGalerie((string) ($_POST['studio'] ?? ''), ($_POST['art'] ?? '') === 'video' ? 'video' : 'bild', '', $p, $sprache,
+                    ['text' => (string) ($_POST['wunsch'] ?? ''), 'titel' => (string) ($_POST['titel'] ?? ''), 'blick' => (string) ($_POST['blick'] ?? ''),
+                     'naehe' => (string) ($_POST['naehe'] ?? ''), 'stimmung' => (string) ($_POST['stimmung'] ?? '')]);
+                $g3Meldung = is_int($g3R)
+                    ? ((string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$g3R], '') === 'pruefen' ? 'b_ok_pruefen' : 'b_ok')
+                    : ($g3R === 'zuviel' ? 'b_zuviel' : ($g3R === 'kurz' ? 'b_kurz' : 'b_fehler'));
             } elseif ($tat === 'konto' && $p) {
                 /* Gehosteter Weg (ohne Skript oder als Rückfall): Land speichern,
                    Konto mit diesem Land anlegen, weiter zu Stripe. */
@@ -574,8 +579,15 @@ if ($p && isset($_GET['karte'])) {
   .g3-stueck img,.g3-stueck video{width:100%;height:100%;object-fit:cover;display:block}
   .g3-marke{position:absolute;left:6px;bottom:6px;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(10,9,8,.78);color:#f7f3ea}
   .g3-eigen{left:auto;right:6px;top:6px;bottom:auto;background:#f1d38b;color:#17130b}
-  .g3-bestellen{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-  .g3-bestellen select{min-height:44px}
+  .pt .g3-bestellen{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 14px;align-items:end;text-align:left;justify-items:stretch}
+  .pt .g3-bestellen label{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0;margin:0}
+  .pt .g3-bestellen .g3-l{font-size:12.5px;color:var(--leise,#a9a196)}
+  .pt .g3-bestellen select,.pt .g3-bestellen input{min-height:44px;width:100%;box-sizing:border-box}
+  .pt .g3-bestellen .g3-breit{grid-column:1/-1}
+  .pt .g3-bestellen textarea{width:100%;min-height:84px;font:inherit;padding:10px 12px;border-radius:10px;resize:vertical;box-sizing:border-box}
+  .pt .g3-bestellen .knopf{justify-self:start}
+  .pt .g3-fein{display:contents}
+  .pt .g3-fein[hidden],.pt .g3-bestellen label[hidden]{display:none}
   /* minmax(0,1fr): Ein Grid-Eintrag ist sonst mindestens so breit wie sein
      Inhalt -- die lange Adresse schob die Seite auf 519 px, das Abschneiden
      im code griff nie. */

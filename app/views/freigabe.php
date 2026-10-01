@@ -214,13 +214,30 @@ require __DIR__ . '/mk_stil.php';
 <?php $g3Offen = MkMedium::galerieOffen();   /* Marketing-Studio 11: 3D-Galerie für Partner — erst nach deinem Ja sichtbar */ ?>
 <section class="block mk-start" id="partner3d" aria-labelledby="mk-g3-titel" style="margin-top:16px">
   <h2 id="mk-g3-titel">3D für Partner <span class="mehr">Galerie im Partnerportal (Reiter Werben) · Partner bestellen selbst höchstens <?= MkMedium::PARTNER_JE_WOCHE ?> je Woche · ihr Link kommt drauf</span></h2>
+  <?php $g3Wuensche = MkMedium::wuenscheOffen(); if ($g3Wuensche): ?>
+    <h3 class="mk-fein" style="margin:4px 0 8px;font-size:14px;color:var(--text)">Wünsche von Partnern — erst nach deinem Ja wird gerechnet</h3>
+    <?php foreach ($g3Wuensche as $g3w): ?>
+      <div class="mk-wunsch" style="border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:10px 12px;margin:0 0 8px;line-height:1.55">
+        <b><?= Fmt::h($g3w['partner']) ?></b> · <?= $g3w['art'] === 'video' ? 'Video' : 'Bild' ?> <?= Fmt::h($g3w['format']) ?> ·
+        <?= $g3w['studio'] !== '' ? Fmt::h(MkMedium::STUDIO_NAMEN[$g3w['studio']] ?? $g3w['studio']) : 'eigene Idee' ?>
+        <span class="mk-fein" style="display:inline"> · <?= Fmt::h(date('d.m. H:i', strtotime($g3w['am']))) ?></span>
+        <?php if ($g3w['text'] !== ''): ?><blockquote style="margin:6px 0;padding:6px 10px;border-left:3px solid rgba(241,211,139,.6)"><?= Fmt::h($g3w['text']) ?></blockquote><?php endif; ?>
+        <?php if ($g3w['titel'] !== ''): ?><div>Titel im Video: „<?= Fmt::h($g3w['titel']) ?>“</div><?php endif; ?>
+        <?php if ($g3w['studio'] !== ''): ?><div class="mk-fein">Blickwinkel <?= Fmt::h((string) ($g3w['wunsch']['blick'] ?? '')) ?> · Nähe <?= Fmt::h((string) ($g3w['wunsch']['naehe'] ?? '')) ?> · Stimmung <?= Fmt::h((string) ($g3w['wunsch']['stimmung'] ?? '')) ?></div><?php endif; ?>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+          <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="g3_wunsch_ja"><input type="hidden" name="auftrag_id" value="<?= (int) $g3w['id'] ?>"><button class="knopf klein haupt">Ja, rechnen</button></form>
+          <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="g3_wunsch_nein"><input type="hidden" name="auftrag_id" value="<?= (int) $g3w['id'] ?>"><button class="knopf klein">Nein</button></form>
+        </div>
+      </div>
+    <?php endforeach; ?>
+  <?php endif; ?>
   <?php if ($g3Offen): ?>
     <div class="mk-galerie">
       <?php foreach ($g3Offen as $g3): ?>
         <figure class="mk-galerie__stueck">
           <?php if ($g3['art'] === 'video'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" controls preload="metadata" playsinline></video>
           <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" alt="3D <?= Fmt::h((string) $g3['studio']) ?>" loading="lazy"><?php endif; ?>
-          <figcaption><span><?= Fmt::h(MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? (string) $g3['studio']) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
+          <figcaption><span><?= Fmt::h(MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? ((string) $g3['studio'] !== '' ? (string) $g3['studio'] : 'eigene Idee')) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
             <span class="mk-galerie__knoepfe">
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_freigeben"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein haupt">Für Partner freigeben</button></form>
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_verwerfen"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein">Verwerfen</button></form>

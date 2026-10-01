@@ -332,7 +332,35 @@ final class MkMedium
         'b_zuviel'=> ['it' => 'Questa settimana ha già ordinato 2 motivi. Riprovi tra qualche giorno.', 'de' => 'Diese Woche haben Sie schon 2 Motive bestellt. In ein paar Tagen wieder.', 'en' => 'You already ordered 2 motifs this week. Try again in a few days.'],
         'b_offen' => ['it' => 'In preparazione', 'de' => 'In Arbeit', 'en' => 'In progress'],
         'b_fehler'=> ['it' => 'Non riuscito — riordini più tardi', 'de' => 'Nicht geklappt — bitte später neu bestellen', 'en' => 'Failed — please order again later'],
+        /* Eigene Wünsche (01.10.2026, Uwe: W1–W4) */
+        'w_eigen' => ['it' => 'Idea sua — la descriva', 'de' => 'Eigener Wunsch — beschreiben', 'en' => 'Your own idea — describe it'],
+        'w_text'  => ['it' => 'Cosa deve vedersi? (es. «bancone di una pasticceria con cannoli, luce del mattino»)', 'de' => 'Was soll zu sehen sein? (z. B. „Theke einer Konditorei mit Torten, Morgenlicht“)', 'en' => 'What should it show? (e.g. “a bakery counter with cakes, morning light”)'],
+        'w_hinweis'=> ['it' => 'Niente scritte, loghi o persone nell’immagine — il suo testo e il link li aggiunge lei sopra. Le idee proprie le controlla prima Vecom.',
+                       'de' => 'Keine Schrift, Logos oder Personen im Bild — Text und Link setzen Sie selbst darüber. Eigene Ideen prüft Vecom vorher.',
+                       'en' => 'No lettering, logos or people in the image — you add your text and link on top. Vecom reviews your own ideas first.'],
+        'w_blick' => ['it' => 'Inquadratura', 'de' => 'Blickwinkel', 'en' => 'Angle'],
+        'w_naehe' => ['it' => 'Distanza', 'de' => 'Nähe', 'en' => 'Distance'],
+        'w_stimmung'=> ['it' => 'Atmosfera', 'de' => 'Stimmung', 'en' => 'Mood'],
+        'w_titel' => ['it' => 'Titolo nel video (facoltativo)', 'de' => 'Titel im Video (freiwillig)', 'en' => 'Title in the video (optional)'],
+        'bl_zufall'=> ['it' => 'Sorpresa', 'de' => 'Überraschen', 'en' => 'Surprise me'],
+        'bl_links' => ['it' => 'Da sinistra', 'de' => 'Von links', 'en' => 'From the left'],
+        'bl_frontal'=> ['it' => 'Frontale', 'de' => 'Frontal', 'en' => 'Front'],
+        'bl_rechts' => ['it' => 'Da destra', 'de' => 'Von rechts', 'en' => 'From the right'],
+        'bl_oben'  => ['it' => 'Dall’alto', 'de' => 'Von oben', 'en' => 'From above'],
+        'na_normal'=> ['it' => 'Normale', 'de' => 'Normal', 'en' => 'Normal'],
+        'na_nah'   => ['it' => 'Più vicino', 'de' => 'Näher', 'en' => 'Closer'],
+        'na_weit'  => ['it' => 'Più ampio', 'de' => 'Weiter', 'en' => 'Wider'],
+        'st_tag'   => ['it' => 'Luce del giorno', 'de' => 'Tageslicht', 'en' => 'Daylight'],
+        'st_abend' => ['it' => 'Più calda, serale', 'de' => 'Wärmer, abendlich', 'en' => 'Warmer, evening'],
+        'b_pruefen'=> ['it' => 'In attesa di approvazione da Vecom', 'de' => 'Wartet auf Freigabe durch Vecom', 'en' => 'Waiting for Vecom’s approval'],
+        'b_abgelehnt'=> ['it' => 'Non approvato — lo riformuli', 'de' => 'Nicht freigegeben — bitte anders formulieren', 'en' => 'Not approved — please rephrase'],
+        'b_ok_pruefen'=> ['it' => 'Ricevuto. Vecom controlla la sua idea, poi la calcola di notte.', 'de' => 'Angekommen. Vecom prüft Ihre Idee und rechnet sie danach nachts.', 'en' => 'Received. Vecom reviews your idea, then renders it overnight.'],
+        'b_kurz'   => ['it' => 'Descriva la sua idea in almeno qualche parola.', 'de' => 'Bitte beschreiben Sie Ihre Idee in ein paar Worten.', 'en' => 'Please describe your idea in a few words.'],
     ];
+    /* Feinwahl (W3): erlaubte Werte, der erste ist der Standard. */
+    public const WUNSCH_BLICK = ['zufall', 'links', 'frontal', 'rechts', 'oben'];
+    public const WUNSCH_NAEHE = ['normal', 'nah', 'weit'];
+    public const WUNSCH_STIMMUNG = ['tag', 'abend'];
     public static function gt(string $k, string $sprache): string
     {
         return (string) (self::GALERIE_TEXTE[$k][$sprache] ?? self::GALERIE_TEXTE[$k]['it'] ?? '');
@@ -345,11 +373,24 @@ final class MkMedium
      * Ein 3D-Auftrag ohne Inhalt: Vecom-Galerie (partnerId null) oder Bestellung eines Partners.
      * @return int|string
      */
-    public static function anlegenGalerie(string $studio, string $art, string $format = '', ?array $partner = null, string $sprache = 'it'): int|string
+    /** Wunsch eines Partners bereinigen (W1–W3): freier Text, Feinwahl, eigener Titel. */
+    public static function wunschBereinigen(array $w): array
+    {
+        $text = trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($w['text'] ?? ''))) ?? '');
+        $titel = trim(preg_replace('/\s+/u', ' ', strip_tags((string) ($w['titel'] ?? ''))) ?? '');
+        $wahl = static fn(string $k, array $erlaubt): string => in_array((string) ($w[$k] ?? ''), $erlaubt, true) ? (string) $w[$k] : $erlaubt[0];
+        return ['text' => mb_substr($text, 0, 600), 'titel' => mb_substr($titel, 0, 60),
+                'blick' => $wahl('blick', self::WUNSCH_BLICK), 'naehe' => $wahl('naehe', self::WUNSCH_NAEHE), 'stimmung' => $wahl('stimmung', self::WUNSCH_STIMMUNG)];
+    }
+
+    public static function anlegenGalerie(string $studio, string $art, string $format = '', ?array $partner = null, string $sprache = 'it', array $wunsch = []): int|string
     {
         require_once __DIR__ . '/MkAuftrag.php';
         require_once __DIR__ . '/Texte.php';
-        if (!isset(self::STUDIO_NAMEN[$studio])) { return 'unbekannte_szene'; }
+        $w = self::wunschBereinigen($wunsch);
+        $eigen = $studio === 'eigen';
+        if ($eigen && mb_strlen($w['text']) < 12) { return 'kurz'; }
+        if (!$eigen && !isset(self::STUDIO_NAMEN[$studio])) { return 'unbekannte_szene'; }
         if (!isset(self::MODELLE[$art])) { return 'unbekannt'; }
         if (!in_array($format, self::FORMATE[$art], true)) { $format = $art === 'video' ? '9:16' : '4:5'; }
         $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
@@ -358,22 +399,53 @@ final class MkMedium
                 ['%"partner_id":' . (int) $partner['id'] . ',%'], 0);
             if ($woche >= self::PARTNER_JE_WOCHE) { return 'zuviel'; }
         }
-        $motiv = Texte::PARTNER_MEDIEN['motive'][self::STUDIO_MOTIV[$studio] ?? 'allgemein'] ?? Texte::PARTNER_MEDIEN['motive']['allgemein'];
+        $motiv = Texte::PARTNER_MEDIEN['motive'][$eigen ? 'allgemein' : (self::STUDIO_MOTIV[$studio] ?? 'allgemein')] ?? Texte::PARTNER_MEDIEN['motive']['allgemein'];
         $abspann = 'vecom-design.it';
         if ($partner !== null) {
             require_once __DIR__ . '/Partner.php';
             $abspann = preg_replace('~^https?://~', '', Partner::link($partner));
         }
-        $param = ['inhalt_id' => 0, 'medium' => $art, 'modell' => 'blender', 'format' => $format, 'prompt' => '', 'startbild' => null, 'credits_ca' => 0,
-                  'titel' => mb_substr('3D ' . self::STUDIO_NAMEN[$studio] . ($partner !== null ? ' · Partner ' . (string) $partner['name'] : ' · Galerie'), 0, 80),
-                  'drei_d' => true, 'studio' => $studio, 'generativ' => false, 'seed' => random_int(1, 999999), 'sofort' => false, 'sprache' => $sp,
-                  'film_titel' => mb_substr(Texte::h($motiv['titel'], $sp), 0, 70), 'abspann' => mb_substr((string) $abspann, 0, 60)]
+        $param = ['inhalt_id' => 0, 'medium' => $art, 'modell' => 'blender', 'format' => $format, 'prompt' => $eigen ? $w['text'] : '', 'startbild' => null, 'credits_ca' => 0,
+                  'titel' => mb_substr('3D ' . ($eigen ? 'eigener Wunsch' : self::STUDIO_NAMEN[$studio]) . ($partner !== null ? ' · Partner ' . (string) $partner['name'] : ' · Galerie'), 0, 80),
+                  'drei_d' => true, 'studio' => $eigen ? null : $studio, 'generativ' => $eigen, 'seed' => random_int(1, 999999), 'sofort' => false, 'sprache' => $sp,
+                  'film_titel' => mb_substr($w['titel'] !== '' ? $w['titel'] : Texte::h($motiv['titel'], $sp), 0, 70), 'abspann' => mb_substr((string) $abspann, 0, 60),
+                  'wunsch' => ['blick' => $w['blick'], 'naehe' => $w['naehe'], 'stimmung' => $w['stimmung']]]
+                + ($eigen || $w['titel'] !== '' ? ['wunschtext' => $w['text'], 'wunschtitel' => $w['titel']] : [])
                 + ($partner !== null ? ['partner_id' => (int) $partner['id']] : ['galerie' => 1]);
         /* partner_id muss für die Wochengrenze mit Komma folgen — darum hinten ein fester Schlüssel. */
         $param['ende'] = 1;
+        /* W4: Alles mit freiem Text (eigene Idee oder eigener Titel) wartet auf Uwes Ja. */
+        $pruefen = $partner !== null && ($eigen || $w['titel'] !== '');
         $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => '', 'land' => $sp === 'de' ? 'DE' : 'IT',
-                                                'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+                                                'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]
+                                               + ($pruefen ? ['status' => 'pruefen'] : []));
+        if ($pruefen) {
+            Events::melden('g3_wunsch', '3D-Wunsch von Partner ' . (string) $partner['name'] . ' wartet auf dein Ja', 'info',
+                ($art === 'video' ? 'Video: ' : 'Bild: ') . mb_substr($eigen ? $w['text'] : 'Titel „' . $w['titel'] . '“', 0, 300), '/freigabe#partner3d');
+        }
         return $id;
+    }
+
+    /** Wünsche, die auf Uwes Ja warten (W4). */
+    public static function wuenscheOffen(): array
+    {
+        try {
+            return array_map(static function (array $a): array {
+                $pa = json_decode((string) $a['parameter'], true) ?: [];
+                $pn = (string) Db::wert('SELECT name FROM partner WHERE id = ?', [(int) ($pa['partner_id'] ?? 0)], '');
+                return ['id' => (int) $a['id'], 'partner' => $pn, 'art' => (string) ($pa['medium'] ?? 'bild'), 'format' => (string) ($pa['format'] ?? ''),
+                        'studio' => (string) ($pa['studio'] ?? ''), 'text' => (string) ($pa['wunschtext'] ?? ''), 'titel' => (string) ($pa['wunschtitel'] ?? ''),
+                        'wunsch' => (array) ($pa['wunsch'] ?? []), 'am' => (string) $a['created_at']];
+            }, Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND status = 'pruefen' ORDER BY id"));
+        } catch (Throwable $e) { return []; }
+    }
+
+    /** Uwe entscheidet über einen Wunsch: Ja → rechnet in der Nachtschicht, Nein → abgelehnt (der Partner sieht es). */
+    public static function wunschEntscheiden(int $id, bool $ja): bool
+    {
+        $n = Db::run("UPDATE mk_auftraege SET status = ?, ergebnis = ? WHERE id = ? AND status = 'pruefen'",
+            [$ja ? 'wartet' : 'abgebrochen', $ja ? null : 'abgelehnt', $id]);
+        return $n->rowCount() > 0;
     }
 
     /** Starterpaket für die Galerie: je Szene ein Bild, drei Filme — rechnet in der nächsten Nachtschicht. @return int Anzahl */
@@ -407,8 +479,11 @@ final class MkMedium
         try {
             return array_map(static function (array $a): array {
                 $pa = json_decode((string) $a['parameter'], true) ?: [];
-                return ['status' => (string) $a['status'], 'art' => (string) ($pa['medium'] ?? 'bild'), 'studio' => (string) ($pa['studio'] ?? ''), 'am' => (string) $a['created_at']];
-            }, Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet', 'laeuft', 'fehler') AND parameter LIKE ? AND created_at >= NOW() - INTERVAL 7 DAY ORDER BY id DESC",
+                $st = (string) $a['status'] === 'abgebrochen' ? 'abgelehnt' : (string) $a['status'];
+                return ['status' => $st, 'art' => (string) ($pa['medium'] ?? 'bild'), 'studio' => (string) ($pa['studio'] ?? ''), 'am' => (string) $a['created_at'],
+                        'text' => (string) ($pa['wunschtext'] ?? '')];
+            }, Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND (status IN ('pruefen', 'wartet', 'laeuft', 'fehler') OR (status = 'abgebrochen' AND ergebnis = 'abgelehnt'))
+                          AND parameter LIKE ? AND created_at >= NOW() - INTERVAL 7 DAY ORDER BY id DESC",
                 ['%"partner_id":' . (int) $p['id'] . ',%']));
         } catch (Throwable $e) { return []; }
     }

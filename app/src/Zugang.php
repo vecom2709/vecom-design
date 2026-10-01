@@ -219,6 +219,14 @@ final class Zugang
         }
 
         $ok = self::willkommenSenden($z, $sprache);
+        /* Uwe erfährt sofort davon -- nicht erst, wenn der Interessent den Link öffnet
+           (01.10.2026: Anfrage im Tracking, aber nirgends ein Kunde zum Antworten). */
+        try {
+            Events::melden('zugang_neu', 'Neue Anfrage über die Website', $ok ? 'info' : 'warnung',
+                (string) $z['email'] . (trim((string) ($z['name'] ?? '')) !== '' ? ' · ' . (string) $z['name'] : '')
+                . (!empty($z['partner_code']) ? ' · über Partner ' . (string) $z['partner_code'] : '')
+                . ($ok ? ' · Zugangslink verschickt' : ' · Zugangslink-Mail NICHT verschickt'), '/kunden#anfragen');
+        } catch (Throwable $e) { }
         return ['ok' => true, 'art' => 'neu', 'mail' => $ok];
     }
 
@@ -284,11 +292,28 @@ final class Zugang
         }
 
         $sprache = self::spr((string) $z['sprache']);
+        $kid = self::annehmen($z, true);
+        return ['ok' => true, 'kunde_id' => $kid, 'neu' => true,
+                'link' => Kundenzugang::linkFuer($kid, $sprache)];
+    }
+
+    /**
+     * Aus einem Zugang wird ein Kunde -- beim Öffnen des Links ($selbst) oder
+     * von Uwe, damit er auf eine Anfrage antworten kann, bevor der Interessent
+     * den Link aus der Mail öffnet (01.10.2026: „kann kein Angebot senden, da
+     * nichts ankam“ -- die Anfrage lag nur als Zugang vor). Öffnet er später
+     * selbst, findet oeffnen() den Kunden vor und führt ins Dashboard.
+     */
+    public static function annehmen(array $z, bool $selbst): int
+    {
+        require_once __DIR__ . '/Bedarf.php';
+        $sprache = self::spr((string) $z['sprache']);
         $kid = Events::kundeFinden([
             'name'    => (string) ($z['name'] ?? ''),
             'email'   => (string) $z['email'],
             'sprache' => $sprache,
             'notes'   => 'Über den E-Mail-Einstieg der Website gekommen.'
+                . ($selbst ? '' : ' Von Vecom angelegt, bevor der Zugangslink geöffnet wurde.')
                 . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' Wunsch laut Partnerseite: ' . self::WUENSCHE[(string) $z['wunsch']] . '.' : ''),
         ]);
         require_once __DIR__ . '/Onboarding.php';
@@ -298,13 +323,14 @@ final class Zugang
         Onboarding::spracheMerken($kid, $sprache, false);
 
         // Erst jetzt markieren: Scheitert oben etwas, bleibt der Link gueltig.
-        Db::update('zugaenge', (int) $z['id'], ['customer_id' => $kid, 'geoeffnet_am' => date('Y-m-d H:i:s')]);
+        Db::update('zugaenge', (int) $z['id'], ['customer_id' => $kid] + ($selbst ? ['geoeffnet_am' => date('Y-m-d H:i:s')] : []));
 
         /* Partner-Tracking (30.09.2026): Besuch ↔ Kunde, jetzt mit Namen (freiwillig eingetragen). */
         try {
             require_once __DIR__ . '/Spur.php';
             $sb = !empty($z['spur_besuch_id']) ? (Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $z['spur_besuch_id']]) ?: null) : null;
-            Spur::verknuepfen($kid, null, $sb ?? Spur::aktuellerBesuch());
+            /* Uwes eigener Browser ist nie der Besuch des Interessenten. */
+            Spur::verknuepfen($kid, null, $sb ?? ($selbst ? Spur::aktuellerBesuch() : null));
         } catch (Throwable $e) { }
 
         // Der Bedarf, in dem er gleich die acht Fragen beantwortet (D1)
@@ -321,7 +347,7 @@ final class Zugang
             [$pzCode, $pzKanal] = Partner::teilen((string) ($z['partner_code'] ?? ''));
             $pz = $pzCode !== '' ? Partner::ausCode($pzCode) : null;
             if ($pz !== null) { Partner::zuordnen($kid, (int) $pz['id'], 'link', null, $pzKanal); }
-            else { Partner::ausBesuch($kid); }
+            elseif ($selbst) { Partner::ausBesuch($kid); }
         } catch (Throwable $e) { /* nachtragbar: von Hand zuordnen */ }
 
         /* Aus der Akquise (V2): Der Betrieb ist angekommen -- die Folge-Nachrichten
@@ -337,13 +363,45 @@ final class Zugang
                 Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', 'Persönliches Dashboard zum ersten Mal geöffnet (Kunde #' . $kid . ')');
             } catch (Throwable $e) { /* nachtragbar */ }
         }
-        Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
-        Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
-            (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);
-
-        return ['ok' => true, 'kunde_id' => $kid, 'neu' => true,
-                'link' => Kundenzugang::linkFuer($kid, $sprache)];
+        if ($selbst) {
+            Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
+            Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
+                (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);
+        } else {
+            Events::protokoll('zugang_angelegt', 'Aus der Anfrage als Kunde angelegt (Zugangslink noch nicht geöffnet)', $kid);
+        }
+        return $kid;
     }
+
+    /** Mail-Stand des Zugangslinks: zuletzt versendet / Fehler / nie. */
+    public static function mailStand(string $email): array
+    {
+        $m = Db::one("SELECT status, fehler, created_at FROM mails WHERE anlass = 'zugang' AND empfaenger = ? ORDER BY id DESC LIMIT 1", [$email]);
+        return $m ? ['status' => (string) $m['status'], 'fehler' => (string) ($m['fehler'] ?? ''), 'am' => (string) $m['created_at']] : ['status' => 'keine', 'fehler' => '', 'am' => ''];
+    }
+
+    /** Der Zugang, der in diesem Besuch angefordert wurde (Partner-Tracking, Journey). */
+    public static function zuBesuch(int $besuchId): ?array
+    {
+        $z = Db::one('SELECT * FROM zugaenge WHERE spur_besuch_id = ? ORDER BY id DESC LIMIT 1', [$besuchId]);
+        return $z ? (array) $z + ['mail' => self::mailStand((string) $z['email'])] : null;
+    }
+
+    /** Anfragen, deren Zugangslink noch nicht geöffnet wurde und die noch kein Kunde sind. */
+    public static function offene(int $tage = 30): array
+    {
+        $zeilen = Db::all('SELECT * FROM zugaenge WHERE customer_id IS NULL AND created_at >= ? ORDER BY id DESC LIMIT 50',
+            [date('Y-m-d H:i:s', time() - $tage * 86400)]);
+        return array_map(static fn(array $z): array => $z + ['mail' => self::mailStand((string) $z['email'])], $zeilen);
+    }
+
+    /** Zugangslink noch einmal schicken (Uwe, aus der Verwaltung). */
+    public static function erneutSenden(int $id): bool
+    {
+        $z = Db::one('SELECT * FROM zugaenge WHERE id = ? AND customer_id IS NULL', [$id]);
+        return $z ? self::willkommenSenden((array) $z, self::spr((string) $z['sprache'])) : false;
+    }
+
 
     /* ------------------------------------------------------------------ */
     /*  Das Vorhaben im Dashboard (D1)                                     */

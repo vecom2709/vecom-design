@@ -198,7 +198,7 @@ final class Spur
         'questionnaire_started' => 'Hat angefangen, den Fragebogen auszufüllen',
         'questionnaire_completed' => 'Hat den Fragebogen vollständig abgeschickt',
         'contact_form_opened' => 'Hat das Kontaktformular geöffnet',
-        'lead_created' => 'Hat eine Anfrage abgeschickt (mit Name und E-Mail) — ab jetzt ein Interessent, der auf Sie wartet',
+        'lead_created' => 'Hat seine E-Mail eingetragen und eine Anfrage abgeschickt — ab jetzt ein Interessent, der auf Sie wartet',
         'offer_created' => 'Sie haben ihm ein Angebot geschickt',
         'customer_created' => 'Ist Kunde geworden',
         'order_created' => 'Hat den Auftrag angenommen',
@@ -790,7 +790,9 @@ final class Spur
             $danach = Db::all("SELECT * FROM spur_ereignisse WHERE customer_id = ? AND (besuch_id IS NULL OR besuch_id <> ?) AND event_type IN ('lead_created','offer_created','customer_created','order_created','payment_completed')
                                 ORDER BY id", [(int) $b['customer_id'], $besuchId]);
         }
-        return ['besuch' => $b, 'schritte' => $schritte, 'andere' => $andere, 'danach' => $danach];
+        $zugang = null;
+        try { require_once __DIR__ . '/Zugang.php'; $zugang = Zugang::zuBesuch($besuchId); } catch (Throwable $e) { }
+        return ['besuch' => $b, 'schritte' => $schritte, 'andere' => $andere, 'danach' => $danach, 'zugang' => $zugang];
     }
 
     /** Funnel: Partnerlink → Besucher → Preisrechner → Fragebogen → Anfrage → Angebot → Kunde → Zahlung. */

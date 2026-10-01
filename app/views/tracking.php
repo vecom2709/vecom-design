@@ -121,10 +121,15 @@ $trichter = static function (array $stufen): void { $max = max(1, (int) ($stufen
     <div><span class="leise" style="margin:0">Land / Region</span><br><?= Fmt::h(Geo::landName((string) $jb['land'])) ?><?= $jb['region'] !== '' ? ' · ' . Fmt::h($jb['region']) : '' ?></div>
     <div><span class="leise" style="margin:0">Gerät</span><br><?= Fmt::h(Spur::geraetName((string) $jb['geraet']) . ' · ' . $jb['browser'] . ' · ' . $jb['system']) ?></div>
     <div><span class="leise" style="margin:0">Besuch</span><br><?= Fmt::h(date('d.m.Y H:i', strtotime((string) $jb['start_am']))) ?> · <?= Fmt::h($dauer((string) $jb['start_am'], (string) $jb['zuletzt_am'])) ?> · <?= (int) $jb['neu'] === 1 ? 'neu' : 'wiederkehrend' ?><?= (int) $jb['verdacht'] === 1 ? ' · <span class="marke2 schlecht">Mehrfachklick-Verdacht</span>' : '' ?></div>
-    <div><span class="leise" style="margin:0">Person</span><br><?php if (!empty($jb['customer_id'])): ?><a href="<?= Fmt::h(url('kunden/' . (int) $jb['customer_id'])) ?>">Kunde #<?= (int) $jb['customer_id'] ?> (hat selbst die E-Mail eingetragen)</a><?php else: ?>unbekannt — anonymer Besuch<?php endif; ?></div>
+    <div><span class="leise" style="margin:0">Person</span><br><?php if (!empty($jb['customer_id'])): ?><a href="<?= Fmt::h(url('kunden/' . (int) $jb['customer_id'])) ?>">Kunde #<?= (int) $jb['customer_id'] ?> (hat selbst die E-Mail eingetragen)</a><?php elseif (!empty($journey['zugang'])): ?><?= Fmt::h((string) $journey['zugang']['email']) ?> (hat seine E-Mail eingetragen)<?php else: ?>unbekannt — anonymer Besuch<?php endif; ?></div>
   </div>
   <p style="margin:0 0 10px;line-height:1.55"><b>Stand „<?= Fmt::h(Spur::STATUS[(string) $jb['status']] ?? (string) $jb['status']) ?>“:</b> <?= Fmt::h(Spur::STATUS_ERKLAERT[(string) $jb['status']] ?? '') ?>.
     <span class="leise" style="display:inline">Darunter Schritt für Schritt, was diese Person auf der Website getan hat (Uhrzeit links).</span></p>
+  <?php if (!empty($journey['zugang']) && $journey['zugang']['customer_id'] === null): $az = $journey['zugang']; $azZurueck = 'tracking?besuch=' . (int) $jb['id'] . '#journey'; ?>
+    <?php require_once dirname(__DIR__) . '/src/Zugang.php'; require __DIR__ . '/anfrage_karte.php'; ?>
+  <?php elseif (!empty($journey['zugang']['customer_id']) && empty($jb['customer_id'])): ?>
+    <p><a class="knopf klein" href="<?= Fmt::h(url('kunden/' . (int) $journey['zugang']['customer_id'])) ?>">Zum Kunden — antworten und Angebot schicken</a></p>
+  <?php endif; ?>
   <ol class="st-zeit">
     <?php foreach ($journey['schritte'] as $s):
       $wort = Spur::satz((string) $s['event_type'], (string) ($s['seite'] ?? ''), (string) $jb['partner'], str_contains((string) $s['meta'], 'wiederholt'));

@@ -18159,8 +18159,12 @@ $m3Ger = (string) file_get_contents($oben . '/3d-produktion/scripts/marketing_sz
 $m3Kie = (string) file_get_contents($oben . '/tools/akquise/src/ki/kie.ts');
 $m3Mk = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
 pruefe('PC: Blender rechnet die Branchen-Szene am echten Ort (Modus marketing/marketing_film) und misst vorher die Belichtung; Kie.ai nimmt keine 3D-Aufträge',
-    str_contains($m3Ts, "'branchen_ort.py'") && str_contains($m3Ts, "film ? 'marketing_film' : 'marketing'") && str_contains($m3Ort, "if MODUS in ('marketing', 'marketing_film'):")
+    str_contains($m3Ts, "'branchen_ort.py'") && str_contains($m3Ts, "film ? 'marketing_film' : 'marketing'") && str_contains($m3Ort, "if MODUS in ('marketing', 'marketing_film', 'marketing_unreal'):")
     && str_contains($m3Ort, 'Belichtung messen statt vermuten') && str_contains($m3Kie, "a.drei_d || a.modell === 'blender'") && str_contains($m3Mk, "r.auftrag.drei_d) {"));
+pruefe('PC: Unreal-Film — Blender exportiert Szene, Kamerafahrt und Referenzbild; Unreal (Path Tracer) misst sein Probebild gegen Blender; scheitert es, rechnet Blender',
+    str_contains($m3Ort, "if MODUS == 'marketing_unreal':") && str_contains($m3Ort, "'.ref.png'") && str_contains($m3Ts, "'ue-marketing.ps1'")
+    && str_contains($m3Ts, 'abgleichBlenden(probe)') && str_contains($m3Ts, 'Film entsteht mit Blender')
+    && is_file($oben . '/3d-produktion/unreal/ue-m01_marketing.py') && is_file($oben . '/3d-produktion/scripts/marketing_schnitt.py'));
 pruefe('PC: Claudes Szene entsteht ohne Werkzeuge (kein Netz, keine Dateien) und wird doppelt geprüft, bevor Blender sie rechnet',
     str_contains($m3Sz, "SCHEMA_SZENE, '')") && str_contains($m3Sz, 'szenePruefen') && str_contains($m3Ger, 'SZENE ABGELEHNT') && str_contains($m3Ger, '__import__')
     && str_contains($m3Ger, 'is_shadow_catcher') && str_contains($m3Mk, "...(werkzeuge !== '' ? ['--allowedTools', werkzeuge] : [])"));
@@ -18211,12 +18215,42 @@ pruefe('Verwaltung: Galerie freigeben/verwerfen und Starterpaket hinter CSRF; Bl
 Db::run('DELETE FROM mk_medien WHERE inhalt_id = 0');
 Db::run('DELETE FROM mk_auftraege');
 
+/* Eigene Wünsche der Partner (01.10.2026, Uwe: W1–W4) */
+Db::run('DELETE FROM mk_auftraege');
+$wuP = Partner::laden(Partner::anlegen(['name' => 'Wanda Wunsch', 'email' => 'wanda-g3@partner.example', 'status' => 'aktiv']));
+pruefe('Eigener Wunsch braucht ein paar Worte', MkMedium::anlegenGalerie('eigen', 'bild', '', $wuP, 'de', ['text' => 'Torte']) === 'kurz');
+$wuA = MkMedium::anlegenGalerie('eigen', 'video', '', $wuP, 'de', ['text' => '  Theke einer <b>Konditorei</b> mit Torten,   Morgenlicht  ']);
+$wuPa = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [(int) $wuA], ''), true) ?: [];
+pruefe('W1/W2: freier Wunsch (auch als Video) — Text bereinigt als Bildidee, ohne feste Szene, Claude baut sie; wartet auf Uwes Ja (W4)',
+    is_int($wuA) && (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$wuA], '') === 'pruefen'
+    && $wuPa['prompt'] === 'Theke einer Konditorei mit Torten, Morgenlicht' && $wuPa['studio'] === null && $wuPa['generativ'] === true && $wuPa['medium'] === 'video'
+    && in_array($wuA, array_column(MkMedium::wuenscheOffen(), 'id'), true) && (MkMedium::bestellungenVon($wuP)[0]['status'] ?? '') === 'pruefen');
+pruefe('W4: Solange er prüft, holt der PC ihn nicht', !in_array((int) (MkAuftrag::holen()['auftrag']['id'] ?? 0), [$wuA], true));
+$wuB = MkMedium::anlegenGalerie('salon', 'bild', '', $wuP, 'de', ['blick' => 'links', 'naehe' => 'nah', 'stimmung' => 'abend', 'text' => 'wird ignoriert']);
+$wuPb = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [(int) $wuB], ''), true) ?: [];
+pruefe('W3: Feinwahl bei fertiger Szene rechnet ohne Prüfung — Blickwinkel, Nähe, Stimmung gehen mit; unbekannte Werte fallen auf den Standard',
+    (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$wuB], '') === 'wartet' && $wuPb['wunsch'] === ['blick' => 'links', 'naehe' => 'nah', 'stimmung' => 'abend']
+    && $wuPb['prompt'] === '' && MkMedium::wunschBereinigen(['blick' => 'quatsch'])['blick'] === 'zufall');
+pruefe('Wochengrenze gilt auch für Wünsche (2 je Woche, abgelehnte zählen nicht)', MkMedium::anlegenGalerie('gastro', 'bild', '', $wuP, 'de') === 'zuviel');
+MkMedium::wunschEntscheiden($wuA, false);
+pruefe('Uwe sagt Nein: abgelehnt, der Partner sieht „bitte anders formulieren“, die Woche ist wieder frei',
+    (MkMedium::bestellungenVon($wuP)[1]['status'] ?? (MkMedium::bestellungenVon($wuP)[0]['status'] ?? '')) !== '' && in_array('abgelehnt', array_column(MkMedium::bestellungenVon($wuP), 'status'), true)
+    && is_int($wuC = MkMedium::anlegenGalerie('eigen', 'bild', '', $wuP, 'de', ['text' => 'Werkstatt mit Oldtimer auf der Hebebühne, Abendlicht'])));
+pruefe('Uwe sagt Ja: der Wunsch geht in die Nachtschicht; ein zweites Mal entscheiden geht nicht',
+    MkMedium::wunschEntscheiden($wuC, true) && (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$wuC], '') === 'wartet' && !MkMedium::wunschEntscheiden($wuC, false));
+$wuIdx = (string) file_get_contents($wurzel . '/index.php');
+$wuPw = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+pruefe('Portal und Verwaltung: Textfeld, Feinwahl und Titel im Bestellformular; Ja/Nein unter Freigeben hinter CSRF',
+    str_contains($wuPw, 'name="wunsch"') && str_contains($wuPw, '<option value="eigen">') && str_contains($wuPw, 'name="titel"')
+    && strpos($wuIdx, "case 'g3_wunsch_ja':") > strpos($wuIdx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), 'g3_wunsch_nein'));
+Db::run('DELETE FROM mk_auftraege');
+
 /* Journey in ganzen Sätzen (Uwe: „mache es verständlicher“) */
 require_once $wurzel . '/src/Spur.php';
 pruefe('Tracking: Journey in Sätzen — „Kam über den Link von Partner Anika“, Seiten mit Namen, Anfrage erklärt, Stand erklärt',
     Spur::satz('partner_visit', '', 'Anika') === 'Kam über den Link von Partner Anika auf die Website'
     && Spur::satz('page_view', '/de/') === 'Hat die Seite „Startseite (Deutsch)“ angesehen'
-    && str_starts_with(Spur::satz('lead_created'), 'Hat eine Anfrage abgeschickt (mit Name und E-Mail)')
+    && str_starts_with(Spur::satz('lead_created'), 'Hat seine E-Mail eingetragen und eine Anfrage abgeschickt')
     && Spur::satz('contact_form_opened') === 'Hat das Kontaktformular geöffnet' && str_contains(Spur::STATUS_ERKLAERT['anfrage'], 'wartet auf Ihre Antwort')
     && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), 'Spur::satz('));
 
@@ -18224,6 +18258,37 @@ Db::run('DELETE FROM mk_medien WHERE inhalt_id IN (?, ?)', [$m3R, $m3K]);
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'M3 %'");
 Db::run('DELETE FROM mk_auftraege');
 Db::run("DELETE FROM settings WHERE skey = 'mk_motor'");
+
+/* ============================================================================
+   Anfrage ohne geöffneten Link (01.10.2026, Uwe: „kann kein Angebot senden,
+   da nichts ankam — prüfe, dass die Kette sauber ist“). Der E-Mail-Einstieg
+   legt nur einen Zugang an; Kunde wird erst, wer den Link öffnet. Jetzt sieht
+   Uwe die Anfrage und kann sie selbst als Kunde anlegen.
+   ============================================================================ */
+abschnitt('Anfrage ohne geöffneten Link: Uwe kann antworten');
+require_once $wurzel . '/src/Zugang.php';
+$azMail = 'anfrage-kette-' . bin2hex(random_bytes(3)) . '@example.org';
+$azId = (int) Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => $azMail, 'name' => 'Kette Anfrage', 'sprache' => 'de', 'quelle' => 'seite', 'wunsch' => 'neu']);
+$azOffen = array_map('intval', array_column(Zugang::offene(30), 'id'));
+pruefe('Offene Anfrage erscheint in „Neue Anfragen“ (Link noch nicht geöffnet), mit Mail-Stand',
+    in_array($azId, $azOffen, true) && (Zugang::offene(30)[0]['mail']['status'] ?? '') !== '');
+$azZ = (array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$azId]);
+$azKid = Zugang::annehmen($azZ, false);
+$azNach = (array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$azId]);
+pruefe('Uwe legt sie als Kunde an: Kunde mit dieser Adresse, Zugang verknüpft, aber nicht als „geöffnet“ markiert',
+    $azKid > 0 && (string) Db::wert('SELECT email FROM customers WHERE id = ?', [$azKid], '') === $azMail
+    && (int) $azNach['customer_id'] === $azKid && $azNach['geoeffnet_am'] === null && !in_array($azId, array_map('intval', array_column(Zugang::offene(30), 'id')), true));
+$azO = Zugang::oeffnen((string) $azZ['token']);
+pruefe('Öffnet der Interessent danach selbst den Link, landet er beim selben Kunden im Dashboard (kein zweiter Kunde)',
+    !empty($azO['ok']) && (int) ($azO['kunde_id'] ?? 0) === $azKid && empty($azO['neu'])
+    && (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$azMail], 0) === 1);
+$azIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: „Als Kunde anlegen“ und „Link noch einmal schicken“ hinter CSRF; Karte in „Alle Kunden“ und in der Journey',
+    strpos($azIdx, "case 'anfrage_annehmen':") > strpos($azIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/views/kunden.php'), 'id="anfragen"')
+    && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), "require __DIR__ . '/anfrage_karte.php'")
+    && str_contains((string) file_get_contents($wurzel . '/src/Zugang.php'), "Events::melden('zugang_neu'"));
+Db::run('DELETE FROM zugaenge WHERE id = ?', [$azId]);
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)

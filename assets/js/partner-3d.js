@@ -9,6 +9,22 @@
 
    Braucht qrcode.js (window.qrcode) und <script type="application/json"
    id="g3_daten">. */
+/* Bestellen (01.10.2026, W1–W3): „Eigener Wunsch“ zeigt das Textfeld, die
+   Feinwahl (Blickwinkel, Nähe, Stimmung) gilt nur für fertige Szenen. Ohne
+   Skript bleibt alles sichtbar und der Server entscheidet. */
+(function () {
+  var wahl = document.getElementById('g3_studio');
+  var feld = document.getElementById('g3_wunsch_feld');
+  var fein = document.getElementById('g3_fein');
+  if (!wahl || !feld || !fein) { return; }
+  function zeigen() {
+    var eigen = wahl.value === 'eigen';
+    feld.hidden = !eigen; fein.hidden = eigen;
+    var t = feld.querySelector('textarea'); if (t) { t.required = eigen; }
+  }
+  wahl.addEventListener('change', zeigen); zeigen();
+})();
+
 (function () {
   'use strict';
   var datenEl = document.getElementById('g3_daten');
