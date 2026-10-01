@@ -18633,6 +18633,20 @@ MkPlattform::speichern('youtube', ['client_id' => 'youtube-client', 'freigabe' =
 $pfMail = MkPlattform::speichern('youtube', ['client_id' => 'kontakt@vecom-design.it', 'secret' => 'kennwort']);
 pruefe('Plattform: E-Mail im Feld Client-ID wird abgewiesen', is_string($pfMail) && str_contains($pfMail, 'E-Mail'));
 pruefe('Plattform: abgewiesene Eingabe lässt die Client-ID stehen', MkPlattform::einstellungen('youtube')['client_id'] === 'youtube-client');
+/* 02.10.2026: Beim Speichern fragt die Verwaltung Google, ob das Secret zur Client-ID passt */
+$pfVorher = MkPlattform::$netz;
+$pfProbe = [];
+MkPlattform::$netz = static function (string $m, string $url, array $kopf, $body) use (&$pfProbe): array {
+    parse_str(is_string($body) ? $body : '', $f); $pfProbe[] = $f;
+    return ['status' => 400, 'json' => ['error' => ($f['client_secret'] ?? '') === 'richtig' ? 'invalid_grant' : 'invalid_client'], 'kopf' => []];
+};
+$pfFalsch = MkPlattform::speichern('youtube', ['secret' => 'kennwort-vom-browser']);
+pruefe('Plattform: falsches Secret meldet sich gleich beim Speichern', is_string($pfFalsch) && str_contains($pfFalsch, 'passt nicht'));
+$pfRichtig = MkPlattform::speichern('youtube', ['secret' => 'richtig']);
+pruefe('Plattform: passendes Secret speichert ohne Meldung', $pfRichtig === null);
+pruefe('Plattform: die Probe fragt mit erfundenem Code und der gespeicherten Client-ID', ($pfProbe[1]['code'] ?? '') === 'vecom-pruefung' && ($pfProbe[1]['client_id'] ?? '') === 'youtube-client');
+pruefe('Plattform: ohne neues Secret keine Probe', MkPlattform::speichern('youtube', ['freigabe' => '']) === null && count($pfProbe) === 2);
+MkPlattform::$netz = $pfVorher;
 
 pruefe('P4: ohne Haken bleibt es beim Handy-Weg', !MkPlattform::bereit('youtube') && MkHandy::istHandy(MkInhalt::laden($pfVideo('youtube'))));
 MkPlattform::$netz = null;

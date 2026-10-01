@@ -105,6 +105,25 @@ final class MkPlattform
         $s = trim((string) ($d['secret'] ?? ''));
         if ($s !== '') { self::geheimSetzen($p, ['secret' => $s]); }
         Events::pruefspur('plattform_einstellungen', 'settings', null, [], ['plattform' => $p, 'freigabe' => !empty($d['freigabe'])]);
+        return $s !== '' ? self::secretPruefen($p) : null;
+    }
+
+    /** Passt das Secret zur Client-ID? (02.10.2026: „client secret is invalid“ zeigte sich erst nach
+        dem Umweg über Google beim Verbinden.) Google prüft Client-ID und Secret, bevor es den Code
+        ansieht: ein erfundener Code ergibt „invalid_grant“, wenn beide passen, sonst „invalid_client“.
+        Es entsteht dabei kein Schlüssel. Nur Google — bei den anderen ist die Antwort nicht so eindeutig. */
+    private static function secretPruefen(string $p): ?string
+    {
+        if (!in_array($p, ['google', 'youtube'], true)) { return null; }
+        $e = self::einstellungen($p);
+        if ($e['client_id'] === '') { return null; }
+        $r = self::http('POST', self::OAUTH[$p]['token'], ['Content-Type: application/x-www-form-urlencoded'], http_build_query([
+            'grant_type' => 'authorization_code', 'code' => 'vecom-pruefung', 'redirect_uri' => self::rueckrufAdresse($p),
+            'client_id' => $e['client_id'], 'client_secret' => (string) (self::geheim($p)['secret'] ?? '')]));
+        $fehler = (string) (((array) ($r['json'] ?? []))['error'] ?? '');
+        if ($fehler === 'invalid_client' || $fehler === 'unauthorized_client') {
+            return self::ALLE[$p][0] . ': gespeichert, aber Google lehnt Client-ID und Secret ab — das Secret passt nicht zu dieser Client-ID. Bitte das Secret neu einfügen (Feld leeren, dann einfügen).';
+        }
         return null;
     }
 
