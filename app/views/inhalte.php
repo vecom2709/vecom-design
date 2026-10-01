@@ -40,6 +40,23 @@ require __DIR__ . '/mk_stil.php';
 
 <?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
+<?php require_once dirname(__DIR__) . '/src/MkMedium.php'; ?>
+<details class="block mk-auftrag mk-mehr" id="perprompt"<?= !empty($_GET['prompt']) ? ' open' : '' ?>><summary style="cursor:pointer"><b>Bild oder Video per Prompt</b> <span class="mk-fein">— einfach beschreiben, was zu sehen sein soll. Es entsteht über Kie.ai und landet als Entwurf „Per Prompt“ hier in der Liste.</span></summary>
+  <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" class="mk-formular" style="margin-top:10px">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_frei">
+    <div class="feld breit"><label for="pp_text">Was soll zu sehen sein? <span class="mk-fein">(Deutsch oder Englisch, je genauer desto besser: Ort, Licht, Stimmung, Bildausschnitt)</span></label>
+      <textarea id="pp_text" name="eigen" rows="4" maxlength="<?= MkMedium::EIGEN_MAX ?>" required placeholder="z. B. Eine Friseurin in Agrigent zeigt einer Kundin auf dem Handy ihre neue Website, helles Tageslicht, Salon im Hintergrund unscharf"></textarea></div>
+    <div class="feld"><label for="pp_art">Was</label><select id="pp_art" name="medium" onchange="var v=this.value==='video';document.getElementById('pp_mb').hidden=v;document.getElementById('pp_mv').hidden=!v;document.getElementById('pp_fb').hidden=v;document.getElementById('pp_fv').hidden=!v;document.getElementById('pp_mb').disabled=v;document.getElementById('pp_mv').disabled=!v;document.getElementById('pp_fb').disabled=v;document.getElementById('pp_fv').disabled=!v;"><option value="bild">Bild</option><option value="video">Video</option></select></div>
+    <div class="feld"><label for="pp_mb">Modell</label>
+      <select id="pp_mb" name="modell"><?php foreach (MkMedium::MODELLE['bild'] as $ppK => [$ppW, $ppC]): if (MkMedium::istDreiD($ppK)) { continue; } ?><option value="<?= Fmt::h($ppK) ?>"><?= Fmt::h($ppW) ?> · ca. <?= (int) $ppC ?> Credits</option><?php endforeach; ?></select>
+      <select id="pp_mv" name="modell" hidden disabled aria-label="Videomodell"><?php foreach (MkMedium::MODELLE['video'] as $ppK => [$ppW, $ppC]): if (MkMedium::istDreiD($ppK)) { continue; } ?><option value="<?= Fmt::h($ppK) ?>"><?= Fmt::h($ppW) ?> · ca. <?= (int) $ppC ?> Credits</option><?php endforeach; ?></select></div>
+    <div class="feld"><label for="pp_fb">Format</label>
+      <select id="pp_fb" name="format"><?php foreach (MkMedium::FORMATE['bild'] as $ppF): ?><option value="<?= $ppF ?>"><?= $ppF ?></option><?php endforeach; ?></select>
+      <select id="pp_fv" name="format" hidden disabled aria-label="Videoformat"><?php foreach (MkMedium::FORMATE['video'] as $ppF): ?><option value="<?= $ppF ?>"><?= $ppF ?></option><?php endforeach; ?></select></div>
+    <input type="hidden" name="land" value="<?= Fmt::h((string) ($land ?? 'IT')) ?>">
+    <div class="breit"><button class="knopf haupt">Erzeugen</button> <span class="mk-fein">Vor jedem Lauf prüft dein PC das Kie-Guthaben. Höchstens <?= (int) MkMedium::PRO_TAG ?> Bilder/Videos am Tag.</span></div>
+  </form>
+</details>
 <details class="block mk-auftrag mk-mehr" id="auftraege"><summary style="cursor:pointer"><b>Mehr: Beiträge frei zusammenstellen</b> <span class="mk-fein">— Plattformen, Anzahl und Thema selbst wählen. Für den Alltag reicht „Diese Woche werben“ unter „Jetzt dran“.</span></summary>
 <section aria-labelledby="mk-schreib-titel" style="margin-top:12px">
   <div class="mk-auftrag__kopf">

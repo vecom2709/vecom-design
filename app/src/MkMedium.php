@@ -166,21 +166,47 @@ final class MkMedium
     }
 
     /** Der Prompt für Kie: Claudes englischer Bild-Prompt — sonst die Bildidee — plus feste Bildsprache. */
-    public static function prompt(array $x, string $art = 'bild'): string
+    public static function prompt(array $x, string $art = 'bild', string $eigen = ''): string
     {
-        $kern = trim((string) ($x['bild_prompt'] ?? '')) ?: trim((string) ($x['bildidee'] ?? '')) ?: trim((string) $x['titel']);
+        /* 01.10.2026 (Uwe: „zusätzlich kann man per Prompt Videos oder Bilder erstellen“): ein eigener Prompt geht vor. */
+        $kern = trim($eigen) ?: trim((string) ($x['bild_prompt'] ?? '')) ?: trim((string) ($x['bildidee'] ?? '')) ?: trim((string) $x['titel']);
         $stil = $art === 'video'
             ? 'Realistic handheld footage, natural light, calm camera, authentic local business in Sicily, no logos of other brands, no subtitles.'
             : 'Photorealistic, natural light, authentic local business setting in Sicily, true-to-life colours, shallow depth of field, no logos of other brands, no watermark. Any text in the image: at most five words, large and legible.';
         return mb_substr($kern . "\n\n" . $stil, 0, 2400);
     }
 
+    public const EIGEN_MAX = 2000;
+
+    /**
+     * Bild oder Video frei per Prompt, ohne vorhandenen Beitrag (01.10.2026).
+     * Legt einen Entwurf „Per Prompt“ an, an dem das Stück hängt — dort
+     * lässt es sich wählen, herunterladen oder zu einem Beitrag ausbauen.
+     * @return int|string Inhalt-ID oder Fehler
+     */
+    public static function frei(string $art, string $prompt, string $format = '', string $land = 'IT', string $modell = ''): int|string
+    {
+        $prompt = mb_substr(trim(str_replace("\r", '', $prompt)), 0, self::EIGEN_MAX);
+        if (!isset(self::ARTEN[$art])) { return 'Bild oder Video?'; }
+        if (mb_strlen($prompt) < 8) { return 'Beschreib kurz, was zu sehen sein soll (mindestens ein paar Wörter).'; }
+        if ($modell === '' || !isset(self::MODELLE[$art][$modell]) || self::istDreiD($modell)) { $modell = (string) array_key_first(self::MODELLE[$art]); }
+        $land = $land === 'DE' ? 'DE' : 'IT';
+        $titel = 'Per Prompt: ' . mb_substr(preg_replace('~\s+~u', ' ', $prompt) ?? $prompt, 0, 120);
+        $id = (int) Db::insert('mk_inhalte', ['branche' => '', 'land' => $land, 'sprache' => $land === 'DE' ? 'de' : 'it', 'art' => 'organisch',
+            'format' => $art === 'video' ? 'reel' : 'beitrag', 'plattform' => 'instagram', 'titel' => mb_substr($titel, 0, 160),
+            'felder' => json_encode(['per_prompt' => true], JSON_UNESCAPED_UNICODE), 'bildidee' => $prompt, 'status' => 'entwurf']);
+        $r = self::anlegen($id, $art, $modell, $format, false, $prompt);
+        if (!is_int($r)) { Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$id]); return $r; }
+        return $id;
+    }
+
     /**
      * Auftrag „Bild/Video erzeugen“ für einen Inhalt.
      * @return int|string
      */
-    public static function anlegen(int $inhaltId, string $art, string $modell = '', string $format = '', bool $sofort = false): int|string
+    public static function anlegen(int $inhaltId, string $art, string $modell = '', string $format = '', bool $sofort = false, string $eigen = ''): int|string
     {
+        $eigen = mb_substr(trim(str_replace("\r", '', $eigen)), 0, self::EIGEN_MAX);
         require_once __DIR__ . '/MkAuftrag.php';
         $x = MkInhalt::laden($inhaltId);
         if ($x === null) { return 'Inhalt nicht gefunden.'; }
@@ -191,7 +217,7 @@ final class MkMedium
             $liste = $modell === 'beides' && $art === 'bild' ? [(string) array_key_first(self::MODELLE['bild']), 'blender'] : self::motorFuer($x, $art);
             $erst = null; $fehler = null;
             foreach ($liste as $mod) {
-                $r = self::anlegen($inhaltId, $art, $mod, $format, $sofort);
+                $r = self::anlegen($inhaltId, $art, $mod, $format, $sofort, $eigen);
                 if (is_int($r)) { $erst ??= $r; } else { $fehler ??= $r; }
             }
             return $erst ?? (string) $fehler;
@@ -229,7 +255,7 @@ final class MkMedium
             $start = Db::wert("SELECT quelle_url FROM mk_medien WHERE inhalt_id = ? AND art = 'bild' AND status = 'gewaehlt' AND quelle_url IS NOT NULL
                                 AND created_at > NOW() - INTERVAL 48 HOUR ORDER BY id DESC LIMIT 1", [$inhaltId], null);
         }
-        $param = ['inhalt_id' => $inhaltId, 'medium' => $art, 'modell' => $modell, 'format' => $format, 'prompt' => self::prompt($x, $art),
+        $param = ['inhalt_id' => $inhaltId, 'medium' => $art, 'modell' => $modell, 'format' => $format, 'prompt' => self::prompt($x, $art, $eigen), 'eigener_prompt' => $eigen !== '',
                   'startbild' => $start && !$dreiD ? (string) $start : null, 'credits_ca' => self::MODELLE[$art][$modell][1],
                   'titel' => mb_substr((string) $x['titel'], 0, 80)];
         if ($dreiD) {

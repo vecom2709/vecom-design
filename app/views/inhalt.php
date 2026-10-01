@@ -188,6 +188,7 @@ require __DIR__ . '/mk_stil.php';
   <div class="mk-medien-knoepfe">
     <form class="mk-filter" method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin:0">
       <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="bild">
+      <div class="mk-eigen"><label for="mm_be">Eigener Prompt <span class="mk-fein">(optional, Deutsch oder Englisch)</span></label><textarea id="mm_be" name="eigen" rows="2" maxlength="<?= MkMedium::EIGEN_MAX ?>" placeholder="Leer = aus der Bildidee des Beitrags. Sonst beschreiben, was zu sehen sein soll — z. B. „Pizzaiolo schiebt eine Pizza in den Holzofen, warmes Abendlicht“."></textarea></div>
       <label class="mk-sr" for="mm_bf">Format des Bildes</label>
       <select id="mm_bf" name="format" style="width:auto"><?php foreach (MkMedium::FORMATE['bild'] as $fm): ?><option value="<?= $fm ?>"<?= MkMedium::formatFuer($x) === $fm ? ' selected' : '' ?>><?= $fm ?></option><?php endforeach; ?></select>
       <?php /* Marketing-Studio 11: Motor je Stück — Automatisch folgt der Einstellung unter „Freigeben“. */
@@ -204,6 +205,7 @@ require __DIR__ . '/mk_stil.php';
     </form>
     <form class="mk-filter" method="post" action="<?= Fmt::h(url('inhalte/' . (int) $x['id'])) ?>" style="margin:0">
       <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="medium_erzeugen"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="medium" value="video">
+      <div class="mk-eigen"><label for="mm_ve">Eigener Prompt <span class="mk-fein">(optional, Deutsch oder Englisch)</span></label><textarea id="mm_ve" name="eigen" rows="2" maxlength="<?= MkMedium::EIGEN_MAX ?>" placeholder="Leer = aus der Bildidee des Beitrags. Sonst die Szene beschreiben — z. B. „Kamera fährt langsam über einen gedeckten Tisch am Meer, Sonnenuntergang“."></textarea></div>
       <label class="mk-sr" for="mm_vm">Videomodell</label>
       <select id="mm_vm" name="modell" style="width:auto"><option value="auto">Automatisch (<?= Fmt::h(implode(', ', array_map(static fn($mo) => MkMedium::MODELLE['video'][$mo][0] ?? $mo, MkMedium::motorFuer($x, 'video')))) ?>)</option><?php foreach (MkMedium::MODELLE['video'] as $mk => [$mw, $mc]): if (MkMedium::istDreiD($mk) && (!MkMedium::studioFuer((string) $x['branche']) || ($mk === 'unreal' && !MkMedium::motor()['unreal_bereit']))) { continue; } ?><option value="<?= $mk ?>"><?= Fmt::h($mw) ?> · <?= MkMedium::istDreiD($mk) ? 'ohne Credits, Nachtschicht' : 'ca. ' . (int) $mc . ' Credits' ?></option><?php endforeach; ?></select>
       <label class="mk-sr" for="mm_vf">Format des Videos</label>
@@ -212,7 +214,7 @@ require __DIR__ . '/mk_stil.php';
       <button class="knopf">Video erzeugen</button>
     </form>
   </div>
-  <p class="mk-fein" style="margin:8px 0 0;max-width:95ch;line-height:1.55">Vor jedem Lauf prüft dein PC das Kie-Guthaben; der Schlüssel bleibt auf dem PC. Preise laut Kie.ai (Stand 10/2026, 1 Credit ≈ 0,005 $): Bild etwa 24 Credits, Video Fast 80, Quality 400 — der echte Verbrauch steht danach beim Bild. <?= $bildGew ? 'Ein Video nimmt das gewählte Bild als ersten Frame, solange es jünger als zwei Tage ist.' : 'Wählst du vorher ein Bild, wird es zum ersten Frame des Videos.' ?></p>
+  <p class="mk-fein" style="margin:8px 0 0;max-width:95ch;line-height:1.55">Mit eigenem Prompt bestimmst du selbst, was zu sehen ist; die feste Bildsprache (fotoreal, Sizilien, Text höchstens fünf Wörter groß und lesbar) kommt automatisch dazu. Vor jedem Lauf prüft dein PC das Kie-Guthaben; der Schlüssel bleibt auf dem PC. Preise laut Kie.ai (Stand 10/2026, 1 Credit ≈ 0,005 $): Bild etwa 24 Credits, Video Fast 80, Quality 400 — der echte Verbrauch steht danach beim Bild. <?= $bildGew ? 'Ein Video nimmt das gewählte Bild als ersten Frame, solange es jünger als zwei Tage ist.' : 'Wählst du vorher ein Bild, wird es zum ersten Frame des Videos.' ?></p>
   <?php endif; ?>
   <?php $auftraege = $medienAuftraege; $mkSeite = 'inhalte/' . (int) $x['id']; require __DIR__ . '/mk_auftraege.php'; ?>
   <?php if ($medien): ?>
@@ -287,3 +289,5 @@ require __DIR__ . '/mk_stil.php';
   </form>
 </details>
 <?php endif; ?>
+
+<style>.mk-eigen{flex-basis:100%;display:flex;flex-direction:column;gap:4px}.mk-eigen textarea{width:100%;min-height:52px;resize:vertical}</style>

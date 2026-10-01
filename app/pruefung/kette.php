@@ -18697,6 +18697,33 @@ foreach ($mlAlt as $mlK => $mlV) {
     if ($mlV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$mlK]); } else { Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$mlK, $mlV]); }
 }
 
+/* Bilder und Videos per Prompt (01.10.2026, Uwe: „zusätzlich kann man per Prompt Videos oder Bilder erstellen“) */
+abschnitt('Bilder und Videos per Prompt');
+require_once $wurzel . '/src/MkMedium.php';
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE art = 'medien' AND status IN ('wartet','laeuft')");
+$ppZu = MkMedium::frei('bild', 'kurz');
+$ppId = MkMedium::frei('bild', "Eine Friseurin in Agrigent zeigt einer Kundin ihre neue Website auf dem Handy,\r\nhelles Tageslicht", '1:1', 'DE', 'blender');
+$ppX = is_int($ppId) ? MkInhalt::laden($ppId) : null;
+$ppA = is_int($ppId) ? (json_decode((string) Db::wert("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND parameter LIKE ? ORDER BY id DESC LIMIT 1", ['%"inhalt_id":' . $ppId . ',%'], '{}'), true) ?: []) : [];
+pruefe('Per Prompt: zu kurz wird abgelehnt; sonst entsteht ein Entwurf „Per Prompt“ mit Kie-Auftrag (nie 3D), Format und Land wie gewählt, der Prompt steht vorn',
+    is_string($ppZu) && is_int($ppId) && $ppX !== null && $ppX['status'] === 'entwurf' && str_starts_with((string) $ppX['titel'], 'Per Prompt: Eine Friseurin') && $ppX['land'] === 'DE'
+    && ($ppA['modell'] ?? '') === 'nano-banana-pro' && ($ppA['format'] ?? '') === '1:1' && !empty($ppA['eigener_prompt'])
+    && str_starts_with((string) ($ppA['prompt'] ?? ''), 'Eine Friseurin in Agrigent') && !str_contains((string) $ppA['prompt'], "\r") && str_contains((string) $ppA['prompt'], 'large and legible'), json_encode([$ppZu, $ppA]));
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE art = 'medien' AND status IN ('wartet','laeuft')");
+$ppV = MkMedium::anlegen((int) $ppId, 'video', 'veo3_fast', '9:16', false, 'Kamera fährt langsam über einen gedeckten Tisch am Meer');
+$ppVA = json_decode((string) Db::wert("SELECT parameter FROM mk_auftraege WHERE id = ?", [(int) $ppV], '{}'), true) ?: [];
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE art = 'medien' AND status IN ('wartet','laeuft')");
+$ppO = MkMedium::anlegen((int) $ppId, 'bild', 'nano-banana-pro', '4:5');
+$ppOA = json_decode((string) Db::wert("SELECT parameter FROM mk_auftraege WHERE id = ?", [(int) $ppO], '{}'), true) ?: [];
+pruefe('Eigener Prompt am Beitrag: geht beim Video vor die Bildidee; ohne eigenen Prompt bleibt es bei der Bildidee',
+    is_int($ppV) && str_starts_with((string) ($ppVA['prompt'] ?? ''), 'Kamera fährt langsam') && !empty($ppVA['eigener_prompt'])
+    && is_int($ppO) && empty($ppOA['eigener_prompt']) && str_starts_with((string) ($ppOA['prompt'] ?? ''), 'Eine Friseurin'), json_encode([$ppVA, $ppOA]));
+$ppIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Per Prompt: Formular unter Beiträge und Feld am Beitrag sind verdrahtet', str_contains($ppIdx, "case 'medium_frei':") && str_contains($ppIdx, "(string) (\$_POST['eigen'] ?? '')")
+    && str_contains((string) file_get_contents($wurzel . '/views/inhalte.php'), 'value="medium_frei"') && substr_count((string) file_get_contents($wurzel . '/views/inhalt.php'), 'name="eigen"') === 2);
+Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE art = 'medien' AND status IN ('wartet','laeuft')");
+Db::run('DELETE FROM mk_inhalte WHERE id = ?', [(int) $ppId]);
+
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */

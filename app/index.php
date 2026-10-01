@@ -779,7 +779,7 @@ if ($post) {
             case 'medium_erzeugen':
                 require_once __DIR__ . '/src/MkMedium.php';
                 $mmInhalt = (int) ($_POST['id'] ?? 0);
-                $maErg = MkMedium::anlegen($mmInhalt, (string) ($_POST['medium'] ?? 'bild'), (string) ($_POST['modell'] ?? ''), (string) ($_POST['format'] ?? ''), !empty($_POST['sofort']));
+                $maErg = MkMedium::anlegen($mmInhalt, (string) ($_POST['medium'] ?? 'bild'), (string) ($_POST['modell'] ?? ''), (string) ($_POST['format'] ?? ''), !empty($_POST['sofort']), (string) ($_POST['eigen'] ?? ''));
                 /* Marketing-Studio 11: Was angestoßen wurde, steht in den Aufträgen — Kie.ai sofort, 3D in der Nachtschicht (oder sofort). */
                 $mmNeu = is_int($maErg) ? Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet' AND parameter LIKE ?", ['%"inhalt_id":' . $mmInhalt . ',%']) : [];
                 $mmDrei = (bool) array_filter($mmNeu, static fn($z) => str_contains((string) $z['parameter'], '"drei_d":true'));
@@ -790,6 +790,16 @@ if ($post) {
                         . ($mmDrei ? ' 3D: ' . (!empty($_POST['sofort']) || MkMedium::imFenster() ? 'dein PC rechnet jetzt' : 'dein PC rechnet in der Nachtschicht (ab ' . $mmM['nacht_von'] . ' Uhr)') . ' — Bild etwa 5–10 Minuten, Film etwa 1–2 Stunden.' : ''))
                     : $maErg;
                 weiter('inhalte/' . $mmInhalt . '#medien');
+
+            /* 01.10.2026: Bild oder Video frei per Prompt — ohne vorhandenen Beitrag */
+            case 'medium_frei':
+                require_once __DIR__ . '/src/MkMedium.php';
+                require_once __DIR__ . '/src/MkLand.php';
+                $mfArt = (string) ($_POST['medium'] ?? 'bild');
+                $mfErg = MkMedium::frei($mfArt, (string) ($_POST['eigen'] ?? ''), (string) ($_POST['format'] ?? ''), (string) ($_POST['land'] ?? MkLand::wahl()), (string) ($_POST['modell'] ?? ''));
+                if (!is_int($mfErg)) { $_SESSION['fehler'] = $mfErg; weiter('inhalte#perprompt'); }
+                $_SESSION['gut'] = 'Kie.ai: Dein PC prüft zuerst dein Guthaben, dann entsteht ' . ($mfArt === 'video' ? 'das Video (etwa 2–5 Minuten).' : 'das Bild (etwa 1 Minute).') . ' Es erscheint hier unter „Bilder und Videos“.';
+                weiter('inhalte/' . $mfErg . '#medien');
 
             case 'medium_status':
                 require_once __DIR__ . '/src/MkMedium.php';
