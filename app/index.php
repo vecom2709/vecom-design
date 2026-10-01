@@ -586,6 +586,17 @@ if ($post) {
                 }
                 weiter('freigabe');
 
+            /* Wochen-Autopilot (Marketing-Studio 7, Uwe: „ja“ zu U4) — je Land, ab Werk aus. */
+            case 'autopilot_speichern':
+                require_once __DIR__ . '/src/MkAutopilot.php';
+                $apLand = strtoupper((string) ($_POST['land'] ?? ''));
+                $f = MkAutopilot::speichern($apLand, $_POST);
+                $apN = $f === null ? MkAutopilot::naechsterLauf($apLand) : null;
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? (!empty($_POST['an'])
+                    ? 'Autopilot für ' . MkLand::name($apLand) . ' ist an — nächster Lauf ' . ($apN !== null && $apN <= time() + 600 ? 'beim nächsten Cronlauf' : date('d.m. \u\m H:i', (int) $apN)) . '.'
+                    : 'Autopilot für ' . MkLand::name($apLand) . ' ist aus.');
+                weiter('freigabe?land=' . $apLand . '#autopilot');
+
             case 'uebersetzen_starten':
                 require_once __DIR__ . '/src/MkAuftrag.php';
                 $maErg = MkAuftrag::anlegenUebersetzen();
@@ -4669,7 +4680,12 @@ switch ($route) {
             'zg' => $msX && $msX['zielgruppe_id'] ? MkZielgruppe::laden((int) $msX['zielgruppe_id']) : null,
             'medien' => $msX ? sicher(static fn() => MkMedium::zuInhalt((int) $msX['id']), []) : [],
             'bildLaeuft' => $msX ? (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'medien' AND status IN ('wartet','laeuft') AND parameter LIKE ?", ['%"inhalt_id":' . (int) $msX['id'] . ',%'], 0), 0) : 0,
-            'geplant' => sicher(static fn() => Db::all("SELECT id, titel, plattform, land, geplant_am FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL ORDER BY geplant_am LIMIT 14"), [])]);
+            'geplant' => sicher(static fn() => Db::all("SELECT id, titel, plattform, land, geplant_am FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL ORDER BY geplant_am LIMIT 14"), []),
+            'autopilot' => (static function () use ($msLand): array {   // Marketing-Studio 7
+                require_once __DIR__ . '/src/MkAutopilot.php';
+                return ['e' => MkAutopilot::einstellung($msLand), 'naechster' => MkAutopilot::naechsterLauf($msLand), 'zg' => sicher(static fn() => MkAutopilot::naechsteZielgruppe($msLand), null),
+                        'telegram' => (int) sicher(static fn() => Db::wert('SELECT COUNT(*) FROM telegram_chats WHERE admin_verbunden IS NOT NULL', [], 0), 0) > 0];
+            })()]);
         break;
 
     case 'medien':    // Bilder und Videos (Schritt 3): nur angemeldet, nur über PHP

@@ -1090,6 +1090,11 @@ final class TelegramBot
             return 'admin_getrennt';
         }
         if ($was === 'heute') { self::zeigeHeute($c, $msgId); return 'heute'; }
+        /* Marketing-Studio 7: Freigabe-Stapel im Chat (durchgehen, Ja, Nein, Später) — siehe TelegramMarketing. */
+        if (preg_match('/^m([gjns]):([a-z0-9]{1,9})$/', $was, $m)) {
+            require_once __DIR__ . '/TelegramMarketing.php';
+            return TelegramMarketing::knopf($c, $m[1], $m[2], $msgId);
+        }
         if (preg_match('/^(fl|fv|ff|ffj|fw|fwj|fs|fsj)(?::(\d{1,9}))?$/', $was, $m)) {
             return self::freigabeKnopf($c, $m[1], (int) ($m[2] ?? 0), $msgId);
         }

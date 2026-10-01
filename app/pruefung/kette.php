@@ -17667,6 +17667,130 @@ pruefe('PC: der Schreibauftrag kennt das Kampagnen-Paket, den Website-Check als 
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'KS %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'KS %'"); Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
+   Marketing-Studio 7: Wochen-Autopilot mit Freigabe per Telegram
+   (01.10.2026, Uwe: „ja“ zu U4 — nichts geht ohne seinen Klick raus)
+   ============================================================================ */
+abschnitt('Marketing-Studio 7: Wochen-Autopilot und Freigabe per Telegram');
+require_once $wurzel . '/src/MkAutopilot.php';
+require_once $wurzel . '/src/TelegramMarketing.php';
+Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_%'");
+pruefe('Autopilot: ab Werk aus — Montag 7 Uhr, ohne Anzeigen, mit Bildern; ohne Einschalten startet nichts',
+    MkAutopilot::einstellung('IT') === ['an' => false, 'tag' => 1, 'stunde' => 7, 'anzeigen' => false, 'bilder' => true]
+    && MkAutopilot::naechsterLauf('IT') === null && MkAutopilot::lauf(strtotime('2026-10-05 08:00'))['gestartet'] === 0);
+MkAutopilot::speichern('DE', ['an' => '1', 'tag' => '3', 'stunde' => '99', 'bilder' => '1']);
+$apE = MkAutopilot::einstellung('DE');
+pruefe('Autopilot: Einstellungen je Land, Stunde auf 5–22 begrenzt; Italien bleibt aus',
+    $apE['an'] && $apE['tag'] === 3 && $apE['stunde'] === 22 && !$apE['anzeigen'] && !MkAutopilot::einstellung('IT')['an'] && is_string(MkAutopilot::speichern('FR', [])));
+MkAutopilot::speichern('DE', ['an' => '1', 'tag' => '3', 'stunde' => '7', 'bilder' => '1']);
+$apZ1 = MkZielgruppe::melden($mzProfil(['branche' => 'friseur', 'land' => 'DE', 'titel' => 'AP Friseure']));
+$apZ2 = MkZielgruppe::melden($mzProfil(['branche' => 'handwerk', 'land' => 'DE', 'titel' => 'AP Handwerk']));
+MkZielgruppe::freigeben((int) $apZ1['id']); MkZielgruppe::freigeben((int) $apZ2['id']);
+Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => 'friseur', 'land' => 'DE', 'status' => 'fertig', 'parameter' => json_encode(['zielgruppe_id' => (int) $apZ1['id'], 'anzahl' => 6]), 'created_at' => '2026-09-20 10:00:00']);
+pruefe('Autopilot: als Nächstes die freigegebene Zielgruppe, die am längsten nichts bekommen hat (nie bediente zuerst)',
+    (int) (MkAutopilot::naechsteZielgruppe('DE')['id'] ?? 0) === (int) $apZ2['id'] && MkAutopilot::naechsteZielgruppe('IT') === null || (int) (MkAutopilot::naechsteZielgruppe('DE')['id'] ?? 0) === (int) $apZ2['id']);
+Db::run("DELETE FROM mk_auftraege WHERE status = 'fertig'");
+$apDi = strtotime('2026-10-06 09:00'); $apMi6 = strtotime('2026-10-07 06:30'); $apMi8 = strtotime('2026-10-07 08:15'); $apDo = strtotime('2026-10-08 12:00');
+pruefe('Autopilot: nächster Lauf am gewählten Tag zur Stunde', MkAutopilot::naechsterLauf('DE', $apDi) === strtotime('2026-10-07 07:00'));
+$apL0 = MkAutopilot::lauf($apDi); $apL1 = MkAutopilot::lauf($apMi6); $apL2 = MkAutopilot::lauf($apMi8); $apL3 = MkAutopilot::lauf($apDo);
+$apA = Db::one("SELECT * FROM mk_auftraege WHERE art = 'inhalte' ORDER BY id DESC LIMIT 1");
+$apP = json_decode((string) ($apA['parameter'] ?? ''), true) ?: [];
+pruefe('Autopilot: vor dem Termin nichts, danach genau eine Kampagne je Woche — Beiträge mit Bildern, als Autopilot erkennbar; danach erst wieder nächste Woche',
+    $apL0['gestartet'] === 0 && $apL1['gestartet'] === 0 && $apL2['gestartet'] === 1 && $apL3['gestartet'] === 0
+    && $apP['autopilot'] === true && $apP['paket'] === true && $apP['mit_bildern'] === true && $apP['umfang'] === 'organisch' && $apA['land'] === 'DE'
+    && str_starts_with(MkAuftrag::beschreibung($apA), 'Autopilot · ') && MkAutopilot::naechsterLauf('DE', $apMi8) === strtotime('2026-10-14 07:00'), json_encode([$apL0, $apL1, $apL2, $apL3, $apP]));
+MkAutopilot::speichern('IT', ['an' => '1', 'tag' => '1', 'stunde' => '7']);
+$apIt = MkAutopilot::lauf(strtotime('2026-10-05 07:30'));
+pruefe('Autopilot: ohne freigegebene Zielgruppe im Land kein Auftrag, aber ein Hinweis', $apIt['gestartet'] === 0 && str_contains(implode(' ', $apIt['hinweise']), 'keine freigegebene Zielgruppe')
+    || (Db::wert("SELECT COUNT(*) FROM mk_zielgruppen WHERE land = 'IT' AND status = 'freigegeben'", [], 0) > 0));
+MkAutopilot::speichern('IT', []);
+pruefe('Autopilot: Cronlauf kennt die Aufgabe', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'marketing_autopilot'"));
+
+/* Freigabe per Telegram */
+$apTgAlt = Telegram::$netz; $apKanalAlt = Telegram::einstellung('tg_kanal_id'); $apNetz = [];
+Telegram::$netz = static function (string $m, array $d) use (&$apNetz): array {
+    $apNetz[] = [$m, $d];
+    if ($m === 'getChatMember') { return ['ok' => true, 'result' => ['status' => 'creator']]; }
+    return ['ok' => true, 'result' => ['message_id' => 700 + count($apNetz)]];
+};
+if (!Telegram::bereit()) { Telegram::tokenSpeichern('123456789:AAHdqTcvCH1vGWJxfSeofSAs0K5PALDsawQ'); Telegram::anmelden(); }
+Telegram::setzen('tg_kanal_id', '-1009876543210');
+$apUid = (int) Db::insert('users', ['email' => 'ap-admin@pruefung.example', 'password_hash' => password_hash('x' . random_int(0, 99999), PASSWORD_DEFAULT), 'name' => 'AP Admin', 'role' => 'admin', 'active' => 1]);
+$apChat = 555700111;
+Db::run("INSERT INTO telegram_chats (chat_id, sprache, stand, admin_verbunden) VALUES (?, 'de', 'menu', ?)", [$apChat, $apUid]);
+TelegramAdmin::vergessen();
+$apAid = (int) $apA['id'];
+Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$apAid]);   // wie vom PC abgeholt
+AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $apAid, 'inhalte' => [
+    ['format' => 'beitrag', 'plattform' => 'facebook', 'titel' => 'AP Eins', 'felder' => ['text' => 'Termine ohne Telefon.', 'cta' => 'Website kostenlos prüfen']],
+    ['format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'AP Zwei', 'felder' => ['text' => 'Website-Check in Sekunden', 'knopf' => 'Prüfen']],
+]]);
+$apNetz = []; TelegramMarketing::$gesendet = [];
+MkAuftrag::melden(['id' => $apAid, 'ok' => true, 'inhalte' => 2]);
+$apMedien = Db::all("SELECT id FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet'");
+pruefe('Telegram: solange die Bilder entstehen, noch keine Nachricht', count($apMedien) === 2 && TelegramMarketing::$gesendet === [] && Db::wert('SELECT gemeldet_am FROM mk_auftraege WHERE id = ?', [$apAid], null) === null,
+    json_encode([count($apMedien), TelegramMarketing::$gesendet, Db::one('SELECT status, ergebnis, inhalte FROM mk_auftraege WHERE id = ?', [$apAid])], JSON_UNESCAPED_UNICODE));
+foreach ($apMedien as $i => $apM) {
+    Db::run("UPDATE mk_auftraege SET status = 'laeuft' WHERE id = ?", [(int) $apM['id']]);
+    MkAuftrag::melden(['id' => (int) $apM['id'], 'ok' => $i === 0, 'text' => $i === 0 ? '' : 'Kein Guthaben']);
+}
+$apMeld = TelegramMarketing::$gesendet[0][1] ?? [];
+pruefe('Telegram: nach dem letzten Bild (auch wenn eines scheiterte) genau eine Nachricht an den Admin — Zahl, „Durchgehen“, Link in die Verwaltung',
+    count(TelegramMarketing::$gesendet) === 1 && ($apMeld['chat_id'] ?? 0) === $apChat && str_contains((string) ($apMeld['text'] ?? ''), 'Autopilot Deutschland')
+    && str_contains((string) $apMeld['text'], 'Ohne deinen Klick geht nichts raus') && ($apMeld['reply_markup']['inline_keyboard'][0][0]['callback_data'] ?? '') === 'v:mg:de'
+    && str_ends_with((string) ($apMeld['reply_markup']['inline_keyboard'][1][0]['url'] ?? ''), '/freigabe?land=DE') && Db::wert('SELECT gemeldet_am FROM mk_auftraege WHERE id = ?', [$apAid], null) !== null
+    && TelegramMarketing::vielleichtMelden($apAid) === false, json_encode(TelegramMarketing::$gesendet));
+/* Durchgehen im Bot: über den Verwaltungs-Riegel (beide Schlösser) */
+$apKnopf = static function (string $daten, int $msg = 1) use ($apChat): string {
+    return TelegramBot::verarbeiten(['update_id' => random_int(1, 999999), 'callback_query' => ['id' => 'cq' . random_int(1, 99999), 'data' => $daten,
+        'from' => ['id' => $apChat, 'is_bot' => false, 'language_code' => 'de'], 'message' => ['message_id' => $msg, 'chat' => ['id' => $apChat, 'type' => 'private']]]]);
+};
+TelegramMarketing::$gesendet = [];
+$apV1 = $apKnopf('v:mg:de');
+$apStueck = end(TelegramMarketing::$gesendet)[1] ?? [];
+$apEins = (int) Db::wert("SELECT id FROM mk_inhalte WHERE titel = 'AP Eins'");
+$apZwei = (int) Db::wert("SELECT id FROM mk_inhalte WHERE titel = 'AP Zwei'");
+pruefe('Telegram: „Durchgehen“ zeigt das erste Stück — Plattform, Text, was „Ja“ tut, Knöpfe Ja/Nein/Später',
+    $apV1 === 'stapel_stueck' && str_contains(json_encode($apStueck, JSON_UNESCAPED_UNICODE), 'AP Eins') && str_contains(json_encode($apStueck, JSON_UNESCAPED_UNICODE), 'Ja gibt frei')
+    && str_contains(json_encode($apStueck['reply_markup'] ?? []), 'v:mj:' . $apEins) && str_contains(json_encode($apStueck['reply_markup'] ?? []), 'v:ms:' . $apEins), json_encode($apStueck, JSON_UNESCAPED_UNICODE));
+TelegramMarketing::$gesendet = [];
+$apKnopf('v:ms:' . $apEins, 801);
+pruefe('Telegram: „Später“ nimmt die Knöpfe weg und zeigt das nächste Stück', str_contains(json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE), 'AP Zwei')
+    && in_array('editMessageReplyMarkup', array_column($apNetz, 0), true) && MkInhalt::laden($apEins)['status'] === 'entwurf');
+TelegramMarketing::$gesendet = [];
+$apKnopf('v:mj:' . $apZwei, 802);
+$apX2 = MkInhalt::laden($apZwei);
+pruefe('Telegram: „Ja“ gibt frei und plant ein — dieselbe Funktion wie im Reiter „Freigeben“; danach das nächste Stück',
+    $apX2['status'] === 'freigegeben' && $apX2['geplant_am'] !== null && str_contains(json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE), 'freigegeben')
+    && str_contains(json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE), 'AP Eins'), json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE));
+TelegramMarketing::$gesendet = [];
+$apKnopf('v:mn:' . $apEins, 803);
+pruefe('Telegram: „Nein“ verwirft; ist alles durch, sagt der Bot es', MkInhalt::laden($apEins)['status'] === 'verworfen'
+    && str_contains(json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE), 'Alles durchgesehen in Deutschland'));
+/* Ohne Admin-Rechte kein Stapel */
+Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE chat_id = ?', [$apChat]); TelegramAdmin::vergessen();
+$apFid = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $apZ1['id'], 'branche' => 'friseur', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'AP Fremd', 'felder' => '{"text":"x"}']);
+TelegramMarketing::$gesendet = [];
+$apKnopf('v:mj:' . $apFid, 804);
+pruefe('Telegram: ohne verbundenen Admin (beide Schlösser) tut ein Ja-Knopf nichts', MkInhalt::laden($apFid)['status'] === 'entwurf' && TelegramMarketing::$gesendet === []);
+Telegram::$netz = $apTgAlt; Telegram::setzen('tg_kanal_id', $apKanalAlt);
+Db::run('DELETE FROM telegram_chats WHERE chat_id = ?', [$apChat]); Db::run('DELETE FROM users WHERE id = ?', [$apUid]);
+
+/* Verwaltung */
+$apIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Autopilot speichern nur hinter CSRF', strpos($apIdx, "case 'autopilot_speichern':") > strpos($apIdx, 'Csrf::pruefen()'));
+$apFehler = null; set_error_handler(static function (int $n, string $m) use (&$apFehler): bool { $apFehler = $m; return true; });
+$land = 'DE'; $x = null; $rest = 0; $offen = ['IT' => 0, 'DE' => 0]; $zg = null; $medien = []; $bildLaeuft = 0; $geplant = [];
+$autopilot = ['e' => MkAutopilot::einstellung('DE'), 'naechster' => strtotime('2026-10-14 07:00'), 'zg' => ['titel' => 'AP Handwerk'], 'telegram' => false];
+ob_start(); require $wurzel . '/views/freigabe.php'; $apH = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Autopilot je Land auf „Freigeben“ — an/aus, Tag, Uhrzeit, Anzeigen, Bilder, nächste Zielgruppe, Kosten, Hinweis ohne Telegram',
+    $apFehler === null && str_contains($apH, 'id="autopilot"') && str_contains($apH, 'value="autopilot_speichern"') && str_contains($apH, '<option value="3" selected>Mittwoch')
+    && str_contains($apH, 'als Nächstes „AP Handwerk“') && str_contains($apH, 'Credits je Woche') && str_contains($apH, 'Dein Telegram ist noch nicht verbunden')
+    && str_contains($apH, 'Nächster Lauf: Mi 14.10. 07:00'), (string) $apFehler);
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'AP %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'AP %'"); Db::run('DELETE FROM mk_auftraege');
+Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_%'");
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

@@ -55,7 +55,7 @@ final class MkAuftrag
         if (($a['art'] ?? 'recherche') === 'inhalte') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             $pl = implode(', ', array_map(static fn($x) => MkKampagne::PLATTFORMEN[$x] ?? $x, (array) ($p['plattformen'] ?? [])));
-            return (!empty($p['paket']) ? 'Kampagne · ' : 'Inhalte · ') . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
+            return (!empty($p['autopilot']) ? 'Autopilot · ' : (!empty($p['paket']) ? 'Kampagne · ' : 'Inhalte · ')) . (string) ($p['zielgruppe_titel'] ?? 'Zielgruppe') . ' — ' . (int) ($p['anzahl'] ?? 0) . ' Stück'
                 . (!empty($p['mit_bildern']) ? ' mit Bildern' : '')
                 . ($pl !== '' ? ' für ' . $pl : '') . (($p['umfang'] ?? 'beides') !== 'beides' ? ' (' . (MkInhalt::ARTEN[$p['umfang']] ?? $p['umfang']) . ')' : '');
         }
@@ -132,7 +132,7 @@ final class MkAuftrag
         $param = ['zielgruppe_id' => $zgId, 'zielgruppe_titel' => mb_substr((string) $zg['titel'], 0, 80), 'plattformen' => $pl, 'umfang' => $umfang,
                   'anzahl' => $anzahl, 'thema' => mb_substr(trim(strip_tags((string) ($p['thema'] ?? ''))), 0, 200), 'kampagne_id' => $kampagne > 0 ? $kampagne : null,
                   /* Marketing-Studio 6: Kampagnen-Paket (feste Mischung) und Bilder gleich mit (Kie.ai, nach der Lieferung). */
-                  'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern'])];
+                  'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern']), 'autopilot' => !empty($p['autopilot'])];
         $id = (int) Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => (string) $zg['branche'], 'land' => (string) $zg['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         Events::protokoll('inhalte_auftrag', 'Inhalte angestoßen: ' . self::beschreibung(['art' => 'inhalte', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]), null, null, null, ['auftrag_id' => $id]);
@@ -160,7 +160,7 @@ final class MkAuftrag
         if (!$organisch && !$anzeigen) { return 'Bitte Beiträge, Anzeigen oder beides wählen.'; }
         [$pl, $umfang, $anzahl] = self::paketMischung($organisch, $anzeigen);
         return self::anlegenInhalte(['zielgruppe' => $zgId, 'plattformen' => $pl, 'umfang' => $umfang, 'anzahl' => $anzahl,
-            'thema' => (string) ($p['thema'] ?? ''), 'paket' => true, 'mit_bildern' => !empty($p['bilder'])]);
+            'thema' => (string) ($p['thema'] ?? ''), 'paket' => true, 'mit_bildern' => !empty($p['bilder']), 'autopilot' => !empty($p['autopilot'])]);
     }
 
     public static function abbrechen(int $id): ?string
@@ -302,6 +302,9 @@ final class MkAuftrag
             $p = json_decode((string) $a['parameter'], true) ?: [];
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'fertig_am' => date('Y-m-d H:i:s')]);
             if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text, 'inhalte/' . (int) ($p['inhalt_id'] ?? 0)), null); }
+            /* Marketing-Studio 7: War das das letzte Bild einer Kampagne, kommt jetzt der Stapel per Telegram. */
+            $elternId = (int) Db::wert('SELECT auftrag_id FROM mk_inhalte WHERE id = ?', [(int) ($p['inhalt_id'] ?? 0)], 0);
+            if ($elternId > 0) { require_once __DIR__ . '/TelegramMarketing.php'; TelegramMarketing::vielleichtMelden($elternId); }
             return ['ok' => true];
         }
         if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
@@ -324,6 +327,8 @@ final class MkAuftrag
             $ok ? 'gut' : 'info',   // kein „warnung“: das klingelte als Störung auf dem Handy
             $ok ? ($istInhalt ? $in . ' Entwürfe' . ($bilder > 0 ? ' (' . $bilder . ' Bilder entstehen)' : '') . ' — unter „Freigeben“ mit Ja oder Nein durchgehen.' : $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.') : $text,
             $istInhalt ? 'freigabe?land=' . $a['land'] : 'zielgruppen?land=' . $a['land']), null);
+        /* Marketing-Studio 7: Kampagne ohne Bilder ist jetzt fertig — Stapel per Telegram (mit Bildern: nach dem letzten Bild). */
+        if ($ok && $istInhalt) { require_once __DIR__ . '/TelegramMarketing.php'; TelegramMarketing::vielleichtMelden($id); }
         return ['ok' => true];
     }
 }

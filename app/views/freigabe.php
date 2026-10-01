@@ -7,10 +7,12 @@
  * was „Ja“ tut — dann Ja (freigeben, Bild wählen, auf den nächsten freien
  * Sendeplatz legen), Nein (verwerfen) oder Später. Tasten J, N, S.
  *
- * Erwartet: $land, $x (nächster Entwurf oder null), $rest, $offen, $zg, $medien, $bildLaeuft, $geplant.
+ * Erwartet: $land, $x (nächster Entwurf oder null), $rest, $offen, $zg, $medien, $bildLaeuft, $geplant,
+ *           $autopilot (Marketing-Studio 7: e, naechster, zg, telegram).
  */
 require_once dirname(__DIR__) . '/src/MkLand.php';
 require_once dirname(__DIR__) . '/src/MkVeroeffentlichen.php';
+require_once dirname(__DIR__) . '/src/MkMedium.php';
 $land = $land ?? 'IT';
 $offen = $offen ?? MkLand::offen();
 $medien = $medien ?? [];
@@ -109,3 +111,28 @@ require __DIR__ . '/mk_stil.php';
   </ul>
 </div>
 <?php endif; ?>
+
+<?php if (isset($autopilot)): $ap = $autopilot['e']; require_once dirname(__DIR__) . '/src/MkAutopilot.php'; ?>
+<section class="block mk-start" id="autopilot" aria-labelledby="mk-ap-titel" style="margin-top:16px">
+  <h2 id="mk-ap-titel">Autopilot für <?= Fmt::h($name) ?> <span class="mehr"><?= $ap['an'] ? 'an' : 'aus' ?> · einmal je Woche eine Kampagne, Freigabe per Telegram</span></h2>
+  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="autopilot_speichern"><input type="hidden" name="land" value="<?= Fmt::h($land) ?>">
+    <div class="mk-start__wahl">
+      <label class="mk-haken"><input type="checkbox" name="an" value="1"<?= $ap['an'] ? ' checked' : '' ?>> <b>Autopilot an</b></label>
+      <label class="mk-haken">jeden <select name="tag" style="width:auto"><?php foreach (MkAutopilot::TAGE as $tn => $tw): ?><option value="<?= $tn ?>"<?= $ap['tag'] === $tn ? ' selected' : '' ?>><?= Fmt::h($tw) ?></option><?php endforeach; ?></select></label>
+      <label class="mk-haken">um <select name="stunde" style="width:auto"><?php for ($st = 5; $st <= 22; $st++): ?><option value="<?= $st ?>"<?= $ap['stunde'] === $st ? ' selected' : '' ?>><?= sprintf('%02d:00', $st) ?></option><?php endfor; ?></select></label>
+      <label class="mk-haken"><input type="checkbox" name="anzeigen" value="1"<?= $ap['anzeigen'] ? ' checked' : '' ?>> auch Anzeigen</label>
+      <label class="mk-haken"><input type="checkbox" name="bilder" value="1"<?= $ap['bilder'] ? ' checked' : '' ?>> mit Bildern (Kie.ai)</label>
+    </div>
+    <div><button class="knopf haupt">Speichern</button></div>
+  </form>
+  <ol class="mk-start__schritte">
+    <li>Am gewählten Tag startet die Verwaltung eine Kampagne für die freigegebene Zielgruppe, die am längsten nichts bekommen hat<?= $autopilot['zg'] ? ' — als Nächstes „' . Fmt::h((string) $autopilot['zg']['titel']) . '“' : ' — noch keine freigegeben' ?>.</li>
+    <li>Claude schreibt <?= $ap['anzeigen'] ? '8 Stücke (Beiträge und Anzeigen)' : '6 Beiträge' ?> über dein Claude-Abo<?= $ap['bilder'] ? ', Kie.ai macht die Bilder (etwa ' . ($ap['anzeigen'] ? 7 : 6) * (int) MkMedium::MODELLE['bild'][array_key_first(MkMedium::MODELLE['bild'])][1] . ' Credits je Woche, Guthaben wird vorher geprüft)' : '' ?>.</li>
+    <li>Sind Texte und Bilder fertig, kommt eine Telegram-Nachricht: Stück für Stück Ja, Nein oder Später — wie hier.<?= !$autopilot['telegram'] ? ' <b>Dein Telegram ist noch nicht verbunden</b> (Einstellungen → Telegram) — dann bleibt der Stapel hier.' : '' ?></li>
+    <li>Ohne dein Ja geht nichts raus.</li>
+  </ol>
+  <?php if ($autopilot['naechster'] !== null): ?><p class="mk-fein" style="margin:8px 0 0">Nächster Lauf: <?= $autopilot['naechster'] <= time() + 600 ? 'beim nächsten Cronlauf' : Fmt::h($tag(date('Y-m-d H:i', (int) $autopilot['naechster']))) ?>.</p><?php endif; ?>
+</section>
+<?php endif; ?>
+

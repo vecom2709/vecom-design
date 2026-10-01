@@ -291,6 +291,11 @@ final class Cron
                 require_once __DIR__ . '/MkVeroeffentlichen.php';
                 return MkVeroeffentlichen::faellige();
             },
+            /* Marketing-Studio 7: Wochen-Autopilot — je eingeschaltetem Land einmal je Woche eine Kampagne (ab Werk aus). */
+            'marketing_autopilot' => static function () {
+                require_once __DIR__ . '/MkAutopilot.php';
+                return MkAutopilot::lauf();
+            },
             /* Termine (27.09.2026): Erinnerung am Vortag, genau einmal. */
             'akquise_termine' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }
