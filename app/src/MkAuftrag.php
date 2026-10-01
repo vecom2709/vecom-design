@@ -41,6 +41,10 @@ final class MkAuftrag
     /** Was der Auftrag tut — in einem Satz. */
     public static function beschreibung(array $a): string
     {
+        if (($a['art'] ?? 'recherche') === 'uebersetzen') {
+            $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            return 'Deutsche Fassung · ' . (int) ($p['profile'] ?? 0) . ' Zielgruppen, ' . (int) ($p['inhalte'] ?? 0) . ' Inhalte auf Italienisch';
+        }
         if (($a['art'] ?? 'recherche') === 'medien') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             require_once __DIR__ . '/MkMedium.php';
@@ -71,6 +75,27 @@ final class MkAuftrag
         if (self::heute('recherche') >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Recherchen gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
         $id = (int) Db::insert('mk_auftraege', ['art' => 'recherche', 'branche' => $branche, 'land' => $land]);
         Events::protokoll('recherche_auftrag', 'Recherche angestoßen: ' . self::beschreibung(['branche' => $branche, 'land' => $land]), null, null, null, ['auftrag_id' => $id]);
+        return $id;
+    }
+
+    /**
+     * Deutsche Fassung nachholen (Marketing-Studio 5, Uwe: „für die
+     * Verwaltung auf Deutsch anzeigen, dass wir es lesen können“): ein
+     * Auftrag für alles Italienische ohne Übersetzung. Neue Recherchen und
+     * Inhalte bringen die deutsche Fassung gleich mit — das hier holt nur
+     * nach, was vorher entstand.
+     * @return int|string
+     */
+    public static function anlegenUebersetzen(): int|string
+    {
+        self::aufraeumen();
+        if (Db::one("SELECT id FROM mk_auftraege WHERE art = 'uebersetzen' AND status IN ('wartet','laeuft') LIMIT 1")) { return 'Die Übersetzung läuft schon — oder wartet auf deinen PC.'; }
+        $o = MkZielgruppe::ohneUebersetzung();
+        if ($o['profile'] === [] && $o['inhalte'] === []) { return 'Es ist schon alles auf Deutsch zu lesen.'; }
+        if (self::heute('uebersetzen') >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Übersetzungen gelaufen. Morgen geht es weiter.'; }
+        $param = ['profile' => count($o['profile']), 'inhalte' => count($o['inhalte'])];
+        $id = (int) Db::insert('mk_auftraege', ['art' => 'uebersetzen', 'branche' => '', 'land' => 'IT', 'parameter' => json_encode($param)]);
+        Events::protokoll('uebersetzen_auftrag', 'Übersetzung angestoßen: ' . self::beschreibung(['art' => 'uebersetzen', 'parameter' => json_encode($param)]), null, null, null, ['auftrag_id' => $id]);
         return $id;
     }
 
@@ -131,10 +156,14 @@ final class MkAuftrag
         return (bool) self::still(static fn() => (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE status = 'wartet'", [], 0) > 0, false);
     }
 
-    public static function liste(int $max = 6, string $art = 'recherche'): array
+    /** Die letzten Aufträge einer oder mehrerer Arten — mit $land nur die dieses Landes. */
+    public static function liste(int $max = 6, string|array $art = 'recherche', ?string $land = null): array
     {
         self::aufraeumen();
-        return Db::all('SELECT * FROM mk_auftraege WHERE art = ? ORDER BY id DESC LIMIT ' . max(1, min(50, $max)), [$art]);
+        $arten = array_values((array) $art);
+        $w = 'art IN (' . implode(',', array_fill(0, count($arten), '?')) . ')';
+        if ($land !== null) { $w .= ' AND land = ?'; $arten[] = $land; }
+        return Db::all('SELECT * FROM mk_auftraege WHERE ' . $w . ' ORDER BY id DESC LIMIT ' . max(1, min(50, $max)), $arten);
     }
 
     public static function offen(string $art = 'recherche'): bool
@@ -156,6 +185,9 @@ final class MkAuftrag
             $n = Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
             if (($a['art'] ?? 'recherche') === 'inhalte') { return ['ok' => true, 'auftrag' => self::inhalteAuftrag($a)]; }
+            if (($a['art'] ?? 'recherche') === 'uebersetzen') {
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()];
+            }
             if (($a['art'] ?? 'recherche') === 'medien') {
                 require_once __DIR__ . '/MkMedium.php';
                 $p = json_decode((string) $a['parameter'], true) ?: [];
@@ -232,6 +264,11 @@ final class MkAuftrag
         if (!$a) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
         $in = max(0, min(999, (int) ($d['inhalte'] ?? 0)));
         $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte';
+        if (($a['art'] ?? '') === 'uebersetzen') {
+            if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
+            Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'zielgruppen' => $zg, 'inhalte' => $in, 'fertig_am' => date('Y-m-d H:i:s')]);
+            return ['ok' => true];
+        }
         if (($a['art'] ?? '') === 'medien') {
             if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
             $p = json_decode((string) $a['parameter'], true) ?: [];
@@ -247,7 +284,7 @@ final class MkAuftrag
             $ok ? $wort . ' fertig: ' . self::beschreibung($a) : $wort . ' nicht geklappt: ' . self::beschreibung($a),
             $ok ? 'gut' : 'info',   // kein „warnung“: das klingelte als Störung auf dem Handy
             $ok ? ($istInhalt ? $in . ' Entwürfe — bitte prüfen, ändern und freigeben.' : $zg . ' Zielgruppen-Entwürfe, ' . $fu . ' neue Funde — bitte prüfen und freigeben.') : $text,
-            $istInhalt ? 'inhalte' : ($zg > 0 && $fu === 0 ? 'zielgruppen' : 'recherche')), null);
+            $istInhalt ? 'inhalte?land=' . $a['land'] : 'zielgruppen?land=' . $a['land']), null);
         return ['ok' => true];
     }
 }

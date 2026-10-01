@@ -54,3 +54,31 @@ test('Schreibauftrag: Formate, Grenzen, Profil, Funde mit id — und keine Links
   assert.match(t, /Ristoranti in Sicilia/);
   assert.ok((SCHEMA_INHALTE.properties.inhalte as any).items.required.includes('fund_ids'));
 });
+
+import { uebersetzenText, SCHEMA_UEBERSETZEN } from '../src/ki/marketing.js';
+
+test('Deutsch und Italienisch (Marketing-Studio 5): Italien bekommt die deutsche Fassung, Deutschland die deutschen Seiten', () => {
+  const basis = { id: 11, branche: 'friseur', beschreibung: 'Friseur', zielgruppen_fuer: [{ branche: 'friseur', name: 'Friseur' }], vorhandene_profile: {}, daten: {} };
+  const it = auftragText({ ...basis, land: 'IT' });
+  const de = auftragText({ ...basis, land: 'DE' });
+  assert.match(it, /gleiche Reihenfolge, gleiche Anzahl wie das italienische Original/);
+  assert.match(de, /alle Listen leer/);
+  assert.match(de, /\/de\/website-friseur\.html/);
+  assert.match(de, /Anrede „Sie“/);
+  assert.doesNotMatch(de, /siti-web-parrucchieri/);
+  const zg = (SCHEMA.properties.zielgruppen as any).items;
+  assert.ok(zg.required.includes('de'));
+  assert.ok((SCHEMA_INHALTE.properties.inhalte as any).items.required.includes('uebersetzung'));
+});
+
+test('Übersetzungsauftrag: nur übersetzen, nichts erfinden — Profile und Inhalte mit id', () => {
+  const t = uebersetzenText({ id: 12, art: 'uebersetzen', beschreibung: 'Deutsche Fassung · 1 Zielgruppen, 1 Inhalte',
+    profile: [{ id: 3, titel: 'Ristoranti', listen: { fragen: ['Quanto costa un sito?'] } }],
+    inhalte: [{ id: 8, format: 'beitrag', felder: { text: 'Prenotazioni dirette' } }] });
+  assert.match(t, /AUFTRAG #12/);
+  assert.match(t, /Keine Recherche nötig/);
+  assert.match(t, /erfinde nichts dazu/);
+  assert.match(t, /Quanto costa un sito\?/);
+  assert.match(t, /"id": 8/);
+  assert.deepEqual(SCHEMA_UEBERSETZEN.required, ['profile', 'inhalte']);
+});

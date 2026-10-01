@@ -178,6 +178,11 @@ final class MkKampagne
         } elseif ((int) Db::wert('SELECT COUNT(*) FROM mk_kampagnen WHERE code = ?', [$code], 0) > 0) {
             return 'Den Kurz-Code „' . $code . '“ gibt es schon.';
         }
+        /* Marketing-Studio 5: Land aus der Zielseite (oder ausdrücklich), dazu die Zielgruppe, aus der die Kampagne entstand. */
+        require_once __DIR__ . '/MkLand.php';
+        $land = strtoupper((string) ($d['land'] ?? ''));
+        $mehr['land'] = isset(MkLand::NAMEN[$land]) ? $land : MkLand::ausZiel($ziel);
+        if ((int) ($d['zielgruppe_id'] ?? 0) > 0 && Db::wert('SELECT id FROM mk_zielgruppen WHERE id = ?', [(int) $d['zielgruppe_id']], null) !== null) { $mehr['zielgruppe_id'] = (int) $d['zielgruppe_id']; }
         $id = (int) Db::insert('mk_kampagnen', ['code' => $code, 'name' => $name, 'plattform' => $plattform, 'ziel' => $ziel,
             'notiz' => mb_substr(trim((string) ($d['notiz'] ?? '')), 0, 500)] + $mehr);
         Events::pruefspur('kampagne_angelegt', 'mk_kampagnen', $id, [], ['code' => $code, 'name' => $name, 'plattform' => $plattform, 'ziel' => $ziel] + $mehr);
@@ -201,6 +206,7 @@ final class MkKampagne
         $mehr = self::felder($d, $k);
         if (is_string($mehr)) { return $mehr; }
         $neu += $mehr;
+        if ($neu['ziel'] !== $k['ziel']) { require_once __DIR__ . '/MkLand.php'; $neu['land'] = MkLand::ausZiel($neu['ziel']); }
         Db::update('mk_kampagnen', $id, $neu);
         Events::pruefspur('kampagne_geaendert', 'mk_kampagnen', $id, array_intersect_key($k, $neu), $neu);
         return null;
@@ -455,6 +461,8 @@ final class MkKampagne
         if (isset(self::PLATTFORMEN[(string) ($f['plattform'] ?? '')])) { $w[] = 'k.plattform = ?'; $a[] = (string) $f['plattform']; }
         if (isset(self::STATUS[(string) ($f['status'] ?? '')])) { $w[] = 'k.status = ?'; $a[] = (string) $f['status']; }
         if (isset(self::branchen()[(string) ($f['branche'] ?? '')])) { $w[] = 'k.branche = ?'; $a[] = (string) $f['branche']; }
+        /* Ein Land zeigt seine Kampagnen und die ohne Land (z. B. englische Seite) — nie die des anderen. */
+        if (in_array((string) ($f['land'] ?? ''), ['IT', 'DE'], true)) { $w[] = "k.land IN (?, '')"; $a[] = (string) $f['land']; }
         $kamp = Db::all('SELECT k.*, (SELECT COUNT(*) FROM mk_creatives c WHERE c.kampagne_id = k.id) AS werbemittel FROM mk_kampagnen k'
             . ($w ? ' WHERE ' . implode(' AND ', $w) : '') . " ORDER BY FIELD(k.status, 'aktiv', 'pausiert', 'beendet'), k.created_at DESC", $a);
         $zahlen = self::zahlen($von, $bis);

@@ -139,4 +139,32 @@
   .mk-budget i{display:block;height:100%;border-radius:99px}
   .mk-budget.gross{width:100%;height:9px;margin:4px 0 6px}
   @media(max-width:700px){.mk-besten{grid-template-columns:minmax(0,1fr)}}
+  /* Marketing-Studio 5 (01.10.2026): Deutschland und Italien klar getrennt */
+  .mk-flagge{display:inline-block;width:18px;height:12px;border-radius:2px;flex:none;box-shadow:0 0 0 1px rgba(255,255,255,.28);vertical-align:-1px}
+  .mk-flagge--it{background:linear-gradient(90deg,#009246 0 33.4%,#f4f5f0 33.4% 66.6%,#ce2b37 66.6%)}
+  .mk-flagge--de{background:linear-gradient(180deg,#141414 0 33.4%,#dd0000 33.4% 66.6%,#ffce00 66.6%)}
+  .mk-land{display:inline-flex;gap:7px;align-items:center;white-space:nowrap}
+  .mk-laender{display:inline-flex;gap:4px;padding:4px;border:1px solid var(--linie2);border-radius:14px;background:var(--flaeche2);margin:0 0 16px;max-width:100%}
+  .mk-laender a{display:inline-flex;gap:9px;align-items:center;min-height:44px;padding:0 18px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:15px;font-weight:550;transition:background-color .18s cubic-bezier(.16,1,.3,1),color .18s cubic-bezier(.16,1,.3,1)}
+  .mk-laender a:hover{color:var(--text,inherit)}
+  .mk-laender a[aria-current]{background:var(--metall);color:#16120b;font-weight:700}
+  .mk-laender a[aria-current] .mk-flagge{box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+  .mk-laender b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--rot);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+  .mk-laender a[aria-current] b{background:#16120b;color:#fff}
+  @media(max-width:520px){.mk-laender{display:flex}.mk-laender a{flex:1 1 0;justify-content:center;padding:0 10px}}
+  .mk-schritte{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px;padding:0;list-style:none;counter-reset:mks}
+  .mk-schritte li{counter-increment:mks;border:1px solid var(--linie);border-radius:12px;padding:12px 14px 12px 52px;position:relative;background:var(--flaeche2);font-size:13.5px;line-height:1.45;color:var(--dim)}
+  .mk-schritte li::before{content:counter(mks);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;border:1px solid var(--linie2);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--text,inherit);font-size:13px}
+  .mk-schritte li.dran{border-color:var(--linie2)} .mk-schritte li.dran::before{background:var(--metall);color:#16120b;border-color:transparent}
+  .mk-schritte b{display:block;color:var(--text,inherit);font-size:14.5px;margin-bottom:2px}
+  .mk-schritte a{white-space:nowrap}
+  @media(max-width:800px){.mk-schritte{grid-template-columns:minmax(0,1fr)}}
+  .mk-de{display:block;font-size:12.5px;color:var(--leise);margin-top:2px;line-height:1.45}
+  .mk-de::before{content:"DE";display:inline-block;font-size:10px;font-weight:700;letter-spacing:.06em;border:1px solid var(--linie2);border-radius:4px;padding:0 4px;margin-right:6px;vertical-align:1px;color:var(--dim)}
+  .mk-uebersetzung{border:1px dashed var(--linie2);border-radius:12px;padding:12px 14px;margin-top:14px;max-width:520px;font-size:13.5px;line-height:1.55;color:var(--dim);white-space:pre-line;overflow-wrap:anywhere}
+  .mk-uebersetzung h3{margin:0 0 6px;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise);font-weight:600;white-space:normal}
+  .mk-hinweis-zeile{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between}
+  .mk-fehlt{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 0}
+  .mk-fehlt form{margin:0} .mk-fehlt .knopf{width:auto}
+  .mk-zg-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
 </style>

@@ -25,14 +25,22 @@ import { medienLauf, type MedienAuftrag } from './kie.js';
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
 
-/** Was Claude über Vecom wissen muss — Stand prezzi.html (01.10.2026). */
+/** Was Claude über Vecom wissen muss — Stand prezzi.html / de/preise.html (01.10.2026). */
 const ANBIETER = `Vecom Design — Webdesign für kleine Betriebe, Sitz Provinz Agrigento (Sizilien), Kunden in Italien und Deutschland.
 Preise (fest, im Kostenvoranschlag; Rechnung = Voranschlag): Ein-Seiten-Website 325–400 €, Website „vetrina“ 600–750 €,
 mit Speisekarte/mehreren Sprachen/Buchung 1.000–1.650 €; jede weitere Seite 65–85 €, jede weitere Sprache 40–55 € pro Seite.
 Betreuung („assistenza“) ab 39 €/Monat, freiwillig, eigener Vertrag. Domain gehört dem Kunden (15–30 €/Jahr).
-Kostenvoranschlag und erstes Gespräch gratis; kostenloser Website-Check. Ton: persönlich, „Lei“, ohne Fachjargon.
-Eigene Seiten: siti-web-ristoranti, siti-web-bed-and-breakfast, siti-web-parrucchieri, siti-web-artigiani,
-siti-web-trasporti, sito-o-booking (Direktbuchung statt Plattform), prezzi.`;
+Kostenvoranschlag und erstes Gespräch gratis; kostenloser Website-Check. Ton: persönlich, ohne Fachjargon.`;
+
+/** Die eigenen Seiten je Land — Kunden in Deutschland landen auf den deutschen Seiten. */
+function anbieter(land: string): string {
+  return land === 'DE'
+    ? `${ANBIETER}\nAnrede „Sie“. Deutsche Seiten: /de/ (Start), /de/preise.html, /de/website-restaurant-cafe.html, /de/website-friseur.html,
+/de/website-handwerker.html, /de/website-kfz-werkstatt.html, /de/website-pension-ferienwohnung.html, /de/eigene-website-oder-booking.html,
+kostenlose Website-Analyse /analisi.php?lang=de. Vecom betreut Kunden in Deutschland aus der Ferne (Videotermin, Telefon, E-Mail).`
+    : `${ANBIETER}\nAnrede „Lei“. Eigene Seiten: siti-web-ristoranti, siti-web-bed-and-breakfast, siti-web-parrucchieri, siti-web-artigiani,
+siti-web-trasporti, sito-o-booking (Direktbuchung statt Plattform), prezzi, kostenlose Analyse /analisi.php.`;
+}
 
 const LISTE = { type: 'array', items: { type: 'string' } };
 const QUELLEN = {
@@ -49,13 +57,16 @@ export const SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['branche', 'land', 'titel', 'kurz', 'ansprache', 'probleme', 'wuensche', 'einwaende', 'fragen', 'suchbegriffe', 'kanaele', 'botschaften', 'organisch', 'bezahlt', 'quellen'],
+        required: ['branche', 'land', 'titel', 'kurz', 'ansprache', 'probleme', 'wuensche', 'einwaende', 'fragen', 'suchbegriffe', 'kanaele', 'botschaften', 'organisch', 'bezahlt', 'quellen', 'de'],
         properties: {
           branche: { type: 'string' }, land: { type: 'string' }, titel: { type: 'string' }, kurz: { type: 'string' }, ansprache: { type: 'string' },
           probleme: LISTE, wuensche: LISTE, einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, kanaele: LISTE, botschaften: LISTE, organisch: LISTE,
           bezahlt: { type: 'object', required: ['zielgruppe', 'keywords', 'budget', 'hinweise'],
             properties: { zielgruppe: { type: 'string' }, keywords: LISTE, budget: { type: 'string' }, hinweise: { type: 'string' } } },
           quellen: QUELLEN,
+          /* Marketing-Studio 5: deutsche Fassung der Kundensprache (nur für Italien; bei Deutschland leere Listen). */
+          de: { type: 'object', required: ['einwaende', 'fragen', 'suchbegriffe', 'botschaften', 'keywords'],
+            properties: { einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, botschaften: LISTE, keywords: LISTE } },
         },
       },
     },
@@ -103,7 +114,7 @@ export const SCHEMA_INHALTE = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['format', 'plattform', 'sprache', 'titel', 'felder', 'bildidee', 'bild_prompt', 'begruendung', 'fund_ids'],
+        required: ['format', 'plattform', 'sprache', 'titel', 'felder', 'bildidee', 'bild_prompt', 'begruendung', 'fund_ids', 'uebersetzung'],
         properties: {
           format: { type: 'string', enum: ['beitrag', 'karussell', 'reel', 'story', 'telegram', 'profil', 'meta_anzeige', 'google_anzeige'] },
           plattform: { type: 'string' }, sprache: { type: 'string', enum: ['it', 'de', 'en'] }, titel: { type: 'string' },
@@ -119,6 +130,7 @@ export const SCHEMA_INHALTE = {
           },
           bildidee: { type: 'string' }, bild_prompt: { type: 'string' }, begruendung: { type: 'string' },
           fund_ids: { type: 'array', items: { type: 'integer' } },
+          uebersetzung: { type: 'string' },
         },
       },
     },
@@ -142,7 +154,7 @@ ${Object.entries(a.formate).map(([k, v]) => `- ${k} (${v.wort}, ${v.art}): ${v.p
 Verteile die Stücke sinnvoll über Plattformen und Formate; kein Format mehr als dreimal.
 
 ÜBER VECOM
-${ANBIETER}
+${anbieter(a.land)}
 
 FELDER JE FORMAT (felder)
 - beitrag: hook (erste Zeile, ≤${g.hook ?? 150}), text (≤${g.text ?? 2200}, Absätze mit Leerzeile), hashtags (3–8, ohne #), cta
@@ -166,6 +178,7 @@ REGELN — unbedingt
 - bildidee: ein konkretes Motiv aus dem echten Alltag der Branche, ruhiges Licht, keine Stockfoto-Klischees; Text im Bild höchstens 5 Wörter, groß und kontrastreich.
 - bild_prompt: dasselbe Motiv als ENGLISCHER Prompt für einen Bildgenerator (Nano Banana Pro bzw. Veo): Motiv, Ort, Menschen (ohne bekannte Gesichter), Licht, Perspektive, Brennweite, Stimmung; fotorealistisch, keine Marken oder Logos; Text im Bild nur, wenn er trägt — wörtlich in Anführungszeichen, höchstens 5 Wörter. Bei Reels die Kernszene beschreiben.
 - begruendung: 1–2 Sätze — welcher Punkt des Profils, warum dieses Format auf dieser Plattform.
+- uebersetzung: ${a.land === 'DE' ? 'leer lassen ("") — das Stück ist schon deutsch.' : 'das ganze Stück auf Deutsch, damit Uwe es lesen kann (sinngemäß, gleiche Reihenfolge: Hook, Text bzw. Folien/Szenen, Aufruf; bei Anzeigen jede Variante und Überschrift in einer eigenen Zeile). Nur zum Lesen — gepostet wird das Original.'}
 - Nicht wiederholen, was in „bisherige_titel“ steht.
 - zusammenfassung: 2–3 Sätze auf Deutsch für Uwe.
 
@@ -193,7 +206,7 @@ Zielgruppen-Profile liefern für: ${ziele}
 Dazu 8–16 neue Funde (Themen, Trends, häufige Fragen, Wettbewerb, Plattformen) für ${a.branche ? 'diese Branche' : 'die Branchen in den Daten'} in diesem Land.
 
 ÜBER VECOM
-${ANBIETER}
+${anbieter(a.land)}
 
 VORGEHEN
 1. Lies die Daten unten: eigene Zahlen je Branche (geprüfte Betriebe, ohne Website, häufigste Mängel, Kampagnen), vorhandene Profile, letzte Funde.
@@ -212,6 +225,9 @@ REGELN — unbedingt
 - Sprache: Analyse auf Deutsch (titel, kurz, ansprache, probleme, wuensche, kanaele, organisch, bezahlt.zielgruppe/budget/hinweise,
   Fund-Titel und -Text). Was Kunden lesen oder tippen auf ${sprache}: einwaende (als wörtliches Zitat), fragen, suchbegriffe,
   botschaften, bezahlt.keywords.
+- de (deutsche Fassung, damit Uwe es lesen kann): ${a.land === 'IT'
+    ? 'einwaende, fragen, suchbegriffe, botschaften und keywords (= bezahlt.keywords) je Eintrag sinngemäß auf Deutsch — gleiche Reihenfolge, gleiche Anzahl wie das italienische Original.'
+    : 'alle Listen leer ([]) — das Profil ist schon deutsch.'}
 - Botschaften: kurz, konkret, mit Vecom-Fakten (Preis, Domain gehört dem Kunden, gratis Website-Check) — nichts versprechen,
   was oben nicht steht.
 - Suchbegriffe und Keywords sind Vorschläge: Suchvolumen nicht behaupten; in bezahlt.budget auf den Keyword-Planer verweisen.
@@ -229,6 +245,65 @@ ${JSON.stringify(a.vorhandene_profile ?? {}, null, 1).slice(0, 40_000)}
 
 DATEN (ohne Personen)
 ${JSON.stringify(a.daten ?? {}, null, 1).slice(0, 60_000)}`;
+}
+
+/** Deutsche Fassung nachholen (Marketing-Studio 5): italienische Profile und Inhalte, die vor dem Umbau entstanden. */
+type UebersetzenAuftrag = {
+  id: number; art: 'uebersetzen'; beschreibung: string;
+  profile: { id: number; titel: string; listen: Record<string, string[]> }[];
+  inhalte: { id: number; format: string; felder: Record<string, unknown> }[];
+};
+
+export const SCHEMA_UEBERSETZEN = {
+  type: 'object',
+  required: ['profile', 'inhalte'],
+  properties: {
+    profile: { type: 'array', items: { type: 'object', required: ['id', 'de'], properties: {
+      id: { type: 'integer' },
+      de: { type: 'object', properties: { einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, botschaften: LISTE, keywords: LISTE } },
+    } } },
+    inhalte: { type: 'array', items: { type: 'object', required: ['id', 'uebersetzung'], properties: { id: { type: 'integer' }, uebersetzung: { type: 'string' } } } },
+  },
+};
+
+export function uebersetzenText(a: UebersetzenAuftrag): string {
+  return `Du übersetzt Marketing-Texte von Vecom Design aus dem Italienischen ins Deutsche — nur damit Uwe (Inhaber, Deutscher) sie lesen kann.
+Gepostet wird weiterhin das italienische Original; ändere also nichts am Inhalt, erfinde nichts dazu, lass nichts weg.
+
+AUFTRAG #${a.id}: ${a.beschreibung}
+Keine Recherche nötig — nur übersetzen.
+
+PROFILE: je Profil die Listen (einwaende, fragen, suchbegriffe, botschaften, keywords) Eintrag für Eintrag sinngemäß auf Deutsch —
+gleiche Reihenfolge, gleiche Anzahl. Suchbegriffe und Keywords wörtlich-sinngemäß (damit Uwe versteht, wonach gesucht wird).
+${JSON.stringify(a.profile ?? [], null, 1).slice(0, 60_000)}
+
+INHALTE: je Stück das ganze Stück auf Deutsch als ein Lesetext — gleiche Reihenfolge wie im Original (Hook, Text bzw. Folien oder Szenen,
+Aufruf; bei Anzeigen jede Variante und jede Überschrift in einer eigenen Zeile). Absätze mit Leerzeile.
+${JSON.stringify(a.inhalte ?? [], null, 1).slice(0, 120_000)}
+
+Liefere für jedes Profil und jedes Stück oben einen Eintrag mit seiner id.`;
+}
+
+async function uebersetzenLauf(a: UebersetzenAuftrag): Promise<void> {
+  log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude übersetzt`);
+  await api('status_melden', { art: 'marketing', stand: 0, ziel: 0, text: a.beschreibung }).catch(() => {});
+  const ordner = datenOrdner('marketing');
+  try {
+    const roh = await claudeAusfuehren(uebersetzenText(a), ordner, SCHEMA_UEBERSETZEN);
+    writeFileSync(join(ordner, `auftrag-${a.id}.json`), roh);
+    const innen = innenLesen(roh);
+    if (!innen || !Array.isArray(innen.profile) || !Array.isArray(innen.inhalte)) throw new Error('Ergebnis ohne profile/inhalte.');
+    const j = await api('marketing_uebersetzung', { profile: innen.profile.slice(0, 20), inhalte: innen.inhalte.slice(0, 100) });
+    const fehler: string[] = j.fehler ?? [];
+    const zahl = (j.profile ?? 0) + (j.inhalte ?? 0);
+    await api('marketing_auftrag_melden', { id: a.id, ok: zahl > 0, zielgruppen: j.profile ?? 0, inhalte: j.inhalte ?? 0,
+      text: fehler.length ? 'Übersprungen: ' + fehler.join('; ') : (zahl > 0 ? '' : 'Claude hat nichts Verwertbares geliefert.') });
+    log.info('marketing', `Auftrag #${a.id} fertig: ${j.profile ?? 0} Profile, ${j.inhalte ?? 0} Inhalte auf Deutsch`);
+  } catch (x) {
+    const grund = (x as Error).message;
+    log.fehler('marketing', `Auftrag #${a.id}: ${grund}`);
+    await api('marketing_auftrag_melden', { id: a.id, ok: false, text: grund.slice(0, 900) }).catch(() => {});
+  }
 }
 
 /** Wo Claude Code liegt: CLAUDE_CLI, sonst der übliche Ort, sonst PATH. */
@@ -301,6 +376,7 @@ export async function marketingLauf(): Promise<boolean> {
   const r = await api('marketing_auftrag_holen');
   if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }
   if (r.auftrag?.art === 'medien') { await medienLauf(r.auftrag as MedienAuftrag); return true; }
+  if (r.auftrag?.art === 'uebersetzen') { await uebersetzenLauf(r.auftrag as UebersetzenAuftrag); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude recherchiert`);

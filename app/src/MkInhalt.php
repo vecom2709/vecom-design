@@ -219,7 +219,9 @@ final class MkInhalt
         foreach (is_array($d['fund_ids'] ?? null) ? $d['fund_ids'] : [] as $fi) { if ((int) $fi > 0) { $funde[] = (int) $fi; } }
         return ['format' => $format, 'art' => $art, 'plattform' => $plattform, 'sprache' => $sprache, 'titel' => $titel, 'felder' => $felder,
                 'bildidee' => self::text($d['bildidee'] ?? '', 1200), 'bild_prompt' => self::text($d['bild_prompt'] ?? '', 2000), 'begruendung' => self::text($d['begruendung'] ?? '', 800),
-                'fund_ids' => implode(',', array_slice(array_unique($funde), 0, 20))];
+                'fund_ids' => implode(',', array_slice(array_unique($funde), 0, 20)),
+                /* Marketing-Studio 5: die deutsche Fassung eines italienischen Stücks, nur zum Lesen für Uwe. */
+                'uebersetzung' => $sprache !== 'de' ? (self::text($d['uebersetzung'] ?? '', 6000) ?: null) : null];
     }
 
     /* ------------------------------------------------------------------ */
@@ -266,6 +268,7 @@ final class MkInhalt
         if (isset(self::ARTEN[(string) ($filter['art'] ?? '')])) { $w[] = 'art = ?'; $a[] = (string) $filter['art']; }
         if (isset(MkKampagne::PLATTFORMEN[(string) ($filter['plattform'] ?? '')])) { $w[] = 'plattform = ?'; $a[] = (string) $filter['plattform']; }
         if ((int) ($filter['zielgruppe'] ?? 0) > 0) { $w[] = 'zielgruppe_id = ?'; $a[] = (int) $filter['zielgruppe']; }
+        if (in_array((string) ($filter['land'] ?? ''), ['IT', 'DE'], true)) { $w[] = 'land = ?'; $a[] = (string) $filter['land']; }
         $zeilen = Db::all('SELECT * FROM mk_inhalte WHERE ' . implode(' AND ', $w)
             . " ORDER BY FIELD(status, 'entwurf', 'freigegeben', 'veroeffentlicht', 'verworfen'), id DESC LIMIT " . max(1, min(500, $max)), $a);
         foreach ($zeilen as $i => $z) { $zeilen[$i]['f'] = json_decode((string) $z['felder'], true) ?: []; }
@@ -273,10 +276,11 @@ final class MkInhalt
     }
 
     /** Zählung je Status (für Reiter und Kopf). */
-    public static function zaehlen(): array
+    public static function zaehlen(?string $land = null): array
     {
         $aus = array_fill_keys(array_keys(self::STATUS), 0);
-        foreach (Db::all('SELECT status, COUNT(*) AS n FROM mk_inhalte GROUP BY status') as $r) { $aus[(string) $r['status']] = (int) $r['n']; }
+        $nurLand = in_array($land, ['IT', 'DE'], true);
+        foreach (Db::all('SELECT status, COUNT(*) AS n FROM mk_inhalte' . ($nurLand ? ' WHERE land = ?' : '') . ' GROUP BY status', $nurLand ? [$land] : []) as $r) { $aus[(string) $r['status']] = (int) $r['n']; }
         return $aus;
     }
 

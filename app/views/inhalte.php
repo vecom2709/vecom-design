@@ -3,8 +3,14 @@
  * Marketing · Inhalte (Content-Studio, Marketing-Studio Schritt 2 — 01.10.2026).
  * Erwartet: $f (Filter), $liste (MkInhalt::liste), $zahl (je Status), $zielgruppen (freigegebene),
  *           $alleZg, $kampagnen, $auftraege (MkAuftrag::liste(…, 'inhalte')), $pc (AkquiseSteuerung::stand).
+ * Marketing-Studio 5: $land, $offen (MkLand::offen), $ohneDeutsch — je Land getrennt, Italienisches mit
+ * deutscher Fassung zum Lesen.
  */
 require_once dirname(__DIR__) . '/src/MkAuftrag.php';
+require_once dirname(__DIR__) . '/src/MkLand.php';
+$land = $land ?? 'IT';
+$offen = $offen ?? MkLand::offen();
+$ohneDeutsch = (int) ($ohneDeutsch ?? 0);
 $branchen = MkKampagne::branchen();
 $auftraege = $auftraege ?? [];
 $pc = $pc ?? ['pc_wach' => false, 'pc_alter' => null];
@@ -19,6 +25,10 @@ $kurz = static function (array $x): string {
     return mb_strlen($t) > 170 ? mb_substr($t, 0, 168) . '…' : $t;
 };
 $filterLink = static fn(array $mehr) => url('inhalte') . '?' . http_build_query(array_filter($mehr + $f));
+$deKurz = static function (array $x): string {
+    $t = trim(preg_replace('/\s+/u', ' ', (string) ($x['uebersetzung'] ?? '')) ?? '');
+    return mb_strlen($t) > 140 ? mb_substr($t, 0, 138) . '…' : $t;
+};
 require __DIR__ . '/mk_stil.php';
 ?>
 <div class="mk-kopf">
@@ -28,13 +38,15 @@ require __DIR__ . '/mk_stil.php';
   </div>
 </div>
 
+<?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; require __DIR__ . '/mk_land.php'; ?>
+
 <section class="block mk-auftrag" id="auftraege" aria-labelledby="mk-schreib-titel">
   <div class="mk-auftrag__kopf">
     <h2 id="mk-schreib-titel">Claude Inhalte schreiben lassen</h2>
     <span class="mk-ampel <?= $pc['pc_wach'] ? 'gruen' : '' ?>"><i></i><?= $pc['pc_wach'] ? 'Dein PC ist an — holt Aufträge alle 5 Minuten ab' : ($pc['pc_alter'] === null ? 'Dein PC hat sich noch nie gemeldet' : 'Dein PC ist aus oder schläft — der Auftrag wartet, bis er wieder an ist') ?></span>
   </div>
   <?php if (!$zielgruppen): ?>
-    <p style="margin:0;max-width:75ch;line-height:1.6">Noch keine freigegebene Zielgruppe. Claude schreibt nur für Zielgruppen, die du geprüft hast: unter <a href="<?= Fmt::h(url('zielgruppen')) ?>">Zielgruppen</a> eine öffnen und „Zielgruppe freigeben“ drücken.</p>
+    <p style="margin:0;max-width:75ch;line-height:1.6">Noch keine freigegebene Zielgruppe in <?= Fmt::h(MkLand::name($land)) ?>. Claude schreibt nur für Zielgruppen, die du geprüft hast: unter <a href="<?= Fmt::h(url('zielgruppen') . '?land=' . $land) ?>">Zielgruppen &amp; Recherche</a> eine recherchieren lassen, öffnen und „Zielgruppe freigeben“ drücken.</p>
   <?php else: ?>
   <form class="mk-formular mk-schreiben" method="post" action="<?= Fmt::h(url('inhalte')) ?>">
     <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="inhalte_erstellen">
@@ -55,6 +67,12 @@ require __DIR__ . '/mk_stil.php';
   </form>
   <p class="mk-fein" style="margin:8px 0 0;max-width:90ch;line-height:1.55">Claude nutzt das freigegebene Profil, deine Recherche-Funde (gemerkte zuerst) und die Grenzen jeder Plattform. Dauer etwa 5–15 Minuten, über dein Claude-Abo. Alles kommt als Entwurf; erst bei der Freigabe entsteht der eigene Link. Höchstens <?= MkAuftrag::PRO_TAG ?> Schreibaufträge am Tag.</p>
   <?php endif; ?>
+  <?php if ($ohneDeutsch > 0): ?>
+    <div class="mk-hinweis-zeile" style="margin-top:12px;padding-top:12px;border-top:1px solid var(--linie)">
+      <span style="font-size:14px"><?= $ohneDeutsch ?> italienische <?= $ohneDeutsch === 1 ? 'Inhalt hat' : 'Inhalte haben' ?> noch keine deutsche Fassung zum Lesen (aus der Zeit vor dem Umbau). Neue bringen sie gleich mit.</span>
+      <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="uebersetzen_starten"><input type="hidden" name="zurueck" value="inhalte"><button class="knopf klein">Übersetzen lassen</button></form>
+    </div>
+  <?php endif; ?>
   <?php $mkSeite = 'inhalte'; require __DIR__ . '/mk_auftraege.php'; ?>
 </section>
 
@@ -71,7 +89,7 @@ require __DIR__ . '/mk_stil.php';
 </form>
 
 <?php if (!$liste): ?>
-  <div class="block"><p style="margin:0;max-width:64ch;line-height:1.6">Noch keine Inhalte<?= array_filter($f) ? ' für diesen Filter' : '' ?>. Oben eine freigegebene Zielgruppe wählen und „Inhalte schreiben lassen“ drücken.</p></div>
+  <div class="block"><p style="margin:0;max-width:64ch;line-height:1.6">Noch keine Inhalte in <?= Fmt::h(MkLand::name($land)) ?><?= array_filter(array_diff_key($f, ['land' => 1])) ? ' für diesen Filter' : '' ?>. Oben eine freigegebene Zielgruppe wählen und „Inhalte schreiben lassen“ drücken.</p></div>
 <?php else: ?>
   <div class="mk-inhalte">
     <?php foreach ($liste as $x): ?>
@@ -83,6 +101,7 @@ require __DIR__ . '/mk_stil.php';
         </span>
         <b class="mk-inhalt-karte__titel"><?= Fmt::h($x['titel']) ?></b>
         <span class="mk-inhalt-karte__text"><?= Fmt::h($kurz($x)) ?></span>
+        <?php if ($x['sprache'] !== 'de' && $deKurz($x) !== ''): ?><span class="mk-de"><?= Fmt::h($deKurz($x)) ?></span><?php endif; ?>
         <span class="mk-inhalt-karte__fuss">
           <span class="marke2 <?= ['entwurf' => 'warnung', 'freigegeben' => 'gut', 'veroeffentlicht' => 'gut', 'verworfen' => ''][$x['status']] ?? '' ?>"><?= Fmt::h(MkInhalt::STATUS[$x['status']] ?? $x['status']) ?></span>
           <span class="mk-fein"><?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?><?= $x['creative_id'] ? ' · eigener Link' : '' ?><?= !empty($x['geplant_am']) && $x['status'] === 'freigegeben' ? ' · geplant ' . Fmt::h(date('d.m. H:i', strtotime((string) $x['geplant_am']))) : '' ?></span>

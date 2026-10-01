@@ -39,6 +39,9 @@ require __DIR__ . '/mk_stil.php';
   <a class="knopf haupt" href="#neu">Neue Kampagne</a>
 </div>
 
+<?php require_once dirname(__DIR__) . '/src/MkLand.php';
+  $mkLand = (string) ($f['land'] ?? 'IT'); $mkLandSeite = 'kampagnen'; $mkLandOffen = $offen ?? MkLand::offen(); require __DIR__ . '/mk_land.php'; ?>
+
 <?php if (!$leer): ?>
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('kampagnen')) ?>">
   <nav class="mk-chips" aria-label="Zeitraum">
@@ -125,7 +128,7 @@ require __DIR__ . '/mk_stil.php';
     <div class="feld"><label for="kn_name">Name</label><input id="kn_name" name="name" required maxlength="120" placeholder="z. B. Restaurants Herbst"></div>
     <div class="feld"><label for="kn_pl">Plattform</label><select id="kn_pl" name="plattform" required>
       <?php foreach (MkKampagne::PLATTFORMEN as $pk => $pw): ?><option value="<?= $pk ?>"><?= Fmt::h($pw) ?></option><?php endforeach; ?></select></div>
-    <div class="feld"><label for="kn_ziel">Zielseite</label><input id="kn_ziel" name="ziel" list="kn_ziele" value="/" maxlength="180" required pattern="/[A-Za-z0-9/_.\-]*">
+    <div class="feld"><label for="kn_ziel">Zielseite</label><input id="kn_ziel" name="ziel" list="kn_ziele" value="<?= ($f['land'] ?? 'IT') === 'DE' ? '/de/' : '/' ?>" maxlength="180" required pattern="/[A-Za-z0-9/_.\-]*" aria-describedby="kn_ziel_land"><span id="kn_ziel_land" class="mk-fein">Das Land ergibt sich aus der Seite: /de/… = Deutschland, sonst Italien.</span>
       <datalist id="kn_ziele"><?php foreach (MkKampagne::ZIELE as $zp => $zw): ?><option value="<?= Fmt::h($zp) ?>"><?= Fmt::h($zw) ?></option><?php endforeach; ?></datalist></div>
     <div class="feld"><label for="kn_code">Kurz-Code <span class="mk-fein">(frei lassen = aus dem Namen)</span></label><input id="kn_code" name="code" maxlength="24" pattern="[a-z0-9][a-z0-9\-]{2,23}" placeholder="restaurants-herbst"></div>
     <?php $kf = null; $kfId = 'kn'; require __DIR__ . '/mk_kampagne_felder.php'; ?>

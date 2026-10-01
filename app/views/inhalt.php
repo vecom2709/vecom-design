@@ -30,16 +30,17 @@ $medienBild = static fn(?array $m, string $ersatz): string => $m
                              : '<img class="mk-medium" src="' . Fmt::h(url('medien/' . (int) $m['id'])) . '" alt="' . Fmt::h('Bild zu „' . $x['titel'] . '“') . '" loading="lazy">')
     : '<div class="mk-vorschau__bild">' . Fmt::h($ersatz) . '</div>';
 $autoName = (MkKampagne::branchen()[$x['branche']] ?? $x['branche']) . ' ' . $x['land'] . ' · ' . trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '');
+require_once dirname(__DIR__) . '/src/MkLand.php';
 require __DIR__ . '/mk_stil.php';
 ?>
 <div class="mk-kopf">
   <div>
     <h1><?= Fmt::h($x['titel']) ?>
       <span class="marke2 <?= ['entwurf' => 'warnung', 'freigegeben' => 'gut', 'veroeffentlicht' => 'gut'][$x['status']] ?? '' ?>" style="vertical-align:4px"><?= Fmt::h(MkInhalt::STATUS[$x['status']] ?? $x['status']) ?></span></h1>
-    <div class="weg"><?= Fmt::h((MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']) . ' · ' . (MkInhalt::ARTEN[$x['art']] ?? $x['art']) . ' · ' . (MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) . ' · ' . (MkInhalt::SPRACHEN[$x['sprache']] ?? $x['sprache'])) ?>
+    <div class="weg"><?= MkLand::marke((string) $x['land']) ?> · <?= Fmt::h((MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform']) . ' · ' . (MkInhalt::ARTEN[$x['art']] ?? $x['art']) . ' · ' . (MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) . ' · ' . (MkInhalt::SPRACHEN[$x['sprache']] ?? $x['sprache'])) ?>
       <?php if ($zg): ?> · für <a href="<?= Fmt::h(url('zielgruppen/' . (int) $zg['id'])) ?>"><?= Fmt::h($zg['titel']) ?></a><?php endif; ?> · von Claude geschrieben am <?= Fmt::h(date('d.m.Y', strtotime((string) $x['created_at']))) ?></div>
   </div>
-  <a class="knopf" href="<?= Fmt::h(url('inhalte')) ?>">‹ Alle Inhalte</a>
+  <a class="knopf" href="<?= Fmt::h(url('inhalte') . '?land=' . $x['land']) ?>">‹ Alle Inhalte in <?= Fmt::h(MkLand::name((string) $x['land'])) ?></a>
 </div>
 
 <?php if ($x['status'] === 'entwurf'): ?>
@@ -153,6 +154,14 @@ require __DIR__ . '/mk_stil.php';
         </tbody></table></div>
       <?php endif; ?>
     <?php endif; ?>
+    <?php if ($x['sprache'] !== 'de'): ?>
+      <?php if (!empty($x['uebersetzung'])): ?>
+        <div class="mk-uebersetzung"><h3>Auf Deutsch — nur zum Lesen, gepostet wird das Original</h3><?= Fmt::h((string) $x['uebersetzung']) ?></div>
+      <?php else: ?>
+        <div class="mk-uebersetzung mk-hinweis-zeile" style="white-space:normal"><span>Die deutsche Fassung fehlt bei diesem Stück noch.</span>
+          <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="uebersetzen_starten"><input type="hidden" name="zurueck" value="inhalte"><button class="knopf klein">Übersetzen lassen</button></form></div>
+      <?php endif; ?>
+    <?php endif; ?>
   </div>
 
   <div class="block">
@@ -161,7 +170,7 @@ require __DIR__ . '/mk_stil.php';
     <?php if ($x['bildidee']): ?><h3 style="margin:0 0 4px;font-size:14px">Bild- bzw. Videoidee</h3><p style="margin:0 0 12px;line-height:1.6"><?= Fmt::h((string) $x['bildidee']) ?></p><?php endif; ?>
     <?php if ($funde): ?><h3 style="margin:0 0 4px;font-size:14px">Benutzte Recherche</h3>
       <ul class="mk-liste"><?php foreach ($funde as $fu): ?><li><?= Fmt::h(MkZielgruppe::ARTEN[$fu['art']] ?? $fu['art']) ?>: <?= Fmt::h($fu['titel']) ?></li><?php endforeach; ?></ul>
-      <p class="mk-fein" style="margin:6px 0 0">Quellen dazu unter <a href="<?= Fmt::h(url('recherche')) ?>">Recherche</a>.</p><?php endif; ?>
+      <p class="mk-fein" style="margin:6px 0 0">Quellen dazu bei der <a href="<?= Fmt::h(url($zg ? 'zielgruppen/' . (int) $zg['id'] : 'zielgruppen')) ?>#funde">Zielgruppe</a>.</p><?php endif; ?>
   </div>
 </div>
 

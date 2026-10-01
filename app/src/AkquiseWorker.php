@@ -29,7 +29,9 @@ final class AkquiseWorker
                              /* Content-Studio (01.10.2026): geschriebene Inhalte als Entwürfe abliefern. */
                              'marketing_inhalte',
                              /* Bilder und Videos (01.10.2026): fertige Datei in Stücken hochladen. */
-                             'marketing_medium_teil'];
+                             'marketing_medium_teil',
+                             /* Deutsche Fassung (01.10.2026): Übersetzungen italienischer Zielgruppen und Inhalte -- nur zum Lesen. */
+                             'marketing_uebersetzung'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -98,6 +100,7 @@ final class AkquiseWorker
             'marketing_inhalte'        => (static function () use ($d): array { require_once __DIR__ . '/MkInhalt.php';
                 return MkInhalt::melden(is_array($d['inhalte'] ?? null) ? $d['inhalte'] : [], (int) ($d['auftrag_id'] ?? 0)); })(),
             'marketing_medium_teil'    => (static function () use ($d): array { require_once __DIR__ . '/MkMedium.php'; return MkMedium::teilMelden($d); })(),
+            'marketing_uebersetzung'   => (static function () use ($d): array { require_once __DIR__ . '/MkZielgruppe.php'; return MkZielgruppe::uebersetzungMelden($d); })(),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }

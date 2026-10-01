@@ -181,13 +181,15 @@ $reiter = [
     ['tracking', 'Partner-Tracking', 'tracking'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
   ],
-  /* Growth Engine: die Reiter der Tür „Marketing“ wachsen mit ihren Phasen. */
+  /* Growth Engine: die Reiter der Tür „Marketing“ wachsen mit ihren Phasen.
+     Marketing-Studio 5 (01.10.2026, Uwe: „Zielgruppe und Recherche sollen eins
+     werden“): eine Seite statt zwei, und die Reihenfolge ist der Weg —
+     recherchieren, schreiben lassen, als Kampagne messen. */
   'marketing' => [
     ['marketing', 'Überblick', 'marketing'],
-    ['kampagnen', 'Kampagnen', 'kampagnen'],
-    ['zielgruppen', 'Zielgruppen', 'zielgruppen'],
-    ['recherche', 'Recherche', 'recherche'],
+    ['zielgruppen', 'Zielgruppen & Recherche', 'zielgruppen'],
     ['inhalte', 'Inhalte', 'inhalte'],
+    ['kampagnen', 'Kampagnen', 'kampagnen'],
     ['telegram', 'Telegram', 'telegram'],
   ],
   'dashboard' => [

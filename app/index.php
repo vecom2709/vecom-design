@@ -529,17 +529,33 @@ if ($post) {
                 require_once __DIR__ . '/src/MkZielgruppe.php';
                 $mzId = (int) ($_POST['id'] ?? 0);
                 $f = $tat === 'zielgruppe_freigeben' ? MkZielgruppe::freigeben($mzId) : MkZielgruppe::verwerfen($mzId);
-                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($tat === 'zielgruppe_freigeben' ? 'Freigegeben — Content und Kampagnen dürfen sich jetzt darauf stützen.' : 'Verworfen.');
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($tat === 'zielgruppe_freigeben' ? 'Freigegeben — jetzt kann Claude Inhalte und Kampagnen dafür schreiben (Knopf oben).' : 'Verworfen.');
                 weiter($tat === 'zielgruppe_freigeben' || MkZielgruppe::laden($mzId) !== null ? 'zielgruppen/' . $mzId : 'zielgruppen');
 
             /* Recherche per Knopf (01.10.2026, Uwe: „soll automatisch starten, wenn … geklickt wird“) */
+            /* Marketing-Studio 5 (01.10.2026): Zielgruppen und Recherche sind eine Seite; „in beiden
+               Ländern“ legt je Land einen Auftrag an (Uwe: „Deutsch und Italienisch gleichermaßen“). */
             case 'recherche_starten':
                 require_once __DIR__ . '/src/MkAuftrag.php';
-                $maErg = MkAuftrag::anlegen((string) ($_POST['branche'] ?? ''), (string) ($_POST['land'] ?? 'IT'));
+                require_once __DIR__ . '/src/MkLand.php';
+                $maLand = strtoupper((string) ($_POST['land'] ?? 'IT'));
+                $maLand = isset(MkLand::NAMEN[$maLand]) ? $maLand : 'IT';
+                $maGut = []; $maFehl = [];
+                foreach (!empty($_POST['beide']) ? [$maLand, MkLand::andere($maLand)] : [$maLand] as $maL) {
+                    $maErg = MkAuftrag::anlegen((string) ($_POST['branche'] ?? ''), $maL);
+                    if (is_int($maErg)) { $maGut[] = MkLand::name($maL); } else { $maFehl[] = MkLand::name($maL) . ': ' . $maErg; }
+                }
+                if ($maGut) { $_SESSION['gut'] = 'Recherche angestoßen (' . implode(' und ', $maGut) . '). Dein PC holt sie in den nächsten fünf Minuten ab; Claude braucht dann etwa 10–20 Minuten je Land. Die Seite zeigt den Stand.'; }
+                if ($maFehl) { $_SESSION['fehler'] = implode(' · ', $maFehl); }
+                weiter('zielgruppen?land=' . $maLand . '#auftraege');
+
+            case 'uebersetzen_starten':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $maErg = MkAuftrag::anlegenUebersetzen();
                 $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
-                    ? 'Recherche angestoßen. Dein PC holt sie in den nächsten fünf Minuten ab; Claude braucht dann etwa 10–20 Minuten. Die Seite zeigt den Stand.'
+                    ? 'Übersetzung angestoßen. Dein PC holt sie in den nächsten fünf Minuten ab; Claude braucht dann wenige Minuten.'
                     : $maErg;
-                weiter('recherche#auftraege');
+                weiter((($_POST['zurueck'] ?? '') === 'inhalte' ? 'inhalte' : 'zielgruppen') . '?land=IT#auftraege');
 
             /* Content-Studio (Marketing-Studio Schritt 2, 01.10.2026) */
             case 'inhalte_erstellen':
@@ -619,13 +635,15 @@ if ($post) {
                 require_once __DIR__ . '/src/MkAuftrag.php';
                 $f = MkAuftrag::abbrechen((int) ($_POST['id'] ?? 0));
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
-                weiter('recherche#auftraege');
+                weiter('zielgruppen#auftraege');
 
             case 'recherche_status':
                 require_once __DIR__ . '/src/MkZielgruppe.php';
                 $f = MkZielgruppe::rechercheStatus((int) ($_POST['id'] ?? 0), (string) ($_POST['status'] ?? ''));
                 if ($f !== null) { $_SESSION['fehler'] = $f; }
-                weiter('recherche' . (isset($_POST['zurueck']) && preg_match('/^[a-z=&_0-9-]*$/', (string) $_POST['zurueck']) ? '?' . $_POST['zurueck'] : ''));
+                /* Zurück dorthin, wo der Knopf stand: die Liste (mit Filter) oder eine Zielgruppe. */
+                $mrZ = (string) ($_POST['zurueck'] ?? '');
+                weiter(preg_match('~^zielgruppen/\d+$~', $mrZ) ? $mrZ . '#funde' : 'zielgruppen' . (preg_match('/^[A-Za-z=&_0-9-]*$/', $mrZ) && $mrZ !== '' ? '?' . $mrZ : '') . '#funde');
 
             /* Kampagnen (Growth Engine Phase 3, 30.09.2026, Uwe: „ja“) */
             case 'kampagne_anlegen':
@@ -4514,30 +4532,41 @@ switch ($route) {
             ]);
             break;
         }
-        $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? '')];
-        ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF)]);
+        require_once __DIR__ . '/src/MkLand.php';
+        $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'land' => MkLand::wahl()];
+        ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF), 'offen' => MkLand::offen()]);
         break;
 
-    case 'zielgruppen':   // Marketing-Studio Schritt 1 (01.10.2026)
+    case 'zielgruppen':   // Marketing-Studio 1 und 5: Zielgruppen und Recherche auf einer Seite, je Land getrennt
         require_once __DIR__ . '/src/MkZielgruppe.php';
+        require_once __DIR__ . '/src/MkLand.php';
+        require_once __DIR__ . '/src/MkAuftrag.php';
+        require_once __DIR__ . '/src/AkquiseSteuerung.php';
         if ($id !== null) {
             $mz = MkZielgruppe::laden($id);
             if ($mz === null) { http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break; }
+            $_SESSION['mk_land'] = (string) $mz['land'];   // im Land der Zielgruppe bleiben, wenn man weiterklickt
             ansicht('zielgruppe', ['z' => $mz, 'daten' => MkZielgruppe::datengrundlage((string) $mz['branche'], (string) $mz['land']),
-                'funde' => MkZielgruppe::recherche(['branche' => (string) $mz['branche']], 12)]);
+                'funde' => MkZielgruppe::recherche(['branche' => (string) $mz['branche'], 'land' => (string) $mz['land']], 20),
+                'kampagnen' => sicher(static fn() => Db::all("SELECT id, name, code, status, plattform FROM mk_kampagnen WHERE zielgruppe_id = ? OR (branche = ? AND land = ?)
+                                                               ORDER BY FIELD(status, 'aktiv', 'pausiert', 'beendet'), id DESC LIMIT 12", [$id, (string) $mz['branche'], (string) $mz['land']]), []),
+                'inhalteZahl' => (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE zielgruppe_id = ? AND status <> 'verworfen'", [$id], 0), 0),
+                'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
             break;
         }
-        ansicht('zielgruppen', ['liste' => MkZielgruppe::alle(), 'fehlend' => MkZielgruppe::fehlend()]);
-        break;
-
-    case 'recherche':
-        require_once __DIR__ . '/src/MkZielgruppe.php';
+        $mzLand = MkLand::wahl();
         $mrF = ['art' => (string) ($_GET['art'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')];
-        require_once __DIR__ . '/src/MkAuftrag.php';
-        require_once __DIR__ . '/src/AkquiseSteuerung.php';
-        ansicht('recherche', ['f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF), 'auftraege' => sicher(static fn() => MkAuftrag::liste(6), []),
+        ansicht('zielgruppen', ['land' => $mzLand, 'liste' => MkZielgruppe::alle($mzLand), 'fehlend' => MkZielgruppe::fehlend(8, $mzLand),
+            'f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF + ['land' => $mzLand], 60), 'offen' => MkLand::offen(),
+            'auftraege' => sicher(static fn() => MkAuftrag::liste(6, ['recherche', 'uebersetzen'], $mzLand), []),
+            'ohneDeutsch' => $mzLand === 'IT' ? (int) sicher(static fn() => MkZielgruppe::zahlOhneUebersetzung(), 0) : 0,
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
+
+    case 'recherche':   // seit Marketing-Studio 5 Teil von „Zielgruppen & Recherche“ — alte Links und Meldungen führen dorthin
+        $mrQ = array_filter(['art' => (string) ($_GET['art'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')],
+            static fn($v) => preg_match('/^[a-z_]{1,30}$/', $v) === 1);
+        weiter('zielgruppen' . ($mrQ ? '?' . http_build_query($mrQ) : '') . '#funde');
 
     case 'medien':    // Bilder und Videos (Schritt 3): nur angemeldet, nur über PHP
         require_once __DIR__ . '/src/MkMedium.php';
@@ -4565,12 +4594,19 @@ switch ($route) {
                 'funde' => $mi['fund_ids'] ? Db::all('SELECT id, art, titel FROM mk_recherche WHERE id IN (' . implode(',', array_map('intval', explode(',', (string) $mi['fund_ids']))) . ')') : []]);
             break;
         }
-        $miF = ['status' => (string) ($_GET['status'] ?? ''), 'art' => (string) ($_GET['art'] ?? ''), 'plattform' => (string) ($_GET['plattform'] ?? ''), 'zielgruppe' => (int) ($_GET['zielgruppe'] ?? 0)];
-        ansicht('inhalte', ['f' => $miF, 'liste' => MkInhalt::liste($miF), 'zahl' => MkInhalt::zaehlen(),
-            'zielgruppen' => Db::all("SELECT id, branche, land, titel, status FROM mk_zielgruppen WHERE status = 'freigegeben' OR vorher IS NOT NULL ORDER BY land, titel"),
-            'alleZg' => Db::all('SELECT id, titel FROM mk_zielgruppen ORDER BY titel'),
-            'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' ORDER BY id DESC LIMIT 60"),
-            'auftraege' => sicher(static fn() => MkAuftrag::liste(6, 'inhalte'), []),
+        require_once __DIR__ . '/src/MkLand.php';
+        $miLand = MkLand::wahl();
+        $miZgWahl = (int) ($_GET['zielgruppe'] ?? 0);
+        if ($miZgWahl > 0 && ($miZgLand = Db::wert('SELECT land FROM mk_zielgruppen WHERE id = ?', [$miZgWahl], null)) !== null && $miZgLand !== $miLand && !isset($_GET['land'])) {
+            $miLand = (string) $miZgLand; $_SESSION['mk_land'] = $miLand;   // Link von einer Zielgruppe: in deren Land wechseln
+        }
+        $miF = ['status' => (string) ($_GET['status'] ?? ''), 'art' => (string) ($_GET['art'] ?? ''), 'plattform' => (string) ($_GET['plattform'] ?? ''), 'zielgruppe' => $miZgWahl, 'land' => $miLand];
+        ansicht('inhalte', ['f' => $miF, 'land' => $miLand, 'liste' => MkInhalt::liste($miF), 'zahl' => MkInhalt::zaehlen($miLand), 'offen' => MkLand::offen(),
+            'zielgruppen' => Db::all("SELECT id, branche, land, titel, status FROM mk_zielgruppen WHERE (status = 'freigegeben' OR vorher IS NOT NULL) AND land = ? ORDER BY titel", [$miLand]),
+            'alleZg' => Db::all('SELECT id, titel FROM mk_zielgruppen WHERE land = ? ORDER BY titel', [$miLand]),
+            'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' AND land IN (?, '') ORDER BY id DESC LIMIT 60", [$miLand]),
+            'auftraege' => sicher(static fn() => MkAuftrag::liste(6, 'inhalte', $miLand), []),
+            'ohneDeutsch' => $miLand === 'IT' ? (int) sicher(static fn() => count(MkZielgruppe::ohneUebersetzung(100)['inhalte']), 0) : 0,
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
 

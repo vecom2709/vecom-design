@@ -44,6 +44,21 @@ final class MkZielgruppe
     /** Felder für bezahlte Werbung. */
     public const BEZAHLT = ['zielgruppe' => 'Zielgruppe für Anzeigen (Meta)', 'keywords' => 'Suchwörter für Google-Anzeigen', 'budget' => 'Budget-Einschätzung', 'hinweise' => 'Worauf achten'];
 
+    /* Marketing-Studio 5 (01.10.2026, Uwe: „für die Verwaltung auf Deutsch
+       anzeigen, dass wir es lesen können“): Was Kunden in Italien lesen oder
+       tippen, steht im Profil auf Italienisch — darunter die deutsche
+       Fassung. Diese Listen bekommen sie (gleiche Reihenfolge, gleiche Länge). */
+    public const UEBERSETZT = ['einwaende', 'fragen', 'suchbegriffe', 'botschaften', 'keywords'];
+
+    /* Gleich stark recherchieren (Uwe: „hauptsächlich Deutsch und Italienisch
+       gleichermaßen“): Die Branchen mit eigener Seite gehören in beiden
+       Ländern auf die Liste — auch wenn die Akquise dort noch keinen Betrieb
+       kennt. Sonst bekäme Deutschland nie eine Zielgruppe. */
+    public const KERN = [
+        'IT' => ['restaurant', 'ferienwohnung', 'friseur', 'handwerk', 'hotel', 'agriturismo', 'bar_cafe', 'beauty'],
+        'DE' => ['restaurant', 'friseur', 'handwerk', 'werkstatt', 'ferienwohnung', 'beauty', 'bar_cafe', 'hotel'],
+    ];
+
     /* ------------------------------------------------------------------ */
     /* Datengrundlage (echte eigene Zahlen)                                */
     /* ------------------------------------------------------------------ */
@@ -68,8 +83,8 @@ final class MkZielgruppe
             $befunde[] = ['code' => (string) $r['code'], 'titel' => self::allgemein((string) $r['titel']), 'n' => (int) $r['n'],
                           'anteil' => $geprueft > 0 ? round((int) $r['n'] / $geprueft * 100, 1) : 0.0];
         }
-        $kamp = (array) self::still(static function () use ($branche): array {
-            $l = MkKampagne::liste(date('Y-m-d', strtotime('-365 days')), date('Y-m-d'), ['branche' => $branche]);
+        $kamp = (array) self::still(static function () use ($branche, $land): array {
+            $l = MkKampagne::liste(date('Y-m-d', strtotime('-365 days')), date('Y-m-d'), ['branche' => $branche, 'land' => $land]);
             return ['anzahl' => count($l['kampagnen']), 'klicks' => $l['summe']['klicks'], 'leads' => $l['summe']['leads'], 'kunden' => $l['summe']['kunden'], 'umsatz' => $l['summe']['umsatz']];
         }, ['anzahl' => 0, 'klicks' => 0, 'leads' => 0, 'kunden' => 0, 'umsatz' => 0]);
         return ['firmen' => $firmen, 'geprueft' => $geprueft, 'ohne_website' => $ohne, 'score' => $score !== null ? (int) $score : null, 'befunde' => $befunde, 'kampagnen' => $kamp];
@@ -153,7 +168,41 @@ final class MkZielgruppe
                          'budget' => self::text($b['budget'] ?? '', 400), 'hinweise' => self::text($b['hinweise'] ?? '', 800)];
         $p['quellen'] = self::quellen($d['quellen'] ?? []);
         if ($p['quellen'] === []) { return 'Mindestens eine Quelle (http/https) — Aussagen ohne Beleg gehören nicht hinein.'; }
+        if ($land === 'IT') {
+            $de = self::deutsch(is_array($d['de'] ?? null) ? $d['de'] : []);
+            if ($de !== []) { $p['de'] = $de; }
+        }
         return $p;
+    }
+
+    /** Die deutsche Fassung der Kundensprache-Listen säubern (gleiche Grenzen wie das Original). */
+    public static function deutsch(array $roh): array
+    {
+        $aus = [];
+        foreach (self::UEBERSETZT as $k) {
+            $max = $k === 'keywords' ? 25 : (self::LISTEN[$k][1] ?? 12);
+            $l = [];
+            foreach (is_array($roh[$k] ?? null) ? $roh[$k] : [] as $v) {
+                $l[] = is_string($v) || is_numeric($v) ? mb_substr(trim(preg_replace('/\s+/u', ' ', strip_tags((string) $v)) ?? ''), 0, 300) : '';
+                if (count($l) >= $max) { break; }
+            }
+            if (array_filter($l, static fn($x) => $x !== '') !== []) { $aus[$k] = $l; }
+        }
+        return $aus;
+    }
+
+    /** Die Originalliste eines übersetzten Schlüssels (keywords stehen unter „bezahlt“). */
+    public static function original(array $p, string $k): array
+    {
+        return $k === 'keywords' ? (array) ($p['bezahlt']['keywords'] ?? []) : (array) ($p[$k] ?? []);
+    }
+
+    /** Fehlt einem italienischen Profil die deutsche Fassung? */
+    public static function ohneDeutsch(array $p): bool
+    {
+        if (($p['land'] ?? 'IT') !== 'IT') { return false; }
+        foreach (self::UEBERSETZT as $k) { if (self::original($p, $k) !== [] && empty($p['de'][$k])) { return true; } }
+        return false;
     }
 
     /**
@@ -188,8 +237,13 @@ final class MkZielgruppe
         return $z;
     }
 
-    public static function alle(): array
+    /** Alle Profile — oder nur die eines Landes (Entwürfe zuerst, damit das Prüfen oben steht). */
+    public static function alle(?string $land = null): array
     {
+        if ($land !== null) {
+            return Db::all("SELECT id, branche, land, titel, status, freigegeben_am, updated_at, vorher IS NOT NULL AS ueberarbeitung, profil FROM mk_zielgruppen
+                             WHERE land = ? ORDER BY status = 'freigegeben', titel", [$land]);
+        }
         return Db::all('SELECT id, branche, land, titel, status, freigegeben_am, updated_at, vorher IS NOT NULL AS ueberarbeitung FROM mk_zielgruppen ORDER BY land, titel');
     }
 
@@ -226,18 +280,97 @@ final class MkZielgruppe
         return null;
     }
 
-    /** Branchen und Länder, für die es noch kein Profil gibt — nach Zahl geprüfter Betriebe. */
-    public static function fehlend(int $max = 12): array
+    /**
+     * Branchen und Länder, für die es noch kein Profil gibt: zuerst die
+     * Kernbranchen beider Länder (eigene Seite vorhanden), dann was die
+     * Akquise kennt — jeweils nach Zahl der Betriebe. Mit $land nur dieses Land.
+     */
+    public static function fehlend(int $max = 12, ?string $land = null): array
     {
         $da = [];
         foreach (Db::all('SELECT branche, land FROM mk_zielgruppen') as $r) { $da[$r['branche'] . '|' . $r['land']] = true; }
+        $firmen = [];
+        foreach ((array) self::still(static fn() => Db::all("SELECT branche, land, COUNT(*) AS n FROM akq_firmen WHERE branche IS NOT NULL AND branche <> '' GROUP BY branche, land"), []) as $r) {
+            $firmen[$r['branche'] . '|' . $r['land']] = (int) $r['n'];
+        }
+        $kandidaten = [];
+        foreach (self::KERN as $l => $liste) {
+            foreach ($liste as $rang => $b) { $kandidaten[$b . '|' . $l] = [0, $firmen[$b . '|' . $l] ?? 0, -$rang]; }
+        }
+        foreach ($firmen as $schl => $n) { $kandidaten[$schl] ??= [1, $n, 0]; }
+        uasort($kandidaten, static fn($x, $y) => [$x[0], -$x[1], -$x[2]] <=> [$y[0], -$y[1], -$y[2]]);
         $aus = [];
-        foreach ((array) self::still(static fn() => Db::all("SELECT branche, land, COUNT(*) AS n FROM akq_firmen WHERE branche IS NOT NULL AND branche <> '' GROUP BY branche, land ORDER BY n DESC"), []) as $r) {
-            if (isset($da[$r['branche'] . '|' . $r['land']]) || !isset(MkKampagne::branchen()[$r['branche']])) { continue; }
-            $aus[] = ['branche' => (string) $r['branche'], 'land' => (string) $r['land'], 'firmen' => (int) $r['n']];
+        foreach ($kandidaten as $schl => $k) {
+            [$b, $l] = explode('|', $schl, 2);
+            if (isset($da[$schl]) || !isset(MkKampagne::branchen()[$b]) || !isset(self::LAENDER[$l]) || ($land !== null && $l !== $land)) { continue; }
+            $aus[] = ['branche' => $b, 'land' => $l, 'firmen' => $k[1], 'kern' => $k[0] === 0];
             if (count($aus) >= $max) { break; }
         }
         return $aus;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /* Deutsche Fassung nachholen (Marketing-Studio 5)                     */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Was noch keine deutsche Fassung hat: italienische Profile (Kundensprache-
+     * Listen) und italienische Inhalte. Für den Übersetzungsauftrag an Claude.
+     * @return array{profile:list<array>, inhalte:list<array>}
+     */
+    public static function ohneUebersetzung(int $max = 40): array
+    {
+        $profile = [];
+        foreach ((array) self::still(static fn() => Db::all("SELECT id, profil FROM mk_zielgruppen WHERE land = 'IT' ORDER BY id"), []) as $r) {
+            $p = json_decode((string) $r['profil'], true) ?: [];
+            if (!self::ohneDeutsch($p + ['land' => 'IT'])) { continue; }
+            $listen = [];
+            foreach (self::UEBERSETZT as $k) { if (self::original($p, $k) !== []) { $listen[$k] = self::original($p, $k); } }
+            $profile[] = ['id' => (int) $r['id'], 'titel' => (string) ($p['titel'] ?? ''), 'listen' => $listen];
+            if (count($profile) >= 12) { break; }
+        }
+        $inhalte = [];
+        foreach ((array) self::still(static fn() => Db::all("SELECT id, format, titel, felder FROM mk_inhalte WHERE sprache <> 'de' AND uebersetzung IS NULL
+                                                              AND status IN ('entwurf','freigegeben','veroeffentlicht') ORDER BY id DESC LIMIT " . max(1, min(100, $max))), []) as $r) {
+            $inhalte[] = ['id' => (int) $r['id'], 'format' => (string) $r['format'], 'felder' => json_decode((string) $r['felder'], true) ?: []];
+        }
+        return ['profile' => $profile, 'inhalte' => $inhalte];
+    }
+
+    /** Wie viele Texte noch ohne deutsche Fassung sind (für den Hinweis in der Verwaltung). */
+    public static function zahlOhneUebersetzung(): int
+    {
+        $o = self::ohneUebersetzung(100);
+        return count($o['profile']) + count($o['inhalte']);
+    }
+
+    /**
+     * Deutsche Fassungen von Claude übernehmen: je Profil die Listen (nur wenn
+     * es noch italienisch ist), je Inhalt ein Lesetext. Ändert keinen
+     * Originaltext und keinen Status.
+     * @return array{ok:bool, profile:int, inhalte:int, fehler:list<string>}
+     */
+    public static function uebersetzungMelden(array $d): array
+    {
+        $np = 0; $ni = 0; $fehler = [];
+        foreach (array_slice(is_array($d['profile'] ?? null) ? $d['profile'] : [], 0, 20) as $i => $x) {
+            $id = (int) ($x['id'] ?? 0);
+            $z = $id > 0 ? Db::one("SELECT id, profil FROM mk_zielgruppen WHERE id = ? AND land = 'IT'", [$id]) : null;
+            if (!$z) { $fehler[] = "Profil #$i unbekannt"; continue; }
+            $de = self::deutsch(is_array($x['de'] ?? null) ? $x['de'] : []);
+            if ($de === []) { $fehler[] = "Profil #$id ohne Übersetzung"; continue; }
+            $p = json_decode((string) $z['profil'], true) ?: [];
+            $p['de'] = $de + (array) ($p['de'] ?? []);
+            Db::run('UPDATE mk_zielgruppen SET profil = ? WHERE id = ?', [json_encode($p, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $id]);
+            $np++;
+        }
+        foreach (array_slice(is_array($d['inhalte'] ?? null) ? $d['inhalte'] : [], 0, 100) as $i => $x) {
+            $id = (int) ($x['id'] ?? 0);
+            $t = self::text($x['uebersetzung'] ?? '', 6000);
+            if ($id <= 0 || $t === '') { $fehler[] = "Inhalt #$i ohne Übersetzung"; continue; }
+            $ni += Db::run("UPDATE mk_inhalte SET uebersetzung = ? WHERE id = ? AND sprache <> 'de'", [$t, $id])->rowCount();
+        }
+        return ['ok' => true, 'profile' => $np, 'inhalte' => $ni, 'fehler' => $fehler];
     }
 
     /* ------------------------------------------------------------------ */
@@ -281,6 +414,8 @@ final class MkZielgruppe
         if (isset(self::STATUS_RECHERCHE[$status])) { $w[] = 'status = ?'; $a[] = $status; } else { $w[] = "status <> 'verworfen'"; }
         if (isset(self::ARTEN[(string) ($f['art'] ?? '')])) { $w[] = 'art = ?'; $a[] = (string) $f['art']; }
         if (isset(MkKampagne::branchen()[(string) ($f['branche'] ?? '')])) { $w[] = 'branche = ?'; $a[] = (string) $f['branche']; }
+        /* Ein Land zeigt seine Funde und die allgemeinen (ohne Land) — nie die des anderen. */
+        if (isset(self::LAENDER[(string) ($f['land'] ?? '')])) { $w[] = "(land = ? OR land = '')"; $a[] = (string) $f['land']; }
         $zeilen = Db::all('SELECT * FROM mk_recherche WHERE ' . implode(' AND ', $w) . ' ORDER BY (status = \'neu\') DESC, relevanz DESC, created_at DESC LIMIT ' . max(1, min(500, $max)), $a);
         foreach ($zeilen as $i => $z) { $zeilen[$i]['q'] = json_decode((string) $z['quellen'], true) ?: []; }
         return $zeilen;

@@ -1,40 +1,62 @@
 <?php
 /**
- * Marketing · eine Zielgruppe (Marketing-Studio Schritt 1 — 01.10.2026).
- * Erwartet: $z (MkZielgruppe::laden), $daten (Datengrundlage), $funde (Recherche dieser Branche).
+ * Marketing · eine Zielgruppe (Marketing-Studio 1 und 5 — 01.10.2026).
+ * Erwartet: $z (MkZielgruppe::laden), $daten (Datengrundlage), $funde (Recherche dieser Branche im Land),
+ *           $kampagnen (dieser Zielgruppe), $inhalteZahl, $pc.
+ * Italienische Kundensprache (Einwände, Fragen, Suchbegriffe, Botschaften,
+ * Keywords) steht mit deutscher Fassung darunter — Uwe: „für die Verwaltung
+ * auf Deutsch anzeigen, dass wir es lesen können“.
  */
+require_once dirname(__DIR__) . '/src/MkLand.php';
 $p = $z['p'];
 $branchen = MkKampagne::branchen();
+$kampagnen = $kampagnen ?? [];
+$inhalteZahl = (int) ($inhalteZahl ?? 0);
 $n = static fn(int $x): string => number_format($x, 0, ',', '.');
 $datum = static fn(?string $t): string => $t ? date('d.m.Y', strtotime($t)) : '—';
-$liste = static function (array $eintraege): void {
+$istIt = $z['land'] === 'IT';
+$de = $istIt ? (array) ($p['de'] ?? []) : [];
+$liste = static function (array $eintraege, array $deutsch = []): void {
     if (!$eintraege) { echo '<p class="leise" style="margin:0">—</p>'; return; }
     echo '<ul class="mk-liste">';
-    foreach ($eintraege as $e) { echo '<li>' . Fmt::h((string) $e) . '</li>'; }
+    foreach (array_values($eintraege) as $i => $e) {
+        $d = trim((string) ($deutsch[$i] ?? ''));
+        echo '<li>' . Fmt::h((string) $e) . ($d !== '' && $d !== (string) $e ? '<span class="mk-de">' . Fmt::h($d) . '</span>' : '') . '</li>';
+    }
     echo '</ul>';
 };
+$nutzbar = $z['status'] === 'freigegeben' || $z['v'] !== null;
+$ohneDe = $istIt && MkZielgruppe::ohneDeutsch($p + ['land' => 'IT']);
 require __DIR__ . '/mk_stil.php';
 ?>
 <div class="mk-kopf">
   <div>
     <h1><?= Fmt::h($p['titel'] ?? $z['titel']) ?>
       <?php if ($z['status'] === 'freigegeben'): ?><span class="marke2 gut" style="vertical-align:4px">freigegeben</span><?php else: ?><span class="marke2 warnung" style="vertical-align:4px"><?= $z['v'] ? 'Überarbeitung' : 'Entwurf' ?></span><?php endif; ?></h1>
-    <div class="weg"><?= Fmt::h(($branchen[$z['branche']] ?? $z['branche']) . ' · ' . (MkZielgruppe::LAENDER[$z['land']] ?? $z['land'])) ?> · Stand <?= Fmt::h($datum($z['updated_at'])) ?><?= $z['freigegeben_am'] ? ' · freigegeben am ' . Fmt::h($datum($z['freigegeben_am'])) : '' ?> · von Claude recherchiert</div>
+    <div class="weg"><?= MkLand::marke((string) $z['land']) ?> · <?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?> · Stand <?= Fmt::h($datum($z['updated_at'])) ?><?= $z['freigegeben_am'] ? ' · freigegeben am ' . Fmt::h($datum($z['freigegeben_am'])) : '' ?> · von Claude recherchiert</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <form method="post" action="<?= Fmt::h(url('recherche')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h((string) $z['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $z['land']) ?>"><button class="knopf" title="Claude überarbeitet dieses Profil mit frischer Recherche — als Entwurf, die freigegebene Fassung gilt bis dahin weiter">Neu recherchieren</button></form>
-    <a class="knopf" href="<?= Fmt::h(url('zielgruppen')) ?>">‹ Alle Zielgruppen</a>
+    <?php if ($nutzbar): ?><a class="knopf haupt" href="<?= Fmt::h(url('inhalte') . '?zielgruppe=' . (int) $z['id']) ?>#auftraege">Inhalte schreiben lassen</a><?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('zielgruppen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h((string) $z['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $z['land']) ?>"><button class="knopf" title="Claude überarbeitet dieses Profil mit frischer Recherche — als Entwurf, die freigegebene Fassung gilt bis dahin weiter">Neu recherchieren</button></form>
+    <a class="knopf" href="<?= Fmt::h(url('zielgruppen') . '?land=' . $z['land']) ?>">‹ Alle in <?= Fmt::h(MkLand::name((string) $z['land'])) ?></a>
   </div>
 </div>
 
 <?php if ($z['status'] !== 'freigegeben'): ?>
 <div class="block" style="border-color:var(--linie2)">
   <h2>Prüfen und freigeben</h2>
-  <p style="margin:0 0 12px;max-width:70ch;line-height:1.6"><?= $z['v'] ? 'Claude hat die freigegebene Fassung überarbeitet. Bis du freigibst, gilt die alte weiter.' : 'Ein Entwurf. Content und Kampagnen stützen sich erst darauf, wenn du ihn freigibst.' ?> Prüf vor allem, ob die Probleme zu dem passen, was du von Kunden hörst, und ob die Quellen tragen.</p>
+  <p style="margin:0 0 12px;max-width:70ch;line-height:1.6"><?= $z['v'] ? 'Claude hat die freigegebene Fassung überarbeitet. Bis du freigibst, gilt die alte weiter.' : 'Ein Entwurf. Inhalte und Kampagnen stützen sich erst darauf, wenn du ihn freigibst.' ?> Prüf vor allem, ob die Probleme zu dem passen, was du von Kunden hörst, und ob die Quellen tragen.</p>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <form method="post" action="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="zielgruppe_freigeben"><input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><button class="knopf haupt">Zielgruppe freigeben</button></form>
     <form method="post" action="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="zielgruppe_verwerfen"><input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><button class="knopf"><?= $z['v'] ? 'Überarbeitung verwerfen, alte Fassung behalten' : 'Entwurf verwerfen' ?></button></form>
   </div>
+</div>
+<?php endif; ?>
+
+<?php if ($ohneDe): ?>
+<div class="block mk-hinweis-zeile">
+  <span style="font-size:14px;max-width:70ch;line-height:1.5">Einwände, Fragen, Suchbegriffe und Botschaften stehen auf Italienisch, weil Kunden sie so lesen und tippen. Die deutsche Übersetzung darunter fehlt bei diesem Profil noch.</span>
+  <form method="post" action="<?= Fmt::h(url('zielgruppen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="uebersetzen_starten"><button class="knopf klein">Übersetzen lassen</button></form>
 </div>
 <?php endif; ?>
 
@@ -65,7 +87,7 @@ require __DIR__ . '/mk_stil.php';
 
 <div class="mk-zwei">
   <?php foreach (MkZielgruppe::LISTEN as $k => [$ueberschrift]): ?>
-    <div class="block"><h2><?= Fmt::h($ueberschrift) ?></h2><?php $liste((array) ($p[$k] ?? [])); ?></div>
+    <div class="block"><h2><?= Fmt::h($ueberschrift) ?><?= $istIt && in_array($k, MkZielgruppe::UEBERSETZT, true) ? ' <span class="mehr">italienisch · deutsch darunter</span>' : '' ?></h2><?php $liste((array) ($p[$k] ?? []), (array) ($de[$k] ?? [])); ?></div>
   <?php endforeach; ?>
 </div>
 
@@ -73,7 +95,8 @@ require __DIR__ . '/mk_stil.php';
   <h2>Bezahlte Werbung</h2>
   <?php $bz = (array) ($p['bezahlt'] ?? []); ?>
   <?php foreach (MkZielgruppe::BEZAHLT as $bk => $bw): if (empty($bz[$bk])) { continue; } ?>
-    <p style="margin:0 0 10px;max-width:80ch;line-height:1.6"><b><?= Fmt::h($bw) ?>:</b> <?= Fmt::h(is_array($bz[$bk]) ? implode(' · ', $bz[$bk]) : (string) $bz[$bk]) ?></p>
+    <p style="margin:0 0 10px;max-width:80ch;line-height:1.6"><b><?= Fmt::h($bw) ?>:</b> <?= Fmt::h(is_array($bz[$bk]) ? implode(' · ', $bz[$bk]) : (string) $bz[$bk]) ?>
+      <?php if ($bk === 'keywords' && !empty($de['keywords'])): ?><span class="mk-de"><?= Fmt::h(implode(' · ', array_filter(array_map('strval', (array) $de['keywords'])))) ?></span><?php endif; ?></p>
   <?php endforeach; ?>
 </div>
 
@@ -86,11 +109,22 @@ require __DIR__ . '/mk_stil.php';
   </ol>
 </div>
 
-<?php if ($funde): ?>
 <div class="block">
-  <h2>Recherche zu dieser Branche <a class="mehr" href="<?= Fmt::h(url('recherche') . '?branche=' . rawurlencode((string) $z['branche'])) ?>">alle →</a></h2>
-  <ul class="mk-liste">
-    <?php foreach ($funde as $fu): ?><li><b><?= Fmt::h(MkZielgruppe::ARTEN[$fu['art']] ?? $fu['art']) ?>:</b> <?= Fmt::h($fu['titel']) ?></li><?php endforeach; ?>
-  </ul>
+  <h2>Kampagnen dieser Zielgruppe <span class="mehr"><?= count($kampagnen) ?> · <?= $inhalteZahl ?> <?= $inhalteZahl === 1 ? 'Inhalt' : 'Inhalte' ?></span></h2>
+  <?php if ($kampagnen): ?>
+    <ul class="mk-liste">
+      <?php foreach ($kampagnen as $k): ?><li><a href="<?= Fmt::h(url('kampagnen/' . (int) $k['id'])) ?>"><?= Fmt::h((string) $k['name']) ?></a> <span class="mk-fein">· <?= Fmt::h(MkKampagne::STATUS[$k['status']] ?? $k['status']) ?> · /k/<?= Fmt::h((string) $k['code']) ?></span></li><?php endforeach; ?>
+    </ul>
+  <?php else: ?>
+    <p class="leise" style="margin:0;max-width:70ch;line-height:1.6">Noch keine. Sobald du einen Inhalt dieser Zielgruppe freigibst, entsteht die Kampagne dazu von selbst — mit eigenem Link, damit jeder Klick und jeder Lead hier ankommt.</p>
+  <?php endif; ?>
 </div>
-<?php endif; ?>
+
+<section id="funde" aria-labelledby="mk-zg-funde">
+  <h2 id="mk-zg-funde" style="font-size:17px;margin:6px 0 10px">Recherche zu dieser Zielgruppe <span class="mehr" style="font-weight:400;color:var(--leise);font-size:13px"><?= count($funde) ?> · Claude nutzt gemerkte Funde zuerst</span></h2>
+  <?php if ($funde): ?>
+    <?php $fundeZurueck = 'zielgruppen/' . (int) $z['id']; require __DIR__ . '/mk_funde.php'; ?>
+  <?php else: ?>
+    <div class="block"><p class="leise" style="margin:0">Noch keine Funde zu dieser Branche in <?= Fmt::h(MkLand::name((string) $z['land'])) ?>. „Neu recherchieren“ bringt welche mit.</p></div>
+  <?php endif; ?>
+</section>

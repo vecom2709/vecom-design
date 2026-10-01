@@ -16978,18 +16978,19 @@ pruefe('Brücke auf dem PC: Schlüssel aus tools/akquise/.env, nur im Kopf der A
 
 /* Verwaltung */
 $mzLay = (string) file_get_contents($wurzel . '/views/layout.php');
-pruefe('Verwaltung: Reiter Zielgruppen und Recherche unter Marketing, mit Hilfesatz', str_contains($mzLay, "['zielgruppen', 'Zielgruppen', 'zielgruppen']")
-    && str_contains($mzLay, "['recherche', 'Recherche', 'recherche']") && Hilfe::satz('zielgruppen') !== '' && Hilfe::satz('recherche') !== '');
+pruefe('Verwaltung: ein Reiter „Zielgruppen & Recherche“ unter Marketing (seit Marketing-Studio 5 eine Seite), mit Hilfesatz',
+    str_contains($mzLay, "['zielgruppen', 'Zielgruppen & Recherche', 'zielgruppen']") && !str_contains($mzLay, "['recherche', 'Recherche', 'recherche']")
+    && Hilfe::satz('zielgruppen') !== '');
 $mzIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Verwaltung: Freigeben, Verwerfen und Recherche-Status nur hinter Anmeldung und CSRF',
     strpos($mzIdx, "case 'zielgruppe_freigeben':") > strpos($mzIdx, 'Csrf::pruefen()') && strpos($mzIdx, "case 'recherche_status':") > strpos($mzIdx, 'Csrf::pruefen()'));
 $mzFehler = null; set_error_handler(static function (int $n, string $m) use (&$mzFehler): bool { $mzFehler = $m; return true; });
-$liste = MkZielgruppe::alle(); $fehlend = MkZielgruppe::fehlend();
+$land = 'IT'; $liste = MkZielgruppe::alle('IT'); $fehlend = MkZielgruppe::fehlend(12, 'IT'); $f = ['art' => '', 'branche' => '', 'status' => '']; $funde = MkZielgruppe::recherche($f + ['land' => 'IT']);
+$auftraege = []; $pc = ['pc_wach' => false, 'pc_alter' => null]; $offen = ['IT' => 0, 'DE' => 0]; $ohneDeutsch = 0;
 ob_start(); require $wurzel . '/views/zielgruppen.php'; $mzH1 = (string) ob_get_clean();
-$z = MkZielgruppe::laden((int) $mzT['id']); $daten = MkZielgruppe::datengrundlage('hotel', 'IT'); $funde = MkZielgruppe::recherche(['branche' => 'hotel'], 12);
+$mzH3 = $mzH1;
+$z = MkZielgruppe::laden((int) $mzT['id']); $daten = MkZielgruppe::datengrundlage('hotel', 'IT'); $funde = MkZielgruppe::recherche(['branche' => 'hotel'], 12); $kampagnen = []; $inhalteZahl = 0;
 ob_start(); require $wurzel . '/views/zielgruppe.php'; $mzH2 = (string) ob_get_clean();
-$f = ['art' => '', 'branche' => '', 'status' => '']; $funde = MkZielgruppe::recherche($f);
-ob_start(); require $wurzel . '/views/recherche.php'; $mzH3 = (string) ob_get_clean();
 restore_error_handler();
 pruefe('Verwaltung: Zielgruppen, Profil und Recherche rendern ohne Warnung — Quellen öffnen sicher in neuem Fenster',
     $mzFehler === null && str_contains($mzH1, 'Hotels in Sizilien') && str_contains($mzH2, 'Zielgruppe freigeben') && str_contains($mzH2, 'rel="noopener noreferrer nofollow"')
@@ -17027,7 +17028,7 @@ pruefe('Recherche-Auftrag: zurückgemeldet = fertig mit Zahlen, Text ohne HTML; 
     $maM['ok'] === true && $maZ['status'] === 'fertig' && (int) $maZ['zielgruppen'] === 1 && (int) $maZ['funde'] === 12 && $maZ['ergebnis'] === 'Neu: Airbnb-Gebühr'
     && $maZ['fertig_am'] !== null && AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $maId, 'ok' => true])['ok'] === false);
 pruefe('Recherche-Auftrag: Uwe bekommt eine Meldung „Recherche fertig“ mit Link',
-    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'recherche_fertig' AND title LIKE 'Recherche fertig:%' AND link = 'zielgruppen' OR type = 'recherche_fertig' AND link = 'recherche'", [], 0) >= 1);
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'recherche_fertig' AND title LIKE 'Recherche fertig:%' AND link = 'zielgruppen?land=IT'", [], 0) >= 1);
 $maAlle = MkAuftrag::anlegen('', 'IT');
 $maH2 = MkAuftrag::holen();
 pruefe('Recherche-Auftrag „alle Branchen“: Funde für alle, Zielgruppen nur für höchstens zwei noch fehlende',
@@ -17054,17 +17055,17 @@ pruefe('Verwaltung: Recherche starten und abbrechen nur hinter Anmeldung und CSR
     strpos($maIdx, "case 'recherche_starten':") > strpos($maIdx, 'Csrf::pruefen()') && strpos($maIdx, "case 'recherche_abbrechen':") > strpos($maIdx, 'Csrf::pruefen()'));
 $maFehler = null; set_error_handler(static function (int $n, string $m) use (&$maFehler): bool { $maFehler = $m; return true; });
 $f = ['art' => '', 'branche' => 'restaurant', 'status' => '']; $funde = []; $auftraege = MkAuftrag::liste(6); $pc = ['pc_wach' => true, 'pc_alter' => 2];
-ob_start(); require $wurzel . '/views/recherche.php'; $maH3 = (string) ob_get_clean();
-$liste = MkZielgruppe::alle(); $fehlend = [['branche' => 'friseur', 'land' => 'IT', 'firmen' => 12]];
-ob_start(); require $wurzel . '/views/zielgruppen.php'; $maH1 = (string) ob_get_clean();
+$land = 'IT'; $liste = MkZielgruppe::alle('IT'); $fehlend = [['branche' => 'friseur', 'land' => 'IT', 'firmen' => 12]]; $offen = ['IT' => 0, 'DE' => 0]; $ohneDeutsch = 0;
+ob_start(); require $wurzel . '/views/zielgruppen.php'; $maH3 = (string) ob_get_clean();
+$maH1 = $maH3;
 restore_error_handler();
 pruefe('Verwaltung: Knopf „Recherche starten“ mit Branche und Land, Stand der Aufträge, Filter heißt „Filtern“, kein „Sag im Chat“ mehr',
     $maFehler === null && str_contains($maH3, 'value="recherche_starten"') && str_contains($maH3, 'Recherche starten') && str_contains($maH3, '<option value="restaurant" selected>')
     && str_contains($maH3, 'Dein PC ist an') && str_contains($maH3, 'Alle Branchen · Italien') && str_contains($maH3, '>Filtern</button>')
-    && !str_contains($maH3, 'im Chat') && !str_contains($maH1, 'im Chat') && str_contains($maH1, '>Recherchieren</button>'), (string) $maFehler);
+    && !str_contains($maH3, 'im Chat') && str_contains($maH1, 'Friseur recherchieren</button>'), (string) $maFehler);
 Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$maId]);
 $auftraege = MkAuftrag::liste(6);
-ob_start(); require $wurzel . '/views/recherche.php'; $maH4 = (string) ob_get_clean();
+ob_start(); require $wurzel . '/views/zielgruppen.php'; $maH4 = (string) ob_get_clean();
 pruefe('Verwaltung: während Claude recherchiert, lädt die Seite alle 30 Sekunden neu (nicht beim Tippen)',
     str_contains($maH4, 'Claude recherchiert') && str_contains($maH4, 'location.reload()') && !str_contains($maH3, 'location.reload()'));
 $maTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
@@ -17143,7 +17144,7 @@ pruefe('Content: abgeliefert = Entwürfe mit Branche und Land der Zielgruppe; wa
 AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $ciA, 'ok' => true, 'inhalte' => 7, 'text' => 'Sieben Stück.']);
 pruefe('Content-Auftrag: zurückgemeldet mit Zahl der Entwürfe, Meldung „Inhalte fertig“ mit Link zu den Inhalten',
     (int) Db::wert('SELECT inhalte FROM mk_auftraege WHERE id = ?', [$ciA]) === 7
-    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'inhalte'", [], 0) >= 1);
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalte_fertig' AND link = 'inhalte?land=IT'", [], 0) >= 1);
 
 /* Bearbeiten, freigeben, eigener Link */
 $ciIdG = (int) Db::wert("SELECT id FROM mk_inhalte WHERE format = 'google_anzeige'");
@@ -17419,6 +17420,113 @@ pruefe('Verwaltung: „Jetzt veröffentlichen“, Planen und Paket am freigegebe
     && str_contains($mvH3, 'facebook.com/111_801'), (string) $mvFehler);
 foreach (Db::all('SELECT datei FROM mk_medien WHERE inhalt_id IN (?, ?)', [$mvIg, $mvRe]) as $mvR) { @unlink(MkMedium::ordner() . '/' . $mvR['datei']); @unlink(MkMedium::ordner() . '/' . basename((string) $mvR['datei'], '.bin') . '-jpg.bin'); }
 MetaSeite::$netz = null; Telegram::$netz = $mvTgAlt; Telegram::setzen('tg_kanal_id', $mvKanalAlt);
+
+/* ============================================================================
+   Marketing-Studio 5: Deutschland und Italien getrennt, Zielgruppen und
+   Recherche in einem (01.10.2026, Uwe: „Zielgruppe und Recherche sollen eins
+   werden … Deutsch und Italien klar getrennt … für die Verwaltung auf Deutsch“)
+   ============================================================================ */
+abschnitt('Marketing-Studio 5: Deutschland und Italien, Zielgruppen & Recherche');
+require_once $wurzel . '/src/MkLand.php';
+$mlSessAlt = $_SESSION ?? null; $mlGetAlt = $_GET;
+$_SESSION = []; $_GET = [];
+$mlA = MkLand::wahl();
+$_GET = ['land' => 'de']; $mlB = MkLand::wahl();
+$_GET = []; $mlC = MkLand::wahl();
+$_GET = ['land' => 'FR']; $mlD = MkLand::wahl();
+pruefe('Länderschalter: ohne Wahl Italien; ?land= wählt und merkt sich das Land für die Sitzung; Unbekanntes zählt nicht',
+    $mlA === 'IT' && $mlB === 'DE' && $mlC === (session_status() === PHP_SESSION_ACTIVE ? 'DE' : 'IT') && $mlD === $mlC && MkLand::andere('DE') === 'IT' && MkLand::name('') === 'beide Länder');
+$_GET = $mlGetAlt; if ($mlSessAlt !== null) { $_SESSION = $mlSessAlt; }
+pruefe('Kampagnen: Land aus der Zielseite — /de/… Deutschland, /en/… ohne Land, sonst Italien',
+    MkLand::ausZiel('/de/website-friseur.html') === 'DE' && MkLand::ausZiel('/de') === 'DE' && MkLand::ausZiel('/en/') === '' && MkLand::ausZiel('/analisi.php') === 'IT' && MkLand::ausZiel('/') === 'IT');
+$mlK1 = MkKampagne::anlegen(['name' => 'ML Friseure DE', 'plattform' => 'instagram', 'ziel' => '/de/website-friseur.html', 'ziel_art' => 'leads']);
+$mlK2 = MkKampagne::anlegen(['name' => 'ML Ristoranti IT', 'plattform' => 'facebook', 'ziel' => '/siti-web-ristoranti.html', 'ziel_art' => 'leads', 'zielgruppe_id' => 999999]);
+$mlK3 = MkKampagne::anlegen(['name' => 'ML English', 'plattform' => 'linkedin', 'ziel' => '/en/', 'ziel_art' => 'leads']);
+MkKampagne::aendern((int) $mlK2, ['ziel' => '/de/']);
+$mlLde = array_column(MkKampagne::liste(date('Y-m-d', strtotime('-30 days')), date('Y-m-d'), ['land' => 'DE'])['kampagnen'], 'name');
+$mlLit = array_column(MkKampagne::liste(date('Y-m-d', strtotime('-30 days')), date('Y-m-d'), ['land' => 'IT'])['kampagnen'], 'name');
+pruefe('Kampagnen: angelegt mit Land, unbekannte Zielgruppe wird nicht eingetragen; neue Zielseite ändert das Land; die Liste zeigt je Land nur dessen Kampagnen (und die ohne Land)',
+    is_int($mlK1) && MkKampagne::laden((int) $mlK1)['land'] === 'DE' && MkKampagne::laden((int) $mlK3)['land'] === '' && MkKampagne::laden((int) $mlK2)['zielgruppe_id'] === null
+    && MkKampagne::laden((int) $mlK2)['land'] === 'DE' && in_array('ML Friseure DE', $mlLde, true) && in_array('ML English', $mlLde, true)
+    && !in_array('ML Friseure DE', $mlLit, true) && in_array('ML English', $mlLit, true), json_encode([$mlLde, $mlLit]));
+Db::run("DELETE FROM mk_kampagnen WHERE name LIKE 'ML %'");
+
+/* Deutsche Fassung im Profil */
+$mlP = MkZielgruppe::pruefen($mzProfil(['branche' => 'bar_cafe', 'einwaende' => ['«Costa troppo»', '«Non ho tempo»'], 'fragen' => ['Quanto costa?'],
+    'de' => ['einwaende' => ['„Zu teuer“', '„Keine Zeit“', 'zu viel'], 'fragen' => ['<b>Was kostet das?</b>'], 'kanaele' => ['ignoriert']]]));
+$mlPde = MkZielgruppe::pruefen($mzProfil(['branche' => 'bar_cafe', 'land' => 'DE', 'de' => ['fragen' => ['Was kostet das?']]]));
+pruefe('Zielgruppe: Italien bekommt die deutsche Fassung der Kundensprache (gesäubert, nur bekannte Listen), Deutschland keine',
+    is_array($mlP) && $mlP['de']['einwaende'] === ['„Zu teuer“', '„Keine Zeit“', 'zu viel'] && $mlP['de']['fragen'] === ['Was kostet das?'] && !isset($mlP['de']['kanaele'])
+    && is_array($mlPde) && !isset($mlPde['de']) && MkZielgruppe::ohneDeutsch(['land' => 'IT', 'fragen' => ['Quanto?']])
+    && MkZielgruppe::ohneDeutsch($mlP) /* Suchbegriffe und Keywords ohne Fassung */ && !MkZielgruppe::ohneDeutsch(['land' => 'IT', 'fragen' => ['Quanto?'], 'de' => ['fragen' => ['Wie viel?']]])
+    && !MkZielgruppe::ohneDeutsch(['land' => 'DE', 'fragen' => ['Was?']]), json_encode($mlP['de'] ?? null));
+
+/* Gleich stark: Kernbranchen in beiden Ländern */
+$mlF = MkZielgruppe::fehlend(30, 'DE');
+pruefe('Recherche gleich stark: Deutschland bekommt seine Kernbranchen auf die Liste, auch ohne Betriebe in der Akquise — und nur deutsche',
+    in_array('werkstatt', array_column($mlF, 'branche'), true) && array_unique(array_column($mlF, 'land')) === ['DE'] && ($mlF[0]['kern'] ?? false) === true
+    && in_array('restaurant', array_column(MkZielgruppe::fehlend(30, 'IT'), 'branche'), true) === !Db::wert("SELECT id FROM mk_zielgruppen WHERE branche = 'restaurant' AND land = 'IT'", [], null));
+MkZielgruppe::rechercheMelden([
+    ['art' => 'trend', 'titel' => 'ML Google-Profil in Deutschland', 'text' => 'x', 'branche' => 'friseur', 'land' => 'DE', 'quellen' => [['url' => 'https://example.org/de']]],
+    ['art' => 'trend', 'titel' => 'ML Profilo Google in Italia', 'text' => 'x', 'branche' => 'friseur', 'land' => 'IT', 'quellen' => [['url' => 'https://example.org/it']]],
+    ['art' => 'plattform', 'titel' => 'ML Meta-Richtlinie für alle', 'text' => 'x', 'quellen' => [['url' => 'https://example.org/alle']]],
+]);
+$mlFde = array_column(MkZielgruppe::recherche(['land' => 'DE']), 'titel');
+pruefe('Recherche-Funde: ein Land zeigt seine und die allgemeinen, nie die des anderen',
+    in_array('ML Google-Profil in Deutschland', $mlFde, true) && in_array('ML Meta-Richtlinie für alle', $mlFde, true) && !in_array('ML Profilo Google in Italia', $mlFde, true));
+
+/* Inhalte: deutsche Fassung, je Land */
+$mlI = MkInhalt::pruefen(['format' => 'telegram', 'plattform' => 'telegram', 'felder' => ['text' => 'Prenotazioni dirette'], 'uebersetzung' => "Direktbuchungen\n\n\n\nohne <i>Provision</i>"], 'IT');
+$mlIde = MkInhalt::pruefen(['format' => 'telegram', 'plattform' => 'telegram', 'felder' => ['text' => 'Direktbuchungen'], 'uebersetzung' => 'überflüssig'], 'DE');
+pruefe('Inhalte: Italienisches bringt seine deutsche Fassung mit (ohne HTML, Absätze bleiben), Deutsches nicht',
+    is_array($mlI) && $mlI['uebersetzung'] === "Direktbuchungen\n\nohne Provision" && is_array($mlIde) && $mlIde['uebersetzung'] === null);
+
+/* Übersetzung nachholen */
+Db::run('DELETE FROM mk_auftraege');
+$mlZ = MkZielgruppe::melden($mzProfil(['branche' => 'beauty', 'titel' => 'ML Estetica', 'fragen' => ['Quanto costa?'], 'einwaende' => ['«Troppo caro»']]));
+$mlInId = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $mlZ['id'], 'branche' => 'beauty', 'land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'telegram',
+    'plattform' => 'telegram', 'titel' => 'ML Telegram', 'felder' => json_encode(['text' => 'Ciao'])]);
+$mlU = MkAuftrag::anlegenUebersetzen();
+$mlH = MkAuftrag::holen();
+$mlHa = $mlH['auftrag'] ?? [];
+pruefe('Übersetzung: ein Auftrag für alles Italienische ohne deutsche Fassung — der PC bekommt Profile (nur Kundensprache) und Inhalte, keine Personen',
+    is_int($mlU) && is_string(MkAuftrag::anlegenUebersetzen()) && ($mlHa['art'] ?? '') === 'uebersetzen'
+    && in_array((int) $mlZ['id'], array_column($mlHa['profile'] ?? [], 'id'), true) && in_array($mlInId, array_column($mlHa['inhalte'] ?? [], 'id'), true)
+    && !str_contains(json_encode($mlHa), '@'), json_encode(array_keys($mlHa)));
+$mlM = AkquiseWorker::ausfuehren('marketing_uebersetzung', ['profile' => [['id' => (int) $mlZ['id'], 'de' => ['fragen' => ['Was kostet das?'], 'einwaende' => ['„Zu teuer“']]], ['id' => 999999, 'de' => ['fragen' => ['x']]]],
+    'inhalte' => [['id' => $mlInId, 'uebersetzung' => 'Hallo'], ['id' => 0, 'uebersetzung' => 'x']]]);
+MkAuftrag::melden(['id' => $mlU, 'ok' => true, 'zielgruppen' => 1, 'inhalte' => 1]);
+$mlZz = MkZielgruppe::laden((int) $mlZ['id']);
+pruefe('Übersetzung: zurück kommt die deutsche Fassung — Original, Status und Titel bleiben; Unbekanntes wird übersprungen; danach ist der Auftrag fertig',
+    $mlM['profile'] === 1 && $mlM['inhalte'] === 1 && count($mlM['fehler']) === 2 && $mlZz['p']['de']['fragen'] === ['Was kostet das?'] && $mlZz['p']['fragen'] === ['Quanto costa?']
+    && $mlZz['status'] === 'entwurf' && Db::wert('SELECT uebersetzung FROM mk_inhalte WHERE id = ?', [$mlInId]) === 'Hallo'
+    && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$mlU]) === 'fertig' && in_array('marketing_uebersetzung', AkquiseWorker::AKTIONEN, true)
+    && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb')), json_encode($mlM));
+
+/* Verwaltung */
+$mlIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: „in beiden Ländern“ legt je Land einen Auftrag an; Übersetzen nur hinter CSRF; die alte Seite „Recherche“ führt auf die neue',
+    str_contains($mlIdx, "!empty(\$_POST['beide']) ? [\$maLand, MkLand::andere(\$maLand)] : [\$maLand]") && strpos($mlIdx, "case 'uebersetzen_starten':") > strpos($mlIdx, 'Csrf::pruefen()')
+    && preg_match("~case 'recherche':.*?weiter\\('zielgruppen'~s", $mlIdx) === 1 && !is_file($wurzel . '/views/recherche.php'));
+$mlFehler = null; set_error_handler(static function (int $n, string $m) use (&$mlFehler): bool { $mlFehler = $m; return true; });
+$land = 'DE'; $liste = MkZielgruppe::alle('DE'); $fehlend = MkZielgruppe::fehlend(12, 'DE'); $f = ['art' => '', 'branche' => '', 'status' => ''];
+$funde = MkZielgruppe::recherche($f + ['land' => 'DE']); $auftraege = []; $pc = ['pc_wach' => true, 'pc_alter' => 1]; $offen = ['IT' => 3, 'DE' => 0]; $ohneDeutsch = 0;
+ob_start(); require $wurzel . '/views/zielgruppen.php'; $mlH1 = (string) ob_get_clean();
+$z = MkZielgruppe::laden((int) $mlZ['id']); $daten = MkZielgruppe::datengrundlage('beauty', 'IT'); $funde = []; $kampagnen = []; $inhalteZahl = 1;
+ob_start(); require $wurzel . '/views/zielgruppe.php'; $mlH2 = (string) ob_get_clean();
+$f = ['status' => '', 'art' => '', 'plattform' => '', 'zielgruppe' => 0, 'land' => 'IT']; $land = 'IT'; $liste = MkInhalt::liste($f); $zahl = MkInhalt::zaehlen('IT');
+$zielgruppen = []; $alleZg = []; $kampagnen = []; $auftraege = []; $ohneDeutsch = 2;
+ob_start(); require $wurzel . '/views/inhalte.php'; $mlH3 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Länderschalter oben (Zahl der offenen Entwürfe am anderen Land), drei Schritte, Recherche-Knopf „auch in Italien“, Funde unten — alles auf einer Seite',
+    $mlFehler === null && str_contains($mlH1, 'class="mk-laender"') && preg_match('~aria-current="page">\s*<i class="mk-flagge mk-flagge--de"~', $mlH1) === 1
+    && str_contains($mlH1, 'Entwürfe warten auf deine Prüfung') && str_contains($mlH1, 'class="mk-schritte"') && str_contains($mlH1, 'auch in Italien')
+    && str_contains($mlH1, 'id="funde"') && str_contains($mlH1, 'ML Google-Profil in Deutschland') && !str_contains($mlH1, 'ML Profilo Google in Italia')
+    && str_contains($mlH1, 'Kfz-Werkstatt recherchieren'), (string) $mlFehler);
+pruefe('Verwaltung: italienische Kundensprache mit deutscher Fassung darunter; Inhalte zeigen ihre deutsche Fassung und den Knopf „Übersetzen lassen“',
+    str_contains($mlH2, '<span class="mk-de">Was kostet das?</span>') && str_contains($mlH2, 'italienisch · deutsch darunter') && str_contains($mlH2, 'mk-flagge--it')
+    && str_contains($mlH3, '<span class="mk-de">Hallo</span>') && str_contains($mlH3, 'value="uebersetzen_starten"') && str_contains($mlH3, 'class="mk-laender"'));
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'ML %'"); Db::run("DELETE FROM mk_recherche WHERE titel LIKE 'ML %'"); Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
