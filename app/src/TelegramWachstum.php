@@ -54,6 +54,7 @@ final class TelegramWachstum
         // T2 (01.10.2026): Stufen des Funnels — je Chat einmal (stufe()), in der Mini-App je Rechner einmal.
         'wegweiser'      => 'Wegweiser genutzt',
         'check'          => 'Website-Check geöffnet',
+        'check_fertig'   => 'Website-Check mit Ergebnis',
         'interesse'      => 'Interesse an einem Thema',
         'rechner'        => 'Preisrechner gestartet',
         'rechner_fertig' => 'Preisrechner abgeschlossen',
@@ -63,7 +64,7 @@ final class TelegramWachstum
     ];
 
     /** Die Stufen, die ein Chat einmal erreichen kann (telegram_chats.stufen). */
-    public const STUFEN = ['wegweiser', 'check', 'interesse', 'rechner', 'rechner_fertig', 'beratung', 'lead'];
+    public const STUFEN = ['wegweiser', 'check', 'check_fertig', 'interesse', 'rechner', 'rechner_fertig', 'beratung', 'lead'];
 
     /** Start-Parameter einer Kampagne: m_CODE oder m_CODE_WERBEMITTEL (Codes wie bei /k/). */
     public const START_MUSTER = '/^m_([a-z0-9][a-z0-9-]{2,23})(?:_([a-z0-9][a-z0-9-]{0,11}))?$/';

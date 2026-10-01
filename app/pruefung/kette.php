@@ -15675,7 +15675,7 @@ pruefe('Kanal-Menü: ein zweiter Klick bearbeitet denselben Beitrag statt einen 
     Telegram::kanalMenue('de')['ok'] && array_column($tgNetz, 0) === ['editMessageText']);
 pruefe('Kanal-Menü: fragt vorher nach (TRAGWEITE)', Ablauf::wiegt('telegram_kanal_menue') === Ablauf::RAUS);
 pruefe('Kanal-Menü: jedes Sprungwort führt zu einem Punkt, den das Bot-Menü kennt',
-    !array_diff(array_values(TelegramBot::SPRUENGE), ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch'])
+    !array_diff(array_values(TelegramBot::SPRUENGE), ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch', 'ki', 'partner'])
     && !array_filter($tkUrls, static fn($u) => !isset(TelegramBot::SPRUENGE[substr($u, strrpos($u, '-') + 1)])));
 /* Mini-App „Preis-Rechner“ über dem Kanal (30.09.2026, Uwe: „Bot direkt im Kanal“ → „ja mach automatisch“) */
 require_once $wurzel . '/src/TelegramApp.php';
@@ -17193,6 +17193,103 @@ pruefe('T2: Reiter unter Marketing, mit Hilfesatz, Route in der Verwaltung',
     && str_contains((string) file_get_contents($wurzel . '/index.php'), "ansicht('telegram', ['z' => \$tgZ, 'd' => TelegramZahlen::dashboard(\$tgZ)])"));
 pruefe('T2: Migration übernimmt schon abgeschickte Bot-Anfragen in die Herkunft',
     str_contains((string) file_get_contents($wurzel . '/migrations/121_telegram_funnel.sql'), 'INSERT IGNORE INTO tg_herkunft'));
+
+/* ============================================================================
+   Telegram Growth Engine T3: Website-Check im Chat, Willkommen (01.10.2026, Uwe: „Ja mach T3“)
+   ============================================================================ */
+abschnitt('Telegram Growth Engine T3: Website-Check im Chat');
+require_once $wurzel . '/src/PartnerCheck.php';
+$t3Heute = date('Y-m-d');
+PartnerCheck::$aufloeser = static fn(string $host): array => ['93.184.215.14'];
+PartnerCheck::$holer = static function (string $url): array {
+    if (str_contains($url, 'weg-t3.example')) { return ['ok' => false, 'status' => 0, 'ms' => 0, 'inhalt' => '', 'url' => $url, 'ssl_tage' => null, 'fehler' => 'netz']; }
+    return ['ok' => true, 'status' => 200, 'ms' => 4200, 'url' => 'http://trattoria-t3.example/', 'ssl_tage' => null, 'fehler' => '',
+        'inhalt' => '<html><head><title>Trattoria T3</title></head><body><p>&copy; 2016 Trattoria</p></body></html>'];
+};
+$t3Netz = [];
+Telegram::$netz = static function (string $m, array $d) use (&$t3Netz): array {
+    $t3Netz[] = [$m, $d];
+    if ($m === 'sendMessage') { return ['ok' => true, 'result' => ['message_id' => 9300 + count($t3Netz)]]; }
+    return ['ok' => true, 'result' => true];
+};
+$t3Zuletzt = static function () use (&$t3Netz): array {
+    for ($i = count($t3Netz) - 1; $i >= 0; $i--) {
+        if (in_array($t3Netz[$i][0], ['sendMessage', 'editMessageText'], true)) {
+            $d = $t3Netz[$i][1]; $k = [];
+            foreach ((array) ($d['reply_markup']['inline_keyboard'] ?? []) as $reihe) { foreach ($reihe as $b) { $k[] = $b['callback_data'] ?? ('url:' . ($b['url'] ?? '')); } }
+            return ['art' => $t3Netz[$i][0], 'text' => (string) $d['text'], 'knoepfe' => $k, 'id' => (int) ($d['message_id'] ?? 0)];
+        }
+    }
+    return ['art' => '', 'text' => '', 'knoepfe' => [], 'id' => 0];
+};
+$t3Klick = static function (int $chat, string $d) use ($tgAus, $tgKnopf): void { Db::run('UPDATE telegram_chats SET takt_zahl = 0'); $tgAus($tgKnopf($chat, $d)); };
+$t3Text = static function (int $chat, string $t) use ($tgAus, $tgText): void { Db::run('UPDATE telegram_chats SET takt_zahl = 0'); $tgAus($tgText($chat, $t)); };
+
+$t3A = random_int(560000000, 569999999);
+$t3Text($t3A, '/start');
+$t3Klick($t3A, 'l:de');
+$t3Menu = $t3Zuletzt()['knoepfe'];
+pruefe('T3: Willkommen hat „KI & Automatisierung“ und „Partner werden“ — neben Website, Verbessern, Preis, Check, 3D, Beratung',
+    !array_diff(['m:neu', 'm:besser', 'm:preis', 'm:pruefen', 'm:ki', 'm:3d', 'm:mensch', 'm:partner'], $t3Menu), json_encode($t3Menu));
+$t3Klick($t3A, 'm:pruefen');
+pruefe('T3: „Website prüfen“ fragt nach der Adresse (im Chat), der Link zur ausführlichen Analyse bleibt',
+    $tgChat($t3A)['stand'] === 'webcheck' && str_contains($t3Zuletzt()['text'], 'Schicken Sie mir einfach die Adresse')
+    && in_array('url:https://pruefung.example/analisi.php?lang=de', $t3Zuletzt()['knoepfe'], true), $t3Zuletzt()['text']);
+$t3Text($t3A, 'das ist keine adresse');
+pruefe('T3: Unsinn statt Adresse — freundlicher Satz, man bleibt im Check', str_contains($t3Zuletzt()['text'], 'nicht nach einer Website-Adresse') && $tgChat($t3A)['stand'] === 'webcheck');
+$t3Netz = [];
+$t3Text($t3A, 'trattoria-t3.example');
+$t3Laeuft = array_values(array_filter($t3Netz, static fn($x) => $x[0] === 'sendMessage' && str_contains((string) $x[1]['text'], '⏳')));
+$t3E = $t3Zuletzt();
+pruefe('T3: Erst „Ich prüfe …“, dann wird genau diese Nachricht durch das Ergebnis ersetzt',
+    count($t3Laeuft) === 1 && $t3E['art'] === 'editMessageText' && $t3E['id'] === 9300 + array_search($t3Laeuft[0], $t3Netz, true) + 1, json_encode([$t3E['art'], $t3E['id']]));
+$t3Pos = static fn(string $w): int => (int) mb_strpos($t3E['text'], $w);
+pruefe('T3: Ergebnis — Stand der zwölf Punkte und die drei wichtigsten in der richtigen Reihenfolge (Handy, Ladezeit, Sicherheit), mit dem gemessenen Wert',
+    str_contains($t3E['text'], 'Website-Check: trattoria-t3.example') && str_contains($t3E['text'], 'von 12 Punkten in Ordnung')
+    && substr_count($t3E['text'], '🔴') === 3 && $t3Pos('<b>Handy</b>') > 0 && $t3Pos('<b>Handy</b>') < $t3Pos('<b>Ladezeit</b>') && $t3Pos('<b>Ladezeit</b>') < $t3Pos('<b>Sicherheit</b>')
+    && str_contains($t3E['text'], '4,2 s') && !str_contains($t3E['text'], '<b>Teilen</b>'), $t3E['text']);
+pruefe('T3: Was der Check nicht misst, steht offen da — keine erfundenen Befunde', str_contains($t3E['text'], 'Nicht automatisch geprüft'));
+pruefe('T3: Danach: Verbesserung planen, Preis, Beratung, ausführliche Analyse (mit Adresse), andere Website, Menü',
+    $t3E['knoepfe'] === ['m:besser', 'm:preis', 'm:mensch', 'url:https://pruefung.example/analisi.php?lang=de&url=trattoria-t3.example', 'm:pruefen', 'm:menu'], json_encode($t3E['knoepfe']));
+pruefe('T3: Stufe „Website-Check mit Ergebnis“ gezählt, die Adresse fährt am Chat mit',
+    TelegramWachstum::summen($t3Heute, $t3Heute)['check_fertig'] >= 1 && str_contains((string) $tgChat($t3A)['stufen'], 'check_fertig') && $tgChat($t3A)['website'] === 'trattoria-t3.example');
+$t3Text($t3A, 'trattoria-t3.example');
+pruefe('T3: Sofort noch einmal — dieselbe Bremse wie auf der Website (je Chat)', str_contains($t3Zuletzt()['text'], 'nächste Prüfung geht in ein paar Sekunden'));
+$t3B = random_int(570000000, 579999999);
+$t3Text($t3B, '/start'); $t3Klick($t3B, 'l:de'); $t3Klick($t3B, 'm:pruefen');
+$t3Text($t3B, 'weg-t3.example');
+pruefe('T3: Nicht erreichbar — gesagt, nichts erfunden, keine Stufe „mit Ergebnis“', str_contains($t3Zuletzt()['text'], 'nicht erreichbar') && !str_contains((string) $tgChat($t3B)['stufen'], 'check_fertig') && $tgChat($t3B)['website'] === null);
+pruefe('T3: Sind alle Punkte gut, gibt es keine drei Punkte — und ohne Datum der passende Satz statt „© “',
+    TelegramBot::checkTop([['was' => 'handy', 'stand' => 'gut', 'wert' => ''], ['was' => 'tempo', 'stand' => 'gut', 'wert' => '0,4 s']], 'de') === []
+    && TelegramBot::checkSatz(['was' => 'aktuell', 'stand' => 'hinweis', 'wert' => ''], 'de') === Texte::PARTNER_CHECK['punkte']['aktuell']['hinweis_leer']['de']
+    && TelegramBot::checkSatz(['was' => 'tempo', 'stand' => 'schlecht', 'wert' => '5,0 s'], 'it') === strtr(Texte::PARTNER_CHECK['punkte']['tempo']['schlecht']['it'], ['{wert}' => '5,0 s']));
+
+/* Die geprüfte Adresse landet in der Anfrage, danach ist sie aus dem Chat weg. */
+foreach (['m:mensch', 'b:allgemein', 'd:ja'] as $t3D) { $t3Klick($t3A, $t3D); }
+$t3Text($t3A, 'Tina Trattoria'); $t3Text($t3A, 'tina.t3@pruefung.example'); $t3Text($t3A, 'Bitte meldet euch wegen der Website.');
+$t3Klick($t3A, 's:ja');
+$t3Anf = Db::one('SELECT website FROM anfragen WHERE id = ?', [(int) $tgChat($t3A)['anfrage_id']]);
+pruefe('T3: Anfrage nach dem Check trägt die geprüfte Website, der Chat vergisst sie', $t3Anf && $t3Anf['website'] === 'trattoria-t3.example' && $tgChat($t3A)['website'] === null, json_encode($t3Anf));
+
+/* KI & Automatisierung, Partner werden */
+$t3Klick($t3B, 'm:ki');
+pruefe('T3: „KI & Automatisierung“ — kurzer Text ohne Pauschalpreis, unverbindlich anfragen als Thema', str_contains($t3Zuletzt()['text'], 'KI & Automatisierung') && str_contains($t3Zuletzt()['text'], 'Pauschalpreis') && in_array('b:ki', $t3Zuletzt()['knoepfe'], true));
+$t3Klick($t3B, 'b:ki');
+pruefe('T3: … das Thema führt in den normalen Weg mit Datenschutzhinweis', $tgChat($t3B)['thema'] === 'ki' && in_array($tgChat($t3B)['stand'], ['ds', 'name'], true));
+$t3Klick($t3B, 'x:');
+$t3Klick($t3B, 'm:partner');
+pruefe('T3: „Partner werden“ — Provision ohne erfundene Zahl, Bewerbung auf der Partnerseite in seiner Sprache',
+    str_contains($t3Zuletzt()['text'], 'Provision') && !preg_match('~\d+\s?%~', $t3Zuletzt()['text']) && in_array('url:https://pruefung.example/partner.php?lang=de', $t3Zuletzt()['knoepfe'], true));
+$t3Gleich = true;
+foreach (['kiText', 'partnerText', 'checkKopf', 'checkNicht', 'k_ki', 'k_partner'] as $t3S) { foreach (['it', 'de', 'en'] as $t3L) { $t3Gleich = $t3Gleich && trim((string) (TelegramBot::T[$t3L][$t3S] ?? '')) !== ''; } }
+pruefe('T3: Neue Texte in allen drei Sprachen, Thema „ki“ überall', $t3Gleich && isset(TelegramBot::T['it']['thema']['ki'], TelegramBot::T['en']['thema']['ki']));
+pruefe('T3: Kanal-Knöpfe dürfen auch zu KI und Partner springen', (TelegramBot::SPRUENGE['ki'] ?? '') === 'ki' && (TelegramBot::SPRUENGE['partner'] ?? '') === 'partner');
+foreach (['de' => 'Website prüfen, ruft unser Server', 'it' => 'controllare un sito nel bot', 'en' => 'website checked in the bot'] as $t3L => $t3W) {
+    pruefe('T3: Datenschutz (' . $t3L . '): Website-Check im Bot beschrieben', str_contains((string) file_get_contents($oben . '/assets/js/legal-' . $t3L . '.js'), $t3W));
+}
+pruefe('T3: Das Dashboard zeigt, wie viele Checks ein Ergebnis hatten',
+    str_contains(implode('|', array_column(TelegramZahlen::dashboard(MkKennzahlen::zeitraum('heute'))['funnel'], 2)), 'mit Ergebnis im Chat'));
+PartnerCheck::$holer = null; PartnerCheck::$aufloeser = null;
 
 /* ============================================================================
    Aufräumen und Bilanz

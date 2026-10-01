@@ -200,6 +200,7 @@ final class TelegramBot
             case 'kundennachricht':
                 if (!empty($c['kunde_verbunden'])) { return self::kundenNachricht($c, $text); }
                 break;
+            case 'webcheck':  return self::webcheck($c, $text);
         }
 
         if (self::willMenschen($text)) {
@@ -218,6 +219,7 @@ final class TelegramBot
     public const SPRUENGE = [
         'neu' => 'neu', 'besser' => 'besser', 'preis' => 'preis', 'pruefen' => 'pruefen',
         'logo' => 'logo', 'dreid' => '3d', 'hosting' => 'hosting', 'kunde' => 'kunde', 'mensch' => 'mensch',
+        'ki' => 'ki', 'partner' => 'partner',   // T3 (01.10.2026)
     ];
 
     private static function befehl(array $c, string $cmd, string $arg): string
@@ -387,18 +389,26 @@ final class TelegramBot
         $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
         /* Growth Engine T2: Wegweiser = ein Punkt des Menüs gewählt; Interesse = ein Thema;
            Website-Check = der Check. Je Chat einmal gezählt (TelegramWachstum::stufe). */
-        if (in_array($was, ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch'], true)) {
+        if (in_array($was, ['neu', 'besser', 'preis', 'pruefen', 'logo', '3d', 'hosting', 'kunde', 'mensch', 'ki', 'partner'], true)) {
             require_once __DIR__ . '/TelegramWachstum.php';
             TelegramWachstum::stufe($c, 'wegweiser');
             if ($was === 'pruefen') { TelegramWachstum::stufe($c, 'check'); }
-            elseif ($was !== 'kunde') { TelegramWachstum::stufe($c, 'interesse'); }
+            elseif (!in_array($was, ['kunde', 'partner'], true)) { TelegramWachstum::stufe($c, 'interesse'); }
         }
         switch ($was) {
             case 'neu': case 'besser': case 'preis':
                 return self::frageStarten($c, $was, $msgId);
             case 'pruefen':
+                // T3 (01.10.2026): Die Adresse kommt als nächste Nachricht — geprüft wird hier im Chat.
+                $c = self::setzen($c, ['stand' => 'webcheck']);
                 self::zeigen($c, self::t($c, 'pruefenText'), [[self::url(self::t($c, 'k_check'), $web . '/analisi.php?lang=' . $sp)], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
                 return 'pruefen';
+            case 'ki':
+                self::zeigen($c, self::t($c, 'kiText'), [[self::k($c, 'k_anfragen', 'b:ki')], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
+                return 'ki';
+            case 'partner':
+                self::zeigen($c, self::t($c, 'partnerText'), [[self::url(self::t($c, 'k_partner_seite'), $web . '/partner.php?lang=' . $sp)], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
+                return 'partner';
             case 'logo':
                 self::zeigen($c, self::t($c, 'logoText'), [[self::k($c, 'k_anfragen', 'b:logo')], [self::k($c, 'k_menu', 'm:menu')]], $msgId);
                 return 'logo';
@@ -691,6 +701,114 @@ final class TelegramBot
         ], $msgId);
     }
 
+    /* ================= WEBSITE-CHECK IM CHAT (T3) ================== */
+
+    /**
+     * Reihenfolge, wenn mehrere Punkte gleich schlecht stehen: was Besucher
+     * am meisten kostet, zuerst. Ein Handy, auf dem die Seite winzig ist,
+     * verliert mehr Kunden als ein fehlendes Vorschaubild beim Teilen.
+     */
+    public const CHECK_VORRANG = ['erreichbar', 'handy', 'tempo', 'sicher', 'google', 'telefon', 'rechtlich', 'aktuell', 'adresse', 'bilder', 'zeiten', 'alt', 'teilen'];
+
+    /**
+     * Die drei wichtigsten Punkte aus dem Schnellcheck (PartnerCheck — derselbe
+     * wie auf analisi.php und bei den Partnern). Erst „Problem“, dann
+     * „verbesserbar“, je nach CHECK_VORRANG. Keine erfundenen Punkte: Was der
+     * Check nicht misst (Gestaltung, Texte, Führung zum Kontakt), steht als
+     * „nicht automatisch geprüft“ darunter.
+     *
+     * @return list<array{was:string,stand:string,titel:string,text:string}>
+     */
+    public static function checkTop(array $punkte, string $sp, int $n = 3): array
+    {
+        $rang = ['schlecht' => 0, 'hinweis' => 1];
+        $vorrang = array_flip(self::CHECK_VORRANG);
+        $offen = array_values(array_filter($punkte, static fn($p) => isset($rang[$p['stand'] ?? ''])));
+        usort($offen, static fn($a, $b) => [$rang[$a['stand']], $vorrang[$a['was']] ?? 99] <=> [$rang[$b['stand']], $vorrang[$b['was']] ?? 99]);
+        $aus = [];
+        foreach (array_slice($offen, 0, $n) as $p) {
+            $aus[] = ['was' => (string) $p['was'], 'stand' => (string) $p['stand'],
+                      'titel' => self::checkTitel((string) $p['was'], $sp), 'text' => self::checkSatz($p, $sp)];
+        }
+        return $aus;
+    }
+
+    public static function checkTitel(string $was, string $sp): string
+    {
+        return (string) (Texte::PARTNER_CHECK['punkte'][$was]['titel'][$sp] ?? Texte::PARTNER_CHECK['punkte'][$was]['titel']['it'] ?? $was);
+    }
+
+    /** Der Satz zu einem Punkt — mit {wert}, oder der „_leer“-Fassung, wenn kein Wert gemessen wurde. */
+    public static function checkSatz(array $p, string $sp): string
+    {
+        $texte = Texte::PARTNER_CHECK['punkte'][(string) $p['was']] ?? [];
+        $schl = (string) (($p['k'] ?? '') ?: $p['stand']);
+        $wert = (string) ($p['wert'] ?? '');
+        if ($wert === '' && isset($texte[$schl . '_leer'])) { $schl .= '_leer'; }
+        $satz = (string) ($texte[$schl][$sp] ?? $texte[$p['stand']][$sp] ?? '');
+        return strtr($satz, ['{wert}' => $wert]);
+    }
+
+    private static function webcheck(array $c, string $text): string
+    {
+        require_once __DIR__ . '/PartnerSeite.php';
+        require_once __DIR__ . '/PartnerCheck.php';
+        require_once __DIR__ . '/TelegramWachstum.php';
+        $sp = (string) $c['sprache'];
+        $web = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
+        $nochmal = [[self::url(self::t($c, 'k_check'), $web . '/analisi.php?lang=' . $sp)], [self::k($c, 'k_menu', 'm:menu')]];
+        $url = PartnerCheck::adresse(mb_substr($text, 0, 200));
+        if ($url === null) { self::zeigen($c, self::t($c, 'checkAdresse'), $nochmal); return 'check_adresse'; }
+        $host = (string) parse_url($url, PHP_URL_HOST);
+
+        // Erst sagen, dass es läuft (der Abruf dauert ein paar Sekunden), dann dieselbe Nachricht mit dem Ergebnis ersetzen.
+        // Mit einem Knopf, damit zeigen() sich die Nachricht merkt (ohne Knöpfe vergisst es sie absichtlich).
+        self::zeigen($c, strtr(self::t($c, 'checkLaeuft'), ['{host}' => self::h($host)]), [[self::k($c, 'k_menu', 'm:menu')]]);
+        $c = (array) Db::one('SELECT * FROM telegram_chats WHERE id = ?', [(int) $c['id']]);
+        $warte = (int) ($c['nachricht_id'] ?? 0);
+
+        /* Dieselbe Bremse wie auf der Website (je Absender 8 am Tag, alle zusammen 300),
+           hier je Chat statt je IP — die IP im Webhook wäre immer die von Telegram. */
+        $kc = PartnerSeite::kurzcheck($url, 'telegram:' . (int) $c['chat_id']);
+        if (!$kc['ok']) {
+            $satz = match ((string) $kc['grund']) { 'warten' => 'checkWarten', 'zuviel' => 'checkZuviel', default => 'checkAdresse' };
+            self::zeigen($c, self::t($c, $satz), $nochmal, $warte ?: null);
+            return 'check_' . $kc['grund'];
+        }
+        $host = (string) ($kc['host'] ?: $host);
+        $punkte = (array) $kc['punkte'];
+        $erreichbar = !array_filter($punkte, static fn($p) => ($p['was'] ?? '') === 'erreichbar');
+        $knoepfe = [
+            [self::k($c, 'k_verbessern', 'm:besser'), self::k($c, 'k_preis', 'm:preis')],
+            [self::k($c, 'k_beratung', 'm:mensch'), self::url(self::t($c, 'k_check'), $web . '/analisi.php?lang=' . $sp . '&url=' . rawurlencode($host))],
+            [self::k($c, 'k_anderer', 'm:pruefen'), self::k($c, 'k_menu', 'm:menu')],
+        ];
+        if (!$erreichbar) {
+            self::zeigen($c, strtr(self::t($c, 'checkNichtErreichbar'), ['{host}' => self::h($host)]), $nochmal, $warte ?: null);
+            return 'check_nicht_erreichbar';
+        }
+        // Die Adresse fährt mit, falls aus diesem Chat gleich eine Anfrage kommt (geleert wie Name und E-Mail).
+        $c = self::setzen($c, ['website' => mb_substr($host, 0, 190)]);
+        TelegramWachstum::stufe($c, 'check_fertig');
+
+        $gesamt = count($punkte);
+        $gut = count(array_filter($punkte, static fn($p) => ($p['stand'] ?? '') === 'gut'));
+        $top = self::checkTop($punkte, $sp);
+        $text = strtr(self::t($c, 'checkKopf'), ['{host}' => self::h($host)]) . "\n"
+              . strtr(self::t($c, 'checkStand'), ['{gut}' => (string) $gut, '{gesamt}' => (string) $gesamt]) . "\n\n";
+        if ($top) {
+            $text .= self::t($c, 'checkTop3') . "\n";
+            foreach ($top as $i => $p) {
+                $text .= ($i + 1) . '. ' . ($p['stand'] === 'schlecht' ? '🔴' : '🟡') . ' <b>' . self::h($p['titel']) . '</b> — ' . self::h($p['text']) . "\n";
+            }
+        } else {
+            $text .= strtr(self::t($c, 'checkAlles'), ['{gesamt}' => (string) $gesamt]) . "\n";
+        }
+        $text .= "\n" . self::t($c, 'checkNicht');
+        self::zeigen($c, $text, $knoepfe, $warte ?: null);
+        return 'check_ergebnis';
+    }
+
     /* ======================= KONTAKTDATEN =========================== */
 
     private static function datenschutz(array $c, string $ziel, ?string $thema, ?int $msgId): string
@@ -798,12 +916,17 @@ final class TelegramBot
                 $z = Db::one('SELECT customer_id, anfrage_id FROM bedarf WHERE id = ?', [$bedarfId]);
                 $kundeId = $z && $z['customer_id'] !== null ? (int) $z['customer_id'] : null;
                 $anfrageId = $z && $z['anfrage_id'] !== null ? (int) $z['anfrage_id'] : null;
+                // T3: Hat dieser Chat vorher eine Website prüfen lassen, steht sie in der Anfrage.
+                if ($anfrageId && !empty($c['website'])) {
+                    Db::run("UPDATE anfragen SET website = ? WHERE id = ? AND (website IS NULL OR website = '')", [mb_substr((string) $c['website'], 0, 190), $anfrageId]);
+                }
             } elseif ($c['ziel'] === 'beratung') {
                 require_once __DIR__ . '/Anfrage.php';
                 $thema = self::T[$sp]['thema'][$c['thema'] ?: 'allgemein'] ?? '';
                 $anfrageId = Anfrage::annehmen([
                     'name' => (string) $c['name'], 'email' => (string) $c['email'],
                     'sprache' => $sp, 'sprache_gefragt' => true, 'herkunft' => 'telegram',
+                    'website_url' => (string) ($c['website'] ?? ''),
                     'nachricht' => strtr(self::T[$sp]['beratungKopf'], ['{thema}' => $thema]) . "\n\n" . (string) $c['nachricht'],
                 ]);
                 if (!$anfrageId) { throw new RuntimeException('Anfrage::annehmen hat abgelehnt.'); }
@@ -845,7 +968,7 @@ final class TelegramBot
 
         $name = (string) $c['name']; $email = (string) $c['email']; $ziel = (string) $c['ziel'];
         // Name, E-Mail und Anliegen stehen jetzt in der Kundenakte — hier werden sie nicht mehr gebraucht.
-        $c = self::setzen($c, ['stand' => 'menu', 'ziel' => null, 'thema' => null, 'name' => null, 'email' => null, 'nachricht' => null,
+        $c = self::setzen($c, ['stand' => 'menu', 'ziel' => null, 'thema' => null, 'name' => null, 'email' => null, 'nachricht' => null, 'website' => null,
             'bedarf_id' => null, 'einstieg' => null, 'customer_id' => $kundeId, 'anfrage_id' => $anfrageId]);
         self::zeigen($c, strtr(self::t($c, $ziel === 'beratung' ? 'dankBeratung' : 'dankAnfrage'), ['{name}' => self::h($name), '{email}' => self::h($email)]),
             [[self::k($c, 'k_menu', 'm:menu')]], $msgId);
@@ -879,9 +1002,9 @@ final class TelegramBot
         // Verbundene Kunden bleiben: Ihr Chat ist ihr Kanal, auch wenn sie monatelang nichts schreiben.
         $chats = Db::run('DELETE FROM telegram_chats WHERE anfrage_id IS NULL AND kunde_verbunden IS NULL AND letzte_am < (NOW() - INTERVAL ' . self::AUFHEBEN_TAGE . ' DAY)')->rowCount();
         Db::run("UPDATE telegram_chats SET datei_id = NULL, datei_name = NULL, datei_groesse = NULL WHERE datei_id IS NOT NULL AND letzte_am < (NOW() - INTERVAL 1 DAY)");
-        $entw = Db::run("UPDATE telegram_chats SET name = NULL, email = NULL, nachricht = NULL,
+        $entw = Db::run("UPDATE telegram_chats SET name = NULL, email = NULL, nachricht = NULL, website = NULL,
                                 stand = IF(stand IN ('ds','name','email','nachricht','pruefen'), 'menu', stand)
-                          WHERE (name IS NOT NULL OR email IS NOT NULL OR nachricht IS NOT NULL)
+                          WHERE (name IS NOT NULL OR email IS NOT NULL OR nachricht IS NOT NULL OR website IS NOT NULL)
                             AND letzte_am < (NOW() - INTERVAL 30 DAY)")->rowCount();
         $upd = Db::run("DELETE FROM webhook_events WHERE provider = 'telegram' AND received_at < (NOW() - INTERVAL 14 DAY)")->rowCount();
         return ['chats' => $chats, 'entwuerfe' => $entw, 'updates' => $upd];
@@ -1276,9 +1399,10 @@ final class TelegramBot
         return array_merge([
             [self::k($c, 'k_neu', 'm:neu'), self::k($c, 'k_besser', 'm:besser')],
             [self::k($c, 'k_preis', 'm:preis'), self::k($c, 'k_pruefen', 'm:pruefen')],
-            [self::k($c, 'k_logo', 'm:logo'), self::k($c, 'k_3d', 'm:3d')],
-            [self::k($c, 'k_hosting', 'm:hosting'), self::k($c, !empty($c['kunde_verbunden']) ? 'k_projekt' : 'k_kunde', 'm:kunde')],
-            [self::k($c, 'k_mensch', 'm:mensch'), self::k($c, 'k_sprache', 'm:sprache')],
+            [self::k($c, 'k_ki', 'm:ki'), self::k($c, 'k_3d', 'm:3d')],
+            [self::k($c, 'k_logo', 'm:logo'), self::k($c, 'k_hosting', 'm:hosting')],
+            [self::k($c, 'k_mensch', 'm:mensch'), self::k($c, 'k_partner', 'm:partner')],
+            [self::k($c, !empty($c['kunde_verbunden']) ? 'k_projekt' : 'k_kunde', 'm:kunde'), self::k($c, 'k_sprache', 'm:sprache')],
         ],
         // Der Kanal (30.09.2026): nur, wenn einer hinterlegt ist.
         Telegram::einstellung('tg_kanal_link') !== '' ? [[self::url(self::t($c, 'k_kanal'), Telegram::einstellung('tg_kanal_link'))]] : [],
@@ -1321,6 +1445,8 @@ final class TelegramBot
             case 'kundennachricht':
                 if (!empty($c['kunde_verbunden'])) { self::zeigen($c, self::t($c, 'fragKundenNachricht'), [[self::k($c, 'k_abbrechen', 'x:')]], $msgId); return; }
                 break;
+            case 'webcheck':
+                self::menuPunkt($c, 'pruefen', $msgId); return;
         }
         $c = self::setzen($c, ['stand' => 'menu']);
         self::zeigeMenu($c, $msgId);

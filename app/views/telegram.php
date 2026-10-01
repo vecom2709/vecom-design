@@ -66,7 +66,7 @@ require __DIR__ . '/mk_stil.php';
 
 <div class="karten mk-karten">
   <div class="karte"><h3>Neue Bot-Nutzer</h3><div class="wert"><?= $zahl($n('bot_neu')) ?></div>
-    <div class="neben">heute <?= $zahl($d['neu']['heute']) ?> · 7 Tage <?= $zahl($d['neu']['7']) ?> · 30 Tage <?= $zahl($d['neu']['30']) ?></div><?= $trend($n('bot_neu'), (int) ($sv['bot_neu'] ?? 0)) ?></div>
+    <div class="neben">heute <?= $zahl((int) $d['neu']['heute']) ?> · 7 Tage <?= $zahl((int) $d['neu']['7']) ?> · 30 Tage <?= $zahl((int) $d['neu']['30']) ?></div><?= $trend($n('bot_neu'), (int) ($sv['bot_neu'] ?? 0)) ?></div>
   <div class="karte"><h3>Kanal-Mitglieder</h3><div class="wert"><?= $zahl($k['stand']) ?></div>
     <div class="neben"><?php if ($k['stand'] === null): ?>noch nicht gemessen — der tägliche Lauf trägt die Zahl ein<?php else: ?>Stand <?= Fmt::h($datum((string) $k['stand_tag'])) ?><?php if ($k['wachstum'] !== null): ?> · <?= $k['wachstum'] >= 0 ? '+' : '' ?><?= $zahl($k['wachstum']) ?> seit <?= Fmt::h($datum((string) $k['anfang_tag'])) ?> (<?= Fmt::h($pz($k['wachstum_pct'])) ?>)<?php endif; ?><?php endif; ?></div>
     <span class="mk-trend">im Zeitraum: +<?= $zahl($k['bei']) ?> beigetreten · −<?= $zahl($k['aus']) ?> ausgetreten</span></div>

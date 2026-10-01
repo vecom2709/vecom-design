@@ -177,7 +177,7 @@ final class TelegramZahlen
             ['Über einen Link gekommen', (int) ($s['bot_start'] ?? 0) + $kanal['bei'], 'Starts über Bot-Links und Kanal-Beitritte über Kanal-Links'],
             ['Neu in Telegram', (int) ($s['bot_neu'] ?? 0) + (int) ($s['app_start'] ?? 0), 'neue Bot-Nutzer und geöffnete Mini-Apps'],
             ['Wegweiser genutzt', (int) ($s['wegweiser'] ?? 0), 'einen Punkt im Menü des Bots gewählt'],
-            ['Website-Check geöffnet', (int) ($s['check'] ?? 0), 'im Bot; den Check im Chat bringt T3'],
+            ['Website-Check geöffnet', (int) ($s['check'] ?? 0), ((int) ($s['check_fertig'] ?? 0)) . ' mit Ergebnis im Chat'],
             ['Interesse an einem Thema', (int) ($s['interesse'] ?? 0) + (int) ($s['app_start'] ?? 0), 'Thema im Bot gewählt oder Mini-App geöffnet'],
             ['Preisrechner gestartet', (int) ($s['rechner'] ?? 0), ((int) ($s['rechner_fertig'] ?? 0)) . ' abgeschlossen'],
             ['Beratung gestartet', (int) ($s['beratung'] ?? 0), 'persönliche Beratung im Bot angefragt'],
