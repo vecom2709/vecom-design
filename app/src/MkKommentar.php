@@ -132,7 +132,7 @@ final class MkKommentar
         $ok = ($r['status'] ?? 0) === 200 && !empty($r['json']['message_id'] ?? $r['json']['recipient_id'] ?? null);
         Db::update('mk_kommentare', $zeile, ['status' => $ok ? 'beantwortet' : 'fehler', 'grund' => $ok ? null : MetaSeite::fehler($r)]);
         if (!$ok) {
-            try { Events::melden('kommentar_fehler', 'Kommentar-Antwort gescheitert (' . $plattform . ')', 'warnung', MetaSeite::fehler($r) . ' — Berechtigungen der Meta-App prüfen (Seite: pages_messaging; Instagram: instagram_manage_messages, instagram_manage_comments).', 'kampagnen#kommentar'); } catch (Throwable $y) { }
+            try { Events::melden('kommentar_fehler', 'Kommentar-Antwort gescheitert (' . $plattform . ')', 'warnung', MetaSeite::fehler($r) . ' — Berechtigungen der Meta-App prüfen (Seite: pages_messaging; Instagram: instagram_manage_messages, instagram_manage_comments).', 'kanaele#kommentar'); } catch (Throwable $y) { }
         }
         return $ok ? 1 : 0;
     }

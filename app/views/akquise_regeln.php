@@ -369,7 +369,7 @@ $blick = [
     <p style="margin:0"><a class="knopf" href="<?= Fmt::h(url('akquise/qrkarte')) ?>">Allgemeine QR-Karte drucken</a></p>
 
     <h3 style="margin:18px 0 6px;font-size:15px">3 · Facebook-Seite und Instagram (Beiträge und Werbeformular)</h3>
-    <p class="akq-klein" style="margin:0 0 8px">Zweimal die Woche liegt ein fertiger Beitrag unter <a href="<?= Fmt::h(url('akquise/beitraege')) ?>">Beiträge</a>; dein Klick postet ihn.
+    <p class="akq-klein" style="margin:0 0 8px">Beiträge postet das Marketing (<a href="<?= Fmt::h(url('kanaele')) ?>">Marketing › Kanäle verbinden</a> — dort auch dieselben Felder mit Prüfknopf).
       Ein ausgefülltes Werbeformular löst automatisch die Bestätigungsmail aus. Dafür braucht es einmal die Verbindung:</p>
     <details<?= MetaSeite::bereit() ? '' : ' open' ?>><summary class="akq-klein" style="cursor:pointer">So verbindest du die Seite (einmal, etwa 15 Minuten — dieselbe App wie bei WhatsApp)</summary>
       <ol class="akq-klein" style="line-height:1.7">

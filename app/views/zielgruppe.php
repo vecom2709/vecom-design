@@ -40,7 +40,7 @@ require __DIR__ . '/mk_stil.php';
     <div class="weg"><?= MkLand::marke((string) $z['land']) ?> · <?= Fmt::h($branchen[$z['branche']] ?? $z['branche']) ?> · Stand <?= Fmt::h($datum($z['updated_at'])) ?><?= $z['freigegeben_am'] ? ' · freigegeben am ' . Fmt::h($datum($z['freigegeben_am'])) : '' ?> · von Claude recherchiert</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
-    <?php if ($nutzbar): ?><a class="knopf haupt" href="#kampagne">Kampagne starten</a><?php endif; ?>
+    <?php if ($nutzbar): ?><a class="knopf haupt" href="#kampagne">Beiträge schreiben lassen</a><?php endif; ?>
     <form method="post" action="<?= Fmt::h(url('zielgruppen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h((string) $z['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $z['land']) ?>"><button class="knopf" title="Claude überarbeitet dieses Profil mit frischer Recherche — als Entwurf, die freigegebene Fassung gilt bis dahin weiter">Neu recherchieren</button></form>
     <a class="knopf" href="<?= Fmt::h(url('zielgruppen') . '?land=' . $z['land']) ?>">‹ Alle in <?= Fmt::h(MkLand::name((string) $z['land'])) ?></a>
   </div>
@@ -66,12 +66,13 @@ require __DIR__ . '/mk_stil.php';
 
 <?php if ($nutzbar): ?>
 <section class="block mk-start" id="kampagne" aria-labelledby="mk-start-titel">
-  <h2 id="mk-start-titel">Kampagne starten <span class="mehr">ein Klick · alles führt auf den kostenlosen Website-Check</span></h2>
+  <h2 id="mk-start-titel">Beiträge schreiben lassen <span class="mehr">ein Klick · Claude schreibt, du gibst frei, Vecom postet</span></h2>
   <?php if ($kampagneLaeuft): ?>
     <p style="margin:0;line-height:1.6">Claude schreibt gerade für diese Zielgruppe — oder der Auftrag wartet auf deinen PC. Die Entwürfe landen unter <a href="<?= Fmt::h(url('freigabe') . '?land=' . $z['land']) ?>">Freigeben</a>.</p>
   <?php else: ?>
   <form method="post" action="<?= Fmt::h(url('zielgruppen/' . (int) $z['id'])) ?>">
     <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_starten"><input type="hidden" name="id" value="<?= (int) $z['id'] ?>">
+    <details class="mk-mehr"><summary>Mehr: was genau, Thema, auch im anderen Land</summary>
     <div class="mk-start__wahl">
       <label class="mk-haken"><input type="checkbox" name="organisch" value="1" checked> Beiträge (Instagram, Facebook, Telegram)</label>
       <label class="mk-haken"><input type="checkbox" name="anzeigen" value="1" checked> Anzeigen (Meta und Google)</label>
@@ -80,7 +81,8 @@ require __DIR__ . '/mk_stil.php';
     </div>
     <div class="feld" style="margin:0"><label for="ks_thema">Thema <span class="mk-fein">(freiwillig — sonst wählt Claude aus Profil und Funden)</span></label>
       <input id="ks_thema" name="thema" maxlength="200" placeholder="<?= $z['land'] === 'DE' ? 'z. B. Online-Termine ohne Telefon · Google-Profil' : 'z. B. Airbnb-Gebühr ab Mitte Oktober · Nebensaison' ?>"></div>
-    <div><button class="knopf haupt">Kampagne starten</button></div>
+    </details>
+    <div><button class="knopf haupt">Beiträge schreiben lassen</button></div>
   </form>
   <ol class="mk-start__schritte">
     <li>Claude schreibt die Mischung: Beiträge, ein Karussell, einen Telegram-Beitrag, eine Meta- und eine Google-Anzeige mit Suchbegriffen und Ausschlüssen (etwa 5–15 Minuten über dein Claude-Abo).</li>

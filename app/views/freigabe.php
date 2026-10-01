@@ -75,7 +75,7 @@ require __DIR__ . '/mk_stil.php';
 <?php if ($x === null): ?>
   <div class="block">
     <h2>Alles durchgesehen in <?= Fmt::h($name) ?></h2>
-    <p style="margin:0 0 12px;max-width:70ch;line-height:1.6">Kein Entwurf wartet hier. Neue entstehen, wenn du bei einer freigegebenen Zielgruppe „Kampagne starten“ drückst.</p>
+    <p style="margin:0 0 12px;max-width:70ch;line-height:1.6">Kein Entwurf wartet hier. Neue entstehen mit „Diese Woche werben“ auf Start — oder bei einer Zielgruppe mit „Beiträge schreiben lassen“.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <?php if ((int) ($offen[$andere] ?? 0) > 0): ?><a class="knopf haupt" href="<?= Fmt::h(url('freigabe') . '?land=' . $andere) ?>">In <?= Fmt::h(MkLand::name($andere)) ?> warten Entwürfe</a><?php endif; ?>
       <a class="knopf" href="<?= Fmt::h(url('zielgruppen') . '?land=' . $land) ?>">Zu den Zielgruppen</a>

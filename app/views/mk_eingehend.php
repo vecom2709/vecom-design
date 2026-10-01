@@ -22,7 +22,7 @@ try { $ekLeads = (int) Db::wert("SELECT COUNT(*) FROM akq_meta_leads WHERE creat
       <p style="margin:0;font-size:13.5px">Stichwörter: <?= Fmt::h(implode(', ', array_keys($ekW))) ?> <span class="mk-fein">(dazu die aus den Zielgruppen)</span></p>
       <p style="margin:0;font-size:13.5px">Letzte 30 Tage: <b><?= (int) $ekZ['beantwortet'] ?></b> beantwortet<?= $ekZ['fehler'] > 0 ? ' · <span class="marke2 warnung">' . (int) $ekZ['fehler'] . ' gescheitert</span>' : '' ?></p>
       <?php if (!$ekBereit): ?>
-        <p class="mk-fein" style="margin:0">Zuerst die Facebook-Seite verbinden: <a href="<?= Fmt::h(url('akquise/regeln') . '#wege') ?>">Akquise › Regeln › Facebook-Seite und Instagram</a>.</p>
+        <p class="mk-fein" style="margin:0">Zuerst die Facebook-Seite verbinden: <a href="<?= Fmt::h(url('kanaele') . '#meta') ?>">oben auf dieser Seite</a>.</p>
       <?php else: ?>
         <div style="display:flex;gap:8px;flex-wrap:wrap">
           <form method="post" action="<?= Fmt::h(url('kampagnen')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kommentar_schalten"><input type="hidden" name="an" value="<?= $ekAn ? '0' : '1' ?>">

@@ -578,7 +578,7 @@ if ($post) {
                     $kaR = MkKommentar::abonnieren();
                     $_SESSION[$kaR['ok'] ? 'gut' : 'fehler'] = $kaR['ok'] ? 'Die Seite meldet Kommentare jetzt an Vecom (Facebook). Für Instagram einmal das Feld „comments“ in der Meta-App abonnieren — Anleitung darunter.' : 'Nicht geklappt: ' . $kaR['grund'];
                 }
-                weiter('kampagnen#kommentar');
+                weiter('kanaele#kommentar');
 
             /* S6 (01.10.2026): Landingpage je Zielgruppe — schreiben lassen, online stellen, offline nehmen */
             case 'seite_schreiben':
@@ -611,7 +611,7 @@ if ($post) {
                 $_SESSION[is_int($wwR) ? 'gut' : 'fehler'] = is_int($wwR)
                     ? MkLand::name($wwLand) . ': Diese Woche wird für „' . (string) $wwZ['titel'] . '“ geworben. Claude schreibt jetzt, die Bilder folgen; sind sie fertig, kommt die Telegram-Nachricht — Stück für Stück Ja oder Nein.'
                     : $wwR;
-                weiter((string) ($_POST['zurueck'] ?? '') === 'marketing' ? 'marketing' : 'freigabe');
+                weiter(match ((string) ($_POST['zurueck'] ?? '')) { 'marketing', 'mkstart' => 'marketing', 'zahlen' => 'zahlen', default => 'freigabe' });
 
             case 'kampagne_starten':
                 require_once __DIR__ . '/src/MkAuftrag.php';
@@ -851,7 +851,8 @@ if ($post) {
                 };
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? match ($tat) {
                     'inhalt_speichern' => 'Gespeichert.',
-                    'inhalt_freigeben' => 'Freigegeben — der eigene Link steht unten. Kopieren, posten, dann „Veröffentlicht“ drücken.',
+                    /* G3 (01.10.2026): Freigeben plant überall gleich — wie Stapel und Telegram. */
+                    'inhalt_freigeben' => (static function () use ($miId): string { require_once __DIR__ . '/src/MkVeroeffentlichen.php'; return MkVeroeffentlichen::nachFreigabe($miId); })(),
                     'inhalt_veroeffentlicht' => 'Als veröffentlicht vermerkt. Klicks und Leads siehst du in der Kampagne.',
                     default => 'Verworfen.',
                 };
@@ -885,6 +886,51 @@ if ($post) {
                 $f = MkKampagne::aendern($mkId, $_POST);
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
                 weiter('kampagnen/' . $mkId);
+
+            /* P1/P2 (01.10.2026): Kanäle verbinden */
+            case 'kanal_pruefen':
+                require_once __DIR__ . '/src/MkKanaele.php';
+                $kzR = MkKanaele::pruefen((string) ($_POST['kanal'] ?? ''));
+                $_SESSION[$kzR['ok'] ? 'gut' : 'fehler'] = $kzR['text'];
+                weiter('kanaele');
+
+            case 'kanal_meta_speichern':
+                require_once __DIR__ . '/src/MetaSeite.php';
+                MetaSeite::speichern($_POST);
+                Events::pruefspur('meta_einstellungen', 'settings', null, [], ['seite_id' => MetaSeite::einstellungen()['seite_id'], 'ig_id' => MetaSeite::einstellungen()['ig_id']]);
+                $_SESSION['gut'] = 'Gespeichert. Jetzt „Verbindung prüfen“ drücken.';
+                weiter('kanaele');
+
+            case 'inhalt_neu_versuchen':
+                require_once __DIR__ . '/src/MkVeroeffentlichen.php';
+                $kzE = MkVeroeffentlichen::jetzt((int) ($_POST['id'] ?? 0));
+                $_SESSION[$kzE['ok'] ? 'gut' : 'fehler'] = $kzE['ok'] ? (!empty($kzE['wartet']) ? 'Instagram verarbeitet das Video noch — der nächste Lauf veröffentlicht es.' : 'Veröffentlicht.') : 'Wieder nicht geklappt: ' . $kzE['grund'];
+                weiter('kanaele');
+
+            /* K1–K3 (01.10.2026): Kampagnen löschen, ins Archiv, leere aufräumen */
+            case 'kampagne_loeschen':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $mkName = (string) (MkKampagne::laden($mkId)['name'] ?? '');
+                $f = MkKampagne::loeschen($mkId, ($_POST['endgueltig'] ?? '') === '1');
+                if ($f === 'zahlen') { $_SESSION['fehler'] = 'An dieser Kampagne hängen Besuche, Kosten oder Beiträge. Unten wählen: ins Archiv (Zahlen bleiben) oder endgültig löschen.'; weiter('kampagnen/' . $mkId . '#loeschen'); }
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Kampagne „' . $mkName . '“ gelöscht.';
+                weiter($f === null ? 'kampagnen' : 'kampagnen/' . $mkId . '#loeschen');
+
+            case 'kampagne_archivieren':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                $mkId = (int) ($_POST['id'] ?? 0);
+                $mkZur = ($_POST['zurueck'] ?? '') === '1';
+                $f = MkKampagne::archivieren($mkId, $mkZur);
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($mkZur ? 'Wieder aktiv — der Link zählt wieder.' : 'Im Archiv. Die Zahlen bleiben, der Link führt still auf die Startseite.');
+                weiter(($_POST['zurueck_zu'] ?? '') === 'liste' ? 'kampagnen' : 'kampagnen/' . $mkId);
+
+            case 'kampagnen_aufraeumen':
+                require_once __DIR__ . '/src/MkKampagne.php';
+                require_once __DIR__ . '/src/MkLand.php';
+                $mkN = MkKampagne::aufraeumen(MkLand::wahl());
+                $_SESSION['gut'] = $mkN > 0 ? $mkN . ' leere Kampagnen entfernt (kein Klick, keine Kosten, kein Beitrag).' : 'Nichts aufzuräumen.';
+                weiter('kampagnen');
 
             case 'werbemittel_anlegen':
                 require_once __DIR__ . '/src/MkKampagne.php';
@@ -4760,7 +4806,14 @@ switch ($route) {
         ]);
         break;
 
-    case 'marketing':   // Marketing · Überblick (Growth Engine Phase 2, 30.09.2026, Uwe: „Alles ja“)
+    case 'marketing':   // G1 (01.10.2026, Uwe: Ja): Marketing beginnt mit vier Schritten je Land
+        require_once __DIR__ . '/src/MkStart.php';
+        require_once __DIR__ . '/src/MkKanaele.php';
+        $msLand = MkLand::wahl();
+        ansicht('mk_start', ['land' => $msLand, 'st' => MkStart::schritte($msLand), 'fehl' => MkKanaele::fehlgeschlagen($msLand)]);
+        break;
+
+    case 'zahlen':   // Marketing · Zahlen (Growth Engine Phase 2, 30.09.2026; seit G1 unter „Zahlen“)
         require_once __DIR__ . '/src/MkKennzahlen.php';
         $mkZ = MkKennzahlen::zeitraum((string) ($_GET['z'] ?? '30'), (string) ($_GET['von'] ?? ''), (string) ($_GET['bis'] ?? ''));
         ansicht('marketing', [
@@ -4804,6 +4857,15 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
 <script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
         exit;
 
+    case 'kanaele':   // P1 (01.10.2026): Kanäle verbinden — Stand, Prüfen, was nicht rausging
+        require_once __DIR__ . '/src/MkKanaele.php';
+        require_once __DIR__ . '/src/MetaSeite.php';
+        require_once __DIR__ . '/src/MkLand.php';
+        ansicht('kanaele', ['stand' => MkKanaele::stand(), 'fehl' => MkKanaele::fehlgeschlagen(MkLand::wahl()), 'geplant' => MkKanaele::geplant(),
+            'me' => MetaSeite::einstellungen(),
+            'handy' => sicher(static function (): array { if (!is_file(__DIR__ . '/src/MkHandy.php')) { return ['bereit' => false, 'text' => '']; } require_once __DIR__ . '/src/MkHandy.php'; return MkHandy::stand(); }, ['bereit' => false, 'text' => ''])]);
+        break;
+
     case 'verzeichnisse':   // Telegram Growth Engine T5 (01.10.2026, Uwe: „ja“) — Verzeichnisse und Kooperationen
         require_once __DIR__ . '/src/Verzeichnisse.php';
         require_once __DIR__ . '/src/Telegram.php';
@@ -4836,6 +4898,7 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
                 'werbemittel' => MkKampagne::werbemittel($id), 'kosten' => MkKampagne::kosten($id),
                 'kostenZeitraum' => MkKampagne::kostenJe($mkZ[0], $mkZ[1])[$id] ?? 0,
                 'belege' => MkKampagne::freieBelege(), 'kontakte' => MkKampagne::kontakte($id),
+                'nutzung' => MkKampagne::nutzung($id),
                 'tgKampagne' => (static function () use ($mkK, $mkZ, $id) {   // Telegram Growth Engine T1
                     require_once __DIR__ . '/src/TelegramWachstum.php';
                     return ['bot' => TelegramWachstum::botLink($mkK), 'kanal' => Telegram::kanal(), 'einladung' => TelegramWachstum::einladung($id),
@@ -4846,7 +4909,8 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
         }
         require_once __DIR__ . '/src/MkLand.php';
         $mkF = ['plattform' => (string) ($_GET['plattform'] ?? ''), 'status' => (string) ($_GET['status'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'land' => MkLand::wahl()];
-        ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF), 'offen' => MkLand::offen()]);
+        ansicht('kampagnen', ['z' => $mkZ, 'f' => $mkF, 'l' => MkKampagne::liste($mkZ[0], $mkZ[1], $mkF), 'offen' => MkLand::offen(),
+            'leereZahl' => count(sicher(static fn() => MkKampagne::leere($mkF['land']), []))]);
         break;
 
     case 'zielgruppen':   // Marketing-Studio 1 und 5: Zielgruppen und Recherche auf einer Seite, je Land getrennt

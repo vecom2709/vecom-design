@@ -193,11 +193,13 @@ $reiter = [
      werden“): eine Seite statt zwei, und die Reihenfolge ist der Weg —
      recherchieren, schreiben lassen, als Kampagne messen. */
   'marketing' => [
-    ['marketing', 'Überblick', 'marketing'],
+    ['marketing', 'Start', 'marketing'],
+    ['zahlen', 'Zahlen', 'zahlen'],
     ['zielgruppen', 'Zielgruppen & Recherche', 'zielgruppen'],
     ['freigabe', 'Freigeben', 'freigabe'],
     ['inhalte', 'Inhalte', 'inhalte'],
     ['kampagnen', 'Kampagnen', 'kampagnen'],
+    ['kanaele', 'Kanäle verbinden', 'kanaele'],
     ['telegram', 'Telegram', 'telegram'],
     ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],
   ],
@@ -519,10 +521,12 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       require_once __DIR__ . '/../src/MkLand.php';
       $mkOben = MkLand::wahl(); $mkObenOffen = MkLand::offen();
       $mkGruppen = [
-        ['Heute', ['marketing' => 'Zahlen', 'freigabe' => 'Freigeben']],
+        /* G1/G2 (01.10.2026): Start mit den vier Schritten vorn, dann der Weg — Zielgruppen, Beiträge, Kanäle — und hinten die Zahlen. */
+        ['Start', ['marketing' => 'Start']],
         ['Zielgruppen', ['zielgruppen' => 'Zielgruppen']],
-        ['Beiträge & Kampagnen', ['inhalte' => 'Beiträge', 'kampagnen' => 'Kampagnen']],
-        ['Kanäle', ['telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']],
+        ['Beiträge', ['freigabe' => 'Freigeben', 'inhalte' => 'Alle Beiträge']],
+        ['Kanäle', ['kanaele' => 'Verbinden & Posten', 'telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']],
+        ['Zahlen', ['zahlen' => 'Überblick', 'kampagnen' => 'Links & Kampagnen']],
       ];
       $mkSchl = array_column($reiter['marketing'], 2, 0); ?>
       <nav class="mk-oben mk-oben--<?= strtolower($mkOben) ?>" aria-label="Land wählen — gilt für das ganze Marketing">

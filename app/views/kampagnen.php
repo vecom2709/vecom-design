@@ -33,7 +33,7 @@ require __DIR__ . '/mk_stil.php';
 ?>
 <div class="mk-kopf">
   <div>
-    <h1>Kampagnen</h1>
+    <h1>Links &amp; Kampagnen</h1>
     <div class="weg"><?= Fmt::h($datum($von)) ?><?= $von !== $bis ? ' – ' . Fmt::h($datum($bis)) : '' ?> · ein eigener Link je Beitrag, Anzeige oder Flyer — jeder Klick, Lead und Euro landet bei seiner Kampagne</div>
   </div>
   <a class="knopf haupt" href="#neu">Neue Kampagne</a>
@@ -41,7 +41,7 @@ require __DIR__ . '/mk_stil.php';
 
 <?php require_once dirname(__DIR__) . '/src/MkLand.php';
   $mkLand = (string) ($f['land'] ?? 'IT'); $mkLandSeite = 'kampagnen'; $mkLandOffen = $offen ?? MkLand::offen(); /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
-<?php require __DIR__ . '/mk_eingehend.php'; ?>
+<?php /* „Kunden, die sich selbst melden“ steht seit G2 (01.10.2026) unter Kanäle › Verbinden & Posten. */ ?>
 
 <?php if (!$leer): ?>
 <form class="mk-filter" method="get" action="<?= Fmt::h(url('kampagnen')) ?>">
@@ -69,19 +69,23 @@ require __DIR__ . '/mk_stil.php';
   <div class="karte"><h3>Umsatz</h3><div class="wert"><?= Fmt::h($geld($s['umsatz'])) ?></div><div class="neben">Kosten <?= Fmt::h($geld($s['kosten'])) ?> · ROAS <?= Fmt::h($roas($s['umsatz'], $s['kosten'])) ?> · pro Lead <?= Fmt::h($jeLead($s['kosten'], $s['leads'])) ?></div></div>
 </div>
 
-<div class="block">
-  <h2>Alle Kampagnen <span class="mehr"><?= count($l['kampagnen']) ?></span></h2>
-  <?php if (!$l['kampagnen']): ?>
-    <p class="leise" style="margin:0">Keine Kampagne passt zu diesem Filter.</p>
-  <?php else: ?>
+<?php
+  /* K3: Laufendes oben, Beendetes eingeklappt im Archiv (außer der Filter fragt ausdrücklich nach „Beendet“). */
+  $mkArchiv = $f['status'] === 'beendet' ? [] : array_values(array_filter($l['kampagnen'], static fn($k) => $k['status'] === 'beendet'));
+  $mkLaufend = $f['status'] === 'beendet' ? $l['kampagnen'] : array_values(array_filter($l['kampagnen'], static fn($k) => $k['status'] !== 'beendet'));
+  $mkTabelle = static function (array $zeilen) use ($zahl, $geld, $roas, $jeLead, $statusMarke, $branchen, $lauf, $datum, $budgetZeile, $zk, $von, $bis): void { ?>
   <div class="tabellenrahmen">
     <table class="mk-tab">
       <thead><tr><th>Kampagne</th><th>Plattform</th><th>Status</th><th class="num">Ziel</th><th class="num">Klicks</th><th class="num">Leads</th><th class="num">Kunden</th><th class="num">Umsatz</th><th class="num">Kosten / Budget</th><th class="num">pro Lead</th></tr></thead>
       <tbody>
-        <?php foreach ($l['kampagnen'] as $k): ?>
+        <?php foreach ($zeilen as $k): ?>
           <tr>
             <td class="mk-name"><a href="<?= Fmt::h(url('kampagnen/' . (int) $k['id']) . ($zk !== '30' ? '?' . http_build_query(['z' => $zk, 'von' => $zk === 'frei' ? $von : null, 'bis' => $zk === 'frei' ? $bis : null]) : '')) ?>"><b><?= Fmt::h($k['name']) ?></b></a><br><span class="mk-code">/k/<?= Fmt::h($k['code']) ?><?= (int) $k['werbemittel'] > 0 ? ' · ' . (int) $k['werbemittel'] . ' Werbemittel' : '' ?></span>
-              <?php if ($k['branche'] !== '' || $k['cta'] !== ''): ?><br><span class="mk-fein"><?= Fmt::h(implode(' · ', array_filter([$branchen[$k['branche']] ?? '', $k['cta'] === 'eigen' ? '„' . $k['cta_text'] . '“' : (MkKampagne::CTA[$k['cta']] ?? '')]))) ?></span><?php endif; ?></td>
+              <?php if ($k['branche'] !== '' || $k['cta'] !== ''): ?><br><span class="mk-fein"><?= Fmt::h(implode(' · ', array_filter([$branchen[$k['branche']] ?? '', $k['cta'] === 'eigen' ? '„' . $k['cta_text'] . '“' : (MkKampagne::CTA[$k['cta']] ?? '')]))) ?></span><?php endif; ?>
+              <div class="mk-aktion" style="display:flex;gap:6px;margin-top:6px">
+              <form method="post" action="<?= Fmt::h(url('kampagnen')) ?>" style="margin:0;display:inline"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_archivieren"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><input type="hidden" name="zurueck_zu" value="liste"><?php if ($k['status'] === 'beendet'): ?><input type="hidden" name="zurueck" value="1"><button class="knopf klein" title="Link zählt wieder">Aktivieren</button><?php else: ?><button class="knopf klein" title="Beenden: Zahlen bleiben, Link führt auf die Startseite">Archiv</button><?php endif; ?></form>
+              <form method="post" action="<?= Fmt::h(url('kampagnen')) ?>" style="margin:0;display:inline" onsubmit="return confirm('Kampagne „<?= Fmt::h(addslashes((string) $k['name'])) ?>“ löschen?')"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_loeschen"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><button class="knopf klein" title="Löschen">Löschen</button></form>
+            </div></td>
             <td><?= Fmt::h(MkKampagne::PLATTFORMEN[$k['plattform']] ?? $k['plattform']) ?></td>
             <td><?= $statusMarke((string) $k['status']) ?><?php if ($k['laufzeit'] !== 'offen'): ?><br><span class="mk-code"><?= Fmt::h($lauf[$k['laufzeit']] . ($k['laufzeit'] === 'vor' ? $datum((string) $k['start_am']) : ($k['laufzeit'] === 'laeuft' && $k['ende_am'] ? ' bis ' . $datum((string) $k['ende_am']) : ''))) ?></span><?php endif; ?></td>
             <td class="num"><b><?= $zahl((int) $k['zielwert']) ?></b><br><span class="mk-code"><?= Fmt::h(MkKampagne::ZIEL_ARTEN[$k['ziel_art']][0] ?? '') ?></span></td>
@@ -91,13 +95,32 @@ require __DIR__ . '/mk_stil.php';
             <td class="num"><?= Fmt::h($geld((int) $k['umsatz'])) ?><?= (int) $k['kosten'] > 0 ? '<br><span class="mk-code">ROAS ' . Fmt::h($roas((int) $k['umsatz'], (int) $k['kosten'])) . '</span>' : '' ?></td>
             <td class="num"><?= (int) $k['kosten'] > 0 ? Fmt::h($geld((int) $k['kosten'])) : '—' ?><?= $k['budget'] ? '<br>' . $budgetZeile($k['budget']) : '' ?></td>
             <td class="num"><?= Fmt::h($jeLead((int) $k['kosten'], (int) $k['leads'])) ?></td>
+            
           </tr>
         <?php endforeach; ?>
       </tbody>
     </table>
   </div>
+<?php }; ?>
+<div class="block">
+  <h2>Laufende Kampagnen <span class="mehr"><?= count($mkLaufend) ?></span></h2>
+  <?php if (!$mkLaufend): ?>
+    <p class="leise" style="margin:0">Keine laufende Kampagne passt zu diesem Filter.</p>
+  <?php else: $mkTabelle($mkLaufend); endif; ?>
+  <?php if (($leereZahl ?? 0) > 0): ?>
+    <form method="post" action="<?= Fmt::h(url('kampagnen')) ?>" style="margin:12px 0 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap" onsubmit="return confirm('<?= (int) $leereZahl ?> leere Kampagnen entfernen?')">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagnen_aufraeumen">
+      <button class="knopf">Leere Kampagnen aufräumen (<?= (int) $leereZahl ?>)</button>
+      <span class="mk-fein">kein Klick, keine Kosten, kein Beitrag, älter als zwei Tage</span>
+    </form>
   <?php endif; ?>
 </div>
+<?php if ($mkArchiv): ?>
+<details class="block" id="archiv">
+  <summary><h2 style="display:inline">Archiv <span class="mehr"><?= count($mkArchiv) ?> beendet · Zahlen bleiben erhalten</span></h2></summary>
+  <div style="margin-top:12px"><?php $mkTabelle($mkArchiv); ?></div>
+</details>
+<?php endif; ?>
 <?php if (count($l['kampagnen']) > 1): ?>
 <div class="block">
   <h2>Vergleich <span class="mehr">dieselben Zahlen nach Branche, Handlungsaufruf und Plattform</span></h2>

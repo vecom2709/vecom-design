@@ -275,8 +275,9 @@ final class Cron
                         $wa = ['whatsapp_stand' => WhatsAppCloud::standAbrufen()];
                     }
                 } catch (Throwable $e) { $wa = ['whatsapp_fehler' => mb_substr($e->getMessage(), 0, 120)]; }
-                /* Beiträge (28.09.2026, Z4): Montag und Donnerstag ein Entwurf -- gepostet wird erst nach Uwes Klick. */
-                try { require_once __DIR__ . '/MetaSeite.php'; if (MetaSeite::planen() !== null) { $wa['beitrag_entwurf'] = 1; } } catch (Throwable $e) { $wa['beitrag_fehler'] = mb_substr($e->getMessage(), 0, 120); }
+                /* Beiträge (28.09.2026, Z4) — seit 01.10.2026 (G4, Uwe: „ein Facebook-Weg“) keine eigenen Entwürfe mehr:
+                   Beiträge entstehen nur noch im Marketing (Start › Diese Woche werben, Autopilot) und gehen über
+                   MkVeroeffentlichen raus. So postet nie etwas doppelt. Alte Entwürfe unter Akquise › Beiträge bleiben bedienbar. */
                 /* Ausführliche Berichte (28.09.2026, A1–A10): für Betriebe mit Bereich nachholen, alte anonyme löschen. */
                 try { require_once __DIR__ . '/WebBericht.php'; $wbN = WebBericht::nachholen(2); if ($wbN > 0) { $wa['berichte'] = $wbN; }
                       if ((int) date('G') === 4) { WebBericht::aufraeumen(); } } catch (Throwable $e) { }

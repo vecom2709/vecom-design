@@ -109,6 +109,11 @@ final class TelegramMarketing
             return self::zeigeNaechsten($chat, $land, 0, $f === null ? '❌ „' . $x['titel'] . '“ verworfen.' : '⚠️ ' . $f);
         }
         if ($tat === 's') { return self::zeigeNaechsten($chat, $land, (int) $x['id'], '⏭ Später.'); }
+        if ($tat === 'p') {   // P3: Uwe hat das Handy-Stück selbst gepostet
+            $f = MkInhalt::veroeffentlicht((int) $x['id']);
+            self::text($chat, $f === null ? '✅ „' . self::h((string) $x['titel']) . '“ als gepostet vermerkt — Klicks zählen über den eigenen Link.' : '⚠️ ' . self::h($f));
+            return 'handy_gepostet';
+        }
         return 'unbekannt';
     }
 

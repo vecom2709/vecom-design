@@ -19,7 +19,7 @@ $geld = static fn(int $c): string => Fmt::geld($c);
 $zahl = static fn(int $x): string => number_format($x, 0, ',', '.');
 $pz = static fn(?float $x, int $st = 1): string => $x === null ? '—' : number_format($x, $st, ',', '.') . ' %';
 $datum = static fn(string $t): string => date('d.m.Y', strtotime($t));
-$hier = static fn(array $mehr = []): string => url('marketing') . '?' . http_build_query(array_filter(array_merge(
+$hier = static fn(array $mehr = []): string => url('zahlen') . '?' . http_build_query(array_filter(array_merge(
     ['z' => $zk, 'von' => $zk === 'frei' ? $von : null, 'bis' => $zk === 'frei' ? $bis : null, 'sicht' => $chef ? 'chef' : null], $mehr),
     static fn($v) => $v !== null && $v !== ''));
 /* Veränderung zum Vergleichszeitraum: Pfeil, Zahl, Farbe. Bei Kosten ist „mehr“ nicht gut. */
@@ -70,7 +70,7 @@ $sozial = array_intersect_key($a['plattformen'], array_flip(MkKennzahlen::SOZIAL
 $quellen = array_diff_key($a['plattformen'], ['Direkt / unbekannt' => 0]);
 ?>
 <?php require __DIR__ . '/mk_stil.php'; ?>
-<?php $wwZurueck = 'marketing'; require __DIR__ . '/mk_woche.php'; ?>
+<?php /* G2: „Diese Woche werben“ steht seit 01.10.2026 auf Start (Schritt 2) — hier nur Zahlen. */ ?>
 
 <div class="mk-kopf">
   <div>
@@ -83,7 +83,7 @@ $quellen = array_diff_key($a['plattformen'], ['Direkt / unbekannt' => 0]);
   </nav>
 </div>
 
-<form class="mk-filter" method="get" action="<?= Fmt::h(url('marketing')) ?>">
+<form class="mk-filter" method="get" action="<?= Fmt::h(url('zahlen')) ?>">
   <nav class="mk-chips" aria-label="Zeitraum">
     <?php foreach (MkKennzahlen::ZEITRAEUME as $zs => $zw): if ((string) $zs === 'frei') { continue; } ?>
       <a href="<?= Fmt::h($hier(['z' => (string) $zs, 'von' => null, 'bis' => null])) ?>"<?= $zk === (string) $zs ? ' aria-current="page"' : '' ?>><?= Fmt::h($zw) ?></a>

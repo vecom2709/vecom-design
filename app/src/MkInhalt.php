@@ -41,7 +41,7 @@ final class MkInhalt
         'google_anzeige' => ['Google-Suchanzeige', 'bezahlt', ['google'], 'anzeige'],
     ];
     /** Plattformen, die man beim Auftrag wählen kann. */
-    public const PLATTFORMEN = ['instagram', 'facebook', 'tiktok', 'linkedin', 'telegram', 'google'];
+    public const PLATTFORMEN = ['instagram', 'facebook', 'tiktok', 'linkedin', 'telegram', 'google', 'youtube'];
     /** Wo ein Link im Text klickbar ist — sonst gehört er in Bio, Sticker oder Knopf. */
     public const LINK_IM_TEXT = ['facebook', 'telegram', 'linkedin', 'threads'];
 

@@ -250,3 +250,25 @@ require __DIR__ . '/mk_stil.php';
     <div class="breit"><button class="knopf">Einstellungen speichern</button></div>
   </form>
 </details>
+
+<?php $nu = $nutzung ?? MkKampagne::nutzung($id); ?>
+<div class="block" id="loeschen">
+  <h2>Beenden oder löschen</h2>
+  <?php if ($nu['leer']): ?>
+    <p style="margin:0 0 12px;max-width:70ch;line-height:1.6">An dieser Kampagne hängt nichts — kein Klick, keine Kosten, kein Beitrag. Sie kann ohne Folgen weg.</p>
+  <?php else: ?>
+    <p style="margin:0 0 12px;max-width:70ch;line-height:1.6">Daran hängen <?= Fmt::h(implode(', ', array_filter([
+        $nu['besuche'] ? $n($nu['besuche']) . ' Besuche' : '', $nu['kosten'] ? $n($nu['kosten']) . ' Kosten-Einträge' : '',
+        $nu['gepostet'] ? $n($nu['gepostet']) . ' veröffentlichte Beiträge' : '', $nu['geplant'] ? $n($nu['geplant']) . ' freigegebene, noch nicht gepostete Beiträge' : '',
+        $nu['ereignisse'] ? $n($nu['ereignisse']) . ' gemessene Schritte' : '']))) ?>.
+      <b>Ins Archiv</b> behält alle Zahlen (empfohlen). <b>Endgültig löschen</b> entfernt Werbemittel, Kosten-Zuordnungen (der Beleg bleibt unter Ausgaben) und Tageszahlen; Besuche und Beiträge bleiben, nur ohne Kampagne. Bereits gepostete Links führen danach still auf die Startseite.</p>
+  <?php endif; ?>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="post" action="<?= Fmt::h(url('kampagnen/' . $id)) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_archivieren"><input type="hidden" name="id" value="<?= $id ?>"><?php if ($k['status'] === 'beendet'): ?><input type="hidden" name="zurueck" value="1"><button class="knopf">Wieder aktivieren</button><?php else: ?><button class="knopf<?= $nu['leer'] ? '' : ' haupt' ?>">Ins Archiv (beenden)</button><?php endif; ?></form>
+    <?php if ($nu['geplant'] === 0): ?>
+    <form method="post" action="<?= Fmt::h(url('kampagnen/' . $id)) ?>" style="margin:0" onsubmit="return confirm('<?= $nu['leer'] ? 'Kampagne löschen?' : 'Endgültig löschen? Das lässt sich nicht rückgängig machen.' ?>')"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kampagne_loeschen"><input type="hidden" name="id" value="<?= $id ?>"><?php if (!$nu['leer']): ?><input type="hidden" name="endgueltig" value="1"><?php endif; ?><button class="knopf<?= $nu['leer'] ? ' haupt' : '' ?>"><?= $nu['leer'] ? 'Löschen' : 'Endgültig löschen' ?></button></form>
+    <?php else: ?>
+    <span class="mk-fein" style="align-self:center">Löschen geht, sobald die freigegebenen Beiträge gepostet oder verworfen sind.</span>
+    <?php endif; ?>
+  </div>
+</div>

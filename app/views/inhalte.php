@@ -40,7 +40,8 @@ require __DIR__ . '/mk_stil.php';
 
 <?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
-<section class="block mk-auftrag" id="auftraege" aria-labelledby="mk-schreib-titel">
+<details class="block mk-auftrag mk-mehr" id="auftraege"><summary style="cursor:pointer"><b>Mehr: Beiträge frei zusammenstellen</b> <span class="mk-fein">— Plattformen, Anzahl und Thema selbst wählen. Für den Alltag reicht „Diese Woche werben“ auf Start.</span></summary>
+<section aria-labelledby="mk-schreib-titel" style="margin-top:12px">
   <div class="mk-auftrag__kopf">
     <h2 id="mk-schreib-titel">Claude Inhalte schreiben lassen</h2>
     <span class="mk-ampel <?= $pc['pc_wach'] ? 'gruen' : '' ?>"><i></i><?= $pc['pc_wach'] ? 'Dein PC ist an — holt Aufträge alle 5 Minuten ab' : ($pc['pc_alter'] === null ? 'Dein PC hat sich noch nie gemeldet' : 'Dein PC ist aus oder schläft — der Auftrag wartet, bis er wieder an ist') ?></span>
@@ -75,6 +76,7 @@ require __DIR__ . '/mk_stil.php';
   <?php endif; ?>
   <?php $mkSeite = 'inhalte'; require __DIR__ . '/mk_auftraege.php'; ?>
 </section>
+</details>
 
 <?php if (!empty($vorherNachher)): /* Marketing-Studio 9 */ ?>
 <section class="block mk-start" id="vorher-nachher" aria-labelledby="mk-vn-titel">

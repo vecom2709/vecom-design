@@ -9,10 +9,12 @@ $btFarbe = ['entwurf' => 'var(--cyan)', 'gepostet' => 'var(--gruen)', 'fehler' =
 $btWort = ['entwurf' => 'wartet auf dich', 'gepostet' => 'gepostet', 'fehler' => 'nicht geklappt', 'verworfen' => 'verworfen'];
 ?>
 <div class="kopf"><div><h1>Beiträge</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Zweimal die Woche liegt hier ein fertiger Beitrag für deine Facebook-Seite und Instagram: ein Satz als Bild, ein kurzer Text,
-    der Link auf die kostenlose Analyse. Nichts geht von selbst raus — erst dein Klick auf „Freigeben &amp; posten“.</p></div></div>
+  <p style="color:var(--leise);font-size:13px;margin-top:6px">Ältere Entwürfe für Facebook und Instagram. Neue Beiträge entstehen im Marketing.</p></div></div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
+
+<div class="hinweis" style="margin:0 0 16px;line-height:1.6"><b>Beiträge laufen jetzt über Marketing.</b> Seit 01.10.2026 entstehen hier keine neuen Entwürfe mehr — Claude schreibt die Beiträge der Woche im Marketing, du gibst sie frei, Vecom postet sie zur Sendezeit auf Facebook, Instagram und Telegram. So postet nichts doppelt. Alte Entwürfe unten kannst du noch posten oder verwerfen.
+  <a class="knopf haupt" style="margin-left:8px" href="<?= Fmt::h(url('marketing')) ?>">Zum Marketing</a></div>
 
 <style>
   .bt-liste{display:grid;gap:14px}

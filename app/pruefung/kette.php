@@ -17411,11 +17411,18 @@ pruefe('Planen: nur Zukunft (5 Minuten bis 60 Tage), nur was automatisch geht; d
     && MkInhalt::laden($mvFb2)['status'] === 'freigegeben');
 Db::run('UPDATE mk_inhalte SET geplant_am = NOW() - INTERVAL 1 MINUTE WHERE id = ?', [$mvFb2]);
 $mvMetaFehler = true;
+$mvF1 = MkVeroeffentlichen::faellige();
+$mvX4 = MkInhalt::laden($mvFb2);
+pruefe('P2: erster Fehler beim geplanten Posten — kein Alarm, zweiter Versuch in einer Stunde',
+    $mvF1['wieder'] === 1 && $mvF1['fehler'] === 0 && $mvX4['geplant_am'] !== null && strtotime((string) $mvX4['geplant_am']) > time() + 3000
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalt_post_fehler'", [], 0) === 0);
+Db::run('UPDATE mk_inhalte SET geplant_am = NOW() - INTERVAL 1 MINUTE WHERE id = ?', [$mvFb2]);
 $mvF = MkVeroeffentlichen::faellige();
 $mvX5 = MkInhalt::laden($mvFb2);
-pruefe('Fehler beim geplanten Posten: Grund steht am Inhalt, Planung aufgehoben, Uwe bekommt eine Meldung',
+pruefe('Fehler beim geplanten Posten (auch der zweite Versuch): Grund steht am Inhalt, Planung aufgehoben, Uwe bekommt eine Meldung mit Weg zu „Kanäle verbinden“',
     $mvF['fehler'] === 1 && $mvX5['status'] === 'freigegeben' && $mvX5['geplant_am'] === null && str_contains((string) $mvX5['post_fehler'], 'Permissions error')
-    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalt_post_fehler'", [], 0) >= 1);
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'inhalt_post_fehler' AND link = 'kanaele'", [], 0) >= 1
+    && !str_contains((string) $mvX5['post_ids'], 'versuche'));
 $mvMetaFehler = false;
 pruefe('Planung aufheben geht mit leerem Zeitpunkt', MkVeroeffentlichen::planen($mvFb2, date('Y-m-d\TH:i', time() + 7200)) === null
     && MkVeroeffentlichen::planen($mvFb2, '') === null && MkInhalt::laden($mvFb2)['geplant_am'] === null);
@@ -18322,9 +18329,10 @@ pruefe('K1: Migration 134 trägt die schon vorhandenen Fälle nach (ohne Doppelt
     str_contains((string) file_get_contents($wurzel . '/migrations/134_anfrage_aus_einstieg.sql'), 'NOT EXISTS (SELECT 1 FROM anfragen a WHERE a.customer_id = c.id)'));
 /* M1/M3 */
 $m1L = (string) file_get_contents($wurzel . '/views/layout.php');
-pruefe('M1/M3: ein Land-Schalter oben für das ganze Marketing, vier Reiter (Heute · Zielgruppen · Beiträge & Kampagnen · Kanäle), keine Seite fällt weg',
-    str_contains($m1L, '<nav class="mk-oben mk-oben--') && str_contains($m1L, "['Beiträge & Kampagnen', ['inhalte' => 'Beiträge', 'kampagnen' => 'Kampagnen']]")
-    && str_contains($m1L, "['Kanäle', ['telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']]") && substr_count($m1L, "    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],") === 1
+pruefe('M1/M3 + G1: ein Land-Schalter oben für das ganze Marketing, fünf Reiter (Start · Zielgruppen · Beiträge · Kanäle · Zahlen), keine Seite fällt weg',
+    str_contains($m1L, '<nav class="mk-oben mk-oben--') && str_contains($m1L, "['Beiträge', ['freigabe' => 'Freigeben', 'inhalte' => 'Alle Beiträge']]")
+    && str_contains($m1L, "['Kanäle', ['kanaele' => 'Verbinden & Posten', 'telegram' => 'Telegram', 'verzeichnisse' => 'Verzeichnisse & Kooperationen']]") && substr_count($m1L, "    ['verzeichnisse', 'Verzeichnisse', 'verzeichnisse'],") === 1
+    && str_contains($m1L, "['Zahlen', ['zahlen' => 'Überblick', 'kampagnen' => 'Links & Kampagnen']]")
     && !str_contains((string) file_get_contents($wurzel . '/views/zielgruppen.php'), "require __DIR__ . '/mk_land.php';"));
 /* M2 + Z4 */
 Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_woche_%'");
@@ -18338,8 +18346,8 @@ pruefe('M2: ein Klick legt die Kampagne an (Paket, Telegram-Freigabe) und zählt
     is_int($m2R2) && (int) ($m2Z2['id'] ?? 0) === $m2Zg && !empty($m2P['paket']) && !empty($m2P['autopilot'])
     && (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'mk_autopilot_woche_DE'", [], '') === date('o-\WW'));
 $m2Idx = (string) file_get_contents($wurzel . '/index.php');
-pruefe('M2/Z4/Z2: Knopf „Diese Woche werben“ auf Zahlen und Freigeben; Freigeben der Zielgruppe startet die Kampagne; Recherche-Runde immer in beiden Ländern',
-    strpos($m2Idx, "case 'woche_werben':") > strpos($m2Idx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/views/marketing.php'), "require __DIR__ . '/mk_woche.php'")
+pruefe('M2/Z4/Z2: Knopf „Diese Woche werben“ auf Start (Schritt 2) und Freigeben; Freigeben der Zielgruppe startet die Kampagne; Recherche-Runde immer in beiden Ländern',
+    strpos($m2Idx, "case 'woche_werben':") > strpos($m2Idx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/src/MkStart.php'), "'woche_werben'")
     && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), "require __DIR__ . '/mk_woche.php'")
     && str_contains($m2Idx, "\$mzK = MkAuftrag::anlegenKampagne(\$mzId,") && str_contains($m2Idx, "(string) (\$_POST['branche'] ?? '') === '' ? [\$maLand, MkLand::andere(\$maLand)]"));
 Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_zielgruppen WHERE id = ?', [$m2Zg]); Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_woche_%'");
@@ -18450,6 +18458,74 @@ pruefe('S6: Beiträge der Zielgruppe führen auf die Seite; freigeben stößt di
 MkSeite::offline((int) $s6['id']);
 pruefe('S6: offline genommen ist die Seite nicht mehr erreichbar', MkSeite::zumAnzeigen('sito-parrucchiere') === null);
 Db::run('DELETE FROM mk_seiten'); Db::run('DELETE FROM mk_auftraege'); Db::run('DELETE FROM mk_zielgruppen WHERE id = ?', [$s6Zg]);
+
+/* ============================================================================
+   Marketing geführt, Kanäle, Kampagnen löschen (01.10.2026, Uwe: Ja zu G1–G4, P1–P4, K1–K3)
+   ============================================================================ */
+abschnitt('Marketing geführt, Kanäle verbinden, Kampagnen löschen');
+require_once $wurzel . '/src/MkStart.php';
+require_once $wurzel . '/src/MkKanaele.php';
+require_once $wurzel . '/src/MkHandy.php';
+require_once $wurzel . '/src/MkVeroeffentlichen.php';
+/* K1–K3 */
+$kxA = (int) MkKampagne::anlegen(['name' => 'Leer Test', 'plattform' => 'instagram', 'code' => 'kx-leer', 'land' => 'IT']);
+$kxB = (int) MkKampagne::anlegen(['name' => 'Mit Kosten', 'plattform' => 'facebook', 'code' => 'kx-kosten', 'land' => 'IT']);
+Db::insert('mk_kosten', ['kampagne_id' => $kxB, 'datum' => date('Y-m-d'), 'betrag_cents' => 500, 'notiz' => 'Test']);
+$kxI = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => 'facebook', 'titel' => 'Hängt an B', 'felder' => '{}', 'status' => 'veroeffentlicht', 'kampagne_id' => $kxB]);
+pruefe('K1: leere Kampagne verschwindet ohne Rückfrage; mit Kosten oder Beiträgen kommt die Rückfrage',
+    MkKampagne::nutzung($kxA)['leer'] && MkKampagne::loeschen($kxA) === null && MkKampagne::laden($kxA) === null
+    && MkKampagne::loeschen($kxB) === 'zahlen' && MkKampagne::laden($kxB) !== null);
+pruefe('K1: endgültig — Kampagne, Kosten-Zuordnung weg; der Beitrag bleibt, nur ohne Kampagne',
+    MkKampagne::loeschen($kxB, true) === null && MkKampagne::laden($kxB) === null
+    && (int) Db::wert('SELECT COUNT(*) FROM mk_kosten WHERE kampagne_id = ?', [$kxB], 0) === 0
+    && MkInhalt::laden($kxI) !== null && MkInhalt::laden($kxI)['kampagne_id'] === null);
+$kxC = (int) MkKampagne::anlegen(['name' => 'Geplant', 'plattform' => 'telegram', 'code' => 'kx-geplant', 'land' => 'IT']);
+$kxJ = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'Geht noch raus', 'felder' => '{}', 'status' => 'freigegeben', 'kampagne_id' => $kxC]);
+pruefe('K1: eingeplante Beiträge verhindern das Löschen (sonst posteten sie einen toten Link)', str_contains((string) MkKampagne::loeschen($kxC, true), 'freigegebene Beiträge'));
+Db::run('DELETE FROM mk_inhalte WHERE id IN (?, ?)', [$kxI, $kxJ]);
+$kxD = (int) MkKampagne::anlegen(['name' => 'Alt leer', 'plattform' => 'instagram', 'code' => 'kx-alt', 'land' => 'IT']);
+$kxE = (int) MkKampagne::anlegen(['name' => 'Kommentar', 'plattform' => 'instagram', 'code' => 'km-it', 'land' => 'IT']);
+Db::run("UPDATE mk_kampagnen SET created_at = NOW() - INTERVAL 5 DAY WHERE id IN (?, ?, ?)", [$kxC, $kxD, $kxE]);
+$kxLeere = array_column(MkKampagne::leere('IT'), 'code');
+pruefe('K2: Aufräumen nimmt nur leere, mindestens zwei Tage alte — nie die festen Kommentar-Kampagnen',
+    in_array('kx-alt', $kxLeere, true) && in_array('kx-geplant', $kxLeere, true) && !in_array('km-it', $kxLeere, true) && MkKampagne::aufraeumen('IT') >= 2
+    && MkKampagne::laden($kxD) === null && MkKampagne::laden($kxE) !== null);
+Db::run('DELETE FROM mk_kampagnen WHERE id = ?', [$kxE]);
+$kxF = (int) MkKampagne::anlegen(['name' => 'Archiv', 'plattform' => 'instagram', 'code' => 'kx-archiv', 'land' => 'IT']);
+MkKampagne::archivieren($kxF);
+$kxV = (string) file_get_contents($wurzel . '/views/kampagnen.php');
+pruefe('K3: Archiv — beendete Kampagnen eingeklappt unten, Zahlen bleiben; wieder aktivierbar',
+    MkKampagne::laden($kxF)['status'] === 'beendet' && MkKampagne::archivieren($kxF, true) === null && MkKampagne::laden($kxF)['status'] === 'aktiv'
+    && str_contains($kxV, '<details class="block" id="archiv">') && str_contains($kxV, 'value="kampagne_loeschen"') && str_contains($kxV, 'value="kampagnen_aufraeumen"'));
+Db::run('DELETE FROM mk_kampagnen WHERE id = ?', [$kxF]);
+/* P1 */
+$kxSt = MkKanaele::stand();
+pruefe('P1: Kanal-Zentrale kennt Facebook, Instagram und Telegram mit Stand; Prüfen liest nur und sagt, was fehlt',
+    isset($kxSt['facebook'], $kxSt['instagram'], $kxSt['telegram']) && !MkKanaele::pruefen('facebook')['ok']
+    && str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), "name=\"tat\" value=\"kanal_meta_speichern\"")
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'kanal_pruefen':"));
+/* G1 */
+$kxS = MkStart::schritte('IT');
+pruefe('G1: Start zeigt vier Schritte mit genau einem „jetzt dran“ und je einem Knopf',
+    count($kxS['schritte']) === 4 && array_column($kxS['schritte'], 'titel') === ['Zielgruppe', 'Werben', 'Freigeben', 'Läuft']
+    && ($kxS['dran'] === 0 || $kxS['schritte'][$kxS['dran'] - 1]['fertig'] === false)
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "ansicht('mk_start',"));
+/* G2 + G4 */
+pruefe('G2/G4: klare Wörter (Beiträge schreiben lassen, Links & Kampagnen); Akquise legt keine eigenen Facebook-Entwürfe mehr an',
+    str_contains((string) file_get_contents($wurzel . '/views/zielgruppe.php'), 'Beiträge schreiben lassen') && !str_contains((string) file_get_contents($wurzel . '/views/zielgruppe.php'), '>Kampagne starten<')
+    && !str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'MetaSeite::planen()'));
+/* P3 + G3 */
+$kxT = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'reel', 'plattform' => 'tiktok', 'titel' => 'TikTok-Stück', 'felder' => json_encode(['hook' => 'Ciao', 'text' => 'Testo']), 'status' => 'freigegeben']);
+$kxTx = MkInhalt::laden($kxT);
+pruefe('P3: TikTok kommt per Handy; ohne verbundenen Admin-Chat wird nichts geplant und der Satz sagt es',
+    MkHandy::istHandy($kxTx) && !MkHandy::stand()['bereit'] && MkHandy::planen($kxT) === null && MkInhalt::laden($kxT)['geplant_am'] === null
+    && str_contains(MkVeroeffentlichen::nachFreigabe($kxT), 'freigegeben') && in_array('youtube', MkInhalt::PLATTFORMEN, true)
+    && str_contains((string) file_get_contents($wurzel . '/src/TelegramBot.php'), "m([gjnsp])"));
+Db::run('UPDATE mk_inhalte SET geplant_am = NOW() - INTERVAL 1 MINUTE WHERE id = ?', [$kxT]);
+$kxF2 = MkVeroeffentlichen::faellige();
+pruefe('P3: fällig, aber kein Handy erreichbar — Grund am Stück, keine Endlosschleife', MkInhalt::laden($kxT)['geplant_am'] === null && str_contains((string) MkInhalt::laden($kxT)['post_fehler'], 'Admin-Chat'));
+Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$kxT]);
+pruefe('G3: Freigeben in der Einzelansicht plant wie Stapel und Telegram', str_contains((string) file_get_contents($wurzel . '/index.php'), "return MkVeroeffentlichen::nachFreigabe(\$miId);"));
 
 /* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)

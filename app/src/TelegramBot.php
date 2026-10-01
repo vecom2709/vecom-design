@@ -1091,7 +1091,7 @@ final class TelegramBot
         }
         if ($was === 'heute') { self::zeigeHeute($c, $msgId); return 'heute'; }
         /* Marketing-Studio 7: Freigabe-Stapel im Chat (durchgehen, Ja, Nein, Später) — siehe TelegramMarketing. */
-        if (preg_match('/^m([gjns]):([a-z0-9]{1,9})$/', $was, $m)) {
+        if (preg_match('/^m([gjnsp]):([a-z0-9]{1,9})$/', $was, $m)) {   // p: „Gepostet“ für Handy-Stücke (P3)
             require_once __DIR__ . '/TelegramMarketing.php';
             return TelegramMarketing::knopf($c, $m[1], $m[2], $msgId);
         }

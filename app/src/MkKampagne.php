@@ -321,6 +321,101 @@ final class MkKampagne
     }
 
     /* ------------------------------------------------------------------ */
+    /* Löschen, archivieren, aufräumen (01.10.2026, Uwe: Ja zu K1–K3)      */
+    /* ------------------------------------------------------------------ */
+
+    /** Feste Kampagnen, die sich von selbst wieder anlegen (Kommentar → Nachricht) — Aufräumen lässt sie stehen. */
+    public const GESCHUETZT = ['km-it', 'km-de'];
+
+    private static function zahlOder0(string $sql, array $a): int
+    {
+        try { return (int) Db::wert($sql, $a, 0); } catch (Throwable $e) { return 0; }
+    }
+
+    /** Was an einer Kampagne hängt — entscheidet, ob sie ohne Rückfrage verschwinden darf. */
+    public static function nutzung(int $id): array
+    {
+        $n = [
+            'besuche'   => self::zahlOder0('SELECT COUNT(*) FROM spur_besuche WHERE kampagne_id = ?', [$id]),
+            'ereignisse'=> self::zahlOder0('SELECT COUNT(*) FROM spur_ereignisse WHERE kampagne_id = ?', [$id]),
+            'tage'      => self::zahlOder0('SELECT COALESCE(SUM(anzahl), 0) FROM mk_tage WHERE kampagne_id = ?', [$id]),
+            'kosten'    => self::zahlOder0('SELECT COUNT(*) FROM mk_kosten WHERE kampagne_id = ?', [$id]),
+            'gepostet'  => self::zahlOder0("SELECT COUNT(*) FROM mk_inhalte WHERE kampagne_id = ? AND status = 'veroeffentlicht'", [$id]),
+            'geplant'   => self::zahlOder0("SELECT COUNT(*) FROM mk_inhalte WHERE kampagne_id = ? AND status = 'freigegeben'", [$id]),
+        ];
+        $n['leer'] = $n['besuche'] + $n['ereignisse'] + $n['tage'] + $n['kosten'] + $n['gepostet'] + $n['geplant'] === 0;
+        return $n;
+    }
+
+    /** Beenden = ins Archiv: Link führt still auf die Startseite, Zahlen bleiben. */
+    public static function archivieren(int $id, bool $zurueck = false): ?string
+    {
+        $k = self::laden($id);
+        if (!$k) { return 'Kampagne unbekannt.'; }
+        $neu = $zurueck ? 'aktiv' : 'beendet';
+        Db::update('mk_kampagnen', $id, ['status' => $neu]);
+        Events::pruefspur($zurueck ? 'kampagne_wieder_aktiv' : 'kampagne_archiviert', 'mk_kampagnen', $id, ['status' => $k['status']], ['status' => $neu]);
+        return null;
+    }
+
+    /**
+     * Löschen. Ohne Besuche, Kosten und Beiträge verschwindet die Kampagne ganz.
+     * Mit Zahlen nur, wenn $endgueltig: dann werden Werbemittel, Kosten-Zuordnungen
+     * (der Beleg selbst bleibt unter Ausgaben) und Tageszahlen entfernt, Besuche und
+     * Beiträge verlieren nur die Zuordnung. Eingeplante Beiträge verhindern das
+     * Löschen — sie würden auf einen toten Link posten.
+     * @return string|null  null = gelöscht; 'zahlen' = Rückfrage nötig; sonst Hinweis
+     */
+    public static function loeschen(int $id, bool $endgueltig = false): ?string
+    {
+        $k = self::laden($id);
+        if (!$k) { return 'Kampagne unbekannt.'; }
+        $n = self::nutzung($id);
+        if ($n['geplant'] > 0) { return $n['geplant'] . ' freigegebene Beiträge verlinken auf diese Kampagne und gehen noch raus — erst diese verwerfen oder abwarten.'; }
+        if (!$n['leer'] && !$endgueltig) { return 'zahlen'; }
+        $pdo = Db::pdo();
+        $pdo->beginTransaction();
+        try {
+            foreach (['spur_besuche', 'spur_ereignisse', 'mk_inhalte'] as $t) { Db::run("UPDATE $t SET kampagne_id = NULL, creative_id = NULL WHERE kampagne_id = ?", [$id]); }
+            foreach (['tg_einladungen', 'mk_verzeichnisse'] as $t) {
+                try { Db::run("UPDATE $t SET kampagne_id = NULL WHERE kampagne_id = ?", [$id]); } catch (Throwable $e) { }
+            }
+            Db::run('DELETE FROM mk_tage WHERE kampagne_id = ?', [$id]);
+            Db::run('DELETE FROM mk_kosten WHERE kampagne_id = ?', [$id]);
+            Db::run('DELETE FROM mk_creatives WHERE kampagne_id = ?', [$id]);
+            Db::run('DELETE FROM mk_kampagnen WHERE id = ?', [$id]);
+            $pdo->commit();
+        } catch (Throwable $e) {
+            $pdo->rollBack();
+            return 'Löschen nicht geklappt: ' . $e->getMessage();
+        }
+        Events::pruefspur('kampagne_geloescht', 'mk_kampagnen', $id, ['code' => $k['code'], 'name' => $k['name']] + $n, []);
+        return null;
+    }
+
+    /** Welche Kampagnen „Aufräumen“ entfernen würde: leer und älter als zwei Tage. */
+    public static function leere(?string $land = null): array
+    {
+        $a = [date('Y-m-d H:i:s', time() - 2 * 86400)];
+        $sql = 'SELECT id, code, name FROM mk_kampagnen WHERE created_at < ?';
+        if (in_array($land, ['IT', 'DE'], true)) { $sql .= " AND land IN (?, '')"; $a[] = $land; }
+        $aus = [];
+        foreach (Db::all($sql, $a) as $k) {
+            if (in_array($k['code'], self::GESCHUETZT, true)) { continue; }
+            if (self::nutzung((int) $k['id'])['leer']) { $aus[] = $k; }
+        }
+        return $aus;
+    }
+
+    /** Alle leeren Kampagnen entfernen. @return int wie viele */
+    public static function aufraeumen(?string $land = null): int
+    {
+        $n = 0;
+        foreach (self::leere($land) as $k) { if (self::loeschen((int) $k['id']) === null) { $n++; } }
+        return $n;
+    }
+
+    /* ------------------------------------------------------------------ */
     /* Lesen                                                               */
     /* ------------------------------------------------------------------ */
 

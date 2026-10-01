@@ -55,11 +55,11 @@ final class MkVeroeffentlichen
         }
         if ($x['plattform'] === 'telegram') {
             require_once __DIR__ . '/Telegram.php';
-            if (Telegram::kanal()['id'] === '' || !Telegram::bereit()) { return $nein('Unter Telegram ist noch kein Kanal hinterlegt.'); }
+            if (Telegram::kanal()['id'] === '' || !Telegram::bereit()) { return $nein('Der Telegram-Kanal ist noch nicht verbunden (Marketing › Kanäle › Verbinden).'); }
             return ['auto' => true, 'grund' => '', 'medium' => $video ?? $bild];
         }
         require_once __DIR__ . '/MetaSeite.php';
-        if (!MetaSeite::bereit()) { return $nein('Die Facebook-Seite ist noch nicht eingerichtet (Akquise → Beiträge).'); }
+        if (!MetaSeite::bereit()) { return $nein('Die Facebook-Seite ist noch nicht verbunden (Marketing › Kanäle › Verbinden).'); }
         if ($x['plattform'] === 'instagram') {
             if (MetaSeite::einstellungen()['ig_id'] === '') { return $nein('Instagram ist an der Facebook-Seite noch nicht verbunden.'); }
             if ($x['format'] === 'reel') { return $video ? ['auto' => true, 'grund' => '', 'medium' => $video] : $nein('Für ein Instagram-Reel erst ein Video erzeugen und wählen.'); }
@@ -125,6 +125,11 @@ final class MkVeroeffentlichen
             return 'Ja gibt frei und veröffentlicht es am ' . ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][(int) date('w', $t)] . ' ' . date('d.m.', $t) . ' um ' . date('H:i', $t)
                 . ' auf ' . trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '') . '.';
         }
+        require_once __DIR__ . '/MkHandy.php';
+        if (MkHandy::istHandy($x) && MkHandy::stand()['bereit']) {
+            $t = strtotime(self::naechsterSlot((string) $x['plattform']));
+            return 'Ja gibt frei und schickt es dir am ' . ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'][(int) date('w', $t)] . ' ' . date('d.m.', $t) . ' um ' . date('H:i', $t) . ' per Telegram aufs Handy zum Posten.';
+        }
         return 'Ja gibt frei. ' . rtrim($m['grund'], '.') . '. Der eigene Link steht dann am Stück.';
     }
 
@@ -146,15 +151,7 @@ final class MkVeroeffentlichen
         }
         $f = MkInhalt::freigeben($id);
         if ($f !== null) { return ['ok' => false, 'text' => $f]; }
-        $x = MkInhalt::laden($id);
-        $m = self::moeglich($x);
-        if ($m['auto']) {
-            $slot = self::naechsterSlot((string) $x['plattform']);
-            if (self::planen($id, $slot) === null) {
-                return ['ok' => true, 'text' => '„' . $x['titel'] . '“ freigegeben — geht am ' . date('d.m. \u\m H:i', strtotime($slot)) . ' raus.'];
-            }
-        }
-        return ['ok' => true, 'text' => '„' . $x['titel'] . '“ freigegeben — ' . rtrim($m['grund'] ?: 'Link und Paket stehen am Stück', '.') . '.'];
+        return ['ok' => true, 'text' => self::nachFreigabe($id)];
     }
 
     public static function jetzt(int $id): array
@@ -180,7 +177,7 @@ final class MkVeroeffentlichen
             return ['ok' => true, 'grund' => null, 'wartet' => true];
         }
         if ($erg['ok']) {
-            unset($ids['ig_container']);
+            unset($ids['ig_container'], $ids['versuche']);
             Db::update('mk_inhalte', $id, ['status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'geplant_am' => null,
                                            'post_ids' => json_encode($ids), 'post_fehler' => null]);
             Events::pruefspur('inhalt_gepostet', 'mk_inhalte', $id, ['status' => 'freigegeben'], ['status' => 'veroeffentlicht', 'plattform' => $x['plattform']] + $ids);
@@ -270,19 +267,68 @@ final class MkVeroeffentlichen
         return null;
     }
 
-    /** Cronlauf: Fälliges posten, wartende Instagram-Videos fertig machen. */
+    /** P2: So lange wartet der zweite Versuch, wenn der erste scheitert (Meta/Telegram kurz nicht erreichbar). */
+    public const WIEDER_MIN = 60;
+
+    /** Cronlauf: Fälliges posten, wartende Instagram-Videos fertig machen. Scheitert ein Stück, versucht es der Lauf
+        nach einer Stunde noch einmal; erst wenn auch das scheitert, kommt die Meldung (Startseite und Handy). */
     public static function faellige(): array
     {
-        $aus = ['gepostet' => 0, 'fehler' => 0];
+        $aus = ['gepostet' => 0, 'fehler' => 0, 'wieder' => 0];
         foreach (Db::all("SELECT id FROM mk_inhalte WHERE status = 'freigegeben' AND geplant_am IS NOT NULL AND geplant_am <= NOW() ORDER BY geplant_am LIMIT " . self::JE_LAUF) as $r) {
+            /* P3: Was nicht automatisch geht, kommt zur Sendezeit aufs Handy. */
+            $vorab = MkInhalt::laden((int) $r['id']);
+            if ($vorab !== null) {
+                require_once __DIR__ . '/MkHandy.php';
+                if (MkHandy::istHandy($vorab)) {
+                    $e = MkHandy::senden($vorab);
+                    $e['ok'] ? $aus['gepostet']++ : $aus['fehler']++;
+                    if (!$e['ok']) { Db::update('mk_inhalte', (int) $r['id'], ['geplant_am' => null, 'post_fehler' => mb_substr((string) $e['grund'], 0, 300)]); }
+                    continue;
+                }
+            }
             $e = self::jetzt((int) $r['id']);
             if (!empty($e['wartet'])) { continue; }
             if ($e['ok']) { $aus['gepostet']++; continue; }
+            $x = MkInhalt::laden((int) $r['id']);
+            $ids = $x ? self::ids($x) : [];
+            $versuche = (int) ($ids['versuche'] ?? 0) + 1;
+            if ($versuche < 2) {
+                $ids['versuche'] = $versuche;
+                Db::update('mk_inhalte', (int) $r['id'], ['geplant_am' => date('Y-m-d H:i:s', time() + self::WIEDER_MIN * 60), 'post_ids' => json_encode($ids)]);
+                $aus['wieder']++;
+                continue;
+            }
+            unset($ids['versuche']);
             $aus['fehler']++;
-            Db::update('mk_inhalte', (int) $r['id'], ['geplant_am' => null]);
-            try { Events::melden('inhalt_post_fehler', 'Geplanter Beitrag nicht veröffentlicht', 'warnung', mb_substr((string) $e['grund'], 0, 300), 'inhalte/' . (int) $r['id']); } catch (Throwable $x) { }
+            Db::update('mk_inhalte', (int) $r['id'], ['geplant_am' => null, 'post_ids' => $ids ? json_encode($ids) : null]);
+            $pl = trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform'] ?? ''] ?? ($x['plattform'] ?? ''))) ?? '');
+            try { Events::melden('inhalt_post_fehler', 'Beitrag nicht veröffentlicht (' . $pl . ')', 'warnung', mb_substr((string) $e['grund'], 0, 300) . ' — zweimal versucht. Unter Kanäle verbinden steht, woran es liegt.', 'kanaele'); } catch (Throwable $y) { }
         }
         return $aus;
+    }
+
+    /**
+     * G3: Nach jeder Freigabe dasselbe — geht der Kanal automatisch, kommt das Stück auf den nächsten
+     * Sendeplatz; sonst sagt der Satz, was zu tun ist (Paket bzw. per Handy).
+     */
+    public static function nachFreigabe(int $id): string
+    {
+        $x = MkInhalt::laden($id);
+        if ($x === null) { return 'Freigegeben.'; }
+        $m = self::moeglich($x);
+        if ($m['auto']) {
+            $slot = self::naechsterSlot((string) $x['plattform']);
+            if (self::planen($id, $slot) === null) {
+                return '„' . $x['titel'] . '“ freigegeben — geht am ' . date('d.m. \u\m H:i', strtotime($slot)) . ' automatisch raus.';
+            }
+        }
+        require_once __DIR__ . '/MkHandy.php';
+        $handy = MkHandy::planen($id);
+        if ($handy !== null) {
+            return '„' . $x['titel'] . '“ freigegeben — kommt am ' . date('d.m. \\u\\m H:i', strtotime($handy)) . ' per Telegram aufs Handy zum Posten.';
+        }
+        return '„' . $x['titel'] . '“ freigegeben — ' . rtrim($m['grund'] ?: 'Link und Paket stehen am Stück', '.') . '.';
     }
 
     /* ------------------------------------------------------------------ */
