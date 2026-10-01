@@ -28,17 +28,18 @@ require __DIR__ . '/mk_stil.php';
   <?php endforeach; ?>
 </div>
 <?php else: ?>
-<div class="block"><p style="margin:0;max-width:64ch;line-height:1.6">Noch keine Zielgruppe. Claude recherchiert sie über dein Claude-Abo: Sag im Chat „Recherchiere die Zielgruppen“, dann liest Claude die Zahlen deiner geprüften Betriebe, sucht im Netz nach Quellen und liefert je Branche einen Entwurf hierher. Nichts gilt, bevor du es freigibst.</p></div>
+<div class="block"><p style="margin:0;max-width:64ch;line-height:1.6">Noch keine Zielgruppe. Unter <a href="<?= Fmt::h(url('recherche#auftraege')) ?>">Recherche</a> „Recherche starten“ drücken oder unten bei einer Branche auf „Recherchieren“: Dein PC lässt Claude über dein Claude-Abo die Zahlen deiner geprüften Betriebe lesen, im Netz nach Quellen suchen und je Branche einen Entwurf hierher liefern. Nichts gilt, bevor du es freigibst.</p></div>
 <?php endif; ?>
 
 <?php if ($fehlend): ?>
 <div class="block">
   <h2>Noch ohne Profil <span class="mehr">nach Zahl der Betriebe in der Akquise</span></h2>
   <div class="tabellenrahmen"><table class="mk-tab">
-    <thead><tr><th>Branche</th><th>Land</th><th class="num">Betriebe</th></tr></thead>
+    <thead><tr><th>Branche</th><th>Land</th><th class="num">Betriebe</th><th><span class="mk-sr">Aktion</span></th></tr></thead>
     <tbody>
       <?php foreach ($fehlend as $fz): ?>
-        <tr><td class="mk-name"><?= Fmt::h($branchen[$fz['branche']] ?? $fz['branche']) ?></td><td><?= Fmt::h(MkZielgruppe::LAENDER[$fz['land']] ?? $fz['land']) ?></td><td class="num"><?= number_format((int) $fz['firmen'], 0, ',', '.') ?></td></tr>
+        <tr><td class="mk-name"><?= Fmt::h($branchen[$fz['branche']] ?? $fz['branche']) ?></td><td><?= Fmt::h(MkZielgruppe::LAENDER[$fz['land']] ?? $fz['land']) ?></td><td class="num"><?= number_format((int) $fz['firmen'], 0, ',', '.') ?></td>
+          <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('recherche')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h($fz['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h($fz['land']) ?>"><button class="knopf klein">Recherchieren</button></form></td></tr>
       <?php endforeach; ?>
     </tbody>
   </table></div>

@@ -16989,6 +16989,86 @@ pruefe('Verwaltung: Zielgruppen, Profil und Recherche rendern ohne Warnung — Q
     $mzFehler === null && str_contains($mzH1, 'Hotels in Sizilien') && str_contains($mzH2, 'Zielgruppe freigeben') && str_contains($mzH2, 'rel="noopener noreferrer nofollow"')
     && str_contains($mzH2, 'Datengrundlage') && str_contains($mzH3, 'Brauche ich eine eigene Website'), (string) $mzFehler);
 /* ============================================================================
+   Marketing-Studio: Recherche per Knopf (01.10.2026, Uwe: „Recherche soll
+   automatisch starten, wenn in der Verwaltung geklickt wird“)
+   ============================================================================ */
+abschnitt('Marketing-Studio: Recherche per Knopf');
+require_once $wurzel . '/src/MkAuftrag.php';
+require_once $wurzel . '/src/AkquiseSteuerung.php';
+Db::run('DELETE FROM mk_auftraege');
+pruefe('Daten für Claude: Befund-Titel ohne Einzelfall — Domains und Ortsnamen neutral, Schema.org bleibt',
+    MkZielgruppe::allgemein('Domain beispiel-ma.it löst nicht auf (DNS)') === 'Domain (Domain) löst nicht auf (DNS)'
+    && MkZielgruppe::allgemein('Ort „Siculiana Marina“ fehlt in Titel') === 'Ort (Ort) fehlt in Titel'
+    && MkZielgruppe::allgemein('Keine strukturierten Unternehmensdaten (Schema.org)') === 'Keine strukturierten Unternehmensdaten (Schema.org)');
+pruefe('Recherche-Auftrag: nur bekannte Branche (oder alle) und Land IT/DE',
+    is_string(MkAuftrag::anlegen('mondfahrt', 'IT')) && is_string(MkAuftrag::anlegen('restaurant', 'FR')) && !MkAuftrag::wartet());
+$maId = MkAuftrag::anlegen('restaurant', 'it');
+pruefe('Recherche-Auftrag: Knopf legt einen wartenden Auftrag an — derselbe ein zweites Mal nicht',
+    is_int($maId) && Db::one('SELECT status, land FROM mk_auftraege WHERE id = ?', [$maId]) === ['status' => 'wartet', 'land' => 'IT']
+    && is_string(MkAuftrag::anlegen('restaurant', 'IT')) && MkAuftrag::wartet() && MkAuftrag::offen());
+$maB = AkquiseSteuerung::befehl();
+pruefe('Recherche-Auftrag: der PC erfährt es beim Abruf alle 5 Minuten (befehl_holen) — auch bei gezogener Notbremse, es geht niemand an',
+    ($maB['marketing_wartet'] ?? null) === true);
+$maH = AkquiseWorker::ausfuehren('marketing_auftrag_holen', []);
+$maA = $maH['auftrag'] ?? [];
+pruefe('Recherche-Auftrag: abholen übernimmt ihn (läuft) und bringt alles mit, was Claude braucht — ohne Personen',
+    ($maA['id'] ?? 0) === $maId && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$maId]) === 'laeuft'
+    && ($maA['zielgruppen_fuer'][0]['branche'] ?? '') === 'restaurant' && ($maA['daten']['ok'] ?? false) === true && isset($maA['daten']['wortschatz']['hotel'])
+    && !str_contains(json_encode($maA), '@') && AkquiseWorker::ausfuehren('marketing_auftrag_holen', [])['auftrag'] === null && !MkAuftrag::wartet(), json_encode($maA['zielgruppen_fuer'] ?? null));
+$maM = AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $maId, 'ok' => true, 'zielgruppen' => 1, 'funde' => 12, 'text' => '<b>Neu:</b> Airbnb-Gebühr']);
+$maZ = Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$maId]);
+pruefe('Recherche-Auftrag: zurückgemeldet = fertig mit Zahlen, Text ohne HTML; zweimal melden geht nicht',
+    $maM['ok'] === true && $maZ['status'] === 'fertig' && (int) $maZ['zielgruppen'] === 1 && (int) $maZ['funde'] === 12 && $maZ['ergebnis'] === 'Neu: Airbnb-Gebühr'
+    && $maZ['fertig_am'] !== null && AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $maId, 'ok' => true])['ok'] === false);
+pruefe('Recherche-Auftrag: Uwe bekommt eine Meldung „Recherche fertig“ mit Link',
+    (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'recherche_fertig' AND title LIKE 'Recherche fertig:%' AND link = 'zielgruppen' OR type = 'recherche_fertig' AND link = 'recherche'", [], 0) >= 1);
+$maAlle = MkAuftrag::anlegen('', 'IT');
+$maH2 = MkAuftrag::holen();
+pruefe('Recherche-Auftrag „alle Branchen“: Funde für alle, Zielgruppen nur für höchstens zwei noch fehlende',
+    is_int($maAlle) && ($maH2['auftrag']['branche'] ?? 'x') === '' && count($maH2['auftrag']['zielgruppen_fuer']) <= MkAuftrag::FEHLENDE_JE_LAUF
+    && str_contains(MkAuftrag::beschreibung($maH2['auftrag']), 'Alle Branchen'));
+Db::run('UPDATE mk_auftraege SET gestartet_am = NOW() - INTERVAL 3 HOUR WHERE id = ?', [$maAlle]);
+MkAuftrag::aufraeumen();
+pruefe('Recherche-Auftrag: hängt ein Lauf (PC aus, Claude abgestürzt), gilt er nach ' . MkAuftrag::HOECHSTENS_MIN . ' Minuten als gescheitert — eine späte Rückmeldung zählt trotzdem',
+    Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$maAlle]) === 'fehler'
+    && MkAuftrag::melden(['id' => $maAlle, 'ok' => true, 'funde' => 3])['ok'] === true && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$maAlle]) === 'fertig');
+$maW = MkAuftrag::anlegen('hotel', 'DE');
+pruefe('Recherche-Auftrag: nur wartende lassen sich abbrechen',
+    MkAuftrag::abbrechen((int) $maW) === null && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$maW]) === 'abgebrochen'
+    && MkAuftrag::abbrechen($maId) !== null);
+for ($maI = 0; $maI < MkAuftrag::PRO_TAG; $maI++) { Db::insert('mk_auftraege', ['branche' => 'friseur', 'land' => 'IT', 'status' => 'fertig']); }
+pruefe('Recherche-Auftrag: höchstens ' . MkAuftrag::PRO_TAG . ' am Tag — schont das Claude-Abo', is_string(MkAuftrag::anlegen('beauty', 'IT')));
+Db::run("DELETE FROM mk_auftraege WHERE branche = 'friseur'");
+pruefe('Worker-Tür: abholen und melden gibt es, freigeben weiterhin nicht; der PC darf „marketing“ als Tätigkeit melden',
+    in_array('marketing_auftrag_holen', AkquiseWorker::AKTIONEN, true) && in_array('marketing_auftrag_melden', AkquiseWorker::AKTIONEN, true)
+    && !array_filter(AkquiseWorker::AKTIONEN, static fn($a) => str_contains($a, 'freigeb'))
+    && str_contains((string) file_get_contents($wurzel . '/src/AkquiseSteuerung.php'), "['audit', 'recherche', 'marketing', 'frei']"));
+$maIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Recherche starten und abbrechen nur hinter Anmeldung und CSRF',
+    strpos($maIdx, "case 'recherche_starten':") > strpos($maIdx, 'Csrf::pruefen()') && strpos($maIdx, "case 'recherche_abbrechen':") > strpos($maIdx, 'Csrf::pruefen()'));
+$maFehler = null; set_error_handler(static function (int $n, string $m) use (&$maFehler): bool { $maFehler = $m; return true; });
+$f = ['art' => '', 'branche' => 'restaurant', 'status' => '']; $funde = []; $auftraege = MkAuftrag::liste(6); $pc = ['pc_wach' => true, 'pc_alter' => 2];
+ob_start(); require $wurzel . '/views/recherche.php'; $maH3 = (string) ob_get_clean();
+$liste = MkZielgruppe::alle(); $fehlend = [['branche' => 'friseur', 'land' => 'IT', 'firmen' => 12]];
+ob_start(); require $wurzel . '/views/zielgruppen.php'; $maH1 = (string) ob_get_clean();
+restore_error_handler();
+pruefe('Verwaltung: Knopf „Recherche starten“ mit Branche und Land, Stand der Aufträge, Filter heißt „Filtern“, kein „Sag im Chat“ mehr',
+    $maFehler === null && str_contains($maH3, 'value="recherche_starten"') && str_contains($maH3, 'Recherche starten') && str_contains($maH3, '<option value="restaurant" selected>')
+    && str_contains($maH3, 'Dein PC ist an') && str_contains($maH3, 'Alle Branchen · Italien') && str_contains($maH3, '>Filtern</button>')
+    && !str_contains($maH3, 'im Chat') && !str_contains($maH1, 'im Chat') && str_contains($maH1, '>Recherchieren</button>'), (string) $maFehler);
+Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$maId]);
+$auftraege = MkAuftrag::liste(6);
+ob_start(); require $wurzel . '/views/recherche.php'; $maH4 = (string) ob_get_clean();
+pruefe('Verwaltung: während Claude recherchiert, lädt die Seite alle 30 Sekunden neu (nicht beim Tippen)',
+    str_contains($maH4, 'Claude recherchiert') && str_contains($maH4, 'location.reload()') && !str_contains($maH3, 'location.reload()'));
+$maTs = (string) file_get_contents($oben . '/tools/akquise/src/ki/marketing.ts');
+pruefe('PC: Claude Code nur mit Websuche und Webseiten, über Uwes Anmeldung — ein API-Schlüssel wird aus der Umgebung entfernt',
+    str_contains($maTs, "'--tools', 'WebSearch,WebFetch'") && str_contains($maTs, "'ANTHROPIC_API_KEY'") && str_contains($maTs, 'delete umgebung[k]')
+    && str_contains($maTs, "'--json-schema'") && !str_contains($maTs, 'dangerously') && !str_contains($maTs, 'bypassPermissions')
+    && str_contains((string) file_get_contents($oben . '/tools/akquise/src/cli.ts'), 'if (b.marketing_wartet)'));
+Db::run('DELETE FROM mk_auftraege');
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

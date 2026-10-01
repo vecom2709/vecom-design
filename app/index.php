@@ -532,6 +532,21 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? ($tat === 'zielgruppe_freigeben' ? 'Freigegeben — Content und Kampagnen dürfen sich jetzt darauf stützen.' : 'Verworfen.');
                 weiter($tat === 'zielgruppe_freigeben' || MkZielgruppe::laden($mzId) !== null ? 'zielgruppen/' . $mzId : 'zielgruppen');
 
+            /* Recherche per Knopf (01.10.2026, Uwe: „soll automatisch starten, wenn … geklickt wird“) */
+            case 'recherche_starten':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $maErg = MkAuftrag::anlegen((string) ($_POST['branche'] ?? ''), (string) ($_POST['land'] ?? 'IT'));
+                $_SESSION[is_int($maErg) ? 'gut' : 'fehler'] = is_int($maErg)
+                    ? 'Recherche angestoßen. Dein PC holt sie in den nächsten fünf Minuten ab; Claude braucht dann etwa 10–20 Minuten. Die Seite zeigt den Stand.'
+                    : $maErg;
+                weiter('recherche#auftraege');
+
+            case 'recherche_abbrechen':
+                require_once __DIR__ . '/src/MkAuftrag.php';
+                $f = MkAuftrag::abbrechen((int) ($_POST['id'] ?? 0));
+                $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
+                weiter('recherche#auftraege');
+
             case 'recherche_status':
                 require_once __DIR__ . '/src/MkZielgruppe.php';
                 $f = MkZielgruppe::rechercheStatus((int) ($_POST['id'] ?? 0), (string) ($_POST['status'] ?? ''));
@@ -4434,7 +4449,10 @@ switch ($route) {
     case 'recherche':
         require_once __DIR__ . '/src/MkZielgruppe.php';
         $mrF = ['art' => (string) ($_GET['art'] ?? ''), 'branche' => (string) ($_GET['branche'] ?? ''), 'status' => (string) ($_GET['status'] ?? '')];
-        ansicht('recherche', ['f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF)]);
+        require_once __DIR__ . '/src/MkAuftrag.php';
+        require_once __DIR__ . '/src/AkquiseSteuerung.php';
+        ansicht('recherche', ['f' => $mrF, 'funde' => MkZielgruppe::recherche($mrF), 'auftraege' => sicher(static fn() => MkAuftrag::liste(6), []),
+            'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
         break;
 
     case 'statistiken':

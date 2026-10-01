@@ -40,13 +40,16 @@ final class AkquiseSteuerung
             'recherche' => !$g['stop'] && AkquiseGate::schalter('recherche'),
             'jetzt' => $gilt,
             'suche_wartet' => (int) Db::wert("SELECT COUNT(*) FROM akq_laeufe WHERE status = 'wartet'", [], 0) > 0,
+            /* Recherche per Knopf (01.10.2026) — unabhängig von Notbremse und Schaltern:
+               sie kontaktiert niemanden, sie liefert nur Entwürfe. */
+            'marketing_wartet' => (static function (): bool { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::wartet(); })(),
         ];
     }
 
     /** Für den Worker: was tue ich gerade? */
     public static function statusMelden(array $d): array
     {
-        $art = in_array($d['art'] ?? '', ['audit', 'recherche', 'frei'], true) ? (string) $d['art'] : 'frei';
+        $art = in_array($d['art'] ?? '', ['audit', 'recherche', 'marketing', 'frei'], true) ? (string) $d['art'] : 'frei';
         $stand = max(0, (int) ($d['stand'] ?? 0));
         /* Beginn des Laufs merken (für „noch etwa …“): neu, wenn vorher etwas anderes lief,
            der Stand zurückging oder die letzte Meldung über 20 Minuten her ist. */

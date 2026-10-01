@@ -65,7 +65,7 @@ final class MkZielgruppe
                 FROM akq_befunde b JOIN akq_firmen f ON f.id = b.firma_id
                WHERE f.branche = ? AND f.land = ? AND b.status = 'VERIFIED'
             GROUP BY b.code ORDER BY n DESC LIMIT 10", $a), []) as $r) {
-            $befunde[] = ['code' => (string) $r['code'], 'titel' => (string) $r['titel'], 'n' => (int) $r['n'],
+            $befunde[] = ['code' => (string) $r['code'], 'titel' => self::allgemein((string) $r['titel']), 'n' => (int) $r['n'],
                           'anteil' => $geprueft > 0 ? round((int) $r['n'] / $geprueft * 100, 1) : 0.0];
         }
         $kamp = (array) self::still(static function () use ($branche): array {
@@ -73,6 +73,20 @@ final class MkZielgruppe
             return ['anzahl' => count($l['kampagnen']), 'klicks' => $l['summe']['klicks'], 'leads' => $l['summe']['leads'], 'kunden' => $l['summe']['kunden'], 'umsatz' => $l['summe']['umsatz']];
         }, ['anzahl' => 0, 'klicks' => 0, 'leads' => 0, 'kunden' => 0, 'umsatz' => 0]);
         return ['firmen' => $firmen, 'geprueft' => $geprueft, 'ohne_website' => $ohne, 'score' => $score !== null ? (int) $score : null, 'befunde' => $befunde, 'kampagnen' => $kamp];
+    }
+
+    /**
+     * Ein Befund-Titel ohne Einzelfall (01.10.2026): MAX(titel) griff einen
+     * beliebigen Betrieb heraus — „Domain beispiel.it löst nicht auf“, „Ort
+     * „Siculiana Marina“ fehlt …“. Für Claude zählt die Art des Mangels, nicht
+     * der Betrieb: Domains und Ortsnamen werden neutral.
+     */
+    public static function allgemein(string $titel): string
+    {
+        $t = preg_replace_callback('/\b(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}\b/i',
+            static fn(array $m): string => in_array(strtolower($m[0]), ['schema.org', 'robots.txt', 'sitemap.xml'], true) ? $m[0] : '(Domain)', $titel) ?? $titel;
+        $t = preg_replace('/„[^“]{1,80}“|"[^"]{1,80}"/u', '(Ort)', $t) ?? $t;
+        return $t;
     }
 
     private static function still(callable $fn, mixed $ersatz): mixed

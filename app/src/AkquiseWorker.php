@@ -23,7 +23,9 @@ final class AkquiseWorker
     public const AKTIONEN = ['hallo', 'lauf_holen', 'lauf_melden', 'firmen_melden', 'audits_holen',
                              'audit_melden', 'texte_holen', 'deutung_melden', 'vorlage_melden', 'befehl_holen', 'status_melden',
                              /* Marketing-Studio (01.10.2026): Claude liest Zahlen und liefert Entwürfe ab -- freigegeben wird nur in der Verwaltung. */
-                             'marketing_daten', 'marketing_zielgruppe', 'marketing_recherche'];
+                             'marketing_daten', 'marketing_zielgruppe', 'marketing_recherche',
+                             /* Recherche per Knopf (01.10.2026): Auftrag abholen und zurückmelden. */
+                             'marketing_auftrag_holen', 'marketing_auftrag_melden'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -87,6 +89,8 @@ final class AkquiseWorker
                 return MkZielgruppe::melden(is_array($d['zielgruppe'] ?? null) ? $d['zielgruppe'] : []); })(),
             'marketing_recherche'  => (static function () use ($d): array { require_once __DIR__ . '/MkZielgruppe.php';
                 return MkZielgruppe::rechercheMelden(is_array($d['funde'] ?? null) ? $d['funde'] : []); })(),
+            'marketing_auftrag_holen'  => (static function (): array { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::holen(); })(),
+            'marketing_auftrag_melden' => (static function () use ($d): array { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::melden($d); })(),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }

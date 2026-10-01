@@ -21,7 +21,10 @@ require __DIR__ . '/mk_stil.php';
       <?php if ($z['status'] === 'freigegeben'): ?><span class="marke2 gut" style="vertical-align:4px">freigegeben</span><?php else: ?><span class="marke2 warnung" style="vertical-align:4px"><?= $z['v'] ? 'Überarbeitung' : 'Entwurf' ?></span><?php endif; ?></h1>
     <div class="weg"><?= Fmt::h(($branchen[$z['branche']] ?? $z['branche']) . ' · ' . (MkZielgruppe::LAENDER[$z['land']] ?? $z['land'])) ?> · Stand <?= Fmt::h($datum($z['updated_at'])) ?><?= $z['freigegeben_am'] ? ' · freigegeben am ' . Fmt::h($datum($z['freigegeben_am'])) : '' ?> · von Claude recherchiert</div>
   </div>
-  <a class="knopf" href="<?= Fmt::h(url('zielgruppen')) ?>">‹ Alle Zielgruppen</a>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="post" action="<?= Fmt::h(url('recherche')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="recherche_starten"><input type="hidden" name="branche" value="<?= Fmt::h((string) $z['branche']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $z['land']) ?>"><button class="knopf" title="Claude überarbeitet dieses Profil mit frischer Recherche — als Entwurf, die freigegebene Fassung gilt bis dahin weiter">Neu recherchieren</button></form>
+    <a class="knopf" href="<?= Fmt::h(url('zielgruppen')) ?>">‹ Alle Zielgruppen</a>
+  </div>
 </div>
 
 <?php if ($z['status'] !== 'freigegeben'): ?>

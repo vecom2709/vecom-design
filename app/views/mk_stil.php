@@ -76,6 +76,21 @@
   .mk-formular .feld{margin:0}
   .mk-formular .breit{grid-column:1/-1}
   .mk-fein{font-size:12.5px;color:var(--leise)}
+  .mk-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
+  /* Recherche per Knopf (01.10.2026) */
+  .mk-auftrag__kopf{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .mk-auftrag__kopf h2{margin:0}
+  .mk-ampel{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:var(--dim)}
+  .mk-ampel i{width:10px;height:10px;border-radius:50%;background:var(--leise);flex:none}
+  .mk-ampel.gruen i{background:var(--gruen)}
+  .mk-auftrag form.mk-filter{margin:0 0 8px}
+  .mk-auftrag form.mk-filter select{max-width:100%;min-width:0}
+  @media (max-width:640px){.mk-auftrag form.mk-filter select,.mk-auftrag form.mk-filter .knopf{width:100%!important}}
+  .mk-auftrag .mk-tab{margin-top:12px}
+  .mk-auftrag .mk-tab td{vertical-align:top}
+  .mk-laeuft::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;margin-right:6px;vertical-align:1px;animation:mkPuls 1.4s ease-in-out infinite}
+  @keyframes mkPuls{50%{opacity:.25}}
+  @media (prefers-reduced-motion:reduce){.mk-laeuft::before{animation:none}}
   .mk-budget{display:inline-block;width:90px;height:6px;border-radius:99px;background:var(--flaeche2);overflow:hidden;vertical-align:middle;margin:6px 6px 2px 0}
   .mk-budget i{display:block;height:100%;border-radius:99px}
   .mk-budget.gross{width:100%;height:9px;margin:4px 0 6px}

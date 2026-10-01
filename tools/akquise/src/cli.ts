@@ -7,6 +7,7 @@
      npm run audit        naechste Websites pruefen (Playwright, Lighthouse)
      npm run texte        Claude: Deutung + Kontaktvorlage fuer starke Leads
      npm run alles        recherche → audit → texte
+     npm run marketing    wartende Marketing-Recherche abarbeiten (Claude Code, Uwes Abo)
      npm run einzel -- https://beispiel.it restaurant IT
                           eine Website pruefen, OHNE etwas zu melden
 
@@ -24,6 +25,7 @@ import { auditieren } from './audit/index.js';
 import { browserZu } from './audit/browser.js';
 import { texteLauf } from './ki/texte.js';
 import { kiVerbrauch } from './ki/claude.js';
+import { marketingLauf } from './ki/marketing.js';
 import type { FirmaKurz } from './audit/typen.js';
 import { importieren, verbinden } from './einrichten.js';
 
@@ -78,6 +80,13 @@ async function steuern(): Promise<void> {
   if (b.suche_wartet && b.recherche) {
     if (!sperren()) return;
     try { log.info('steuern', 'Suchauftrag wartet: Betriebe suchen'); await recherche(); }
+    finally { freigeben(); await status('frei'); }
+    return;
+  }
+  /* Recherche per Knopf (01.10.2026): In Marketing → Recherche „Recherche starten“ gedrückt. */
+  if (b.marketing_wartet) {
+    if (!sperren()) return;
+    try { await marketingLauf(); }
     finally { freigeben(); await status('frei'); }
     return;
   }
@@ -255,7 +264,7 @@ async function osm(): Promise<void> {
 
 async function main(): Promise<void> {
   if (befehl === 'hilfe') {
-    console.log('Befehle: verbinden · import <datei> · pruefen · recherche · audit · texte · alles · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen] · overture <IT|DE> <Name> [kreis|stadt|region] [branchen] [probe]');
+    console.log('Befehle: verbinden · import <datei> · pruefen · recherche · audit · texte · alles · marketing · einzel <url> [branche] [IT|DE] [stadt] · osm <IT|DE> <stadt|kreis|region> <Name> [branchen] · overture <IT|DE> <Name> [kreis|stadt|region] [branchen] [probe]');
     return;
   }
   if (befehl === 'einzel') return einzel();
@@ -264,6 +273,11 @@ async function main(): Promise<void> {
   if (befehl === 'verbinden') return verbinden();
   if (befehl === 'import') return importieren(process.argv[3]);
   if (befehl === 'steuern') return steuern();
+  if (befehl === 'marketing') {
+    if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
+    try { if (!(await marketingLauf())) log.info('marketing', 'Kein wartender Auftrag.'); } finally { freigeben(); await status('frei'); }
+    return;
+  }
   if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
   try {
     if (!(await pruefen())) { log.warn('start', 'Notbremse gezogen — es wird nichts getan.'); return; }
