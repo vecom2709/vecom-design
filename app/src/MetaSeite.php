@@ -205,15 +205,28 @@ final class MetaSeite
         $seite = preg_replace('~\D~', '', (string) $treffer['id']) ?? '';
         if ($seite !== $alt) { AkquiseGate::setzen('meta_seite_id', $seite); }
         $z[] = 'Seite „' . (string) ($treffer['name'] ?? '') . '“' . ($seite !== $alt ? ' eingetragen (ID ' . $seite . ')' : ' passt');
+        /* Rechte des Schlüssels (keine Geheimnisse) — für WhatsApp und für einen klaren Satz, wenn Instagram fehlt. */
+        $dbg = self::roh('GET', self::API . '/debug_token?input_token=' . rawurlencode($token), null, $token);
+        $rechte = array_map('strval', (array) ($dbg['json']['data']['scopes'] ?? []));
         $ig = (array) ($treffer['instagram_business_account'] ?? []);
+        if (empty($ig['id'])) {
+            /* 01.10.2026: Die Seite kam ohne Instagram-Feld, obwohl @vecom.design verknüpft war.
+               Direkt an der Seite nachfragen — mit ihrem eigenen Schlüssel, und auch nach dem
+               älteren Feld connected_instagram_account. */
+            $pt = self::roh('GET', self::API . '/' . $seite . '?fields=access_token', null, $token);
+            $pTok = is_string($pt['json']['access_token'] ?? null) && $pt['json']['access_token'] !== '' ? (string) $pt['json']['access_token'] : $token;
+            $direkt = self::roh('GET', self::API . '/' . $seite . '?fields=instagram_business_account%7Bid,username%7D,connected_instagram_account%7Bid,username%7D', null, $pTok);
+            $ig = (array) ($direkt['json']['instagram_business_account'] ?? $direkt['json']['connected_instagram_account'] ?? []);
+        }
         if (!empty($ig['id'])) {
             AkquiseGate::setzen('meta_ig_id', preg_replace('~\D~', '', (string) $ig['id']) ?? '');
             $z[] = 'Instagram @' . (string) ($ig['username'] ?? '?') . ' verbunden';
         } else {
-            $z[] = 'Instagram: mit der Seite ist noch kein Instagram-Profikonto verknüpft';
+            $fehlt = $rechte !== [] ? array_values(array_diff(['instagram_basic', 'instagram_content_publish', 'pages_read_engagement'], $rechte)) : [];
+            $z[] = $fehlt !== [] ? 'Instagram: dem Schlüssel fehlen die Rechte ' . implode(', ', $fehlt) . ' — neu erzeugen und dabei alle anhaken'
+                                 : 'Instagram: Meta meldet für die Seite kein verknüpftes Instagram-Profikonto';
         }
         /* WhatsApp: welche Konten der Schlüssel verwalten darf, steht in seinen Rechten. */
-        $dbg = self::roh('GET', self::API . '/debug_token?input_token=' . rawurlencode($token), null, $token);
         $waba = '';
         foreach ((array) ($dbg['json']['data']['granular_scopes'] ?? []) as $gs) {
             if (($gs['scope'] ?? '') === 'whatsapp_business_management' && !empty($gs['target_ids'][0])) { $waba = preg_replace('~\D~', '', (string) $gs['target_ids'][0]) ?? ''; }

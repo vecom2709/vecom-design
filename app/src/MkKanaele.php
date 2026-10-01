@@ -39,7 +39,7 @@ final class MkKanaele
         $fb = $fb && !$fbNein;
         return [
             'facebook' => ['bereit' => $fb, 'text' => $fbText, 'einrichten' => '#meta'],
-            'instagram' => ['bereit' => $fb && $me['ig_id'] !== '', 'text' => !$fb ? 'braucht zuerst die Facebook-Seite' : ($me['ig_id'] !== '' ? 'verbunden (Konto ' . $me['ig_id'] . ')' : 'Instagram-Konto-ID fehlt'), 'einrichten' => '#meta'],
+            'instagram' => ['bereit' => $fb && $me['ig_id'] !== '', 'text' => !$fb ? 'braucht zuerst die Facebook-Seite' : ($me['ig_id'] !== '' ? 'verbunden (Konto ' . $me['ig_id'] . ')' : (preg_match('/Instagram: ([^·.]+)/u', (string) ($pr['facebook']['text'] ?? ''), $igM) ? trim($igM[1]) : 'Instagram-Konto-ID fehlt')), 'einrichten' => '#meta'],
             'telegram' => ['bereit' => Telegram::bereit() && $k['id'] !== '', 'text' => !Telegram::bereit() ? 'Bot noch nicht eingerichtet' : ($k['id'] !== '' ? 'verbunden' . ($k['titel'] !== '' ? ' („' . $k['titel'] . '“)' : '') : 'Kanal fehlt'), 'einrichten' => 'einstellungen?b=telegram'],
         ];
     }

@@ -19711,6 +19711,33 @@ foreach ($seAlt as $seK => $seV) {
     if ($seV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$seK]); } else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', [$seV, $seK]); }
 }
 MkKanaele::pruefungMerken('facebook', null);
+/* 01.10.2026 echt: /me/accounts lieferte die Seite ohne Instagram-Feld — direkt an der Seite nachfragen; fehlen Rechte, sagt es der Satz */
+$igFake = static function (bool $direktHat, array $rechte): callable {
+    return static function (string $m, string $u, ?array $b, string $t) use ($direktHat, $rechte): array {
+        if (str_contains($u, '/me/accounts')) { return ['status' => 200, 'json' => ['data' => [['id' => '1371332072727581', 'name' => 'Vecom Design']]]]; }
+        if (str_contains($u, '/debug_token')) { return ['status' => 200, 'json' => ['data' => ['scopes' => $rechte, 'granular_scopes' => []]]]; }
+        if (str_contains($u, '?fields=access_token')) { return ['status' => 200, 'json' => ['access_token' => 'SEITE-T', 'id' => '1371332072727581']]; }
+        if (str_contains($u, 'connected_instagram_account')) { return ['status' => 200, 'json' => $direktHat ? ['instagram_business_account' => ['id' => '17841426670385013', 'username' => 'vecom.design'], 'id' => '1371332072727581'] : ['id' => '1371332072727581']]; }
+        if (str_contains($u, '?fields=name')) { return ['status' => 200, 'json' => ['name' => 'Vecom Design']]; }
+        return ['status' => 404, 'json' => null];
+    };
+};
+MetaSeite::$tauschImTest = true;
+MetaSeite::$netz = $igFake(true, ['pages_show_list', 'pages_read_engagement', 'instagram_basic', 'instagram_content_publish']);
+MetaSeite::speichern(['seite_id' => '1371332072727581', 'ig_id' => '', 'token' => 'igtest-schluessel']);
+AkquiseGate::setzen('meta_ig_id', '');
+$igP1 = MkKanaele::pruefen('facebook'); $igId1 = MetaSeite::einstellungen()['ig_id'];
+MetaSeite::$netz = $igFake(false, ['pages_show_list', 'pages_read_engagement']);
+AkquiseGate::setzen('meta_ig_id', '');
+$igP2 = MkKanaele::pruefen('facebook'); $igSt2 = MkKanaele::stand()['instagram']['text'];
+MetaSeite::$netz = null; MetaSeite::$tauschImTest = false;
+pruefe('Instagram: kommt die Seite ohne Instagram-Feld, fragt die Prüfung die Seite direkt; fehlen dem Schlüssel Rechte, steht genau das auf der Instagram-Karte',
+    $igP1['ok'] && $igId1 === '17841426670385013' && str_contains($igP1['text'], 'Instagram @vecom.design verbunden')
+    && str_contains($igSt2, 'instagram_basic') && str_contains($igSt2, 'neu erzeugen'), json_encode([$igP1, $igId1, $igP2, $igSt2]));
+foreach ($seAlt as $seK => $seV) {
+    if ($seV === null) { Db::run('DELETE FROM settings WHERE skey = ?', [$seK]); } else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', [$seV, $seK]); }
+}
+MkKanaele::pruefungMerken('facebook', null);
 $kaFehler = null; set_error_handler(static function (int $n, string $m) use (&$kaFehler): bool { $kaFehler = $m; return true; });
 $land = 'IT'; $st = MkStart::schritte('IT'); $fehl = []; $anm = MkAnmeldungen::liste('IT');
 ob_start(); require $wurzel . '/views/mk_start.php'; $anHtml = (string) ob_get_clean();
