@@ -450,11 +450,13 @@ final class AkquiseFolge
     }
 
     /** Der fertige Text: derselbe Wortlaut wie die Meta-Vorlage, mit STOP-Hinweis darunter. */
-    public static function handText(array $f, int $schritt, string $sprache): string
+    public static function handText(array $f, int $schritt, string $sprache, bool $vorschau = false): string
     {
         require_once __DIR__ . '/WhatsAppCloud.php';
         $sp = isset(WhatsAppCloud::TEXTE[$schritt][$sprache]) ? $sprache : 'it';
-        $link = $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $sp : self::dashboardLink($f, $sp);
+        /* Die Vorschau legt keinen Zugang an -- das tut erst der Tipp (dashboardLink bereitet ihn vor). */
+        $link = $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $sp
+              : ($vorschau ? '[Link zu seinem persönlichen Bereich]' : self::dashboardLink($f, $sp));
         return strtr(WhatsAppCloud::TEXTE[$schritt][$sp], ['{{1}}' => (string) $f['name'], '{{2}}' => $link]) . "\n\n" . WhatsAppCloud::FUSS[$sp];
     }
 

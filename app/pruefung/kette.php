@@ -13145,6 +13145,8 @@ Db::run('UPDATE akq_folgen SET wa_hand_seit = ? WHERE firma_id = ?', [date('Y-m-
 AkquiseFolge::lauf();
 pruefe('WhatsApp von Hand: liegt ein Schritt zwei Tage ohne Tipp, geht die Mail',
     count($v3Post) === $whPost + 1 && $v3Post[count($v3Post) - 1][0] === 'forno@panificio-mano.example' && (int) Db::wert('SELECT schritt FROM akq_folgen WHERE firma_id = ?', [$whF], 0) === $whS + 1);
+pruefe('WhatsApp von Hand: die Vorschau in der Verwaltung legt keinen Zugang an', str_contains(AkquiseFolge::handText(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$whF]), 2, 'it', true), '[Link zu seinem persönlichen Bereich]')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_folgen.php'), '(string) $wh[\'sprache\'], true)'));
 pruefe('WhatsApp von Hand: ohne WhatsApp-Einwilligung nie', !AkquiseFolge::handMoeglich(['wa_schritt' => 0], $v3OhneWa, 1));
 AkquiseGate::setzen('wa_nummer_id', $whNr);
 pruefe('WhatsApp von Hand: ist WhatsApp Business angebunden, schickt die Schnittstelle — nicht die Hand',
