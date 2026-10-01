@@ -4741,6 +4741,24 @@ switch ($route) {
         ansicht('telegram', ['z' => $tgZ, 'd' => TelegramZahlen::dashboard($tgZ)]);
         break;
 
+    case 'bewertung-karte':   // S3 (01.10.2026, Uwe: Ja): QR „Bewerten Sie uns“ zum Ausdrucken — persönlich übergeben, nicht per Mail
+        require_once __DIR__ . '/src/Firma.php';
+        require_once __DIR__ . '/src/QrBild.php';
+        $bkLink = (string) Firma::get('firma_google_bewertung');
+        if (preg_match('~^https://~', $bkLink) !== 1) { $_SESSION['fehler'] = 'Erst den Google-Bewertungslink unter Einstellungen › Firma eintragen.'; weiter('verzeichnisse#google-profil'); }
+        header('Cache-Control: no-store');
+        $bkQr = QrBild::svg($bkLink, 300, 1);
+        ?><!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Bewerten Sie uns — Vecom Design</title>
+<style>@page{size:A6;margin:8mm}body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;color:#141414;background:#fff}
+.karte{display:grid;gap:4mm;justify-items:center;text-align:center;padding:6mm;max-width:105mm;margin:0 auto}
+h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin:0}.qr{width:62mm;height:62mm}.qr svg{width:100%;height:100%}
+.klein{font-size:10pt;color:#555;margin:0}.marke{font-weight:800;letter-spacing:.08em;font-size:12pt}@media screen{body{background:#eee}.karte{background:#fff;margin:10mm auto;box-shadow:0 2px 14px rgba(0,0,0,.15)}}</style></head>
+<body><div class="karte"><div class="marke">VECOM DESIGN</div><h1>Wie war's?</h1><p class="it">Com'è andata? · Lasci una recensione</p>
+<div class="qr" role="img" aria-label="QR-Code zur Google-Bewertung"><?= $bkQr ?></div>
+<p class="klein">Code scannen — Ihre Bewertung auf Google hilft anderen Betrieben bei der Wahl. Danke!</p></div>
+<script>window.addEventListener('load',function(){setTimeout(function(){window.print();},300);});</script></body></html><?php
+        exit;
+
     case 'verzeichnisse':   // Telegram Growth Engine T5 (01.10.2026, Uwe: „ja“) — Verzeichnisse und Kooperationen
         require_once __DIR__ . '/src/Verzeichnisse.php';
         require_once __DIR__ . '/src/Telegram.php';

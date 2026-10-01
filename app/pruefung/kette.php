@@ -18354,6 +18354,37 @@ pruefe('Z1: Italienisches ohne deutsche Fassung holt der Cronlauf von selbst nac
 Db::run('DELETE FROM mk_auftraege');
 
 /* ============================================================================
+   Verzeichnisse & Kooperationen einfacher (01.10.2026, Uwe: Ja zu V1–V3, S2, S3)
+   ============================================================================ */
+abschnitt('Verzeichnisse & Kooperationen einfacher');
+require_once $wurzel . '/src/Verzeichnisse.php';
+require_once $wurzel . '/src/MkKooperation.php';
+Verzeichnisse::sicherstellen();
+$vgL = Verzeichnisse::liste();
+$vgIt = Verzeichnisse::fuerLand($vgL, 'IT'); $vgDe = Verzeichnisse::fuerLand($vgL, 'DE');
+$vgNamen = static fn(array $l): array => array_column($l, 'schluessel');
+pruefe('V2: nach Land getrennt — Italien zuerst Google, Apple, Bing, PagineGialle; Deutschland nur, was dort gilt (Agentur-Listen), keine italienischen Kataloge',
+    array_slice($vgNamen($vgIt['wirkt']), 0, 4) === ['google', 'apple', 'bing', 'paginegialle'] && in_array('tgstat', $vgNamen($vgIt['weitere']), true)
+    && !in_array('google', $vgNamen($vgDe['wirkt']), true) && in_array('clutch', $vgNamen($vgDe['wirkt']), true) && !in_array('tgstat', $vgNamen(array_merge($vgDe['wirkt'], $vgDe['weitere'])), true));
+$vgN = Verzeichnisse::naechster($vgL, 'IT');
+pruefe('V1: oben steht genau ein nächster Eintrag — der nützlichste offene', ($vgN['schluessel'] ?? '') === 'google' || ($vgN['status'] ?? '') === 'offen');
+$vgLink = MkKooperation::link('steuerberater', 'DE');
+pruefe('S2/V3: Partner gewinnen je Land — fünf Gruppen, Leitfaden in der Landessprache, eigene Partnerseite je Gruppe, Ansprache nur persönlich',
+    count(MkKooperation::GRUPPEN) === 5 && str_contains($vgLink, '/partner.php?lang=de&fuer=steuerberater')
+    && str_contains(MkKooperation::leitfaden('fotograf', 'IT'), 'provvigione') && str_contains(MkKooperation::leitfaden('fotograf', 'DE'), 'Provision')
+    && str_contains(MkKooperation::ANSPRACHE, 'Registro delle Opposizioni') && str_contains(MkKooperation::satz('druckerei', 'it'), 'insegne')
+    && str_contains((string) file_get_contents($oben . '/partner.php'), 'MkKooperation::satz($pfFuer, $sprache)'));
+MkKooperation::zaehlen('fotograf'); MkKooperation::zaehlen('unbekannt');
+pruefe('S2: Anmeldungen über eine Gruppenseite werden gezählt (ohne Personendaten)', (MkKooperation::bewerbungen()['fotograf'] ?? 0) >= 1 && !isset(MkKooperation::bewerbungen()['unbekannt']));
+Db::run("DELETE FROM settings WHERE skey LIKE 'partner_fuer_%'");
+$vgV = (string) file_get_contents($wurzel . '/views/verzeichnisse.php');
+$vgI = (string) file_get_contents($wurzel . '/index.php');
+pruefe('S3/V: eigenes Google-Profil und Bewertungen mit QR-Karte zum Drucken (nicht per Mail); das Bisherige bleibt eingeklappt darunter',
+    str_contains($vgV, 'id="google-profil"') && str_contains($vgV, '<details class="block vz-alles"') && str_contains($vgI, "case 'bewertung-karte':")
+    && str_contains($vgI, '$bkQr = QrBild::svg($bkLink, 300, 1);') && str_contains($vgV, 'id="partner-gewinnen"'));
+Db::run('DELETE FROM mk_verzeichnisse'); Db::run("DELETE FROM settings WHERE skey = 'verzeichnisse_vorschlaege'");
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

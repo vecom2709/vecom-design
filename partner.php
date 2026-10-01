@@ -212,6 +212,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     $r = Partner::bewerben($_POST, $sprache, Partner::vereinbarungText($sprache));
                     $meldung = $r['ok'] ? 'danke' : ($r['grund'] ?? 'panne');
                     $gut = $r['ok'];
+                    if ($r['ok'] && !empty($_POST['fuer'])) { require_once __DIR__ . '/app/src/MkKooperation.php'; MkKooperation::zaehlen((string) $_POST['fuer']); }
                 }
             } elseif ($tat === 'vereinbarung' && $p) {
                 /* Zugestimmt wird seit 30.09.2026 nur noch auf der Sperrseite (zwei Haken,
@@ -809,6 +810,10 @@ if ($p && isset($_GET['karte'])) {
       <div class="hinweis <?= $gut ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($meldung)) ?></div>
     <?php endif; ?>
     <?php if (!$gut): ?>
+      <?php /* Partnerseite für eine Gruppe (01.10.2026, Uwe: Ja zu S2): ?fuer=steuerberater … */
+        require_once __DIR__ . '/app/src/MkKooperation.php';
+        $pfFuer = isset(MkKooperation::GRUPPEN[(string) ($_GET['fuer'] ?? $_POST['fuer'] ?? '')]) ? (string) ($_GET['fuer'] ?? $_POST['fuer']) : '';
+        if ($pfFuer !== ''): ?><p class="lead" style="font-size:1.08em;color:var(--text)"><?= $h(MkKooperation::satz($pfFuer, $sprache)) ?></p><?php endif; ?>
       <p class="lead"><?= $h($T('lead')) ?></p>
       <p class="lead"><?= $h($bedingungen) ?></p>
       <h2><?= $h($T('so_titel')) ?></h2>
@@ -820,7 +825,7 @@ if ($p && isset($_GET['karte'])) {
       <?php else: ?>
       <form method="post" action="<?= $h($selbst()) ?>">
         <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
-        <input type="hidden" name="tat" value="bewerben">
+        <input type="hidden" name="tat" value="bewerben"><?php if ($pfFuer !== ''): ?><input type="hidden" name="fuer" value="<?= $h($pfFuer) ?>"><?php endif; ?>
         <div class="wabe" aria-hidden="true"><input type="text" name="webseite" tabindex="-1" autocomplete="off"></div>
         <label for="pb_name"><?= $h($T('f_name')) ?></label>
         <input id="pb_name" type="text" name="name" required maxlength="160" autocomplete="name">

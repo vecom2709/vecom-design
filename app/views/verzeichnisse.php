@@ -79,6 +79,114 @@ require __DIR__ . '/mk_stil.php';
   </nav>
 </div>
 
+<?php
+/* EINFACH ZUERST (01.10.2026, Uwe: Ja zu V1, V2, V3, S2, S3): oben das Land,
+   der nächste Eintrag, die Stellen, die Kunden bringen, und „Partner
+   gewinnen“. Alles Bisherige steht unverändert darunter, eingeklappt. */
+require_once dirname(__DIR__) . '/src/MkLand.php';
+require_once dirname(__DIR__) . '/src/MkKooperation.php';
+require_once dirname(__DIR__) . '/src/Firma.php';
+$vzLand = MkLand::wahl();
+$vzT = Verzeichnisse::fuerLand($liste, $vzLand);
+$vzN = Verzeichnisse::naechster($liste, $vzLand);
+$vzStandKnopf = static function (array $e, string $status, string $wort, string $klasse = 'knopf klein'): string {
+    return '<form method="post" action="' . Fmt::h(url('verzeichnisse')) . '" style="margin:0"><input type="hidden" name="_csrf" value="' . Fmt::h(Csrf::token()) . '">'
+        . '<input type="hidden" name="tat" value="verzeichnis_stand"><input type="hidden" name="id" value="' . (int) $e['id'] . '"><input type="hidden" name="zurueck" value="verzeichnisse">'
+        . '<button class="' . $klasse . '" name="status" value="' . Fmt::h($status) . '">' . Fmt::h($wort) . '</button></form>';
+};
+$vzBew = MkKooperation::bewerbungen();
+$vzGLink = (string) Firma::get('firma_google_bewertung');
+$vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { $vzGoogle = $e; } } ?>
+<style>
+  .vz-einfach{display:grid;gap:14px;margin-bottom:16px}
+  .vz-naechst{border-color:rgba(241,211,139,.55)}
+  .vz-zeile{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;padding:9px 0;border-top:1px solid var(--linie)}
+  .vz-zeile:first-of-type{border-top:0}
+  .vz-zeile .vz-name{flex:1 1 220px;min-width:0}
+  .vz-zeile .vz-tun{display:flex;gap:6px;flex-wrap:wrap}
+  .vz-gruppen{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px}
+  .vz-gruppe{border:1px solid var(--linie2);border-radius:12px;padding:12px 14px;display:grid;gap:8px;align-content:start}
+  .vz-gruppe h3{margin:0;font-size:15.5px}
+  .vz-gruppe p{margin:0;line-height:1.55;font-size:13.5px}
+  .vz-gruppe textarea{width:100%;font-size:13px;line-height:1.5;resize:vertical;min-height:120px}
+  .vz-alles > summary{cursor:pointer;font-weight:600;padding:4px 0}
+</style>
+<div class="vz-einfach">
+  <?php if ($vzLand === 'DE'): ?>
+    <div class="hinweis" role="note" style="margin:0">Für Deutschland bringen Karten und Branchenbücher wenig: Sie verlangen eine Adresse in Deutschland, und Google zeigt ein Profil nur im Umkreis von etwa zwei Stunden Fahrt. Wirksam sind dort die Agentur-Verzeichnisse unten, <b>Partner</b> (Steuerberater, Fotografen, Druckereien …) und Beiträge mit Anzeigen.</div>
+  <?php endif; ?>
+
+  <section class="block vz-naechst" aria-labelledby="vz-n-titel">
+    <h2 id="vz-n-titel"><?= MkLand::marke($vzLand) ?> Nächster Eintrag</h2>
+    <?php if ($vzN === null): ?>
+      <p class="mk-fein" style="margin:0">Für <?= Fmt::h(MkLand::name($vzLand)) ?> ist alles eingetragen oder entschieden. Was eingereicht ist, steht unten — sobald es online ist, auf „Online“ setzen.</p>
+    <?php else: ?>
+      <p style="margin:0 0 4px;font-size:17px"><b><?= Fmt::h((string) $vzN['name']) ?></b> <span class="mk-fein">· <?= Fmt::h(Verzeichnisse::ARTEN[(string) $vzN['art']][0] ?? '') ?> · <?= Fmt::h((string) $vzN['kosten']) ?><?= (string) $vzN['konto'] !== '' ? ' · ' . Fmt::h((string) $vzN['konto']) : '' ?></span></p>
+      <?php if ((string) $vzN['regeln'] !== ''): ?><p style="margin:0 0 10px;max-width:80ch;line-height:1.55"><?= Fmt::h((string) $vzN['regeln']) ?></p><?php endif; ?>
+      <ol class="mk-fein" style="margin:0 0 10px;padding-left:20px;line-height:1.6">
+        <li>„Zur Eintragsseite“ öffnen.</li>
+        <li>Dort den Ausfüll-Knopf aus der Lesezeichenleiste drücken — oder die Texte unten unter „Alle Stellen“ kopieren.</li>
+        <li>Konto, Captcha und Absenden bleiben bei dir. Danach hier „Eingereicht“.</li>
+      </ol>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <a class="knopf haupt" href="<?= Fmt::h((string) $vzN['url']) ?>" target="_blank" rel="noopener noreferrer">Zur Eintragsseite ↗</a>
+        <?= $vzStandKnopf($vzN, 'eingereicht', 'Eingereicht', 'knopf') ?>
+        <?= $vzStandKnopf($vzN, 'spaeter', 'Später') ?>
+        <?= $vzStandKnopf($vzN, 'nein', 'Nicht eintragen') ?>
+        <a class="knopf klein" href="<?= Fmt::h(url('verzeichnisse') . '?e=' . (int) $vzN['id']) ?>#v-<?= (int) $vzN['id'] ?>">Texte zum Kopieren</a>
+      </div>
+    <?php endif; ?>
+  </section>
+
+  <section class="block" aria-labelledby="vz-w-titel">
+    <h2 id="vz-w-titel">Wo eintragen — <?= Fmt::h(MkLand::name($vzLand)) ?> <span class="mehr">zuerst die Stellen, die Kunden bringen</span></h2>
+    <?php foreach ($vzT['wirkt'] as $e): ?>
+      <div class="vz-zeile">
+        <span class="vz-name"><b><?= Fmt::h((string) $e['name']) ?></b> <span class="mk-fein">· <?= Fmt::h((string) $e['kosten']) ?></span></span>
+        <?= $stMarke($e) ?>
+        <span class="vz-tun">
+          <?php if ($e['status'] === 'offen'): ?><a class="knopf klein" href="<?= Fmt::h((string) $e['url']) ?>" target="_blank" rel="noopener noreferrer">Eintragen ↗</a><?= $vzStandKnopf($e, 'eingereicht', 'Eingereicht') ?>
+          <?php elseif ($e['status'] === 'eingereicht'): ?><?= $vzStandKnopf($e, 'online', 'Ist online') ?>
+          <?php elseif ($e['status'] === 'online' && !empty($e['eintrag_url'])): ?><a class="knopf klein" href="<?= Fmt::h((string) $e['eintrag_url']) ?>" target="_blank" rel="noopener noreferrer">Ansehen ↗</a><?php endif; ?>
+        </span>
+      </div>
+    <?php endforeach; ?>
+    <?php if (!$vzT['wirkt']): ?><p class="mk-fein" style="margin:0">Hier gibt es für <?= Fmt::h(MkLand::name($vzLand)) ?> keine Stelle, die sich lohnt.</p><?php endif; ?>
+    <p class="mk-fein" style="margin:10px 0 0"><?= count($vzT['weitere']) ?> weitere Stellen (Telegram-Kataloge, kleinere Verzeichnisse) stehen unten unter „Alle Stellen und Werkzeuge“.</p>
+  </section>
+
+  <section class="block" id="partner-gewinnen" aria-labelledby="vz-p-titel">
+    <h2 id="vz-p-titel">Partner gewinnen — <?= Fmt::h(MkLand::name($vzLand)) ?> <span class="mehr">Menschen, die täglich mit Kleinbetrieben zu tun haben · Provision über das Partnerprogramm</span></h2>
+    <p class="mk-fein" style="margin:0 0 10px;max-width:90ch;line-height:1.55"><?= Fmt::h(MkKooperation::ANSPRACHE) ?></p>
+    <div class="vz-gruppen">
+      <?php foreach (MkKooperation::GRUPPEN as $gk => [$gDe, $gIt, $gWarum]): $gId = 'vzg-' . $gk; ?>
+        <div class="vz-gruppe">
+          <h3><?= Fmt::h($vzLand === 'IT' ? $gIt . ' (' . $gDe . ')' : $gDe) ?><?= ($vzBew[$gk] ?? 0) > 0 ? ' <span class="marke2 gut">' . (int) $vzBew[$gk] . ' angemeldet</span>' : '' ?></h3>
+          <p><?= Fmt::h($gWarum) ?></p>
+          <label class="leise" for="<?= $gId ?>-l" style="margin:0">Partnerseite für diese Gruppe</label>
+          <div class="mk-link"><input id="<?= $gId ?>-l" readonly value="<?= Fmt::h(MkKooperation::link($gk, $vzLand)) ?>"><button class="knopf" type="button" data-kopieren="<?= $gId ?>-l">Kopieren</button></div>
+          <details><summary class="mk-fein" style="cursor:pointer">Gesprächsleitfaden<?= $vzLand === 'IT' ? ' (italienisch)' : '' ?></summary>
+            <textarea id="<?= $gId ?>-t" readonly rows="7"><?= Fmt::h(MkKooperation::leitfaden($gk, $vzLand)) ?></textarea>
+            <button class="knopf klein" type="button" data-kopieren="<?= $gId ?>-t">Kopieren</button></details>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </section>
+
+  <section class="block" id="google-profil" aria-labelledby="vz-g-titel">
+    <h2 id="vz-g-titel">Eigenes Google-Profil und Bewertungen <span class="mehr">zeigt Kunden zugleich, was das Google-Profil-Paket (89 €) bringt</span></h2>
+    <ol style="margin:0;padding-left:20px;line-height:1.7">
+      <li>Profil: <?= $vzGoogle ? $stMarke($vzGoogle) : '—' ?> <?= $vzGoogle && $vzGoogle['status'] === 'offen' ? '<a href="' . Fmt::h((string) $vzGoogle['url']) . '" target="_blank" rel="noopener noreferrer">einrichten ↗</a> (als Firma mit Servicegebiet, Adresse ausblenden)' : '' ?></li>
+      <li>Bewertungslink: <?= $vzGLink !== '' ? '<span class="marke2 gut">hinterlegt</span>' : '<span class="marke2 warnung">fehlt</span> — nach dem Einrichten unter <a href="' . Fmt::h(url('einstellungen') . '?b=firma') . '">Einstellungen › Firma</a> eintragen' ?></li>
+      <li>Um Bewertungen bitten: persönlich bei der Übergabe oder mit dem QR-Code zum Ausdrucken (Karte für den Termin, Aufsteller). In Deutschland nicht per E-Mail ohne Einwilligung — das gilt dort als Werbung.</li>
+      <li>Beiträge fürs Profil schreibt das Content-Studio mit (Format „Google-Unternehmensprofil“) — veröffentlicht werden sie von Hand im Profil.</li>
+    </ol>
+    <?php if ($vzGLink !== ''): ?><p style="margin:10px 0 0"><a class="knopf" href="<?= Fmt::h(url('bewertung-karte')) ?>" target="_blank" rel="noopener">QR-Karte „Bewerten Sie uns“ drucken ↗</a></p><?php endif; ?>
+  </section>
+</div>
+
+<details class="block vz-alles"<?= $offen > 0 ? ' open' : '' ?>>
+<summary>Alle Stellen und Werkzeuge — Zahlen, Ausfüll-Knopf, Firmendaten, Texte, eigene Stellen</summary>
 <div class="karten mk-karten">
   <div class="karte"><h3>Offen</h3><div class="wert"><?= $zahl($anz('offen')) ?></div>
     <div class="neben"><?= $faelligAnz('offen') > 0 ? $zahl($faelligAnz('offen')) . ' davon seit über einer Woche' : 'noch nicht eingetragen' ?></div></div>
@@ -239,4 +347,5 @@ require __DIR__ . '/mk_stil.php';
   <p style="margin:10px 0 0">Vorgeschlagen werden nur Stellen mit kostenlosem Grundeintrag; bezahlte Zusätze stehen als „nicht buchen“ dabei. Eingereicht wird von Hand: Konten, Passwörter, Captchas und das Annehmen von Bedingungen bleiben bei dir. Wo kein Konto und kein Captcha nötig ist, kann Claude einreichen — nur nach deinem Ja je Eintrag. Die Regeln jeder Stelle wurden am angegebenen Tag auf deren eigenen Seiten nachgesehen; sie können sich ändern.</p>
   <p style="margin:8px 0 0">Kanäle und Gruppen: nur solche, deren Beschreibung oder Regeln Kooperationen ausdrücklich erlauben, und die Anfrage geht an einen Admin nach dem anderen. Unaufgeforderte Werbung und Einladungslinks an Fremde wertet Telegram als Spam (telegram.org/faq_spam) — mit Sperren bis zur Dauer. Eine abgesprochene gegenseitige Erwähnung, die jeder Admin selbst postet, ist erlaubt.</p>
   <p style="margin:8px 0 0">Gemessen wird über die eigenen Links jedes Eintrags (eine gewöhnliche Kampagne, Code vz-…): Besuche, Preisrechner und Anfragen über den Website-Link, geöffnete Fenster über den Fenster-Link, Beitritte über den Kanal-Link. Wer den Kanal über seinen öffentlichen Namen findet — so verlinken die meisten Telegram-Kataloge —, kommt ohne Link an und lässt sich keinem Katalog zuordnen. Ab einer Woche ohne Bewegung erinnert die Verwaltung einmal je Woche per Zuruf.</p>
+</details>
 </details>

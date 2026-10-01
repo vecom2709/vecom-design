@@ -149,6 +149,43 @@ final class Verzeichnisse
             'kostenlos', '', null, 'en', 'nein'],
     ];
 
+    /* EINFACHER (01.10.2026, Uwe: Ja zu V1 und V2): oben immer nur der nächste
+       Eintrag; getrennt nach Land; zuerst die Stellen, die wirklich Kunden
+       bringen (Karten, die großen Verzeichnisse, Agentur-Listen) — der Rest
+       eingeklappt. Reihenfolge = Nutzen. */
+    public const WIRKT = ['google', 'apple', 'bing', 'paginegialle', 'misterimprese', 'clutch', 'techbehemoths', 'sortlist'];
+    /** Gelten in beiden Ländern (international oder mit deutschem Bereich). */
+    public const BEIDE = ['clutch', 'techbehemoths', 'sortlist', 'goodfirms', 'designrush', 'telegramchannels', 'awwwards'];
+
+    /** Für welches Land eine Stelle zählt: IT, DE oder beide. */
+    public static function land(array $e): string
+    {
+        if (in_array((string) ($e['schluessel'] ?? ''), self::BEIDE, true) || (string) ($e['sprache'] ?? '') === 'en') { return 'beide'; }
+        return (string) ($e['sprache'] ?? 'it') === 'de' ? 'DE' : 'IT';
+    }
+
+    /** Die Stellen eines Landes, geteilt in „bringt Kunden“ und „weitere“. @return array{wirkt:list<array>, weitere:list<array>} */
+    public static function fuerLand(array $liste, string $land): array
+    {
+        $aus = ['wirkt' => [], 'weitere' => []];
+        foreach ($liste as $e) {
+            $l = self::land($e);
+            if ($l !== 'beide' && $l !== $land) { continue; }
+            $aus[in_array((string) ($e['schluessel'] ?? ''), self::WIRKT, true) ? 'wirkt' : 'weitere'][] = $e;
+        }
+        $rang = array_flip(self::WIRKT);
+        usort($aus['wirkt'], static fn($a, $b) => ($rang[$a['schluessel']] ?? 99) <=> ($rang[$b['schluessel']] ?? 99));
+        return $aus;
+    }
+
+    /** Der nächste Eintrag für dieses Land: der nützlichste, der noch offen ist. */
+    public static function naechster(array $liste, string $land): ?array
+    {
+        $t = self::fuerLand($liste, $land);
+        foreach (array_merge($t['wirkt'], $t['weitere']) as $e) { if ($e['status'] === 'offen') { return $e; } }
+        return null;
+    }
+
     /* ================================================================== */
     /*  Anlegen                                                           */
     /* ================================================================== */
