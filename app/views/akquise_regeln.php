@@ -283,7 +283,7 @@ $blick = [
           <?= $bdTest ? '' : 'data-frage="Briefdienst-Einstellungen speichern? Im echten Betrieb gehen bestätigte Briefe wirklich raus und kosten." data-ja="Ja, speichern"' ?>>
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_briefdienst_speichern">
       <div class="feld" style="margin:0"><label>Schlüssel</label>
-        <input type="password" name="token" autocomplete="off" placeholder="<?= $bdDa ? 'leer lassen = bleibt wie er ist' : 'Schlüssel einfügen' ?>"></div>
+        <input type="password" name="token" autocomplete="new-password" placeholder="<?= $bdDa ? 'leer lassen = bleibt wie er ist' : 'Schlüssel einfügen' ?>"></div>
       <div class="feld" style="margin:0"><label>Versandart</label><select name="produkt">
         <?php $bdProdukt = AkquiseBriefdienst::produkt(); foreach (AkquiseBriefdienst::PRODUKTE as $pk => [$pName, $pPreis]): ?>
           <option value="<?= $pk ?>"<?= $bdProdukt === $pk ? ' selected' : '' ?>><?= Fmt::h($pName . ' — ' . $pPreis) ?></option><?php endforeach; ?></select>
@@ -318,8 +318,8 @@ $blick = [
       <div><label class="akq-klein" for="wa_nummer">Telefonnummer-ID</label><input id="wa_nummer" name="nummer_id" inputmode="numeric" value="<?= Fmt::h($wa['nummer_id']) ?>"></div>
       <div><label class="akq-klein" for="wa_anzeige">Deine WhatsApp-Nummer (für den Knopf „Scrivici su WhatsApp“, z. B. 393801907017)</label><input id="wa_anzeige" name="anzeige" inputmode="numeric" value="<?= Fmt::h($wa['anzeige']) ?>"></div>
       <div><label class="akq-klein" for="wa_konto">WhatsApp-Business-Konto-ID</label><input id="wa_konto" name="konto_id" inputmode="numeric" value="<?= Fmt::h($wa['konto_id']) ?>"></div>
-      <div><label class="akq-klein" for="wa_token">Dauerhafter Schlüssel <?= $wa['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_token" name="token" type="password" autocomplete="off"></div>
-      <div><label class="akq-klein" for="wa_geheim">App-Geheimnis <?= $wa['app_geheim'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_geheim" name="app_geheim" type="password" autocomplete="off"></div>
+      <div><label class="akq-klein" for="wa_token">Dauerhafter Schlüssel <?= $wa['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_token" name="token" type="password" autocomplete="new-password"></div>
+      <div><label class="akq-klein" for="wa_geheim">App-Geheimnis <?= $wa['app_geheim'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="wa_geheim" name="app_geheim" type="password" autocomplete="new-password"></div>
       <button class="knopf" style="justify-self:start">Speichern</button>
     </form>
     <?php if ($waV): ?>
@@ -384,7 +384,7 @@ $blick = [
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_meta_speichern">
       <div><label class="akq-klein" for="me_seite">Seiten-ID</label><input id="me_seite" name="seite_id" inputmode="numeric" value="<?= Fmt::h($me['seite_id']) ?>"></div>
       <div><label class="akq-klein" for="me_ig">Instagram-Konto-ID (leer = nur Facebook)</label><input id="me_ig" name="ig_id" inputmode="numeric" value="<?= Fmt::h($me['ig_id']) ?>"></div>
-      <div><label class="akq-klein" for="me_token">Dauerhafter Schlüssel <?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="me_token" name="token" type="password" autocomplete="off"></div>
+      <div><label class="akq-klein" for="me_token">Dauerhafter Schlüssel <?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></label><input id="me_token" name="token" type="password" autocomplete="new-password"></div>
       <div><label class="akq-klein" for="me_sp">Sprache der Beiträge und des Formulars</label><select id="me_sp" name="sprache"><option value="beide"<?= $me['sprache'] === 'beide' ? ' selected' : '' ?>>Beide: montags Italienisch, donnerstags Deutsch</option><option value="it"<?= $me['sprache'] === 'it' ? ' selected' : '' ?>>Nur Italienisch</option><option value="de"<?= $me['sprache'] === 'de' ? ' selected' : '' ?>>Nur Deutsch</option></select></div>
       <button class="knopf" style="justify-self:start">Speichern</button>
     </form>

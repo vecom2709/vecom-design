@@ -26,12 +26,12 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
       </select></div>
     <div class="reihe">
       <div class="feld"><label>Geheimer Schlüssel<?= $stripe->bereit() ? ' (leer lassen = unverändert)' : '' ?></label>
-        <input type="password" name="geheim" autocomplete="off" placeholder="sk_test_… bzw. sk_live_…"></div>
+        <input type="password" name="geheim" autocomplete="new-password" placeholder="sk_test_… bzw. sk_live_…"></div>
       <div class="feld"><label>Webhook-Geheimnis<?= $stripe->webhookBereit() ? ' (leer lassen = unverändert)' : '' ?></label>
-        <input type="password" name="webhook_geheim" autocomplete="off" placeholder="whsec_…"></div>
+        <input type="password" name="webhook_geheim" autocomplete="new-password" placeholder="whsec_…"></div>
     </div>
     <div class="feld"><label>Connect-Webhook-Geheimnis (wahlweise)<?= $stripe->webhookConnectBereit() ? ' (leer lassen = unverändert, „-“ = entfernen)' : '' ?></label>
-      <input type="password" name="webhook_geheim_connect" autocomplete="off" placeholder="whsec_…"></div>
+      <input type="password" name="webhook_geheim_connect" autocomplete="new-password" placeholder="whsec_…"></div>
     <div class="feld"><label>Öffentlicher Schlüssel<?= $stripe->oeffentlich() !== '' ? ' (leer lassen = unverändert, „-“ = entfernen)' : '' ?></label>
       <input type="text" name="oeffentlich" autocomplete="off" spellcheck="false" placeholder="pk_test_… bzw. pk_live_…"></div>
     <button class="knopf haupt">Speichern</button>

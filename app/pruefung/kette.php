@@ -18629,6 +18629,11 @@ Db::run("UPDATE settings SET svalue = svalue WHERE skey = 'pf_tiktok_geheim'");
 $pfAuf = MkPlattform::auffrischen();
 pruefe('P4: der Cronlauf erneuert abgelaufene Schlüssel (TikTok gilt nur 24 Stunden) — nur die fälligen', ($pfAuf['tiktok'] ?? '') === 'ok' && !isset($pfAuf['linkedin']) && count($pfAufrufe) === $pfVor + 1);
 MkPlattform::speichern('youtube', ['client_id' => 'youtube-client', 'freigabe' => '']);
+/* 02.10.2026: Vom Browser eingesetzte E-Mail statt Client-ID wird abgewiesen, nichts überschrieben */
+$pfMail = MkPlattform::speichern('youtube', ['client_id' => 'kontakt@vecom-design.it', 'secret' => 'kennwort']);
+pruefe('Plattform: E-Mail im Feld Client-ID wird abgewiesen', is_string($pfMail) && str_contains($pfMail, 'E-Mail'));
+pruefe('Plattform: abgewiesene Eingabe lässt die Client-ID stehen', MkPlattform::einstellungen('youtube')['client_id'] === 'youtube-client');
+
 pruefe('P4: ohne Haken bleibt es beim Handy-Weg', !MkPlattform::bereit('youtube') && MkHandy::istHandy(MkInhalt::laden($pfVideo('youtube'))));
 MkPlattform::$netz = null;
 @unlink(MkMedium::ordner() . '/' . $pfDatei);

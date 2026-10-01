@@ -95,6 +95,10 @@ final class MkPlattform
     {
         if (!isset(self::ALLE[$p])) { return 'Unbekannte Plattform.'; }
         $id = trim((string) ($d['client_id'] ?? ''));
+        /* 02.10.2026: Chrome hielt Client-ID und Secret für Benutzername und Passwort und füllte
+           E-Mail und Kennwort ein — gespeichert stand „kontaktvecom-design.it“, Google meldete
+           „client secret is invalid“. Eine E-Mail ist nie eine Client-ID. */
+        if (str_contains($id, '@')) { return 'Im Feld Client-ID steht eine E-Mail-Adresse — vermutlich vom Browser eingesetzt. Bitte die Client-ID der Plattform einfügen und das Secret neu eintragen.'; }
         if ($id !== '') { self::setzen('pf_' . $p . '_client', mb_substr(preg_replace('~[^A-Za-z0-9._\-]~', '', $id) ?? '', 0, 200)); }
         if (array_key_exists('konto', $d)) { self::setzen('pf_' . $p . '_konto', mb_substr(preg_replace('~[^0-9/]~', '', (string) $d['konto']) ?? '', 0, 80)); }
         self::setzen('pf_' . $p . '_freigabe', !empty($d['freigabe']) ? '1' : '0');

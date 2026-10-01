@@ -91,7 +91,7 @@ $chefAn = Chef::eingerichtet();
     <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
     <div class="feld" style="flex:1;min-width:220px">
       <label>Codewort<?= $chefAn ? ' (leer lassen = unverändert)' : '' ?></label>
-      <input type="password" name="codewort" autocomplete="off"
+      <input type="password" name="codewort" autocomplete="new-password"
              placeholder="<?= $chefAn ? 'ist gesetzt' : 'z. B. ein Wort, das nur du kennst' ?>">
     </div>
     <button class="knopf haupt">Speichern</button>
@@ -118,7 +118,7 @@ $chefAn = Chef::eingerichtet();
       <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
       <div class="feld" style="flex:1;min-width:180px">
         <label>PIN (4–8 Ziffern, optional<?= Chef::mitPin() ? ' — ist gesetzt; leer speichern entfernt sie' : '' ?>)</label>
-        <input type="password" name="pin" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}|">
+        <input type="password" name="pin" inputmode="numeric" autocomplete="new-password" pattern="[0-9]{4,8}|">
       </div>
       <button class="knopf">PIN speichern</button>
     </form>
@@ -393,9 +393,9 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="strato_zugang">
     <input type="hidden" name="zurueck" value="einstellungen?b=telefon">
     <div class="feld"><label>Öffentlicher Schlüssel<?= $strato['eingerichtet'] ? ' (leer lassen = unverändert)' : '' ?></label>
-      <input type="password" name="anon" autocomplete="off" placeholder="eyJhbGciOi…"></div>
+      <input type="password" name="anon" autocomplete="new-password" placeholder="eyJhbGciOi…"></div>
     <div class="feld"><label>Auffrischungs-Token<?= $strato['eingerichtet'] ? ' (leer lassen = unverändert)' : '' ?></label>
-      <input type="password" name="refresh" autocomplete="off"
+      <input type="password" name="refresh" autocomplete="new-password"
              placeholder="den ganzen Cookie-Wert einfügen — base64-… ist richtig so">
       <small style="color:var(--leise);font-size:12px">Der ganze Cookie-Wert genügt; der
         Server packt ihn aus und behält nur den Auffrischungs-Token.</small></div>

@@ -149,7 +149,7 @@ $pfAntrag = [
         <?= $csrf() ?><input type="hidden" name="tat" value="meta_login_speichern">
         <div class="feld"><label for="ml_app">App-ID</label><input id="ml_app" name="app_id" inputmode="numeric" value="<?= Fmt::h((string) $ml['app_id']) ?>"></div>
         <div class="feld"><label for="ml_conf">Konfigurations-ID <span class="mk-fein">(nur bei Login for Business, sonst leer)</span></label><input id="ml_conf" name="config_id" inputmode="numeric" value="<?= Fmt::h((string) $ml['config_id']) ?>"></div>
-        <div class="feld breit"><label for="ml_geheim">App-Geheimnis <span class="mk-fein"><?= !empty($ml['geheim']) ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="ml_geheim" name="app_geheim" type="password" autocomplete="off"></div>
+        <div class="feld breit"><label for="ml_geheim">App-Geheimnis <span class="mk-fein"><?= !empty($ml['geheim']) ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="ml_geheim" name="app_geheim" type="password" autocomplete="new-password"></div>
         <div class="breit"><button class="knopf">Speichern</button></div>
       </form>
     </details>
@@ -168,7 +168,7 @@ $pfAntrag = [
     <?= $csrf() ?><input type="hidden" name="tat" value="kanal_meta_speichern">
     <div class="feld"><label for="kz_seite">Seiten-ID</label><input id="kz_seite" name="seite_id" inputmode="numeric" value="<?= Fmt::h((string) $me['seite_id']) ?>"></div>
     <div class="feld"><label for="kz_ig">Instagram-Konto-ID <span class="mk-fein">(leer = nur Facebook)</span></label><input id="kz_ig" name="ig_id" inputmode="numeric" value="<?= Fmt::h((string) $me['ig_id']) ?>"></div>
-    <div class="feld breit"><label for="kz_token">Dauerhafter Schlüssel <span class="mk-fein"><?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="kz_token" name="token" type="password" autocomplete="off"></div>
+    <div class="feld breit"><label for="kz_token">Dauerhafter Schlüssel <span class="mk-fein"><?= $me['token'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="kz_token" name="token" type="password" autocomplete="new-password"></div>
     <input type="hidden" name="sprache" value="<?= Fmt::h((string) $me['sprache']) ?>">
     <div class="breit"><button class="knopf haupt">Speichern</button></div>
   </form>
