@@ -597,10 +597,25 @@
     document.documentElement.addEventListener('pointerleave', function () { body.classList.remove('cursor-ready'); });
     /* Die Schleife läuft nur, solange der Ring noch nachzieht -- ein ruhender
        Zeiger kostet keinen einzigen Frame. */
+    /* Eleganter (02.10.2026): weicher Nachzug, dazu dehnt sich der Ring
+       kaum merklich in Bewegungsrichtung und kommt als runder Kreis zur
+       Ruhe -- wie ein Tropfen, nicht wie ein Gummiband. Beim Drücken
+       zieht er sich gefedert zusammen. Über Wortscheibe und Schreibmarke
+       bleibt er gerade. */
+    var druck = 1, druckZiel = 1;
+    document.addEventListener('pointerdown', function () { druckZiel = 0.82; if (!laeuft) { laeuft = true; requestAnimationFrame(ride); } }, { passive: true });
+    document.addEventListener('pointerup', function () { druckZiel = 1; if (!laeuft) { laeuft = true; requestAnimationFrame(ride); } }, { passive: true });
     function ride() {
-      rx += (mxp - rx) * 0.26; ry += (myp - ry) * 0.26;   // wenig Nachzug: ruhig, nicht schwammig
-      ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0)';
-      if (Math.abs(mxp - rx) + Math.abs(myp - ry) > 0.1) requestAnimationFrame(ride);
+      var dx = mxp - rx, dy = myp - ry;
+      rx += dx * 0.2; ry += dy * 0.2;
+      druck += (druckZiel - druck) * 0.25;
+      var gerade = body.classList.contains('cursor--wort') || body.classList.contains('cursor--text');
+      var tempo = Math.min(Math.hypot(dx, dy) / 140, 0.22);
+      var dreh = gerade ? 0 : Math.atan2(dy, dx) * 57.2958;
+      var sx = gerade ? 1 : 1 + tempo, sy = gerade ? 1 : 1 - tempo * 0.55;
+      ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0) rotate(' + dreh.toFixed(1) + 'deg) scale('
+        + (sx * druck).toFixed(3) + ',' + (sy * druck).toFixed(3) + ')';
+      if (Math.abs(dx) + Math.abs(dy) > 0.1 || Math.abs(druckZiel - druck) > 0.005) requestAnimationFrame(ride);
       else laeuft = false;
     }
 
