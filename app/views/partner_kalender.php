@@ -5,7 +5,7 @@
 $MK = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache);
 $kaTage = PartnerKalender::tage($p, $sprache, time(), 7);
 $kaHeute = $kaTage[0];
-$kaBald = PartnerKalender::bald(time(), 21);
+$kaBald = PartnerKalender::bald(time(), 21, PartnerKalender::region($p));
 $kaWt = Texte::PARTNER_MARKETING['tage'][$sprache] ?? Texte::PARTNER_MARKETING['tage']['it'];
 $kaDatum = static fn(string $d): string => $kaWt[(int) date('w', strtotime($d))] . ' ' . date('d.m.', strtotime($d));
 ?>

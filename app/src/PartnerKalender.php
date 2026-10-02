@@ -10,9 +10,11 @@ declare(strict_types=1);
  * hat so trotzdem jeden Tag etwas -- und der Link trägt den Kanal
  * „kalender“, damit „Was wirkt“ zeigt, ob es etwas bringt.
  *
- * Die Anlässe sind italienisch, weil die Kunden in Italien sind. Die Texte
- * kommen in der Sprache des Partners; ein deutscher Partner schreibt seinen
- * Freunden auf Deutsch, dass heute Ferragosto ist.
+ * Die Anlässe richten sich nach dem Land des Partners (02.10.2026, Uwe: Ja):
+ * In Italien die italienischen (Ferragosto, Festa della Repubblica …), für
+ * Partner in Deutschland, Österreich und der Schweiz die deutschen (Vatertag,
+ * Tag der Deutschen Einheit, erster Advent). Ohne Land entscheidet seine
+ * Sprache. Die Texte kommen in der Sprache des Partners.
  *
  * Kein Beitrag enthält eine erfundene Zahl oder ein Versprechen, das Vecom
  * nicht gibt. Jeder endet mit #adv / #Werbung / #ad: Empfehlungen gegen
@@ -22,13 +24,34 @@ final class PartnerKalender
 {
     public const KANAL = 'kalender';
 
+    /** Welche Anlässe: 'de' für Partner in DE/AT/CH/LI (oder ohne Land mit deutscher Sprache), sonst 'it'. */
+    public static function region(array $p): string
+    {
+        $land = strtoupper(trim((string) ($p['land'] ?? '')));
+        if ($land !== '') { return in_array($land, ['DE', 'AT', 'CH', 'LI'], true) ? 'de' : 'it'; }
+        return ($p['sprache'] ?? '') === 'de' ? 'de' : 'it';
+    }
+
     /** @return array<string,string> 'Y-m-d' => Anlass */
-    public static function anlaesse(int $jahr): array
+    public static function anlaesse(int $jahr, string $region = 'it'): array
     {
         $ostern = self::ostern($jahr);
         // Muttertag: zweiter Sonntag im Mai. Black Friday: Freitag nach dem vierten Donnerstag im November.
         $mamma = strtotime('second sunday of may ' . $jahr);
         $bf = strtotime('+1 day', strtotime('fourth thursday of november ' . $jahr));
+        if ($region === 'de') {
+            // Vatertag = Christi Himmelfahrt (39 Tage nach Ostern). Erster Advent: vier Sonntage vor Weihnachten.
+            $w = (int) date('w', mktime(12, 0, 0, 12, 25, $jahr));
+            $advent = mktime(12, 0, 0, 12, 25 - ($w === 0 ? 7 : $w) - 21, $jahr);
+            $a = [
+                "$jahr-01-01" => 'capodanno', "$jahr-02-14" => 'valentino', "$jahr-03-08" => 'donna', date('Y-m-d', $ostern) => 'pasqua',
+                "$jahr-05-01" => 'lavoro', date('Y-m-d', $mamma) => 'mamma', date('Y-m-d', strtotime('+39 days', $ostern)) => 'vatertag',
+                "$jahr-06-21" => 'estate', "$jahr-10-03" => 'einheit', date('Y-m-d', $bf) => 'black_friday', date('Y-m-d', $advent) => 'advent',
+                "$jahr-12-25" => 'natale',
+            ];
+            ksort($a);
+            return $a;
+        }
         $a = [
             "$jahr-01-01" => 'capodanno', "$jahr-02-14" => 'valentino', "$jahr-03-08" => 'donna', "$jahr-03-19" => 'papa',
             date('Y-m-d', $ostern) => 'pasqua', "$jahr-05-01" => 'lavoro', date('Y-m-d', $mamma) => 'mamma',
@@ -56,7 +79,7 @@ final class PartnerKalender
     public static function tag(array $p, string $sprache, int $ts): array
     {
         $datum = date('Y-m-d', $ts);
-        $anlass = self::anlaesse((int) date('Y', $ts))[$datum] ?? null;
+        $anlass = self::anlaesse((int) date('Y', $ts), self::region($p))[$datum] ?? null;
         if ($anlass !== null) {
             $e = Texte::PARTNER_KALENDER['anlaesse'][$anlass];
             $k = $anlass;
@@ -81,11 +104,11 @@ final class PartnerKalender
     }
 
     /** Der nächste Anlass nach heute innerhalb von $tage Tagen, damit man sich vorbereiten kann. @return ?array{datum:string, schluessel:string, in:int} */
-    public static function bald(int $ts, int $tage = 21): ?array
+    public static function bald(int $ts, int $tage = 21, string $region = 'it'): ?array
     {
         $heute = strtotime(date('Y-m-d 12:00:00', $ts));
         $j = (int) date('Y', $ts);
-        foreach (self::anlaesse($j) + self::anlaesse($j + 1) as $d => $k) {
+        foreach (self::anlaesse($j, $region) + self::anlaesse($j + 1, $region) as $d => $k) {
             $in = (int) round((strtotime($d . ' 12:00:00') - $heute) / 86400);
             if ($in >= 1 && $in <= $tage) { return ['datum' => $d, 'schluessel' => $k, 'in' => $in]; }
         }

@@ -12578,7 +12578,14 @@ pruefe('Kalender: Ostern richtig gerechnet (2026, 2027, 2028), ohne calendar-Erw
 $mkA = PartnerKalender::anlaesse(2026);
 pruefe('Kalender: Muttertag zweiter Sonntag im Mai, Black Friday nach dem vierten Donnerstag, Ferragosto am 15.8.',
     ($mkA['2026-05-10'] ?? '') === 'mamma' && ($mkA['2026-11-27'] ?? '') === 'black_friday' && ($mkA['2026-08-15'] ?? '') === 'ferragosto'
-    && count($mkA) === count(Texte::PARTNER_KALENDER['anlaesse']));
+    && count(array_unique(array_merge(array_values($mkA), array_values(PartnerKalender::anlaesse(2026, 'de'))))) === count(Texte::PARTNER_KALENDER['anlaesse']));
+$mkDe = PartnerKalender::anlaesse(2026, 'de');
+pruefe('Kalender: Partner in Deutschland bekommen deutsche Anlässe (Vatertag, Einheit, erster Advent) statt Ferragosto und Festa della Repubblica',
+    ($mkDe['2026-05-14'] ?? '') === 'vatertag' && ($mkDe['2026-10-03'] ?? '') === 'einheit' && ($mkDe['2026-11-29'] ?? '') === 'advent'
+    && !in_array('ferragosto', $mkDe, true) && !in_array('repubblica', $mkDe, true) && !in_array('immacolata', $mkDe, true)
+    && PartnerKalender::region(['land' => 'AT', 'sprache' => 'it']) === 'de' && PartnerKalender::region(['land' => 'IT', 'sprache' => 'de']) === 'it'
+    && PartnerKalender::region(['land' => '', 'sprache' => 'de']) === 'de'
+    && PartnerKalender::tag(['id' => 1, 'code' => 'KALE1234', 'name' => 'K', 'token' => 'x', 'land' => 'DE'], 'de', strtotime('2026-08-15 09:00:00'))['anlass'] === false);
 $mkFehlt = [];
 foreach (['anlaesse', 'themen'] as $mkG) {
     foreach (Texte::PARTNER_KALENDER[$mkG] as $mkK => $mkE) {
