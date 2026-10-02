@@ -57,7 +57,7 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=8d3542eb">
+<link rel="stylesheet" href="assets/css/app.css?v=fabb6cf8">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
 <link rel="stylesheet" href="assets/css/edel.css?v=b09873c8">
 <link rel="stylesheet" href="assets/css/story.css?v=ea4cb1a8">
@@ -1511,17 +1511,30 @@
       <!-- ZWEI GESICHTER AM EINSTIEG (02.10.2026, Uwe: „ich moechte 2 fotos von
            mir und manuel mit einfuegen das es persoehnlicher wird“, Variante B).
            Klein und rund direkt ueber „So faengt es an“: Wer hier schreibt, sieht,
-           wem er schreibt. Die Namen stehen im Text, die Bilder sind deshalb
-           Schmuck (alt leer, aria-hidden). -->
+           wem er schreibt. Seit dem Nachtrag am selben Tag mit Zustaendigkeit
+           und eigener Adresse: Uwe fuer den italienischsprachigen Raum, Manuel
+           fuer den deutschsprachigen. Die Namen stehen im Text, die Bilder
+           sind deshalb Schmuck (alt leer). -->
       <div class="koepfe" data-reveal>
-        <span class="koepfe__bild" aria-hidden="true">
-          <img src="assets/img/kopf-uwe.webp?v=c0a09c75" alt="" width="192" height="192" loading="lazy" decoding="async">
-          <img src="assets/img/kopf-manuel.webp?v=c979f8a4" alt="" width="192" height="192" loading="lazy" decoding="async">
-        </span>
-        <p class="koepfe__text">
-          <strong data-i18n="form.persNamen">Uwe e Manuel</strong>
-          <span data-i18n="form.persText">Scrive direttamente a noi: nessun centralino, nessun passaggio di mano.</span>
-        </p>
+        <p class="koepfe__satz" data-i18n="form.persText">Scrive direttamente a noi: nessun centralino, nessun passaggio di mano.</p>
+        <ul class="koepfe__liste">
+          <li class="person">
+            <img src="assets/img/kopf-uwe.webp?v=c0a09c75" alt="" width="192" height="192" loading="lazy" decoding="async">
+            <span class="person__text">
+              <strong>Uwe</strong>
+              <span data-i18n="form.persUwe">Il suo referente per l’area di lingua italiana</span>
+              <a href="mailto:uwe@vecom-design.it">uwe@vecom-design.it</a>
+            </span>
+          </li>
+          <li class="person">
+            <img src="assets/img/kopf-manuel.webp?v=c979f8a4" alt="" width="192" height="192" loading="lazy" decoding="async">
+            <span class="person__text">
+              <strong>Manuel</strong>
+              <span data-i18n="form.persManuel">Il suo referente per l’area di lingua tedesca</span>
+              <a href="mailto:manuel@vecom-design.it">manuel@vecom-design.it</a>
+            </span>
+          </li>
+        </ul>
       </div>
       <h2 data-reveal data-i18n="form.head">Come si comincia</h2>
       <p class="contact__lead" data-reveal data-i18n="form.lead">Inserisca il suo indirizzo e-mail: le mando il link alla sua dashboard personale, e da lì passa tutto fino alla consegna del sito. Se preferisce scrivere due righe, qui sotto trova i miei recapiti.</p>
@@ -1711,7 +1724,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=def80754" defer></script>
+<script src="assets/js/i18n-it.js?v=97e68682" defer></script>
 <script src="assets/js/app.js?v=3919e61e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=5448b330" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>

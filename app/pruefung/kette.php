@@ -6629,20 +6629,21 @@ pruefe('fuer schwache Geraete liegt das Standbild der Buehne wieder in der Seite
 $kpGut_ = is_file("$oben/assets/img/kopf-uwe.webp") && is_file("$oben/assets/img/kopf-manuel.webp")
     && filesize("$oben/assets/img/kopf-uwe.webp") < 30000 && filesize("$oben/assets/img/kopf-manuel.webp") < 30000;
 $kpFehlt_ = '';
-foreach (['index.html' => ['Uwe e Manuel', 'Scrive direttamente a noi'],
-          'de/index.html' => ['Uwe und Manuel', 'Sie schreiben direkt an uns'],
-          'en/index.html' => ['Uwe and Manuel', 'You write to us directly']] as $kpDatei_ => [$kpName_, $kpSatz_]) {
+foreach (['index.html' => ['area di lingua tedesca', 'Scrive direttamente a noi'],
+          'de/index.html' => ['deutschsprachigen Raum', 'Sie schreiben direkt an uns'],
+          'en/index.html' => ['German-speaking countries', 'You write to us directly']] as $kpDatei_ => [$kpName_, $kpSatz_]) {
     $kpH_ = (string) @file_get_contents("$oben/$kpDatei_");
     if ($kpH_ === '') { continue; }   /* de/ und en/ entstehen erst mit build.mjs */
     $kpPos_ = strpos($kpH_, 'class="koepfe"');
     $kpKopf_ = strpos($kpH_, 'data-i18n="form.head"');
     if ($kpPos_ === false || $kpKopf_ === false || $kpPos_ > $kpKopf_
         || !str_contains($kpH_, 'kopf-uwe.webp') || !str_contains($kpH_, 'kopf-manuel.webp')
-        || !str_contains($kpH_, $kpName_) || !str_contains($kpH_, $kpSatz_)) {
+        || !str_contains($kpH_, $kpName_) || !str_contains($kpH_, $kpSatz_)
+        || !str_contains($kpH_, 'href="mailto:uwe@vecom-design.it"') || !str_contains($kpH_, 'href="mailto:manuel@vecom-design.it"')) {
         $kpFehlt_ .= ' ' . $kpDatei_;
     }
 }
-pruefe('ueber „So faengt es an“ stehen Uwe und Manuel mit Bild, Namen und Satz in der Sprache der Seite',
+pruefe('ueber „So faengt es an“ stehen Uwe und Manuel mit Bild, Zustaendigkeit und eigener Adresse in der Sprache der Seite',
     $kpGut_ && $kpFehlt_ === '', trim($kpFehlt_));
 $echtzeit_ = (string) @file_get_contents("$oben/assets/js/erlebnis/produkt-echtzeit.js");
 pruefe('am echten Ort wird die Sonne aus dem Rundumbild geloest und als eigenes Licht mit Schatten gesetzt (kein fleckiger Lack)',

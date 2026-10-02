@@ -1041,18 +1041,24 @@ body.scrolled .scrollcue { opacity: 0; }
    hat sich längst entschieden und braucht keinen Ruf mehr, sondern einen
    klaren Weg. */
 .contact h2 { font-size: var(--t-xl); letter-spacing: -.045em; }
-/* Zwei Gesichter am Einstieg (02.10.2026): klein, rund, leicht ueberlappend.
-   Der Goldrand ist der Ring des Logos, kein neuer Akzent. */
-.koepfe { display: flex; align-items: center; gap: 1rem; margin-bottom: var(--s-3); }
-.koepfe__bild { display: flex; flex: none; }
-.koepfe__bild img {
-  width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block;
-  border: 2px solid var(--c-base); box-shadow: 0 0 0 1px var(--c-line-strong), 0 0 0 1px rgba(200, 150, 62, .5);
+/* Zwei Gesichter am Einstieg (02.10.2026): je Person ein runder Kopf mit
+   Name, Zustaendigkeit und eigener Adresse. Der Goldring ist der Ring des
+   Logos, kein neuer Akzent. Nebeneinander, solange Platz ist, sonst
+   untereinander. */
+.koepfe { display: grid; gap: var(--s-2); margin-bottom: var(--s-4); }
+.koepfe__satz { margin: 0; color: var(--c-text-dim); font-size: var(--t-sm); }
+.koepfe__liste { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-2) var(--s-3);
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); }
+.person { display: flex; align-items: center; gap: .9rem; }
+.person img {
+  flex: none; width: 64px; height: 64px; border-radius: 50%; object-fit: cover; display: block;
+  border: 2px solid var(--c-base); box-shadow: 0 0 0 1px rgba(200, 150, 62, .55);
 }
-.koepfe__bild img + img { margin-left: -14px; }
-.koepfe__text { margin: 0; display: grid; gap: .15rem; font-size: var(--t-sm); line-height: 1.45; color: var(--c-text-dim); max-width: 34ch; }
-.koepfe__text strong { color: var(--c-text); font-weight: 600; }
-@media (max-width: 420px) { .koepfe__bild img { width: 56px; height: 56px; } }
+.person__text { display: grid; gap: .1rem; font-size: var(--t-sm); line-height: 1.4; color: var(--c-text-dim); min-width: 0; }
+.person__text strong { color: var(--c-text); font-weight: 600; font-size: 1.05em; }
+.person__text a { color: var(--c-cyan); text-decoration: none; overflow-wrap: anywhere; width: fit-content;
+  border-bottom: 1px solid var(--c-line-strong); }
+.person__text a:hover, .person__text a:focus-visible { border-color: var(--c-blue); }
 .contact__lead { margin-top: var(--s-2); color: var(--c-text-dim); font-size: var(--t-md); max-width: 42ch; }
 .contact__data { margin-top: var(--s-4); display: grid; gap: var(--s-2); }
 .contact__data div { display: grid; gap: .2rem; }
