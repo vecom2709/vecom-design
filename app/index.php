@@ -5038,7 +5038,7 @@ h1{font-size:22pt;margin:0;line-height:1.15}.it{font-size:15pt;color:#444;margin
 
     case 'plattform-rueckruf':   // P4: OAuth-Rückruf von LinkedIn, Google, YouTube, TikTok (nur angemeldet, Zustand aus der Sitzung)
         require_once __DIR__ . '/src/MkPlattform.php';
-        $pfP = (string) ($_GET['p'] ?? '');
+        $pfP = (string) ($_GET['p'] ?? ($unter ?? ''));   // TikTok: /plattform-rueckruf/tiktok (ohne Abfrageteil)
         $pfOk = isset(MkPlattform::ALLE[$pfP]) && ($_SESSION['pf_plattform'] ?? '') === $pfP
              && hash_equals((string) ($_SESSION['pf_zustand'] ?? ''), (string) ($_GET['state'] ?? ''));
         unset($_SESSION['pf_zustand'], $_SESSION['pf_plattform']);

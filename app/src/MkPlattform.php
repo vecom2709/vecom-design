@@ -235,7 +235,11 @@ final class MkPlattform
 
     public static function rueckrufAdresse(string $p): string
     {
-        return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/plattform-rueckruf?p=' . $p;
+        /* TikTok nimmt keine Rückruf-Adresse mit Abfrageteil an („Your uri should not contain query
+           parameters“, 02.10.2026) — dort steht die Plattform im Pfad. Die anderen bleiben, wie sie
+           bei LinkedIn und Google schon eingetragen sind. */
+        $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/plattform-rueckruf';
+        return $p === 'tiktok' ? $basis . '/tiktok' : $basis . '?p=' . $p;
     }
 
     /** Adresse, auf der Uwe bei der Plattform zustimmt. $zustand kommt in die Sitzung. */

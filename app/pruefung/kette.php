@@ -18788,6 +18788,10 @@ pruefe('P4: Schlüssel gespeichert, aber nie angezeigt; ohne Verbindung und Hake
     && str_contains($pfAdr, 'client_id=li-client') && str_contains($pfAdr, 'state=zustand42') && str_contains($pfAdr, rawurlencode('/plattform-rueckruf?p=linkedin')) && str_contains($pfAdr, 'w_organization_social'));
 $pfR = MkPlattform::rueckruf('linkedin', 'code-1');
 MkPlattform::speichern('linkedin', ['konto' => '123456', 'freigabe' => '1']);
+pruefe('TikTok: Rückruf-Adresse ohne Abfrageteil (TikTok lehnt „?p=“ ab), die anderen wie eingetragen; die Route nimmt die Plattform aus dem Pfad',
+    MkPlattform::rueckrufAdresse('tiktok') === rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/plattform-rueckruf/tiktok'
+    && str_ends_with(MkPlattform::rueckrufAdresse('youtube'), '/plattform-rueckruf?p=youtube')
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "\$pfP = (string) (\$_GET['p'] ?? (\$unter ?? ''));"));
 pruefe('P4: Rückruf tauscht den Code; mit Haken „Freigabe erhalten“ ist LinkedIn bereit', $pfR === null && MkPlattform::einstellungen('linkedin')['verbunden'] && MkPlattform::bereit('linkedin'));
 $pfLi = (int) Db::insert('mk_inhalte', ['land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => 'linkedin', 'titel' => 'LinkedIn-Probe', 'felder' => json_encode(['text' => 'Hallo LinkedIn']), 'status' => 'freigegeben']);
 $pfM = MkVeroeffentlichen::moeglich(MkInhalt::laden($pfLi));
