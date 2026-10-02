@@ -154,6 +154,9 @@ if ($paket && $stripeOffen && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'email' => mb_strtolower($eingabe['email']),
                 'company' => mb_substr($eingabe['firma'], 0, 120) ?: null,
             ]);
+            /* Bestandskunde: leere Felder der Akte ergänzen (02.10.2026). */
+            require_once __DIR__ . '/app/src/Kunde.php';
+            Kunde::ergaenzen($kundeId, ['name' => $eingabe['name'], 'company' => $eingabe['firma']]);
             // In welcher Sprache er gebucht hat, in der schreiben wir ihm auch.
             Onboarding::spracheMerken($kundeId, $sprache);
             // Kam er über einen Partnerlink, gehört er ab jetzt zu diesem Partner.

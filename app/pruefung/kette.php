@@ -7201,10 +7201,16 @@ pruefe('eine unbrauchbare Adresse wird abgelehnt',
 $zg1 = Zugang::anfordern(' Einstieg@Pruefung.example ', 'de');
 pruefe('eine neue Adresse bekommt einen Zugang', $zg1['ok'] === true && $zg1['art'] === 'neu', json_encode($zg1));
 pruefe('die Willkommensmail wird versucht', $zgMails('zugang', $zgMail) === 1, (string) $zgMails('zugang', $zgMail));
-pruefe('E4: vor dem Öffnen steht niemand in der Kundenliste',
-    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$zgMail], 0) === 0);
-pruefe('E4: und es gibt keine Anfrage',
-    (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE email = ?', [$zgMail], 0) === 0);
+/* Seit 02.10.2026 (Uwe: „jeder Kunde auch in der Verwaltung“): Kunde sofort, Adresse als unbestätigt vermerkt. */
+pruefe('Sofort in der Verwaltung: der Kunde steht schon vor dem Öffnen in der Kundenliste — als unbestätigt vermerkt',
+    (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$zgMail], 0) === 1
+    && str_contains((string) Db::wert('SELECT notes FROM customers WHERE email = ?', [$zgMail], ''), 'noch nicht bestätigt')
+    && (int) Db::wert('SELECT customer_id FROM zugaenge WHERE email = ?', [$zgMail], 0) > 0
+    && (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ? AND geoeffnet_am IS NULL', [$zgMail], 0) === 1);
+pruefe('… mit einer Anfrage unter „Heute“, damit Uwe antworten kann',
+    (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE email = ?', [$zgMail], 0) === 1);
+pruefe('… und die Meldung führt direkt zum Kunden',
+    (string) Db::wert("SELECT link FROM notifications WHERE type = 'zugang_neu' ORDER BY id DESC LIMIT 1", [], '') === '/kunden/' . (int) Db::wert('SELECT id FROM customers WHERE email = ?', [$zgMail], 0));
 Zugang::anfordern($zgMail, 'de');
 pruefe('zweimal gedrückt: derselbe Zugang, kein zweiter',
     (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', [$zgMail], 0) === 1);
@@ -7319,12 +7325,16 @@ Zugang::anfordern('alt@pruefung.example', 'it');
 Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 9 DAY WHERE email = 'alt@pruefung.example'");
 pruefe('ein nie geöffneter Link läuft ab',
     (Zugang::oeffnen((string) Db::wert("SELECT token FROM zugaenge WHERE email = 'alt@pruefung.example'", [], ''))['grund'] ?? '') === 'abgelaufen');
-pruefe('… und legt dabei keinen Kunden an',
-    (int) Db::wert("SELECT COUNT(*) FROM customers WHERE email = 'alt@pruefung.example'", [], 0) === 0);
+pruefe('… der Kunde bleibt trotzdem in der Verwaltung (ein Kunde, kein zweiter)',
+    (int) Db::wert("SELECT COUNT(*) FROM customers WHERE email = 'alt@pruefung.example'", [], 0) === 1);
+/* Aufgeräumt werden nur Zugänge ohne Kunden (vorbereitete aus der Akquise) */
+Zugang::vorbereiten('vorbereitet-alt@pruefung.example', 'it', 0);
+Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 40 DAY WHERE email IN ('vorbereitet-alt@pruefung.example', 'alt@pruefung.example')");
 Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 30 DAY WHERE email = ?", [$zgMail]);
 $zgWeg = Zugang::aufraeumen();
-pruefe('aufgeräumt wird nur, was nie geöffnet wurde',
-    $zgWeg >= 1 && (int) Db::wert("SELECT COUNT(*) FROM zugaenge WHERE email = 'alt@pruefung.example'", [], 0) === 0
+pruefe('aufgeräumt wird nur, was nie geöffnet wurde und an keinem Kunden hängt',
+    $zgWeg >= 1 && (int) Db::wert("SELECT COUNT(*) FROM zugaenge WHERE email = 'vorbereitet-alt@pruefung.example'", [], 0) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM zugaenge WHERE email = 'alt@pruefung.example'", [], 0) === 1
     && (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', [$zgMail], 0) === 1);
 pruefe('ein geöffneter Link führt auch nach Wochen noch hinein', Zugang::oeffnen($zgToken)['ok'] === true);
 
@@ -10617,9 +10627,17 @@ Db::run('DELETE FROM notifications WHERE type = ?', ['telefon_rueckruf']);
 $rrR = Telefon::melden(['art' => 'rueckruf', 'quelle' => 'website', 'name' => 'Web Besucher', 'telefon' => '+39 340 111 2222',
     'erreichbar' => 'morgen Vormittag', 'text' => 'Rückruf-Wunsch über die Website.']);
 $rrM = (string) Db::wert("SELECT meta FROM activities WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1", [], '');
-pruefe('Rückruf: landet in Manuelas Rückrufliste, mit Zeitfenster und Quelle „website“, an keinem Kunden',
+$rrPh = (int) Db::wert("SELECT customer_id FROM activities WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1", [], 0);
+pruefe('Rückruf: landet in Manuelas Rückrufliste, mit Zeitfenster und Quelle „website“ — an einem eigenen Kunden mit Nummer, nie am Anrufer von eben',
     $rrR['ok'] && str_contains($rrM, '"quelle":"website"') && str_contains($rrM, 'morgen Vormittag')
-    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'telefon_rueckruf' ORDER BY id DESC LIMIT 1", [], '') === '/heute');
+    && $rrPh > 0 && $rrPh !== $rrK && Kunde::istPlatzhalter((string) Db::wert('SELECT email FROM customers WHERE id = ?', [$rrPh], ''))
+    && (string) Db::wert('SELECT name FROM customers WHERE id = ?', [$rrPh], '') === 'Web Besucher'
+    && (string) Db::wert("SELECT link FROM notifications WHERE type = 'telefon_rueckruf' ORDER BY id DESC LIMIT 1", [], '') === '/kunden/' . $rrPh);
+$rrR2 = Telefon::melden(['art' => 'rueckruf', 'quelle' => 'website', 'name' => 'Web Besucher', 'telefon' => '0039 340 1112222', 'text' => 'Nochmal.']);
+pruefe('Rückruf: dieselbe Nummer findet denselben Platzhalter — kein zweiter Kunde',
+    $rrR2['ok'] && (int) Db::wert("SELECT customer_id FROM activities WHERE type = 'telefon_melde' ORDER BY id DESC LIMIT 1", [], 0) === $rrPh);
+pruefe('Rückruf: der Platzhalter ist keine Identität am Telefon (Nachschlagen findet ihn nicht)',
+    !in_array($rrPh, array_map('intval', array_column((array) Db::all("SELECT id FROM customers WHERE RIGHT(REGEXP_REPLACE(phone, '[^0-9]', ''), 9) = '401112222' AND email NOT LIKE '%@rueckruf.invalid'"), 'id')), true));
 Db::run("DELETE FROM activities WHERE type = 'telefon_nachschlagen' AND customer_id = ?", [$rrK]);
 $rrQ = (string) file_get_contents($oben . '/rueckruf.php');
 pruefe('Rückruf: rueckruf.php prüft Name und mindestens sechs Ziffern, bremst Massenversand und antwortet nie mit einer Datenbankmeldung',
@@ -18394,8 +18412,9 @@ pruefe('Uwe legt sie als Kunde an: Kunde mit dieser Adresse, Zugang verknüpft, 
     $azKid > 0 && (string) Db::wert('SELECT email FROM customers WHERE id = ?', [$azKid], '') === $azMail
     && (int) $azNach['customer_id'] === $azKid && $azNach['geoeffnet_am'] === null && !in_array($azId, array_map('intval', array_column(Zugang::offene(30), 'id')), true));
 $azO = Zugang::oeffnen((string) $azZ['token']);
-pruefe('Öffnet der Interessent danach selbst den Link, landet er beim selben Kunden im Dashboard (kein zweiter Kunde)',
-    !empty($azO['ok']) && (int) ($azO['kunde_id'] ?? 0) === $azKid && empty($azO['neu'])
+pruefe('Öffnet der Interessent danach selbst den Link, landet er beim selben Kunden im Dashboard (kein zweiter Kunde) — als erstes Öffnen vermerkt',
+    !empty($azO['ok']) && (int) ($azO['kunde_id'] ?? 0) === $azKid && !empty($azO['neu'])
+    && Db::wert('SELECT geoeffnet_am FROM zugaenge WHERE id = ?', [$azId], null) !== null
     && (int) Db::wert('SELECT COUNT(*) FROM customers WHERE email = ?', [$azMail], 0) === 1);
 $azIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Verwaltung: „Als Kunde anlegen“ und „Link noch einmal schicken“ hinter CSRF; Karte in „Alle Kunden“ und in der Journey',
@@ -18865,6 +18884,43 @@ $fpAlt = Db::one("SELECT i.* FROM invoices i JOIN orders o ON o.id = i.order_id 
 pruefe('Festpreis: andere Belege behalten ihre eine Zeile', $fpAlt === null || count(Rechnung::posten($fpAlt, 'de')) === 1);
 /* Normales Angebot: weiter nur mit Fragebogen */
 pruefe('Festpreis: ohne Festpreis bleibt die Fragebogen-Sperre', str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "if (!self::istFestpreis(\$a) && !Onboarding::fertig("));
+
+/* ============================================================================
+   Jeder Kontakt steht in der Verwaltung (02.10.2026, Uwe: „stelle auch sicher,
+   dass jeder Kunde auch in der Verwaltung eingetragen wird, z. B. nach
+   Fragebogen ausgefüllt oder nach individueller Preisvereinbarung … prüfe,
+   dass alle Ketten funktionieren“). Die Wege oben haben ihre Kontakte schon
+   angelegt — hier wird nachgesehen, dass jeder davon als Kunde dasteht.
+   ============================================================================ */
+abschnitt('Jeder Kontakt steht in der Verwaltung');
+$jkK = static fn(string $mail): int => (int) Db::wert('SELECT id FROM customers WHERE email = ?', [$mail], 0);
+pruefe('Kontaktformular → Kunde', $jkK('lead@spur.example') > 0);
+pruefe('E-Mail-Einstieg → Kunde sofort (auch ungeöffnet)', $jkK('zoegert@pruefung.example') > 0);
+pruefe('Terminbuchung → Kunde, mit Vermerk', $jkK('giulia@termin.example') > 0
+    && str_contains((string) Db::wert('SELECT notes FROM customers WHERE email = ?', ['giulia@termin.example'], ''), 'Terminbuchung'));
+pruefe('Telefonassistent mit genannter E-Mail → Kunde', $jkK('anrufer@pruefung.example') > 0);
+pruefe('Website-Check mit Bericht → Kunde', $jkK('giulia@gelateria-bereich.example') > 0);
+pruefe('Partner meldet Kunden → Kunde', $jkK('bar-sole@esempio.example') > 0);
+/* Rückruf über die Empfehlungsseite: Kunde mit Nummer, dem Partner zugeordnet — die Vormerkung bleibt für den echten Kunden */
+$jkPh = $jkK('tel-337778899' . Kunde::RUECKRUF_DOMAIN);
+pruefe('Rückruf über Partnerseite → Kunde mit Nummer, dem Partner zugeordnet', $jkPh > 0
+    && (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$jkPh], 0) === (int) $lsP);
+/* Fragebogen: Angaben in die leere Akte, eine gepflegte bleibt */
+$jkF1 = Events::kundeFinden(['name' => 'Akte Leer', 'email' => 'akte-leer@pruefung.example']);
+Onboarding::absenden(Onboarding::vorab($jkF1), ['firmenname' => 'Bar Akte', 'ort' => 'Sciacca', 'branche' => 'gastronomie', 'telefon' => '0925 123456']);
+$jkA1 = (array) Db::one('SELECT * FROM customers WHERE id = ?', [$jkF1]);
+pruefe('Fragebogen → Firma, Ort, Branche und Telefon stehen in der leeren Akte',
+    $jkA1['company'] === 'Bar Akte' && $jkA1['city'] === 'Sciacca' && $jkA1['industry'] === 'gastronomie' && $jkA1['phone'] === '0925 123456', json_encode($jkA1));
+$jkF2 = Events::kundeFinden(['name' => 'Akte Voll', 'email' => 'akte-voll@pruefung.example', 'company' => 'Gepflegte GmbH', 'city' => 'Agrigento']);
+Onboarding::absenden(Onboarding::vorab($jkF2), ['firmenname' => 'Anders', 'ort' => 'Palermo']);
+pruefe('Fragebogen → eine gepflegte Akte wird nicht überschrieben',
+    Db::wert('SELECT company FROM customers WHERE id = ?', [$jkF2], '') === 'Gepflegte GmbH' && Db::wert('SELECT city FROM customers WHERE id = ?', [$jkF2], '') === 'Agrigento');
+pruefe('Platzhalter-Adressen bekommen nie Mail (Mail::senden lässt .invalid aus)', str_ends_with(Kunde::RUECKRUF_DOMAIN, '.invalid')
+    && str_contains((string) file_get_contents($wurzel . '/src/Mail.php'), "str_ends_with(mb_strtolower(\$an), '.invalid')"));
+pruefe('Buchung und Domain-Kauf ergänzen leere Felder eines Bestandskunden; Bedarf ohne Anfrage sichert wenigstens den Kunden',
+    str_contains((string) file_get_contents($wurzel . '/../buchen.php'), 'Kunde::ergaenzen($kundeId')
+    && str_contains((string) file_get_contents($wurzel . '/src/Hosting.php'), 'Kunde::ergaenzen($kundeId')
+    && str_contains((string) file_get_contents($wurzel . '/src/Bedarf.php'), '$kidNot = Events::kundeFinden('));
 
 /* ============================================================================
    Partner-Vorab: Kunde mit vereinbartem Festpreis (02.10.2026, Uwe: „Partner

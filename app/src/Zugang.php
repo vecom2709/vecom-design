@@ -96,10 +96,14 @@ final class Zugang
         if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) { return null; }
         $sprache = self::spr($sprache);
         require_once __DIR__ . '/Kundenzugang.php';
-        $kunde = Db::one('SELECT id, sprache FROM customers WHERE email = ?', [$email]);
-        if ($kunde) { return Kundenzugang::linkFuer((int) $kunde['id'], self::spr((string) ($kunde['sprache'] ?? $sprache))); }
-        $z = Db::one('SELECT * FROM zugaenge WHERE email = ? AND customer_id IS NULL AND created_at >= ? ORDER BY id DESC LIMIT 1',
+        /* Ein noch ungeöffneter Zugang bleibt derselbe Link — auch wenn der Kunde
+           schon angelegt ist (sofort in der Verwaltung, 02.10.2026). */
+        $z = Db::one('SELECT * FROM zugaenge WHERE email = ? AND geoeffnet_am IS NULL AND created_at >= ? ORDER BY id DESC LIMIT 1',
             [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
+        $kunde = Db::one('SELECT id, sprache FROM customers WHERE email = ?', [$email]);
+        if ($kunde && (!$z || ($z['customer_id'] !== null && (int) $z['customer_id'] !== (int) $kunde['id']))) {
+            return Kundenzugang::linkFuer((int) $kunde['id'], self::spr((string) ($kunde['sprache'] ?? $sprache)));
+        }
         if (!$z) {
             $id = Db::insert('zugaenge', ['token' => bin2hex(random_bytes(24)), 'email' => $email, 'name' => mb_substr(trim($name), 0, 120) ?: null,
                 'sprache' => $sprache, 'quelle' => 'akquise', 'akq_firma_id' => $akqFirmaId]);
@@ -134,6 +138,12 @@ final class Zugang
         $email = mb_strtolower(trim($email));
         $link = self::vorbereiten($email, $sprache, $akqFirmaId, $name);
         if ($link === null) { return null; }
+        /* Er hat selbst angefragt (Website-Check, Kurz-Check, Werbeformular):
+           sofort als Kunde in die Verwaltung (02.10.2026). */
+        try {
+            $zb = Db::one('SELECT * FROM zugaenge WHERE email = ? AND customer_id IS NULL ORDER BY id DESC LIMIT 1', [$email]);
+            if ($zb) { self::annehmen((array) $zb, false, 'anfrage'); }
+        } catch (Throwable $e) { }
         $sprache = self::spr($sprache);
         $schluessel = 'bereich_mail_' . substr(hash('sha256', $email), 0, 32);
         if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '') === date('Y-m-d')) { return $link; }
@@ -166,7 +176,12 @@ final class Zugang
            Kein zweiter Vorgang, kein zweiter Schluessel. Er hat seinen Link
            verlegt und bekommt ihn wieder -- an die Adresse, die in seiner
            Akte steht, also genau die, die er gerade eingetippt hat. */
+        /* Noch nicht bestätigt (Kunde sofort angelegt, Link ungeöffnet, 02.10.2026):
+           wie bisher derselbe Zugangslink noch einmal, kein „Bestand“. */
+        $zOffen = Db::one('SELECT * FROM zugaenge WHERE email = ? AND geoeffnet_am IS NULL AND created_at >= ? ORDER BY id DESC LIMIT 1',
+            [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
         $kunde = Db::one('SELECT id, name, sprache FROM customers WHERE email = ?', [$email]);
+        if ($kunde && $zOffen && ($zOffen['customer_id'] === null || (int) $zOffen['customer_id'] === (int) $kunde['id'])) { $kunde = null; }
         if ($kunde) {
             $kSpr = self::spr((string) ($kunde['sprache'] ?? $sprache));
             [$betreff, $text] = Texte::mail('zugang_bestand', $kSpr, [
@@ -182,10 +197,7 @@ final class Zugang
            Wer zweimal auf den Knopf drueckt, bekommt denselben Link zweimal,
            nicht zwei verschiedene -- sonst gilt im Postfach der eine und im
            Kopf der andere. */
-        $z = Db::one(
-            'SELECT * FROM zugaenge WHERE email = ? AND customer_id IS NULL AND created_at >= ?
-              ORDER BY id DESC LIMIT 1',
-            [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
+        $z = $zOffen;
         if (!$z) {
             $code = strtoupper(trim((string) ($extra['empfehl_code'] ?? '')));
             /* wunsch nur, wenn es einen gibt: zwischen Deploy und Migration 097 fehlt die Spalte noch. */
@@ -217,7 +229,35 @@ final class Zugang
             // Kam er beim zweiten Mal über einen Partner, und beim ersten nicht: jetzt merken.
             if (($z['partner_code'] ?? null) === null && ($pc = self::partnerCode($extra)) !== null) { $aend['partner_code'] = $pc; }
             if (($w = self::wunsch($extra['wunsch'] ?? null)) !== null) { $aend['wunsch'] = $w; }
-            if ($aend) { Db::update('zugaenge', (int) $z['id'], $aend); }
+            if ($aend) { Db::update('zugaenge', (int) $z['id'], $aend); $z = array_merge($z, $aend); }
+            /* Schon als Kunde angelegt: Wunsch und Partner nachtragen (02.10.2026). */
+            if ($z['customer_id'] !== null) {
+                $zk = (int) $z['customer_id'];
+                if (isset($aend['wunsch'], self::WUENSCHE[$aend['wunsch']])) {
+                    Db::run("UPDATE customers SET notes = CONCAT(COALESCE(notes, ''), ?) WHERE id = ?",
+                        [' Wunsch laut Partnerseite: ' . self::WUENSCHE[$aend['wunsch']] . '.', $zk]);
+                }
+                if (isset($aend['partner_code'])) {
+                    try {
+                        require_once __DIR__ . '/Partner.php';
+                        [$pc, $pk] = Partner::teilen((string) $aend['partner_code']);
+                        $pp = $pc !== '' ? Partner::ausCode($pc) : null;
+                        if ($pp !== null) { Partner::zuordnen($zk, (int) $pp['id'], 'link', null, $pk); }
+                    } catch (Throwable $e) { }
+                }
+            }
+        }
+
+        /* SOFORT IN DER VERWALTUNG (02.10.2026, Uwe: „stelle sicher, dass jeder
+           Kunde auch in der Verwaltung eingetragen wird“): Der Kunde entsteht
+           jetzt, nicht erst beim Öffnen des Links. Die Akte vermerkt, dass die
+           Adresse noch nicht bestätigt ist; das Öffnen holt Bestätigung,
+           Partner aus dem Besuch und die Meldung „im Dashboard“ nach (oeffnen). */
+        $kid = $z['customer_id'] !== null ? (int) $z['customer_id'] : 0;
+        if ($kid === 0) {
+            try { $kid = self::annehmen($z, false, 'sofort'); } catch (Throwable $e) {
+                try { Events::melden('zugang_fehler', 'Kunde aus dem E-Mail-Einstieg nicht angelegt', 'schlecht', mb_substr($e->getMessage(), 0, 200), '/kunden#anfragen'); } catch (Throwable $e2) { }
+            }
         }
 
         $ok = self::willkommenSenden($z, $sprache);
@@ -227,7 +267,7 @@ final class Zugang
             Events::melden('zugang_neu', 'Neue Anfrage über die Website', $ok ? 'info' : 'warnung',
                 (string) $z['email'] . (trim((string) ($z['name'] ?? '')) !== '' ? ' · ' . (string) $z['name'] : '')
                 . (!empty($z['partner_code']) ? ' · über Partner ' . (string) $z['partner_code'] : '')
-                . ($ok ? ' · Zugangslink verschickt' : ' · Zugangslink-Mail NICHT verschickt'), '/kunden#anfragen');
+                . ($ok ? ' · Zugangslink verschickt' : ' · Zugangslink-Mail NICHT verschickt'), $kid > 0 ? '/kunden/' . $kid : '/kunden#anfragen');
         } catch (Throwable $e) { }
         return ['ok' => true, 'art' => 'neu', 'mail' => $ok];
     }
@@ -286,6 +326,17 @@ final class Zugang
             if (Db::wert('SELECT id FROM customers WHERE id = ?', [$kid], null) === null) {
                 return ['ok' => false, 'grund' => 'unbekannt'];
             }
+            /* Sofort angelegt (02.10.2026), Link jetzt zum ersten Mal geöffnet:
+               Ablauf gilt wie bisher für ungeöffnete Links, und das Öffnen holt
+               nach, was früher erst hier geschah. */
+            if (($z['geoeffnet_am'] ?? null) === null) {
+                if (strtotime((string) $z['created_at']) < time() - self::GUELTIG_TAGE * 86400) {
+                    return ['ok' => false, 'grund' => 'abgelaufen'];
+                }
+                self::erstesOeffnen($z, $kid);
+                return ['ok' => true, 'kunde_id' => $kid, 'neu' => true,
+                        'link' => Kundenzugang::linkFuer($kid, (string) $z['sprache'])];
+            }
             return ['ok' => true, 'kunde_id' => $kid, 'neu' => false,
                     'link' => Kundenzugang::linkFuer($kid, (string) $z['sprache'])];
         }
@@ -306,8 +357,13 @@ final class Zugang
      * nichts ankam“ -- die Anfrage lag nur als Zugang vor). Öffnet er später
      * selbst, findet oeffnen() den Kunden vor und führt ins Dashboard.
      */
-    public static function annehmen(array $z, bool $selbst): int
+    public static function annehmen(array $z, bool $selbst, string $wie = 'hand'): int
     {
+        /* $wie (02.10.2026): 'hand' = Uwe in der Verwaltung, 'sofort' = beim
+           Eintragen der Adresse im Browser des Interessenten, 'anfrage' = auf
+           eine Anfrage ohne Browser (Telefon, Website-Check-Antwort, Formular
+           einer Werbeplattform). Nur 'sofort' darf den Besuch dieses Browsers nehmen. */
+        $imBrowser = $selbst || $wie === 'sofort';
         require_once __DIR__ . '/Bedarf.php';
         $sprache = self::spr((string) $z['sprache']);
         $kid = Events::kundeFinden([
@@ -315,7 +371,8 @@ final class Zugang
             'email'   => (string) $z['email'],
             'sprache' => $sprache,
             'notes'   => 'Über den E-Mail-Einstieg der Website gekommen.'
-                . ($selbst ? '' : ' Von Vecom angelegt, bevor der Zugangslink geöffnet wurde.')
+                . ($selbst ? '' : ($wie === 'hand' ? ' Von Vecom angelegt, bevor der Zugangslink geöffnet wurde.'
+                    : ' Sofort beim Eintragen angelegt — E-Mail-Adresse noch nicht bestätigt (Zugangslink noch nicht geöffnet).'))
                 . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' Wunsch laut Partnerseite: ' . self::WUENSCHE[(string) $z['wunsch']] . '.' : ''),
         ]);
         require_once __DIR__ . '/Onboarding.php';
@@ -332,7 +389,7 @@ final class Zugang
             require_once __DIR__ . '/Spur.php';
             $sb = !empty($z['spur_besuch_id']) ? (Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $z['spur_besuch_id']]) ?: null) : null;
             /* Uwes eigener Browser ist nie der Besuch des Interessenten. */
-            Spur::verknuepfen($kid, null, $sb ?? ($selbst ? Spur::aktuellerBesuch() : null));
+            Spur::verknuepfen($kid, null, $sb ?? ($imBrowser ? Spur::aktuellerBesuch() : null));
         } catch (Throwable $e) { }
 
         // Der Bedarf, in dem er gleich die acht Fragen beantwortet (D1)
@@ -349,7 +406,7 @@ final class Zugang
             [$pzCode, $pzKanal] = Partner::teilen((string) ($z['partner_code'] ?? ''));
             $pz = $pzCode !== '' ? Partner::ausCode($pzCode) : null;
             if ($pz !== null) { Partner::zuordnen($kid, (int) $pz['id'], 'link', null, $pzKanal); }
-            elseif ($selbst) { Partner::ausBesuch($kid); }
+            elseif ($imBrowser) { Partner::ausBesuch($kid); }
         } catch (Throwable $e) { /* nachtragbar: von Hand zuordnen */ }
 
         /* Aus der Akquise (V2): Der Betrieb ist angekommen -- die Folge-Nachrichten
@@ -362,7 +419,7 @@ final class Zugang
                 $alPid = (int) Db::wert("SELECT partner_id FROM partner_reservierungen WHERE firma_id = ? AND herkunft = 'vecom' AND anruf_status = 'zugestimmt'", [(int) $z['akq_firma_id']], 0);
                 if ($alPid > 0) { require_once __DIR__ . '/Partner.php'; Partner::zuordnen($kid, $alPid, 'anruf'); }
                 require_once __DIR__ . '/Akquise.php';
-                Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', 'Persönliches Dashboard zum ersten Mal geöffnet (Kunde #' . $kid . ')');
+                Akquise::protokoll((int) $z['akq_firma_id'], 'dashboard', ($selbst ? 'Persönliches Dashboard zum ersten Mal geöffnet' : 'Als Kunde in die Verwaltung übernommen') . ' (Kunde #' . $kid . ')');
             } catch (Throwable $e) { /* nachtragbar */ }
         }
         self::anfrageSicherstellen($kid, $z);
@@ -371,9 +428,27 @@ final class Zugang
             Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
                 (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);
         } else {
-            Events::protokoll('zugang_angelegt', 'Aus der Anfrage als Kunde angelegt (Zugangslink noch nicht geöffnet)', $kid);
+            Events::protokoll('zugang_angelegt', $wie === 'hand' ? 'Aus der Anfrage als Kunde angelegt (Zugangslink noch nicht geöffnet)'
+                : 'Als Kunde eingetragen, sobald die Adresse ankam (Zugangslink noch nicht geöffnet)', $kid);
         }
         return $kid;
+    }
+
+    /** Erstes Öffnen eines schon angelegten Kunden (02.10.2026): was annehmen($z, true) sonst täte. */
+    private static function erstesOeffnen(array $z, int $kid): void
+    {
+        Db::update('zugaenge', (int) $z['id'], ['geoeffnet_am' => date('Y-m-d H:i:s')]);
+        try {
+            require_once __DIR__ . '/Spur.php';
+            if (empty($z['spur_besuch_id'])) { Spur::verknuepfen($kid, null, Spur::aktuellerBesuch()); }
+        } catch (Throwable $e) { }
+        try {
+            require_once __DIR__ . '/Partner.php';
+            if (Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$kid], null) === null) { Partner::ausBesuch($kid); }
+        } catch (Throwable $e) { }
+        Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
+        Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',
+            (string) $z['email'] . (isset(self::WUENSCHE[(string) ($z['wunsch'] ?? '')]) ? ' · Wunsch: ' . self::WUENSCHE[(string) $z['wunsch']] : ''), '/kunden/' . $kid);
     }
 
     /**
@@ -533,6 +608,8 @@ final class Zugang
             'quelle'    => 'telefon',
             'bedarf_id' => (int) $bedarf['id'],
         ]);
+        /* Sofort in der Verwaltung (02.10.2026) — der Anrufer steht als Kunde da. */
+        try { self::annehmen((array) Db::one('SELECT * FROM zugaenge WHERE id = ?', [$id]), false, 'anfrage'); } catch (Throwable $e) { }
         return self::link((string) Db::wert('SELECT token FROM zugaenge WHERE id = ?', [$id], ''), $sprache);
     }
 
@@ -562,7 +639,7 @@ final class Zugang
 
         // 1. Link nie geoeffnet
         $ungeoeffnet = Db::all(
-            'SELECT * FROM zugaenge WHERE customer_id IS NULL AND erinnert_am IS NULL
+            'SELECT * FROM zugaenge WHERE geoeffnet_am IS NULL AND erinnert_am IS NULL
                AND created_at <= ? AND created_at >= ? LIMIT 50',
             [date('Y-m-d H:i:s', $jetzt - self::ERINNERN_UNGEOEFFNET_TAGE * 86400),
              date('Y-m-d H:i:s', $jetzt - (self::GUELTIG_TAGE - 1) * 86400)]);

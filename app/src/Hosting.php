@@ -568,6 +568,8 @@ final class Hosting
             'email' => $email,
             'notes' => 'Domain & Hosting direkt auf der Website gekauft.',
         ]);
+        require_once __DIR__ . '/Kunde.php';
+        Kunde::ergaenzen($kundeId, ['name' => $name]);   // Bestandskunde: leeres Namensfeld ergänzen (02.10.2026)
         require_once __DIR__ . '/Onboarding.php';
         self::still(static fn() => Onboarding::spracheMerken($kundeId, $sprache, true));
 

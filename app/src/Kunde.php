@@ -39,6 +39,64 @@ declare(strict_types=1);
 final class Kunde
 {
     /* ======================================================================
+       JEDER KONTAKT STEHT IN DER VERWALTUNG (02.10.2026, Uwe: „stelle sicher,
+       dass jeder Kunde auch in der Verwaltung eingetragen wird, z. B. nach
+       Fragebogen oder nach individueller Preisvereinbarung … prüfe, dass alle
+       Ketten funktionieren“)
+
+       ergaenzen(): Was ein Formular über den Kunden sagt, kommt in seine
+       Akte — aber nur in LEERE Felder. Eine gepflegte Akte schreibt kein
+       Formular um (dieselbe Regel wie Anfrage::annehmen).
+
+       ausTelefon(): Ein Rückrufwunsch nennt oft nur Name und Nummer. Damit er
+       trotzdem als Kunde dasteht, bekommt er eine Platzhalter-Adresse unter
+       .invalid (RFC 2606, kann nie existieren; Mail::senden schickt dorthin
+       nie). Dieselbe Nummer findet denselben Platzhalter wieder. Mit einer
+       echten Akte wird er bewusst NICHT automatisch zusammengelegt: Eine
+       Nummer ist kein Ausweis, und eine fremde Akte zu erben wäre der
+       schlimmste Fehler (siehe Telefon::kundeImGespraech).
+       ====================================================================== */
+    public const RUECKRUF_DOMAIN = '@rueckruf.invalid';
+
+    /** @param array<string,string|null> $w Spalte => Wert */
+    public static function ergaenzen(int $kundeId, array $w): void
+    {
+        if ($kundeId <= 0) { return; }
+        $laengen = ['name' => 160, 'phone' => 60, 'company' => 160, 'industry' => 120, 'street' => 160, 'zip' => 20,
+                    'city' => 120, 'country' => 80, 'tax_code' => 32, 'vat_id' => 32, 'sdi' => 120];
+        foreach ($w as $spalte => $wert) {
+            $wert = trim(preg_replace('/\s+/u', ' ', (string) $wert) ?? '');
+            if ($wert === '' || !isset($laengen[$spalte])) { continue; }
+            $leer = $spalte === 'country' ? "($spalte IS NULL OR $spalte = '' OR $spalte = 'Italien')" : "($spalte IS NULL OR $spalte = '')";
+            try {
+                Db::run("UPDATE customers SET $spalte = ? WHERE id = ? AND $leer", [mb_substr($wert, 0, $laengen[$spalte]), $kundeId]);
+            } catch (Throwable $e) { /* Spalte (tax_code …) fehlt noch: dann eben nicht */ }
+        }
+    }
+
+    /** Hat dieser Kunde nur eine Platzhalter-Adresse aus einem Rückrufwunsch? */
+    public static function istPlatzhalter(?string $email): bool
+    {
+        return str_ends_with(mb_strtolower((string) $email), self::RUECKRUF_DOMAIN);
+    }
+
+    /** Kunde zu einem Rückrufwunsch ohne E-Mail. @return int Kunden-ID, 0 bei unbrauchbarer Nummer */
+    public static function ausTelefon(string $telefon, string $name, string $notiz, string $sprache = ''): int
+    {
+        $ziffern = preg_replace('~\D~', '', $telefon) ?? '';
+        if (strlen($ziffern) < 6 || strlen($ziffern) > 15) { return 0; }
+        require_once __DIR__ . '/Events.php';
+        $name = trim($name) !== '' ? mb_substr(trim($name), 0, 120) : 'Rückruf ' . $telefon;
+        /* Die letzten neun Ziffern — dieselbe Regel wie beim Nachschlagen am Telefon:
+           +39, 0039 oder ohne Vorwahl ergeben denselben Platzhalter. */
+        $kid = Events::kundeFinden(['name' => $name, 'email' => 'tel-' . substr($ziffern, -9) . self::RUECKRUF_DOMAIN,
+            'phone' => mb_substr(trim($telefon), 0, 60), 'notes' => $notiz . ' Noch keine E-Mail-Adresse bekannt.',
+            'sprache' => in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : '']);
+        self::ergaenzen($kid, ['name' => $name, 'phone' => $telefon]);
+        return $kid;
+    }
+
+    /* ======================================================================
        DIE KUNDENNUMMER
 
        Eine eigene Reihe, jahresweise gezaehlt, wie bei den Belegen:

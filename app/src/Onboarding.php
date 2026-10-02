@@ -645,6 +645,19 @@ final class Onboarding
         });
 
         if ($f === null) { return; }
+        /* Was der Fragebogen über den Kunden sagt, kommt in seine Akte — nur in
+           leere Felder (02.10.2026, Uwe: „jeder Kunde auch in der Verwaltung …
+           z. B. nach Fragebogen ausgefüllt“). */
+        try {
+            require_once __DIR__ . '/Kunde.php';
+            $txt = static fn($v): string => is_array($v) ? implode(', ', array_map('strval', $v)) : (string) $v;
+            Kunde::ergaenzen((int) $f['fragebogen']['customer_id'], [
+                'company'  => $txt($daten['firmenname'] ?? ''),
+                'industry' => $txt($daten['branche'] ?? ''),
+                'city'     => $txt($daten['ort'] ?? ''),
+                'phone'    => $txt($daten['telefon'] ?? ''),
+            ]);
+        } catch (Throwable $e) { }
         /* Partner-Tracking (30.09.2026): Fragebogen abgeschlossen. */
         try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('questionnaire_completed', ['customer_id' => (int) $f['fragebogen']['customer_id'], 'seite' => '/fragebogen.php']); } catch (Throwable $e) { }
 

@@ -650,7 +650,12 @@ final class Partner
                  date('Y-m-d H:i:s', strtotime('-' . max(1, self::zahl('partner_zuordnung_monate')) . ' months')), $email, $tel]);
             if (!$v) { return 'keine'; }
             $r = self::zuordnen($kundeId, (int) $v['partner_id'], (string) $v['quelle'], null, $v['kanal'] !== null ? (string) $v['kanal'] : null);
-            Db::run('UPDATE partner_vormerkungen SET eingeloest_am = NOW(), customer_id = ? WHERE id = ?', [$kundeId, (int) $v['id']]);
+            /* Ein Platzhalter-Kunde aus einem Rückrufwunsch (Kunde::ausTelefon, 02.10.2026)
+               verbraucht die Vormerkung nicht: Entsteht später der echte Kunde mit
+               dieser Nummer, gehört auch er dem Partner. */
+            if (!str_ends_with($email, '@rueckruf.invalid')) {
+                Db::run('UPDATE partner_vormerkungen SET eingeloest_am = NOW(), customer_id = ? WHERE id = ?', [$kundeId, (int) $v['id']]);
+            }
             return $r;
         } catch (Throwable $e) { return 'fehler'; }
     }

@@ -172,6 +172,18 @@ final class AkquiseTermin
             Partner::ereignis((int) $partner[0]['id'], 'termin');
             Partner::vormerken((int) $partner[0]['id'], $email, $telefon !== '' ? $telefon : null, 'termin', 'link', $partner[1]);
         }
+        /* Jeder Kontakt steht in der Verwaltung (02.10.2026): Wer einen Termin bucht,
+           ist ab jetzt Kunde — nach dem Vormerken, damit der Partner gleich zählt. */
+        try {
+            require_once __DIR__ . '/Kunde.php';
+            $tKid = Events::kundeFinden(['name' => mb_substr($name, 0, 120), 'email' => $email, 'phone' => $telefon !== '' ? mb_substr($telefon, 0, 60) : null,
+                'company' => mb_substr(trim((string) ($e['firma'] ?? '')), 0, 160) ?: null, 'sprache' => $sprache,
+                'notes' => 'Über die Terminbuchung gekommen (' . date('d.m.Y H:i', $beginn) . ').']);
+            Kunde::ergaenzen($tKid, ['name' => $name, 'phone' => $telefon, 'company' => (string) ($e['firma'] ?? '')]);
+            Events::protokoll('termin_gebucht', 'Termin gebucht: ' . date('d.m.Y H:i', $beginn) . ' (' . (($e['art'] ?? '') === 'video' ? 'Video' : 'Telefon') . ')', $tKid);
+        } catch (Throwable $x) {
+            try { Events::melden('termin_kunde', 'Termin gebucht, Kunde nicht angelegt', 'warnung', mb_substr($x->getMessage(), 0, 200), '/heute'); } catch (Throwable $x2) { }
+        }
         /* Growth Engine Phase 4: Termin im Besuch über einen Partner- oder Kampagnenlink. */
         try { require_once __DIR__ . '/Spur.php'; Spur::ereignis('appointment_requested', ['seite' => '/termin.php', 'meta' => ['art' => ($e['art'] ?? '') === 'video' ? 'video' : 'telefon']]); } catch (Throwable $x) { }
         $t = Db::one('SELECT * FROM akq_termine WHERE id = ?', [$id]) ?? [];

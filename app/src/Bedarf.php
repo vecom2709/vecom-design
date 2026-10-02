@@ -437,9 +437,19 @@ final class Bedarf
                 if ($k) { Db::update('bedarf', $id, ['customer_id' => (int) $k['customer_id']]); }
             }
         } catch (Throwable $e) {
+            /* Wenigstens den Kunden sichern (02.10.2026): Ohne ihn stünde der
+               Bedarf „abgesendet“, aber niemand in der Verwaltung. */
+            $kidNot = 0;
+            try {
+                $kidNot = Events::kundeFinden(['name' => mb_substr($name, 0, 120), 'email' => $email,
+                    'phone' => mb_substr(trim((string) ($kontakt['telefon'] ?? '')), 0, 60) ?: null,
+                    'company' => mb_substr(trim((string) ($kontakt['firma'] ?? '')), 0, 160) ?: null, 'sprache' => $sprache,
+                    'notes' => 'Über die acht Fragen gekommen (Anfrage ließ sich nicht anlegen).']);
+                Db::run('UPDATE bedarf SET customer_id = ? WHERE id = ? AND customer_id IS NULL', [$kidNot, $id]);
+            } catch (Throwable $e3) { }
             try {
                 Events::melden('bedarf_fehler', 'Bedarf kam an, Anfrage nicht', 'schlecht',
-                    $name . ' — ' . $e->getMessage(), '/bedarf/' . $id);
+                    $name . ' — ' . $e->getMessage() . ($kidNot > 0 ? ' (Kunde ist angelegt)' : ''), $kidNot > 0 ? '/kunden/' . $kidNot : '/bedarf/' . $id);
             } catch (Throwable $e2) { /* dann eben nicht */ }
         }
 

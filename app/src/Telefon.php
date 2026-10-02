@@ -235,7 +235,10 @@ final class Telefon
                 "SELECT id, name, company, city FROM customers
                   WHERE phone IS NOT NULL AND phone <> ''
                     AND RIGHT(REGEXP_REPLACE(phone, '[^0-9]', ''), 9) = ?
+                    AND email NOT LIKE '%@rueckruf.invalid'
                   LIMIT 5", [$ende]);
+            /* Platzhalter aus Rückrufwünschen (Kunde::ausTelefon, 02.10.2026) sind
+               keine Identität: Die Nummer hat irgendwer in ein Formular getippt. */
         }
 
         $nummer = trim((string) ($d['kundennummer'] ?? ''));
@@ -247,7 +250,7 @@ final class Telefon
         if (!$treffer && mb_strlen($name) >= 3) {
             $treffer = Db::all(
                 "SELECT id, name, company, city FROM customers
-                  WHERE name LIKE ? OR company LIKE ? LIMIT 5",
+                  WHERE (name LIKE ? OR company LIKE ?) AND email NOT LIKE '%@rueckruf.invalid' LIMIT 5",
                 ['%' . $name . '%', '%' . $name . '%']);
         }
 
@@ -942,6 +945,16 @@ final class Telefon
 
         if ($text === '') {
             return ['ok' => false, 'hinweis' => 'Ohne Anliegen kann ich nichts melden.'];
+        }
+
+        /* Jeder Kontakt steht in der Verwaltung (02.10.2026): Ist der Anrufer bzw.
+           der Absender des Rückruf-Formulars unbekannt, entsteht ein Kunde mit
+           seiner Nummer (Platzhalter-Adresse, Kunde::ausTelefon). Zugeordnet wird
+           nur über die Nummer selbst, nie über eine fremde Akte. */
+        if ($kundeId <= 0 && $telefon !== '') {
+            require_once __DIR__ . '/Kunde.php';
+            $kundeId = (int) self::still(static fn() => Kunde::ausTelefon($telefon, $name,
+                ($d['quelle'] ?? '') === 'website' ? 'Rückrufwunsch über die Website.' : 'Am Telefonassistenten gemeldet.'), 0);
         }
 
         /* Wer im Titel steht, entscheidet, ob die Meldung auf „Heute“ etwas

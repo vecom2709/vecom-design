@@ -88,17 +88,24 @@ final class PartnerRueckruf
 
         $erreichbar = date('d.m.', strtotime($tag)) . ' ' . self::FENSTER[$fenster] . ' Uhr';
         $anliegen = 'Rückruf gewünscht über die Empfehlungsseite von ' . $p['name'] . ' (Code ' . $p['code'] . ', Sprache ' . $sprache . ')';
-        Events::protokoll('telefon_melde', 'Rückrufwunsch über Partnerseite — ' . $name, null, null, null, [
-            'art' => 'rueckruf', 'name' => $name, 'nummer' => $tel, 'erreichbar' => $erreichbar, 'anliegen' => $anliegen,
-            'quelle' => 'partnerseite', 'partner_id' => (int) $p['id'], 'partner_code' => (string) $p['code'], 'sprache' => $sprache,
-        ]);
         /* Automatisch zuordnen (27.09.2026, Uwe: Ja): Gibt es den Kunden mit
            dieser Nummer schon, jetzt; sonst, sobald er entsteht. Und zählen
            für den Trichter des Partners. */
         Partner::vormerken((int) $p['id'], null, $tel, 'rueckruf', 'telefon');
         Partner::ereignis((int) $p['id'], 'rueckruf');
+        /* Jeder Kontakt steht in der Verwaltung (02.10.2026) — nach dem Vormerken,
+           damit er gleich dem Partner zugeordnet wird. */
+        $rrKid = 0;
+        try {
+            require_once __DIR__ . '/Kunde.php';
+            $rrKid = Kunde::ausTelefon($tel, $name, 'Rückrufwunsch über die Empfehlungsseite von ' . $p['name'] . ' (erreichbar ' . $erreichbar . ').', $sprache);
+        } catch (Throwable $e) { }
+        Events::protokoll('telefon_melde', 'Rückrufwunsch über Partnerseite — ' . $name, $rrKid > 0 ? $rrKid : null, null, null, [
+            'art' => 'rueckruf', 'name' => $name, 'nummer' => $tel, 'erreichbar' => $erreichbar, 'anliegen' => $anliegen,
+            'quelle' => 'partnerseite', 'partner_id' => (int) $p['id'], 'partner_code' => (string) $p['code'], 'sprache' => $sprache,
+        ]);
         Events::melden('telefon_rueckruf', 'Rückrufwunsch: ' . $name . ' (über ' . $p['name'] . ')', 'warnung',
-            'Nummer ' . $tel . ' · erreichbar ' . $erreichbar . ' · Sprache ' . strtoupper($sprache) . ' · empfohlen von ' . $p['name'] . ' (' . $p['code'] . ')', '/heute');
+            'Nummer ' . $tel . ' · erreichbar ' . $erreichbar . ' · Sprache ' . strtoupper($sprache) . ' · empfohlen von ' . $p['name'] . ' (' . $p['code'] . ')', $rrKid > 0 ? '/kunden/' . $rrKid : '/heute');
         $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
         try {
             PartnerPost::push((int) $p['id'], Texte::h(Texte::PARTNER_SEITE['rr_push_t'], $sp), Texte::h(Texte::PARTNER_SEITE['rr_push_x'], $sp), Partner::portalLink($p));
