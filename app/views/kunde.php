@@ -32,6 +32,11 @@ $eing = !empty($eingebettet);
 <div class="zwei"><div>
   <?php /* Festpreis-Angebot (01.10.2026): auch ohne Fragebogen — Betrag fest, Bausteine teilen ihn. */
         $kAngebote = sicher(static fn() => Db::all('SELECT id, nummer, status, summe_cents, festpreis_cents FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 6', [(int) $k['id']]), []); ?>
+  <?php require_once __DIR__ . '/../src/Zugang.php'; $kUnb = sicher(static fn() => Db::one('SELECT created_at FROM zugaenge WHERE customer_id = ? AND geoeffnet_am IS NULL ORDER BY id LIMIT 1', [(int) $k['id']]), null);
+        if ($kUnb && str_contains((string) ($k['notes'] ?? ''), 'noch nicht bestätigt')): ?>
+  <div class="hinweis" style="margin:0 0 12px">E-Mail-Adresse noch nicht bestätigt (Zugangslink nie geöffnet). Ohne Bestätigung und ohne weitere Schritte wird dieser Eintrag am
+    <b><?= Fmt::h(Fmt::datum(date('Y-m-d', strtotime((string) $kUnb['created_at']) + Zugang::UNBESTAETIGT_TAGE * 86400))) ?></b> automatisch aussortiert. Ein Angebot, eine Nachricht oder eine Bestellung hält ihn fest.</div>
+  <?php endif; ?>
   <?php if (empty($k['anonym_am'])): ?>
   <div class="block" id="festpreis-angebot"><h2>Individuelles Angebot</h2>
     <?php require_once __DIR__ . '/../src/PartnerVorab.php'; $pvK = PartnerVorab::zuKunde((int) $k['id']); ?>

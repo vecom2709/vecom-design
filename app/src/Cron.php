@@ -96,7 +96,7 @@ final class Cron
                (D3), und nie geoeffnete Adressen verschwinden nach Ablauf (E4). */
             'zugaenge'    => static function () {
                 require_once __DIR__ . '/Zugang.php';
-                return ['erinnert' => Zugang::erinnern(), 'geloescht' => Zugang::aufraeumen()];
+                return ['erinnert' => Zugang::erinnern(), 'geloescht' => Zugang::aufraeumen(), 'aussortiert' => Zugang::unbestaetigteAussortieren()];
             },
             /* ZUERST NACHFRAGEN, DANN ABLAUFEN LASSEN
                Der Abgleich steht bewusst vor dem Ablaufenlassen: Wer in der letzten

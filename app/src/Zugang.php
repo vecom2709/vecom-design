@@ -696,6 +696,63 @@ final class Zugang
      * Zweck. Einen Tag Luft nach dem Ablauf, damit ein Link, der gerade noch
      * gilt, nicht unter dem Klick verschwindet.
      */
+    /* Nach 30 Tagen ohne Bestätigung aussortieren (02.10.2026, Uwe: „nach 30 Tage
+       aussortieren automatisch“). Gilt NUR für Kunden, die beim Eintragen der
+       Adresse sofort angelegt wurden und danach nichts getan haben. */
+    public const UNBESTAETIGT_TAGE = 30;
+
+    /**
+     * Sortiert sofort angelegte Kunden aus, deren Zugangslink nach 30 Tagen nie
+     * geöffnet wurde — und nur, wenn an ihnen nichts hängt: keine Bestellung,
+     * kein Angebot, kein Fragebogen, kein abgesendeter Bedarf, keine Nachricht,
+     * kein Beleg, keine Zahlung, kein Betreuungsvertrag, keine eigene Anfrage
+     * außer der automatischen, kein Partner-Festpreis. Im Zweifel bleibt er.
+     * Gelöscht wird über Kunde::loeschen (ohne Belege — gibt es welche, bricht es ab).
+     * @return int wie viele Kunden aussortiert wurden
+     */
+    public static function unbestaetigteAussortieren(int $max = 50): int
+    {
+        require_once __DIR__ . '/Kunde.php';
+        $grenze = date('Y-m-d H:i:s', time() - self::UNBESTAETIGT_TAGE * 86400);
+        $kandidaten = Db::all(
+            "SELECT DISTINCT z.customer_id AS kid FROM zugaenge z JOIN customers c ON c.id = z.customer_id
+              WHERE z.geoeffnet_am IS NULL AND z.created_at < ?
+                AND c.notes LIKE '%noch nicht bestätigt%'
+                AND ABS(TIMESTAMPDIFF(HOUR, c.created_at, z.created_at)) <= 24
+                AND NOT EXISTS (SELECT 1 FROM zugaenge z2 WHERE z2.customer_id = z.customer_id AND z2.geoeffnet_am IS NOT NULL)
+              LIMIT " . max(1, min(200, $max)), [$grenze]);
+        $weg = 0;
+        foreach ($kandidaten as $row) {
+            $kid = (int) $row['kid'];
+            try {
+                $haengt = (int) Db::wert(
+                    "SELECT (SELECT COUNT(*) FROM orders WHERE customer_id = :a)
+                          + (SELECT COUNT(*) FROM angebote WHERE customer_id = :b)
+                          + (SELECT COUNT(*) FROM questionnaires WHERE customer_id = :c)
+                          + (SELECT COUNT(*) FROM bedarf WHERE customer_id = :d AND status <> 'offen')
+                          + (SELECT COUNT(*) FROM messages WHERE customer_id = :e)
+                          + (SELECT COUNT(*) FROM invoices WHERE customer_id = :f)
+                          + (SELECT COUNT(*) FROM abos WHERE customer_id = :g)
+                          + (SELECT COUNT(*) FROM anfragen WHERE customer_id = :h AND (nachricht IS NULL OR nachricht NOT LIKE :ein))",
+                    ['a' => $kid, 'b' => $kid, 'c' => $kid, 'd' => $kid, 'e' => $kid, 'f' => $kid, 'g' => $kid, 'h' => $kid,
+                     'ein' => self::EINSTIEG_TEXT . '%'], 1);
+                try { $haengt += (int) Db::wert('SELECT COUNT(*) FROM partner_vorab WHERE customer_id = ?', [$kid], 0); } catch (Throwable $e) { }
+                if ($haengt > 0 || Kunde::riegel($kid)) { continue; }
+                $mail = (string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kid], '');
+                Db::run('DELETE FROM zugaenge WHERE customer_id = ?', [$kid]);
+                try { Db::run('DELETE FROM partner_zuordnungen WHERE customer_id = ?', [$kid]); } catch (Throwable $e) { }
+                try { Db::run('UPDATE partner_vormerkungen SET customer_id = NULL, eingeloest_am = NULL WHERE customer_id = ?', [$kid]); } catch (Throwable $e) { }
+                Kunde::loeschen($kid, false);
+                Events::protokoll('kunde_aussortiert', 'Unbestätigter Kunde nach ' . self::UNBESTAETIGT_TAGE . ' Tagen aussortiert ('
+                    . preg_replace('~^(.).*@~u', '$1…@', $mail) . ')');
+                $weg++;
+            } catch (Throwable $e) {
+                try { Events::melden('zugang_aussortieren', 'Unbestätigten Kunden nicht aussortiert', 'warnung', mb_substr($e->getMessage(), 0, 200), '/kunden/' . $kid); } catch (Throwable $e2) { }
+            }
+        }
+        return $weg;
+    }
+
     public static function aufraeumen(): int
     {
         $grenze = date('Y-m-d H:i:s', time() - (self::GUELTIG_TAGE + 1) * 86400);

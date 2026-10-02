@@ -18958,6 +18958,33 @@ pruefe('Buchung und Domain-Kauf ergänzen leere Felder eines Bestandskunden; Bed
     && str_contains((string) file_get_contents($wurzel . '/src/Hosting.php'), 'Kunde::ergaenzen($kundeId')
     && str_contains((string) file_get_contents($wurzel . '/src/Bedarf.php'), '$kidNot = Events::kundeFinden('));
 
+/* Nach 30 Tagen ohne Bestätigung aussortieren (02.10.2026, Uwe: „nach 30 Tage aussortieren automatisch“) */
+abschnitt('Unbestätigte Kunden nach 30 Tagen aussortieren');
+Zugang::anfordern('aussortieren-leer@pruefung.example', 'it');
+Zugang::anfordern('aussortieren-angebot@pruefung.example', 'it');
+Zugang::anfordern('aussortieren-jung@pruefung.example', 'it');
+Zugang::anfordern('aussortieren-offen@pruefung.example', 'it');
+$asK = static fn(string $m): int => (int) Db::wert('SELECT id FROM customers WHERE email = ?', [$m], 0);
+Zugang::oeffnen((string) Db::wert('SELECT token FROM zugaenge WHERE email = ?', ['aussortieren-offen@pruefung.example'], ''));
+foreach (['leer', 'angebot', 'offen'] as $asW) {
+    Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 31 DAY WHERE email = ?", ['aussortieren-' . $asW . '@pruefung.example']);
+    Db::run("UPDATE customers SET created_at = NOW() - INTERVAL 31 DAY WHERE email = ?", ['aussortieren-' . $asW . '@pruefung.example']);
+}
+Angebot::festpreisNeu($asK('aussortieren-angebot@pruefung.example'), 90000, 'it');
+$asJ = $asK('aussortieren-jung@pruefung.example');
+$asAlt = $asK('aussortieren-leer@pruefung.example');
+$asWeg = Zugang::unbestaetigteAussortieren();
+pruefe('Aussortiert: unbestätigt, 31 Tage alt, nichts daran — Kunde und Zugang sind weg',
+    $asWeg >= 1 && $asK('aussortieren-leer@pruefung.example') === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM zugaenge WHERE email = ?', ['aussortieren-leer@pruefung.example'], 0) === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM anfragen WHERE customer_id = ?', [$asAlt], 0) === 0);
+pruefe('Bleibt: mit Angebot', $asK('aussortieren-angebot@pruefung.example') > 0);
+pruefe('Bleibt: jünger als 30 Tage', $asK('aussortieren-jung@pruefung.example') === $asJ && $asJ > 0);
+pruefe('Bleibt: Link geöffnet (bestätigt)', $asK('aussortieren-offen@pruefung.example') > 0);
+pruefe('Bleibt: Rückruf-Kunden mit Nummer und alle von Hand oder anders angelegten (nur der Vermerk „noch nicht bestätigt“ zählt)',
+    $jkPh > 0 && $jkK('tel-337778899' . Kunde::RUECKRUF_DOMAIN) === $jkPh && $jkK('giulia@termin.example') > 0);
+pruefe('Der Cronlauf sortiert mit aus', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'aussortiert' => Zugang::unbestaetigteAussortieren()"));
+
 /* ============================================================================
    Partner-Vorab: Kunde mit vereinbartem Festpreis (02.10.2026, Uwe: „Partner
    können vorab Preise … eingeben und als Link schicken … ohne Fragebogen“)
