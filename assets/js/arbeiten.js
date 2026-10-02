@@ -22,7 +22,7 @@
 const L = (document.documentElement.lang || 'it').slice(0, 2);
 const SPRACHE = ['it', 'de', 'en'].includes(L) ? L : 'it';
 const BASIS = new URL('../img/arbeiten/', import.meta.url).href;
-const STAND = '1';
+const STAND = '2';   // 03.10.2026: neuer Laptop -- Bilder und Ecken neu, alte Kopien im Browser (30 Tage) dürfen nicht mit neuen Ecken zusammentreffen
 const BEWEGUNG_AUS = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* Laptop: 1440 x 824 CSS-Pixel Seite (900 minus Browserrahmen 76);

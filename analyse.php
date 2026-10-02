@@ -172,10 +172,10 @@ $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' 
       <div data-vorschau-fest data-name="<?= $h((string) $f['name']) ?>" data-branche="<?= $h($skizzeBranche) ?>" data-ort="<?= $h((string) ($f['stadt'] ?? '')) ?>">
         <div class="vorschau__buehne" data-vorschau-buehne aria-hidden="true" hidden>
           <div class="vorschau__innen" data-vorschau-innen>
-            <img class="vorschau__foto" src="/assets/img/arbeiten/cavaleri/an.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+            <img class="vorschau__foto" src="/assets/img/arbeiten/cavaleri/an.webp?v=<?= (int) @filemtime(__DIR__ . '/assets/img/arbeiten/cavaleri/an.webp') ?>" alt="" width="2400" height="1350" loading="lazy" decoding="async">
             <div class="vorschau__schirm" data-schirm="laptop"></div>
             <div class="vorschau__schirm vorschau__schirm--telefon" data-schirm="telefon"></div>
-            <img class="vorschau__glanz" src="/assets/img/arbeiten/cavaleri/aus.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+            <img class="vorschau__glanz" src="/assets/img/arbeiten/cavaleri/aus.webp?v=<?= (int) @filemtime(__DIR__ . '/assets/img/arbeiten/cavaleri/aus.webp') ?>" alt="" width="2400" height="1350" loading="lazy" decoding="async">
           </div>
         </div>
       </div>

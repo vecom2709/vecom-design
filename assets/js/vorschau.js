@@ -17,6 +17,8 @@ const L = ['it', 'de', 'en'].includes((document.documentElement.lang || 'it').sl
   ? (document.documentElement.lang || 'it').slice(0, 2) : 'it';
 const IMG = new URL('../img/', import.meta.url).href;
 const SZENE = `${IMG}arbeiten/cavaleri/`;
+/* ?s=2 seit dem neuen Laptop (03.10.2026): Ecken und Foto müssen zusammenpassen;
+   das Foto bekommt seinen Stempel in index.html (build.mjs) bzw. per filemtime in PHP. */
 const SEITE = { laptop: [1440, 824], telefon: [390, 727] };
 /* Der Laptop im Foto zeigt über der Seite eine Browserleiste — mit der
    Adresse der Kundenseite, die für das Foto gerendert wurde. Deshalb deckt
@@ -232,7 +234,7 @@ function buehneAn(sek) {
   const innen = sek.querySelector('[data-vorschau-innen]');
   const schirme = { laptop: sek.querySelector('[data-schirm="laptop"]'), telefon: sek.querySelector('[data-schirm="telefon"]') };
   let ecken = null, laden = null;
-  const holeEcken = () => laden || (laden = fetch(`${SZENE}ecken.json`).then((r) => r.json()).then((j) => { ecken = j; }));
+  const holeEcken = () => laden || (laden = fetch(`${SZENE}ecken.json?s=2`).then((r) => r.json()).then((j) => { ecken = j; }));
 
   /* Wie arbeiten.js: auf schmalen Bildschirmen auf die Geräte schneiden,
      sonst stünden Laptop und Telefon briefmarkengroß in einem Schreibtisch. */

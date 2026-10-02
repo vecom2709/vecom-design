@@ -33,6 +33,7 @@ from bpy_extras.object_utils import world_to_camera_view
 HIER = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HIER)
 import pr_basis as B
+import pr_tastatur as TAST
 
 argv = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else []
 argv = [t for a in argv for t in a.split(',') if t]
@@ -99,14 +100,78 @@ def rausch_rauheit(m, grund, spanne, skala=180.0):
 
 
 # ------------------------------------------------------------------ Stoffe
+def alu_stoff(name, farbe, rau):
+    """Eloxiertes, perlgestrahltes Aluminium (Gehäuse heutiger Laptops).
+
+    Drei Ebenen statt einer Rauheit: Mikro = Strahlkorn als feines Relief,
+    Medium = Rauheitsrauschen im Millimeterbereich, Makro = Fett- und
+    Fingerspuren als glattere Flecken (Handballenauflage, Deckelkante).
+    Mit einheitlicher Rauheit sah das alte Gehäuse aus wie lackiertes
+    Plastik (Probe Charme, 02.10.2026)."""
+    m = B.stoff(name, farbe, rau=rau, metall=1.0)
+    nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    ko = nt.nodes.new('ShaderNodeTexCoord')
+    fein = nt.nodes.new('ShaderNodeTexNoise'); fein.inputs['Scale'].default_value = 900.0; fein.inputs['Detail'].default_value = 4.0
+    nt.links.new(ko.outputs['Object'], fein.inputs['Vector'])
+    fleck = nt.nodes.new('ShaderNodeTexNoise'); fleck.inputs['Scale'].default_value = 28.0; fleck.inputs['Detail'].default_value = 6.0
+    fleck.inputs['Roughness'].default_value = 0.65
+    nt.links.new(ko.outputs['Object'], fleck.inputs['Vector'])
+    maske = nt.nodes.new('ShaderNodeMapRange'); maske.inputs['From Min'].default_value = 0.62; maske.inputs['From Max'].default_value = 0.74
+    nt.links.new(fleck.outputs['Fac'], maske.inputs['Value'])
+    r1 = nt.nodes.new('ShaderNodeMapRange'); r1.inputs['To Min'].default_value = rau - 0.035; r1.inputs['To Max'].default_value = rau + 0.035
+    nt.links.new(fein.outputs['Fac'], r1.inputs['Value'])
+    mi = nt.nodes.new('ShaderNodeMath'); mi.operation = 'MULTIPLY_ADD'; mi.inputs[1].default_value = -0.06   # Probe 1: -0,10 wirkte fleckig
+    nt.links.new(maske.outputs['Result'], mi.inputs[0]); nt.links.new(r1.outputs['Result'], mi.inputs[2])
+    nt.links.new(mi.outputs['Value'], b.inputs['Roughness'])
+    korn = nt.nodes.new('ShaderNodeTexNoise'); korn.inputs['Scale'].default_value = 7000.0; korn.inputs['Detail'].default_value = 2.0
+    nt.links.new(ko.outputs['Object'], korn.inputs['Vector'])
+    bu = nt.nodes.new('ShaderNodeBump'); bu.inputs['Strength'].default_value = 0.04; bu.inputs['Distance'].default_value = 0.00004
+    nt.links.new(korn.outputs['Fac'], bu.inputs['Height']); nt.links.new(bu.outputs['Normal'], b.inputs['Normal'])
+    return m
+
+
+# Gehäusefarben (F0 linear): Silber wie unbehandeltes Eloxal, Grau wie
+# „Space Grey“. EXTRA farbe=grau schaltet um.
+GEHAEUSE = {'silber': (0.80, 0.81, 0.82), 'grau': (0.30, 0.31, 0.33)}
+
+
+def tasten_stoff(name):
+    """Schwarze Kappen mit weißer Beschriftung aus tastatur.png (Objekt-
+    koordinaten über die Tastaturwanne, siehe pr_tastatur.WANNE)."""
+    w = TAST.WANNE
+    m = B.stoff(name, (0.014, 0.014, 0.015), rau=0.45)
+    nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    ko = nt.nodes.new('ShaderNodeTexCoord')
+    ab = nt.nodes.new('ShaderNodeMapping')
+    ab.inputs['Scale'].default_value = (1 / w['b'], 1 / w['h'], 1.0)
+    ab.inputs['Location'].default_value = (-(w['cx'] - w['b'] / 2) / w['b'], -(w['cy'] - w['h'] / 2) / w['h'], 0.0)
+    nt.links.new(ko.outputs['Object'], ab.inputs['Vector'])
+    pfad = os.path.join(TEXA, 'tastatur.png')
+    if os.path.exists(pfad):
+        t = nt.nodes.new('ShaderNodeTexImage'); t.image = bild_laden(pfad, True); t.extension = 'CLIP'; t.interpolation = 'Cubic'
+        nt.links.new(ab.outputs['Vector'], t.inputs['Vector'])
+        mx = nt.nodes.new('ShaderNodeMix'); mx.data_type = 'RGBA'
+        mx.inputs['A'].default_value = (0.014, 0.014, 0.015, 1); mx.inputs['B'].default_value = (0.50, 0.50, 0.50, 1)
+        nt.links.new(t.outputs['Alpha'], mx.inputs['Factor']); nt.links.new(mx.outputs['Result'], b.inputs['Base Color'])
+    rausch_rauheit(m, 0.45, 0.08, 400)
+    return m
+
+
 def stoffe():
     S = {}
-    S['alu'] = rausch_rauheit(B.stoff('Alu Space Grey', (0.27, 0.28, 0.30), rau=0.34, metall=1.0), 0.34, 0.05)
-    S['alu_kante'] = B.stoff('Alu Diamantschliff', (0.62, 0.63, 0.65), rau=0.12, metall=1.0)
-    S['tasten'] = rausch_rauheit(B.stoff('Tasten', (0.012, 0.012, 0.013), rau=0.55), 0.55, 0.08, 400)
-    S['wanne'] = B.stoff('Tastenwanne', (0.02, 0.02, 0.022), rau=0.7)
+    farbe = GEHAEUSE.get(EXTRA.get('farbe', 'silber'), GEHAEUSE['silber'])
+    S['alu'] = alu_stoff('Alu Gehaeuse', farbe, 0.30)
+    S['alu_kante'] = rausch_rauheit(B.stoff('Alu Diamantschliff', tuple(min(1.0, c * 1.1) for c in farbe), rau=0.07, metall=1.0), 0.07, 0.03, 500)
+    S['tasten'] = tasten_stoff('Tasten')
+    S['wanne'] = B.stoff('Tastenwanne', (0.018, 0.018, 0.02), rau=0.7)
     S['rand'] = rausch_rauheit(B.stoff('Glas Rahmen', (0.004, 0.004, 0.005), rau=0.05, spec=0.5, coat=1.0, coat_rau=0.02), 0.05, 0.03, 60)
     S['gummi'] = B.stoff('Gummi', (0.01, 0.01, 0.01), rau=0.8)
+    # Trackpad: geätztes Glas in Gehäusefarbe -- ein Dielektrikum, kein Metall
+    S['trackpad'] = rausch_rauheit(B.stoff('Trackpad Glas', tuple(c * 0.62 for c in farbe), rau=0.30, coat=0.25, coat_rau=0.2), 0.30, 0.05, 300)
+    S['fuge'] = B.stoff('Fuge', (0.02, 0.02, 0.022), rau=0.6)
+    S['buchse'] = B.stoff('Buchse innen', (0.008, 0.008, 0.009), rau=0.35)
+    S['linse'] = B.stoff('Kamera Linse', (0.006, 0.008, 0.014), rau=0.03, coat=1.0, coat_rau=0.01)
+    S['linse_ring'] = B.stoff('Kamera Ring', (0.018, 0.018, 0.02), rau=0.35)
     return S
 
 
@@ -124,56 +189,80 @@ def bildschirm_stoff(name, pfad, staerke):
 
 
 # ------------------------------------------------------------------ Geräte
+def schale(name, W, T, R, profil, stoffe_, band, unten=0, oben=0, cx=0.0, cy=0.0, n=16):
+    """Gehäuseschale: abgerundetes Rechteck, dessen Rand einem Profil folgt.
+    profil = [(einzug, z), ...] von unten nach oben; band = Stoffindex je
+    Abschnitt. So bekommt die Unterkante einen weichen Radius und die
+    Oberkante eine polierte Fase -- mit einer einzigen Fase rundum wirkte
+    das Gehäuse wie ein gefräster Block (Probe Charme, 02.10.2026)."""
+    ringe = []
+    for e, z in profil:
+        ringe.append([(x, y, z) for x, y in rrect(W - 2 * e, T - 2 * e, max(R - e, 0.0004), n, cx, cy)])
+    m = len(ringe[0]); V = [p for r in ringe for p in r]; F = []; FI = []
+    F.append(list(range(m))[::-1]); FI.append(unten)
+    for k in range(len(ringe) - 1):
+        for j in range(m):
+            a, b_ = k * m + j, k * m + (j + 1) % m
+            F.append((a, b_, b_ + m, a + m)); FI.append(band[k])
+    F.append([(len(ringe) - 1) * m + j for j in range(m)]); FI.append(oben)
+    uv = [[(V[i][0], V[i][1]) for i in f] for f in F]
+    return B.netz(name, V, F, stoffe_, FI, uv, True, kante_winkel=38)
+
+
 def laptop(name, ort, dreh_z, bild, S, oeffnung=112.0, hell=1.0):
-    """14"-Laptop. ort = Mitte der Unterseite auf dem Tisch, Scharnier hinten
-    (+y). Gibt (Wurzel, Ecken der Anzeige in Weltkoordinaten) zurück."""
+    """14"-Laptop, heutige Bauart (Umbau 03.10.2026, Uwe: „viel moderner und
+    hyperrealistischer“). ort = Mitte der Unterseite auf dem Tisch,
+    Scharnier hinten (+y). Gibt (Wurzel, Ecken der Anzeige in Welt-
+    koordinaten) zurück.
+
+    Maße nach heutigen 14"-Geräten: 312 x 221 mm, Unterteil 12,8 mm mit
+    weich gerundeter Unterkante und polierter Oberkante, Deckel 5 mm,
+    Anzeige 302 x 189 mm (16:10) mit 5 mm Rand seitlich und oben, Kamera im
+    oberen Rand, schwarze Tastaturwanne, beschriftete Kappen, großes
+    Trackpad mit Fuge, Anschlüsse rechts. Markenlos."""
     w0 = bpy.data.objects.new(name, None); bpy.context.scene.collection.objects.link(w0)
     w0.location = ort; w0.rotation_euler = (0, 0, dreh_z)
-    W, T, H = 0.312, 0.221, 0.0155
-    unterteil = B.prisma(name + '_unterteil', rrect(W, T, 0.011), 0.0, H, [S['alu']], fase=0.0014, segmente=3)
+    W, T, H, R = 0.312, 0.221, 0.0128, 0.0105
+    profil_u = [(0.0045, 0.0), (0.0027, 0.0003), (0.0014, 0.0011), (0.0006, 0.0022), (0.00015, 0.0035), (0.0, 0.0048),
+                (0.0, H - 0.0005), (0.0005, H)]
+    unterteil = schale(name + '_unterteil', W, T, R, profil_u, [S['alu'], S['alu_kante']], [0, 0, 0, 0, 0, 0, 1], 0, 0)
     eltern(unterteil, w0)
     # Füße
     for fx in (-0.12, 0.12):
         for fy in (-0.085, 0.085):
-            f = B.prisma(name + '_fuss', B.kreis(0.006, 24, (fx, fy)), -0.0012, 0.0002, [S['gummi']], fase=0.0004)
+            f = B.prisma(name + '_fuss', B.kreis(0.0055, 24, (fx, fy)), -0.0012, 0.0002, [S['gummi']], fase=0.0004)
             eltern(f, w0)
-    # Tastaturwanne und Tasten (kurzhubig, schwarz, 16,2 mm Kappe auf 19 mm Raster)
-    wanne = B.prisma(name + '_wanne', rrect(0.281, 0.112, 0.004, cy=0.035), H - 0.0006, H + 0.00005, [S['wanne']])
+    # Tastaturwanne und Kappen aus pr_tastatur (dieselben Zahlen wie die Beschriftung)
+    wa = TAST.WANNE
+    wanne = B.prisma(name + '_wanne', rrect(wa['b'], wa['h'], 0.004, cx=wa['cx'], cy=wa['cy']), H - 0.0007, H + 0.00003, [S['wanne']])
     eltern(wanne, w0)
-    kappe = 0.0162; raster = 0.0190
-    zeilen = [(14, 0.75), (14, 1.0), (14, 1.0), (13, 1.0), (12, 1.0), (10, 1.0)]
-    y = 0.035 + 0.112 / 2 - 0.0085
-    for r_i, (n, hoehe) in enumerate(zeilen):
-        hk = kappe * hoehe * (0.62 if r_i == 0 else 1.0)
-        breiten = [1.0] * n
-        if r_i == 1: breiten[-1] = 1.5
-        if r_i == 2: breiten[0] = 1.5
-        if r_i == 3: breiten[0] = 1.8; breiten[-1] = 1.8
-        if r_i == 4: breiten[0] = 2.3; breiten[-1] = 2.3
-        if r_i == 5: breiten = [1, 1, 1, 1.25, 5.2, 1.25, 1, 1, 1, 1]
-        gesamt = sum(breiten) * raster - (raster - kappe)
-        x = -gesamt / 2
-        for bw in breiten:
-            kb = bw * raster - (raster - kappe)
-            k = B.prisma(name + '_taste', rrect(kb, hk, 0.0018, 4, cx=x + kb / 2, cy=y - hk / 2), H - 0.0004, H + 0.0006, [S['tasten']], fase=0.00025, segmente=2)
-            eltern(k, w0)
-            x += bw * raster
-        y -= hk + (raster - kappe) * (0.9 if r_i == 0 else 1.0)
-    # Trackpad: eigenes, etwas stumpferes Glas in Gehäusefarbe
-    tp = B.prisma(name + '_trackpad', rrect(0.132, 0.080, 0.006, cy=-0.063), H - 0.0002, H + 0.00003,
-                  [rausch_rauheit(B.stoff('Trackpad', (0.44, 0.45, 0.47), rau=0.35, metall=0.9), 0.36, 0.04, 300)])
+    for t in TAST.tasten():
+        k = B.prisma(name + '_taste', rrect(t['b'], t['h'], min(0.0016, t['h'] / 3), 4, cx=t['x'], cy=t['y']), H - 0.0005, H + 0.00055,
+                     [S['tasten']], fase=0.0003, segmente=2)
+        eltern(k, w0)
+    # Trackpad mit umlaufender Fuge (0,3 mm), bündig mit der Oberfläche
+    tp_b, tp_h, tp_y = 0.134, 0.079, -0.0645
+    fuge = B.prisma(name + '_trackpad_fuge', rrect(tp_b + 0.0006, tp_h + 0.0006, 0.0078, cx=0, cy=tp_y), H - 0.0004, H + 0.00001, [S['fuge']])
+    eltern(fuge, w0)
+    tp = B.prisma(name + '_trackpad', rrect(tp_b, tp_h, 0.0075, cy=tp_y), H - 0.0003, H + 0.00003, [S['trackpad']], fase=0.0002, segmente=1)
     eltern(tp, w0)
+    # Anschlüsse rechts: zwei USB-C und ein Kartenschlitz (Kamera sieht die rechte Seite)
+    for i, (py, lang, hoch) in enumerate(((0.050, 0.0084, 0.0026), (0.068, 0.0084, 0.0026), (-0.010, 0.0240, 0.0016))):
+        b_ = B.prisma(f'{name}_buchse{i}', rrect(hoch, lang, hoch / 2 - 0.0001, 6), -0.0004, 0.00004, [S['buchse']])
+        b_.rotation_euler = (0, math.radians(90), 0); b_.location = (W / 2, py, 0.0086); eltern(b_, w0)
     # Deckel: geschlossen gebaut (Anzeige nach unten), dann am Scharnier geöffnet
     angel_ = bpy.data.objects.new(name + '_angel', None); bpy.context.scene.collection.objects.link(angel_)
     eltern(angel_, w0); angel_.location = (0, T / 2 - 0.006, H)
-    D = 0.0058; LT = 0.215
-    deckel = B.prisma(name + '_deckel', rrect(W, LT, 0.011, cy=-LT / 2), 0.0, D, [S['alu']], fase=0.0012, segmente=3)
+    D = 0.0050; LT = 0.215
+    profil_d = [(0.0006, 0.0), (0.00012, 0.0005), (0.0, 0.0012), (0.0, D - 0.0017), (0.0004, D - 0.0007), (0.0011, D - 0.00015), (0.0017, D)]
+    deckel = schale(name + '_deckel', W, LT, R, profil_d, [S['alu']], [0] * 6, 0, 0, cy=-LT / 2)
     eltern(deckel, angel_)
-    rahmen = B.prisma(name + '_rahmen', rrect(W - 0.0035, LT - 0.0035, 0.0095, cy=-LT / 2), -0.00025, 0.0001, [S['rand']])
+    rahmen = B.prisma(name + '_rahmen', rrect(W - 0.0024, LT - 0.0024, R - 0.0012, cy=-LT / 2), -0.00025, 0.0001, [S['rand']])
     eltern(rahmen, angel_)
-    AW, AH = 0.2960, 0.1850                      # sichtbare Fläche, 16:10
-    ay0 = -0.0235                                 # Kinn am Scharnier
-    anz = B.prisma(name + '_anzeige', rrect(AW, AH, 0.0012, 3, cy=ay0 - AH / 2), -0.00032, -0.00026,
+    AW, AH = 0.3020, 0.18875                     # sichtbare Fläche, 16:10 wie die Textur
+    rand_oben = 0.0058
+    ay0 = -LT + rand_oben + AH                    # Unterkante der Anzeige (Kinn am Scharnier)
+    anz = B.prisma(name + '_anzeige', rrect(AW, AH, 0.0022, 4, cy=ay0 - AH / 2), -0.00032, -0.00026,
                    [bildschirm_stoff(name + ' Anzeige', bild, 2.4 * hell)])
     eltern(anz, angel_)
     # Drehung um x spiegelt x nicht: von vorn liegt +x rechts
@@ -182,7 +271,11 @@ def laptop(name, ort, dreh_z, bild, S, oeffnung=112.0, hell=1.0):
     uvl = anz.data.uv_layers[0]
     for d in uvl.data:
         d.uv = (d.uv[0], 1 - d.uv[1])
-    scharnier = B.drehkoerper(name + '_scharnier', [(0.0, -0.13), (0.0042, -0.13), (0.0042, 0.13), (0.0, 0.13)], 32, [S['alu']])
+    # Kamera im oberen Rand: Linse mit dunklem Ring
+    ky = -LT + rand_oben / 2
+    ring = B.prisma(name + '_kamera_ring', B.kreis(0.0016, 32, (0, ky)), -0.00029, -0.00026, [S['linse_ring']]); eltern(ring, angel_)
+    linse = B.prisma(name + '_kamera', B.kreis(0.0009, 32, (0, ky)), -0.00031, -0.00029, [S['linse']]); eltern(linse, angel_)
+    scharnier = B.drehkoerper(name + '_scharnier', [(0.0, -0.125), (0.0040, -0.125), (0.0040, 0.125), (0.0, 0.125)], 48, [S['alu']])
     eltern(scharnier, w0); scharnier.rotation_euler = (0, math.radians(90), 0); scharnier.location = (0, T / 2 - 0.006, H - 0.001)
     angel_.rotation_euler = (math.radians(-oeffnung), 0, 0)
     bpy.context.view_layer.update()

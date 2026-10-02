@@ -1417,10 +1417,10 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
            data-ort="<?= $h($skizze['ort']) ?>"<?php if ($skizze['logo']): ?> data-logo="<?= $h($hier) ?>&amp;logobild=<?= (int) $skizze['logo'] ?>"<?php endif; ?>>
         <div class="vorschau__buehne" data-vorschau-buehne aria-hidden="true" hidden>
           <div class="vorschau__innen" data-vorschau-innen>
-            <img class="vorschau__foto" src="/assets/img/arbeiten/cavaleri/an.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+            <img class="vorschau__foto" src="/assets/img/arbeiten/cavaleri/an.webp?v=<?= (int) @filemtime(__DIR__ . '/assets/img/arbeiten/cavaleri/an.webp') ?>" alt="" width="2400" height="1350" loading="lazy" decoding="async">
             <div class="vorschau__schirm" data-schirm="laptop"></div>
             <div class="vorschau__schirm vorschau__schirm--telefon" data-schirm="telefon"></div>
-            <img class="vorschau__glanz" src="/assets/img/arbeiten/cavaleri/aus.webp" alt="" width="2400" height="1350" loading="lazy" decoding="async">
+            <img class="vorschau__glanz" src="/assets/img/arbeiten/cavaleri/aus.webp?v=<?= (int) @filemtime(__DIR__ . '/assets/img/arbeiten/cavaleri/aus.webp') ?>" alt="" width="2400" height="1350" loading="lazy" decoding="async">
           </div>
         </div>
       </div>
