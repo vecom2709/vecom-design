@@ -293,7 +293,9 @@ final class Cron
                 require_once __DIR__ . '/MkPlattform.php';
                 /* P4: Schlüssel von LinkedIn, Google, YouTube, TikTok rechtzeitig erneuern (TikTok gilt nur 24 Stunden). */
                 $pf = []; try { $pf = MkPlattform::auffrischen(); } catch (Throwable $e) { $pf = ['fehler' => mb_substr($e->getMessage(), 0, 120)]; }
-                return MkVeroeffentlichen::faellige() + ($pf ? ['schluessel' => $pf] : []);
+                /* 02.10.2026: Freigegebenes ohne Telegram-Spiegel nachholen (auch, was vor dieser Regel freigegeben wurde). */
+                $sp = 0; try { require_once __DIR__ . '/MkTelegramSpiegel.php'; $sp = MkTelegramSpiegel::nachholen(); } catch (Throwable $e) { }
+                return MkVeroeffentlichen::faellige() + ($pf ? ['schluessel' => $pf] : []) + ($sp ? ['telegram_gespiegelt' => $sp] : []);
             },
             /* Marketing-Studio 7: Wochen-Autopilot — je eingeschaltetem Land einmal je Woche eine Kampagne (ab Werk aus). */
             'marketing_autopilot' => static function () {

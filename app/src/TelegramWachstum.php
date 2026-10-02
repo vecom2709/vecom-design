@@ -328,6 +328,12 @@ final class TelegramWachstum
         'kunde'  => 'Angebots- und Projektseiten: Fußzeile',
         'qr'     => 'QR-Aufsteller zum Ausdrucken',
         'profil' => 'Profile (Facebook, YouTube, TikTok …): Link in der Beschreibung',
+        // 02.10.2026 (Uwe: „schnell 100 Mitglieder“): jeder Ort zählt für sich.
+        'partner'       => 'Partner-Dashboard: Kasten „Vecom auf Telegram“ (beitreten und weitergeben)',
+        'kundenbereich' => 'Kundenbereich: Link „Kanal öffnen“',
+        'instagram'     => 'Instagram: Link im Profil',
+        'facebook'      => 'Facebook-Seite: Link im Profil',
+        'youtube'       => 'YouTube-Kanal: Link im Profil',
     ];
 
     /** Die öffentliche Adresse eines Orts — sie leitet auf dessen Einladungslink. */

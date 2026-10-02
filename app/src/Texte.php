@@ -4366,6 +4366,16 @@ final class Texte
      * (Freunde, Bekannte) per du.
      */
     public const PARTNER_PLUS = [
+        // Vecom auf Telegram (02.10.2026): beitreten und weitersagen
+        'tg_titel'   => ['it' => 'Vecom su Telegram', 'de' => 'Vecom auf Telegram', 'en' => 'Vecom on Telegram'],
+        'tg_text'    => ['it' => 'Novità, esempi di siti e consigli — prima che altrove. Entri nel canale e lo passi a chi ha un’attività: più persone lo seguono, più facile è parlarne.',
+                         'de' => 'Neuigkeiten, Beispiele und Tipps — dort zuerst. Treten Sie dem Kanal bei und geben Sie ihn an Betriebe weiter, die Sie kennen: Je mehr ihn lesen, desto leichter kommt man ins Gespräch.',
+                         'en' => 'News, website examples and tips — there first. Join the channel and pass it on to business owners you know: the more people read it, the easier the conversation.'],
+        'tg_knopf'   => ['it' => 'Entra nel canale', 'de' => 'Kanal beitreten', 'en' => 'Join the channel'],
+        'tg_msg'     => ['it' => "Ti segnalo un canale Telegram utile se hai un’attività: novità, esempi di siti e consigli pratici di Vecom Design. 👉 {link}",
+                         'de' => "Ein Telegram-Kanal, der sich lohnt, wenn Sie einen Betrieb haben: Neuigkeiten, Website-Beispiele und praktische Tipps von Vecom Design. 👉 {link}",
+                         'en' => "A Telegram channel worth following if you run a business: news, website examples and practical tips from Vecom Design. 👉 {link}"],
+        'tg_wa'      => ['it' => 'Inoltra su WhatsApp', 'de' => 'Per WhatsApp weitergeben', 'en' => 'Share on WhatsApp'],
         // Heißer Kontakt
         'hk_titel'   => ['it' => 'Contatti caldi', 'de' => 'Heiße Kontakte', 'en' => 'Hot contacts'],
         'hk_text'    => ['it' => 'Queste attività hanno aperto la verifica che ha mandato loro. È il momento giusto per chiamare o scrivere due righe.', 'de' => 'Diese Betriebe haben den Schnellcheck geöffnet, den Sie ihnen geschickt haben. Jetzt ist der richtige Moment für einen Anruf oder zwei Zeilen.', 'en' => 'These businesses opened the quick check you sent them. Now is the right moment to call or write a line.'],
@@ -5187,6 +5197,8 @@ final class Texte
 
     public const TELEGRAM_DASHBOARD = [
         'titel'     => ['it' => 'Telegram', 'de' => 'Telegram', 'en' => 'Telegram'],
+        'kanal_text' => ['it' => 'Il nostro canale: novità, esempi di siti e consigli.', 'de' => 'Unser Kanal: Neuigkeiten, Website-Beispiele und Tipps.', 'en' => 'Our channel: news, website examples and tips.'],
+        'kanal_knopf' => ['it' => 'Apri il canale', 'de' => 'Kanal öffnen', 'en' => 'Open the channel'],
         'text'      => ['it' => 'Stato del progetto, messaggi a Uwe, file e brevi avvisi — direttamente in Telegram. Il link vale 30 minuti e una sola volta.',
                         'de' => 'Projektstand, Nachrichten an Uwe, Dateien und kurze Hinweise — direkt in Telegram. Der Link gilt 30 Minuten und nur einmal.',
                         'en' => 'Project status, messages to Uwe, files and short notices — right in Telegram. The link lasts 30 minutes and works once.'],

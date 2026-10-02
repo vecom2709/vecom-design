@@ -93,3 +93,18 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
   </ol>
 </div>
 <?php endif; ?>
+
+<?php /* Vecom auf Telegram (02.10.2026, Uwe: Kanal schnell auf 100 bringen) — nur, wenn der Kanal verbunden ist. */
+$ppTg = (static function (): string { try { require_once dirname(__DIR__) . '/src/TelegramWachstum.php'; return Telegram::kanal()['link'] !== '' ? TelegramWachstum::kanalOrtLink('partner') : ''; } catch (Throwable $e) { return ''; } })();
+if ($ppTg !== ''): $ppTgMsg = strtr($PP('tg_msg'), ['{link}' => $ppTg]); ?>
+<div class="block pt" id="telegram" data-reiter="start">
+  <h2><?= $h($PP('tg_titel')) ?></h2>
+  <p class="klein" style="margin-top:0"><?= $h($PP('tg_text')) ?></p>
+  <textarea id="pp_tg" readonly rows="3"><?= $h($ppTgMsg) ?></textarea>
+  <div class="knoepfe">
+    <a class="knopf haupt" target="_blank" rel="noopener" href="<?= $h($ppTg) ?>"><?= $h($PP('tg_knopf')) ?></a>
+    <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($ppTgMsg) ?>"><?= $h($PP('tg_wa')) ?></a>
+    <button class="knopf" type="button" data-kopie="pp_tg"><?= $h($PP('ak_kopieren')) ?></button>
+  </div>
+</div>
+<?php endif; ?>

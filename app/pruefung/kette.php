@@ -17564,6 +17564,33 @@ pruefe('Verwaltung: „Jetzt veröffentlichen“, Planen und Paket am freigegebe
     $mvFehler === null && str_contains($mvH1, 'Jetzt auf Facebook veröffentlichen') && str_contains($mvH1, 'type="datetime-local"') && str_contains($mvH1, '?paket=1')
     && str_contains($mvH1, 'Zuletzt nicht geklappt') && !str_contains($mvH2, 'Jetzt auf') && str_contains($mvH2, 'Google Ads Editor')
     && str_contains($mvH3, 'facebook.com/111_801'), (string) $mvFehler);
+/* 02.10.2026: Spiegel — freigegebene Facebook/Instagram-Beiträge gehen auch in den Telegram-Kanal */
+require_once $wurzel . '/src/MkTelegramSpiegel.php';
+$spQ = $mvNeu('beitrag', 'instagram', ['text' => 'Il sito della sua trattoria, pronto in due settimane. Prezzo chiaro prima.'], 'Spiegel-Quelle');
+$spBild = $mvDatei($spQ, 'bild', 'image/png');
+$spId = MkTelegramSpiegel::spiegeln($spQ);
+$spX = $spId ? MkInhalt::laden($spId) : null;
+pruefe('Spiegel: ein freigegebener Instagram-Beitrag wird ein freigegebener, geplanter Telegram-Beitrag mit demselben Text und Bild',
+    $spX !== null && $spX['plattform'] === 'telegram' && $spX['format'] === 'telegram' && $spX['status'] === 'freigegeben' && $spX['geplant_am'] !== null
+    && ($spX['f']['text'] ?? '') === 'Il sito della sua trattoria, pronto in due settimane. Prezzo chiaro prima.' && (int) ($spX['f']['spiegel_von'] ?? 0) === $spQ
+    && MkMedium::gewaehlt((int) $spId, 'bild') !== null && MkVeroeffentlichen::moeglich($spX)['auto'] === true, json_encode($spX));
+$spZwilling = $mvNeu('beitrag', 'facebook', ['text' => 'Il sito della sua trattoria, pronto in due settimane. Prezzo chiaro prima.'], 'Spiegel-Zwilling');
+pruefe('Spiegel: derselbe Text geht nur einmal in den Kanal, ein zweiter Aufruf legt nichts doppelt an',
+    MkTelegramSpiegel::spiegeln($spQ) === null && MkTelegramSpiegel::spiegeln($spZwilling) === null);
+$spEntwurf = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => $ciZid, 'branche' => 'restaurant', 'land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'beitrag',
+    'plattform' => 'facebook', 'titel' => 'Spiegel-Entwurf', 'felder' => json_encode(['text' => 'Noch nicht freigegeben, darf nirgends hin.'])]);
+pruefe('Spiegel: nur Freigegebenes, keine Reels und keine Telegram-Beiträge selbst',
+    MkTelegramSpiegel::spiegeln($spEntwurf) === null && MkTelegramSpiegel::spiegeln($mvRe) === null && MkTelegramSpiegel::spiegeln($mvTe) === null);
+pruefe('Spiegel: hängt an der Freigabe und am Cronlauf',
+    str_contains((string) file_get_contents($wurzel . '/src/MkVeroeffentlichen.php'), 'MkTelegramSpiegel::spiegeln($id)')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'MkTelegramSpiegel::nachholen()'));
+pruefe('Kanal-Orte: Partner-Dashboard, Kundenbereich und die drei Profile zählen für sich; Kasten im Partnerbereich, Link im Kundenbereich',
+    isset(TelegramWachstum::KANAL_ORTE['partner'], TelegramWachstum::KANAL_ORTE['kundenbereich'], TelegramWachstum::KANAL_ORTE['instagram'], TelegramWachstum::KANAL_ORTE['facebook'], TelegramWachstum::KANAL_ORTE['youtube'])
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_plus_start.php'), "kanalOrtLink('partner')")
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), "kanalOrtLink('kundenbereich')"));
+foreach (Db::all('SELECT datei FROM mk_medien WHERE inhalt_id = ?', [$spQ]) as $spR) { @unlink(MkMedium::ordner() . '/' . $spR['datei']); }
+Db::run("DELETE FROM mk_medien WHERE inhalt_id IN (SELECT id FROM mk_inhalte WHERE titel LIKE 'Spiegel-%' OR titel LIKE 'Telegram · Spiegel-%')");
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'Spiegel-%' OR titel LIKE 'Telegram · Spiegel-%'");
 foreach (Db::all('SELECT datei FROM mk_medien WHERE inhalt_id IN (?, ?)', [$mvIg, $mvRe]) as $mvR) { @unlink(MkMedium::ordner() . '/' . $mvR['datei']); @unlink(MkMedium::ordner() . '/' . basename((string) $mvR['datei'], '.bin') . '-jpg.bin'); }
 MetaSeite::$netz = null; Telegram::$netz = $mvTgAlt; Telegram::setzen('tg_kanal_id', $mvKanalAlt);
 
@@ -19715,8 +19742,8 @@ $kvAnl1 = count(array_filter($kvNetz, static fn($x) => $x[0] === 'createChatInvi
 $kvO2 = TelegramWachstum::kanalLinksSicherstellen();
 $kvAnl2 = count(array_filter($kvNetz, static fn($x) => $x[0] === 'createChatInviteLink'));
 $kvBasis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
-pruefe('Kanal-Links: je Ort (sechs) eine Telegram-Kampagne „kanal-ORT“ mit eigenem Einladungslink — ein zweiter Lauf legt nichts doppelt an',
-    count($kvO1) === 6 && !array_filter($kvO1, static fn($o) => !$o['ok']) && $kvAnl1 === 6 && $kvAnl2 === 6 && $kvO1 == $kvO2
+pruefe('Kanal-Links: je Ort eine Telegram-Kampagne „kanal-ORT“ mit eigenem Einladungslink — ein zweiter Lauf legt nichts doppelt an',
+    count($kvO1) === count(TelegramWachstum::KANAL_ORTE) && !array_filter($kvO1, static fn($o) => !$o['ok']) && $kvAnl1 === count(TelegramWachstum::KANAL_ORTE) && $kvAnl2 === $kvAnl1 && $kvO1 == $kvO2
     && (int) Db::wert("SELECT COUNT(*) FROM mk_kampagnen WHERE code IN ('kanal-fuss','kanal-check','kanal-mail','kanal-kunde','kanal-qr','kanal-profil') AND plattform = 'telegram'", [], 0) === 6
     && $kvO1['qr']['link'] === $kvBasis . '/kanal.php?w=qr' && TelegramWachstum::kanalOrtLink('gibtsnicht') === $kvBasis . '/kanal.php?w=fuss', json_encode($kvO1));
 pruefe('Kanal-Links: die Einladungslinks heißen wie die Quelle (m_kanal-…) und lassen jeden ohne Freigabe hinein',

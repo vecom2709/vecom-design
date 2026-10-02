@@ -351,6 +351,8 @@ final class MkVeroeffentlichen
     {
         $x = MkInhalt::laden($id);
         if ($x === null) { return 'Freigegeben.'; }
+        /* 02.10.2026: Beiträge und Karussells für Facebook/Instagram gehen auch in den Telegram-Kanal (MkTelegramSpiegel). */
+        try { require_once __DIR__ . '/MkTelegramSpiegel.php'; MkTelegramSpiegel::spiegeln($id); } catch (Throwable $e) { /* nie die Freigabe aufhalten */ }
         $m = self::moeglich($x);
         if ($m['auto']) {
             $slot = self::naechsterSlot((string) $x['plattform']);

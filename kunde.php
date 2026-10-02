@@ -1553,6 +1553,13 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </details>
   <?php endif; ?>
 
+  <?php /* Unser Kanal (02.10.2026): ein schlichter Link, nur wenn der Kanal verbunden ist. */
+  $kuKanal = sicherLesen(static function () { require_once __DIR__ . '/app/src/TelegramWachstum.php'; return Telegram::kanal()['link'] !== '' ? TelegramWachstum::kanalOrtLink('kundenbereich') : ''; }, '');
+  if ($kuKanal !== ''): $TK2 = static fn(string $k): string => Texte::h(Texte::TELEGRAM_DASHBOARD[$k], $sprache); ?>
+    <p style="color:var(--dim);font-size:14px;line-height:1.6;margin:14px 0"><?= $h($TK2('kanal_text')) ?>
+      <a href="<?= $h($kuKanal) ?>" target="_blank" rel="noopener" style="color:var(--cyan)"><?= $h($TK2('kanal_knopf')) ?> →</a></p>
+  <?php endif; ?>
+
   <?php /* ---------- Unterlagen ---------- */ ?>
   <?php if ($belege || $vertraege): ?>
     <details class="klapp">
