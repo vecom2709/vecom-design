@@ -466,6 +466,8 @@ window.VECOM_I18N.en = {
       ab4d: "First a proposal at a fixed price. It becomes binding only with the contract.",
       paketLabel: "Chosen package", paketWechseln: "change",
       head: "How it starts",
+      persNamen: "Uwe and Manuel",
+      persText: "You write to us directly – no hotline, no hand-offs.",
       lead: "Enter your email address and I will send you the link to your personal dashboard; everything runs through it until your website is handed over. If you would rather write two lines, my details are below.",
       step: "Step", of: "of",
       s1: "Your project", s2: "Context", s3: "Contact",

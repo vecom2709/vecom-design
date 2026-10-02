@@ -466,6 +466,8 @@ window.VECOM_I18N.de = {
       ab4d: "Zuerst ein Vorschlag zum Festpreis. Verbindlich wird es erst mit dem Vertrag.",
       paketLabel: "Gewähltes Paket", paketWechseln: "ändern",
       head: "So fängt es an",
+      persNamen: "Uwe und Manuel",
+      persText: "Sie schreiben direkt an uns – keine Hotline, keine Weitergabe.",
       lead: "Tragen Sie Ihre E-Mail-Adresse ein: Ich schicke Ihnen den Link zu Ihrem persönlichen Dashboard, und darüber läuft alles bis zur Übergabe Ihrer Website. Wenn Sie lieber zwei Zeilen schreiben, stehen meine Daten hier unten.",
       step: "Schritt", of: "von",
       s1: "Ihr Vorhaben", s2: "Rahmen", s3: "Kontakt",
