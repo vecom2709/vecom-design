@@ -980,6 +980,23 @@ if ($post) {
                 header('Location: ' . $pfUrl);
                 exit;
 
+            /* TikTok: Bestätigungsseite je Video (02.10.2026) — nie automatisch, nur nach diesem Klick */
+            case 'tiktok_senden':
+                require_once __DIR__ . '/src/MkInhalt.php';
+                require_once __DIR__ . '/src/MkMedium.php';
+                require_once __DIR__ . '/src/MkPlattform.php';
+                $ttId = (int) ($_POST['id'] ?? 0);
+                $ttX = MkInhalt::laden($ttId);
+                $ttModus = ($_POST['modus'] ?? '') === 'entwurf' ? 'entwurf' : 'posten';
+                if ($ttX === null || $ttX['plattform'] !== 'tiktok' || $ttX['status'] !== 'freigegeben') {
+                    $_SESSION['fehler'] = 'Nur freigegebene TikTok-Stücke gehen an TikTok.'; weiter('inhalte/' . $ttId);
+                }
+                $ttVideo = MkMedium::gewaehlt($ttId, 'video');
+                if ($ttVideo === null) { $_SESSION['fehler'] = 'Für dieses Stück ist noch kein Video gewählt.'; weiter('inhalte/' . $ttId . '#medien'); }
+                $ttE = MkPlattform::ttSenden($ttX, $ttVideo, $_POST, $ttModus);
+                $_SESSION[$ttE['ok'] ? 'gut' : 'fehler'] = MkPlattform::ttAbschliessen($ttId, $ttE, $ttModus);
+                weiter('tiktok/' . $ttId);
+
             case 'inhalt_neu_versuchen':
                 require_once __DIR__ . '/src/MkVeroeffentlichen.php';
                 $kzE = MkVeroeffentlichen::jetzt((int) ($_POST['id'] ?? 0));
@@ -5224,6 +5241,28 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
             'ohneDeutsch' => $miLand === 'IT' ? (int) sicher(static fn() => count(MkZielgruppe::ohneUebersetzung(100)['inhalte']), 0) : 0,
             'vorherNachher' => sicher(static function (): array { require_once __DIR__ . '/src/MkVorherNachher.php'; return MkVorherNachher::kandidaten(); }, []),
             'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null])]);
+        break;
+
+    case 'tiktok':   // Bestätigungsseite je TikTok-Video (02.10.2026, TikTok Content Sharing Guidelines)
+        require_once __DIR__ . '/src/MkInhalt.php';
+        require_once __DIR__ . '/src/MkMedium.php';
+        require_once __DIR__ . '/src/MkPlattform.php';
+        $ttX = $id !== null ? MkInhalt::laden($id) : null;
+        if ($ttX === null || $ttX['plattform'] !== 'tiktok' || !in_array($ttX['status'], ['freigegeben', 'veroeffentlicht'], true)) {
+            http_response_code(404); ansicht('spaeter', ['bereich' => 'unbekannt']); break;
+        }
+        $ttIds = json_decode((string) ($ttX['post_ids'] ?? ''), true) ?: [];
+        if (isset($_GET['stand'])) {
+            header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+            echo json_encode(MkPlattform::ttStand((string) ($ttIds['tt'] ?? '')), JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $ttVideo = MkMedium::gewaehlt($id, 'video');
+        $ttPfad = $ttVideo ? MkMedium::ordner() . '/' . basename((string) $ttVideo['datei']) : '';
+        ansicht('tiktok', ['x' => $ttX, 'video' => $ttVideo, 'konto' => MkPlattform::ttKonto(),
+            'dauer' => $ttPfad !== '' && is_file($ttPfad) ? MkPlattform::mp4Dauer($ttPfad) : null,
+            'freigabe' => MkPlattform::einstellungen('tiktok')['freigabe'],
+            'ki' => $ttVideo !== null && trim((string) ($ttVideo['modell'] ?? '')) !== '']);
         break;
 
     case 'statistiken':

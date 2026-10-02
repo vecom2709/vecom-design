@@ -53,7 +53,7 @@ $csrf = static fn(): string => '<input type="hidden" name="_csrf" value="' . Fmt
   <h2>Kommt aufs Handy <span class="mehr">TikTok, LinkedIn, Google-Profil und YouTube erlauben kleinen Konten kein automatisches Posten ohne Prüfung</span></h2>
   <p style="margin:0 0 10px;max-width:75ch;line-height:1.6">Zur Sendezeit schickt dir der Vecom-Bot das fertige Stück per Telegram: Bild oder Video und den Text mit Link. Du tippst auf „Teilen“, wählst die App, fügst den Text ein — dann im Bot „Gepostet“ drücken. So zählt jeder Klick trotzdem.</p>
   <div class="mk-kanaele">
-    <?php foreach (MkKanaele::HANDY as $kk => $kn): $g = $geplant[$kk] ?? null; $kAuto = !empty(($pf ?? [])[$kk]['bereit']); ?>
+    <?php foreach (MkKanaele::HANDY as $kk => $kn): $g = $geplant[$kk] ?? null; $kAuto = $kk !== 'tiktok' && !empty(($pf ?? [])[$kk]['bereit']); /* TikTok nie automatisch, nur über die Bestätigungsseite */ ?>
       <div class="mk-kanal <?= $handy['bereit'] || $kAuto ? 'gut' : 'offen' ?>">
         <div class="mk-kanal__kopf"><i aria-hidden="true"></i><b><?= Fmt::h($kn) ?></b></div>
         <?php if ($kAuto): ?><p class="mk-fein">postet jetzt automatisch</p><?php endif; ?>
@@ -82,11 +82,12 @@ $pfAntrag = [
      'OAuth-Client (Webanwendung) mit der Rückruf-Adresse unten anlegen, Client-ID und -Secret hier speichern, „Verbinden“ mit dem Vecom-Kanal.',
      'Das Formular <b>„YouTube API Services – Audit and Quota Extension“</b> (support.google.com/youtube/contact/yt_api_form) ausfüllen: Zweck „eigene Shorts vom eigenen Server“, Datenschutzerklärung, Screenshot dieser Seite.',
      'Nach bestandener Prüfung den Haken setzen. Bis 100 Uploads am Tag sind frei.']],
-  'tiktok' => ['Dauer: Tage bis Wochen · bis zur Prüfung nur „nur ich“ sichtbar und das Konto muss privat sein', [
-     'Auf <b>developers.tiktok.com</b> eine App anlegen, Produkt <b>„Content Posting API“</b> mit „Direct Post“ hinzufügen, Rechte video.publish und video.upload beantragen.',
-     'Rückruf-Adresse unten eintragen, Client-Key und -Secret hier speichern, „Verbinden“ mit dem Vecom-Konto.',
-     'Prüfung beantragen. TikTok verlangt, dass vor dem Posten Konto, Vorschau, Sichtbarkeit und Kennzeichnung gezeigt werden — das übernimmt der Freigabe-Stapel (dein Ja je Stück).',
-     'Nach der Freigabe den Haken setzen; sonst bleibt TikTok beim Handy-Weg.']],
+  'tiktok' => ['Dauer: Tage bis Wochen · bis zur Prüfung bietet TikTok nur „Nur ich“ an und das Konto muss privat sein — „Als Entwurf in die TikTok-App“ geht schon vorher', [
+     'Auf <b>developers.tiktok.com</b> mit dem Vecom-TikTok-Konto anmelden, eine App anlegen (Name „Vecom Design“, App-Symbol 1024×1024 mit dem goldenen V), Plattform <b>Web</b>, Website, Datenschutz- und AGB-Adresse aus den Antragstexten unten.',
+     'Produkte <b>Login Kit</b> und <b>Content Posting API</b> hinzufügen, bei Content Posting „Direct Post“ einschalten; Rechte user.info.basic, video.publish und video.upload. Die Rückruf-Adresse unten eintragen.',
+     'Client-Key und -Secret hier speichern, „Verbinden“ mit dem Vecom-Konto. Ab dann hat jedes freigegebene TikTok-Stück den Knopf „Auf TikTok veröffentlichen …“ — die Bestätigungsseite, die TikTok verlangt.',
+     'Im Sandbox-Modus einmal den ganzen Weg aufnehmen (Bildschirmaufnahme: Verbinden, Bestätigungsseite ausfüllen, senden) und als Demo-Video zum Antrag hochladen. Dann die Prüfung beantragen.',
+     'Nach bestandener Prüfung den Haken setzen; dann bietet die Seite alle Sichtbarkeiten an.']],
 ]; ?>
 <div class="block" id="voll">
   <h2>Voll automatisch: LinkedIn, Google, YouTube, TikTok <span class="mehr">nach Prüfung durch die Plattform — bis dahin kommt alles aufs Handy</span></h2>
@@ -94,7 +95,7 @@ $pfAntrag = [
   <?php foreach (MkPlattform::ALLE as $pk => [$pn]): $e = $pf[$pk] ?? MkPlattform::einstellungen($pk) + ['bereit' => false]; [$pDauer, $pSchritte] = $pfAntrag[$pk]; ?>
     <details class="mk-pf" id="pf-<?= $pk ?>"<?= $e['client_id'] !== '' && !$e['bereit'] ? ' open' : '' ?>>
       <summary><i class="mk-pf__punkt <?= $e['bereit'] ? 'gut' : ($e['verbunden'] ? 'halb' : '') ?>" aria-hidden="true"></i><b><?= Fmt::h($pn) ?></b>
-        <span class="mk-fein"><?= $e['bereit'] ? 'postet automatisch' : ($e['verbunden'] ? 'verbunden — wartet auf den Haken „Freigabe erhalten“' : ($e['client_id'] !== '' ? 'Schlüssel gespeichert — noch nicht verbunden' : 'noch nicht beantragt · kommt per Handy')) ?></span></summary>
+        <span class="mk-fein"><?= $pk === 'tiktok' && $e['verbunden'] ? ($e['freigabe'] ? 'geprüft — Bestätigungsseite mit allen Sichtbarkeiten' : 'verbunden — Bestätigungsseite bereit (vor der Prüfung nur „Nur ich“ oder als Entwurf in die App)') : ($e['bereit'] ? 'postet automatisch' : ($e['verbunden'] ? 'verbunden — wartet auf den Haken „Freigabe erhalten“' : ($e['client_id'] !== '' ? 'Schlüssel gespeichert — noch nicht verbunden' : 'noch nicht beantragt · kommt per Handy'))) ?></span></summary>
       <p class="mk-fein" style="margin:8px 0 4px"><?= Fmt::h($pDauer) ?></p>
       <ol style="line-height:1.65;max-width:82ch;margin:0 0 10px"><?php foreach ($pSchritte as $sch): ?><li><?= $sch ?></li><?php endforeach; ?></ol>
       <?php $pfA = MkPlattform::antrag($pk); /* 01.10.2026: fertige Antworten fürs Formular, nur kopieren */ ?>
@@ -114,7 +115,7 @@ $pfAntrag = [
         <div class="feld"><label for="pf_<?= $pk ?>_id"><?= $pk === 'tiktok' ? 'Client-Key' : 'Client-ID' ?></label><input id="pf_<?= $pk ?>_id" name="client_id" autocomplete="off" value="<?= Fmt::h((string) $e['client_id']) ?>"></div>
         <div class="feld"><label for="pf_<?= $pk ?>_s">Client-Secret <span class="mk-fein"><?= $e['secret'] ? '(hinterlegt — leer lassen zum Behalten)' : '' ?></span></label><input id="pf_<?= $pk ?>_s" name="secret" type="password" autocomplete="off"></div>
         <?php if (MkPlattform::OAUTH[$pk]['id_wort'] !== ''): ?><div class="feld breit"><label for="pf_<?= $pk ?>_k"><?= Fmt::h(MkPlattform::OAUTH[$pk]['id_wort']) ?></label><input id="pf_<?= $pk ?>_k" name="konto" inputmode="numeric" value="<?= Fmt::h((string) $e['konto']) ?>"></div><?php else: ?><input type="hidden" name="konto" value="<?= Fmt::h((string) $e['konto']) ?>"><?php endif; ?>
-        <label class="mk-haken breit"><input type="checkbox" name="freigabe" value="1"<?= $e['freigabe'] ? ' checked' : '' ?>> Freigabe der Plattform erhalten — ab jetzt automatisch posten</label>
+        <label class="mk-haken breit"><input type="checkbox" name="freigabe" value="1"<?= $e['freigabe'] ? ' checked' : '' ?>> <?= $pk === 'tiktok' ? 'Prüfung durch TikTok bestanden — alle Sichtbarkeiten auf der Bestätigungsseite' : 'Freigabe der Plattform erhalten — ab jetzt automatisch posten' ?></label>
         <div class="breit" style="display:flex;gap:8px;flex-wrap:wrap"><button class="knopf">Speichern</button></div>
       </form>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">

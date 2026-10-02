@@ -45,7 +45,7 @@ final class MkAnmeldungen
                         'Shorts kommen bis zur Freigabe aufs Handy, danach lädt Vecom sie selbst hoch.'],
         'tiktok'    => ['TikTok', 'https://www.tiktok.com/signup',
                         'Konto anlegen.',
-                        'Videos kommen zur Sendezeit aufs Handy — ein Tipp auf „Teilen“.'],
+                        'Videos kommen zur Sendezeit aufs Handy — nach dem Verbinden (Kanäle › Verbinden & Posten) mit dem Knopf „Auf TikTok veröffentlichen“ direkt aus der Verwaltung.'],
     ];
 
     private static function wert(string $k): string

@@ -81,6 +81,11 @@ final class MkHandy
         if (!$video && $x['format'] === 'reel') { $kopf .= "\n\n🎬 Für dieses Reel gibt es noch kein Video — das Skript steht im Text."; }
         $knoepfe = ['inline_keyboard' => [[['text' => '✅ Gepostet', 'callback_data' => 'v:mp:' . $id]],
                                           [['text' => '🛠 In der Verwaltung', 'url' => $basis . '/inhalte/' . $id]]]];
+        /* TikTok verbunden (02.10.2026): ein Knopf zur Bestätigungsseite — dort geht es ohne Speichern, App und Einfügen raus. */
+        require_once __DIR__ . '/MkPlattform.php';
+        if ($x['plattform'] === 'tiktok' && $video && MkPlattform::einstellungen('tiktok')['verbunden']) {
+            array_unshift($knoepfe['inline_keyboard'], [['text' => '🎵 Auf TikTok veröffentlichen', 'url' => $basis . '/tiktok/' . $id]]);
+        }
         $ok = false;
         foreach ($chats as $chat) {
             $medium = $video ?? $bild;

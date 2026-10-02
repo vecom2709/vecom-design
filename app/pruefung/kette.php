@@ -18792,9 +18792,85 @@ $pfVideo = static function (string $pl) use ($pfDatei): int {
 $pfYt = $pfVideo('youtube'); $pfTt = $pfVideo('tiktok');
 $pfJy = MkVeroeffentlichen::jetzt($pfYt); $pfJt = MkVeroeffentlichen::jetzt($pfTt);
 $pfInit = array_values(array_filter($pfAufrufe, static fn($a) => str_contains($a[1], 'publish/video/init')))[0] ?? null;
-pruefe('P4: YouTube-Short und TikTok hochgeladen; TikTok nimmt die erlaubte Sichtbarkeit (vor der Prüfung nur „nur ich“) und merkt sie sich',
-    $pfJy['ok'] && str_contains((string) MkInhalt::laden($pfYt)['post_ids'], 'yt-abc') && $pfJt['ok'] && ($pfInit[3]['post_info']['privacy_level'] ?? '') === 'SELF_ONLY'
-    && str_contains((string) MkInhalt::laden($pfTt)['post_ids'], 'SELF_ONLY') && MkPlattform::einstellungen('tiktok')['konto'] === 'tt-open-1');
+pruefe('P4: YouTube-Short hochgeladen; TikTok verbunden (Konto gemerkt)',
+    $pfJy['ok'] && str_contains((string) MkInhalt::laden($pfYt)['post_ids'], 'yt-abc') && MkPlattform::einstellungen('tiktok')['konto'] === 'tt-open-1');
+/* TIKTOK NUR ÜBER DIE BESTÄTIGUNGSSEITE (02.10.2026, Uwe: „mache nun alles für TikTok“).
+   Vorher wählte der Code die Sichtbarkeit selbst und postete zur Sendezeit von allein —
+   das verbieten TikToks Content Sharing Guidelines, jeder Antrag wäre daran gescheitert. */
+pruefe('TikTok: geht nie von selbst raus — auch mit Haken nicht; kommt zur Sendezeit aufs Handy, kein Upload',
+    !$pfJt['ok'] && $pfInit === null && MkInhalt::laden($pfTt)['status'] === 'freigegeben' && MkHandy::istHandy(MkInhalt::laden($pfTt))
+    && str_contains(MkVeroeffentlichen::moeglich(MkInhalt::laden($pfTt))['grund'], 'Auf TikTok veröffentlichen'), (string) ($pfJt['grund'] ?? ''));
+$ttNetzAlt = MkPlattform::$netz;
+$ttAufrufe = [];
+$ttCreator = ['creator_nickname' => 'Vecom Design', 'creator_username' => 'vecomdesign', 'creator_avatar_url' => 'https://p16.example/a.jpg',
+              'privacy_level_options' => ['PUBLIC_TO_EVERYONE', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY', 'ERFUNDEN'], 'comment_disabled' => false, 'duet_disabled' => true, 'stitch_disabled' => false,
+              'max_video_post_duration_sec' => 600];
+MkPlattform::$netz = static function (string $m, string $url, array $kopf, $body) use (&$ttAufrufe, &$ttCreator): array {
+    $ttAufrufe[] = [$m, $url, $kopf, $body];
+    if (str_contains($url, 'creator_info')) { return ['status' => 200, 'json' => ['data' => $ttCreator, 'error' => ['code' => 'ok']], 'kopf' => []]; }
+    if (str_contains($url, 'inbox/video/init')) { return ['status' => 200, 'json' => ['data' => ['upload_url' => 'https://upload.example/tt-in', 'publish_id' => 'pub-entwurf']], 'kopf' => []]; }
+    if (str_contains($url, 'publish/video/init')) { return ['status' => 200, 'json' => ['data' => ['upload_url' => 'https://upload.example/tt', 'publish_id' => 'pub-9']], 'kopf' => []]; }
+    if (str_contains($url, 'upload.example/tt')) { return ['status' => 201, 'json' => null, 'kopf' => []]; }
+    if (str_contains($url, 'status/fetch')) { return ['status' => 200, 'json' => ['data' => ['status' => 'PUBLISH_COMPLETE']], 'kopf' => []]; }
+    return ['status' => 404, 'json' => ['message' => 'unerwartet'], 'kopf' => []];
+};
+$ttK = MkPlattform::ttKonto();
+pruefe('TikTok-Seite: frische creator_info — Kontoname, nur bekannte Sichtbarkeiten, gesperrtes Duett, Höchstdauer',
+    $ttK['ok'] && $ttK['nickname'] === 'Vecom Design' && $ttK['stufen'] === ['PUBLIC_TO_EVERYONE', 'FOLLOWER_OF_CREATOR', 'SELF_ONLY'] && $ttK['duett_aus'] && !$ttK['kommentar_aus'] && $ttK['max_sek'] === 600);
+$ttGut = ['titel' => 'Il tuo sito #webdesign', 'sichtbarkeit' => 'PUBLIC_TO_EVERYONE', 'kommentare' => '1', 'duett' => '1', 'werbung' => '1', 'eigene_marke' => '1', 'ki' => '1', 'zustimmung' => '1'];
+pruefe('TikTok-Seite: ohne gewählte Sichtbarkeit kein Senden (keine Vorauswahl)', MkPlattform::ttPruefen($ttK, ['sichtbarkeit' => ''] + $ttGut, 5.0) === 'Bitte wählen, wer das Video sehen darf.');
+pruefe('TikTok-Seite: nur erlaubte Sichtbarkeiten', is_string(MkPlattform::ttPruefen($ttK, ['sichtbarkeit' => 'MUTUAL_FOLLOW_FRIENDS'] + $ttGut, 5.0)));
+pruefe('TikTok-Seite: Werbung an, aber nichts gewählt — TikToks Satz, kein Senden',
+    MkPlattform::ttPruefen($ttK, ['eigene_marke' => ''] + $ttGut, 5.0) === 'You need to indicate if your content promotes yourself, a third party, or both');
+pruefe('TikTok-Seite: Markenpartnerschaft nie „Nur ich“',
+    MkPlattform::ttPruefen($ttK, ['markenpartner' => '1', 'sichtbarkeit' => 'SELF_ONLY'] + $ttGut, 5.0) === 'Branded content visibility cannot be set to private');
+pruefe('TikTok-Seite: ohne Zustimmung kein Senden', is_string(MkPlattform::ttPruefen($ttK, ['zustimmung' => ''] + $ttGut, 5.0)));
+pruefe('TikTok-Seite: zu langes Video wird nicht gesendet', str_contains((string) MkPlattform::ttPruefen($ttK, $ttGut, 700.0), 'höchstens 600 Sekunden'));
+pruefe('TikTok-Seite: vollständige Auswahl darf gesendet werden', MkPlattform::ttPruefen($ttK, $ttGut, 5.0) === null);
+/* Länge aus dem mvhd-Kasten: ein Stück MP4 mit 700 s (Zeitskala 1000) */
+$ttLang = MkMedium::ordner() . '/kette-tt-lang-' . bin2hex(random_bytes(3)) . '.mp4';
+file_put_contents($ttLang, pack('N', 108) . 'moov' . pack('N', 100) . 'mvhd' . "\0\0\0\0" . pack('N', 0) . pack('N', 0) . pack('N', 1000) . pack('N', 700000) . str_repeat("\0", 76));
+pruefe('TikTok-Seite: Länge des Videos wird aus der Datei gelesen (ohne ffprobe)', MkPlattform::mp4Dauer($ttLang) === 700.0, (string) MkPlattform::mp4Dauer($ttLang));
+@unlink($ttLang);
+$ttX = MkInhalt::laden($pfTt);
+$ttV = MkMedium::gewaehlt($pfTt, 'video');
+$ttE = MkPlattform::ttSenden($ttX, $ttV, $ttGut, 'posten');
+$ttMeld = MkPlattform::ttAbschliessen($pfTt, $ttE, 'posten');
+$ttInit = array_values(array_filter($ttAufrufe, static fn($a) => str_contains($a[1], 'publish/video/init') && !str_contains($a[1], 'inbox')))[0][3]['post_info'] ?? [];
+pruefe('TikTok-Seite: gesendet wird genau die Auswahl — Sichtbarkeit, Kommentare an, Duett bleibt aus (im Konto gesperrt), Stitch aus (nicht angehakt), eigene Marke, KI-Kennzeichnung',
+    $ttE['ok'] && ($ttInit['privacy_level'] ?? '') === 'PUBLIC_TO_EVERYONE' && ($ttInit['disable_comment'] ?? null) === false && ($ttInit['disable_duet'] ?? null) === true
+    && ($ttInit['disable_stitch'] ?? null) === true && ($ttInit['brand_organic_toggle'] ?? null) === true && ($ttInit['brand_content_toggle'] ?? null) === false
+    && ($ttInit['is_aigc'] ?? null) === true && ($ttInit['title'] ?? '') === 'Il tuo sito #webdesign', json_encode($ttInit));
+pruefe('TikTok-Seite: nach dem Senden veröffentlicht, mit Hinweis auf die Verarbeitungszeit',
+    MkInhalt::laden($pfTt)['status'] === 'veroeffentlicht' && str_contains((string) MkInhalt::laden($pfTt)['post_ids'], 'pub-9') && str_contains($ttMeld, 'einige Minuten'));
+pruefe('TikTok-Seite: Stand kommt von TikTok (status/fetch)', MkPlattform::ttStand('pub-9')['status'] === 'PUBLISH_COMPLETE' && MkPlattform::ttStand('pub-9')['fertig']);
+$ttE2 = $pfVideo('tiktok');
+$ttEnt = MkPlattform::ttSenden(MkInhalt::laden($ttE2), MkMedium::gewaehlt($ttE2, 'video'), [], 'entwurf');
+MkPlattform::ttAbschliessen($ttE2, $ttEnt, 'entwurf');
+$ttInbox = array_values(array_filter($ttAufrufe, static fn($a) => str_contains($a[1], 'inbox/video/init')))[0][3] ?? null;
+pruefe('TikTok-Seite: „Als Entwurf in die TikTok-App“ lädt in den Posteingang, ohne Beitragsdaten; das Stück bleibt freigegeben bis „Gepostet“',
+    $ttEnt['ok'] && is_array($ttInbox) && !isset($ttInbox['post_info']) && ($ttInbox['source_info']['source'] ?? '') === 'FILE_UPLOAD'
+    && MkInhalt::laden($ttE2)['status'] === 'freigegeben' && str_contains((string) MkInhalt::laden($ttE2)['post_ids'], 'pub-entwurf'));
+$ttCreator['privacy_level_options'] = [];
+pruefe('TikTok-Seite: Darf das Konto gerade nicht posten, wird nicht gesendet', !MkPlattform::ttKonto()['ok'] && !MkPlattform::ttSenden(MkInhalt::laden($ttE2), MkMedium::gewaehlt($ttE2, 'video'), $ttGut, 'posten')['ok']);
+$ttSeite = (string) file_get_contents($wurzel . '/views/tiktok.php');
+pruefe('TikTok-Seite: Sichtbarkeit ohne Vorauswahl, Haken ohne Häkchen, gesperrte grau, Vorschau, Kontoname',
+    str_contains($ttSeite, '<option value="" selected disabled>Bitte wählen</option>') && !preg_match('~<option value="<\?= Fmt::h\(\$st\) \?>"[^>]*selected~', $ttSeite)
+    && str_contains($ttSeite, 'name="<?= $n ?>" value="1"<?= $aus ? \' disabled\' : \'\' ?>>') && str_contains($ttSeite, '<video src=') && str_contains($ttSeite, "\$konto['nickname']"));
+pruefe('TikTok-Seite: TikToks Pflichtsätze wörtlich',
+    str_contains($ttSeite, "By posting, you agree to TikTok's <a") && str_contains($ttSeite, 'Branded Content Policy</a> and <a')
+    && str_contains($ttSeite, "Your photo/video will be labeled as 'Promotional content'") && str_contains($ttSeite, "Your photo/video will be labeled as 'Paid partnership'")
+    && str_contains($ttSeite, 'You need to indicate if your content promotes yourself, a third party, or both') && str_contains($ttSeite, 'Branded content visibility cannot be set to private')
+    && str_contains($ttSeite, 'it may take a few minutes for the content to process and be visible on your profile')
+    && MkPlattform::ttErklaerung(false) === "By posting, you agree to TikTok's Music Usage Confirmation");
+$ttIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('TikTok-Seite: Senden nur per Formular mit CSRF, nur freigegebene TikTok-Stücke; Seite und Stand als eigene Route',
+    strpos($ttIdx, "case 'tiktok_senden':") > strpos($ttIdx, 'Csrf::pruefen()') && str_contains($ttIdx, "\$ttX['status'] !== 'freigegeben'")
+    && str_contains($ttIdx, "case 'tiktok':") && str_contains($ttIdx, 'MkPlattform::ttStand('));
+pruefe('TikTok-Seite: Das Handy bekommt zur Sendezeit den Knopf zur Bestätigungsseite',
+    str_contains((string) file_get_contents($wurzel . '/src/MkHandy.php'), "'🎵 Auf TikTok veröffentlichen', 'url' => \$basis . '/tiktok/' . \$id"));
+MkPlattform::$netz = $ttNetzAlt;
+Db::run("DELETE FROM mk_inhalte WHERE id = ?", [$ttE2]);
 /* Erneuern */
 $pfVor = count($pfAufrufe);
 Db::run("UPDATE settings SET svalue = svalue WHERE skey = 'pf_tiktok_geheim'");

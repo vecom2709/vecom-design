@@ -18,7 +18,8 @@ require_once __DIR__ . '/MkInhalt.php';
      LinkedIn   Posts API + Images API, Seite urn:li:organization:ID, w_organization_social
      Google     My Business API v4 localPosts, accounts/{a}/locations/{l}, business.manage
      YouTube    Data API v3 videos.insert (Resumable Upload), youtube.upload — Hochformat = Short
-     TikTok     Content Posting API Direct Post, FILE_UPLOAD in einem Stück, video.publish
+     TikTok     Content Posting API Direct Post, FILE_UPLOAD in einem Stück, video.publish —
+                nie automatisch, sondern je Video über die Bestätigungsseite (s. unten, 02.10.2026)
 
    Schlüssel (Client-Secret, Zugangs- und Erneuerungsschlüssel) liegen nur
    versiegelt in settings (Hosting::versiegeln) und verlassen den Server nie.
@@ -217,10 +218,15 @@ final class MkPlattform
                 break;
             case 'tiktok':
                 $voraus[] = 'TikTok verlangt beim „Direct Post“ für JEDEN Beitrag eine eigene Seite: Kontoname anzeigen, Sichtbarkeit ohne Vorauswahl wählen lassen, Kommentare/Duett/Stitch ankreuzen, Werbekennzeichnung, Vorschau und den Satz „By posting, you agree to TikTok\'s Music Usage Confirmation“. '
-                    . 'Ganz ohne Klick geht TikTok also nie — der heutige Handy-Weg (ein Tipp auf „Teilen“) ist fast genauso schnell. Ein Antrag lohnt erst, wenn diese Seite gebaut ist.';
+                    . 'Diese Seite gibt es seit dem 02.10.2026 (Inhalte › Stück › „Auf TikTok veröffentlichen“). Ganz ohne Klick geht TikTok also nie — dafür ist es ein Klick in der Verwaltung statt Video speichern, App öffnen, Text einfügen.';
+                $voraus[] = 'Für den Antrag verlangt TikTok ein Demo-Video (max. 5 Videos, je 50 MB) vom ganzen Ablauf: Verbinden unter Kanäle › Verbinden & Posten, dann die Bestätigungsseite ausfüllen und senden. Vor dem ersten Antrag im Sandbox-Modus der App testen — dort darf das Konto nur privat posten.';
+                $voraus[] = 'Ehrlich bleiben: TikTok lehnt Apps ab, die ausschließlich privat genutzt werden. Die Beschreibung sagt deshalb, was das Werkzeug ist — die Veröffentlichungsfunktion des eigenen Marketing-Werkzeugs eines Webdesign-Studios. Wird der Antrag abgelehnt, bleibt „Als Entwurf in die TikTok-App“: Das Video liegt dann in der TikTok-App bereit, ein Tipp auf „Posten“ genügt.';
                 $felder = array_merge($allgemein, [
                     ['App description', 'Internal tool of ' . $name . ' to publish our own short videos to our own TikTok account. ' . $wer . ' Each video is reviewed by the account owner, who chooses privacy level, interaction settings and commercial content disclosure on a confirmation page before it is posted.'],
-                    ['Products and scopes', 'Login Kit (user.info.basic) to show the account nickname on the confirmation page; Content Posting API with Direct Post (video.publish, video.upload) to upload the approved video file. One user: the account owner. No data of other users is accessed or stored.'],
+                    ['Products and scopes', 'Login Kit (user.info.basic) to show the account nickname on the confirmation page; Content Posting API with Direct Post (video.publish) and Upload to inbox as draft (video.upload) for the approved video file. One user: the account owner. No data of other users is accessed or stored.'],
+                    ['How the confirmation page works', 'Before anything is sent, the page loads the latest creator info and shows the account nickname and avatar, a preview of the video and an editable caption. Privacy has no default and only offers the options returned by creator_info. Comment, Duet and Stitch are unchecked by default and greyed out when the account disables them. '
+                        . 'Commercial content disclosure is off by default; when on, "Your brand" and/or "Branded content" must be chosen, and branded content cannot be private. The page shows "By posting, you agree to TikTok\'s Music Usage Confirmation" (or the Branded Content Policy variant), checks the maximum video duration, posts only after the owner clicks the button, '
+                        . 'tells the owner that processing may take a few minutes and polls the publish status. Nothing is posted automatically or on a schedule.'],
                 ]);
                 break;
         }
@@ -311,6 +317,9 @@ final class MkPlattform
     {
         $p = (string) $x['plattform'];
         $nein = static fn(string $g) => ['auto' => false, 'grund' => $g, 'medium' => null];
+        /* TikTok geht nie von selbst: Jedes Video braucht die Bestätigungsseite (TikTok Content
+           Sharing Guidelines). Zur Sendezeit kommt es deshalb aufs Handy — mit Knopf zu dieser Seite. */
+        if ($p === 'tiktok') { return $nein(self::einstellungen('tiktok')['verbunden'] ? 'TikTok: jedes Video bestätigst du auf der Seite „Auf TikTok veröffentlichen“ — Sichtbarkeit, Kommentare, Kennzeichnung.' : ''); }
         if (!isset(self::ALLE[$p]) || !self::bereit($p)) { return $nein(''); }
         [$name, $formate, $braucht] = self::ALLE[$p];
         if (!in_array($x['format'], $formate, true)) { return $nein((MkInhalt::FORMATE[$x['format']][0] ?? $x['format']) . ' auf ' . $name . ' kommt per Handy.'); }
@@ -328,7 +337,7 @@ final class MkPlattform
             'linkedin' => self::linkedin($x, $medium, $t),
             'google'   => self::google($x, $medium, $t),
             'youtube'  => self::youtube($x, (array) $medium, $t),
-            'tiktok'   => self::tiktok($x, (array) $medium, $t),
+            'tiktok'   => ['ok' => false, 'grund' => 'TikTok geht nur über die Bestätigungsseite (Auf TikTok veröffentlichen).'],
             default    => ['ok' => false, 'grund' => 'Unbekannte Plattform.'],
         };
     }
@@ -402,25 +411,187 @@ final class MkPlattform
         return in_array($u['status'], [200, 201], true) && $id !== '' ? ['ok' => true, 'ids' => ['yt' => $id]] : ['ok' => false, 'grund' => 'YouTube: ' . self::fehler($u)];
     }
 
-    private static function tiktok(array $x, array $m, string $t): array
+    /* ------------------------------------------------------------------ */
+    /* TikTok: Bestätigungsseite (02.10.2026, Uwe: „mache nun alles für    */
+    /* TikTok“ → „Komplett einrichten“)                                    */
+    /* ------------------------------------------------------------------ */
+
+    /* TikTok verlangt für Direct Post je Video eine Seite, auf der der Inhaber
+       selbst wählt (Content Sharing Guidelines, gelesen 02.10.2026): Kontoname,
+       frische creator_info, Sichtbarkeit OHNE Vorauswahl nur aus den erlaubten
+       Stufen, Kommentar/Duett/Stitch ohne Haken und gesperrt, wo das Konto sie
+       abgeschaltet hat, Werbekennzeichnung aus mit „Your brand“/„Branded
+       content“, Markenpartnerschaft nie privat, der Satz zur Music Usage
+       Confirmation, Vorschau, Höchstdauer, und erst der Klick schickt. Vorher
+       wählte der Code die Sichtbarkeit selbst (öffentlich, sonst die erste)
+       und schaltete alles frei — damit wäre jeder Antrag abgelehnt worden. */
+
+    public const TT_STUFEN = ['PUBLIC_TO_EVERYONE' => 'Alle', 'MUTUAL_FOLLOW_FRIENDS' => 'Freunde (gegenseitig gefolgt)',
+                              'FOLLOWER_OF_CREATOR' => 'Follower', 'SELF_ONLY' => 'Nur ich'];
+    public const TT_MUSIK = 'https://www.tiktok.com/legal/page/global/music-usage-confirmation/en';
+    public const TT_MARKE = 'https://www.tiktok.com/legal/page/global/bc-policy/en';
+
+    /** Der Satz unter dem Knopf — wörtlich, wie TikTok ihn verlangt. */
+    public static function ttErklaerung(bool $markenpartner): string
+    {
+        return $markenpartner ? "By posting, you agree to TikTok's Branded Content Policy and Music Usage Confirmation"
+                              : "By posting, you agree to TikTok's Music Usage Confirmation";
+    }
+
+    /**
+     * Frische creator_info des verbundenen Kontos (jedes Mal neu, wie verlangt).
+     * @return array{ok:bool, fehler:string, nickname:string, nutzer:string, bild:string, stufen:list<string>,
+     *               kommentar_aus:bool, duett_aus:bool, stitch_aus:bool, max_sek:int}
+     */
+    public static function ttKonto(): array
+    {
+        $leer = ['ok' => false, 'fehler' => '', 'nickname' => '', 'nutzer' => '', 'bild' => '', 'stufen' => [],
+                 'kommentar_aus' => false, 'duett_aus' => false, 'stitch_aus' => false, 'max_sek' => 0];
+        $t = self::zugang('tiktok');
+        if ($t === null) { return ['fehler' => 'TikTok ist nicht verbunden — unter Kanäle › Verbinden & Posten verbinden.'] + $leer; }
+        $c = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+            ['Authorization: Bearer ' . $t, 'Content-Type: application/json; charset=UTF-8'], []);
+        $d = (array) ($c['json']['data'] ?? []);
+        $code = (string) ($c['json']['error']['code'] ?? '');
+        if ($c['status'] !== 200 || ($code !== '' && $code !== 'ok')) {
+            /* „spam_risk_too_many_posts“ u. ä.: Das Konto darf gerade nicht posten — dann wird nicht gesendet. */
+            return ['fehler' => 'TikTok lässt gerade nicht posten: ' . self::fehler($c) . ' — später noch einmal versuchen.'] + $leer;
+        }
+        $stufen = array_values(array_filter(array_map('strval', (array) ($d['privacy_level_options'] ?? [])), static fn($s) => isset(self::TT_STUFEN[$s])));
+        if ($stufen === []) { return ['fehler' => 'TikTok nennt keine erlaubte Sichtbarkeit — später noch einmal versuchen.'] + $leer; }
+        return ['ok' => true, 'fehler' => '', 'nickname' => mb_substr((string) ($d['creator_nickname'] ?? ''), 0, 80), 'nutzer' => mb_substr((string) ($d['creator_username'] ?? ''), 0, 80),
+                'bild' => (string) ($d['creator_avatar_url'] ?? ''), 'stufen' => $stufen,
+                'kommentar_aus' => !empty($d['comment_disabled']), 'duett_aus' => !empty($d['duet_disabled']), 'stitch_aus' => !empty($d['stitch_disabled']),
+                'max_sek' => (int) ($d['max_video_post_duration_sec'] ?? 0)];
+    }
+
+    /** Länge eines MP4 in Sekunden aus dem mvhd-Kasten (ohne ffprobe, das es auf dem Webspace nicht gibt). */
+    public static function mp4Dauer(string $pfad): ?float
+    {
+        $f = @fopen($pfad, 'rb');
+        if ($f === false) { return null; }
+        $kopf = (string) fread($f, 4 * 1024 * 1024);   // moov steht bei Kie- und ffmpeg-Dateien vorn; sonst am Ende suchen
+        if (!str_contains($kopf, 'mvhd')) { $groesse = (int) filesize($pfad); fseek($f, max(0, $groesse - 4 * 1024 * 1024)); $kopf = (string) fread($f, 4 * 1024 * 1024); }
+        fclose($f);
+        $i = strpos($kopf, 'mvhd');
+        if ($i === false || strlen($kopf) < $i + 40) { return null; }
+        $version = ord($kopf[$i + 4]);
+        if ($version === 1) {
+            $skala = unpack('N', substr($kopf, $i + 24, 4))[1]; $dauer = unpack('J', substr($kopf, $i + 28, 8))[1];
+        } else {
+            $skala = unpack('N', substr($kopf, $i + 16, 4))[1]; $dauer = unpack('N', substr($kopf, $i + 20, 4))[1];
+        }
+        return $skala > 0 ? round($dauer / $skala, 2) : null;
+    }
+
+    /**
+     * Prüft die Auswahl der Bestätigungsseite gegen die frische creator_info.
+     * @return ?string Fehler — null heißt: darf gesendet werden
+     */
+    public static function ttPruefen(array $konto, array $w, ?float $dauer): ?string
+    {
+        if (!$konto['ok']) { return $konto['fehler']; }
+        $titel = trim((string) ($w['titel'] ?? ''));
+        if ($titel === '') { return 'Bitte einen Text für das Video eingeben.'; }
+        if (mb_strlen($titel) > 2200) { return 'Der Text ist länger als 2.200 Zeichen.'; }
+        $stufe = (string) ($w['sichtbarkeit'] ?? '');
+        if ($stufe === '') { return 'Bitte wählen, wer das Video sehen darf.'; }
+        if (!in_array($stufe, $konto['stufen'], true)) { return 'Diese Sichtbarkeit erlaubt TikTok für das Konto gerade nicht.'; }
+        $werbung = !empty($w['werbung']);
+        $eigen = $werbung && !empty($w['eigene_marke']);
+        $partner = $werbung && !empty($w['markenpartner']);
+        if ($werbung && !$eigen && !$partner) { return 'You need to indicate if your content promotes yourself, a third party, or both'; }
+        if ($partner && $stufe === 'SELF_ONLY') { return 'Branded content visibility cannot be set to private'; }
+        if ($konto['max_sek'] > 0 && $dauer !== null && $dauer > $konto['max_sek']) {
+            return 'Das Video ist ' . (int) ceil($dauer) . ' Sekunden lang; dieses Konto darf höchstens ' . $konto['max_sek'] . ' Sekunden posten.';
+        }
+        if (empty($w['zustimmung'])) { return 'Bitte bestätigen, dass das Video jetzt an TikTok gehen soll.'; }
+        return null;
+    }
+
+    /**
+     * Sendet ein Video nach der Bestätigungsseite: Direct Post (Modus „posten“)
+     * oder als Entwurf in die TikTok-App (Modus „entwurf“, der Inhaber postet
+     * dort selbst). @return array{ok:bool, grund?:string, ids?:array}
+     */
+    public static function ttSenden(array $x, array $m, array $w, string $modus = 'posten'): array
     {
         $pfad = self::datei($m);
         if ($pfad === null) { return ['ok' => false, 'grund' => 'TikTok: Videodatei fehlt.']; }
-        $kopf = ['Authorization: Bearer ' . $t, 'Content-Type: application/json; charset=UTF-8'];
-        $c = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/creator_info/query/', $kopf, []);
-        $stufen = (array) ($c['json']['data']['privacy_level_options'] ?? []);
-        if ($stufen === []) { return ['ok' => false, 'grund' => 'TikTok: ' . self::fehler($c)]; }
-        $stufe = in_array('PUBLIC_TO_EVERYONE', $stufen, true) ? 'PUBLIC_TO_EVERYONE' : (string) $stufen[0];
         $groesse = (int) filesize($pfad);
         if ($groesse > 64 * 1024 * 1024) { return ['ok' => false, 'grund' => 'TikTok: Video größer als 64 MB.']; }
-        $i = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/video/init/', $kopf, [
-            'post_info' => ['title' => self::kurz(MkInhalt::kopiertext($x), 2200), 'privacy_level' => $stufe, 'disable_comment' => false, 'disable_duet' => false, 'disable_stitch' => false],
-            'source_info' => ['source' => 'FILE_UPLOAD', 'video_size' => $groesse, 'chunk_size' => $groesse, 'total_chunk_count' => 1]]);
+        $t = self::zugang('tiktok');
+        if ($t === null) { return ['ok' => false, 'grund' => 'TikTok: Verbindung abgelaufen — unter Kanäle verbinden neu verbinden.']; }
+        $kopf = ['Authorization: Bearer ' . $t, 'Content-Type: application/json; charset=UTF-8'];
+        $quelle = ['source' => 'FILE_UPLOAD', 'video_size' => $groesse, 'chunk_size' => $groesse, 'total_chunk_count' => 1];
+        if ($modus === 'entwurf') {
+            $i = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/inbox/video/init/', $kopf, ['source_info' => $quelle]);
+            $stufe = '';
+        } else {
+            $konto = self::ttKonto();
+            $f = self::ttPruefen($konto, $w, self::mp4Dauer($pfad));
+            if ($f !== null) { return ['ok' => false, 'grund' => $f]; }
+            $stufe = (string) $w['sichtbarkeit'];
+            $werbung = !empty($w['werbung']);
+            $info = ['title' => mb_substr(trim((string) $w['titel']), 0, 2200), 'privacy_level' => $stufe,
+                     /* Was das Konto abgeschaltet hat, bleibt aus — auch wenn jemand das Formular umgeht. */
+                     'disable_comment' => $konto['kommentar_aus'] || empty($w['kommentare']),
+                     'disable_duet' => $konto['duett_aus'] || empty($w['duett']),
+                     'disable_stitch' => $konto['stitch_aus'] || empty($w['stitch']),
+                     'brand_organic_toggle' => $werbung && !empty($w['eigene_marke']),
+                     'brand_content_toggle' => $werbung && !empty($w['markenpartner']),
+                     'is_aigc' => !empty($w['ki'])];
+            $i = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/video/init/', $kopf, ['post_info' => $info, 'source_info' => $quelle]);
+        }
         $url = (string) ($i['json']['data']['upload_url'] ?? ''); $pub = (string) ($i['json']['data']['publish_id'] ?? '');
         if ($url === '' || $pub === '') { return ['ok' => false, 'grund' => 'TikTok: ' . self::fehler($i)]; }
         $u = self::http('PUT', $url, ['Content-Type: ' . ((string) $m['mime'] ?: 'video/mp4'), 'Content-Range: bytes 0-' . ($groesse - 1) . '/' . $groesse], ['@datei' => $pfad]);
         if ($u['status'] >= 300) { return ['ok' => false, 'grund' => 'TikTok: Upload HTTP ' . $u['status'] . '.']; }
-        return ['ok' => true, 'ids' => ['tt' => $pub] + ($stufe !== 'PUBLIC_TO_EVERYONE' ? ['tt_sichtbar' => $stufe] : [])];
+        $ids = ['tt' => $pub, 'tt_modus' => $modus];
+        if ($stufe !== '' && $stufe !== 'PUBLIC_TO_EVERYONE') { $ids['tt_sichtbar'] = $stufe; }
+        return ['ok' => true, 'ids' => $ids];
+    }
+
+    /**
+     * Nach dem Senden: veröffentlicht (Direct Post) bzw. als Entwurf in der App
+     * vermerkt — dann bleibt das Stück freigegeben, bis Uwe „Gepostet“ drückt.
+     * @return string Meldung für die Seite
+     */
+    public static function ttAbschliessen(int $id, array $erg, string $modus): string
+    {
+        $x = MkInhalt::laden($id);
+        $ids = array_merge(json_decode((string) ($x['post_ids'] ?? ''), true) ?: [], (array) ($erg['ids'] ?? []));
+        if (empty($erg['ok'])) {
+            Db::update('mk_inhalte', $id, ['post_fehler' => mb_substr((string) ($erg['grund'] ?? 'unbekannt'), 0, 300)]);
+            return (string) ($erg['grund'] ?? 'Nicht gesendet.');
+        }
+        if ($modus === 'entwurf') {
+            Db::update('mk_inhalte', $id, ['post_ids' => json_encode($ids), 'geplant_am' => null, 'post_fehler' => null]);
+            Events::pruefspur('tiktok_entwurf', 'mk_inhalte', $id, [], ['publish_id' => $ids['tt'] ?? '']);
+            return 'An die TikTok-App geschickt — dort in der Benachrichtigung öffnen und posten. Danach hier „Selbst gepostet“ drücken.';
+        }
+        Db::update('mk_inhalte', $id, ['status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'geplant_am' => null,
+                                       'post_ids' => json_encode($ids), 'post_fehler' => null]);
+        Events::pruefspur('inhalt_gepostet', 'mk_inhalte', $id, ['status' => 'freigegeben'], ['status' => 'veroeffentlicht', 'plattform' => 'tiktok'] + $ids);
+        return 'An TikTok gesendet. Es kann einige Minuten dauern, bis das Video im Profil sichtbar ist.';
+    }
+
+    /** Stand eines gesendeten Videos (publish/status/fetch). @return array{status:string, text:string, fertig:bool} */
+    public static function ttStand(string $publishId): array
+    {
+        $t = self::zugang('tiktok');
+        if ($t === null || $publishId === '') { return ['status' => '', 'text' => 'Stand nicht abrufbar.', 'fertig' => false]; }
+        $r = self::http('POST', 'https://open.tiktokapis.com/v2/post/publish/status/fetch/',
+            ['Authorization: Bearer ' . $t, 'Content-Type: application/json; charset=UTF-8'], ['publish_id' => $publishId]);
+        $s = (string) ($r['json']['data']['status'] ?? '');
+        $text = match ($s) {
+            'PROCESSING_UPLOAD', 'PROCESSING_DOWNLOAD' => 'TikTok verarbeitet das Video …',
+            'SEND_TO_USER_INBOX' => 'Liegt als Entwurf in der TikTok-App — dort auf „Posten“ tippen.',
+            'PUBLISH_COMPLETE' => 'Auf TikTok veröffentlicht.',
+            'FAILED' => 'Fehlgeschlagen: ' . mb_substr((string) ($r['json']['data']['fail_reason'] ?? 'ohne Grund'), 0, 160),
+            default => 'Stand unbekannt (' . self::fehler($r) . ').',
+        };
+        return ['status' => $s, 'text' => $text, 'fertig' => in_array($s, ['PUBLISH_COMPLETE', 'FAILED', 'SEND_TO_USER_INBOX'], true)];
     }
 
     public static function fehler(array $r): string

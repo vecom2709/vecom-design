@@ -74,12 +74,15 @@ require __DIR__ . '/mk_stil.php';
       </form>
       <?php if ($x['geplant_am']): ?><?= $posten('inhalt_planen', 'Planung aufheben', 'knopf klein') ?><span class="marke2 warnung">geplant für <?= Fmt::h(date('d.m. H:i', strtotime((string) $x['geplant_am']))) ?></span><?php endif; ?>
     <?php else: ?>
+      <?php if ($x['plattform'] === 'tiktok' && !empty($x['format']) && (static function (): bool { require_once dirname(__DIR__) . '/src/MkPlattform.php'; return MkPlattform::einstellungen('tiktok')['verbunden']; })()): /* 02.10.2026: Bestätigungsseite je Video */ ?>
+        <a class="knopf haupt" href="<?= Fmt::h(url('tiktok/' . (int) $x['id'])) ?>">Auf TikTok veröffentlichen …</a>
+      <?php endif; ?>
       <p class="mk-fein" style="margin:0;max-width:70ch"><?= Fmt::h($mv['grund']) ?></p>
     <?php endif; ?>
     <a class="knopf" href="<?= Fmt::h(url('inhalte/' . (int) $x['id']) . '?paket=1') ?>">Paket herunterladen (ZIP)</a>
   </div>
   <?php elseif ($mvIds): ?>
-  <p class="mk-fein" style="margin:0 0 10px">Automatisch veröffentlicht<?= !empty($mvIds['fb']) ? ' · <a href="https://www.facebook.com/' . Fmt::h(rawurlencode((string) $mvIds['fb'])) . '" target="_blank" rel="noopener noreferrer">auf Facebook ansehen</a>' : '' ?><?= !empty($mvIds['ig']) ? ' · Instagram-Beitrag ' . Fmt::h((string) $mvIds['ig']) : '' ?><?= !empty($mvIds['tg']) ? ' · Telegram-Nachricht ' . Fmt::h((string) $mvIds['tg']) : '' ?></p>
+  <p class="mk-fein" style="margin:0 0 10px">Automatisch veröffentlicht<?= !empty($mvIds['fb']) ? ' · <a href="https://www.facebook.com/' . Fmt::h(rawurlencode((string) $mvIds['fb'])) . '" target="_blank" rel="noopener noreferrer">auf Facebook ansehen</a>' : '' ?><?= !empty($mvIds['ig']) ? ' · Instagram-Beitrag ' . Fmt::h((string) $mvIds['ig']) : '' ?><?= !empty($mvIds['tg']) ? ' · Telegram-Nachricht ' . Fmt::h((string) $mvIds['tg']) : '' ?><?= !empty($mvIds['tt']) ? ' · <a href="' . Fmt::h(url('tiktok/' . (int) $x['id'])) . '">TikTok: Stand ansehen</a>' : '' ?></p>
   <?php endif; ?>
   <div class="mk-teilen">
     <div>
