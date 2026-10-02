@@ -80,4 +80,4 @@ def main(render, shots, projekte):
 
 
 if __name__ == '__main__':
-    main(sys.argv[1], sys.argv[2], sys.argv[3:] or ['cavaleri', 'jonika', 'mensaena', 'trendonix'])
+    main(sys.argv[1], sys.argv[2], sys.argv[3:] or ['cavaleri', 'jonika', 'mensaena', 'trendonix', 'charme'])

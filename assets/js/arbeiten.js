@@ -37,6 +37,7 @@ const PROJEKTE = [
   { id: 'jonika', name: 'Jonika Venturis', url: 'https://jonika-venturis.com', domain: 'jonika-venturis.com', firma: /jonika/i, vorher: null },
   { id: 'mensaena', name: 'Mensaena', url: 'https://mensaena.de', domain: 'mensaena.de', firma: /mensaena/i, vorher: null },
   { id: 'trendonix', name: 'Trendonix', url: 'https://www.trendonix-buecher.de', domain: 'trendonix-buecher.de', firma: /trendonix/i, vorher: null },
+  { id: 'charme', name: 'Charme Color', url: 'https://www.charme-color.it', domain: 'charme-color.it', firma: /charme|bosco/i, vorher: null },
 ];
 
 const T = {
@@ -66,6 +67,11 @@ const T = {
         loesung: 'Dunkel und golden wie die Umschläge, jeder Band mit eigener Welt, die Belege zu jeder Aussage als Markenzeichen.',
         ergebnis: 'Eine Reihe, die man betreten kann.',
         zahlen: [['3', 'Bände der Reihe'], ['1', 'Einzeltitel'], ['0,8 MB', 'lädt die ganze Startseite']] },
+      charme: { branche: 'Friseursalon · Favara, nur auf Termin',
+        aufgabe: 'Ein Salon, in dem Nadia Bosco einen Gast nach dem anderen bedient: Termine sollen ohne Telefonschleife zustande kommen, und wer zum ersten Mal kommt, soll vorher wissen, was ihn erwartet und ungefähr kostet.',
+        loesung: 'Leistungen mit Ab-Preisen, die Arbeitsweise in drei Schritten, echte Fotos aus dem Salon — und ein Buchungsformular, das WhatsApp mit der fertigen Nachricht öffnet. Dazu Öffnungszeiten mit „gerade geöffnet“, eine gezeichnete Wegkarte und Pflegeprodukte zum Zurücklegen.',
+        ergebnis: 'Vom ersten Blick bis zur Terminanfrage, ohne Anruf.',
+        zahlen: [['3', 'Sprachen'], ['13', 'Leistungen in 4 Bereichen'], ['9', 'Produkte zum Zurücklegen']] },
     },
   },
   it: {
@@ -94,6 +100,11 @@ const T = {
         loesung: 'Scuro e dorato come le copertine, ogni volume con il suo mondo, le fonti di ogni affermazione come segno distintivo.',
         ergebnis: 'Una collana in cui si può entrare.',
         zahlen: [['3', 'volumi della collana'], ['1', 'titolo singolo'], ['0,8 MB', 'pesa l’intera home']] },
+      charme: { branche: 'Parrucchiere · Favara, solo su appuntamento',
+        aufgabe: 'Un salone dove Nadia Bosco segue un’ospite alla volta: gli appuntamenti devono arrivare senza giri di telefonate, e chi viene la prima volta deve sapere prima cosa l’aspetta e quanto costa, più o meno.',
+        loesung: 'Servizi con prezzi «a partire da», il metodo in tre passi, foto vere dal salone — e un modulo di prenotazione che apre WhatsApp con il messaggio già scritto. In più gli orari con «aperto adesso», una mappa disegnata del percorso e prodotti da mettere da parte.',
+        ergebnis: 'Dal primo sguardo alla richiesta di appuntamento, senza telefonare.',
+        zahlen: [['3', 'lingue'], ['13', 'servizi in 4 aree'], ['9', 'prodotti da mettere da parte']] },
     },
   },
   en: {
@@ -122,6 +133,11 @@ const T = {
         loesung: 'Dark and golden like the covers, each volume with its own world, sources for every claim as a signature.',
         ergebnis: 'A series you can step into.',
         zahlen: [['3', 'volumes in the series'], ['1', 'standalone title'], ['0.8 MB', 'for the whole home page']] },
+      charme: { branche: 'Hair salon · Favara, by appointment only',
+        aufgabe: 'A salon where Nadia Bosco looks after one guest at a time: appointments should happen without phone tag, and first-time guests should know beforehand what to expect and roughly what it costs.',
+        loesung: 'Services with from-prices, the method in three steps, real photos from the salon — and a booking form that opens WhatsApp with the message already written. Plus opening hours with a live “open now”, a drawn map of the way there and care products to put aside.',
+        ergebnis: 'From first look to appointment request, without a phone call.',
+        zahlen: [['3', 'languages'], ['13', 'services in 4 areas'], ['9', 'products to put aside']] },
     },
   },
 }[SPRACHE];

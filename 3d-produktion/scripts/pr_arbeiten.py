@@ -11,7 +11,7 @@ wie mit einer 50-mm-Optik bei f/2,8.
 
 Aufruf (Blender, Hintergrund):
   blender -b -P pr_arbeiten.py -- <projekt>,<modus>[,prozent=..,samples=..]
-  projekt: cavaleri | jonika | mensaena | trendonix | drehesum
+  projekt: cavaleri | jonika | mensaena | trendonix | drehesum | charme
   modus:   probe  -- ein kleines Bild zum Ansehen
            voll   -- Standbild 2400 x 1350 (an), dazu dasselbe mit dunklem
                      Bildschirm (aus, für den Glanz über dem Live-Bild) und
@@ -454,6 +454,95 @@ def dose(name, ort, s=1.0):
     d.location = (ort[0], ort[1], TISCH_Z + 0.0905 * s); d.scale = (s, s, s)
 
 
+def kamm(name, ort, dreh, farbe=(0.025, 0.025, 0.027)):
+    """Schneidekamm 18 cm, flach liegend, 34 Zinken (wie in pr_salon.py)."""
+    m = rausch_rauheit(B.stoff(name, farbe, rau=0.3, coat=0.3), 0.3, 0.06, 400)
+    u = [(0.0, 0.0)]
+    for k in range(34):
+        x0 = 0.004 + k * 0.0052
+        u += [(x0, 0.0), (x0, -0.020), (x0 + 0.0026, -0.020), (x0 + 0.0026, 0.0)]
+    u += [(0.184, 0.0), (0.184, 0.012), (0.0, 0.012)]
+    k = B.prisma(name, u[::-1], 0.0, 0.004, [m], fase=0.0005, segmente=1)
+    k.location = (ort[0], ort[1], TISCH_Z); k.rotation_euler = (0, 0, dreh)
+    return k
+
+
+def schere(name, ort, dreh, offen=7.0):
+    """Friseurschere 6 Zoll (rund 16 cm): zwei polierte Klingen, Augen mit
+    Fingerringen, Schraube im Drehpunkt -- leicht geöffnet, liegend."""
+    stahl = rausch_rauheit(B.stoff(name + ' Stahl', (0.80, 0.80, 0.82), rau=0.12, metall=1.0), 0.12, 0.04, 600)
+    w0 = bpy.data.objects.new(name, None); bpy.context.scene.collection.objects.link(w0)
+    for i, s in enumerate((1, -1)):
+        # Klinge vom Drehpunkt (0,0) nach +x, Griff nach -x
+        kl = [(0.0, -0.0045 * s), (0.030, -0.0050 * s), (0.085, -0.0022 * s), (0.092, 0.0), (0.060, 0.0030 * s), (0.0, 0.0035 * s),
+              (-0.025, 0.0030 * s), (-0.045, 0.0045 * s), (-0.045, -0.0010 * s), (-0.020, -0.0040 * s)]
+        if s < 0:
+            kl = kl[::-1]
+        o = B.prisma(f'{name}_klinge{i}', kl, i * 0.0022, i * 0.0022 + 0.0021, [stahl], fase=0.0003, segmente=1)
+        o.rotation_euler = (0, 0, math.radians(offen / 2) * s); o.parent = w0
+        # Fingerring am Griffende
+        mx, my = -0.056, 0.006 * s
+        r = 0.011 if i == 0 else 0.0095
+        pts = [(mx + r * math.cos(2 * math.pi * k / 24), my + s * 0.002 + r * math.sin(2 * math.pi * k / 24), i * 0.0022 + 0.0012) for k in range(25)]
+        ring = B.rohr(f'{name}_ring{i}', pts, 0.0021, [stahl]); ring.rotation_euler = (0, 0, math.radians(offen / 2) * s); ring.parent = w0
+    sch = B.drehkoerper(name + '_schraube', [(0.0, 0.0), (0.0032, 0.0), (0.0032, 0.0050), (0.0026, 0.0056), (0.0, 0.0056)], 32, [stahl])
+    sch.parent = w0
+    w0.location = (ort[0], ort[1], TISCH_Z); w0.rotation_euler = (0, 0, dreh)
+    return w0
+
+
+def pumpflasche(name, ort, h, r, farbe, trans=0.9):
+    """Pflegeflasche mit Pumpe, ohne Etikett -- keine erfundene Marke."""
+    m = B.stoff(name + ' Flasche', farbe, rau=0.08, trans=trans, ior=1.5)
+    kap = B.stoff(name + ' Pumpe', (0.02, 0.02, 0.02), rau=0.35)
+    B.drehkoerper(name, [(0.0, 0.0), (r, 0.0), (r + 0.001, 0.003), (r + 0.001, h * 0.82), (r * 0.8, h * 0.93), (r * 0.42, h * 0.97),
+                         (r * 0.42, h), (0.0, h)], 48, [m]).location = (ort[0], ort[1], TISCH_Z)
+    B.drehkoerper(name + '_kappe', [(0.0, 0.0), (r * 0.48, 0.0), (r * 0.48, 0.022), (r * 0.30, 0.026), (0.0, 0.026)], 24, [kap]).location = (ort[0], ort[1], TISCH_Z + h)
+    B.drehkoerper(name + '_stift', [(0.0, 0.0), (0.004, 0.0), (0.004, 0.035), (0.0, 0.035)], 12, [kap]).location = (ort[0], ort[1], TISCH_Z + h + 0.026)
+    k = B.kasten(name + '_kopf', 0.014, 0.040, 0.012, [kap], 0.003, (ort[0], ort[1] - 0.012, TISCH_Z + h + 0.058))
+    k.rotation_euler = (0, 0, math.radians(float(ort[2]) if len(ort) > 2 else 0))
+
+
+def handtuch(name, ort, dreh, farbe, z=None, gx=0.30, gy=0.19, gz=0.032):
+    """Gefaltetes Frotteetuch: weiche Kanten, Flor über Sheen und feines
+    Relief -- ein glatter Quader sähe aus wie Schaumstoff."""
+    m = B.stoff(name + ' Frottee', farbe, rau=0.95, sheen=0.8)
+    nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    n = nt.nodes.new('ShaderNodeTexNoise'); n.inputs['Scale'].default_value = 900.0; n.inputs['Detail'].default_value = 8.0
+    bu = nt.nodes.new('ShaderNodeBump'); bu.inputs['Strength'].default_value = 0.5; bu.inputs['Distance'].default_value = 0.0008
+    nt.links.new(n.outputs['Fac'], bu.inputs['Height']); nt.links.new(bu.outputs['Normal'], b.inputs['Normal'])
+    o = B.rundkasten(name, gx, gy, gz, gz * 0.45, [m], ort=(ort[0], ort[1], TISCH_Z if z is None else z), n=12)
+    o.rotation_euler = (0, 0, dreh)
+    return o
+
+
+def tuchrolle(name, ort, dreh, farbe, z=None, r=0.033, l=0.21):
+    """Gerolltes Frotteetuch, wie es im Salon gestapelt liegt. Stirnseiten
+    mit Wicklung (Ringe um die Achse), Flor über Sheen und feines Relief.
+    Warum gerollt: Das gefaltete Tuch der ersten Probe las sich als Buch
+    oder Kissen (Probe 1, 02.10.2026)."""
+    m = B.stoff(name + ' Frottee', farbe, rau=0.95, sheen=0.9)
+    nt = m.node_tree; b = nt.nodes['Principled BSDF']
+    ko = nt.nodes.new('ShaderNodeTexCoord')
+    ab = nt.nodes.new('ShaderNodeMapping'); ab.inputs['Scale'].default_value = (1.0, 1.0, 0.0)   # Ringe nur quer zur Achse
+    nt.links.new(ko.outputs['Object'], ab.inputs['Vector'])
+    wl = nt.nodes.new('ShaderNodeTexWave'); wl.wave_type = 'RINGS'
+    wl.inputs['Scale'].default_value = 105.0; wl.inputs['Distortion'].default_value = 1.5; wl.inputs['Detail'].default_value = 2.0
+    nt.links.new(ab.outputs['Vector'], wl.inputs['Vector'])
+    fl = nt.nodes.new('ShaderNodeTexNoise'); fl.inputs['Scale'].default_value = 1400.0; fl.inputs['Detail'].default_value = 6.0
+    mi = nt.nodes.new('ShaderNodeMath'); mi.operation = 'MULTIPLY_ADD'
+    mi.inputs[1].default_value = 0.6
+    nt.links.new(wl.outputs['Fac'], mi.inputs[0]); nt.links.new(fl.outputs['Fac'], mi.inputs[2])
+    bu = nt.nodes.new('ShaderNodeBump'); bu.inputs['Strength'].default_value = 0.6; bu.inputs['Distance'].default_value = 0.001
+    nt.links.new(mi.outputs['Value'], bu.inputs['Height']); nt.links.new(bu.outputs['Normal'], b.inputs['Normal'])
+    prof = [(0.0, 0.0), (r * 0.80, 0.0), (r * 0.97, 0.004), (r, 0.012), (r, l - 0.012), (r * 0.97, l - 0.004), (r * 0.80, l), (0.0, l)]
+    o = B.drehkoerper(name, prof, 64, [m])
+    o.scale = (0.94, 1.0, 1.0)       # liegend etwas plattgedrückt (lokal x = Welt-z nach der Drehung)
+    o.rotation_euler = (0, math.radians(90), dreh)
+    o.location = (ort[0] - l / 2 * math.cos(dreh), ort[1] - l / 2 * math.sin(dreh), (TISCH_Z + r * 0.94) if z is None else z)
+    return o
+
+
 # ------------------------------------------------------------------ Projekte
 PROJEKTE = {
     # Spedition in Sizilien: Tag, Lieferscheine, Espresso, draußen der Sattelzug
@@ -467,6 +556,9 @@ PROJEKTE = {
     # Recherche über Zusatzstoffe (dreh-es-um.de): Abend, Apfel als Motiv der
     # Seite, Braunglas mit Kapseln, Notizen -- die Arbeit hinter der Recherche
     'drehesum': dict(stil='abend', laptop=(0.0, 0.02, 0.04), telefon=(0.285, -0.01, -0.12)),
+    # Friseursalon Charme Color (Favara): Tag, gefaltete Tücher, Schere und
+    # Kamm, Pflegeflaschen ohne Etikett -- der Arbeitsplatz hinter der Seite
+    'charme': dict(stil='tag', laptop=(0.0, 0.02, 0.02), telefon=(0.285, -0.01, -0.12)),
 }
 
 
@@ -526,7 +618,19 @@ def dinge(proj):
         stift('stift', (-0.20, 0.36), math.radians(-52), (0.02, 0.02, 0.022))
         tasse('tasse', (0.36, 0.22), (0.12, 0.12, 0.13))
         lampe('lampe', (-0.64, 0.44), 2600, 15.0)
-
+    elif proj == 'charme':
+        # Gerollte Tücher als Pyramide (Altrosa oben, Akzent der Seite),
+        # dahinter Pflegeflaschen ohne Etikett; vorn Schere und Kamm wie
+        # gerade abgelegt; rechts hinter dem Telefon das Sprühfläschchen
+        r = 0.033; d = math.radians(-6)
+        for i, (dy, f) in enumerate(((-r, (0.86, 0.85, 0.82)), (r, (0.86, 0.85, 0.82)))):
+            tuchrolle(f'tuch{i}', (-0.44 - dy * math.sin(d), 0.22 + dy * math.cos(d)), d, f)
+        tuchrolle('tuch_rosa', (-0.44, 0.22), d, (0.60, 0.36, 0.39), z=TISCH_Z + r * 0.94 + r * 1.62)
+        pumpflasche('flasche_braun', (-0.285, 0.34, 15), 0.19, 0.030, (0.35, 0.14, 0.03))
+        pumpflasche('flasche_braun2', (-0.37, 0.40, -10), 0.16, 0.026, (0.35, 0.14, 0.03))
+        pumpflasche('flasche_weiss', (0.365, 0.46, -30), 0.17, 0.026, (0.86, 0.85, 0.82), trans=0.0)
+        schere('schere', (-0.27, 0.0), math.radians(205))
+        kamm('kamm', (-0.345, 0.15), math.radians(5))
 
 # ------------------------------------------------------------------ Kamera
 def kamera(proj):
