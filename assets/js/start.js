@@ -1272,7 +1272,7 @@
 window.VECOM_SOCIAL = {
   facebook:  'https://www.facebook.com/vecomdesign',
   instagram: '',
-  tiktok:    '',
+  tiktok:    'https://www.tiktok.com/@vecomdesign',   // 02.10.2026 angelegt
   x:         'https://x.com/vecomdesign',
   youtube:   'https://www.youtube.com/@vecomdesign',
   // Der Kanal (30.09.2026): Die Symbole hier sind Profile zum Folgen —

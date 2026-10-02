@@ -16129,6 +16129,9 @@ Db::update('bausteine', (int) $sieB['id'], ['text_de' => $sieB['text_de']]);
 pruefe('Die Fußzeile der Website führt zum öffentlichen Telegram-Kanal (ein Symbol, nicht Kanal und Bot)',
     str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "telegram:  '/kanal.php?w=fuss'")
     && !str_contains((string) file_get_contents($oben . '/assets/js/social.js'), 'VecomDesignBot'));
+pruefe('Fußzeile: TikTok-Symbol führt zum Vecom-Konto @vecomdesign (02.10.2026 angelegt)',
+    str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "tiktok:    'https://www.tiktok.com/@vecomdesign'")
+    && str_contains((string) file_get_contents($oben . '/index.html'), 'data-social="tiktok"'));
 
 /* ============================================================================
    Schutz der Vecom-Unterlagen im Partnerbereich (30.09.2026, Uwe: „ja perfekt,
