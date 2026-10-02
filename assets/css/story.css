@@ -1,0 +1,143 @@
+/* ==========================================================================
+   story.css — Story-Scrolling der Startseite (02.10.2026, Uwe: „wichtige
+   Textbausteine schöner, immersiver einblenden … insgesamt mehr
+   Storyscrolling“ — S1 bis S7 alle mit Ja).
+
+   Grundsatz: Ohne JavaScript, auf dem Handy und bei „weniger Bewegung“
+   steht alles lesbar da. Die Szenen-Klassen setzt erst story.js
+   (html.story-an), und nur dort, wo die Bewegung wirklich läuft.
+   ========================================================================== */
+
+/* ---------- S2 Leitsätze ------------------------------------------------- */
+.leitsatz {
+  padding: clamp(5rem, 16vh, 11rem) 0;
+  display: grid; align-items: center; min-height: 70vh;
+}
+.leitsatz__text {
+  margin: 0 auto; max-width: 20ch; text-align: center;
+  font-family: var(--f-serif, Georgia, serif); font-weight: 500;
+  font-size: clamp(2rem, 1.2rem + 3.6vw, 4.6rem); line-height: 1.12; letter-spacing: -.012em;
+  color: var(--c-text, #f3efe6); text-wrap: balance;
+}
+.leitsatz__text .lw { transition: none; }
+html.story-an .leitsatz__text .lw { color: rgba(243, 239, 230, .16); }
+
+/* ---------- S1 Vertrauen als Szene (nur Desktop, story.js) -------------- */
+html.story-an .vertrauen.ist-szene { padding: 0; }
+html.story-an .vertrauen.ist-szene .vertrauen__buehne {
+  position: relative; height: 100vh; display: grid; place-items: center; overflow: hidden;
+}
+html.story-an .vertrauen.ist-szene .vertrauen__liste:not(.vertrauen__liste--ende) {
+  position: relative; width: min(1100px, 92vw); height: 46vh; display: block;
+}
+html.story-an .vertrauen.ist-szene .vertrauen__liste:not(.vertrauen__liste--ende) li {
+  position: absolute; left: 50%; top: 50%; width: min(760px, 80vw); margin: 0;
+  translate: -50% -50%; padding: 0; text-align: center; border: 0; opacity: 0;
+  display: flex; flex-direction: column; align-items: center; gap: .9rem;
+}
+html.story-an .vertrauen.ist-szene .vertrauen__liste:not(.vertrauen__liste--ende) strong {
+  font-size: clamp(2.4rem, 1.4rem + 3vw, 4.4rem); line-height: 1.05;
+  background: linear-gradient(100deg, #f3efe6 0%, #f3efe6 40%, #f1d38b 50%, #f3efe6 60%, #f3efe6 100%);
+  background-size: 260% 100%; background-position: 100% 0;
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+html.story-an .vertrauen.ist-szene .vertrauen__liste:not(.vertrauen__liste--ende) span { font-size: clamp(1rem, .9rem + .4vw, 1.25rem); }
+.vertrauen__punkte {
+  position: absolute; left: clamp(16px, 4vw, 56px); top: 50%; translate: 0 -50%;
+  display: grid; gap: 14px; list-style: none; margin: 0; padding: 0;
+}
+.vertrauen__punkte li {
+  width: 7px; height: 7px; border-radius: 50%; border: 1px solid rgba(241, 211, 139, .55);
+  transition: background-color .3s linear, scale .4s cubic-bezier(.16, 1, .3, 1);
+}
+.vertrauen__punkte li.ist-an { background: #f1d38b; scale: 1.35; }
+.vertrauen__kicker {
+  position: absolute; top: clamp(5rem, 14vh, 8rem); left: 50%; translate: -50% 0;
+  font-size: var(--t-xs, .75rem); letter-spacing: .28em; text-transform: uppercase; color: rgba(241, 211, 139, .8);
+}
+
+html.story-an .vertrauen.ist-szene .vertrauen__liste--ende {
+  position: absolute; left: 50%; bottom: clamp(3rem, 10vh, 6rem); translate: -50% 0; width: min(1100px, 92vw);
+}
+
+/* ---------- S3 Ablauf als seitliche Fahrt (nur Desktop) ----------------- */
+html.story-an .zeitleiste-buehne.ist-fahrt { overflow: hidden; padding: 4vh 0; }
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste {
+  display: flex; flex-wrap: nowrap; gap: 0; width: max-content; will-change: transform;
+}
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste::before {
+  right: auto; width: calc(var(--fahrt, 0) * 100%); transition: none;
+  background: linear-gradient(90deg, rgba(241, 211, 139, .35), #f1d38b); height: 2px;
+}
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste li {
+  width: min(46vw, 560px); padding: 0 4vw 0 0; gap: 12px;
+}
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste b { font-size: clamp(1.6rem, 1.1rem + 1.6vw, 2.6rem); font-family: var(--f-serif, Georgia, serif); font-weight: 500; }
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste__geld { font-size: clamp(1.1rem, .9rem + .6vw, 1.5rem); }
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste__zusage { font-size: var(--t-sm, .95rem); max-width: 34ch; }
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste__geld,
+html.story-an .zeitleiste-buehne.ist-fahrt .zeitleiste__zusage { opacity: 0; translate: 0 16px; transition: opacity .6s linear, translate .8s cubic-bezier(.16, 1, .3, 1); }
+html.story-an .zeitleiste-buehne.ist-fahrt li.ist-da .zeitleiste__geld { opacity: 1; translate: 0 0; color: #f1d38b; }
+html.story-an .zeitleiste-buehne.ist-fahrt li.ist-da .zeitleiste__zusage { opacity: 1; translate: 0 0; transition-delay: .12s; }
+
+/* ---------- S4 Leistungen als Kapitel (Desktop) ------------------------- */
+.kapitel-nr { display: none; }
+@media (min-width: 1120px) {
+  html.story-an .services { grid-template-columns: minmax(0, .8fr) minmax(0, 1.4fr); overflow: visible; }
+  html.story-an .services .kapitel-nr {
+    display: block; grid-column: 1; grid-row: 1 / span 6; background: var(--c-base);
+    padding: clamp(1.5rem, 2.4vw, 2.1rem);
+  }
+  html.story-an .kapitel-nr > * { position: sticky; top: 22vh; }
+  html.story-an .kapitel-nr__zahl {
+    display: block; font-family: var(--f-display, inherit); font-size: clamp(6rem, 11vw, 11rem); line-height: .9;
+    letter-spacing: -.04em; color: transparent; -webkit-text-stroke: 1px rgba(241, 211, 139, .7);
+  }
+  html.story-an .kapitel-nr__von {
+    display: block; margin-top: .6rem; top: calc(22vh + clamp(6rem, 11vw, 11rem));
+    font-size: var(--t-xs, .75rem); letter-spacing: .3em; color: var(--c-text-faint, #8a857b);
+  }
+  html.story-an .services .service { grid-column: 2; padding-block: clamp(2.2rem, 4vw, 3.4rem); }
+  html.story-an .services .service .service__no { display: none; }
+  html.story-an .services .service.ist-aktiv h3 { color: #f1d38b; }
+}
+
+/* ---------- S5 Preisstapel ----------------------------------------------- */
+.preisstapel { margin: 1.4rem 0 1.6rem; display: grid; gap: .55rem; max-width: 420px; }
+.preisstapel__k { font-size: var(--t-xs, .75rem); letter-spacing: .26em; text-transform: uppercase; color: rgba(241, 211, 139, .8); }
+.preisstapel__liste { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.preisstapel__liste li {
+  padding: .55rem .9rem; border: 1px solid rgba(241, 211, 139, .28); border-radius: 10px;
+  background: linear-gradient(90deg, rgba(241, 211, 139, .07), rgba(241, 211, 139, .015));
+  font-size: var(--t-sm, .95rem); color: var(--c-text, #f3efe6);
+}
+.preisstapel__summe {
+  display: block; padding-top: .7rem; border-top: 1px solid rgba(241, 211, 139, .6);
+  font-family: var(--f-serif, Georgia, serif); font-size: clamp(1.1rem, 1rem + .4vw, 1.35rem); color: #f1d38b;
+}
+
+/* ---------- S7 Zeilen und Kapitel-Leiste --------------------------------- */
+.zeile { display: block; }
+.kapitel-leiste {
+  position: fixed; right: clamp(10px, 1.6vw, 26px); top: 50%; translate: 0 -50%; z-index: 40;
+  list-style: none; margin: 0; padding: 0; display: grid; gap: 12px;
+  opacity: 0; transition: opacity .5s linear; pointer-events: none;
+}
+.kapitel-leiste.ist-sichtbar { opacity: 1; pointer-events: auto; }
+.kapitel-leiste a {
+  display: flex; align-items: center; justify-content: flex-end; gap: 10px; text-decoration: none;
+  color: var(--c-text-dim, #b9b3a7); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+}
+.kapitel-leiste a span { opacity: 0; translate: 6px 0; transition: opacity .3s linear, translate .4s cubic-bezier(.16, 1, .3, 1); white-space: nowrap; }
+.kapitel-leiste a:hover span, .kapitel-leiste a:focus-visible span, .kapitel-leiste a.ist-an span { opacity: 1; translate: 0 0; }
+.kapitel-leiste a i {
+  width: 6px; height: 6px; border-radius: 50%; border: 1px solid rgba(241, 211, 139, .6); flex: none;
+  transition: background-color .3s linear, scale .4s cubic-bezier(.16, 1, .3, 1);
+}
+.kapitel-leiste a.ist-an { color: #f1d38b; }
+.kapitel-leiste a.ist-an i { background: #f1d38b; scale: 1.4; }
+@media (max-width: 1099px) { .kapitel-leiste { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  html.story-an .leitsatz__text .lw { color: inherit !important; }
+}

@@ -836,6 +836,8 @@ masz: {
     intro: {
       skip: "Überspringen"
     },
+    /* Story-Scrolling (02.10.2026): Leitsaetze, Preisstapel, Kapitel-Leiste */
+    story: { l1: "Die meisten Kunden entscheiden, bevor sie Sie anrufen.", l2: "Ein fester Preis. Sie kennen ihn, bevor wir anfangen.", l3: "Die Seite ist online – und niemand ruft an. Diesen Moment kenne ich gut.", p_k: "So entsteht der Betrag", p1: "Grundgerüst", p2: "Seiten", p3: "Sprachen", p4: "Buchung oder Shop", p5: "Texte und Fotos", p_sum: "= Ihr Preis, Posten für Posten", leiste: "Kapitel", ueber: "Über mich" },
     zl: {
       g1: "0 €", z1: "Antwort innerhalb eines Werktags",
       g2: "Anzahlung 50 % bei Auftrag", z2: "Sie geben die erste Ansicht frei",

@@ -837,6 +837,8 @@ masz: {
     intro: {
       skip: "Salta"
     },
+    /* Story-Scrolling (02.10.2026): Leitsaetze, Preisstapel, Kapitel-Leiste */
+    story: { l1: "La maggior parte dei clienti decide prima ancora di chiamarla.", l2: "Un prezzo fisso. Lo conosce prima che iniziamo.", l3: "Il sito è online — e nessuno chiama. Conosco bene quel momento.", p_k: "Così nasce la cifra", p1: "Struttura di base", p2: "Pagine", p3: "Lingue", p4: "Prenotazioni o shop", p5: "Testi e foto", p_sum: "= il suo prezzo, voce per voce", leiste: "Capitoli", ueber: "Chi sono" },
     zl: {
       g1: "0 €", z1: "Risposta entro un giorno lavorativo",
       g2: "Acconto 50 % all’ordine", z2: "Approva Lei la prima schermata",

@@ -836,6 +836,8 @@ masz: {
     intro: {
       skip: "Skip"
     },
+    /* Story-Scrolling (02.10.2026): Leitsaetze, Preisstapel, Kapitel-Leiste */
+    story: { l1: "Most customers decide before they ever call you.", l2: "A fixed price. You know it before we start.", l3: "The site is live — and nobody calls. I know that moment well.", p_k: "How the figure comes together", p1: "Basic structure", p2: "Pages", p3: "Languages", p4: "Booking or shop", p5: "Copy and photos", p_sum: "= your price, item by item", leiste: "Chapters", ueber: "About me" },
     zl: {
       g1: "€0", z1: "Reply within one working day",
       g2: "50 % deposit on order", z2: "You approve the first screen",

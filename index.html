@@ -60,6 +60,7 @@
 <link rel="stylesheet" href="assets/css/app.css?v=95b37c1b">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
 <link rel="stylesheet" href="assets/css/edel.css?v=b09873c8">
+<link rel="stylesheet" href="assets/css/story.css?v=ea4cb1a8">
 <link rel="stylesheet" href="assets/css/vorschau.css?v=d4f9bf8a">
 
 
@@ -1058,6 +1059,11 @@
 </section>
 
 <!-- ===================== Leistungen ===================== -->
+<!-- Leitsatz 1 (02.10.2026, Story-Scrolling S2): ein Satz, bildschirmgross; die Woerter hellen sich beim Scrollen auf (story.js). -->
+<section class="leitsatz" data-leitsatz>
+  <div class="wrap"><p class="leitsatz__text" data-i18n="story.l1">La maggior parte dei clienti decide prima ancora di chiamarla.</p></div>
+</section>
+
 <section class="section" id="services">
   <div class="wrap">
     <div class="sechead sechead--split" data-stagger>
@@ -1067,6 +1073,7 @@
     </div>
 
     <div class="services" data-stagger>
+      <div class="kapitel-nr" aria-hidden="true"><span class="kapitel-nr__zahl">01</span><span class="kapitel-nr__von">/ 06</span></div>
       <article class="service" data-reveal>
         <span class="service__no">01</span>
         <h3 data-i18n="services.s1t">Siti web su misura</h3>
@@ -1138,6 +1145,11 @@
 </section>
 
 <!-- ===================== Pakete ===================== -->
+<!-- Leitsatz 2 (02.10.2026, Story-Scrolling S2): ein Satz, bildschirmgross; die Woerter hellen sich beim Scrollen auf (story.js). -->
+<section class="leitsatz" data-leitsatz>
+  <div class="wrap"><p class="leitsatz__text" data-i18n="story.l2">Un prezzo fisso. Lo conosce prima che iniziamo.</p></div>
+</section>
+
 <section class="section" id="plans">
   <div class="wrap">
     <div class="sechead sechead--split sechead--hoehepunkt" data-stagger>
@@ -1166,6 +1178,18 @@
         <p class="eyebrow" data-i18n="weg.kicker">Il suo prezzo</p>
         <h3 data-i18n="weg.head">Quanto costa il suo sito dipende da che cosa deve saper fare</h3>
         <p data-i18n="weg.lead">Niente pacchetti in cui doversi adattare per forza: paga le voci che la riguardano e nessun’altra. Quante pagine, quante lingue, che cosa deve saper fare — da lì nasce la cifra.</p>
+        <!-- Story-Scrolling S5 (02.10.2026): die Posten stapeln sich zur Summe -- ohne Zahlen, der Preis entsteht aus dem Bedarf. -->
+        <div class="preisstapel" data-preisstapel aria-hidden="true">
+          <span class="preisstapel__k" data-i18n="story.p_k">Così nasce la cifra</span>
+          <ul class="preisstapel__liste">
+            <li data-i18n="story.p1">Struttura di base</li>
+            <li data-i18n="story.p2">Pagine</li>
+            <li data-i18n="story.p3">Lingue</li>
+            <li data-i18n="story.p4">Prenotazioni o shop</li>
+            <li data-i18n="story.p5">Testi e foto</li>
+          </ul>
+          <span class="preisstapel__summe" data-i18n="story.p_sum">= il suo prezzo, voce per voce</span>
+        </div>
         <div class="bedarfsweg__tun">
           <a class="btn btn--primary btn--gross" href="/zugang.php?lang=it"><span data-i18n="weg.cta">Ricevere la mia dashboard</span></a>
           <!-- Wer erst lesen will, was es kostet, bevor er seine Adresse
@@ -1262,12 +1286,12 @@
     <!-- V2 Zeitleiste (24.09.2026): wann Sie zahlen und was Sie entscheiden.
          Bewusst ohne Tageszahlen -- die FAQ sagt, warum: Der Zeitrahmen steht
          fest, sobald klar ist, was gebaut wird. Nur belegte Zusagen hier. -->
-    <ol class="zeitleiste" data-reveal>
+    <div class="zeitleiste-buehne" data-zeitfahrt><ol class="zeitleiste" data-reveal>
       <li><span class="zeitleiste__no">01</span><b data-i18n="process.p1t">Colloquio</b><span class="zeitleiste__geld" data-i18n="zl.g1">0 €</span><span class="zeitleiste__zusage" data-i18n="zl.z1">Risposta entro un giorno lavorativo</span></li>
       <li><span class="zeitleiste__no">02</span><b data-i18n="process.p2t">Direzione</b><span class="zeitleiste__geld" data-i18n="zl.g2">Acconto 50 % all’ordine</span><span class="zeitleiste__zusage" data-i18n="zl.z2">Approva Lei la prima schermata</span></li>
       <li><span class="zeitleiste__no">03</span><b data-i18n="process.p3t">Realizzazione</b><span class="zeitleiste__geld" data-i18n="zl.g3">Nessun pagamento</span><span class="zeitleiste__zusage" data-i18n="zl.z3">Vede lo stato dal suo link</span></li>
       <li><span class="zeitleiste__no">04</span><b data-i18n="process.p4t">Lancio e crescita</b><span class="zeitleiste__geld" data-i18n="zl.g4">Saldo 50 % alla consegna</span><span class="zeitleiste__zusage" data-i18n="zl.z4">Online solo dopo il suo sì</span></li>
-    </ol>
+    </ol></div>
     <p class="zeitleiste__hinweis" data-reveal data-i18n="zl.hinweis">Quanto dura nel suo caso glielo dico appena è chiaro che cosa costruiamo — nel preventivo, per iscritto.</p>
 
     <div class="process" data-stagger>
@@ -1351,6 +1375,11 @@
 </figure>
 
 <!-- ===================== Über mich ===================== -->
+<!-- Leitsatz 3 (02.10.2026, Story-Scrolling S2): ein Satz, bildschirmgross; die Woerter hellen sich beim Scrollen auf (story.js). -->
+<section class="leitsatz" data-leitsatz>
+  <div class="wrap"><p class="leitsatz__text" data-i18n="story.l3">Il sito è online — e nessuno chiama. Conosco bene quel momento.</p></div>
+</section>
+
 <section class="section about" id="about">
   <div class="wrap about__grid" data-stagger>
     <figure class="about__photo framed" data-reveal>
@@ -1667,7 +1696,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=ea0e6b27" defer></script>
+<script src="assets/js/i18n-it.js?v=1565adf3" defer></script>
 <script src="assets/js/app.js?v=3919e61e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=5448b330" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
@@ -1677,6 +1706,7 @@
      Erzeugt von build.mjs aus screens, schau, polish, pakete-live, stimmen-live,
      vids, depth, sig, social — geaendert wird an denen, nicht hier. -->
 <script src="assets/js/start.js?v=094a56de" defer></script>
+<script src="assets/js/story.js?v=aeefc5fc" defer></script>
 <script type="module" src="assets/js/world/site-world.js?v=b6944826"></script>
 <!-- Der Tisch zum Anfassen im Abschnitt "Zum Ausprobieren".
      Startet erst, wenn der Abschnitt ins Bild kommt -- die Oberflaeche hat
