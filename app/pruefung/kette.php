@@ -17744,16 +17744,26 @@ abschnitt('Marketing-Studio 6: Ein-Klick-Kampagne und Freigabe-Stapel');
 require_once $wurzel . '/src/MkVeroeffentlichen.php';
 Db::run('DELETE FROM mk_auftraege'); Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'KS %'");
 pruefe('Kampagnen-Paket: feste Mischung je Wahl — beides 8 Stücke inkl. Google, nur Beiträge 6, nur Anzeigen 4',
-    MkAuftrag::paketMischung(true, true) === [['instagram', 'facebook', 'telegram', 'google'], 'beides', 8]
-    && MkAuftrag::paketMischung(true, false)[2] === 6 && MkAuftrag::paketMischung(false, true)[1] === 'bezahlt'
+    MkAuftrag::paketMischung(true, true, false) === [['instagram', 'facebook', 'telegram', 'google'], 'beides', 8]
+    && MkAuftrag::paketMischung(true, false, false)[2] === 6 && MkAuftrag::paketMischung(false, true, false)[1] === 'bezahlt'
     && is_string(MkAuftrag::anlegenKampagne($ciZid, [])));
+/* TikTok im Paket (02.10.2026): sobald es das Konto gibt, zwei Kurzvideos mehr — Anzeigen-Paket bleibt ohne TikTok */
+require_once $wurzel . '/src/MkAnmeldungen.php';
+pruefe('Kampagnen-Paket: mit TikTok-Konto zwei Kurzvideos mehr (beides 10, nur Beiträge 8), Anzeigen ohne TikTok; das Konto erkennt die Verwaltung an der Fußzeile',
+    MkAuftrag::paketMischung(true, true, true) === [['instagram', 'facebook', 'telegram', 'tiktok', 'google'], 'beides', 10]
+    && MkAuftrag::paketMischung(true, false, true) === [['instagram', 'facebook', 'telegram', 'tiktok'], 'organisch', 8]
+    && !in_array('tiktok', MkAuftrag::paketMischung(false, true, true)[0], true)
+    && MkAnmeldungen::profil('tiktok') === 'https://www.tiktok.com/@vecomdesign' && MkAnmeldungen::kontoStand('tiktok') === 'angelegt'
+    && MkAnmeldungen::profil('instagram') === '' && in_array('tiktok', MkAuftrag::paketMischung(true, false)[0], true));
+pruefe('Kampagnen-Paket: TikTok-Stücke bekommen nach dem Schreiben ein Video statt eines Bildes',
+    str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), "\$mArt = \$r['plattform'] === 'tiktok' ? 'video' : 'bild';"));
 $ksZde = MkZielgruppe::melden($mzProfil(['branche' => 'friseur', 'land' => 'DE', 'titel' => 'KS Friseure DE']));
 MkZielgruppe::freigeben((int) $ksZde['id']);
 $ksA = MkAuftrag::anlegenKampagne((int) $ksZde['id'], ['organisch' => '1', 'anzeigen' => '1', 'bilder' => '1', 'thema' => 'Online-Termine']);
 $ksP = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$ksA]), true) ?: [];
 $ksH = MkAuftrag::holen()['auftrag'] ?? [];
 pruefe('Ein-Klick-Kampagne: ein Auftrag mit Paket, Bildern, Thema — der PC bekommt als Zielseite den Website-Check, für Deutschland mit ?lang=de',
-    is_int($ksA) && $ksP['paket'] === true && $ksP['mit_bildern'] === true && $ksP['anzahl'] === 8 && $ksP['thema'] === 'Online-Termine'
+    is_int($ksA) && $ksP['paket'] === true && $ksP['mit_bildern'] === true && $ksP['anzahl'] === (in_array('tiktok', (array) $ksP['plattformen'], true) ? 10 : 8) && $ksP['thema'] === 'Online-Termine'
     && ($ksH['paket'] ?? null) === true && ($ksH['zielseite'] ?? '') === '/analisi.php?lang=de' && str_starts_with(MkAuftrag::beschreibung(Db::one('SELECT * FROM mk_auftraege WHERE id = ?', [$ksA])), 'Kampagne · KS Friseure DE'),
     json_encode([$ksP, $ksH['zielseite'] ?? null]));
 $ksNeu = AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $ksA, 'inhalte' => [
@@ -20198,7 +20208,9 @@ require_once $wurzel . '/src/MkStart.php';
 Db::run("DELETE FROM settings WHERE skey LIKE 'mk\\_konto\\_%'");
 $anL = MkAnmeldungen::liste('IT');
 pruefe('Anmeldungen: fünf Konten mit direkter https-Anmeldeseite, dazu die offenen und eingereichten Verzeichnisse des Landes (keine Kooperations-Kanäle)',
-    count($anL['konten']) === 5 && !array_filter($anL['konten'], static fn($k) => !str_starts_with($k['url'], 'https://') || !in_array($k['stand'], ['verbunden', 'offen'], true))
+    count($anL['konten']) === 5 && !array_filter($anL['konten'], static fn($k) => !str_starts_with($k['url'], 'https://')
+        /* Seit 02.10.2026: ein Konto, das die Fußzeile verlinkt, gilt als angelegt — ohne Vermerk von Hand. */
+        || !in_array($k['stand'], MkAnmeldungen::profil((string) $k['schluessel']) !== '' ? ['verbunden', 'angelegt'] : ['verbunden', 'offen'], true))
     && array_column($anL['konten'], 'stand', 'schluessel')['linkedin'] === 'offen'
     && $anL['eintraege'] !== [] && !array_filter($anL['eintraege'], static fn($e) => $e['art'] === 'kanal' || !in_array($e['status'], ['offen', 'eingereicht'], true))
     && $anL['offen'] >= 3, json_encode(array_column($anL['konten'], 'stand')));

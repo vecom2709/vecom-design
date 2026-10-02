@@ -53,6 +53,17 @@ final class MkAnmeldungen
         try { return (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$k], ''); } catch (Throwable $e) { return ''; }
     }
 
+    /**
+     * Die Profiladresse, die die Website in der Fußzeile verlinkt (assets/js/social.js).
+     * Steht sie dort, gibt es das Konto — ein zweiter Vermerk von Hand ist dann
+     * nicht nötig (02.10.2026: TikTok @vecomdesign angelegt und dort eingetragen).
+     */
+    public static function profil(string $k): string
+    {
+        $js = (string) @file_get_contents(dirname(__DIR__, 2) . '/assets/js/social.js');
+        return preg_match('~\b' . preg_quote($k, '~') . ":\s*'(https://[^']+)'~", $js, $m) ? $m[1] : '';
+    }
+
     /** Stand eines Kontos: verbunden (postet selbst), angelegt (vermerkt), offen. */
     public static function kontoStand(string $k): string
     {
@@ -62,10 +73,11 @@ final class MkAnmeldungen
                 if (!empty(MkKanaele::stand()[$k]['bereit'])) { return 'verbunden'; }
             } else {
                 require_once __DIR__ . '/MkPlattform.php';
-                if (MkPlattform::bereit($k)) { return 'verbunden'; }
+                /* TikTok postet nie von selbst — „verbunden“ heißt dort: die Bestätigungsseite geht. */
+                if ($k === 'tiktok' ? MkPlattform::einstellungen('tiktok')['verbunden'] : MkPlattform::bereit($k)) { return 'verbunden'; }
             }
         } catch (Throwable $e) { /* dann nach dem Vermerk */ }
-        return self::wert('mk_konto_' . $k) !== '' ? 'angelegt' : 'offen';
+        return self::wert('mk_konto_' . $k) !== '' || self::profil($k) !== '' ? 'angelegt' : 'offen';
     }
 
     /** Uwe hat das Konto angelegt (oder nimmt den Vermerk zurück). */

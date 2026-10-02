@@ -153,11 +153,16 @@ final class MkAuftrag
     }
 
     /** Was ein Kampagnen-Paket enthält — je nach Wahl organisch, Anzeigen oder beides. @return array{0:list<string>,1:string,2:int} [Plattformen, Umfang, Anzahl] */
-    public static function paketMischung(bool $organisch, bool $anzeigen): array
+    public static function paketMischung(bool $organisch, bool $anzeigen, ?bool $tiktok = null): array
     {
-        if ($organisch && $anzeigen) { return [['instagram', 'facebook', 'telegram', 'google'], 'beides', 8]; }
+        /* TikTok (02.10.2026, Uwe: „mache in Marketing auch alles fertig automatisch wegen TikTok“):
+           Sobald es das Konto gibt, gehören zwei Kurzvideos je Paket dazu — mit Video statt Bild. */
+        if ($tiktok === null) { require_once __DIR__ . '/MkAnmeldungen.php'; $tiktok = MkAnmeldungen::kontoStand('tiktok') !== 'offen'; }
+        $tt = $tiktok ? ['tiktok'] : [];
+        $mehr = $tiktok ? 2 : 0;
+        if ($organisch && $anzeigen) { return [array_merge(['instagram', 'facebook', 'telegram'], $tt, ['google']), 'beides', 8 + $mehr]; }
         if ($anzeigen) { return [['instagram', 'facebook', 'google'], 'bezahlt', 4]; }
-        return [['instagram', 'facebook', 'telegram'], 'organisch', 6];
+        return [array_merge(['instagram', 'facebook', 'telegram'], $tt), 'organisch', 6 + $mehr];
     }
 
     /**
@@ -378,8 +383,10 @@ final class MkAuftrag
         $bilder = 0;
         if ($ok && $istInhalt && !empty((json_decode((string) $a['parameter'], true) ?: [])['mit_bildern'])) {
             require_once __DIR__ . '/MkMedium.php';
-            foreach (Db::all("SELECT id FROM mk_inhalte WHERE auftrag_id = ? AND status = 'entwurf' AND format <> 'google_anzeige' ORDER BY id", [$id]) as $r) {
-                if (is_int(self::still(static fn() => MkMedium::anlegen((int) $r['id'], 'bild'), 'x'))) { $bilder++; }
+            foreach (Db::all("SELECT id, plattform FROM mk_inhalte WHERE auftrag_id = ? AND status = 'entwurf' AND format <> 'google_anzeige' ORDER BY id", [$id]) as $r) {
+                /* TikTok nimmt nur Videos: dort gleich ein Hochkant-Video (Motor wie eingestellt: Werbespot oder Kie.ai). */
+                $mArt = $r['plattform'] === 'tiktok' ? 'video' : 'bild';
+                if (is_int(self::still(static fn() => MkMedium::anlegen((int) $r['id'], $mArt), 'x'))) { $bilder++; }
             }
             if ($bilder > 0) { $text = trim($text . "
 " . $bilder . ' Bilder entstehen jetzt über Kie.ai.'); }
