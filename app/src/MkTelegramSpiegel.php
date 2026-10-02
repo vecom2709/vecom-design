@@ -61,6 +61,7 @@ final class MkTelegramSpiegel
         $x = MkInhalt::laden($quelleId);
         if ($x === null || !in_array($x['status'], ['freigegeben', 'veroeffentlicht'], true)) { return null; }
         if (!in_array($x['plattform'], self::QUELLEN, true) || !in_array($x['format'], self::FORMATE, true) || $x['art'] !== 'organisch') { return null; }
+        if (!empty($x['f']['kanal_werbung'])) { return null; }   // Werbung für den Kanal gehört nicht in den Kanal
         if (Telegram::kanal()['id'] === '' || !Telegram::bereit()) { return null; }
         $text = self::text($x);
         if (mb_strlen($text) < 20 || self::schonDa($quelleId, $text)) { return null; }

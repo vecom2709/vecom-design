@@ -22,7 +22,8 @@ $ziel = '/';
 if (is_file(__DIR__ . '/app/config.local.php')) {
     try {
         foreach (['Config', 'Db', 'Telegram', 'TelegramWachstum'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
-        $ziel = TelegramWachstum::kanalZiel(strtolower((string) ($_GET['w'] ?? '')));
+        /* Ohne w, aber über eine Kampagne (/k/… hängt utm_ an): ein Beitrag, der den Kanal bekannt macht (02.10.2026). */
+        $ziel = TelegramWachstum::kanalZiel(strtolower((string) ($_GET['w'] ?? (isset($_GET['utm_source']) ? 'social' : ''))));
     } catch (Throwable $e) { $ziel = '/'; }
 }
 header('Location: ' . $ziel, true, 302);

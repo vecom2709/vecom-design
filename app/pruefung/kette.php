@@ -17588,6 +17588,14 @@ pruefe('Kanal-Orte: Partner-Dashboard, Kundenbereich und die drei Profile zähle
     isset(TelegramWachstum::KANAL_ORTE['partner'], TelegramWachstum::KANAL_ORTE['kundenbereich'], TelegramWachstum::KANAL_ORTE['instagram'], TelegramWachstum::KANAL_ORTE['facebook'], TelegramWachstum::KANAL_ORTE['youtube'])
     && str_contains((string) file_get_contents($wurzel . '/views/partner_plus_start.php'), "kanalOrtLink('partner')")
     && str_contains((string) file_get_contents($oben . '/kunde.php'), "kanalOrtLink('kundenbereich')"));
+$wbN1 = TelegramWachstum::werbungAnlegen(); $wbN2 = TelegramWachstum::werbungAnlegen();
+$wbZeilen = Db::all("SELECT * FROM mk_inhalte WHERE titel LIKE 'Telegram-Kanal bekannt machen%' ORDER BY id");
+$wbFb = array_values(array_filter($wbZeilen, static fn($z) => $z['plattform'] === 'facebook' && $z['sprache'] === 'it'))[0] ?? null;
+pruefe('Kanal-Werbung: einmal vier Entwürfe (Facebook und Instagram-Karussell, IT und DE) zur Freigabe, Facebook-Link über /kanal.php — und kein Spiegel in den Kanal',
+    $wbN1 === 4 && $wbN2 === 0 && count($wbZeilen) === 4 && !array_filter($wbZeilen, static fn($z) => $z['status'] !== 'entwurf')
+    && $wbFb !== null && MkInhalt::freigeben((int) $wbFb['id']) === null && str_starts_with((string) MkKampagne::zielAdresse(MkKampagne::laden((int) MkInhalt::laden((int) $wbFb['id'])['kampagne_id'])), '/kanal.php?')
+    && MkTelegramSpiegel::spiegeln((int) $wbFb['id']) === null && str_contains((string) file_get_contents($oben . '/kanal.php'), "'social'"));
+Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'Telegram-Kanal bekannt machen%'");
 foreach (Db::all('SELECT datei FROM mk_medien WHERE inhalt_id = ?', [$spQ]) as $spR) { @unlink(MkMedium::ordner() . '/' . $spR['datei']); }
 Db::run("DELETE FROM mk_medien WHERE inhalt_id IN (SELECT id FROM mk_inhalte WHERE titel LIKE 'Spiegel-%' OR titel LIKE 'Telegram · Spiegel-%')");
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'Spiegel-%' OR titel LIKE 'Telegram · Spiegel-%'");

@@ -295,6 +295,8 @@ final class Cron
                 $pf = []; try { $pf = MkPlattform::auffrischen(); } catch (Throwable $e) { $pf = ['fehler' => mb_substr($e->getMessage(), 0, 120)]; }
                 /* 02.10.2026: Freigegebenes ohne Telegram-Spiegel nachholen (auch, was vor dieser Regel freigegeben wurde). */
                 $sp = 0; try { require_once __DIR__ . '/MkTelegramSpiegel.php'; $sp = MkTelegramSpiegel::nachholen(); } catch (Throwable $e) { }
+                /* Einmal: Entwürfe, die den Kanal auf Facebook/Instagram bekannt machen (Freigabe bei Uwe). */
+                try { require_once __DIR__ . '/TelegramWachstum.php'; TelegramWachstum::werbungAnlegen(); } catch (Throwable $e) { }
                 return MkVeroeffentlichen::faellige() + ($pf ? ['schluessel' => $pf] : []) + ($sp ? ['telegram_gespiegelt' => $sp] : []);
             },
             /* Marketing-Studio 7: Wochen-Autopilot — je eingeschaltetem Land einmal je Woche eine Kampagne (ab Werk aus). */

@@ -334,6 +334,7 @@ final class TelegramWachstum
         'instagram'     => 'Instagram: Link im Profil',
         'facebook'      => 'Facebook-Seite: Link im Profil',
         'youtube'       => 'YouTube-Kanal: Link im Profil',
+        'social'        => 'Beiträge auf Facebook/Instagram, die den Kanal bekannt machen',
     ];
 
     /** Die öffentliche Adresse eines Orts — sie leitet auf dessen Einladungslink. */
@@ -464,5 +465,65 @@ final class TelegramWachstum
     public static function aufraeumen(): int
     {
         try { return Db::run('DELETE FROM tg_tage WHERE tag < (CURDATE() - INTERVAL 730 DAY)')->rowCount(); } catch (Throwable $e) { return 0; }
+    }
+
+    /* ================================================================== */
+    /*  Werbung für den Kanal (02.10.2026, Uwe: „schnell 100 Mitglieder“)  */
+    /* ================================================================== */
+
+    /** Die Entwürfe: je Sprache ein Facebook-Beitrag und ein Instagram-Karussell. */
+    public const WERBUNG = [
+        'it' => [
+            'fb' => "📲 Vecom Design adesso è anche su Telegram.\n\nNovità, esempi di siti per attività in Sicilia e consigli pratici — brevi e senza spam. Un tocco e siete nel canale:",
+            'hook' => 'Siamo su Telegram 📲',
+            'folien' => [['titel' => 'Cosa trova', 'text' => 'Novità, esempi di siti e consigli pratici per la sua attività.'],
+                         ['titel' => 'Come entrare', 'text' => 'Cerchi @vecomdesign su Telegram e tocchi «Unisciti».']],
+            'ig' => "Il canale Telegram di Vecom Design: novità, esempi e consigli, senza spam. Ci trova come @vecomdesign 📲",
+            'tags' => ['#telegram', '#sitoweb', '#sicilia', '#piccoleimprese'],
+        ],
+        'de' => [
+            'fb' => "📲 Vecom Design gibt es jetzt auch auf Telegram.\n\nNeuigkeiten, Website-Beispiele für Betriebe und praktische Tipps — kurz und ohne Spam. Ein Tipp, und Sie sind im Kanal:",
+            'hook' => 'Wir sind auf Telegram 📲',
+            'folien' => [['titel' => 'Was Sie finden', 'text' => 'Neuigkeiten, Website-Beispiele und praktische Tipps für Ihren Betrieb.'],
+                         ['titel' => 'So treten Sie bei', 'text' => 'Suchen Sie @vecomdesign in Telegram und tippen Sie auf „Beitreten“.']],
+            'ig' => "Der Telegram-Kanal von Vecom Design: Neuigkeiten, Beispiele und Tipps, ohne Spam. Zu finden als @vecomdesign 📲",
+            'tags' => ['#telegram', '#website', '#kleinunternehmen', '#webdesign'],
+        ],
+    ];
+
+    /**
+     * Einmal: vier Entwürfe in den Freigabe-Stapel (Facebook-Beitrag und Instagram-
+     * Karussell, Italienisch und Deutsch). Raus geht nichts ohne Uwes Freigabe.
+     * Der Facebook-Link läuft über die Kampagne „kanal-werbung“ (/k/… zählt den
+     * Klick) auf /kanal.php, und von dort mit dem Einladungslink „social“ in den Kanal.
+     * @return int angelegte Entwürfe
+     */
+    public static function werbungAnlegen(): int
+    {
+        try {
+            if (Telegram::kanal()['id'] === '' || !Telegram::bereit()) { return 0; }
+            foreach (Db::all("SELECT felder FROM mk_inhalte WHERE plattform IN ('facebook', 'instagram') AND created_at >= NOW() - INTERVAL 365 DAY") as $z) {
+                if (!empty((json_decode((string) $z['felder'], true) ?: [])['kanal_werbung'])) { return 0; }
+            }
+            require_once __DIR__ . '/MkKampagne.php';
+            $k = Db::one('SELECT id FROM mk_kampagnen WHERE code = ?', ['kanal-werbung']);
+            $kid = $k ? (int) $k['id'] : MkKampagne::anlegen(['name' => 'Telegram-Kanal bekannt machen', 'plattform' => 'facebook', 'code' => 'kanal-werbung', 'ziel' => '/kanal.php',
+                'notiz' => 'Beiträge auf Facebook/Instagram, die zum Telegram-Kanal führen. Klicks zählen hier, Beitritte beim Kanal-Link „social“.']);
+            if (!is_int($kid)) { return 0; }
+            $n = 0;
+            foreach (self::WERBUNG as $sp => $w) {
+                $land = $sp === 'de' ? 'DE' : 'IT';
+                $basis = ['branche' => '', 'land' => $land, 'sprache' => $sp, 'art' => 'organisch', 'kampagne_id' => $kid, 'status' => 'entwurf'];
+                $deFb = self::WERBUNG['de']['fb'];
+                Db::insert('mk_inhalte', $basis + ['format' => 'beitrag', 'plattform' => 'facebook', 'titel' => 'Telegram-Kanal bekannt machen (' . strtoupper($sp) . ')',
+                    'felder' => json_encode(['text' => $w['fb'], 'hashtags' => $w['tags'], 'kanal_werbung' => 1], JSON_UNESCAPED_UNICODE),
+                    'uebersetzung' => $sp === 'de' ? null : $deFb]);
+                Db::insert('mk_inhalte', $basis + ['format' => 'karussell', 'plattform' => 'instagram', 'titel' => 'Telegram-Kanal bekannt machen · Karussell (' . strtoupper($sp) . ')',
+                    'felder' => json_encode(['hook' => $w['hook'], 'folien' => $w['folien'], 'text' => $w['ig'], 'hashtags' => $w['tags'], 'kanal_werbung' => 1], JSON_UNESCAPED_UNICODE),
+                    'uebersetzung' => $sp === 'de' ? null : self::WERBUNG['de']['ig']]);
+                $n += 2;
+            }
+            return $n;
+        } catch (Throwable $e) { return 0; }
     }
 }
