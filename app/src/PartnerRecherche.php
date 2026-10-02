@@ -192,22 +192,25 @@ final class PartnerRecherche
        ================================================================== */
 
     /** @return list<array{art:string, url:string}> */
-    public static function suchlinks(string $ort, string $branche): array
+    public static function suchlinks(string $ort, string $branche, string $sprache = 'it'): array
     {
         $ort = trim(mb_substr($ort, 0, 80));
         if (mb_strlen($ort) < 2) { return []; }
-        $was = $branche !== '' && isset(Akquise::branchen()[$branche]) ? Akquise::branchenName($branche, 'it') : 'attività';
+        /* Ein deutscher Partner sucht in Deutschland (02.10.2026): deutsche Branchenwörter und
+           deutsche Verzeichnisse statt paginegialle.it und it.indeed.com. */
+        $de = $sprache === 'de';
+        $was = $branche !== '' && isset(Akquise::branchen()[$branche]) ? Akquise::branchenName($branche, $de ? 'de' : 'it') : ($de ? 'Betrieb' : 'attività');
         $q = static fn(string $s): string => rawurlencode($s);
         $gastro = in_array($branche, ['restaurant', 'bar_cafe', 'hotel', 'ferienwohnung', 'agriturismo', 'tourismus', ''], true);
         $aus = [
             ['art' => 'maps', 'url' => 'https://www.google.com/maps/search/?api=1&query=' . $q($was . ' ' . $ort)],
             // Google-Suche (27.09.2026, Uwe): findet auch Betriebe ohne Maps-Eintrag, etwa über Facebook- oder Branchenbuchseiten.
             ['art' => 'google', 'url' => 'https://www.google.com/search?q=' . $q($was . ' ' . $ort)],
-            ['art' => 'pagine', 'url' => 'https://www.paginegialle.it/ricerca/' . $q($was) . '/' . $q($ort)],
+            ['art' => 'pagine', 'url' => $de ? 'https://www.gelbeseiten.de/suche/' . $q($was) . '/' . $q($ort) : 'https://www.paginegialle.it/ricerca/' . $q($was) . '/' . $q($ort)],
             ['art' => 'facebook', 'url' => 'https://www.facebook.com/search/pages/?q=' . $q($was . ' ' . $ort)],
-            ['art' => 'indeed', 'url' => 'https://it.indeed.com/offerte-lavoro?q=' . $q($was) . '&l=' . $q($ort)],
+            ['art' => 'indeed', 'url' => $de ? 'https://de.indeed.com/jobs?q=' . $q($was) . '&l=' . $q($ort) : 'https://it.indeed.com/offerte-lavoro?q=' . $q($was) . '&l=' . $q($ort)],
         ];
-        if ($gastro) { $aus[] = ['art' => 'tripadvisor', 'url' => 'https://www.tripadvisor.it/Search?q=' . $q($was . ' ' . $ort)]; }
+        if ($gastro) { $aus[] = ['art' => 'tripadvisor', 'url' => 'https://www.tripadvisor.' . ($de ? 'de' : 'it') . '/Search?q=' . $q($was . ' ' . $ort)]; }
         return $aus;
     }
 

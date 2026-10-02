@@ -62,11 +62,11 @@ $plusDaten = [
   <h2><?= $h($PP('gs_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('gs_text')) ?></p>
   <label for="gs_firma"><?= $h($PP('gs_fuer')) ?></label>
-  <input id="gs_firma" type="text" maxlength="60" autocomplete="off" placeholder="Pizzeria Da Mario">
+  <input id="gs_firma" type="text" maxlength="60" autocomplete="off" placeholder="<?= $h(['it' => 'Pizzeria Da Mario', 'de' => 'Bäckerei Müller', 'en' => 'Mario’s Pizzeria'][$sprache] ?? 'Pizzeria Da Mario') ?>">
   <p class="md-l"><?= $h($PP('gs_sprache')) ?></p>
   <div class="chips" role="group" aria-label="<?= $h($PP('gs_sprache')) ?>">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $gl => $gw): ?>
-      <button type="button" data-gs-sprache="<?= $gl ?>" aria-pressed="<?= $gl === 'it' ? 'true' : 'false' ?>"><?= $gw ?></button>
+      <button type="button" data-gs-sprache="<?= $gl ?>" aria-pressed="<?= $gl === $sprache ? 'true' : 'false' ?>"><?= $gw ?></button>
     <?php endforeach; ?>
   </div>
   <div class="md-buehne"><canvas id="gs_vorschau" width="1080" height="1350" role="img" aria-label="<?= $h($PP('gs_titel')) ?>"></canvas></div>
@@ -94,11 +94,11 @@ $plusDaten = [
   <p class="md-l"><?= $h($PP('bw_sprache')) ?></p>
   <div class="chips" role="group" aria-label="<?= $h($PP('bw_sprache')) ?>">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $bl => $bn): ?>
-      <button type="button" data-bw-sprache="<?= $bl ?>" aria-pressed="<?= $bl === 'it' ? 'true' : 'false' ?>"><?= $bn ?></button>
+      <button type="button" data-bw-sprache="<?= $bl ?>" aria-pressed="<?= $bl === $sprache ? 'true' : 'false' ?>"><?= $bn ?></button>
     <?php endforeach; ?>
   </div>
   <?php foreach (['it', 'de', 'en'] as $bl): $bwB = PartnerMarketing::arbeitenBeitrag($p, $bl); ?>
-    <div data-bw-feld="<?= $bl ?>"<?= $bl === 'it' ? '' : ' hidden' ?>>
+    <div data-bw-feld="<?= $bl ?>"<?= $bl === $sprache ? '' : ' hidden' ?>>
       <textarea id="bw_<?= $bl ?>" readonly rows="10" lang="<?= $bl ?>"><?= $h($bwB) ?></textarea>
       <div class="knoepfe">
         <a class="knopf haupt" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($bwB) ?>">WhatsApp</a>

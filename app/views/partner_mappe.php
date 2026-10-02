@@ -7,7 +7,9 @@
    Ein A4-Blatt, das der Partner ausgedruckt vorbeibringt: was uns an der
    Seite aufgefallen ist, wie Vecom arbeitet, wer er ist, und der QR-Code.
    Hell, weil es auf dem Heimdrucker entsteht. Die Sprache ist die des
-   Betriebs, nicht die des Partners -- Standard Italienisch, umschaltbar.
+   Betriebs, nicht die des Partners -- aus Land/Sprache des Betriebs bzw. der
+   Endung der Adresse (PartnerMappe::laden), umschaltbar. Die Bedienleiste
+   oben spricht die Sprache des Partners (02.10.2026).
 
    Keine erfundenen Aussagen: Mit Schnellcheck stehen dessen Ergebnisse da.
    Ohne Website die drei Sätze, die für jeden Betrieb ohne Website stimmen.
@@ -15,8 +17,10 @@
    Angebot, den Check zu machen. Nie „Ihre Seite ist langsam“ ohne Messung.
    ========================================================================== */
 require_once dirname(__DIR__) . '/src/QrBild.php';
-$ms = in_array((string) ($_GET['sp'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['sp'] : 'it';
+$ms = in_array((string) ($mappe['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $mappe['sprache'] : 'it';
 $MM = static fn(string $k) => Texte::PARTNER_MARKETING[$k][$ms] ?? Texte::PARTNER_MARKETING[$k]['it'];
+$mpBed = in_array((string) ($sprache ?? $p['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) ($sprache ?? $p['sprache']) : $ms;
+$MB = static fn(string $k) => Texte::PARTNER_MARKETING[$k][$mpBed] ?? $MM($k);
 $name = Partner::anzeigeName($p);
 $link = PartnerWerbung::link($p, 'mappe');
 $kurz = preg_replace('~^https?://~', '', Partner::link($p));
@@ -81,12 +85,12 @@ $ersetze = static fn(string $t): string => strtr($t, ['{name}' => $name]);
 </head>
 <body>
 <div class="leiste">
-  <a href="<?= $h($zurueck) ?>"><?= $h($MM('mp_zurueck')) ?></a>
-  <span><?= $h($MM('mp_sprache')) ?>:</span>
+  <a href="<?= $h($zurueck) ?>"><?= $h($MB('mp_zurueck')) ?></a>
+  <span><?= $h($MB('mp_sprache')) ?>:</span>
   <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
     <a class="<?= $l === $ms ? 'jetzt' : '' ?>" href="<?= $h($hier($l)) ?>"><?= $h($wie) ?></a>
   <?php endforeach; ?>
-  <button type="button" onclick="window.print()"><?= $h($MM('mp_drucken')) ?></button>
+  <button type="button" onclick="window.print()"><?= $h($MB('mp_drucken')) ?></button>
 </div>
 
 <div class="blatt">

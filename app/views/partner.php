@@ -39,7 +39,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
       <div class="feld"><label>Läuft bis einschließlich</label><input type="date" name="bis" value="<?= Fmt::h((string) ($akRoh['bis'] ?? '')) ?>"></div>
     </div>
     <?php foreach (['it' => 'Italienisch', 'de' => 'Deutsch', 'en' => 'Englisch'] as $akL => $akW): ?>
-      <div class="feld"><label>Text <?= $akW ?><?= $akL === 'it' ? ' (Pflicht, wenn die anderen leer sind)' : '' ?></label>
+      <div class="feld"><label>Text <?= $akW ?><?= trim((string) ($akRoh['texte'][$akL] ?? '')) === '' ? ' — leer: Partner auf ' . $akW . ' sehen die Aktion nicht' : '' ?></label>
         <input type="text" name="texte[<?= $akL ?>]" maxlength="240" value="<?= Fmt::h((string) ($akRoh['texte'][$akL] ?? '')) ?>"
                placeholder="<?= $akL === 'it' ? 'Autunno: verifica del sito + consulenza gratuite' : ($akL === 'de' ? 'Herbst: Website-Check + Beratung gratis' : 'Autumn: free website check + consultation') ?>"></div>
     <?php endforeach; ?>

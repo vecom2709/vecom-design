@@ -502,7 +502,7 @@ $wegIcon = [
     <?php if ($gruss): ?><div class="lp-gruss"><span><?= $h($S($PS['gruss_titel'])) ?></span><audio controls preload="none" src="<?= $h($gruss) ?>"></audio></div><?php endif; ?>
     <?php if ($satz !== ''): ?><blockquote><?= $h($zit($satz)) ?></blockquote><?php endif; ?>
     <?php /* Zentrale Aktion (28.09.2026, Uwe: Ja): einmal in der Verwaltung angelegt, auf allen Partnerseiten. */
-          $aktion = PartnerMarketing::aktion(); if ($aktion): ?>
+          $aktion = PartnerMarketing::aktion(null, $sprache); if ($aktion): ?>
       <p class="lp-aktion" role="note"><b><?= $h(PartnerMarketing::aktionText($aktion, $sprache)) ?></b><span><?= $h(PartnerMarketing::aktionRest($aktion, $sprache)) ?></span></p>
     <?php endif; ?>
     <?php if (!$buehne): ?><h1><?= $h($L('titel')) ?></h1>

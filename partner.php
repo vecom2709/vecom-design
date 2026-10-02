@@ -418,7 +418,7 @@ $linkMd = static fn(string $s): string => (string) preg_replace('~\[([^\]]+)\]\(
 /* ---------- Mappe zum Vorbeibringen (27.09.2026): nur eigener Check oder eigene Reservierung ---------- */
 if ($p && ($_GET['druck'] ?? '') === 'mappe') {
     PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'mappe');
-    $mappe = PartnerMappe::laden($p, $_GET, in_array((string) ($_GET['sp'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['sp'] : 'it');
+    $mappe = PartnerMappe::laden($p, $_GET, (string) ($_GET['sp'] ?? ''));
     if ($mappe === null) { http_response_code(404); exit('—'); }
     header('X-Robots-Tag: noindex');
     require __DIR__ . '/app/views/partner_mappe.php';
@@ -1309,6 +1309,11 @@ if ($p && isset($_GET['karte'])) {
       <label for="m_mail"><?= $h($T('f_email')) ?></label><input id="m_mail" type="email" name="email" required>
       <label for="m_tel"><?= $h($T('m_telefon')) ?></label><input id="m_tel" type="text" name="telefon" maxlength="60">
       <label for="m_was"><?= $h($T('m_anliegen')) ?></label><textarea id="m_was" name="anliegen" rows="2" maxlength="2000"></textarea>
+      <?php /* Sprache des Kunden (02.10.2026): die Eingangsmail ging bisher immer in der Sprache des Dashboards raus. */ ?>
+      <label for="m_spr"><?= $h($T('pv_f_sprache')) ?></label>
+      <select id="m_spr" name="sprache" style="max-width:220px">
+        <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $ml => $mw): ?><option value="<?= $ml ?>"<?= $ml === $sprache ? ' selected' : '' ?>><?= $mw ?></option><?php endforeach; ?>
+      </select>
       <label style="display:flex;gap:8px;align-items:flex-start;color:var(--text)">
         <input type="checkbox" name="einverstanden" value="1" required style="margin-top:3px;width:auto"> <?= $h($T('m_einverstanden')) ?></label>
       <button class="knopf" type="submit"><?= $h($T('m_knopf')) ?></button>

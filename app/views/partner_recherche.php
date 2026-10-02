@@ -398,7 +398,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
       <p class="klein" style="margin-top:4px;font-size:11.5px"><?= $h($T('fi_osm')) ?></p>
     <?php endif; ?>
   <?php endif; ?>
-  <?php if ($fiOrt !== ''): $fiLinks = PartnerRecherche::suchlinks($fiOrt, $fiBranche); if ($fiLinks): ?>
+  <?php if ($fiOrt !== ''): $fiLinks = PartnerRecherche::suchlinks($fiOrt, $fiBranche, $sprache); if ($fiLinks): ?>
     <p class="md-l" style="margin-top:16px"><?= $h($T('fi_quellen')) ?></p>
     <p class="klein" style="margin-top:0"><?= $h($T('fi_quellen_text')) ?></p>
     <div class="ck-knoepfe" style="margin-top:6px">

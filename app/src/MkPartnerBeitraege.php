@@ -54,8 +54,9 @@ final class MkPartnerBeitraege
     }
 
     /**
-     * Die Beiträge für einen Partner: seine Sprache zuerst, dann die übrigen,
-     * jeweils die neuesten. Mit Bild-Adresse und Text samt Partnerlink.
+     * Die Beiträge für einen Partner: nur in seiner Sprache, die neuesten zuerst.
+     * (02.10.2026: vorher kamen nach den eigenen alle übrigen -- ein deutscher
+     * Partner bekam italienische Posts zum Teilen.) Mit Bild-Adresse und Text samt Partnerlink.
      * @return list<array{id:int, titel:string, land:string, bild:?string, text:string, whatsapp:string, facebook:string}>
      */
     public static function fuerPartner(array $p, string $sprache): array
@@ -63,7 +64,7 @@ final class MkPartnerBeitraege
         require_once __DIR__ . '/PartnerWerbung.php';
         $link = PartnerWerbung::link($p, self::KANAL);
         $zeilen = Db::all("SELECT * FROM mk_inhalte WHERE partner = 1 AND status IN ('freigegeben', 'veroeffentlicht') AND art = 'organisch'
-                            ORDER BY (sprache = ?) DESC, id DESC LIMIT " . self::HOECHSTENS, [$sprache]);
+                              AND sprache = ? ORDER BY id DESC LIMIT " . self::HOECHSTENS, [$sprache]);
         $aus = [];
         foreach ($zeilen as $z) {
             $x = MkInhalt::laden((int) $z['id']);

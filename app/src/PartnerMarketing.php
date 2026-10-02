@@ -111,7 +111,7 @@ final class PartnerMarketing
         $bis = self::NACHFASS_BIS_TAGE;
         $checks = self::still(static fn() => Db::all("SELECT id, token, host, aufrufe, nachfass, DATEDIFF(NOW(), created_at) AS tage FROM partner_checks
              WHERE partner_id = ? AND nachfass < 9 AND created_at <= NOW() - INTERVAL $t1 DAY AND created_at >= NOW() - INTERVAL $bis DAY", [$partnerId]), []);
-        $firmen = self::still(static fn() => Db::all("SELECT f.id, f.name, f.telefon, f.land, r.nachfass, DATEDIFF(NOW(), r.angeschrieben_am) AS tage
+        $firmen = self::still(static fn() => Db::all("SELECT f.id, f.name, f.telefon, f.land, f.sprache, r.nachfass, DATEDIFF(NOW(), r.angeschrieben_am) AS tage
              FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
              WHERE r.partner_id = ? AND r.bis >= CURDATE() AND r.nachfass < 9 AND r.angeschrieben_am IS NOT NULL
                AND r.angeschrieben_am <= NOW() - INTERVAL $t1 DAY AND r.angeschrieben_am >= NOW() - INTERVAL $bis DAY", [$partnerId]), []);
@@ -119,11 +119,11 @@ final class PartnerMarketing
         $aus = [];
         foreach ($checks as $c) {
             $aus[] = ['art' => 'check', 'id' => (int) $c['id'], 'titel' => (string) $c['host'], 'tage' => (int) $c['tage'], 'stufe' => $stufe((int) $c['tage']),
-                      'gemeldet' => (int) $c['nachfass'], 'aufrufe' => (int) $c['aufrufe'], 'telefon' => '', 'land' => 'IT', 'token' => (string) $c['token']];
+                      'gemeldet' => (int) $c['nachfass'], 'aufrufe' => (int) $c['aufrufe'], 'telefon' => '', 'land' => '', 'sprache' => '', 'token' => (string) $c['token']];
         }
         foreach ($firmen as $f) {
             $aus[] = ['art' => 'firma', 'id' => (int) $f['id'], 'titel' => (string) $f['name'], 'tage' => (int) $f['tage'], 'stufe' => $stufe((int) $f['tage']),
-                      'gemeldet' => (int) $f['nachfass'], 'aufrufe' => 0, 'telefon' => trim((string) $f['telefon']), 'land' => (string) ($f['land'] ?: 'IT'), 'token' => ''];
+                      'gemeldet' => (int) $f['nachfass'], 'aufrufe' => 0, 'telefon' => trim((string) $f['telefon']), 'land' => (string) $f['land'], 'sprache' => (string) ($f['sprache'] ?? ''), 'token' => ''];
         }
         usort($aus, static fn($a, $b) => [$b['aufrufe'] > 0, $a['tage']] <=> [$a['aufrufe'] > 0, $b['tage']]);
         return $aus;
@@ -139,11 +139,11 @@ final class PartnerMarketing
         return strtr(self::t($e['art'] === 'check' ? 'nf_msg_check' : 'nf_msg_firma', $sprache), $w);
     }
 
-    /** Sprache für den Text an einen Betrieb: Italien → Italienisch, deutschsprachige Länder → Deutsch, sonst Englisch. */
-    public static function betriebSprache(string $land): string
+    /** Sprache für den Text an einen Betrieb -- dieselbe Regel wie die Erstnachricht (PartnerAnschreiben::sprache). */
+    public static function betriebSprache(string $land, string $partnerSprache = 'en', string $firmaSprache = ''): string
     {
-        $land = strtoupper($land ?: 'IT');
-        return $land === 'IT' ? 'it' : (in_array($land, ['DE', 'AT', 'CH', 'LI'], true) ? 'de' : 'en');
+        require_once __DIR__ . '/PartnerAnschreiben.php';
+        return PartnerAnschreiben::sprache(['land' => $land, 'sprache' => $firmaSprache], $partnerSprache);
     }
 
     /** Vom Partner als erledigt markiert. Nur Eigenes. */
@@ -193,7 +193,8 @@ final class PartnerMarketing
      * ein Tagesdatum, keine Uhrzeit).
      * @return ?array{texte:array<string,string>, bis:string, tage:int}
      */
-    public static function aktion(?int $jetzt = null): ?array
+    /** Mit $sprache nur, wenn es den Text in dieser Sprache gibt (02.10.2026: deutsche Partner bekamen sonst den italienischen). */
+    public static function aktion(?int $jetzt = null, ?string $sprache = null): ?array
     {
         $roh = json_decode(Partner::einstellung('partner_aktion'), true);
         if (!is_array($roh) || empty($roh['an'])) { return null; }
@@ -202,7 +203,7 @@ final class PartnerMarketing
         $heute = date('Y-m-d', $jetzt ?? time());
         if ($bis < $heute) { return null; }
         $texte = array_filter(array_map(static fn($t) => trim((string) $t), (array) ($roh['texte'] ?? [])), static fn($t) => $t !== '');
-        if (!$texte) { return null; }
+        if (!$texte || ($sprache !== null && !isset($texte[$sprache]))) { return null; }
         $tage = (int) round((strtotime($bis . ' 12:00') - strtotime($heute . ' 12:00')) / 86400) + 1;
         return ['texte' => $texte, 'bis' => $bis, 'tage' => $tage];
     }

@@ -4,7 +4,7 @@
    Gesetzt: $p, $sprache, $h, $selbst. Jeder Block erscheint nur, wenn er
    etwas zu sagen hat -- leere Kästen sind Rauschen. */
 $PP = static fn(string $k): string => Texte::h(Texte::PARTNER_PLUS[$k] ?? [], $sprache);
-$ppAktion = PartnerMarketing::aktion();
+$ppAktion = PartnerMarketing::aktion(null, $sprache);
 $ppHeiss = PartnerMarketing::heisse((int) $p['id']);
 $ppNach = PartnerMarketing::faellig((int) $p['id']);
 $ppKurs = PartnerMarketing::kurs($p);
@@ -31,7 +31,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
   <h2><?= $h($PP('hk_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('hk_text')) ?></p>
   <ul class="pp-liste">
-    <?php foreach ($ppHeiss as $hk): $hkText = PartnerMarketing::nachfassText($p, ['art' => 'check', 'titel' => $hk['host'], 'token' => $hk['token']], 'it'); ?>
+    <?php foreach ($ppHeiss as $hk): $hkText = PartnerMarketing::nachfassText($p, ['art' => 'check', 'titel' => $hk['host'], 'token' => $hk['token']], PartnerAnschreiben::spracheZurAdresse((string) $hk['host'], $sprache)); ?>
       <li><span class="pp-punkt" aria-hidden="true"></span>
         <span class="pp-was"><b><?= $h($hk['host']) ?></b><small><?= $h(strtr($PP('hk_vor'), ['{zeit}' => $ppZeit($hk['minuten'])])) ?> · <?= $h(strtr($PP('nf_gesehen'), ['{n}' => (string) $hk['aufrufe']])) ?></small></span>
         <a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($hkText) ?>"><?= $h($PP('nf_wa')) ?></a></li>
@@ -45,9 +45,9 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
   <h2><?= $h($PP('nf_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('nf_text')) ?></p>
   <?php foreach (array_slice($ppNach, 0, 8) as $i => $nf):
-    $nfSp = $nf['art'] === 'firma' ? PartnerMarketing::betriebSprache($nf['land']) : 'it';
+    $nfSp = $nf['art'] === 'firma' ? PartnerMarketing::betriebSprache($nf['land'], $sprache, $nf['sprache'] ?? '') : PartnerAnschreiben::spracheZurAdresse($nf['titel'], $sprache);
     $nfText = PartnerMarketing::nachfassText($p, $nf, $nfSp);
-    $nfNr = $nf['art'] === 'firma' ? PartnerAnschreiben::waNummer($nf['telefon'], $nf['land']) : '';
+    $nfNr = $nf['art'] === 'firma' ? PartnerAnschreiben::waNummer($nf['telefon'], $nf['land'] ?: 'IT') : '';
     $nfWa = 'https://wa.me/' . $nfNr . '?text=' . rawurlencode($nfText); ?>
     <details class="pp-nf"<?= $i === 0 ? ' open' : '' ?>>
       <summary><b><?= $h($nf['titel']) ?></b>

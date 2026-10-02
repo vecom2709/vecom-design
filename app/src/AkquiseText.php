@@ -253,7 +253,8 @@ final class AkquiseText
     {
         $s = strtolower((string) ($f['sprache'] ?? ''));
         if (isset(self::SPRACHEN[$s])) { return $s; }
-        return strtoupper((string) ($f['land'] ?? '')) === 'DE' ? 'de' : 'it';
+        /* 02.10.2026: AT, CH und LI bekamen das Anruf-Skript auf Italienisch. */
+        return in_array(strtoupper(trim((string) ($f['land'] ?? ''))), ['DE', 'AT', 'CH', 'LI'], true) ? 'de' : 'it';
     }
 
     /* ================================================================== */

@@ -421,7 +421,9 @@
   }
   var gsV = document.getElementById('gs_vorschau');
   if (P && gsV) {
-    var gsSprache = 'it', gsFirma = document.getElementById('gs_firma'), gsText = document.getElementById('gs_text'), gsWa = document.getElementById('gs_wa');
+    /* Vorgewählt ist die Sprache, die die Seite als gedrückt zeigt -- die des Partners (02.10.2026). */
+    var gsGedrueckt = document.querySelector('[data-gs-sprache][aria-pressed="true"]');
+    var gsSprache = gsGedrueckt ? gsGedrueckt.getAttribute('data-gs-sprache') : 'it', gsFirma = document.getElementById('gs_firma'), gsText = document.getElementById('gs_text'), gsWa = document.getElementById('gs_wa');
     var gsNeu = function () {
       var T = P.gutschein.texte[gsSprache] || P.gutschein.texte.it, f = gsFirma.value.trim();
       alles.then(function () { zeichneGutschein(gsV, gsSprache, f); });

@@ -14154,8 +14154,36 @@ pruefe('Letzter Tag: „Letzter Tag!“; gestern abgelaufen: keine Aktion',
     PartnerMarketing::aktionRest(PartnerMarketing::aktion(), 'de') === 'Letzter Tag!' && PartnerMarketing::aktion(strtotime('+1 day')) === null);
 PartnerMarketing::aktionSpeichern(false, '', []);
 pruefe('Ausgeschaltet: keine Aktion', PartnerMarketing::aktion() === null);
+/* 02.10.2026, Uwe: „wenn deutsche Firmen, sollen auch die Nachrichten auf Deutsch sein“ */
+PartnerMarketing::aktionSpeichern(true, date('Y-m-d', strtotime('+3 days')), ['it' => 'Autunno: verifica gratuita']);
+pruefe('Sprache: eine Aktion nur auf Italienisch erscheint beim deutschen Partner nicht — beim italienischen schon',
+    PartnerMarketing::aktion(null, 'de') === null && PartnerMarketing::aktion(null, 'it') !== null);
+PartnerMarketing::aktionSpeichern(false, '', []);
+pruefe('Sprache: ein Betrieb in Deutschland, Österreich, der Schweiz bekommt Deutsch — auch im Nachfass und im Anruf-Skript',
+    PartnerAnschreiben::sprache(['land' => 'CH'], 'it') === 'de' && PartnerMarketing::betriebSprache('AT', 'it') === 'de'
+    && AkquiseText::spracheFuer(['land' => 'AT']) === 'de' && AkquiseText::spracheFuer(['land' => 'IT']) === 'it');
+pruefe('Sprache: ohne Land zählt die Sprache des Partners, eine beim Betrieb gespeicherte geht vor',
+    PartnerAnschreiben::sprache(['land' => ''], 'de') === 'de' && PartnerAnschreiben::sprache(['land' => 'IT', 'sprache' => 'de'], 'it') === 'de');
+pruefe('Sprache: Schnellcheck nach der Endung der Adresse (.de deutsch, .it italienisch, sonst der Partner)',
+    PartnerAnschreiben::spracheZurAdresse('baeckerei-mueller.de', 'it') === 'de' && PartnerAnschreiben::spracheZurAdresse('www.pizzeria.it', 'de') === 'it'
+    && PartnerAnschreiben::spracheZurAdresse('example.com', 'de') === 'de');
+$spSuche = PartnerAnschreiben::links(['name' => 'Bäckerei Müller', 'stadt' => 'Köln', 'land' => 'DE']);
+pruefe('Sprache: die Telefonsuche zu einem deutschen Betrieb sucht „Telefon“, nicht „telefono“',
+    str_contains($spSuche['suche'], rawurlencode('Telefon')) && !str_contains($spSuche['suche'], 'telefono'));
+$spL = PartnerRecherche::suchlinks('Köln', 'friseur', 'de');
+pruefe('Sprache: ein deutscher Partner sucht mit deutschem Branchenwort in Gelben Seiten und de.indeed.com',
+    str_contains($spL[2]['url'], 'gelbeseiten.de/suche/') && str_contains($spL[4]['url'], 'de.indeed.com') && !str_contains(implode(' ', array_column($spL, 'url')), 'paginegialle'));
+$spSeiten = [
+    'start' => (string) file_get_contents($wurzel . '/views/partner_plus_start.php'),
+    'werben' => (string) file_get_contents($wurzel . '/views/partner_plus_werben.php'),
+    'partner' => (string) file_get_contents($wurzel . '/../partner.php'),
+];
+pruefe('Sprache: kein fest italienischer Text mehr im Partnerbereich (Nachhaken, Gutschein, Arbeiten teilen, Mappe) und Sprachwahl beim Kunde-Melden',
+    !str_contains($spSeiten['start'], "'token' => \$hk['token']], 'it')") && !str_contains($spSeiten['start'], ": 'it';")
+    && !str_contains($spSeiten['werben'], "=== 'it' ? 'true'") && !str_contains($spSeiten['partner'], "(string) \$_GET['sp'] : 'it')")
+    && str_contains($spSeiten['partner'], 'id="m_spr" name="sprache"'));
 pruefe('Aktion erscheint auf der Partnerseite, im Kalender und im Partnerbereich; Verwaltung kann sie setzen',
-    str_contains((string) file_get_contents($wurzel . '/../p.php'), 'PartnerMarketing::aktion()') && str_contains((string) file_get_contents($wurzel . '/views/partner_kalender.php'), 'PartnerMarketing::aktion()')
+    str_contains((string) file_get_contents($wurzel . '/../p.php'), 'PartnerMarketing::aktion(null, $sprache)') && str_contains((string) file_get_contents($wurzel . '/views/partner_kalender.php'), 'PartnerMarketing::aktion(null, $sprache)')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_plus_start.php'), 'PartnerMarketing::aktionBeitrag(') && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'partner_aktion':"));
 
 /* Branchen-Pakete */
@@ -17922,6 +17950,7 @@ pruefe('Partnerportal: Block „Fertige Beiträge von Vecom“ im Reiter Werben,
 $pbIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Verwaltung: Haken „Partnern zum Teilen geben“ am freigegebenen Beitrag, hinter CSRF', strpos($pbIdx, "case 'inhalt_partner':") > strpos($pbIdx, 'Csrf::pruefen()')
     && str_contains((string) file_get_contents($wurzel . '/views/inhalt.php'), "'Partnern zum Teilen geben'"));
+pruefe('Partner-Beiträge: ein deutscher Partner bekommt keine italienischen Beiträge zum Teilen', MkPartnerBeitraege::fuerPartner($pbP, 'de') === []);
 MkPartnerBeitraege::setzen($pbFb, false);
 pruefe('Partner-Beiträge: zurückziehen nimmt ihn aus dem Portal', count(MkPartnerBeitraege::fuerPartner($pbP, 'it')) === 1);
 Db::run("DELETE FROM mk_inhalte WHERE titel LIKE 'PB %'"); Db::run("DELETE FROM mk_zielgruppen WHERE titel LIKE 'PB %'");

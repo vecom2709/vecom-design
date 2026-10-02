@@ -22,10 +22,26 @@ final class PartnerAnschreiben
 {
     public const KANAL = 'anschreiben';
 
-    /** Die Sprache, in der man diesem Betrieb schreibt. */
+    /**
+     * Die Sprache, in der man diesem Betrieb schreibt -- EINE Stelle für Erstnachricht, Nachfass
+     * und Mappe (02.10.2026, Uwe: „wenn deutsche Firmen, sollen auch die Nachrichten auf Deutsch
+     * sein“). Vorher kannte diese Stelle DE/AT, der Nachfass zusätzlich CH/LI, und ein Betrieb
+     * ohne Land galt als italienisch -- auch beim deutschen Partner. Reihenfolge: die beim
+     * Betrieb gespeicherte Sprache, dann das Land, dann die Sprache des Partners.
+     */
     public static function sprache(array $f, string $partnerSprache): string
     {
-        return match (strtoupper((string) ($f['land'] ?? ''))) { 'IT' => 'it', 'DE', 'AT' => 'de', default => $partnerSprache };
+        $s = strtolower((string) ($f['sprache'] ?? ''));
+        if (in_array($s, ['it', 'de', 'en'], true)) { return $s; }
+        $partnerSprache = in_array($partnerSprache, ['it', 'de', 'en'], true) ? $partnerSprache : 'it';
+        return match (strtoupper(trim((string) ($f['land'] ?? '')))) { 'IT', 'SM', 'VA' => 'it', 'DE', 'AT', 'CH', 'LI' => 'de', default => $partnerSprache };
+    }
+
+    /** Für einen Website-Check gibt es nur die Adresse: .it → Italienisch, .de/.at/.ch → Deutsch, sonst der Partner. */
+    public static function spracheZurAdresse(string $host, string $partnerSprache): string
+    {
+        $tld = strtolower((string) substr((string) strrchr(rtrim(strtolower($host), '.'), '.'), 1));
+        return match ($tld) { 'it' => 'it', 'de', 'at', 'ch', 'li' => 'de', default => PartnerAnschreiben::sprache([], $partnerSprache) };
     }
 
     /** Nur Ziffern mit Landesvorwahl, für wa.me. Italienische Nummern ohne +39 bekommen sie. */
@@ -34,7 +50,7 @@ final class PartnerAnschreiben
         $z = preg_replace('/\D+/', '', $tel) ?? '';
         if ($z === '') { return ''; }
         if (str_starts_with($tel, '+') || str_starts_with($z, '00')) { return ltrim(str_starts_with($z, '00') ? substr($z, 2) : $z, '0'); }
-        $vw = ['IT' => '39', 'DE' => '49', 'AT' => '43'][strtoupper($land)] ?? '';
+        $vw = ['IT' => '39', 'DE' => '49', 'AT' => '43', 'CH' => '41', 'LI' => '423'][strtoupper($land)] ?? '';
         return $vw === '' ? $z : $vw . ($vw === '39' ? $z : ltrim($z, '0'));
     }
 
@@ -67,7 +83,8 @@ final class PartnerAnschreiben
     {
         $ort = trim(((string) ($f['adresse'] ?? '')) . ' ' . ((string) ($f['plz'] ?? '')) . ' ' . ((string) ($f['stadt'] ?? '')));
         $l = ['route' => 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode(trim($f['name'] . ' ' . $ort)),
-              'suche' => 'https://www.google.com/search?q=' . rawurlencode(trim($f['name'] . ' ' . ($f['stadt'] ?? '') . ' telefono'))];
+              'suche' => 'https://www.google.com/search?q=' . rawurlencode(trim($f['name'] . ' ' . ($f['stadt'] ?? '') . ' '
+                  . ['it' => 'telefono', 'de' => 'Telefon', 'en' => 'phone'][self::sprache($f, 'en')]))];
         $url = trim((string) ($f['url'] ?? ''));
         if ($url !== '' && preg_match('~^https?://~i', $url)) { $l['web'] = $url; }
         elseif ($url !== '') { $l['web'] = 'https://' . $url; }
