@@ -724,7 +724,7 @@ final class Partner
 
         try {
             Db::insert('partner_zuordnungen', ['customer_id' => $kundeId, 'partner_id' => $partnerId,
-                'quelle' => in_array($quelle, ['link', 'code', 'hand', 'partner', 'telefon', 'anruf'], true) ? $quelle : 'link',
+                'quelle' => in_array($quelle, ['link', 'code', 'hand', 'partner', 'telefon', 'anruf', 'vorab'], true) ? $quelle : 'link',
                 'bedarf_id' => $bedarfId, 'kanal' => self::kanal((string) $kanal)]);
         } catch (Throwable $e) {
             if (Db::andrang($e)) { return 'schon'; }        // zwei Anfragen gleichzeitig: die erste gewinnt

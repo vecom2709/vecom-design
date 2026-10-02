@@ -310,6 +310,15 @@ final class Kundenzugang
             'vorschau_frei' => $vorschauFrei,
             'abnahme_frei'  => $abnahmeFrei,
             'live'          => $live,
+            // Vom Partner vereinbarter Festpreis (PartnerVorab, 02.10.2026), solange das Angebot noch entsteht
+            'vorab'         => self::still(static function () use ($kid, $angebot) {
+                if ($kid <= 0 || $angebot !== null) { return null; }
+                require_once __DIR__ . '/PartnerVorab.php';
+                $pv = PartnerVorab::zuKunde($kid);
+                if ($pv === null) { return null; }
+                $st = (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [(int) $pv['angebot_id']], '');
+                return $st === 'entwurf' ? ['preis_cents' => (int) $pv['preis_cents'], 'leistungen' => (string) $pv['leistungen']] : null;
+            }, null),
             // Der Fallback steht zweimal da, weil der zweite Zugriff sonst
             // eine Meldung ausloest, wenn die Spalte gar nicht mitgelesen wurde.
             'sprache'  => in_array((string) ($kunde['sprache'] ?? 'it'), ['it','de','en'], true)

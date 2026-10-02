@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing', 'PartnerVorab'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -222,6 +222,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $r = Partner::kundeMelden((int) $p['id'], $_POST, $sprache);
                 if ($r['ok']) { header('Location: ' . $selbst(['m' => 'm_danke']) . '#melden', true, 303); exit; }
                 $meldung = (string) ($r['grund'] ?? 'panne');
+            } elseif ($tat === 'vorab_neu' && $p) {
+                /* Kunde mit vereinbartem Preis (02.10.2026): Link entsteht, der Partner schickt ihn selbst. */
+                $r = PartnerVorab::anlegen((int) $p['id'], $_POST);
+                if ($r['ok']) { header('Location: ' . $selbst(['vneu' => (int) $r['id']]) . '#vorab', true, 303); exit; }
+                $meldung = (string) ($r['grund'] ?? 'panne');
+            } elseif ($tat === 'vorab_weg' && $p) {
+                PartnerVorab::zurueckziehen((int) $p['id'], (int) ($_POST['id'] ?? 0));
+                header('Location: ' . $selbst() . '#vorab', true, 303); exit;
             } elseif ($tat === 'wettbewerb_name' && $p) {
                 PartnerWettbewerb::nameErlauben((int) $p['id'], !empty($_POST['an']));
                 header('Location: ' . $selbst() . '#wettbewerb', true, 303); exit;
@@ -1240,6 +1248,53 @@ if ($p && isset($_GET['karte'])) {
       <textarea id="n_text" name="text" rows="3" maxlength="<?= PartnerPost::MAX_LAENGE ?>" required></textarea>
       <button class="knopf haupt" type="submit"><?= $h($T('nachr_knopf')) ?></button>
     </form>
+  </div>
+
+  <?php $vListe = (static function () use ($p) { try { return PartnerVorab::liste((int) $p['id']); } catch (Throwable $e) { return []; } })();
+        $vNeu = (int) ($_GET['vneu'] ?? 0); ?>
+  <div class="block pt" id="vorab" data-reiter="finden">
+    <h2><?= $h($T('pv_titel')) ?></h2>
+    <?php if (in_array($meldung, ['pv_e_preis', 'pv_e_leistungen', 'pv_e_genug'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
+    <?php foreach ($vListe as $vz): if ((int) $vz['id'] !== $vNeu) { continue; } ?>
+      <div class="hinweis gut" style="display:flex;flex-direction:column;gap:8px">
+        <span><?= $h($T('pv_neu')) ?></span>
+        <input type="text" readonly value="<?= $h($vz['link']) ?>" onclick="this.select()" id="v_link_neu" style="font-size:14px">
+        <span style="display:flex;gap:8px;flex-wrap:wrap">
+          <button class="knopf" type="button" onclick="var f=document.getElementById('v_link_neu');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('pv_kopieren')) ?></button>
+          <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= $h(rawurlencode(strtr(Texte::h(Texte::PARTNER['pv_wa_text'], (string) $vz['sprache']), ['{link}' => $vz['link']]))) ?>"><?= $h($T('pv_whatsapp')) ?></a>
+        </span>
+        <small><?= $h(strtr($T('pv_gueltig'), ['{tage}' => (string) PartnerVorab::GUELTIG_TAGE])) ?></small>
+      </div>
+    <?php endforeach; ?>
+    <p class="klein" style="margin-top:0"><?= $h($T('pv_text')) ?></p>
+    <form method="post" action="<?= $h($selbst()) ?>#vorab">
+      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
+      <input type="hidden" name="tat" value="vorab_neu">
+      <label for="v_preis"><?= $h($T('pv_f_preis')) ?></label><input id="v_preis" type="text" name="preis" inputmode="decimal" required maxlength="12" placeholder="0,00" style="max-width:180px">
+      <label for="v_leist"><?= $h($T('pv_f_leistungen')) ?></label><textarea id="v_leist" name="leistungen" rows="2" maxlength="600" required></textarea>
+      <label for="v_bez"><?= $h($T('pv_f_bezeichnung')) ?></label><input id="v_bez" type="text" name="bezeichnung" maxlength="120">
+      <label for="v_spr"><?= $h($T('pv_f_sprache')) ?></label>
+      <select id="v_spr" name="sprache" style="max-width:220px">
+        <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $vl => $vw): ?><option value="<?= $vl ?>"<?= $vl === $sprache ? ' selected' : '' ?>><?= $vw ?></option><?php endforeach; ?>
+      </select>
+      <button class="knopf haupt" type="submit"><?= $h($T('pv_knopf')) ?></button>
+    </form>
+    <?php if ($vListe): ?>
+      <h3 style="margin:18px 0 8px;font-size:15px"><?= $h($T('pv_liste')) ?></h3>
+      <table><tbody>
+      <?php foreach ($vListe as $vz): ?>
+        <tr><td><?= $h(Fmt::datum((string) $vz['created_at'])) ?><br><small style="color:var(--leise)"><?= $h((string) $vz['bezeichnung'] !== '' ? (string) $vz['bezeichnung'] : mb_substr((string) $vz['leistungen'], 0, 40)) ?></small></td>
+            <td class="r"><?= $h(Fmt::geld((int) $vz['preis_cents'])) ?></td>
+            <td><?= $h($T('pv_s_' . $vz['stand'])) ?>
+              <?php if ($vz['stand'] === 'offen'): ?>
+                <form method="post" action="<?= $h($selbst()) ?>#vorab" style="display:inline">
+                  <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="vorab_weg"><input type="hidden" name="id" value="<?= (int) $vz['id'] ?>">
+                  <button type="submit" class="textknopf" style="background:none;border:0;color:var(--leise);text-decoration:underline;cursor:pointer;padding:0 0 0 6px;font:inherit"><?= $h($T('pv_weg')) ?></button>
+                </form>
+              <?php endif; ?></td></tr>
+      <?php endforeach; ?>
+      </tbody></table>
+    <?php endif; ?>
   </div>
 
   <div class="block pt" id="melden" data-reiter="finden">

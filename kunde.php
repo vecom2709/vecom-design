@@ -700,6 +700,9 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         $fbFertig = sicherLesen(static fn() => Db::wert(
             "SELECT status FROM questionnaires WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
             [(int) $kunde['id']], '') === 'abgeschlossen', false);
+        /* Festpreis vom Partner vereinbart (02.10.2026): kein Fragebogen davor —
+           er steht wie nach dem fertigen Fragebogen beim Schritt „Angebot“. */
+        if (!empty($seite['vorab'])) { $fbFertig = true; }
         $wegNr = $fbFertig ? 1 : 0;
     } else {
         $wegNr = (int) array_search($echte, $wegReihe, true);
@@ -721,10 +724,15 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
              jetzt passiert und bis wann -- nicht „Ihre Anfrage ist da“. */
           $angebotKommt = ($echte ?? '') === 'anfrage' && !empty($fbFertig); ?>
     <h2><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommt'] ?? [], $sprache) : $TS($stufe)) ?></h2>
-    <p><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommtText'] ?? [], $sprache)
+    <p><?= $h($angebotKommt ? (!empty($seite['vorab'])
+          ? strtr(Texte::h(Texte::SEITE['vorabKommtText'] ?? [], $sprache), ['{preis}' => Fmt::geld((int) $seite['vorab']['preis_cents'])])
+          : Texte::h(Texte::SEITE['angebotKommtText'] ?? [], $sprache))
         : ($stufe === 'angebot' && $angebotOffen && !$offen
         ? Texte::h(Texte::SEITE['angebotText'] ?? [], $sprache)
         : $TS($stufe, 'text'))) ?></p>
+    <?php if ($angebotKommt && !empty($seite['vorab']['leistungen'])): ?>
+      <p class="mini" style="margin-top:-4px"><?= $h(Texte::h(Texte::SEITE['vorabLeistungen'] ?? [], $sprache)) ?> <?= $h((string) $seite['vorab']['leistungen']) ?></p>
+    <?php endif; ?>
 
     <div class="tun">
       <?php if ($stufe === 'vorhaben' && !empty($seite['bedarf']['token'])): ?>

@@ -453,6 +453,9 @@ final class Zugang
         if ((int) Db::wert('SELECT COUNT(*) FROM orders WHERE customer_id = ?', [$kid], 0) > 0) { return false; }
         if ((int) Db::wert("SELECT COUNT(*) FROM bedarf WHERE customer_id = ? AND status <> 'offen'", [$kid], 0) > 0) { return false; }
         if ((int) Db::wert("SELECT COUNT(*) FROM angebote WHERE customer_id = ? AND status IN ('gesendet','angenommen')", [$kid], 0) > 0) { return false; }
+        /* Festpreis schon vereinbart (Partner-Vorab-Link, 02.10.2026, oder von Uwe
+           angelegt): keine acht Fragen — der Preis steht, das Angebot kommt. */
+        if ((int) Db::wert("SELECT COUNT(*) FROM angebote WHERE customer_id = ? AND festpreis_cents IS NOT NULL AND status = 'entwurf'", [$kid], 0) > 0) { return false; }
         return true;
     }
 

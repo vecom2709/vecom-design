@@ -18867,6 +18867,76 @@ pruefe('Festpreis: andere Belege behalten ihre eine Zeile', $fpAlt === null || c
 pruefe('Festpreis: ohne Festpreis bleibt die Fragebogen-Sperre', str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "if (!self::istFestpreis(\$a) && !Onboarding::fertig("));
 
 /* ============================================================================
+   Partner-Vorab: Kunde mit vereinbartem Festpreis (02.10.2026, Uwe: „Partner
+   können vorab Preise … eingeben und als Link schicken … ohne Fragebogen“)
+   ============================================================================ */
+abschnitt('Partner-Vorab: vereinbarter Festpreis per Link');
+require_once $wurzel . '/src/PartnerVorab.php';
+require_once $wurzel . '/src/Kundenzugang.php';
+$pvP = Partner::anlegen(['name' => 'Marco Vorab', 'email' => 'marco@vorab-partner.example', 'status' => 'aktiv', 'firma' => 'Marco Consulenze']);
+pruefe('Vorab: Preis unter 50 € gilt als Tippfehler', PartnerVorab::anlegen($pvP, ['preis' => '20', 'leistungen' => 'Sito'])['grund'] === 'pv_e_preis');
+pruefe('Vorab: ohne Leistungstext nicht', PartnerVorab::anlegen($pvP, ['preis' => '950', 'leistungen' => ''])['grund'] === 'pv_e_leistungen');
+pruefe('Vorab: Unsinn als Preis nicht', PartnerVorab::anlegen($pvP, ['preis' => '9x5', 'leistungen' => 'Sito'])['grund'] === 'pv_e_preis');
+$pvN = PartnerVorab::anlegen($pvP, ['preis' => '1.250,00', 'leistungen' => 'Website 5 Seiten + Logo', 'bezeichnung' => 'Bar Vorab', 'sprache' => 'de']);
+$pvZ = $pvN['ok'] ? Db::one('SELECT * FROM partner_vorab WHERE id = ?', [(int) $pvN['id']]) : null;
+pruefe('Vorab: Link entsteht mit Preis in Cent, Sprache und eigener Notiz', $pvZ !== null && (int) $pvZ['preis_cents'] === 125000 && $pvZ['sprache'] === 'de'
+    && $pvZ['bezeichnung'] === 'Bar Vorab' && str_contains((string) $pvN['link'], '/vorab.php?v=' . $pvZ['token']) && str_contains((string) $pvN['link'], 'lang=de'));
+$pvL = PartnerVorab::liste($pvP);
+pruefe('Vorab: Partnerliste zeigt Stand „offen“, keine Kundendaten', count($pvL) === 1 && $pvL[0]['stand'] === 'offen' && !array_key_exists('customer_id', $pvL[0]));
+pruefe('Vorab: fremder Link gilt nicht', PartnerVorab::ausToken(str_repeat('a', 40)) === null && PartnerVorab::ausToken('kurz') === null);
+$pvF = PartnerVorab::einloesen((string) $pvZ['token'], ['name' => 'Anna Vorab', 'email' => 'anna@vorab-kunde.example']);
+pruefe('Vorab: Pflichtfelder und Zustimmung werden verlangt', !$pvF['ok'] && $pvF['grund'] === 'fehlt' && in_array('strasse', $pvF['fehlt'], true) && in_array('zustimmung', $pvF['fehlt'], true)
+    && Db::wert('SELECT status FROM partner_vorab WHERE id = ?', [(int) $pvZ['id']], '') === 'offen');
+$pvDaten = ['name' => 'Anna Vorab', 'firma' => 'Bar Vorab GmbH', 'email' => 'Anna@Vorab-Kunde.example', 'telefon' => '+49 170 1234567',
+            'strasse' => 'Hauptstraße 5', 'plz' => '55543', 'ort' => 'Bad Kreuznach', 'land' => 'Deutschland', 'vat_id' => 'DE123456789', 'zustimmung' => '1'];
+$pvE = PartnerVorab::einloesen((string) $pvZ['token'], $pvDaten);
+$pvK = $pvE['ok'] ? Db::one('SELECT * FROM customers WHERE id = ?', [(int) $pvE['kunde_id']]) : null;
+pruefe('Vorab: Kunde entsteht mit Impressum-Angaben und Sprache', $pvK !== null && $pvK['email'] === 'anna@vorab-kunde.example' && $pvK['company'] === 'Bar Vorab GmbH'
+    && $pvK['street'] === 'Hauptstraße 5' && $pvK['zip'] === '55543' && $pvK['city'] === 'Bad Kreuznach' && $pvK['country'] === 'Deutschland'
+    && $pvK['vat_id'] === 'DE123456789' && $pvK['sprache'] === 'de', json_encode($pvE));
+pruefe('Vorab: dem Partner zugeordnet (Quelle vorab) — Provision läuft wie gewohnt',
+    $pvK !== null && Db::one("SELECT * FROM partner_zuordnungen WHERE customer_id = ? AND partner_id = ? AND quelle = 'vorab'", [(int) $pvK['id'], $pvP]) !== null);
+$pvA = $pvE['ok'] ? Db::one('SELECT * FROM angebote WHERE id = ?', [(int) $pvE['angebot_id']]) : null;
+pruefe('Vorab: Festpreis-Angebot als ENTWURF mit Leistungstext — Uwe gibt frei', $pvA !== null && $pvA['status'] === 'entwurf' && (int) $pvA['festpreis_cents'] === 125000
+    && $pvA['sprache'] === 'de' && (string) $pvA['einleitung'] === 'Website 5 Seiten + Logo');
+pruefe('Vorab: Uwe bekommt eine Meldung mit Link zum Angebot', $pvA !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE link = ? AND title LIKE 'Festpreis vom Partner%'", ['/angebote/' . (int) $pvA['id']], 0) === 1);
+pruefe('Vorab: Link ist danach verbraucht', !PartnerVorab::einloesen((string) $pvZ['token'], $pvDaten)['ok'] && PartnerVorab::einloesen((string) $pvZ['token'], $pvDaten)['grund'] === 'schon');
+pruefe('Vorab: Partnerliste zeigt „eingetragen“', PartnerVorab::liste($pvP)[0]['stand'] === 'eingetragen');
+pruefe('Vorab: Verwaltung findet den vereinbarten Preis beim Kunden und am Angebot', $pvK !== null && (int) (PartnerVorab::zuKunde((int) $pvK['id'])['preis_cents'] ?? 0) === 125000
+    && (int) (PartnerVorab::zuAngebot((int) $pvA['id'])['pid'] ?? 0) === $pvP);
+require_once $wurzel . '/src/Zugang.php';
+pruefe('Vorab: keine acht Fragen im Dashboard', $pvK !== null && !Zugang::vorhabenOffen((int) $pvK['id']));
+$pvS = $pvK !== null ? Kundenzugang::seite($pvK) : [];
+pruefe('Vorab: Dashboard kennt den vereinbarten Preis und steht nicht auf „vorhaben“', ($pvS['stufe'] ?? '') !== 'vorhaben'
+    && (int) ($pvS['vorab']['preis_cents'] ?? 0) === 125000 && ($pvS['dran'] ?? '') === 'wir', json_encode(['stufe' => $pvS['stufe'] ?? null, 'dran' => $pvS['dran'] ?? null]));
+/* Uwe sendet — der Partner sieht „beim Kunden“, das Dashboard zeigt das Angebot */
+Db::run("UPDATE angebote SET status = 'gesendet' WHERE id = ?", [(int) $pvA['id']]);
+pruefe('Vorab: nach dem Senden „Angebot beim Kunden“, im Dashboard das Angebot statt der Vorab-Zeile',
+    PartnerVorab::liste($pvP)[0]['stand'] === 'beim_kunden' && ($pvK !== null && array_key_exists('vorab', $pvS2 = Kundenzugang::seite($pvK)) && $pvS2['vorab'] === null) && (Kundenzugang::seite($pvK)['stufe'] ?? '') === 'angebot');
+/* Zurückziehen und Ablauf */
+$pvW = PartnerVorab::anlegen($pvP, ['preis' => '600', 'leistungen' => 'Landingpage', 'sprache' => 'it']);
+pruefe('Vorab: fremder Partner kann nicht zurückziehen, der eigene schon', !PartnerVorab::zurueckziehen($pvP + 999, (int) $pvW['id']) && PartnerVorab::zurueckziehen($pvP, (int) $pvW['id'])
+    && !(PartnerVorab::ausToken((string) Db::wert('SELECT token FROM partner_vorab WHERE id = ?', [(int) $pvW['id']], ''))['gueltig'] ?? true));
+$pvX = PartnerVorab::anlegen($pvP, ['preis' => '700', 'leistungen' => 'Shop', 'sprache' => 'en']);
+Db::run('UPDATE partner_vorab SET created_at = DATE_SUB(NOW(), INTERVAL 61 DAY) WHERE id = ?', [(int) $pvX['id']]);
+$pvXt = (string) Db::wert('SELECT token FROM partner_vorab WHERE id = ?', [(int) $pvX['id']], '');
+pruefe('Vorab: nach 60 Tagen abgelaufen', PartnerVorab::einloesen($pvXt, $pvDaten)['grund'] === 'abgelaufen' && PartnerVorab::liste($pvP)[0]['stand'] === 'abgelaufen');
+/* Seiten */
+$pvSeite = (string) file_get_contents($wurzel . '/../vorab.php');
+pruefe('Vorab-Seite: CSRF, Roboterbremse, keine Daten in der Weiterleitung, Datenschutz + AGB verlinkt',
+    str_contains($pvSeite, "hash_equals((string) \$_SESSION['csrf']") && str_contains($pvSeite, "name=\"webseite\"") && str_contains($pvSeite, "Sprache::legal(\$sprache, 'agb')")
+    && str_contains($pvSeite, "Sprache::legal(\$sprache, 'privacy')") && str_contains($pvSeite, 'X-Robots-Tag: noindex'));
+$pvPart = (string) file_get_contents($wurzel . '/../partner.php');
+pruefe('Partnerseite: Block „Kunde mit vereinbartem Preis“ mit Link, Kopieren und WhatsApp — der Partner schickt selbst',
+    str_contains($pvPart, 'id="vorab"') && str_contains($pvPart, "\$tat === 'vorab_neu'") && str_contains($pvPart, 'https://wa.me/?text='));
+foreach (['it', 'de', 'en'] as $pvSp) {
+    pruefe('Vorab-Texte (' . $pvSp . '): vollständig, Kundentexte per Sie/Lei', Texte::VORAB['knopf'][$pvSp] !== '' && Texte::PARTNER['pv_titel'][$pvSp] !== ''
+        && str_contains(Texte::PARTNER['pv_wa_text'][$pvSp], '{link}') && str_contains(Texte::SEITE['vorabKommtText'][$pvSp], '{preis}')
+        && ($pvSp !== 'de' || (str_contains(Texte::VORAB['lead']['de'], 'Ihr') && !preg_match('/\b(du|dein|dich)\b/i', implode(' ', array_column(Texte::VORAB, 'de'))))));
+}
+
+/* ============================================================================
    Telegram Growth Engine T2: Dashboard (01.10.2026, Uwe: „Ja mach T2“)
    ============================================================================ */
 abschnitt('Telegram Growth Engine T2: Dashboard');

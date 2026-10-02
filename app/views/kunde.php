@@ -34,6 +34,10 @@ $eing = !empty($eingebettet);
         $kAngebote = sicher(static fn() => Db::all('SELECT id, nummer, status, summe_cents, festpreis_cents FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 6', [(int) $k['id']]), []); ?>
   <?php if (empty($k['anonym_am'])): ?>
   <div class="block" id="festpreis-angebot"><h2>Individuelles Angebot</h2>
+    <?php require_once __DIR__ . '/../src/PartnerVorab.php'; $pvK = PartnerVorab::zuKunde((int) $k['id']); ?>
+    <?php if ($pvK): ?>
+      <div class="hinweis gut" style="margin:0 0 10px">Preis vereinbart von Partner <a href="<?= Fmt::h(url('partner/' . (int) $pvK['pid'])) ?>"><?= Fmt::h((string) $pvK['partner_name']) ?></a>: <b><?= Fmt::geld((int) $pvK['preis_cents']) ?></b> — „<?= Fmt::h((string) $pvK['leistungen']) ?>“ <span style="color:var(--leise)">(eingetragen <?= Fmt::h(Fmt::datum((string) $pvK['eingeloest_at'])) ?>)</span></div>
+    <?php endif; ?>
     <?php if ($kAngebote): ?>
       <div class="tabellenrahmen" style="margin-bottom:10px"><table><tbody>
         <?php foreach ($kAngebote as $ka): ?>

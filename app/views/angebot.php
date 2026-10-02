@@ -148,6 +148,10 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
     <?php if ($aenderbar || $istFest): ?>
     <div class="block" id="festpreis">
       <h2 style="font-size:15px;margin:0 0 10px">Festpreis <?php if ($istFest): ?><span class="marke2 gut">aktiv</span><?php endif; ?></h2>
+      <?php require_once __DIR__ . '/../src/PartnerVorab.php'; $pvA = PartnerVorab::zuAngebot((int) $a['id']); ?>
+      <?php if ($pvA): ?>
+        <div class="hinweis" style="margin:0 0 10px">Vom Partner <a href="<?= Fmt::h(url('partner/' . (int) $pvA['pid'])) ?>"><?= Fmt::h((string) $pvA['partner_name']) ?></a> mit dem Kunden vereinbart: <b><?= Fmt::geld((int) $pvA['preis_cents']) ?></b> — „<?= Fmt::h((string) $pvA['leistungen']) ?>“.<?= (string) $a['status'] === 'entwurf' ? ' Bausteine hineinklicken, prüfen und senden.' : '' ?></div>
+      <?php endif; ?>
       <?php if ($istFest): ?>
         <p style="font-size:20px;font-weight:600;margin:0 0 4px"><?= Fmt::geld((int) $a['festpreis_cents'], (string) $a['currency']) ?></p>
         <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0 0 8px">Die einmaligen Zeilen teilen sich diesen Betrag im Verhältnis der Baustein-Preise, auf ganze Euro. Änderst du einen Zeilenpreis, bleibt er fest und die übrigen gleichen aus. Monatliches zählt extra. Geht auch ohne Fragebogen raus — mit dem Angebot als PDF in der Mail.</p>
