@@ -51,6 +51,12 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-chance{display:inline-flex;gap:6px;align-items:baseline;padding:3px 10px;border-radius:999px;font-size:13px;white-space:nowrap;
     background:var(--flaeche2);border:1px solid var(--linie);color:var(--dim)}
   .akq-chance b{font-size:14px;color:var(--text)}
+  /* Beim Partner (03.10.2026): wer telefoniert den Betrieb gerade ab */
+  .akq-partner{display:inline-flex;gap:6px;align-items:center;margin:5px 6px 0 0;padding:3px 10px;border-radius:999px;font-size:12.5px;white-space:nowrap;
+    border:1px solid rgba(31,232,255,.45);color:var(--cyan);background:rgba(31,232,255,.07);text-decoration:none}
+  .akq-partner b{color:var(--text);font-weight:650}
+  .akq-partner.fertig{border-color:rgba(74,222,128,.4);color:var(--gruen);background:rgba(74,222,128,.07)}
+  .akq-partner.aus{border-color:var(--linie);color:var(--leise);background:transparent}
   .akq-chance.s-top,.akq-chance.s-sehr_interessant{border-color:rgba(241,211,139,.5);color:var(--cyan)}
   .akq-chance.s-top b,.akq-chance.s-sehr_interessant b{color:var(--cyan)}
   .akq-chance.s-interessant{border-color:var(--linie2)}

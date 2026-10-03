@@ -3939,7 +3939,10 @@ switch ($route) {
         ansicht('kunden', ['q' => $q, 'anfragen' => sicher(static fn() => Zugang::offene(30), []), 'liste' => Db::all(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM orders o WHERE o.customer_id = c.id) AS bestellungen,
-                    (SELECT COUNT(*) FROM projects p WHERE p.customer_id = c.id) AS projekte
+                    (SELECT COUNT(*) FROM projects p WHERE p.customer_id = c.id) AS projekte,
+                    (SELECT pa.name FROM partner_zuordnungen z JOIN partner pa ON pa.id = z.partner_id WHERE z.customer_id = c.id LIMIT 1) AS partner_name,
+                    (SELECT z.partner_id FROM partner_zuordnungen z WHERE z.customer_id = c.id LIMIT 1) AS partner_id,
+                    (SELECT z.quelle FROM partner_zuordnungen z WHERE z.customer_id = c.id LIMIT 1) AS partner_quelle
              FROM customers c $wo ORDER BY c.created_at DESC",
             $q !== '' ? ['q' => "%$q%"] : [])]);
         break;

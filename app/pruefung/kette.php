@@ -15421,6 +15421,27 @@ pruefe('T4: kauft der Betrieb, gehört er dem Partner, der angerufen hat — mit
     && Db::wert('SELECT quelle FROM partner_zuordnungen WHERE customer_id = ?', [$alK], '') === 'anruf'
     && $alPr && (int) $alPr['provision_cents'] === (int) round((int) $alRate[0]['amount_cents'] * 0.15) && $alPr['satz'] === '15 %'
     && PartnerAnrufliste::satz($alP)['wert'] === 1500 && Partner::satzFuer($alP)['wert'] === 1000, json_encode($alPr));
+/* Beim Partner gekennzeichnet (03.10.2026, Uwe: „überall der Partner als Kennzeichnung, dass wir wissen, wer diesen Kunden gerade abtelefoniert“) */
+$kpZ = static function (array $f): array { $r = []; foreach (Akquise::liste($f + ['gesperrte' => '1'], 1, 500)['zeilen'] as $z) { $r[(int) $z['id']] = $z; } return $r; };
+$kpTina = $kpZ(['partner' => (string) $alP['id']]);
+$kpAlle = $kpZ(['partner' => 'alle']);
+$kpOhne = $kpZ(['q' => 'Pasticceria Anruf']);
+$kpKw = static fn(?array $r) => $r ? Akquise::partnerKennung($r) : null;
+$kpView = (string) file_get_contents($wurzel . '/views/akquise.php');
+pruefe('Kennzeichnung „beim Partner“: jede Zeile in „Neue Kunden finden“ nennt den Partner und den Stand des Anrufs; Filter je Partner und für alle',
+    isset($kpTina[$alA], $kpTina[$alC]) && !isset($kpTina[$alD]) && isset($kpAlle[$alA], $kpAlle[$alD])
+    && ($kpOhne[$alA]['beim_partner']['partner_name'] ?? '') === 'Tina Telefon'
+    && $kpKw($kpOhne[$alA]['beim_partner'] ?? null) === ['· hat zugestimmt', 'fertig']
+    && $kpKw($kpAlle[$alD]['beim_partner'] ?? null) === ['kümmert sich', 'an'] && ($kpAlle[$alD]['beim_partner']['partner_name'] ?? '') === 'Otto Anders'
+    && Akquise::partnerKennung(['herkunft' => 'vecom', 'anruf_status' => 'nicht_erreicht', 'versuche' => 2]) === ['ruft an · 2× nicht erreicht', 'an']
+    && Akquise::partnerKennung(['herkunft' => 'vecom', 'anruf_status' => 'offen']) === ['ruft an', 'an']
+    && str_contains($kpView, 'class="akq-partner') && str_contains($kpView, "'partner' => 'Beim Partner'") && str_contains($kpView, "'?partner=' . (int) \$al['id']")
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ohne_web', 'partner']"), json_encode([array_keys($kpTina), array_keys($kpAlle)]));
+$kpKunden = Db::one("SELECT (SELECT pa.name FROM partner_zuordnungen z JOIN partner pa ON pa.id = z.partner_id WHERE z.customer_id = c.id LIMIT 1) AS partner_name,
+                            (SELECT z.quelle FROM partner_zuordnungen z WHERE z.customer_id = c.id LIMIT 1) AS partner_quelle FROM customers c WHERE c.id = ?", [$alK]);
+pruefe('Kennzeichnung auch unter „Alle Kunden“: der Partner steht am Namen, ☎ wenn der Kunde über seine Anrufliste kam',
+    ($kpKunden['partner_name'] ?? '') === 'Tina Telefon' && ($kpKunden['partner_quelle'] ?? '') === 'anruf'
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), 'AS partner_quelle') && str_contains((string) file_get_contents($wurzel . '/views/kunden.php'), "=== 'anruf' ? '☎' : '★'"));
 $alView = (string) file_get_contents($wurzel . '/views/partner_recherche.php') . (string) file_get_contents($wurzel . '/views/akquise.php');
 pruefe('T1/T2: Häkchen und „Zum Abtelefonieren übergeben“ in der Verwaltung (mit Rückfrage), Anrufliste mit Anruf-Knopf und Text im Partner-Dashboard',
     str_contains($alView, 'name="firmen[]"') && str_contains($alView, 'Zum Abtelefonieren übergeben') && Ablauf::rueckfrage('akq_an_partner') !== null

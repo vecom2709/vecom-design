@@ -21,7 +21,10 @@
   Fmt::h(trim((string) ($k['kundennr'] ?? '')) ?: '—') ?></td>
 <td><a href="<?= Fmt::h(url('kunden/' . $k['id'])) ?>"><strong><?= Fmt::h(Fmt::name($k['name'], $k['company'], $k['email'], $k['kundennr'] ?? null)) ?></strong></a>
 <?php if (trim((string) ($k['anonym_am'] ?? '')) !== ''): ?>
-  <span class="marke2 schlecht" style="margin-left:7px">anonymisiert</span><?php endif; ?></td>
+  <span class="marke2 schlecht" style="margin-left:7px">anonymisiert</span><?php endif; ?>
+<?php /* Partner-Kennzeichnung (03.10.2026, Uwe): zu welchem Partner der Kunde gehört; ☎ = kam über seine Anrufliste */
+  if (trim((string) ($k['partner_name'] ?? '')) !== ''): ?>
+  <a class="marke2" style="margin-left:7px;text-decoration:none" href="<?= Fmt::h(url('partner/' . (int) $k['partner_id'])) ?>" title="Gehört zu diesem Partner"><?= (string) ($k['partner_quelle'] ?? '') === 'anruf' ? '☎' : '★' ?> <?= Fmt::h((string) $k['partner_name']) ?></a><?php endif; ?></td>
 <td><?= Fmt::h($k['company'] ?: '—') ?></td><td><?= Fmt::h($k['email']) ?></td>
 <td class="num"><?= (int) $k['bestellungen'] ?></td><td class="num"><?= (int) $k['projekte'] ?></td>
 <td><?= Fmt::h(Fmt::datum($k['created_at'])) ?></td></tr>

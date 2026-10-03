@@ -190,20 +190,24 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
 <div class="block" id="anrufliste">
   <h2 style="font-size:15px;margin:0 0 8px">Beim Partner zum Anrufen</h2>
   <div class="tabellenrahmen"><table><thead><tr><th>Partner</th><th>offen</th><th>zugestimmt</th><th>kein Interesse</th><th>nicht erreichbar</th></tr></thead><tbody>
-    <?php foreach ($akqAl as $al): ?><tr><td><?= Fmt::h((string) $al['name']) ?></td><td><?= (int) $al['offen'] ?></td><td><?= (int) $al['zugestimmt'] ?></td><td><?= (int) $al['kein_interesse'] ?></td><td><?= (int) $al['nicht_erreichbar'] ?></td></tr><?php endforeach; ?>
+    <?php foreach ($akqAl as $al): ?><tr><td><a href="<?= Fmt::h(url('akquise') . '?partner=' . (int) $al['id']) ?>" title="Alle Betriebe dieses Partners zeigen"><?= Fmt::h((string) $al['name']) ?></a></td><td><?= (int) $al['offen'] ?></td><td><?= (int) $al['zugestimmt'] ?></td><td><?= (int) $al['kein_interesse'] ?></td><td><?= (int) $al['nicht_erreichbar'] ?></td></tr><?php endforeach; ?>
   </tbody></table></div>
   <p class="akq-klein" style="margin-top:6px">„Nicht erreicht“ kommt nach 2–3 Tagen wieder auf die Liste, nach dem dritten Mal ist der Betrieb wieder frei.
     Kauft ein Betrieb, der beim Partner zugestimmt hat (auch erst Monate später), gehört er diesem Partner — mit mindestens <?= Fmt::h(Partner::satzWort(['art' => 'prozent', 'wert' => Partner::zahl('partner_anruf_bp')])) ?> Provision.</p>
 </div>
 <?php endif; ?>
-<?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen'];
-  $akqSchnellAn = !empty($filter['darf']) ? 'darf' : (!empty($filter['ohne_web']) ? 'ohne_web' : (!empty($filter['stark']) ? 'stark' : '')); ?>
+<?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen', 'partner' => 'Beim Partner'];
+  $akqSchnellAn = !empty($filter['darf']) ? 'darf' : (!empty($filter['ohne_web']) ? 'ohne_web' : (!empty($filter['stark']) ? 'stark' : (!empty($filter['partner']) ? 'partner' : ''))); ?>
 <nav class="akq-schnell" aria-label="Schnellauswahl">
   <?php foreach ($akqSchnell as $k => $w): ?>
-    <a href="<?= Fmt::h(url('akquise') . ($k !== '' ? '?' . $k . '=1' : '')) ?>" class="<?= $akqSchnellAn === $k && count(array_filter($filter, static fn($v) => $v !== '')) <= 1 ? 'an' : '' ?>"><?= Fmt::h($w) ?></a>
+    <a href="<?= Fmt::h(url('akquise') . ($k !== '' ? '?' . $k . '=' . ($k === 'partner' ? 'alle' : '1') : '')) ?>" class="<?= $akqSchnellAn === $k && count(array_filter($filter, static fn($v) => $v !== '')) <= 1 ? 'an' : '' ?>"><?= Fmt::h($w) ?></a>
   <?php endforeach; ?>
   <a href="<?= Fmt::h(url('akquise') . '?kontakt=kontaktiert') ?>" class="<?= ($filter['kontakt'] ?? '') === 'kontaktiert' ? 'an' : '' ?>">Warten auf Antwort</a>
 </nav>
+<?php if (!empty($filter['partner']) && ctype_digit((string) $filter['partner'])):
+  $akqPn = sicher(static fn() => (string) Db::wert('SELECT name FROM partner WHERE id = ?', [(int) $filter['partner']], ''), ''); ?>
+  <p class="akq-klein" style="margin:0 0 8px">Gezeigt: nur Betriebe bei Partner <b><?= Fmt::h($akqPn) ?></b> · <a href="<?= Fmt::h(url('akquise') . '?partner=alle') ?>">alle Partner</a> · <a href="<?= Fmt::h(url('akquise')) ?>">alle Betriebe</a></p>
+<?php endif; ?>
 <div class="block">
   <?php if (!$liste['zeilen']): ?>
     <div class="leer">
@@ -232,7 +236,10 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
           <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a></label>
           <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
           <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
-          <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?></td>
+          <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?>
+          <?php if (!empty($z['beim_partner'])): $bp = $z['beim_partner']; [$bpWort, $bpArt] = Akquise::partnerKennung($bp); ?>
+            <a class="akq-partner <?= $bpArt ?>" href="<?= Fmt::h(url('akquise') . '?partner=' . (int) $bp['partner_id']) ?>" title="Reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $bp['bis']))) ?>"><?= (string) ($bp['herkunft'] ?? '') === 'vecom' ? '☎' : '★' ?> <b><?= Fmt::h((string) $bp['partner_name']) ?></b> <?= Fmt::h($bpWort) ?></a>
+          <?php endif; ?></td>
         <td><?= Fmt::h((string) ($z['stadt'] ?? '—')) ?><div class="akq-klein"><?= Fmt::h((string) $z['land']) ?></div></td>
         <td><?php if ($ohneWeb): ?><b>Keine Website</b>
             <?php elseif ($top): ?><?= Fmt::h((string) $top[0]) ?><?= count($top) > 1 ? ' <span class="akq-klein">+' . (count($top) - 1) . ' weitere</span>' : '' ?>

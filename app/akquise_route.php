@@ -812,7 +812,7 @@ if ($teil !== '' && ctype_digit($teil)) {
 }
 
 $filter = array_intersect_key($_GET, array_flip(['land', 'region', 'kreis', 'stadt', 'branche', 'kontakt', 'compliance', 'audit',
-                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web']));
+                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web', 'partner']));
 ansicht('akquise', [
     'liste' => Akquise::liste($filter, max(1, (int) ($_GET['seite'] ?? 1))),
     'filter' => $filter,

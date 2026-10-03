@@ -844,6 +844,15 @@ final class Akquise
         /* Schnellfilter (29.09.2026, K1): wer hat zugestimmt, wer hat keine Website */
         if (!empty($f['darf'])) { $wo[] = "(f.einwilligung IS NOT NULL AND f.einwilligung <> '')"; }
         if (!empty($f['ohne_web'])) { $wo[] = "(f.url IS NULL OR f.url = '')"; }
+        /* Beim Partner (03.10.2026, Uwe): wer telefoniert diesen Betrieb gerade ab */
+        if (!empty($f['partner'])) {
+            if (ctype_digit((string) $f['partner'])) {
+                $wo[] = 'EXISTS (SELECT 1 FROM partner_reservierungen r WHERE r.firma_id = f.id AND r.bis >= CURDATE() AND r.partner_id = ?)';
+                $args[] = (int) $f['partner'];
+            } else {
+                $wo[] = 'EXISTS (SELECT 1 FROM partner_reservierungen r WHERE r.firma_id = f.id AND r.bis >= CURDATE())';
+            }
+        }
         foreach ($gleich as $k => $spalte) {
             $w = trim((string) ($f[$k] ?? ''));
             if ($w !== '') { $wo[] = "$spalte = ?"; $args[] = $w; }
@@ -875,7 +884,39 @@ final class Akquise
                   (SELECT v.status FROM akq_vorlagen v WHERE v.firma_id = f.id AND v.status <> 'verworfen' ORDER BY v.id DESC LIMIT 1) AS vorlage_status,
                   (SELECT v.kanal  FROM akq_vorlagen v WHERE v.firma_id = f.id AND v.status <> 'verworfen' ORDER BY v.id DESC LIMIT 1) AS vorlage_kanal
              FROM akq_firmen f WHERE $sql ORDER BY $ordnung LIMIT $proSeite OFFSET $ab", $args);
+        // Partner-Kennzeichnung je Zeile: wer hat den Betrieb gerade (Anrufliste oder eigene Reservierung)
+        if ($zeilen) {
+            $ids = array_map(static fn($z) => (int) $z['id'], $zeilen);
+            $res = [];
+            try {
+                foreach (Db::all('SELECT r.firma_id, r.partner_id, r.herkunft, r.anruf_status, r.versuche, r.bis, p.name AS partner_name
+                                    FROM partner_reservierungen r JOIN partner p ON p.id = r.partner_id
+                                   WHERE r.bis >= CURDATE() AND r.firma_id IN (' . implode(',', array_fill(0, count($ids), '?')) . ')', $ids) as $r) {
+                    $res[(int) $r['firma_id']] = $r;
+                }
+            } catch (Throwable $e) { $res = []; }   // Tabelle noch nicht da
+            foreach ($zeilen as &$z) { $z['beim_partner'] = $res[(int) $z['id']] ?? null; }
+            unset($z);
+        }
         return ['zeilen' => $zeilen, 'gesamt' => $gesamt, 'seite' => $seite, 'seiten' => $seiten];
+    }
+
+    /**
+     * Kennzeichnung „beim Partner“ fuer Listen (03.10.2026, Uwe): kurzer Stand
+     * und eine Art fuer die Farbe -- an = laeuft, fertig = zugestimmt, aus = erledigt.
+     * @return array{0:string,1:string}
+     */
+    public static function partnerKennung(array $r): array
+    {
+        if ((string) ($r['herkunft'] ?? '') !== 'vecom') { return ['kümmert sich', 'an']; }
+        $v = (int) ($r['versuche'] ?? 0);
+        return match ((string) ($r['anruf_status'] ?? 'offen')) {
+            'nicht_erreicht' => ['ruft an · ' . $v . '× nicht erreicht', 'an'],
+            'zugestimmt' => ['· hat zugestimmt', 'fertig'],
+            'kein_interesse' => ['· kein Interesse', 'aus'],
+            'nicht_erreichbar' => ['· nicht erreichbar', 'aus'],
+            default => ['ruft an', 'an'],
+        };
     }
 
     /** Werte fuer die Auswahllisten der Filter -- nur was es wirklich gibt. */
