@@ -33,7 +33,15 @@ require_once __DIR__ . '/MkMedium.php';
 
 final class MkStudio
 {
-    public const GRUPPEN = ['branche' => 'Branchen', 'vecom' => 'Vecom Design', 'partner' => 'Partner'];
+    public const GRUPPEN = ['branche' => 'Branchen', 'vecom' => 'Vecom Design', 'partner' => 'Partner', 'arbeiten' => '3D-Arbeiten (unsere Websites)'];
+
+    /**
+     * 3D-Arbeiten (03.10.2026, Uwe: „… und 3D, was die Arbeiten betreffen“): Das Standbild der Fallstudie —
+     * Laptop und Handy mit der echten Website, gerechnet in Blender — ist das erste Bild, Veo führt die
+     * Kamera weiter und spricht den Satz. Querformat, weil das Standbild quer ist; nur Kie.ai, denn eine
+     * Blender-Fahrt ohne die Website auf dem Schirm wäre kein Beweis.
+     */
+    public const ARBEIT_START = ['a_cavaleri' => 'cavaleri', 'a_jonika' => 'jonika', 'a_mensaena' => 'mensaena', 'a_trendonix' => 'trendonix', 'a_drehesum' => 'drehesum'];
 
     /**
      * Schlüssel => [Gruppe, Name in der Verwaltung, 3D-Szene (oder null), Bildidee für Kie (englisch),
@@ -81,6 +89,21 @@ final class MkStudio
         'p_check' => ['partner', 'Partner: kostenloser Website-Check', null,
             'Close-up of a business owner checking a phone at the counter of a café, the screen glow on the face, a moment of realisation, cinematic shallow focus',
             ['de' => 'Wie gut ist Ihre Website wirklich? Prüfen Sie es kostenlos.', 'it' => 'Quanto è buono davvero il suo sito? Lo verifichi gratis.', 'en' => 'How good is your website really? Check it for free.']],
+        'a_cavaleri' => ['arbeiten', 'Arbeit: Cavaleri Srl (Transport, seit 1974)', null,
+            'The first frame shows a laptop and a smartphone on a wooden desk, both displaying the website of a Sicilian transport company. Slow cinematic push-in towards the laptop, late-afternoon sun moving across the desk, dust in the light',
+            ['de' => 'Fünfzig Jahre Transport. Jetzt auch online in der ersten Reihe.', 'it' => 'Cinquant’anni di trasporti. Ora anche online in prima fila.', 'en' => 'Fifty years in transport. Now front row online, too.']],
+        'a_jonika' => ['arbeiten', 'Arbeit: Jonika Venturis (Kinderbücher)', null,
+            'The first frame shows a laptop and a smartphone on a desk, both displaying the website of a children’s book author. Gentle push-in, warm lamp light, coloured pencils in soft focus',
+            ['de' => 'Aus einer Geschichte wurde eine Welt — und eine Website, die sie zeigt.', 'it' => 'Da una storia è nato un mondo — e un sito che lo mostra.', 'en' => 'A story became a world — and a website that shows it.']],
+        'a_mensaena' => ['arbeiten', 'Arbeit: Mensaena (Nachbarschaftshilfe)', null,
+            'The first frame shows a laptop and a smartphone on a desk, both displaying the website of a non-profit neighbourhood help platform. Slow push-in, morning light through a window, calm and hopeful mood',
+            ['de' => 'Nachbarn helfen Nachbarn. Wir haben ihnen ein Zuhause im Netz gebaut.', 'it' => 'Vicini che aiutano vicini. Abbiamo costruito la loro casa online.', 'en' => 'Neighbours helping neighbours. We built their home online.']],
+        'a_trendonix' => ['arbeiten', 'Arbeit: Trendonix (Buchverlag)', null,
+            'The first frame shows a laptop and a smartphone on a desk next to a book, both displaying the website of an illustrated book publisher. Slow dolly-in, golden light, pages of the book stirring slightly',
+            ['de' => 'Ein Verlag, eine Buchreihe, ein Auftritt, der Lust aufs Lesen macht.', 'it' => 'Una casa editrice, una serie di libri, un sito che fa venire voglia di leggere.', 'en' => 'A publisher, a book series, a website that makes you want to read.']],
+        'a_drehesum' => ['arbeiten', 'Arbeit: Dreh es um (Verbraucheraufklärung)', null,
+            'The first frame shows a laptop and a smartphone on a desk with an apple, both displaying the website of a consumer research project. Slow push-in, moody side light, quiet tension',
+            ['de' => 'Wer aufklären will, braucht eine Seite, der man vertraut.', 'it' => 'Chi vuole informare ha bisogno di un sito di cui fidarsi.', 'en' => 'If you want to inform people, you need a site they trust.']],
     ];
 
     public const MOTOREN = ['auto' => 'Automatisch — Kie.ai mit Stimme, ohne Guthaben Blender', 'kie' => 'Kie.ai mit Stimme (Veo 3.1 Quality, ~400 Credits)',
@@ -106,7 +129,10 @@ final class MkStudio
         if ($art !== 'video') { return $k[3] . ".\n\n" . $look; }
         $sprachName = ['de' => 'German', 'it' => 'Italian', 'en' => 'English'][$sp];
         $satz = (string) ($k[4][$sp] ?? '');
-        return $k[3] . ".\n\nVoiceover: a calm, confident native " . $sprachName . ' narrator says, clearly: "' . str_replace('"', "'", $satz) . "\"\n\n" . $look . ' Slow dolly or crane move, vertical framing safe.';
+        $kamera = isset(self::ARBEIT_START[$schluessel])
+            ? ' Keep both screens exactly as in the first frame — the website must stay sharp and unchanged; only camera and light move. Horizontal framing.'
+            : ' Slow dolly or crane move, vertical framing safe.';
+        return $k[3] . ".\n\nVoiceover: a calm, confident native " . $sprachName . ' narrator says, clearly: "' . str_replace('"', "'", $satz) . "\"\n\n" . $look . $kamera;
     }
 
     /**
@@ -120,6 +146,9 @@ final class MkStudio
         if (!isset(MkMedium::ARTEN[$art])) { return 'Bild oder Video?'; }
         if (!isset(self::MOTOREN[$motor])) { $motor = 'auto'; }
         $sp = in_array($sprache, ['de', 'it', 'en'], true) ? $sprache : 'de';
+        $arbeit = self::ARBEIT_START[$schluessel] ?? null;
+        if ($arbeit !== null && $art !== 'video') { return 'Das Bild dieser Arbeit gibt es schon (Fallstudie) — hier entsteht das Video dazu.'; }
+        if ($arbeit !== null) { $format = '16:9'; }   // das Standbild ist quer — hochkant schnitte Veo die Website ab
         if (!in_array($format, MkMedium::FORMATE[$art], true)) { $format = $art === 'video' ? '9:16' : '4:5'; }
         MkAuftrag::aufraeumen();
         if (($l = self::laeuft()) !== null) {
@@ -137,7 +166,8 @@ final class MkStudio
         if ($motor === 'kie') {
             $modell = $art === 'video' ? 'veo3' : (string) array_key_first(MkMedium::MODELLE['bild']);
             $param = ['inhalt_id' => 0, 'medium' => $art, 'modell' => $modell, 'format' => $format, 'prompt' => self::prompt($schluessel, $art, $sp),
-                      'eigener_prompt' => false, 'startbild' => null, 'credits_ca' => MkMedium::MODELLE[$art][$modell][1], 'titel' => $titel, 'galerie' => 1, 'studio' => $szene ?? 'studio'];
+                      'eigener_prompt' => false, 'startbild' => $arbeit !== null ? self::startbild($arbeit) : null,
+                      'credits_ca' => MkMedium::MODELLE[$art][$modell][1], 'titel' => $titel, 'galerie' => 1, 'studio' => $szene ?? ($arbeit !== null ? 'arbeit_' . $arbeit : 'studio')];
         } elseif ($szene === 'vecom') {
             $r = MkMedium::anlegenVecomSpot($art === 'video' ? $format : '9:16', $sp);
             if (!is_int($r)) { return $r; }
@@ -158,6 +188,12 @@ final class MkStudio
         self::markieren($id, $schluessel, $sp, $motor);
         try { Events::protokoll('studio', 'Studio: „' . $k[1] . '“ (' . $art . ', ' . self::MOTOREN[$motor] . ', ' . $sp . ')', null, null, null, ['auftrag_id' => $id]); } catch (Throwable $e) { }
         return $id;
+    }
+
+    /** Öffentliche Adresse des Startbilds (JPEG — Veo nimmt kein WebP sicher an). */
+    public static function startbild(string $arbeit): string
+    {
+        return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/assets/img/arbeiten/' . rawurlencode($arbeit) . '/start.jpg';
     }
 
     /** Den Auftrag als Studio-Auftrag kennzeichnen (Katalog, Sprache, Motor) — daran hängen „eins nach dem anderen“ und der Ersatz ohne Kie-Guthaben. */

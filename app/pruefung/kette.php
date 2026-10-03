@@ -18749,6 +18749,18 @@ pruefe('Verwaltung: Studio-Formular (Katalog nach Gruppen, Motor, Sprache) und �
     && str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), 'MkStudio::nachKieFehler($a, $text)'));
 Db::run('DELETE FROM mk_medien WHERE inhalt_id = 0 OR id = ?', [$stG3]); Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$stIn]);
 Db::run('DELETE FROM mk_auftraege');
+/* 3D-Arbeiten (03.10.2026): Veo startet vom Blender-Standbild der Fallstudie, immer quer, nur Kie.ai */
+$stAr = MkStudio::produzieren('a_cavaleri', 'video', 'auto', 'de', '9:16');
+$stAp = is_int($stAr) ? (json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$stAr], '{}'), true) ?: []) : [];
+$stAfehlt = array_filter(MkStudio::ARBEIT_START, static fn($a) => !is_file($wurzel . '/../assets/img/arbeiten/' . $a . '/start.jpg'));
+pruefe('3D-Arbeiten: Startbild ist das JPEG der Fallstudie, Format quer trotz „hoch“, Website bleibt unverändert, Stimme spricht den Satz; Bild abgelehnt; kein Blender-Ersatz',
+    is_int($stAr) && str_ends_with((string) ($stAp['startbild'] ?? ''), '/assets/img/arbeiten/cavaleri/start.jpg') && ($stAp['format'] ?? '') === '16:9'
+    && ($stAp['modell'] ?? '') === 'veo3' && str_contains((string) $stAp['prompt'], 'unchanged') && str_contains((string) $stAp['prompt'], MkStudio::KATALOG['a_cavaleri'][4]['de'])
+    && !str_contains((string) $stAp['prompt'], 'vertical framing') && is_string(MkStudio::produzieren('a_jonika', 'bild', 'auto', 'de'))
+    && MkStudio::nachKieFehler(['parameter' => json_encode($stAp)], 'Kie-Guthaben 0') === null && $stAfehlt === []
+    && count(array_filter(MkStudio::KATALOG, static fn($k) => $k[0] === 'arbeiten')) === count(MkStudio::ARBEIT_START) && isset(MkStudio::GRUPPEN['arbeiten']),
+    json_encode([$stAr, $stAp['format'] ?? null, $stAfehlt]));
+Db::run('DELETE FROM mk_auftraege');
 
 /* Journey in ganzen Sätzen (Uwe: „mache es verständlicher“) */
 require_once $wurzel . '/src/Spur.php';
