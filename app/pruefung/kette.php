@@ -18115,6 +18115,47 @@ pruefe('Story mit Link-Sticker: Bild mit drei Schritten (italienisch „Analisi 
     && str_contains((string) $stFoto[1]['caption'], 'Analisi gratuita del sito') && $stLink[0] === 'sendMessage' && ($stLink[1]['text'] ?? '') === MkInhalt::link(MkInhalt::laden($stIg))
     && MkHandy::story(['plattform' => 'facebook', 'art' => 'organisch', 'id' => $stIg])['ok'] === false
     && str_contains((string) file_get_contents($wurzel . '/src/MkVeroeffentlichen.php'), "if (\$x['plattform'] === 'instagram') {"), json_encode(MkHandy::$gesendet, JSON_UNESCAPED_UNICODE));
+/* Verpasst — nachposten (03.10.2026, Uwe: „verpasste Beiträge und Entwürfe … nachträglich zu einem anderen Zeitpunkt nachposten“) */
+require_once $wurzel . '/src/MkNachposten.php';
+$npNeu = static fn(string $titel, array $x = []): int => (int) Db::insert('mk_inhalte', $x + ['zielgruppe_id' => (int) $apZ1['id'], 'branche' => 'friseur', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch',
+    'format' => 'beitrag', 'plattform' => 'linkedin', 'titel' => $titel, 'felder' => '{"text":"Nachposten-Test"}']);
+$npHandy = $npNeu('NP Handy verpasst'); MkInhalt::freigeben($npHandy);
+Db::update('mk_inhalte', $npHandy, ['geplant_am' => null, 'post_ids' => json_encode(['handy' => date('Y-m-d H:i', strtotime('-20 hours'))])]);
+$npFrisch = $npNeu('NP Handy frisch'); MkInhalt::freigeben($npFrisch);
+Db::update('mk_inhalte', $npFrisch, ['geplant_am' => null, 'post_ids' => json_encode(['handy' => date('Y-m-d H:i', strtotime('-2 hours'))])]);
+$npFehler = $npNeu('NP Zweimal gescheitert'); MkInhalt::freigeben($npFehler);
+Db::update('mk_inhalte', $npFehler, ['geplant_am' => null, 'post_fehler' => 'LinkedIn: Zeitüberschreitung']);
+$npEntwurf = $npNeu('NP Alter Entwurf', ['created_at' => date('Y-m-d H:i:s', strtotime('-5 days'))]);
+$npJung = $npNeu('NP Junger Entwurf');
+$npAnzeige = $npNeu('NP Anzeige', ['art' => 'bezahlt', 'format' => 'meta_anzeige', 'plattform' => 'facebook', 'created_at' => date('Y-m-d H:i:s', strtotime('-9 days'))]);
+$npIds = array_map(static fn($v) => (int) $v['x']['id'], MkNachposten::verpasst('DE'));
+$npGruende = []; foreach (MkNachposten::verpasst('DE') as $npV) { $npGruende[(int) $npV['x']['id']] = $npV['grund']['k']; }
+pruefe('Nachposten: verpasst sind — aufs Handy ohne „Gepostet“ (nach 12 h), zweimal gescheitert, alter Entwurf; nicht: frisch geschickt, junger Entwurf, Anzeige',
+    ($npGruende[$npHandy] ?? '') === 'handy' && ($npGruende[$npFehler] ?? '') === 'fehler' && ($npGruende[$npEntwurf] ?? '') === 'entwurf'
+    && !in_array($npFrisch, $npIds, true) && !in_array($npJung, $npIds, true) && !in_array($npAnzeige, $npIds, true), json_encode($npGruende));
+$npWartenVor = MkHandy::wartetAufBestaetigung('DE');
+$npR1 = MkNachposten::nachposten($npHandy);
+$npX1 = MkInhalt::laden($npHandy);
+pruefe('Nachposten: nächster freier Platz — geplant, „wartet auf Gepostet“ vergessen, dann wieder per Handy; nicht mehr verpasst',
+    $npR1['ok'] && $npX1['geplant_am'] !== null && strtotime((string) $npX1['geplant_am']) > time() && !str_contains((string) $npX1['post_ids'], 'handy')
+    && MkHandy::wartetAufBestaetigung('DE') === $npWartenVor - 1 && MkNachposten::grund($npX1) === null && str_contains($npR1['text'], 'aufs Handy'), json_encode([$npR1, $npX1['geplant_am']]));
+$npZiel = date('Y-m-d\TH:i', strtotime('+3 days 10:15'));
+$npR2 = MkNachposten::nachposten($npFehler, $npZiel);
+$npR3 = MkNachposten::nachposten($npFehler, date('Y-m-d\TH:i', strtotime('-1 hour')));
+$npR4 = MkNachposten::nachposten($npFehler, date('Y-m-d\TH:i', strtotime('+70 days')));
+pruefe('Nachposten: gewählter Zeitpunkt gilt genau, Fehlertext weg; Vergangenheit und mehr als 60 Tage werden abgelehnt',
+    $npR2['ok'] && substr((string) MkInhalt::laden($npFehler)['geplant_am'], 0, 16) === str_replace('T', ' ', $npZiel) && MkInhalt::laden($npFehler)['post_fehler'] === null
+    && !$npR3['ok'] && !$npR4['ok'], json_encode([$npR2, $npR3, $npR4]));
+$npAlle = MkNachposten::alle('DE');
+pruefe('Nachposten: „Alle verteilen“ lässt Entwürfe stehen — die brauchen jeder ein eigenes Ja',
+    MkInhalt::laden($npEntwurf)['status'] === 'entwurf' && $npAlle['verteilt'] === 0 && in_array($npEntwurf, array_map(static fn($v) => (int) $v['x']['id'], MkNachposten::verpasst('DE')), true), json_encode($npAlle));
+$npR5 = MkNachposten::nachposten($npEntwurf);
+$npR6 = MkNachposten::nachposten($npAnzeige);
+pruefe('Nachposten: „Freigeben und nachposten“ gibt den Entwurf frei und legt ihn auf einen Platz; Anzeigen gehen nicht',
+    $npR5['ok'] && MkInhalt::laden($npEntwurf)['status'] === 'freigegeben' && MkInhalt::laden($npEntwurf)['geplant_am'] !== null && !$npR6['ok']
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'nachposten_alle':") && str_contains((string) file_get_contents($wurzel . '/views/inhalte.php'), 'id="nachposten"')
+    && str_contains((string) file_get_contents($wurzel . '/views/inhalt.php'), 'value="nachposten"'), json_encode([$npR5, $npR6]));
+Db::run('DELETE FROM mk_inhalte WHERE id IN (?, ?, ?, ?, ?, ?)', [$npHandy, $npFrisch, $npFehler, $npEntwurf, $npJung, $npAnzeige]);
 /* Ohne Admin-Rechte kein Stapel */
 Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE chat_id = ?', [$apChat]); TelegramAdmin::vergessen();
 $apFid = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $apZ1['id'], 'branche' => 'friseur', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'AP Fremd', 'felder' => '{"text":"x"}']);

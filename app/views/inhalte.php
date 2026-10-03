@@ -40,6 +40,47 @@ require __DIR__ . '/mk_stil.php';
 
 <?php $mkLand = $land; $mkLandSeite = 'inhalte'; $mkLandOffen = $offen; /* Länderschalter steht seit M1 (01.10.2026) oben im Gerüst für alle Marketing-Seiten. */ ?>
 
+<?php /* Verpasst — nachposten (03.10.2026, Uwe: „verpasste Beiträge und Entwürfe … nachträglich zu einem anderen Zeitpunkt nachposten“) */
+  require_once dirname(__DIR__) . '/src/MkNachposten.php';
+  try { $npListe = MkNachposten::verpasst($land); } catch (Throwable $npE) { $npListe = []; }   /* die Ansicht wird auch ohne index.php gerendert (Kette) */
+  $npPl = static fn(string $k): string => trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$k] ?? $k)) ?? '');
+  $npFrei = count(array_filter($npListe, static fn($v) => $v['grund']['k'] !== 'entwurf'));
+  if ($npListe): ?>
+<details class="block np" id="nachposten" open>
+  <summary style="cursor:pointer"><b>Verpasst — nachposten (<?= count($npListe) ?>)</b> <span class="mk-fein">— hatte seinen Sendeplatz und ist nicht draußen. Auf den nächsten freien Platz legen oder einen Zeitpunkt wählen; zur Zeit geht es automatisch raus bzw. aufs Handy.</span></summary>
+  <?php if ($npFrei > 1): ?>
+    <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" style="margin:10px 0 4px">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="nachposten_alle"><input type="hidden" name="land" value="<?= Fmt::h($land) ?>">
+      <button class="knopf haupt">Alle <?= $npFrei ?> freigegebenen auf die nächsten freien Plätze verteilen</button> <span class="mk-fein">Entwürfe nicht — die brauchen jeder dein eigenes Ja.</span>
+    </form>
+  <?php endif; ?>
+  <ul class="np-liste">
+    <?php foreach ($npListe as $npV): $npX = $npV['x']; $npE = $npV['grund']['k'] === 'entwurf'; ?>
+      <li>
+        <div class="np-was"><a href="<?= Fmt::h(url('inhalte/' . (int) $npX['id'])) ?>"><b><?= Fmt::h((string) $npX['titel']) ?></b></a>
+          <span class="marke2"><?= Fmt::h($npPl((string) $npX['plattform'])) ?></span><?php if ($npE): ?> <span class="marke2 warnung">Entwurf</span><?php endif; ?>
+          <span class="mk-fein"><?= Fmt::h($npV['grund']['satz']) ?></span></div>
+        <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" class="np-tat">
+          <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="nachposten"><input type="hidden" name="id" value="<?= (int) $npX['id'] ?>">
+          <button class="knopf" name="wann" value=""><?= $npE ? 'Freigeben und auf den nächsten Platz' : 'Nächster freier Platz' ?></button>
+          <label class="mk-sr" for="np_w<?= (int) $npX['id'] ?>">Zeitpunkt</label>
+          <input id="np_w<?= (int) $npX['id'] ?>" type="datetime-local" name="wann_frei" min="<?= date('Y-m-d\TH:i', time() + 300) ?>" max="<?= date('Y-m-d\TH:i', time() + 60 * 86400) ?>" style="width:auto">
+          <button class="knopf" name="mit_zeit" value="1"><?= $npE ? 'Freigeben und zu dieser Zeit' : 'Zu dieser Zeit' ?></button>
+        </form>
+      </li>
+    <?php endforeach; ?>
+  </ul>
+</details>
+<style>
+  .np{border-color:rgba(232,182,76,.5)}
+  .np-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+  .np-liste li{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between;border-top:1px solid var(--linie);padding-top:10px}
+  .np-was{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1 1 320px}
+  .np-was .marke2{align-self:flex-start}
+  .np-tat{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin:0}
+</style>
+<?php endif; ?>
+
 <?php require_once dirname(__DIR__) . '/src/MkMedium.php'; ?>
 <details class="block mk-auftrag mk-mehr" id="perprompt"<?= !empty($_GET['prompt']) ? ' open' : '' ?>><summary style="cursor:pointer"><b>Bild oder Video per Prompt</b> <span class="mk-fein">— einfach beschreiben, was zu sehen sein soll. Es entsteht über Kie.ai und landet als Entwurf „Per Prompt“ hier in der Liste.</span></summary>
   <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" class="mk-formular" style="margin-top:10px">

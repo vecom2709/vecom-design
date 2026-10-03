@@ -62,6 +62,17 @@ require __DIR__ . '/mk_stil.php';
 <div class="block" id="posten" style="border-color:var(--linie2)">
   <h2><?= $x['status'] === 'veroeffentlicht' ? 'Veröffentlicht' : 'Freigegeben — jetzt posten' ?> <span class="mehr">eigener Link, zählt bis zum Kunden</span></h2>
   <?php if (!empty($x['post_fehler'])): ?><div class="hinweis schlecht" style="margin:0 0 12px">Zuletzt nicht geklappt: <?= Fmt::h((string) $x['post_fehler']) ?></div><?php endif; ?>
+  <?php require_once dirname(__DIR__) . '/src/MkNachposten.php'; $npG = $x['status'] === 'freigegeben' ? MkNachposten::grund($x) : null;
+    if ($npG !== null): /* Verpasst (03.10.2026): hier direkt nachposten */ ?>
+    <form method="post" action="<?= Fmt::h(url('inhalte')) ?>" class="hinweis" style="margin:0 0 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="nachposten"><input type="hidden" name="id" value="<?= (int) $x['id'] ?>"><input type="hidden" name="zurueck_einzeln" value="1">
+      <span style="flex:1 1 100%"><b>Verpasst.</b> <?= Fmt::h($npG['satz']) ?></span>
+      <button class="knopf haupt" name="wann" value="">Nachposten: nächster freier Platz</button>
+      <label class="mk-sr" for="np_einzeln">Zeitpunkt</label>
+      <input id="np_einzeln" type="datetime-local" name="wann_frei" min="<?= date('Y-m-d\TH:i', time() + 300) ?>" max="<?= date('Y-m-d\TH:i', time() + 60 * 86400) ?>" style="width:auto">
+      <button class="knopf" name="mit_zeit" value="1">Zu dieser Zeit</button>
+    </form>
+  <?php endif; ?>
   <?php if ($x['status'] === 'freigegeben'): ?>
   <div class="mk-posten">
     <?php if ($mv['auto']): ?>

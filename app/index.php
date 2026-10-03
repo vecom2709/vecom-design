@@ -857,6 +857,23 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Abgebrochen.';
                 weiter('inhalte/' . (int) ($_POST['id'] ?? 0) . '#medien');
 
+            /* Verpasstes nachposten (03.10.2026): nächster freier Platz oder gewählte Zeit; ein Entwurf wird mit diesem Klick freigegeben. */
+            case 'nachposten':
+            case 'nachposten_alle':
+                require_once __DIR__ . '/src/MkNachposten.php';
+                if ($tat === 'nachposten_alle') {
+                    $npA = MkNachposten::alle(in_array((string) ($_POST['land'] ?? ''), ['IT', 'DE'], true) ? (string) $_POST['land'] : null);
+                    $_SESSION[$npA['verteilt'] > 0 ? 'gut' : 'fehler'] = $npA['verteilt'] . ' Beiträge auf die nächsten freien Plätze gelegt' . ($npA['nicht'] > 0 ? ', ' . $npA['nicht'] . ' gehen nur als Paket.' : '.');
+                    weiter('inhalte#nachposten');
+                }
+                $npId = (int) ($_POST['id'] ?? 0);
+                $npZeit = trim((string) ($_POST['wann_frei'] ?? ''));
+                // „Zu dieser Zeit“ ohne Zeit darf nie still auf den nächsten Platz fallen.
+                $npR = !empty($_POST['mit_zeit']) && $npZeit === '' ? ['ok' => false, 'text' => 'Bitte erst Datum und Uhrzeit wählen.']
+                     : MkNachposten::nachposten($npId, !empty($_POST['mit_zeit']) ? $npZeit : '');
+                $_SESSION[$npR['ok'] ? 'gut' : 'fehler'] = $npR['text'];
+                weiter(!empty($_POST['zurueck_einzeln']) ? 'inhalte/' . $npId . '#posten' : 'inhalte#nachposten');
+
             /* Veröffentlichen (Marketing-Studio Schritt 4, 01.10.2026) */
             case 'inhalt_posten':
             case 'inhalt_planen':
