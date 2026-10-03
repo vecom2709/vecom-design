@@ -2,45 +2,49 @@
 declare(strict_types=1);
 
 /**
- * Land (und bei Italien/Deutschland die Region) zu einer IP-Adresse — lokal
- * aus app/data/geo.bin (DB-IP Lite, CC BY 4.0), ohne Abfrage bei Dritten
- * (30.09.2026, Partner-Tracking, Uwe: Ja). Die IP selbst wird nirgends
- * gespeichert; es bleibt nur das Ergebnis „IT / Sicily“. Keine Stadt.
+ * Land, Region und Stadt zu einer IP-Adresse — lokal aus app/data/geo.bin
+ * (DB-IP City Lite, CC BY 4.0), ohne Abfrage bei Dritten (30.09.2026,
+ * Partner-Tracking, Uwe: Ja; Stadt seit 03.10.2026, Uwe: Ja zum Download).
+ * Die IP selbst wird nirgends gespeichert; es bleibt nur „IT / Sicily /
+ * Palermo“. Region und Stadt nur für die Zielmärkte IT, DE, AT, CH; sonst
+ * nur das Land. Die Stadt ist die des Netzknotens, nicht die Adresse des
+ * Besuchers — bei Mobilfunk oft die nächste größere Stadt.
  *
  * Neu bauen (monatlich möglich): dbip-city-lite-JJJJ-MM.csv.gz laden, dann
- * scratchpad/geo/bauen.py — oder dieselbe Logik: Bereiche nach Land (Region
- * nur IT/DE) zusammenfassen, Einträge je 8 Byte (v4) bzw. 12 Byte (v6).
+ * tools/geo_bauen.py <csv.gz> app/data/geo.bin. Format VDGEO2: Bereiche nach
+ * (Land, Region, Stadt) zusammengefasst, Einträge je 12 Byte (v4) bzw.
+ * 16 Byte (v6, erste 64 Bit).
  */
 final class Geo
 {
     private const DATEI = __DIR__ . '/../data/geo.bin';
 
-    /** @var array{f:resource, n4:int, n6:int, r:list<string>, a4:int, a6:int}|null|false */
+    /** @var array{f:resource, n4:int, n6:int, r:list<string>, s:list<string>, a4:int, a6:int}|null|false */
     private static $db = null;
 
-    /** @return array{land:string, region:string} Leer, wenn unbekannt oder privat. */
+    /** @return array{land:string, region:string, stadt:string} Leer, wenn unbekannt oder privat. */
     public static function suchen(string $ip): array
     {
-        $leer = ['land' => '', 'region' => ''];
+        $leer = ['land' => '', 'region' => '', 'stadt' => ''];
         $db = self::oeffnen();
         if ($db === null) { return $leer; }
         $bin = @inet_pton(trim($ip));
         if ($bin === false) { return $leer; }
         if (strlen($bin) === 4) {
             $wert = unpack('N', $bin)[1];
-            $treffer = self::finden($db['f'], $db['a4'], $db['n4'], 8, static fn(string $s): int => unpack('N', substr($s, 0, 4))[1], $wert);
+            $treffer = self::finden($db['f'], $db['a4'], $db['n4'], 12, static fn(string $s): int => unpack('N', substr($s, 0, 4))[1], $wert);
         } else {
             /* IPv4 in IPv6 (::ffff:1.2.3.4) wie IPv4 behandeln */
             if (substr($bin, 0, 12) === str_repeat("\0", 10) . "\xff\xff") { return self::suchen(inet_ntop(substr($bin, 12))); }
             $wert = substr($bin, 0, 8);   // erste 64 Bit, als Byte-Kette vergleichbar
-            $treffer = self::finden($db['f'], $db['a6'], $db['n6'], 12, static fn(string $s): string => substr($s, 0, 8), $wert);
+            $treffer = self::finden($db['f'], $db['a6'], $db['n6'], 16, static fn(string $s): string => substr($s, 0, 8), $wert);
         }
         if ($treffer === null) { return $leer; }
         $o = strlen($bin) === 4 ? 4 : 8;
         $land = substr($treffer, $o, 2);
-        $region = unpack('n', substr($treffer, $o + 2, 2))[1];
+        $nr = unpack('nregion/Nstadt', substr($treffer, $o + 2, 6));
         if (!preg_match('/^[A-Z]{2}$/', $land) || $land === 'ZZ') { return $leer; }
-        return ['land' => $land, 'region' => (string) ($db['r'][$region] ?? '')];
+        return ['land' => $land, 'region' => (string) ($db['r'][$nr['region']] ?? ''), 'stadt' => (string) ($db['s'][$nr['stadt']] ?? '')];
     }
 
     /** Binärsuche: der letzte Eintrag, dessen Start ≤ Wert ist. */
@@ -62,15 +66,17 @@ final class Geo
         if (self::$db === false) { return null; }
         if (is_array(self::$db)) { return self::$db; }
         $f = is_file(self::DATEI) ? @fopen(self::DATEI, 'rb') : false;
-        if ($f === false || fread($f, 6) !== 'VDGEO1') { self::$db = false; return null; }
-        $k = unpack('Nn4/Nn6/Nr', (string) fread($f, 12));
-        $regionen = [];
-        for ($i = 0; $i < (int) $k['r']; $i++) {
-            $l = ord((string) fread($f, 1));
-            $regionen[] = $l > 0 ? (string) fread($f, $l) : '';
-        }
+        if ($f === false || fread($f, 6) !== 'VDGEO2') { self::$db = false; return null; }
+        $k = unpack('Nn4/Nn6/Nr/Ns', (string) fread($f, 16));
+        $lesen = static function (int $n) use ($f): array {
+            $aus = [];
+            for ($i = 0; $i < $n; $i++) { $l = ord((string) fread($f, 1)); $aus[] = $l > 0 ? (string) fread($f, $l) : ''; }
+            return $aus;
+        };
+        $regionen = $lesen((int) $k['r']);
+        $staedte = $lesen((int) $k['s']);
         $a4 = (int) ftell($f);
-        self::$db = ['f' => $f, 'n4' => (int) $k['n4'], 'n6' => (int) $k['n6'], 'r' => $regionen, 'a4' => $a4, 'a6' => $a4 + 8 * (int) $k['n4']];
+        self::$db = ['f' => $f, 'n4' => (int) $k['n4'], 'n6' => (int) $k['n6'], 'r' => $regionen, 's' => $staedte, 'a4' => $a4, 'a6' => $a4 + 12 * (int) $k['n4']];
         return self::$db;
     }
 

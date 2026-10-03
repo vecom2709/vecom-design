@@ -97,11 +97,25 @@ final class PartnerBesuche
                             'US' => ['it' => 'Stati Uniti', 'de' => 'USA', 'en' => 'USA'], 'NL' => ['it' => 'Paesi Bassi', 'de' => 'Niederlande', 'en' => 'Netherlands']];
 
     /** „Sizilien · Italien“ — die Stadt kennt die lokale Geo-Datei nicht (DB-IP Lite, nur Region). */
-    public static function ort(string $land, string $region, string $sp): string
+    /** Englische Namen aus DB-IP, die in Italienisch/Deutsch anders heißen; alle anderen stehen schon richtig da (Agrigento, Novate Milanese). */
+    public const STAEDTE = [
+        'Rome' => ['it' => 'Roma', 'de' => 'Rom'], 'Milan' => ['it' => 'Milano', 'de' => 'Mailand'], 'Naples' => ['it' => 'Napoli', 'de' => 'Neapel'],
+        'Turin' => ['it' => 'Torino', 'de' => 'Turin'], 'Florence' => ['it' => 'Firenze', 'de' => 'Florenz'], 'Venice' => ['it' => 'Venezia', 'de' => 'Venedig'],
+        'Genoa' => ['it' => 'Genova', 'de' => 'Genua'], 'Padua' => ['it' => 'Padova', 'de' => 'Padua'], 'Syracuse' => ['it' => 'Siracusa', 'de' => 'Syrakus'],
+        'Mantua' => ['it' => 'Mantova', 'de' => 'Mantua'], 'Leghorn' => ['it' => 'Livorno', 'de' => 'Livorno'],
+        'Munich' => ['it' => 'Monaco di Baviera', 'de' => 'München'], 'Cologne' => ['it' => 'Colonia', 'de' => 'Köln'], 'Nuremberg' => ['it' => 'Norimberga', 'de' => 'Nürnberg'],
+        'Hanover' => ['it' => 'Hannover', 'de' => 'Hannover'], 'Frankfurt am Main' => ['it' => 'Francoforte', 'de' => 'Frankfurt am Main'],
+        'Berlin' => ['it' => 'Berlino', 'de' => 'Berlin'], 'Hamburg' => ['it' => 'Amburgo', 'de' => 'Hamburg'], 'Dusseldorf' => ['it' => 'Düsseldorf', 'de' => 'Düsseldorf'],
+        'Vienna' => ['it' => 'Vienna', 'de' => 'Wien'], 'Zurich' => ['it' => 'Zurigo', 'de' => 'Zürich'], 'Geneva' => ['it' => 'Ginevra', 'de' => 'Genf'],
+    ];
+
+    /** „Palermo · Sizilien · Italien“ — die Stadt nur, wenn sie bekannt ist (seit 03.10.2026, Uwe: Ja zur Stadt). */
+    public static function ort(string $land, string $region, string $sp, string $stadt = ''): string
     {
-        $r = $region !== '' ? (self::REGIONEN[$region][$sp] ?? $region) : '';
+        $s = $stadt !== '' ? (self::STAEDTE[$stadt][$sp] ?? $stadt) : '';
+        $r = $region !== '' && $region !== $stadt ? (self::REGIONEN[$region][$sp] ?? $region) : '';
         $l = $land !== '' ? (self::LAENDER[$land][$sp] ?? $land) : '';
-        return trim(implode(' · ', array_filter([$r, $l])));
+        return trim(implode(' · ', array_filter([$s, $r !== $s ? $r : '', $l])));
     }
 
     /** Hoch, mittel oder niedrig — einfach genug, dass man es versteht. */
@@ -144,7 +158,7 @@ final class PartnerBesuche
     public static function liste(array $p, string $sp, int $tage = 14, int $max = 60): array
     {
         $pid = (int) $p['id'];
-        $zeilen = self::still(static fn() => Db::all("SELECT id, kanal, quelle, land, region, geraet, seiten, start_am, zuletzt_am,
+        $zeilen = self::still(static fn() => Db::all("SELECT *,
                                                               TIMESTAMPDIFF(SECOND, start_am, zuletzt_am) AS sekunden
                                                          FROM spur_besuche WHERE partner_id = ? AND verdacht = 0 AND start_am >= NOW() - INTERVAL " . max(1, min(90, $tage)) . " DAY
                                                      ORDER BY start_am DESC LIMIT " . max(1, min(200, $max)), [$pid]), []);
@@ -166,7 +180,7 @@ final class PartnerBesuche
             $sek = max(0, (int) $z['sekunden']);
             $aus[] = ['id' => $bid, 'zeit' => (string) $z['start_am'], 'plattform' => self::plattform((string) $z['quelle'], $z['kanal'] !== null ? (string) $z['kanal'] : null, $sp),
                       'beitrag' => self::beitrag($z['kanal'] !== null ? (string) $z['kanal'] : null, $sp), 'land' => (string) $z['land'], 'region' => (string) $z['region'],
-                      'ort' => self::ort((string) $z['land'], (string) $z['region'], $sp),
+                      'stadt' => (string) ($z['stadt'] ?? ''), 'ort' => self::ort((string) $z['land'], (string) $z['region'], $sp, (string) ($z['stadt'] ?? '')),
                       'geraet' => (string) $z['geraet'], 'seiten' => max(1, (int) $z['seiten']), 'sekunden' => $sek, 'typen' => $ty,
                       'taten' => self::taten($ty, $sp), 'kontakt' => $kontakte[$bid] ?? null,
                       'chance' => self::chance($sek, (int) $z['seiten'], $ty, isset($kontakte[$bid]))];
@@ -259,7 +273,7 @@ final class PartnerBesuche
         if (!$p) { return false; }
         require_once __DIR__ . '/PartnerPost.php';
         $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
-        $wo = self::ort((string) $b['land'], (string) $b['region'], $sp);
+        $wo = self::ort((string) $b['land'], (string) $b['region'], $sp, (string) ($b['stadt'] ?? ''));
         $text = trim(implode(' · ', array_filter([$wo, self::beitrag($b['kanal'] !== null ? (string) $b['kanal'] : null, $sp), $kontakt ? self::w('push_kontakt', $sp) : ''])));
         return self::still(static fn() => PartnerPost::push($pid, strtr(self::w('push_titel', $sp), ['{plattform}' => self::plattform((string) $b['quelle'], $b['kanal'] !== null ? (string) $b['kanal'] : null, $sp)]),
             $text !== '' ? $text : self::w('push_text', $sp), Partner::portalLink($p) . '#besuche'), 0) > 0;

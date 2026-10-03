@@ -1,11 +1,14 @@
-geo.bin — Land (und bei IT/DE die Region) zu einer IP-Adresse, lokal nachgeschlagen
-(Partner-Tracking, 30.09.2026). Keine Abfrage bei Dritten, die IP wird nicht gespeichert.
+geo.bin — Land, Region und Stadt zu einer IP-Adresse, lokal nachgeschlagen
+(Partner-Tracking, 30.09.2026; Stadt seit 03.10.2026). Keine Abfrage bei Dritten,
+die IP wird nicht gespeichert. Region und Stadt nur für IT, DE, AT, CH.
 
-Quelle: DB-IP.com, „IP to City Lite“ (Stand 2026-09), Lizenz Creative Commons
+Quelle: DB-IP.com, „IP to City Lite“ (Stand 2026-10), Lizenz Creative Commons
 Attribution 4.0 International (https://creativecommons.org/licenses/by/4.0/).
-IP Geolocation by DB-IP (https://db-ip.com). Umgebaut: Stadt, Koordinaten und
-Kontinent entfernt, benachbarte Bereiche gleichen Landes zusammengefasst.
+IP Geolocation by DB-IP (https://db-ip.com). Umgebaut: Koordinaten und Kontinent
+entfernt, Region und Stadt außerhalb von IT/DE/AT/CH entfernt, benachbarte
+Bereiche mit gleichem Land, gleicher Region und Stadt zusammengefasst.
 
-Aufbau: "VDGEO1", dann n4, n6, Anzahl Regionen (je uint32 BE), Regionsnamen
-(Länge + UTF-8), IPv4-Einträge (Start uint32, Land 2 Zeichen, Region uint16),
-IPv6-Einträge (erste 64 Bit uint64, Land, Region). Neu bauen: siehe Geo.php.
+Aufbau: "VDGEO2", dann n4, n6, Anzahl Regionen, Anzahl Städte (je uint32 BE),
+Regionsnamen, Städtenamen (je Länge + UTF-8), IPv4-Einträge (Start uint32,
+Land 2 Zeichen, Region uint16, Stadt uint32), IPv6-Einträge (erste 64 Bit
+uint64, Land, Region, Stadt). Neu bauen: tools/geo_bauen.py <csv.gz> geo.bin

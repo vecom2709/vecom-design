@@ -12,7 +12,7 @@ $lDauer = static function (string $a, string $b): string { $s = max(0, strtotime
         <b><?= $aktiv ? '<span class="st-punkt" aria-hidden="true"></span>' : '' ?><?= Fmt::h($v['visitor_id']) ?></b>
         <dl>
           <dt>Partner</dt><dd><?= Fmt::h($v['partner']) ?></dd>
-          <dt>Land</dt><dd><?= Fmt::h(Geo::landName((string) $v['land'])) ?><?= $v['region'] !== '' ? ' · ' . Fmt::h($v['region']) : '' ?></dd>
+          <dt>Land</dt><dd><?= Fmt::h(Geo::landName((string) $v['land'])) ?><?= $v['region'] !== '' ? ' · ' . Fmt::h($v['region']) : '' ?><?= ($v['stadt'] ?? '') !== '' ? ' · ' . Fmt::h((string) $v['stadt']) : '' ?></dd>
           <dt>Gerät</dt><dd><?= Fmt::h(Spur::geraetName((string) $v['geraet'])) ?></dd>
           <dt>Quelle</dt><dd><?= Fmt::h(Spur::quelleName((string) $v['quelle'])) ?></dd>
           <dt>Einstieg</dt><dd><?= Fmt::h($v['einstieg']) ?></dd>

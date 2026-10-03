@@ -16733,9 +16733,22 @@ pruefe('Tracking: Quelle — UTM vor Kanal vor Herkunft; QR, Visitenkarte, Direk
     Spur::quelle('ig', 'facebook', 'l.facebook.com') === 'instagram' && Spur::quelle('', 'karte', '') === 'visitenkarte'
     && Spur::quelle('', 'flyer', '') === 'flyer' && Spur::quelle('', null, 'l.facebook.com') === 'facebook' && Spur::quelle('', null, '') === 'direkt'
     && Spur::quelle('', null, 'blog.example') === 'andere' && Spur::quelle('WhatsApp', null, '') === 'whatsapp' && Spur::quelle('qr-plakat', null, '') === 'qr');
-pruefe('Tracking: Land und Region lokal (DB-IP), private Adressen leer, IPv6 geht',
-    Geo::suchen('151.99.125.1')['land'] === 'IT' && Geo::suchen('8.8.8.8')['land'] === 'US' && Geo::suchen('10.0.0.1') === ['land' => '', 'region' => '']
+pruefe('Tracking: Land, Region und Stadt lokal (DB-IP), Stadt nur in IT/DE/AT/CH, private Adressen leer, IPv6 geht',
+    Geo::suchen('151.99.125.1')['land'] === 'IT' && Geo::suchen('151.99.125.1')['stadt'] !== '' && Geo::suchen('2a01:4f8::1')['stadt'] !== ''
+    && Geo::suchen('8.8.8.8')['land'] === 'US' && Geo::suchen('8.8.8.8')['stadt'] === '' && Geo::suchen('10.0.0.1') === ['land' => '', 'region' => '', 'stadt' => '']
     && Geo::suchen('2a01:4f8::1')['land'] === 'DE' && Geo::suchen('kaputt')['land'] === '' && Geo::landName('IT') === 'Italien');
+require_once $wurzel . '/src/PartnerBesuche.php';
+pruefe('Besucherliste: Stadt vorn und in der Sprache des Partners, doppelte Region fällt weg, ohne Stadt wie bisher',
+    PartnerBesuche::ort('IT', 'Sicily', 'de', 'Palermo') === 'Palermo · Sizilien · Italien' && PartnerBesuche::ort('IT', 'Lombardy', 'it', 'Milan') === 'Milano · Lombardia · Italia'
+    && PartnerBesuche::ort('IT', 'Sicily', 'it') === 'Sicilia · Italia' && PartnerBesuche::ort('AT', 'Vienna', 'de', 'Vienna') === 'Wien · Österreich'
+    && str_contains((string) file_get_contents($wurzel . '/src/Spur.php'), "UPDATE spur_besuche SET stadt = ? WHERE id = ?"));
+$dsTexte = array_map(static fn($l) => (string) file_get_contents($wurzel . '/../assets/js/legal-' . $l . '.js'), ['de' => 'de', 'it' => 'it', 'en' => 'en']);
+$dsHtml = (string) file_get_contents($wurzel . '/../legal.html');
+pruefe('Datenschutz sagt, was gespeichert und gezeigt wird: Stadt, Besucherliste des Partners, Kontakt nur mit Häkchen, Kundenstimmen mit Foto — in allen drei Sprachen',
+    str_contains($dsHtml, 'data-i18n="legal.p9p"') && str_contains($dsHtml, 'data-i18n="legal.p9s"')
+    && count(array_filter($dsTexte, static fn($t) => str_contains($t, 'p9p: "') && str_contains($t, 'p9s: "') && str_contains($t, 'stimme.php') && str_contains($t, '14'))) === 3
+    && str_contains($dsTexte['de'], 'Region und Stadt') && str_contains($dsTexte['it'], 'regione e città') && str_contains($dsTexte['en'], 'region and city')
+    && !str_contains($dsTexte['de'], 'Keine Stadt') && !str_contains($dsTexte['it'], 'Nessuna città') && !str_contains($dsTexte['en'], 'No city'));
 pruefe('Tracking: IP nur als täglich wechselnder Prüfwert', strlen(Spur::ipHash('1.2.3.4')) === 16 && Spur::ipHash('1.2.3.4') !== substr(hash('sha256', '1.2.3.4'), 0, 16) && Spur::ipHash('') === '');
 
 $spP = Partner::laden(Partner::anlegen(['name' => 'Laura Link', 'email' => 'laura@spur.example', 'status' => 'aktiv', 'sprache' => 'de']));

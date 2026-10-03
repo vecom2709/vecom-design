@@ -409,7 +409,7 @@ final class Spur
         $eigene = mb_strtolower((string) (parse_url((string) Config::get('website', 'https://vecom-design.it'), PHP_URL_HOST) ?? ''));
         if ($refHost !== '' && ($refHost === $eigene || str_ends_with($refHost, '.' . ltrim(preg_replace('~^www\.~', '', $eigene) ?? '', '.')) || $refHost === preg_replace('~^www\.~', '', $eigene))) { $refHost = ''; }
         $utm = static fn(string $k, int $max): string => mb_substr(preg_replace('~[^\p{L}\p{N} ._\-/+]~u', '', (string) ($get[$k] ?? '')) ?? '', 0, $max);
-        $geo = ['land' => '', 'region' => ''];
+        $geo = ['land' => '', 'region' => '', 'stadt' => ''];
         if (self::einstellung('spur_geo_an') === '1' && $ip !== '') {
             try { require_once __DIR__ . '/Geo.php'; $geo = Geo::suchen($ip); } catch (Throwable $e) { }
         }
@@ -439,6 +439,10 @@ final class Spur
             'sprache' => mb_substr((string) ($s['sprache'] ?? ''), 0, 5), 'land' => $geo['land'], 'region' => mb_substr($geo['region'], 0, 80),
             'verdacht' => $verdacht, 'ip_hash' => $ipHash,
         ]);
+        /* Stadt (03.10.2026, Migration 145) eigens — fehlt die Spalte noch, bleibt der Besuch trotzdem. */
+        if (($geo['stadt'] ?? '') !== '') {
+            try { Db::run('UPDATE spur_besuche SET stadt = ? WHERE id = ?', [mb_substr((string) $geo['stadt'], 0, 80), $id]); } catch (Throwable $e) { }
+        }
         self::keks(self::KEKS, $sid, 0, true);
         self::vergessen();
         return self::$besuch = Db::one('SELECT * FROM spur_besuche WHERE id = ?', [$id]);
