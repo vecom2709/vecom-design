@@ -16135,6 +16135,7 @@ pruefe('TikTok-Prüfdatei liegt im Wurzelverzeichnis der Website',
     (string) @file_get_contents($oben . '/tiktokN3BYOHoW63npHPfDl1gp03oK3hMUuYIf.txt') === 'tiktok-developers-site-verification=N3BYOHoW63npHPfDl1gp03oK3hMUuYIf');
 pruefe('Fußzeile: TikTok-Symbol führt zum Vecom-Konto @vecomdesign (02.10.2026 angelegt)',
     str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "tiktok:    'https://www.tiktok.com/@vecomdesign'")
+    && str_contains((string) file_get_contents($oben . '/assets/js/social.js'), "instagram: 'https://www.instagram.com/vecom.design/'")
     && str_contains((string) file_get_contents($oben . '/index.html'), 'data-social="tiktok"'));
 
 /* ============================================================================
@@ -17615,8 +17616,8 @@ pruefe('Spiegel: nur Freigegebenes, keine Reels und keine Telegram-Beiträge sel
 pruefe('Spiegel: hängt an der Freigabe und am Cronlauf',
     str_contains((string) file_get_contents($wurzel . '/src/MkVeroeffentlichen.php'), 'MkTelegramSpiegel::spiegeln($id)')
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'MkTelegramSpiegel::nachholen()'));
-pruefe('Kanal-Orte: Partner-Dashboard, Kundenbereich und die drei Profile zählen für sich; Kasten im Partnerbereich, Link im Kundenbereich',
-    isset(TelegramWachstum::KANAL_ORTE['partner'], TelegramWachstum::KANAL_ORTE['kundenbereich'], TelegramWachstum::KANAL_ORTE['instagram'], TelegramWachstum::KANAL_ORTE['facebook'], TelegramWachstum::KANAL_ORTE['youtube'])
+pruefe('Kanal-Orte: Partner-Dashboard, Kundenbereich und die vier Profile (mit TikTok) zählen für sich; Kasten im Partnerbereich, Link im Kundenbereich',
+    isset(TelegramWachstum::KANAL_ORTE['partner'], TelegramWachstum::KANAL_ORTE['kundenbereich'], TelegramWachstum::KANAL_ORTE['instagram'], TelegramWachstum::KANAL_ORTE['facebook'], TelegramWachstum::KANAL_ORTE['youtube'], TelegramWachstum::KANAL_ORTE['tiktok'])
     && str_contains((string) file_get_contents($wurzel . '/views/partner_plus_start.php'), "kanalOrtLink('partner')")
     && str_contains((string) file_get_contents($oben . '/kunde.php'), "kanalOrtLink('kundenbereich')"));
 $wbN1 = TelegramWachstum::werbungAnlegen(); $wbN2 = TelegramWachstum::werbungAnlegen();
@@ -17758,7 +17759,7 @@ pruefe('Kampagnen-Paket: mit TikTok-Konto zwei Kurzvideos mehr (beides 10, nur B
     && MkAuftrag::paketMischung(true, false, true) === [['instagram', 'facebook', 'telegram', 'tiktok'], 'organisch', 8]
     && !in_array('tiktok', MkAuftrag::paketMischung(false, true, true)[0], true)
     && MkAnmeldungen::profil('tiktok') === 'https://www.tiktok.com/@vecomdesign' && MkAnmeldungen::kontoStand('tiktok') === 'angelegt'
-    && MkAnmeldungen::profil('instagram') === '' && in_array('tiktok', MkAuftrag::paketMischung(true, false)[0], true));
+    && MkAnmeldungen::profil('instagram') === 'https://www.instagram.com/vecom.design/' && in_array('tiktok', MkAuftrag::paketMischung(true, false)[0], true));
 pruefe('Kampagnen-Paket: TikTok-Stücke bekommen nach dem Schreiben ein Video statt eines Bildes',
     str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), "\$mArt = \$r['plattform'] === 'tiktok' ? 'video' : 'bild';"));
 $ksZde = MkZielgruppe::melden($mzProfil(['branche' => 'friseur', 'land' => 'DE', 'titel' => 'KS Friseure DE']));

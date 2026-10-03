@@ -9,7 +9,7 @@
    ========================================================================== */
 window.VECOM_SOCIAL = {
   facebook:  'https://www.facebook.com/vecomdesign',
-  instagram: '',
+  instagram: 'https://www.instagram.com/vecom.design/',   // 03.10.2026: Konto steht, Symbol war nur leer
   tiktok:    'https://www.tiktok.com/@vecomdesign',   // 02.10.2026 angelegt
   x:         'https://x.com/vecomdesign',
   youtube:   'https://www.youtube.com/@vecomdesign',

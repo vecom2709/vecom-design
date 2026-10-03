@@ -334,6 +334,8 @@ final class TelegramWachstum
         'instagram'     => 'Instagram: Link im Profil',
         'facebook'      => 'Facebook-Seite: Link im Profil',
         'youtube'       => 'YouTube-Kanal: Link im Profil',
+        // 03.10.2026 (Uwe: „Kanal-Link überall“): TikTok zählt für sich, wie die anderen Profile.
+        'tiktok'        => 'TikTok: Link im Profil',
         'social'        => 'Beiträge auf Facebook/Instagram, die den Kanal bekannt machen',
     ];
 
