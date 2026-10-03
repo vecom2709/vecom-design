@@ -3,6 +3,7 @@
    Der Weg einer Bestellung: angefragt/offen → bezahlt → beim Drucker →
    versendet. Je Zeile nur der Knopf für den nächsten Schritt. Die
    Druckdatei ist genau die, die der Partner freigegeben hat. */
+require_once dirname(__DIR__) . '/src/Gelato.php';
 $S = [
     'angefragt' => ['Angefragt — Zahlung klären', 'warnung'], 'offen' => ['Bezahlseite offen', 'warnung'],
     'bezahlt' => ['Bezahlt — jetzt drucken lassen', 'gut'], 'beim_drucker' => ['Beim Drucker', ''],
@@ -55,10 +56,25 @@ $S = [
           <div class="feld" style="margin:0"><label>Bezahlt per</label><select name="wie"><option value="ueberweisung">Überweisung</option><option value="bar">bar</option><option value="stripe">Stripe (von Hand geprüft)</option></select></div>
           <button class="knopf haupt">Zahlung ist da</button></form>
       <?php elseif ($b['status'] === 'bezahlt'): ?>
+        <?php /* Phase 4: Gelato — nur Entwurf, nie doppelt, Fehler bleiben stehen. */
+          $gs = (string) ($b['anbieter_status'] ?? ''); ?>
+        <?php if ($gs === '' && Gelato::bereit()): ?>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_gelato_senden"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+            <button class="knopf haupt">Als Entwurf an Gelato</button></form>
+        <?php elseif ($gs === 'entwurf'): ?>
+          <span class="marke2 warnung">Entwurf bei Gelato <?= Fmt::h((string) $b['anbieter_ref']) ?> — im <a href="https://dashboard.gelato.com" target="_blank" rel="noopener">Gelato-Dashboard</a> prüfen und bestätigen</span>
+        <?php elseif ($gs === 'wird_gesendet' || $gs === 'fehler'): ?>
+          <div class="hinweis schlecht" style="margin:0;max-width:640px"><?= Fmt::h((string) ($b['anbieter_fehler'] ?: 'Senden an Gelato wurde unterbrochen.')) ?>
+            Erst im Gelato-Dashboard nachsehen, ob der Entwurf <?= Fmt::h($b['nummer']) ?> doch angelegt wurde.</div>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+            <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_gelato_zurueck"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+            <button class="knopf stumm">Nachgesehen — freigeben zum erneuten Senden</button></form>
+        <?php endif; ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_b_drucker"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
-          <div class="feld" style="margin:0"><label>Drucker</label><input name="anbieter" required placeholder="z. B. HelloPrint" style="width:160px"></div>
-          <div class="feld" style="margin:0"><label>Auftragsnummer</label><input name="ref" style="width:160px"></div>
+          <div class="feld" style="margin:0"><label>Drucker</label><input name="anbieter" required placeholder="z. B. HelloPrint" value="<?= Fmt::h((string) ($b['anbieter'] ?? '')) ?>" style="width:160px"></div>
+          <div class="feld" style="margin:0"><label>Auftragsnummer</label><input name="ref" value="<?= Fmt::h((string) ($b['anbieter_ref'] ?? '')) ?>" style="width:160px"></div>
           <button class="knopf haupt">Beim Drucker beauftragt</button></form>
       <?php elseif ($b['status'] === 'beim_drucker'): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">

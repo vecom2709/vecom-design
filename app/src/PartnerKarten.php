@@ -203,21 +203,7 @@ final class PartnerKarten
         $L = self::layout($stil);
         [$n, $raster] = self::raster(self::link($p));
         // QR in mm relativ zur Leinwand (Layout-Einheit = 0,1 mm)
-        $qr = static function (float $ox, float $oy) use ($L, $n, $raster, $mm): string {
-            [$qx, $qy, $qs] = $L['qr'];
-            $m = $qs / 10 / $n;
-            $o = sprintf("1 1 1 rg %.3F %.3F %.3F %.3F re f\n0 0 0 rg\n", ($ox + $qx / 10) * $mm, ($oy - $qy / 10 - $qs / 10) * $mm, $qs / 10 * $mm, $qs / 10 * $mm);
-            for ($y = 0; $y < $n; $y++) {
-                $x = 0;
-                while ($x < $n) {
-                    if (!$raster[$y][$x]) { $x++; continue; }
-                    $s = $x;
-                    while ($x < $n && $raster[$y][$x]) { $x++; }
-                    $o .= sprintf("%.3F %.3F %.3F %.3F re f\n", ($ox + $qx / 10 + $s * $m) * $mm, ($oy - $qy / 10 - ($y + 1) * $m) * $mm - 0.02, ($x - $s) * $m * $mm + 0.03, $m * $mm + 0.03);
-                }
-            }
-            return $o;
-        };
+        $qr = static fn(float $ox, float $oy): string => self::qrVektor($L, $n, $raster, $ox, $oy);
 
         if ($art !== 'bogen') {
             $bw = 91 * $mm; $bh = 61 * $mm;
@@ -255,6 +241,84 @@ final class PartnerKarten
             $pdf->seite($aw * $mm, $ah * $mm, $o);
         }
         return $pdf->fertig();
+    }
+
+    /** QR-Code als Vektorflächen im PDF; $ox/$oy = linke obere Ecke der Leinwand in mm (PDF-Koordinaten). */
+    private static function qrVektor(array $L, int $n, array $raster, float $ox, float $oy): string
+    {
+        $mm = 72 / 25.4;
+        [$qx, $qy, $qs] = $L['qr'];
+        $m = $qs / 10 / $n;
+        $o = sprintf("1 1 1 rg %.3F %.3F %.3F %.3F re f\n0 0 0 rg\n", ($ox + $qx / 10) * $mm, ($oy - $qy / 10 - $qs / 10) * $mm, $qs / 10 * $mm, $qs / 10 * $mm);
+        for ($y = 0; $y < $n; $y++) {
+            $x = 0;
+            while ($x < $n) {
+                if (!$raster[$y][$x]) { $x++; continue; }
+                $s = $x;
+                while ($x < $n && $raster[$y][$x]) { $x++; }
+                $o .= sprintf("%.3F %.3F %.3F %.3F re f\n", ($ox + $qx / 10 + $s * $m) * $mm, ($oy - $qy / 10 - ($y + 1) * $m) * $mm - 0.02, ($x - $s) * $m * $mm + 0.03, $m * $mm + 0.03);
+            }
+        }
+        return $o;
+    }
+
+    /**
+     * Druck-PDF für Druckanbieter mit anderem Beschnitt (Marketing Center,
+     * 03.10.2026). Gelato verlangt 4 mm Beschnitt und höchstens 300 dpi; die
+     * Vorlagen haben 3 mm. Der fehlende Millimeter wird an jedem Rand
+     * GESPIEGELT angesetzt — er wird ohnehin abgeschnitten, und gespiegelt
+     * läuft jede Fläche und jede Diagonale ohne Kante weiter. Innerhalb des
+     * Endformats ist die Karte Pixel für Pixel dieselbe wie im freigegebenen
+     * PDF (nur auf $dpi heruntergerechnet); der QR-Code bleibt Vektor.
+     */
+    public static function druckPdf(array $p, string $stil, string $sprache, string $kontakt = 'email', float $beschnitt = 4.0, int $dpi = 300): string
+    {
+        if (!self::gibt($stil) || $beschnitt < 3.0 || $beschnitt > 10.0) { return ''; }
+        $v = self::leinwand($p, $stil, 'vorn', $sprache, $kontakt);
+        $h = self::leinwand($p, $stil, 'hinten', $sprache, $kontakt, false);
+        if (!$v || !$h) { return ''; }
+        $bw = 85 + 2 * $beschnitt; $bh = 55 + 2 * $beschnitt;
+        $zu = static function (\GdImage $im) use ($beschnitt, $bw, $bh, $dpi): \GdImage {
+            $pxMm = imagesx($im) / (self::LW / 10);                  // Pixel je mm der Vorlage
+            $rand = (int) round(($beschnitt - self::BESCHNITT / 10) * $pxMm);
+            $gross = self::spiegelRand($im, $rand);
+            $w = (int) round($bw / 25.4 * $dpi); $hh = (int) round($bh / 25.4 * $dpi);
+            $aus = imagecreatetruecolor($w, $hh);
+            imagecopyresampled($aus, $gross, 0, 0, 0, 0, $w, $hh, imagesx($gross), imagesy($gross));
+            return $aus;
+        };
+        $v2 = $zu($v); $h2 = $zu($h);
+        $pdf = new KartenPdf();
+        if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }
+        $iv = $pdf->bild(self::jpeg($v2, 93), imagesx($v2), imagesy($v2));
+        $ih = $pdf->bild(self::jpeg($h2, 93), imagesx($h2), imagesy($h2));
+        $mm = 72 / 25.4;
+        [$n, $raster] = self::raster(self::link($p));
+        $versatz = $beschnitt - self::BESCHNITT / 10;                 // Vorlagen-Ursprung liegt so weit innen
+        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv), $beschnitt * $mm);
+        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $ih)
+            . self::qrVektor(self::layout($stil), $n, $raster, $versatz, $bh - $versatz), $beschnitt * $mm);
+        return $pdf->fertig();
+    }
+
+    /** Setzt an jeden Rand $px Pixel an, gespiegelt aus dem Bild selbst. */
+    private static function spiegelRand(\GdImage $im, int $px): \GdImage
+    {
+        if ($px <= 0) { return $im; }
+        $w = imagesx($im); $h = imagesy($im);
+        $c = imagecreatetruecolor($w + 2 * $px, $h + 2 * $px);
+        imagecopy($c, $im, $px, $px, 0, 0, $w, $h);
+        $streifen = static function (\GdImage $quelle, int $x, int $y, int $sw, int $sh, int $flip) {
+            $t = imagecrop($quelle, ['x' => $x, 'y' => $y, 'width' => $sw, 'height' => $sh]);
+            if ($t) { imageflip($t, $flip); }
+            return $t;
+        };
+        if ($l = $streifen($im, 0, 0, $px, $h, IMG_FLIP_HORIZONTAL)) { imagecopy($c, $l, 0, $px, 0, 0, $px, $h); }
+        if ($r = $streifen($im, $w - $px, 0, $px, $h, IMG_FLIP_HORIZONTAL)) { imagecopy($c, $r, $px + $w, $px, 0, 0, $px, $h); }
+        $cw = $w + 2 * $px;
+        if ($o = $streifen($c, 0, $px, $cw, $px, IMG_FLIP_VERTICAL)) { imagecopy($c, $o, 0, 0, 0, 0, $cw, $px); }
+        if ($u = $streifen($c, 0, $h, $cw, $px, IMG_FLIP_VERTICAL)) { imagecopy($c, $u, 0, $px + $h, 0, 0, $cw, $px); }
+        return $c;
     }
 }
 

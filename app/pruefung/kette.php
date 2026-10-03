@@ -72,6 +72,11 @@ Config::setzenFuerTest([
        Hosting-Zugangsdaten nur "geht nicht" sagen — mit ihm laeuft die
        Rundreise wirklich. */
     'hosting_geheim' => bin2hex(random_bytes(32)),
+    /* Marketing Center, Phase 4: unterschriebene Druckdatei-Links und ein
+       Gelato-Schlüssel, damit die Anbindung gegen einen Ersatz-Server läuft
+       (Gelato::$netz) — nie gegen Gelato selbst. */
+    'app_geheim' => bin2hex(random_bytes(24)),
+    'gelato' => ['api' => 'kette-ersatz'],
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
@@ -21427,6 +21432,117 @@ Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $w3A['id'], (int) $w3B[
 Db::run("DELETE FROM notifications WHERE type IN ('wm_bezahlt', 'wm_zahlung_abweichung')");
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w3Vk['id']]);
 Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w3Vk['id']]);
+
+/* ============================================================================
+   Marketing Center: Druckanbieter Gelato (03.10.2026, Phase 4)
+   ============================================================================ */
+abschnitt('Marketing Center: Druckanbieter Gelato');
+foreach (['Werbemittel', 'WmBestellung', 'Gelato', 'Partner', 'PartnerKarten', 'Fmt', 'Ablauf'] as $w4Kl) { require_once $wurzel . "/src/$w4Kl.php"; }
+$w4Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w4Var = Db::all('SELECT id, auflage FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $w4Vk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w4Vk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 1840 WHERE id = ?', [(int) $w4Var[0]['id']]);
+$w4P = Partner::laden(Partner::anlegen(['name' => 'Gina Lato Rossi', 'email' => 'gina@partner.example', 'code' => 'GINALATO', 'sprache' => 'it']));
+WmBestellung::$senden = static fn(): bool => true;
+
+$w4Pdf = PartnerKarten::druckPdf($w4P, 'a', 'it', 'email', 4.0, 300);
+$w4Mm = 72 / 25.4;
+preg_match('~/TrimBox \[([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)\]~', $w4Pdf, $w4T);
+preg_match_all('~/Width (\d+) /Height (\d+)~', $w4Pdf, $w4W);
+pruefe('Gelato-Druckdatei: 2 Seiten, Endformat 85 × 55 mm mit 4 mm Beschnitt (TrimBox/BleedBox), Bilder höchstens 300 dpi, keine Schnittmarken',
+    substr_count($w4Pdf, '/Type /Page ') === 2 && isset($w4T[1]) && abs((float) $w4T[1] / $w4Mm - 4) < 0.05
+    && abs(((float) $w4T[3] - (float) $w4T[1]) / $w4Mm - 85) < 0.05 && abs(((float) $w4T[4] - (float) $w4T[2]) / $w4Mm - 55) < 0.05
+    && max(array_map('intval', $w4W[1])) <= (int) ceil(93 / 25.4 * 300) + 1 && !str_contains($w4Pdf, ' m %.3F'), json_encode([$w4T[0] ?? '', $w4W[1]]));
+$w4E = Werbemittel::entwurfAnlegen($w4P, (int) $w4Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+$w4R = Db::one('SELECT datei_hash, datei_druck, datei_druck_hash FROM wm_entwuerfe WHERE id = ?', [$w4E]);
+pruefe('Beim Erstellen entsteht auch die Gelato-Datei — im selben Moment, mit eigener Prüfsumme',
+    $w4R && $w4R['datei_druck'] !== null && hash('sha256', (string) $w4R['datei_druck']) === $w4R['datei_druck_hash'] && $w4R['datei_druck_hash'] !== $w4R['datei_hash']);
+Werbemittel::freigeben((int) $w4P['id'], $w4E, (string) $w4R['datei_hash']);
+
+// Unterschriebener Link
+$w4Link = Gelato::dateiLink($w4E);
+parse_str((string) parse_url($w4Link, PHP_URL_QUERY), $w4Q);
+pruefe('Druckdatei-Link: unterschrieben und befristet; falsche Unterschrift, fremde id oder abgelaufen = 0',
+    Gelato::linkPruefen((string) $w4Q['e'], (string) $w4Q['x'], (string) $w4Q['s']) === $w4E
+    && Gelato::linkPruefen((string) $w4Q['e'], (string) $w4Q['x'], str_repeat('0', 64)) === 0
+    && Gelato::linkPruefen((string) ($w4E + 1), (string) $w4Q['x'], (string) $w4Q['s']) === 0
+    && Gelato::linkPruefen((string) $w4Q['e'], (string) (time() - 5), hash_hmac('sha256', 'wm-druck|' . $w4E . '|' . (time() - 5), (string) Config::get('app_geheim'))) === 0
+    && str_starts_with($w4Link, 'https://pruefung.example/druckdatei.php?'));
+$w4Dd = (string) file_get_contents($oben . '/druckdatei.php');
+pruefe('druckdatei.php liefert nur mit gültigem Link und nur freigegebene/bestellte Entwürfe, nie im Index',
+    str_contains($w4Dd, 'Gelato::linkPruefen(') && str_contains($w4Dd, "e.status IN ('freigegeben', 'ersetzt') OR EXISTS") && str_contains($w4Dd, 'noindex'));
+
+// Bestellung, Zuordnung, Entwurf an Gelato
+$w4Adr = WmBestellung::adresseSpeichern((int) $w4P['id'], ['name' => 'Gina Lato Rossi', 'strasse' => 'Via Roma 1', 'plz' => '90100', 'ort' => 'Palermo', 'land' => 'IT', 'telefon' => '+39 320 0000000']);
+$w4O = WmBestellung::anlegen($w4P, (int) $w4Var[0]['id'], $w4Adr, 'it');
+$w4Aufrufe = [];
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w4Aufrufe): array {
+    $w4Aufrufe[] = [$m, $u, $k, $r];
+    if ($m === 'POST') { return ['code' => 200, 'body' => json_encode(['id' => 'gel-123', 'orderType' => 'draft', 'fulfillmentStatus' => 'draft'])]; }
+    return ['code' => 200, 'body' => json_encode(['id' => 'gel-123', 'orderType' => 'order', 'fulfillmentStatus' => 'shipped',
+        'shipment' => ['packages' => [['trackingCode' => 'GLT-777', 'trackingUrl' => 'https://track.example/GLT-777']]]])];
+};
+pruefe('Unbezahlt geht nichts an Gelato', Gelato::entwurfSenden($w4O['id'])['ok'] === false && $w4Aufrufe === []);
+WmBestellung::vonHandBezahlt($w4O['id']);
+pruefe('Ohne Gelato-Artikel geht nichts an Gelato', str_contains(Gelato::entwurfSenden($w4O['id'])['grund'], 'kein Gelato-Artikel') && $w4Aufrufe === []);
+gesperrt('Ungültige productUid wird abgelehnt', fn() => Gelato::artikelSetzen((int) $w4Var[0]['id'], 'cards; drop', 250));
+Gelato::artikelSetzen((int) $w4Var[0]['id'], 'cards_pf_test_85x55', 250);
+$w4S = Gelato::entwurfSenden($w4O['id']);
+$w4K = json_decode((string) ($w4Aufrufe[0][3] ?? ''), true);
+pruefe('Entwurf an Gelato: POST /v4/orders, X-API-KEY, orderType „draft“, unsere Nummer, productUid + Menge, Datei als unterschriebener Link, Adresse in Gelato-Feldern',
+    $w4S['ok'] && count($w4Aufrufe) === 1 && $w4Aufrufe[0][0] === 'POST' && $w4Aufrufe[0][1] === 'https://order.gelatoapis.com/v4/orders'
+    && in_array('X-API-KEY: kette-ersatz', $w4Aufrufe[0][2], true) && ($w4K['orderType'] ?? '') === 'draft' && ($w4K['orderReferenceId'] ?? '') === $w4O['nummer']
+    && ($w4K['items'][0]['productUid'] ?? '') === 'cards_pf_test_85x55' && ($w4K['items'][0]['quantity'] ?? 0) === 250
+    && str_contains((string) ($w4K['items'][0]['files'][0]['url'] ?? ''), '/druckdatei.php?e=' . $w4E)
+    && ($w4K['shippingAddress']['firstName'] ?? '') === 'Gina Lato' && ($w4K['shippingAddress']['lastName'] ?? '') === 'Rossi'
+    && ($w4K['shippingAddress']['postCode'] ?? '') === '90100' && ($w4K['shippingAddress']['email'] ?? '') === 'gina@partner.example'
+    && Db::wert('SELECT anbieter_ref FROM wm_bestellungen WHERE id = ?', [$w4O['id']]) === 'gel-123'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w4O['id']]) === 'bezahlt', json_encode($w4K));
+pruefe('Ein zweiter Klick schickt nichts mehr', Gelato::entwurfSenden($w4O['id'])['ok'] === false && count($w4Aufrufe) === 1);
+pruefe('Cron liest bei Gelato nach: Entwurf bestätigt → „beim Drucker“, Sendungsnummer übernommen, Meldung an Uwe — „versendet“ bleibt sein Klick',
+    Gelato::nachsehen() >= 1 && $w4Aufrufe[1][0] === 'GET' && $w4Aufrufe[1][1] === 'https://order.gelatoapis.com/v4/orders/gel-123'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w4O['id']]) === 'beim_drucker'
+    && Db::wert('SELECT tracking FROM wm_bestellungen WHERE id = ?', [$w4O['id']]) === 'GLT-777'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_sendung'") >= 1);
+
+// Fehler: festhalten, nicht wiederholen, erst Uwes Klick gibt frei
+$w4Adr2 = WmBestellung::adresseSpeichern((int) $w4P['id'], ['name' => 'Gina', 'strasse' => 'Via Roma 2', 'plz' => '90100', 'ort' => 'Palermo', 'land' => 'IT']);
+$w4O2 = WmBestellung::anlegen($w4P, (int) $w4Var[0]['id'], $w4Adr2, 'it');
+WmBestellung::vonHandBezahlt($w4O2['id']);
+$w4Zahl = count($w4Aufrufe);
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w4Aufrufe): array { $w4Aufrufe[] = [$m, $u]; throw new RuntimeException('Zeitüberschreitung'); };
+$w4F = Gelato::entwurfSenden($w4O2['id']);
+pruefe('Zeitüberschreitung: kein zweiter Versuch, Stand „fehler“ mit Hinweis aufs Dashboard, Meldung an Uwe; der Schlüssel steht nirgends',
+    !$w4F['ok'] && count($w4Aufrufe) === $w4Zahl + 1 && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w4O2['id']]) === 'fehler'
+    && str_contains((string) Db::wert('SELECT anbieter_fehler FROM wm_bestellungen WHERE id = ?', [$w4O2['id']]), 'Dashboard')
+    && Gelato::entwurfSenden($w4O2['id'])['ok'] === false && count($w4Aufrufe) === $w4Zahl + 1
+    && !str_contains((string) Db::wert("SELECT GROUP_CONCAT(body) FROM notifications WHERE type = 'wm_gelato_fehler'"), 'kette-ersatz'));
+pruefe('Nach Uwes „Nachgesehen“ ist sie wieder frei', Gelato::zuruecksetzen($w4O2['id']) === true
+    && (int) Db::wert('SELECT anbieter_status IS NULL FROM wm_bestellungen WHERE id = ?', [$w4O2['id']]) === 1);
+pruefe('Namen: ein Wort füllt beide Pflichtfelder', Gelato::namen('Madonna') === ['Madonna', 'Madonna'] && Gelato::namen('  Anna  Maria Rossi ') === ['Anna Maria', 'Rossi']);
+$w4Ix = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Senden an Gelato fragt vorher nach (RAUS) und hat seinen Fall; Cron „wm_gelato“ liest nur',
+    (Ablauf::TRAGWEITE['wm_gelato_senden'][0] ?? '') === Ablauf::RAUS && str_contains($w4Ix, "case 'wm_gelato_senden':")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_gelato'   => static function ()"));
+// Verwaltung rendert die Gelato-Teile
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$w4Fe = null; set_error_handler(static function (int $n, string $m) use (&$w4Fe): bool { $w4Fe = $m; return true; });
+$liste = WmBestellung::verwaltung(); $zahlweg = 'anfrage'; ob_start(); require $wurzel . '/views/werbemittel_bestellungen.php'; $w4Html = (string) ob_get_clean();
+$wm = Werbemittel::verwaltung(); ob_start(); require $wurzel . '/views/werbemittel.php'; $w4Html2 = (string) ob_get_clean();
+restore_error_handler(); unset($liste, $zahlweg, $wm);
+pruefe('Verwaltung: Knopf „Als Entwurf an Gelato“, Gelato-Artikel je Auflage, Schlüssel-Stand ohne den Schlüssel selbst',
+    $w4Fe === null && str_contains($w4Html, 'value="wm_gelato_senden"') && str_contains($w4Html2, 'value="cards_pf_test_85x55"')
+    && str_contains($w4Html2, 'Schlüssel eingetragen') && !str_contains($w4Html . $w4Html2, 'kette-ersatz'), (string) $w4Fe);
+// Zurück
+Gelato::$netz = null; WmBestellung::$senden = null;
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w4P['id']]);
+Db::run('DELETE FROM wm_adressen WHERE partner_id = ?', [(int) $w4P['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w4P['id']]);
+Db::run('DELETE FROM wm_anbieter_produkte');
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $w4P['id']]);
+Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w4Vk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w4Vk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

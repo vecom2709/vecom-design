@@ -105,6 +105,11 @@ final class Cron
             'zahlabgleich'=> static fn() => self::zahlungenAbgleichen(),
             /* Marketing Center (03.10.2026): offene Werbemittel-Bestellungen bei
                Stripe nachfragen, falls der Webhook ausfiel. Nur lesen. */
+            /* Gelato (Phase 4): Stand der Entwürfe/Aufträge lesen, Sendungsnummer übernehmen. Nur lesen. */
+            'wm_gelato'   => static function () {
+                require_once __DIR__ . '/Gelato.php';
+                return Gelato::nachsehen();
+            },
             'wm_abgleich' => static function () {
                 require_once __DIR__ . '/WmBestellung.php';
                 require_once __DIR__ . '/Zahlung/Anbieter.php';

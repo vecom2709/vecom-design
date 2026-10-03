@@ -1801,7 +1801,11 @@ if ($post) {
 
             case 'wm_variante':
                 require_once __DIR__ . '/src/Werbemittel.php';
-                Werbemittel::varianteSpeichern((int) ($_POST['produkt_id'] ?? 0), $_POST, (int) ($_POST['id'] ?? 0));
+                $wmVid = Werbemittel::varianteSpeichern((int) ($_POST['produkt_id'] ?? 0), $_POST, (int) ($_POST['id'] ?? 0));
+                if (array_key_exists('gelato_artikel', $_POST)) {
+                    require_once __DIR__ . '/src/Gelato.php';
+                    Gelato::artikelSetzen($wmVid, (string) $_POST['gelato_artikel'], max(1, (int) ($_POST['gelato_menge'] ?? 1)));
+                }
                 $_SESSION['gut'] = 'Variante gespeichert.';
                 zurueck('werbemittel');
 
@@ -1816,6 +1820,22 @@ if ($post) {
                     ? (WmBestellung::zahlweg() === 'stripe' ? 'Stripe ist eingeschaltet: Partner zahlen beim Bestellen direkt.' : 'Eingestellt — aber ohne Stripe-Schlüssel bleibt es bei „Anfrage“.')
                     : 'Zahlweg „Anfrage“: Bestellungen werden gespeichert, du klärst die Zahlung.';
                 zurueck('werbemittel');
+
+            case 'wm_gelato_senden':
+            case 'wm_gelato_zurueck':
+                require_once __DIR__ . '/src/Gelato.php';
+                $wmBid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'wm_gelato_senden') {
+                    $wmR = Gelato::entwurfSenden($wmBid);
+                    if ($wmR['ok']) {
+                        Events::protokoll('wm_gelato_entwurf', 'Werbemittel-Bestellung #' . $wmBid . ' als Entwurf an Gelato', null, null, null, ['wm_bestellung' => $wmBid, 'gelato' => $wmR['id'] ?? '']);
+                        $_SESSION['gut'] = 'Entwurf bei Gelato angelegt. Jetzt im Gelato-Dashboard prüfen und bestätigen — erst dann wird gedruckt und berechnet.';
+                    } else { $_SESSION['fehler'] = $wmR['grund']; }
+                } else {
+                    if (Gelato::zuruecksetzen($wmBid)) { $_SESSION['gut'] = 'Zurückgesetzt — die Bestellung kann wieder gesendet werden.'; }
+                    else { $_SESSION['fehler'] = 'Nichts zurückgesetzt — es steht kein Fehler an.'; }
+                }
+                zurueck('werbemittel/bestellungen#b' . $wmBid);
 
             case 'wm_b_bezahlt':
             case 'wm_b_drucker':

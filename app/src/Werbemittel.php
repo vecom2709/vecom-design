@@ -247,12 +247,19 @@ final class Werbemittel
             default => '',
         };
         if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }
-        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf): int {
+        // Dieselbe Karte für den Druckanbieter (Gelato: 4 mm Beschnitt, 300 dpi) — im selben Moment
+        // aus denselben Daten, damit nichts anderes gedruckt wird als freigegeben (Phase 4).
+        $druck = match ((string) $pr['vorlage']) {
+            'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
+            default => '',
+        };
+        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf, $druck): int {
             Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf'", [(int) $p['id'], $produktId]);
             return Db::insert('wm_entwuerfe', [
                 'partner_id' => (int) $p['id'], 'produkt_id' => $produktId,
                 'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
                 'datei' => $pdf, 'datei_hash' => hash('sha256', $pdf), 'datei_bytes' => strlen($pdf),
+                'datei_druck' => $druck !== '' ? $druck : null, 'datei_druck_hash' => $druck !== '' ? hash('sha256', $druck) : null,
             ]);
         }, 3);
     }

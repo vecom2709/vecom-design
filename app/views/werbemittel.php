@@ -53,6 +53,13 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     <a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/vorschau')) ?>">Als Partner ansehen</a></div>
 </div>
 
+<?php require_once dirname(__DIR__) . '/src/Gelato.php'; ?>
+<div class="block" style="max-width:820px"><h2>Druckanbieter Gelato</h2>
+  <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
+    <?php else: ?><span class="marke2 warnung">Kein Schlüssel</span> In <code>app/config.local.php</code> eintragen: <code>'gelato' => ['api' => '…']</code>. Bis dahin beauftragst du den Druck von Hand.<?php endif; ?></p>
+  <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
+</div>
+
 <div class="block" style="max-width:820px"><h2>Standardmarge</h2>
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_standard"><input type="hidden" name="zurueck" value="werbemittel">
@@ -96,7 +103,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
         <?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? '(Standard)' : '(eigene Regel)' ?></p>
 
       <div class="tabellenrahmen"><table>
-        <thead><tr><th>Variante (IT / DE / EN)</th><th class="num">Auflage</th><th class="num">Einkauf €</th><th class="num">Partnerpreis</th><th class="num">Marge</th><th>an</th><th></th></tr></thead>
+        <thead><tr><th>Variante (IT / DE / EN)</th><th class="num">Auflage</th><th class="num">Einkauf €</th><th class="num">Partnerpreis</th><th class="num">Marge</th><th title="Gelato productUid und Menge je Auflage">Gelato-Artikel · Menge</th><th>an</th><th></th></tr></thead>
         <tbody>
         <?php foreach (array_merge($p['varianten'], [null]) as $v): $fid = 'wmv-' . $pid . '-' . (int) ($v['id'] ?? 0); ?>
           <tr>
@@ -111,6 +118,9 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
             <td class="num"><input form="<?= $fid ?>" name="einkauf_eur" inputmode="decimal" value="<?= $v ? $eur((int) $v['einkauf_cent']) : '' ?>" style="width:90px" placeholder="0,00"></td>
             <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['preis_cent'])) : '<span style="color:var(--leise)">—</span>' ?></td>
             <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['marge_cent'])) : '' ?></td>
+            <?php $ga = $v ? Gelato::artikel((int) $v['id']) : null; ?>
+            <td><div style="display:flex;gap:4px"><input form="<?= $fid ?>" name="gelato_artikel" value="<?= Fmt::h((string) ($ga['artikel'] ?? '')) ?>" placeholder="productUid" style="min-width:150px">
+              <input form="<?= $fid ?>" name="gelato_menge" type="number" min="1" value="<?= (int) ($ga['menge'] ?? ($v['auflage'] ?? 1)) ?>" style="width:80px"></div></td>
             <td><input form="<?= $fid ?>" type="checkbox" name="aktiv" style="width:auto" <?= !$v || $v['aktiv'] ? 'checked' : '' ?>></td>
             <td style="text-align:right"><button form="<?= $fid ?>" class="knopf <?= $v ? 'stumm' : '' ?>"><?= $v ? 'Speichern' : 'Hinzufügen' ?></button></td>
           </tr>

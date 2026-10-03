@@ -26,4 +26,11 @@ return [
         'webhook_geheim_connect' => '',      // wahlweise: whsec_… des Endpunkts für Ereignisse aus verbundenen Konten (account.updated der Partner)
         'oeffentlich'    => '',              // pk_test_… bzw. pk_live_… — Partnerkonto in der Sprache des Partners einrichten
     ],
+
+    /* Marketing Center (03.10.2026): Druckanbieter Gelato. Den Schlüssel
+       erzeugt Uwe im Gelato-Dashboard; er steht nur hier. Gesendet werden
+       nur Entwürfe — gedruckt wird erst nach Bestätigung im Dashboard. */
+    'gelato' => [
+        'api' => '',                          // API-Schlüssel aus dem Gelato-Dashboard
+    ],
 ];
