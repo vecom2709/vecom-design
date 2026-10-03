@@ -276,6 +276,16 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
   color: var(--c-text); font: inherit; font-size: 16px; outline: none; }
 .zugangsfeld input::placeholder { color: var(--c-text-dim); opacity: .85; }
 .zugangsfeld .btn { flex: 0 0 auto; min-height: 48px; border-radius: 999px; white-space: nowrap; }
+.zugangsfeld__sprache { border: 0; padding: 0; margin: .75rem 0 0 .4rem; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.zugangsfeld__sprache legend { padding: 0; margin: 0 0 6px; font-size: var(--t-sm); color: var(--c-text-dim); }
+.zugangsfeld__sprache label { position: relative; }
+.zugangsfeld__sprache input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.zugangsfeld__sprache span { display: inline-block; min-height: 36px; line-height: 20px; padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, .18); font-size: var(--t-sm); color: var(--c-text-dim); transition: border-color .15s, background .15s, color .15s; }
+.zugangsfeld__sprache span:hover { border-color: rgba(241, 211, 139, .5); color: var(--c-text); }
+.zugangsfeld__sprache input:checked + span { border-color: var(--c-cyan); background: rgba(241, 211, 139, .12); color: var(--c-text); font-weight: 600; }
+.zugangsfeld__sprache input:focus-visible + span { outline: 2px solid var(--c-cyan); outline-offset: 2px; }
+.zugangsfeld.ist-gesendet .zugangsfeld__sprache { opacity: .45; pointer-events: none; }
 .zugangsfeld__note { margin: .8rem 0 0 .4rem; max-width: 52ch; font-size: var(--t-sm); line-height: 1.55; color: var(--c-text-dim); }
 .zugangsfeld__ok { margin: .8rem 0 0; padding: .9rem 1.1rem; border-radius: 14px; font-size: var(--t-sm); line-height: 1.55;
   color: var(--c-text); background: rgba(241, 211, 139, .08); border: 1px solid rgba(241, 211, 139, .32); }

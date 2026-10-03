@@ -7345,6 +7345,23 @@ pruefe('wer nur geschrieben hat, bekommt das Vorhaben in seinem Dashboard',
     (Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [$zgFrei]))['stufe'] ?? '') === 'vorhaben');
 
 /* ---------- Ablaufen und aufräumen (E4) ---------------------------------- */
+/* SPRACHE GEWÄHLT (03.10.2026, Uwe: „wenn der Kunde seine E-Mail einträgt, soll er auch seine Sprache auswählen“) */
+Zugang::anfordern('sprachwahl@pruefung.example', 'en', ['sprache_gewaehlt' => true]);
+$swK = (array) Db::one("SELECT c.id, c.sprache, c.sprache_bestaetigt, z.sprache AS zsprache FROM customers c JOIN zugaenge z ON z.customer_id = c.id WHERE c.email = 'sprachwahl@pruefung.example'");
+Zugang::anfordern('ohnewahl@pruefung.example', 'de');
+pruefe('Sprachwahl: gewählte Sprache gilt für Zugang und Kunde und ist bestätigt; ohne Wahl nur vermutet',
+    ($swK['sprache'] ?? '') === 'en' && ($swK['zsprache'] ?? '') === 'en' && !empty($swK['sprache_bestaetigt'])
+    && empty(Db::wert("SELECT sprache_bestaetigt FROM customers WHERE email = 'ohnewahl@pruefung.example'", [], null))
+    && str_ends_with(Zugang::link('x', (string) ($swK['zsprache'] ?? '')), 'lang=en'), json_encode($swK));
+Zugang::anfordern('sprachwahl@pruefung.example', 'de', ['sprache_gewaehlt' => true]);
+pruefe('Sprachwahl: neu gewählt (auch bei offenem Zugang) → Kunde und Zugang folgen der neuen Wahl',
+    Db::wert("SELECT sprache FROM customers WHERE email = 'sprachwahl@pruefung.example'") === 'de'
+    && Db::wert("SELECT sprache FROM zugaenge WHERE email = 'sprachwahl@pruefung.example'") === 'de');
+$swSrc = (string) file_get_contents($wurzel . '/../zugang.php') . (string) file_get_contents($wurzel . '/../p.php') . (string) file_get_contents($wurzel . '/../index.html');
+pruefe('Sprachwahl: Feld auf Startseite (3×), Empfehlungsseite und zugang.php; Texte in drei Sprachen',
+    substr_count($swSrc, 'name="sprache" value="') >= 5 && substr_count((string) file_get_contents($wurzel . '/../index.html'), 'zugangsfeld__sprache') === 3
+    && count(Texte::ZUGANG['sprache']) === 3);
+
 Zugang::anfordern('alt@pruefung.example', 'it');
 Db::run("UPDATE zugaenge SET created_at = NOW() - INTERVAL 9 DAY WHERE email = 'alt@pruefung.example'");
 pruefe('ein nie geöffneter Link läuft ab',
@@ -10271,7 +10288,8 @@ pruefe('E-Mail-Einstieg: ohne Partnerlink keine Zuordnung',
 $ztForm = (string) file_get_contents($wurzel . '/../formular.php');
 pruefe('Anfrageformular: ordnet über den Besuch zu', str_contains($ztForm, 'Partner::ausBesuch($kundeId)'));
 $ztZug = (string) file_get_contents($wurzel . '/../zugang.php');
-pruefe('E-Mail-Einstieg: zugang.php gibt den Code aus dem Keks weiter', str_contains($ztZug, "'partner_code' => (string) (\$_COOKIE['vecompartner']"));
+pruefe('E-Mail-Einstieg: zugang.php gibt den Code aus dem Keks weiter (ohne eigenen Partner im Formular)', str_contains($ztZug, "(string) (\$_COOKIE[Partner::KEKS] ?? '')")
+    && str_contains($ztZug, "'partner_code' => \$pcGilt"));
 $ztAlt = Events::kundeFinden(['name' => 'Schon Kunde', 'email' => 'schon-kunde@esempio.example']);
 Events::bestellungAnlegen($ztAlt, Angebot::internesPaket(), 'früher gekauft', 50000);
 pruefe('Wer schon gekauft hat, wird über den Link nicht mehr zugeordnet (Vereinbarung Punkt 1)', Partner::zuordnen($ztAlt, $ztP, 'link') === 'schon_kunde');
@@ -16534,6 +16552,46 @@ pruefe('Tracking: ein Besuch, der schon einem Kunden gehört, wird keinem andere
     Spur::ereignis('lead_created', ['customer_id' => $spFremd]);
     return (int) Db::wert('SELECT COUNT(*) FROM spur_ereignisse WHERE customer_id = ?', [$spFremd], 0) === 0;
 })());
+
+/* ZWEI PARTNER IM SELBEN BROWSER (03.10.2026, Uwe: „auf Chiara eingetragen, aber Anika zugeordnet“).
+   Eigene Partner, damit die Kennzahlen von Laura und Ulli weiter stimmen. */
+$spKennP = [$spP, $spP2];
+$spP = Partner::laden(Partner::anlegen(['name' => 'Anna Erst', 'email' => 'anna@spur.example', 'status' => 'aktiv', 'sprache' => 'de']));
+$spP2 = Partner::laden(Partner::anlegen(['name' => 'Chiara Zweit', 'email' => 'chiara@spur.example', 'status' => 'aktiv', 'sprache' => 'it']));
+$_COOKIE = []; Spur::vergessen();
+$spA = Spur::partnerBesuch($spP, 'facebook', $spServer($spUaPc, '151.99.125.20'));      // erst Partner A (Sitzung entsteht)
+$_COOKIE[Partner::KEKS] = $spP2['code']; Spur::vergessen();                               // dann Seite von B -- ohne neue Sitzung (Vorschau / Partner selbst)
+pruefe('Zwei Partner: passt die Sitzung nicht zum Partner im Keks, gibt es keine laufende Sitzung',
+    $spA !== null && Spur::aktuellerBesuch() === null
+    && (static function () use ($spP, $spA): bool { $_COOKIE[Partner::KEKS] = $spP['code'] . ':facebook'; Spur::vergessen(); $b = Spur::aktuellerBesuch(); return $b !== null && (int) $b['id'] === (int) $spA['id']; })()
+    && Spur::passtZu($spA, $spP['code']) && !Spur::passtZu($spA, $spP2['code']) && Spur::passtZu($spA, '') && !Spur::passtZu(null, $spP['code']));
+$_COOKIE[Partner::KEKS] = $spP2['code']; Spur::vergessen();
+$spZw = Zugang::anfordern('zweipartner@spur.example', 'de', ['partner_code' => $spP2['code']]);
+$spZwZ = Db::one("SELECT * FROM zugaenge WHERE email = 'zweipartner@spur.example'");
+$spZwK = (int) ($spZwZ['customer_id'] ?? 0);
+pruefe('Zwei Partner: eingetragen auf der Seite von B → Kunde gehört B, kein Lead in der Sitzung von A, Zugang ohne fremde Sitzung',
+    $spZw['ok'] && $spZwK > 0 && (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$spZwK], 0) === (int) $spP2['id']
+    && $spZwZ['spur_besuch_id'] === null
+    && (int) Db::wert("SELECT COUNT(*) FROM spur_ereignisse WHERE besuch_id = ? AND event_type = 'lead_created'", [$spA['id']], 0) === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE id = ? AND customer_id = ?', [$spA['id'], $spZwK], 0) === 0);
+$_COOKIE[Partner::KEKS] = $spP['code']; Spur::vergessen();
+$spOeffZw = Zugang::oeffnen((string) $spZwZ['token']);
+pruefe('Zwei Partner: Link später im Browser von A geöffnet → bleibt bei B, A bekommt die Sitzung nicht',
+    $spOeffZw['ok'] && (int) Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$spZwK], 0) === (int) $spP2['id']
+    && (int) Db::wert('SELECT COUNT(*) FROM spur_besuche WHERE id = ? AND customer_id = ?', [$spA['id'], $spZwK], 0) === 0);
+$spMeldVor = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_zweiter'", [], 0);
+$_COOKIE = []; Spur::vergessen();
+Zugang::anfordern('zweit-offen@spur.example', 'de', ['partner_code' => $spP2['code']]);
+Zugang::anfordern('zweit-offen@spur.example', 'de', ['partner_code' => $spP['code'] . ':instagram']);
+pruefe('Zwei Partner: dieselbe Adresse danach über einen anderen Partner → bleibt beim ersten, Uwe bekommt eine Meldung',
+    Db::wert("SELECT partner_code FROM zugaenge WHERE email = 'zweit-offen@spur.example'") === $spP2['code']
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_zweiter'", [], 0) === $spMeldVor + 1);
+$spZgSrc = (string) file_get_contents($wurzel . '/../zugang.php'); $spPSrc = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Zwei Partner: das Formular der Empfehlungsseite trägt seinen Partner, und der gilt vor dem Keks',
+    str_contains($spPSrc, 'name="partner" value="') && str_contains($spZgSrc, "\$_POST['partner']")
+    && strpos($spZgSrc, "Partner::ausCode(\$pcfCode)") < strpos($spZgSrc, "'partner_code' => \$pcGilt"));
+$_COOKIE = []; Spur::vergessen();
+[$spP, $spP2] = $spKennP;
 
 /* Mehrfachklicks */
 for ($i = 0; $i < 7; $i++) { $_COOKIE = []; Spur::vergessen(); Spur::partnerBesuch($spP2, null, $spServer($spUaPc, '203.0.113.50')); }

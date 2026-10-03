@@ -2327,6 +2327,7 @@ final class Texte
             'de' => 'Tragen Sie Ihre E-Mail-Adresse ein: Ich schicke Ihnen den Link zu Ihrem persönlichen Dashboard. Darüber läuft alles bis zur Übergabe Ihrer Website.',
             'en' => 'Enter your email address and I will send you the link to your personal dashboard. Everything runs through it until your website is handed over.'],
         'feld'  => ['it' => 'Il suo indirizzo e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
+        'sprache' => ['it' => 'Lingua della dashboard:', 'de' => 'Sprache des Dashboards:', 'en' => 'Dashboard language:'],
         'knopf' => ['it' => 'Inviarmi la dashboard', 'de' => 'Mein Dashboard zusenden', 'en' => 'Send me my dashboard'],
         'schritte' => [
             'it' => 'Questionario · Preventivo · Anteprima · Online',

@@ -356,6 +356,7 @@ window.VECOM_I18N.de = {
       v4: "1", l4: "Ansprechpartner, vom ersten Gespräch bis zur Betreuung"
     },
     zugang: {
+      sprache: "Sprache des Dashboards:",
       feld: "Ihre E-Mail-Adresse",
       knopf: "Mein Dashboard zusenden",
       note: "Ich schicke Ihnen den Link zu Ihrem persönlichen Dashboard: Darüber läuft alles bis zur Übergabe Ihrer Website. Kein Konto, kein Passwort.",

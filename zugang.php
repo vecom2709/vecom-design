@@ -72,10 +72,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ergebnis = 'gesendet';
     try {
         Einrichtung_sicher();
-        /* Der Partnercode aus dem Besuchs-Keks (/p/CODE) reist mit dem Zugang,
-           damit er auch zählt, wenn der Link auf einem anderen Gerät geöffnet wird. */
-        $r = Zugang::anfordern($email, $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code,
-            'partner_code' => (string) ($_COOKIE['vecompartner'] ?? ''), 'wunsch' => (string) ($_POST['wunsch'] ?? '')]);
+        require_once __DIR__ . '/app/src/Partner.php';
+        /* WELCHER PARTNER (03.10.2026, Uwe: „auf Chiara eingetragen, Anika zugeordnet“):
+           Das Formular einer Empfehlungsseite trägt seinen Partner selbst (Feld
+           „partner“) -- er gilt vor dem Keks. Der Keks zeigt nur den zuletzt
+           geöffneten Partnerlink dieses Browsers; ein zweiter Tab mit einer
+           anderen Partnerseite hätte ihn überschrieben. Nur aktive Partner. */
+        $pcFormular = (string) ($_POST['partner'] ?? '');
+        [$pcfCode] = Partner::teilen($pcFormular);
+        $pcGilt = ($pcfCode !== '' && Partner::ausCode($pcfCode) !== null) ? $pcFormular : (string) ($_COOKIE[Partner::KEKS] ?? '');
+        /* SPRACHE GEWÄHLT (03.10.2026): IT · DE · EN neben dem Feld. Die Seite antwortet
+           in ihrer Sprache; Mail, Dashboard und Fragebogen kommen in der gewählten. */
+        $wahl = (string) ($_POST['sprache'] ?? '');
+        $gewaehlt = in_array($wahl, Sprache::ALLE, true);
+        /* Der Partnercode reist mit dem Zugang, damit er auch zählt, wenn der Link auf
+           einem anderen Gerät geöffnet wird. */
+        $r = Zugang::anfordern($email, $gewaehlt ? $wahl : $sprache, ['quelle' => Zugang::quelle((string) ($_POST['quelle'] ?? 'seite')), 'empfehl_code' => $code,
+            'partner_code' => $pcGilt, 'wunsch' => (string) ($_POST['wunsch'] ?? ''), 'sprache_gewaehlt' => $gewaehlt]);
         if (!$r['ok']) { $ergebnis = 'ungueltig'; }
         /* Von einer Empfehlungsseite (27.09.2026): für den Trichter des
            Partners zählen, und das freiwillige Werbe-Häkchen beantworten --
@@ -84,7 +97,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if ($r['ok'] && !empty($_POST['von_partner'])) {
             try {
                 foreach (['Partner', 'PartnerSeite'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
-                [$vp] = Partner::ausKeks();
+                [$vp] = Partner::ausKeks([Partner::KEKS => $pcGilt]);
                 if ($vp !== null) {
                     Partner::ereignis((int) $vp['id'], 'email');
                     if (!empty($_POST['werbung'])) {
@@ -153,6 +166,13 @@ $gut = $meldung === 'gesendet';
   .zg .knopf{min-height:54px;font-size:16px}
   .zg .klein{color:var(--leise);font-size:13px;line-height:1.6;margin:12px 0 0}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .zg-sprache{border:0;padding:0;margin:2px 0 4px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .zg-sprache legend{padding:0;margin:0 0 6px;font-size:13.5px;color:var(--dim)}
+  .zg-sprache label{position:relative}
+  .zg-sprache input{position:absolute;opacity:0;width:1px;height:1px}
+  .zg-sprache span{display:inline-block;padding:9px 14px;border-radius:999px;border:1px solid var(--linie,rgba(0,0,0,.15));font-size:14px;cursor:pointer;min-height:40px;line-height:20px}
+  .zg-sprache input:checked + span{border-color:var(--akzent,#c9a23a);background:rgba(201,162,58,.12);font-weight:600}
+  .zg-sprache input:focus-visible + span{outline:2px solid var(--akzent,#c9a23a);outline-offset:2px}
   .zg .schritte{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise);margin:0 0 14px}
 </style>
 </head>
@@ -176,6 +196,12 @@ $gut = $meldung === 'gesendet';
         <label for="z_email" class="sr"><?= $h($T('feld')) ?></label>
         <input id="z_email" name="email" type="email" autocomplete="email" inputmode="email" required
                placeholder="<?= $h($T('feld')) ?>" autofocus>
+        <?php /* Sprache des Dashboards (03.10.2026): vorgewählt die dieser Seite. */ ?>
+        <fieldset class="zg-sprache"><legend><?= $h($T('sprache')) ?></legend>
+          <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
+            <label><input type="radio" name="sprache" value="<?= $l ?>"<?= $l === $sprache ? ' checked' : '' ?>><span><?= $h($wie) ?></span></label>
+          <?php endforeach; ?>
+        </fieldset>
         <button class="knopf haupt" type="submit"><?= $h($T('knopf')) ?></button>
       </form>
       <p class="klein"><?= $h($T('hinweis')) ?><br>

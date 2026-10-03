@@ -356,6 +356,7 @@ window.VECOM_I18N.en = {
       v4: "1", l4: "Single contact, from first call through ongoing care"
     },
     zugang: {
+      sprache: "Dashboard language:",
       feld: "Your email address",
       knopf: "Send me my dashboard",
       note: "I will send you the link to your personal dashboard: everything runs through it until your website is handed over. No account, no password.",

@@ -276,7 +276,30 @@ final class Spur
         $sid = (string) ($_COOKIE[self::KEKS] ?? '');
         if (!preg_match('/^[a-f0-9]{32}$/', $sid)) { return self::$besuch = null; }
         try { self::$besuch = Db::one('SELECT * FROM spur_besuche WHERE session_id = ?', [$sid]) ?: null; } catch (Throwable $e) { self::$besuch = null; }
+        /* EIN BESUCH GEHÖRT ZU SEINEM PARTNER (03.10.2026, Uwe: „Kunde auf Chiara
+           eingetragen, aber Anika zugeordnet“). Die Sitzung entsteht beim ersten
+           Partnerklick; öffnet derselbe Browser danach die Seite eines anderen
+           Partners, ohne dass dort eine neue Sitzung entsteht (Vorschau n=1,
+           der Partner auf seiner eigenen Seite), zeigte der Partner-Keks schon
+           den neuen Partner, die Sitzung aber noch den alten -- und alles, was
+           dort eingetragen wurde, landete im Tracking beim alten. Passt die
+           Sitzung nicht zum Partner im Keks, gibt es keine laufende Sitzung. */
+        if (self::$besuch !== null && !empty(self::$besuch['partner_id'])) {
+            [$kc] = Partner::teilen((string) ($_COOKIE[Partner::KEKS] ?? ''));
+            $kp = $kc !== '' ? Partner::ausCode($kc) : null;
+            if ($kp !== null && (int) $kp['id'] !== (int) self::$besuch['partner_id']) { self::$besuch = null; }
+        }
         return self::$besuch;
+    }
+
+    /** Passt der Besuch zu diesem Partnercode („CODE“ oder „CODE:kanal“)? Ohne Code oder ohne Partner am Besuch: ja. */
+    public static function passtZu(?array $b, ?string $partnerCode): bool
+    {
+        if ($b === null) { return false; }
+        if (empty($b['partner_id']) || trim((string) $partnerCode) === '') { return true; }
+        [$c] = Partner::teilen((string) $partnerCode);
+        $p = $c !== '' ? Partner::ausCode($c) : null;
+        return $p === null || (int) $p['id'] === (int) $b['partner_id'];
     }
 
     /**

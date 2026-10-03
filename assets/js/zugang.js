@@ -14,6 +14,12 @@ const TEXT = {
   en: { fehler: 'Something went wrong. Please try again shortly.' },
 }[['it', 'de', 'en'].includes(L) ? L : 'it'];
 
+/* Sprache des Dashboards (03.10.2026, Uwe): vorgewählt die Sprache dieser Seite.
+   Ohne Skript ist nichts gewählt, dann gilt auf dem Server die Seitensprache. */
+for (const r of document.querySelectorAll('form[data-zugang] input[name="sprache"]')) {
+  if (r.value === L && !r.form.querySelector('input[name="sprache"]:checked')) r.checked = true;
+}
+
 for (const form of document.querySelectorAll('form[data-zugang]')) {
   const ok = form.querySelector('.zugangsfeld__ok');
   const knopf = form.querySelector('button[type="submit"]');

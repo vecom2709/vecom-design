@@ -276,6 +276,13 @@ $wegIcon = [
   .lp-kopf span{display:block;color:var(--dim);font-size:14.5px;margin-top:3px}
   .ld blockquote{margin:0 0 20px;padding:12px 16px;border-left:2px solid rgba(241,211,139,.6);font-size:16px;line-height:1.6;color:var(--text)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+  .lp-sprache{border:0;padding:0;margin:2px 0 2px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+  .lp-sprache legend{padding:0;margin:0 0 6px;font-size:13.5px;color:var(--dim)}
+  .lp-sprache label{position:relative}
+  .lp-sprache input{position:absolute;opacity:0;width:1px;height:1px}
+  .lp-sprache span{display:inline-block;padding:9px 14px;min-height:40px;line-height:20px;border-radius:999px;border:1px solid var(--linie,rgba(127,127,127,.35));font-size:14px;cursor:pointer}
+  .lp-sprache input:checked + span{border-color:var(--akzent);background:color-mix(in srgb,var(--akzent) 14%,transparent);font-weight:600}
+  .lp-sprache input:focus-visible + span{outline:2px solid var(--akzent);outline-offset:2px}
   .lp-werbung{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--dim);line-height:1.5;margin-top:4px}
   .lp-werbung input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--akzent)}
   .lp-werbung small{display:block;color:var(--leise);font-size:12.5px;margin-top:2px}
@@ -511,6 +518,9 @@ $wegIcon = [
     </div><div class="lp-b">
     <form method="post" action="/zugang.php?lang=<?= $h($sprache) ?>" id="lp_form">
       <input type="hidden" name="quelle" value="seite"><input type="hidden" name="von_partner" value="1">
+      <?php /* Der Partner dieser Seite reist im Formular mit (03.10.2026): Er gilt vor dem Keks,
+            den ein zweiter Tab mit einer anderen Partnerseite überschrieben haben kann. */ ?>
+      <input type="hidden" name="partner" value="<?= $h((string) $p['code'] . (($pKanal = Partner::kanal((string) ($_GET['k'] ?? ''))) !== null ? ':' . $pKanal : '')) ?>">
       <?php /* Zwei Schritte (28.09.2026, Uwe: Ja zu R3): erst antippen, dann E-Mail. Ohne Skript steht beides da. */ ?>
       <fieldset class="lp-wunsch"><legend><?= $h($S($PS['wunsch_frage'])) ?></legend>
         <div class="lp-chips"><?php foreach ($PS['wuensche'] as $wk => $wt): ?><label><input type="radio" name="wunsch" value="<?= $h($wk) ?>"><span><?= $h($S($wt)) ?></span></label><?php endforeach; ?></div>
@@ -519,6 +529,12 @@ $wegIcon = [
       <div class="lp-email-teil">
       <label for="ld_email" class="sr"><?= $h($L('feld')) ?></label>
       <input id="ld_email" name="email" type="email" required autocomplete="email" inputmode="email" placeholder="<?= $h($L('feld')) ?>">
+      <?php /* Sprache des Dashboards (03.10.2026, Uwe): Dashboard, Fragebogen und Post in dieser Sprache. */ ?>
+      <fieldset class="lp-sprache"><legend><?= $h(Texte::h(Texte::ZUGANG['sprache'], $sprache)) ?></legend>
+        <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $spL => $spW): ?>
+          <label><input type="radio" name="sprache" value="<?= $spL ?>"<?= $spL === $sprache ? ' checked' : '' ?>><span><?= $h($spW) ?></span></label>
+        <?php endforeach; ?>
+      </fieldset>
       <?php /* Freiwillige Werbe-Einwilligung (27.09.2026, Uwe: Ja): nur Bestätigungsmail, erlaubt erst nach dem Klick. */ ?>
       <label class="lp-werbung"><input type="checkbox" name="werbung" value="1"><span><?= $h($S($PS['werbung'])) ?><small><?= $h($S($PS['werbung_hilfe'])) ?></small></span></label>
       <div class="zusatz">

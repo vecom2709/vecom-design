@@ -182,7 +182,17 @@ final class Zugang
             [$email, date('Y-m-d H:i:s', time() - self::GUELTIG_TAGE * 86400)]);
         $kunde = Db::one('SELECT id, name, sprache FROM customers WHERE email = ?', [$email]);
         if ($kunde && $zOffen && ($zOffen['customer_id'] === null || (int) $zOffen['customer_id'] === (int) $kunde['id'])) { $kunde = null; }
+        /* SPRACHE GEWÄHLT (03.10.2026, Uwe: „wenn der Kunde seine E-Mail einträgt, soll er
+           auch seine Sprache auswählen“): Neben dem Feld steht jetzt IT · DE · EN. Eine
+           Wahl ist eine Auskunft, keine Vermutung -- sie gilt für Dashboard, Fragebogen
+           und Post (sprache_bestaetigt), auch bei einem, der schon Kunde ist. */
+        $gewaehlt = !empty($extra['sprache_gewaehlt']);
         if ($kunde) {
+            if ($gewaehlt) {
+                require_once __DIR__ . '/Onboarding.php';
+                Onboarding::spracheMerken((int) $kunde['id'], $sprache, true);
+                $kunde['sprache'] = $sprache;
+            }
             $kSpr = self::spr((string) ($kunde['sprache'] ?? $sprache));
             [$betreff, $text] = Texte::mail('zugang_bestand', $kSpr, [
                 'name' => self::anrede((string) $kunde['name']),
@@ -217,6 +227,9 @@ final class Zugang
             try {
                 require_once __DIR__ . '/Spur.php';
                 $sb = Spur::aktuellerBesuch();
+                /* Nur ein Besuch desselben Partners (03.10.2026): sonst stand die Adresse
+                   im Tracking beim Partner einer früheren Sitzung dieses Browsers. */
+                if ($sb && !Spur::passtZu($sb, (string) ($z['partner_code'] ?? ''))) { $sb = null; }
                 if ($sb) {
                     Db::run('UPDATE zugaenge SET spur_besuch_id = ? WHERE id = ?', [(int) $sb['id'], $id]);
                     Spur::ereignis('lead_created', ['besuch' => $sb, 'seite' => '/zugang.php', 'meta' => ['art' => 'e-mail-einstieg']]);
@@ -228,8 +241,22 @@ final class Zugang
             if ((string) $z['sprache'] !== $sprache) { $aend['sprache'] = $sprache; }
             // Kam er beim zweiten Mal über einen Partner, und beim ersten nicht: jetzt merken.
             if (($z['partner_code'] ?? null) === null && ($pc = self::partnerCode($extra)) !== null) { $aend['partner_code'] = $pc; }
+            /* Kam er jetzt über einen ANDEREN Partner (03.10.2026): Es bleibt beim ersten Kontakt
+               (Vereinbarung, Punkt 1) -- aber Uwe erfährt es und kann von Hand umhängen. */
+            elseif (($pcNeu = self::partnerCode($extra)) !== null && ($z['partner_code'] ?? null) !== null
+                    && self::nurCode((string) $z['partner_code']) !== self::nurCode($pcNeu)) {
+                try {
+                    Events::melden('partner_zweiter', 'Adresse ein zweites Mal eingetragen — über einen anderen Partner', 'warnung',
+                        $email . ' · zuerst über ' . self::nurCode((string) $z['partner_code']) . ', jetzt über ' . self::nurCode($pcNeu)
+                        . '. Es bleibt beim ersten Partner; umhängen nur von Hand.', $z['customer_id'] !== null ? '/kunden/' . (int) $z['customer_id'] : '/partner');
+                } catch (Throwable $e) { }
+            }
             if (($w = self::wunsch($extra['wunsch'] ?? null)) !== null) { $aend['wunsch'] = $w; }
             if ($aend) { Db::update('zugaenge', (int) $z['id'], $aend); $z = array_merge($z, $aend); }
+            if ($gewaehlt && $z['customer_id'] !== null) {
+                require_once __DIR__ . '/Onboarding.php';
+                Onboarding::spracheMerken((int) $z['customer_id'], $sprache, true);
+            }
             /* Schon als Kunde angelegt: Wunsch und Partner nachtragen (02.10.2026). */
             if ($z['customer_id'] !== null) {
                 $zk = (int) $z['customer_id'];
@@ -258,6 +285,10 @@ final class Zugang
             try { $kid = self::annehmen($z, false, 'sofort'); } catch (Throwable $e) {
                 try { Events::melden('zugang_fehler', 'Kunde aus dem E-Mail-Einstieg nicht angelegt', 'schlecht', mb_substr($e->getMessage(), 0, 200), '/kunden#anfragen'); } catch (Throwable $e2) { }
             }
+            if ($kid > 0 && $gewaehlt) {
+                require_once __DIR__ . '/Onboarding.php';
+                Onboarding::spracheMerken($kid, $sprache, true);
+            }
         }
 
         $ok = self::willkommenSenden($z, $sprache);
@@ -283,7 +314,12 @@ final class Zugang
         return Mail::senden('zugang', (string) $z['email'], $betreff, $text, ['sprache' => $sprache]);
     }
 
-    /** Die Adresse, die in der Mail steht. */
+    /** Nur der Code aus „CODE“ oder „CODE:kanal“, groß. */
+    private static function nurCode(string $wert): string
+    {
+        return strtoupper(explode(':', trim($wert), 2)[0]);
+    }
+
     /** Ein gültiger Partnercode aus dem Aufruf — sonst null. */
     private static function partnerCode(array $extra): ?string
     {
@@ -389,7 +425,9 @@ final class Zugang
             require_once __DIR__ . '/Spur.php';
             $sb = !empty($z['spur_besuch_id']) ? (Db::one('SELECT * FROM spur_besuche WHERE id = ?', [(int) $z['spur_besuch_id']]) ?: null) : null;
             /* Uwes eigener Browser ist nie der Besuch des Interessenten. */
-            Spur::verknuepfen($kid, null, $sb ?? ($imBrowser ? Spur::aktuellerBesuch() : null));
+            $sbJetzt = $imBrowser ? Spur::aktuellerBesuch() : null;
+            if ($sbJetzt !== null && !Spur::passtZu($sbJetzt, (string) ($z['partner_code'] ?? ''))) { $sbJetzt = null; }
+            Spur::verknuepfen($kid, null, $sb ?? $sbJetzt);
         } catch (Throwable $e) { }
 
         // Der Bedarf, in dem er gleich die acht Fragen beantwortet (D1)
@@ -440,11 +478,14 @@ final class Zugang
         Db::update('zugaenge', (int) $z['id'], ['geoeffnet_am' => date('Y-m-d H:i:s')]);
         try {
             require_once __DIR__ . '/Spur.php';
-            if (empty($z['spur_besuch_id'])) { Spur::verknuepfen($kid, null, Spur::aktuellerBesuch()); }
+            $sbJ = Spur::aktuellerBesuch();
+            if (empty($z['spur_besuch_id']) && Spur::passtZu($sbJ, (string) ($z['partner_code'] ?? ''))) { Spur::verknuepfen($kid, null, $sbJ); }
         } catch (Throwable $e) { }
         try {
             require_once __DIR__ . '/Partner.php';
-            if (Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$kid], null) === null) { Partner::ausBesuch($kid); }
+            /* Der Partner der Eintragung steht am Zugang. Nur ohne ihn zählt der Browser,
+               in dem der Link geöffnet wird -- sonst gewänne ein späterer fremder Klick. */
+            if (empty($z['partner_code']) && Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$kid], null) === null) { Partner::ausBesuch($kid); }
         } catch (Throwable $e) { }
         Events::protokoll('zugang_offen', 'Dashboard zum ersten Mal geöffnet', $kid);
         Events::melden('zugang_offen', 'Neuer Interessent im Dashboard', 'gut',

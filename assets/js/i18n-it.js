@@ -357,6 +357,7 @@ window.VECOM_I18N.it = {
       v4: "1", l4: "Referente unico, dal primo colloquio all’assistenza"
     },
     zugang: {
+      sprache: "Lingua della dashboard:",
       feld: "Il suo indirizzo e-mail",
       knopf: "Ricevere la mia dashboard",
       note: "Le mando il link alla sua dashboard personale: da lì passa tutto, fino alla consegna del sito. Nessun account, nessuna password.",
