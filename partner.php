@@ -391,6 +391,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-p' . $wmPid, true, 303); exit;
+            } elseif (($tat === 'wm_bestellen' || $tat === 'wm_bezahlen') && $p) {
+                /* Marketing Center, Phase 3 (03.10.2026): Partner bestellt. Der
+                   Preis kommt vom Server; bezahlt wird nur, was Stripe meldet
+                   oder Uwe bestätigt — der Rückweg hierher setzt nichts. */
+                require_once __DIR__ . '/app/src/Werbemittel.php';
+                require_once __DIR__ . '/app/src/WmBestellung.php';
+                $wmZiel = '#wm-bestellungen'; $wmBid = 0;
+                try {
+                    if ($tat === 'wm_bestellen') {
+                        if (empty($_POST['verbindlich'])) { throw new InvalidArgumentException('fehler'); }
+                        $wmAdr = (string) ($_POST['adresse'] ?? 'neu') === 'neu'
+                            ? WmBestellung::adresseSpeichern((int) $p['id'], $_POST)
+                            : (int) $_POST['adresse'];
+                        $wmB = WmBestellung::anlegen($p, (int) ($_POST['variante'] ?? 0), $wmAdr, $sprache);
+                        $wmBid = $wmB['id'];
+                        if ($wmB['neu']) {
+                            Events::melden('wm_bestellung', 'Werbemittel bestellt: ' . $wmB['nummer'], 'hinweis',
+                                Partner::anzeigeName($p) . ' · ' . Fmt::geld($wmB['summe_cent'], 'EUR')
+                                . (WmBestellung::zahlweg() === 'stripe' ? ' — Bezahlseite geöffnet.' : ' — Zahlungsweg mit dem Partner klären.'), '/werbemittel/bestellungen');
+                        }
+                    } else {
+                        $wmBid = (int) ($_POST['bestellung'] ?? 0);
+                    }
+                    if (WmBestellung::zahlweg() === 'stripe') {
+                        require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+                        require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+                        try {
+                            $wmUrl = WmBestellung::bezahlseite($wmBid, (int) $p['id'], new StripeAnbieter(),
+                                $basis . $selbst(['wm' => 'danke']) . $wmZiel, $basis . $selbst(['wm' => 'abgebrochen']) . $wmZiel);
+                            header('Location: ' . $wmUrl, true, 303); exit;
+                        } catch (RuntimeException $e) { error_log('wm_bezahlseite: ' . $e->getMessage()); $wmM = 'stripe'; }
+                    } else {
+                        $wmM = 'angefragt';
+                    }
+                } catch (InvalidArgumentException $e) {
+                    $wmCode = $e->getMessage();
+                    $wmM = str_starts_with($wmCode, 'adresse') ? 'adresse' : (in_array($wmCode, ['freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar'], true) ? $wmCode : 'fehler');
+                    $wmZiel = '#wm-bestellen';
+                }
+                header('Location: ' . $selbst(['wm' => $wmM]) . $wmZiel, true, 303); exit;
             } elseif ($tat === 'g3_bestellen' && $p) {
                 /* 3D-Motiv bestellen (Marketing-Studio 11): rechnet in Vecoms Nachtschicht, höchstens 2 je Woche. */
                 require_once __DIR__ . '/app/src/MkMedium.php';

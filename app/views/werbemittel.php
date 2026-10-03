@@ -48,8 +48,9 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     Werbemittel, die Partner mit ihrem Namen, ihrer ID und ihrem QR-Code bestellen können.
     Hier trägst du den Einkauf ein; der Preis für den Partner entsteht aus Einkauf und Marge.
     Partner sehen nur den Endpreis — nie Einkauf, Marge oder Anbieter.
-    Bestellen geht noch nicht: Bezahlung und Druckanbieter kommen in Phase 3 und 4.</p></div>
-  <div class="rechts"><a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/vorschau')) ?>">Als Partner ansehen</a></div>
+    Partner bestellen mit ihrer freigegebenen Druckdatei; den Druck beauftragst du unter „Bestellungen“.</p></div>
+  <div class="rechts"><a class="knopf <?= ($offeneBestellungen ?? 0) > 0 ? 'haupt' : 'stumm' ?>" href="<?= Fmt::h(url('werbemittel/bestellungen')) ?>">Bestellungen<?= ($offeneBestellungen ?? 0) > 0 ? ' (' . (int) $offeneBestellungen . ' in Arbeit)' : '' ?></a>
+    <a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/vorschau')) ?>">Als Partner ansehen</a></div>
 </div>
 
 <div class="block" style="max-width:820px"><h2>Standardmarge</h2>
@@ -61,6 +62,20 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     </div>
     <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Preis = Einkauf + Marge, aber nie weniger als Einkauf + Mindestmarge; aufgerundet auf 10 Cent. Gilt für jedes Produkt ohne eigene Regel, sofort.</p>
     <button class="knopf haupt">Speichern</button>
+  </form>
+</div>
+
+<?php /* Phase 3: wie Partner bezahlen. Voreinstellung „Anfrage“ — Stripe erst auf ausdrücklichen Klick. */ ?>
+<div class="block" style="max-width:820px"><h2>Zahlweg für Partner-Bestellungen</h2>
+  <p style="font-size:14px;margin:0 0 10px">Gerade: <strong><?= ($zahlweg ?? 'anfrage') === 'stripe' ? 'Stripe — Partner zahlen beim Bestellen direkt' : 'Anfrage — Bestellung wird gespeichert, du klärst die Zahlung' ?></strong>
+    <?php if (($zahlwegGewollt ?? 'anfrage') === 'stripe' && ($zahlweg ?? 'anfrage') !== 'stripe'): ?><br><span class="marke2 warnung">Stripe gewählt, aber kein Stripe-Schlüssel eingetragen — es bleibt bei „Anfrage“.</span><?php endif; ?></p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+    <?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
+    <?php if (($zahlwegGewollt ?? 'anfrage') === 'stripe'): ?>
+      <input type="hidden" name="tat" value="wm_zahlweg_anfrage"><button class="knopf">Zurück auf „Anfrage“</button>
+    <?php else: ?>
+      <input type="hidden" name="tat" value="wm_zahlweg_stripe"><button class="knopf">Stripe einschalten</button>
+    <?php endif; ?>
   </form>
 </div>
 

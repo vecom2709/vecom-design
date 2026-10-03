@@ -21130,9 +21130,9 @@ $wmWerte = ['p' => $wmPa, 'sprache' => 'de', 'h' => static fn(?string $x): strin
     'wmKatalog' => Werbemittel::katalog('de'), 'wmNurLesen' => false];
 $wmPaHtml = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })($wmWerte);
 restore_error_handler();
-pruefe('Partner-Reiter „Marketing Center“ rendert ohne Warnung: Name, ID, QR auf /p/CODE/qr, Endpreis, „Bestellen bald möglich“, Kit-Verweise',
+pruefe('Partner-Reiter „Marketing Center“ rendert ohne Warnung: Name, ID, QR auf /p/CODE/qr, Endpreis, Hinweis „erst freigeben“, Kit-Verweise',
     $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 3 && str_contains($wmPaHtml, 'WANDAM')
-    && str_contains($wmPaHtml, '/p/WANDAM/qr') && str_contains($wmPaHtml, "22,10\u{00A0}€") && str_contains($wmPaHtml, 'Bestellen bald möglich')
+    && str_contains($wmPaHtml, '/p/WANDAM/qr') && str_contains($wmPaHtml, "22,10\u{00A0}€") && str_contains($wmPaHtml, 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.')
     && str_contains($wmPaHtml, 'href="#medien"') && str_contains($wmPaHtml, 'wmqr=svg') && str_contains($wmPaHtml, 'wmqr=png'), (string) $wmFehler);
 pruefe('Im Partner-HTML steht kein Einkaufspreis und keine Marge (18,40 € / 3,70 €)',
     !str_contains($wmPaHtml, '18,40') && !str_contains($wmPaHtml, '3,70') && !str_contains(mb_strtolower($wmPaHtml), 'einkauf') && !str_contains(mb_strtolower($wmPaHtml), 'marge'));
@@ -21258,6 +21258,158 @@ Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $w2A['id']
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $w2A['id'], (int) $w2B['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w2Vk['id']]);
 Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w2Vk['id']]);
+
+/* ============================================================================
+   Marketing Center: Bestellungen (03.10.2026, Phase 3)
+   ============================================================================ */
+abschnitt('Marketing Center: Bestellungen');
+foreach (['Werbemittel', 'WmBestellung', 'Partner', 'PartnerKarten', 'Fmt', 'Config'] as $w3Kl) { require_once $wurzel . "/src/$w3Kl.php"; }
+$w3Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w3Var = Db::all('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $w3Vk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w3Vk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 1840 WHERE id = ?', [(int) $w3Var[0]['id']]);
+$w3A = Partner::laden(Partner::anlegen(['name' => 'Alba Bestell', 'email' => 'alba@partner.example', 'code' => 'ALBABEST', 'sprache' => 'it']));
+$w3B = Partner::laden(Partner::anlegen(['name' => 'Beppe Ohne', 'email' => 'beppe@partner.example', 'code' => 'BEPPEOHNE', 'sprache' => 'it']));
+$w3E = Werbemittel::entwurfAnlegen($w3A, (int) $w3Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+Werbemittel::freigeben((int) $w3A['id'], $w3E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w3E]));
+$w3Adr = ['name' => 'Alba Bestell', 'strasse' => 'Via Atenea 12', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'it', 'telefon' => '+39 333 1234567'];
+gesperrt('Adresse ohne Straße wird abgelehnt', fn() => WmBestellung::adresseSpeichern((int) $w3A['id'], array_merge($w3Adr, ['strasse' => ' '])));
+gesperrt('Adresse außerhalb der Lieferländer wird abgelehnt', fn() => WmBestellung::adresseSpeichern((int) $w3A['id'], array_merge($w3Adr, ['land' => 'US'])));
+$w3AdrA = WmBestellung::adresseSpeichern((int) $w3A['id'], $w3Adr);
+$w3AdrB = WmBestellung::adresseSpeichern((int) $w3B['id'], array_merge($w3Adr, ['name' => 'Beppe']));
+gesperrt('Fremde Adresse lässt sich nicht ändern', fn() => WmBestellung::adresseSpeichern((int) $w3B['id'], $w3Adr, $w3AdrA));
+pruefe('Adresse gespeichert, Land groß, Leerraum zusammengezogen', Db::wert('SELECT land FROM wm_adressen WHERE id = ?', [$w3AdrA]) === 'IT');
+$w3Grund = static function (callable $f): string { try { $f(); return 'ging'; } catch (InvalidArgumentException $e) { return $e->getMessage(); } };
+pruefe('Ohne freigegebene Druckdatei keine Bestellung', $w3Grund(fn() => WmBestellung::anlegen($w3B, (int) $w3Var[0]['id'], $w3AdrB, 'it')) === 'freigabe_fehlt');
+pruefe('Mit fremder Adresse keine Bestellung', $w3Grund(fn() => WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3AdrB, 'it')) === 'adresse_fehlt');
+pruefe('Variante ohne Einkaufspreis ist nicht bestellbar', $w3Grund(fn() => WmBestellung::anlegen($w3A, (int) $w3Var[1]['id'], $w3AdrA, 'it')) === 'nicht_verfuegbar');
+$w3O1 = WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3AdrA, 'it');
+$w3K1 = Db::one('SELECT * FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]);
+$w3P1 = Db::one('SELECT * FROM wm_positionen WHERE bestellung_id = ?', [$w3O1['id']]);
+pruefe('Bestellung: Nummer VEC-MKT-Jahr-000001, Preis serverseitig (24,90 €), Status „angefragt“, Druckdatei = Freigabe, Einkauf eingefroren, Adresse eingefroren',
+    $w3O1['neu'] && $w3K1['nummer'] === 'VEC-MKT-' . date('Y') . '-000001' && (int) $w3K1['summe_cent'] === 2490 && $w3K1['status'] === 'angefragt'
+    && (int) $w3P1['entwurf_id'] === $w3E && (int) $w3P1['einkauf_cent'] === 1840 && (int) $w3P1['preis_cent'] === 2490
+    && $w3P1['name'] === 'Biglietto da visita Vecom Partner' && $w3P1['variante'] === '250 pezzi'
+    && (json_decode((string) $w3K1['adresse'], true)['strasse'] ?? '') === 'Via Atenea 12', json_encode([$w3K1['nummer'], $w3P1['name'], $w3P1['variante']]));
+$w3O1b = WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3AdrA, 'it');
+pruefe('Doppelklick: dieselbe offene Bestellung kommt zurück, keine zweite', !$w3O1b['neu'] && $w3O1b['id'] === $w3O1['id']
+    && (int) Db::wert('SELECT COUNT(*) FROM wm_bestellungen WHERE partner_id = ?', [(int) $w3A['id']]) === 1);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 2000 WHERE id = ?', [(int) $w3Var[0]['id']]);
+WmBestellung::adresseSpeichern((int) $w3A['id'], array_merge($w3Adr, ['strasse' => 'Via Neu 1']), $w3AdrA);
+$w3O2 = WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3AdrA, 'de');
+pruefe('Neuer Einkauf: neue Bestellung mit neu geprüftem Preis (27,00 €), Nummer 000002, alte Bestellung behält Preis und Adresse',
+    $w3O2['neu'] && $w3O2['summe_cent'] === 2700 && str_ends_with($w3O2['nummer'], '-000002')
+    && (int) Db::wert('SELECT summe_cent FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 2490
+    && str_contains((string) Db::wert('SELECT adresse FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]), 'Via Atenea 12')
+    && Db::wert('SELECT variante FROM wm_positionen WHERE bestellung_id = ?', [$w3O2['id']]) === '250 Stück');
+for ($i = 3; $i <= 5; $i++) { $w3Ax = WmBestellung::adresseSpeichern((int) $w3A['id'], array_merge($w3Adr, ['strasse' => "Via $i"])); WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3Ax, 'it'); }
+$w3Ax = WmBestellung::adresseSpeichern((int) $w3A['id'], array_merge($w3Adr, ['strasse' => 'Via 6']));
+pruefe('Höchstens ' . WmBestellung::OFFEN_MAX . ' unbezahlte Bestellungen zugleich', $w3Grund(fn() => WmBestellung::anlegen($w3A, (int) $w3Var[0]['id'], $w3Ax, 'it')) === 'zuviel_offen');
+
+// Bezahlseite mit Ersatz-Stripe
+$w3Stripe = new class {
+    public array $felder = []; public string $einmalig = ''; public array $sitzung = ['bezahlt' => false];
+    public function aufrufen(string $m, string $w, array $f = [], string $e = ''): array { $this->felder = $f; $this->einmalig = $e; return ['id' => 'cs_test_wm1', 'url' => 'https://checkout.stripe.com/c/pay/cs_test_wm1']; }
+    public function sitzungLesen(string $id): array { return $this->sitzung; }
+};
+gesperrt('Fremder Partner bekommt keine Bezahlseite für eine fremde Bestellung',
+    fn() => WmBestellung::bezahlseite($w3O1['id'], (int) $w3B['id'], $w3Stripe, 'https://x/ok', 'https://x/ab'));
+$w3Url = WmBestellung::bezahlseite($w3O1['id'], (int) $w3A['id'], $w3Stripe, 'https://x/ok', 'https://x/ab');
+pruefe('Bezahlseite: Betrag aus der Bestellung, Kennung wm_bestellung, Idempotenz-Schlüssel, Status „offen“ — aber NICHT bezahlt',
+    $w3Url === 'https://checkout.stripe.com/c/pay/cs_test_wm1' && $w3Stripe->felder['line_items[0][price_data][unit_amount]'] === '2490'
+    && $w3Stripe->felder['metadata[wm_bestellung]'] === (string) $w3O1['id'] && str_starts_with($w3Stripe->einmalig, 'wm-' . $w3O1['id'] . '-')
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 'offen'
+    && Db::wert('SELECT bezahlt_am FROM wm_bestellungen WHERE id = ?', [$w3O1['id']], null) === null
+    && Db::wert('SELECT stripe_sitzung FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 'cs_test_wm1');
+pruefe('Stripe meldet anderen Betrag: nicht gebucht, Meldung an Uwe', WmBestellung::bezahltVonStripe($w3O1['id'], 'pi_x', 2000, 'eur') === 'abweichung'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 'offen'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_zahlung_abweichung'") >= 1);
+pruefe('Stripe meldet passenden Betrag: bezahlt (einmal), Meldung an Uwe; zweites Mal „schon“',
+    WmBestellung::bezahltVonStripe($w3O1['id'], 'pi_ok', 2490, 'eur') === 'gebucht' && WmBestellung::bezahltVonStripe($w3O1['id'], 'pi_ok', 2490, 'eur') === 'schon'
+    && Db::wert('SELECT bezahlt_wie FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 'stripe'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_bezahlt'") >= 1);
+pruefe('Von Hand bezahlt nur, wenn noch offen', WmBestellung::vonHandBezahlt($w3O2['id']) === true && WmBestellung::vonHandBezahlt($w3O2['id']) === false
+    && WmBestellung::vonHandBezahlt($w3O1['id']) === false);
+pruefe('Ablauf: beim Drucker nur aus „bezahlt“, danach kein Storno mehr', WmBestellung::beimDrucker($w3O1['id'], 'HelloPrint', 'HP-123') === true
+    && WmBestellung::beimDrucker($w3O1['id'], 'HelloPrint', 'HP-124') === false && WmBestellung::stornieren($w3O1['id']) === false);
+gesperrt('Sendungslink ohne https wird abgelehnt', fn() => WmBestellung::versendet($w3O1['id'], '1Z999', 'http://track.example/1Z999'));
+pruefe('Versendet mit Sendungsnummer und https-Link', WmBestellung::versendet($w3O1['id'], '1Z999', 'https://track.example/1Z999') === true
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w3O1['id']]) === 'versendet');
+pruefe('Bezahlte, noch nicht gedruckte Bestellung lässt sich stornieren (Erstattung macht Uwe bei Stripe)', WmBestellung::stornieren($w3O2['id']) === true);
+$w3Pa = WmBestellung::fuerPartner((int) $w3A['id']);
+$w3Js = json_encode($w3Pa);
+pruefe('Partner sieht seine Bestellungen ohne Einkauf, Drucker-Auftragsnummer, Stripe-Kennung oder Notiz; fremder Partner sieht keine',
+    count($w3Pa) === 5 && !str_contains($w3Js, 'einkauf') && !str_contains($w3Js, 'HP-123') && !str_contains($w3Js, 'cs_test') && !str_contains($w3Js, 'pi_ok')
+    && !str_contains($w3Js, 'notiz') && str_contains($w3Js, '1Z999') && WmBestellung::fuerPartner((int) $w3B['id']) === []);
+// Abgleich als Rückfall
+$w3Offen = (int) Db::wert("SELECT id FROM wm_bestellungen WHERE partner_id = ? AND status = 'angefragt' ORDER BY id LIMIT 1", [(int) $w3A['id']]);
+WmBestellung::bezahlseite($w3Offen, (int) $w3A['id'], $w3Stripe, 'https://x/ok', 'https://x/ab');
+Db::run('UPDATE wm_bestellungen SET updated_at = NOW() - INTERVAL 10 MINUTE WHERE id = ?', [$w3Offen]);
+$w3Stripe->sitzung = ['bezahlt' => true, 'referenz' => 'pi_abgleich', 'betrag' => (int) Db::wert('SELECT summe_cent FROM wm_bestellungen WHERE id = ?', [$w3Offen]), 'waehrung' => 'EUR'];
+pruefe('Abgleich bucht eine offene Bestellung, wenn Stripe „bezahlt“ sagt (ausgefallener Webhook)', WmBestellung::abgleichen($w3Stripe) === 1
+    && Db::wert('SELECT stripe_referenz FROM wm_bestellungen WHERE id = ?', [$w3Offen]) === 'pi_abgleich');
+// Partneransicht: Bestellformular, Meine Bestellungen, Zahlweg
+require_once $wurzel . '/src/Texte.php'; require_once $wurzel . '/src/PartnerWerbung.php'; require_once $wurzel . '/src/QrBild.php';
+Db::run('UPDATE wm_varianten SET einkauf_cent = 1840 WHERE id = ?', [(int) $w3Var[0]['id']]);
+$_SESSION['csrf'] = 'pruef-csrf';
+$w3Render = static function (array $pa) use ($wurzel): array {
+    $f = null; set_error_handler(static function (int $n, string $m) use (&$f): bool { $f = $m; return true; });
+    $html = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })(
+        ['p' => $pa, 'sprache' => 'de', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+         'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)),
+         'wmKatalog' => Werbemittel::katalog('de'), 'wmNurLesen' => false]);
+    restore_error_handler();
+    return [$html, $f];
+};
+[$w3Html, $w3F] = $w3Render($w3A);
+pruefe('Partner mit Freigabe: Bestellformular mit Auflagen, gespeicherter Adresse, Pflichthaken; Zahlweg „Anfrage“ (Voreinstellung); Meine Bestellungen mit Status und Sendung',
+    $w3F === null && WmBestellung::zahlweg() === 'anfrage' && str_contains($w3Html, 'value="wm_bestellen"') && str_contains($w3Html, 'name="variante" value="' . (int) $w3Var[0]['id'] . '"')
+    && preg_match('~name="verbindlich" value="1" required~', $w3Html) === 1 && str_contains($w3Html, 'Bestellung absenden') && !str_contains($w3Html, 'Jetzt bezahlen')
+    && str_contains($w3Html, 'id="wm-bestellungen"') && str_contains($w3Html, 'Versendet') && str_contains($w3Html, 'https://track.example/1Z999')
+    && str_contains($w3Html, 'name="adresse" value="' . $w3AdrA . '"'), (string) $w3F);
+[$w3HtmlB, $w3FB] = $w3Render($w3B);
+pruefe('Partner ohne Freigabe: kein Bestellformular, nur der Hinweis; keine fremden Bestellungen', $w3FB === null && !str_contains($w3HtmlB, 'value="wm_bestellen"')
+    && str_contains($w3HtmlB, 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.') && !str_contains($w3HtmlB, 'VEC-MKT-'));
+$w3Fake = new class { public function bereit(): bool { return true; } };
+WmBestellung::zahlwegSetzen('stripe');
+pruefe('Zahlweg Stripe nur, wenn Uwe ihn einschaltet UND der Schlüssel da ist', WmBestellung::zahlweg($w3Fake) === 'stripe'
+    && WmBestellung::zahlweg(new class { public function bereit(): bool { return false; } }) === 'anfrage');
+WmBestellung::zahlwegSetzen('anfrage');
+$w3Pq = (string) file_get_contents($oben . '/partner.php');
+pruefe('partner.php: Bestellen nur mit Haken, Preis vom Server (anlegen), Rückweg von Stripe setzt nichts (nur Meldung)',
+    str_contains($w3Pq, "if (empty(\$_POST['verbindlich']))") && str_contains($w3Pq, 'WmBestellung::anlegen($p, (int) ($_POST[\'variante\'] ?? 0)')
+    && !preg_match('~\$_GET\[.wm.\][^\n]*(bezahlt|vonHand)~', $w3Pq) && str_contains($w3Pq, "\$selbst(['wm' => 'danke'])"));
+$w3Wh = (string) file_get_contents($oben . '/stripe-webhook.php');
+$w3Cr = (string) file_get_contents($wurzel . '/src/Cron.php');
+$w3WmPos = strpos($w3Wh, "if (!empty(\$o['metadata']['wm_bestellung']))");
+pruefe('Webhook: Werbemittel-Bestellung (metadata wm_bestellung) wird vor den Raten erkannt, nur bei „paid“ an bezahltVonStripe; Cron fragt offene nach',
+    $w3WmPos !== false && $w3WmPos < (int) strpos($w3Wh, "\$zahlungId = (int) (\$o['metadata']['zahlung_id'] ?? \$o['client_reference_id'] ?? 0);")
+    && str_contains(substr($w3Wh, $w3WmPos, 700), "(\$o['payment_status'] ?? '') === 'paid'") && str_contains(substr($w3Wh, $w3WmPos, 700), 'WmBestellung::bezahltVonStripe(')
+    && str_contains($w3Cr, "'wm_abgleich' => static function ()") && str_contains($w3Cr, 'WmBestellung::abgleichen($s)'));
+// Verwaltung der Bestellungen
+require_once $wurzel . '/src/Ablauf.php';
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$w3F = null; set_error_handler(static function (int $n, string $m) use (&$w3F): bool { $w3F = $m; return true; });
+$liste = WmBestellung::verwaltung(); $zahlweg = 'anfrage'; ob_start(); require $wurzel . '/views/werbemittel_bestellungen.php'; $w3Adm = (string) ob_get_clean();
+restore_error_handler(); unset($liste, $zahlweg);
+pruefe('Verwaltung › Bestellungen: je Status nur der nächste Schritt, Einkauf und Marge sichtbar, Druckdatei der Freigabe, Lieferadresse mit Telefon',
+    $w3F === null && str_contains($w3Adm, 'value="wm_b_bezahlt"') && str_contains($w3Adm, 'value="wm_b_drucker"') && str_contains($w3Adm, 'value="wm_b_storno"')
+    && str_contains($w3Adm, 'werbemittel/pdf/' . $w3E) && str_contains($w3Adm, 'Einkauf ') && str_contains($w3Adm, 'Tel. +39 333 1234567')
+    && str_contains($w3Adm, 'Sendung: <a href="https://track.example/1Z999"') && str_contains($w3Adm, 'HelloPrint'), (string) $w3F);
+$w3Ix = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Geld-Taten fragen vorher nach (TRAGWEITE) und haben ihren Fall im Verteiler',
+    isset(Ablauf::TRAGWEITE['wm_b_bezahlt'], Ablauf::TRAGWEITE['wm_b_storno'], Ablauf::TRAGWEITE['wm_zahlweg_stripe'])
+    && Ablauf::TRAGWEITE['wm_b_bezahlt'][0] === Ablauf::SCHWER && !isset(Ablauf::TRAGWEITE['wm_zahlweg_anfrage'])
+    && str_contains($w3Ix, "case 'wm_b_bezahlt':") && str_contains($w3Ix, "case 'wm_b_versendet':") && str_contains($w3Ix, "case 'wm_zahlweg_stripe':")
+    && str_contains($w3Ix, "ansicht('werbemittel_bestellungen'"));
+// Zurück
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id IN (?, ?)', [(int) $w3A['id'], (int) $w3B['id']]);
+Db::run('DELETE FROM wm_adressen WHERE partner_id IN (?, ?)', [(int) $w3A['id'], (int) $w3B['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $w3A['id'], (int) $w3B['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $w3A['id'], (int) $w3B['id']]);
+Db::run("DELETE FROM notifications WHERE type IN ('wm_bezahlt', 'wm_zahlung_abweichung')");
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w3Vk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w3Vk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

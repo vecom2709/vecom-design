@@ -442,6 +442,16 @@ final class Ablauf
             'Das Gespräch wird als Kontakt vermerkt. „Kein Interesse“ sperrt den Betrieb dauerhaft; '
             . '„Per E-Mail schicken“ hält die Einwilligung fest.',
             'Ja, vermerken'],
+        /* Marketing Center (03.10.2026): Geld und Partner hängen daran. */
+        'wm_b_bezahlt' => [self::SCHWER,
+            'Die Werbemittel-Bestellung gilt danach als bezahlt und kann in Druck gehen. Nur bestätigen, wenn das Geld wirklich da ist.',
+            'Ja, Zahlung ist da'],
+        'wm_b_storno' => [self::SCHWER,
+            'Die Bestellung wird storniert. War sie schon bezahlt, erstattest du das Geld selbst (bei Stripe oder per Überweisung) — hier wird nichts zurückgebucht.',
+            'Ja, stornieren'],
+        'wm_zahlweg_stripe' => [self::SCHWER,
+            'Ab jetzt öffnet sich bei jeder Werbemittel-Bestellung die Stripe-Bezahlseite, und Partner zahlen sofort an dein Stripe-Konto.',
+            'Ja, Stripe einschalten'],
     ];
 
     /**

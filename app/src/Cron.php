@@ -103,6 +103,15 @@ final class Cron
                Minute vor Ablauf bezahlt hat, soll gebucht werden und nicht
                erst auf "ausstehend" zurueckfallen. */
             'zahlabgleich'=> static fn() => self::zahlungenAbgleichen(),
+            /* Marketing Center (03.10.2026): offene Werbemittel-Bestellungen bei
+               Stripe nachfragen, falls der Webhook ausfiel. Nur lesen. */
+            'wm_abgleich' => static function () {
+                require_once __DIR__ . '/WmBestellung.php';
+                require_once __DIR__ . '/Zahlung/Anbieter.php';
+                require_once __DIR__ . '/Zahlung/Stripe.php';
+                $s = new StripeAnbieter();
+                return $s->bereit() ? WmBestellung::abgleichen($s) : 0;
+            },
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
             /* Phase 2: angekuendigte Raten am Tag abbuchen. Nach dem Abgleich,
                damit eine gerade eingegangene Lastschrift zaehlt, bevor

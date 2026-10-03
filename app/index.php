@@ -1805,6 +1805,38 @@ if ($post) {
                 $_SESSION['gut'] = 'Variante gespeichert.';
                 zurueck('werbemittel');
 
+            /* Marketing Center, Phase 3 (03.10.2026): Bestellungen weiterführen.
+               Jede Tat prüft den Ausgangsstatus in WmBestellung selbst; ein
+               Klick auf eine veraltete Seite ändert dann nichts. */
+            case 'wm_zahlweg_stripe':
+            case 'wm_zahlweg_anfrage':
+                require_once __DIR__ . '/src/WmBestellung.php';
+                WmBestellung::zahlwegSetzen($tat === 'wm_zahlweg_stripe' ? 'stripe' : 'anfrage');
+                $_SESSION['gut'] = $tat === 'wm_zahlweg_stripe'
+                    ? (WmBestellung::zahlweg() === 'stripe' ? 'Stripe ist eingeschaltet: Partner zahlen beim Bestellen direkt.' : 'Eingestellt — aber ohne Stripe-Schlüssel bleibt es bei „Anfrage“.')
+                    : 'Zahlweg „Anfrage“: Bestellungen werden gespeichert, du klärst die Zahlung.';
+                zurueck('werbemittel');
+
+            case 'wm_b_bezahlt':
+            case 'wm_b_drucker':
+            case 'wm_b_versendet':
+            case 'wm_b_storno':
+                require_once __DIR__ . '/src/WmBestellung.php';
+                $wmBid = (int) ($_POST['id'] ?? 0);
+                $wmOk = match ($tat) {
+                    'wm_b_bezahlt'   => WmBestellung::vonHandBezahlt($wmBid, (string) ($_POST['wie'] ?? 'ueberweisung')),
+                    'wm_b_drucker'   => WmBestellung::beimDrucker($wmBid, (string) ($_POST['anbieter'] ?? ''), (string) ($_POST['ref'] ?? '')),
+                    'wm_b_versendet' => WmBestellung::versendet($wmBid, (string) ($_POST['tracking'] ?? ''), (string) ($_POST['url'] ?? '')),
+                    default          => WmBestellung::stornieren($wmBid),
+                };
+                if ($wmOk) {
+                    Events::protokoll($tat, 'Werbemittel-Bestellung #' . $wmBid . ': ' . substr($tat, 5), null, null, null, ['wm_bestellung' => $wmBid]);
+                    $_SESSION['gut'] = 'Gespeichert.';
+                } else {
+                    $_SESSION['fehler'] = 'Nichts geändert — die Bestellung steht schon auf einem anderen Stand. Seite neu laden.';
+                }
+                zurueck('werbemittel/bestellungen#b' . $wmBid);
+
             case 'stimme_frei':
                 require_once __DIR__ . '/src/Stimme.php';
                 Stimme::veroeffentlichen((int) ($_POST['id'] ?? 0));
@@ -4416,6 +4448,11 @@ switch ($route) {
             header('Content-Disposition: inline; filename="druckdatei-' . (int) $wmD['id'] . '-' . substr((string) $wmD['datei_hash'], 0, 8) . '.pdf"');
             echo $wmD['datei']; exit;
         }
+        if (($teile[1] ?? '') === 'bestellungen') {
+            require_once __DIR__ . '/src/WmBestellung.php';
+            ansicht('werbemittel_bestellungen', ['liste' => WmBestellung::verwaltung(), 'zahlweg' => WmBestellung::zahlweg()]);
+            break;
+        }
         if (($teile[1] ?? '') === 'vorschau') {
             /* Als Partner ansehen (03.10.2026): dieselbe Ansicht wie im
                Partnerbereich, aber in der Verwaltung gerendert — nicht über den
@@ -4433,7 +4470,10 @@ switch ($route) {
             ]);
             break;
         }
-        ansicht('werbemittel', ['wm' => Werbemittel::verwaltung(), 'freigaben' => sicher(static fn() => Werbemittel::freigaben(), [])]);
+        require_once __DIR__ . '/src/WmBestellung.php';
+        ansicht('werbemittel', ['wm' => Werbemittel::verwaltung(), 'freigaben' => sicher(static fn() => Werbemittel::freigaben(), []),
+            'zahlweg' => WmBestellung::zahlweg(), 'zahlwegGewollt' => (string) sicher(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'wm_zahlweg'", [], 'anfrage'), 'anfrage'),
+            'offeneBestellungen' => (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM wm_bestellungen WHERE status IN ('angefragt', 'offen', 'bezahlt', 'beim_drucker')"), 0)]);
         break;
 
     case 'stimmen':

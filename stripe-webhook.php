@@ -97,6 +97,18 @@ try {
             }
             // weiter wie eine bezahlte Seite
         case 'checkout.session.async_payment_succeeded':
+            /* Marketing Center (03.10.2026): Werbemittel-Bestellungen eines
+               Partners tragen metadata[wm_bestellung] und haben keine Zeile in
+               payments. Gebucht wird nur bei „paid“ und passendem Betrag —
+               dieselbe Regel wie oben, in WmBestellung::bezahltVonStripe. */
+            if (!empty($o['metadata']['wm_bestellung'])) {
+                if (($o['payment_status'] ?? '') === 'paid') {
+                    require_once __DIR__ . '/app/src/WmBestellung.php';
+                    WmBestellung::bezahltVonStripe((int) $o['metadata']['wm_bestellung'], (string) ($o['payment_intent'] ?? $o['id'] ?? ''),
+                        (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''));
+                }
+                break;
+            }
             $zahlungId = (int) ($o['metadata']['zahlung_id'] ?? $o['client_reference_id'] ?? 0);
             if ($zahlungId <= 0) { throw new RuntimeException('Keine Zahlungsnummer im Ereignis.'); }
             if (($o['payment_status'] ?? '') !== 'paid') {
