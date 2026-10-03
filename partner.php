@@ -591,6 +591,60 @@ if ($p && isset($_GET['karte'])) {
   .klapp > summary:hover::after{border-color:var(--text)}
   .klapp > summary:focus-visible{outline:2px solid #f1d38b;outline-offset:3px}
   .klapp__zahl{font-size:12px;font-variant-numeric:tabular-nums;padding:2px 9px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim)}
+  /* Heute zu tun (03.10.2026): oben Geld und Stufe, darunter je Aufgabe ein ganzer Tipp-Bereich */
+  .ht{border:1px solid rgba(241,211,139,.38);border-radius:16px;padding:16px;margin:4px 0 18px;background:linear-gradient(180deg,rgba(241,211,139,.07),rgba(241,211,139,.015))}
+  .ht h2{font-size:13px;letter-spacing:.07em;text-transform:uppercase;color:var(--dim);margin:16px 0 8px}
+  .ht-geld{display:grid;grid-template-columns:auto 1fr;gap:6px 18px;align-items:end}
+  .ht-l{display:block;font-size:12.5px;color:var(--dim)}
+  .ht-betrag{display:block;font-size:30px;line-height:1.1;font-variant-numeric:tabular-nums;letter-spacing:-.01em;color:#f7e6ae}
+  .ht-geld small{display:block;font-size:12px;color:var(--leise);margin-top:2px}
+  .ht-stufe{min-width:0}
+  .ht-balken{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.08);margin-top:6px;overflow:hidden}
+  .ht-balken i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#b98a31,#f1d38b)}
+  .ht-liste{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+  .ht-p{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:48px;padding:10px 12px;border-radius:12px;border:1px solid var(--linie);
+        color:var(--text);text-decoration:none;font-size:14.5px;line-height:1.4;background:rgba(255,255,255,.02);transition:border-color .18s,background .18s}
+  .ht-p:hover{border-color:var(--linie2);background:rgba(255,255,255,.045)}
+  .ht-p:focus-visible{outline:2px solid #f1d38b;outline-offset:2px}
+  .ht-p.warm{border-color:rgba(241,211,139,.45)}
+  .ht-p.warm span:first-child::before{content:"";display:inline-block;width:7px;height:7px;border-radius:50%;background:#f1d38b;margin-right:9px;vertical-align:2px}
+  .ht-los{flex:0 0 auto;font-size:13px;font-weight:600;color:#f1d38b}
+  .ht-los::after{content:" →"}
+  @media (max-width:420px){.ht-geld{grid-template-columns:1fr}}
+  @media (prefers-reduced-motion:reduce){.ht-p{transition:none}}
+  /* So geht's je Reiter und Schnellsuche (03.10.2026) — beide baut partner-reiter.js */
+  /* Handy-Vorschau (03.10.2026): ein Telefon mit dem Beitrag als Nachricht, so wie ihn die Kontakte sehen */
+  .hv{border:0;padding:0;background:transparent;max-width:none;max-height:none;overflow:visible}
+  .hv::backdrop{background:rgba(5,4,3,.78)}
+  .hv-rahmen{width:min(320px,86vw);height:min(640px,82vh);border-radius:42px;padding:12px;background:#0d0c0b;box-shadow:0 0 0 2px #2b2722,0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;box-sizing:border-box}
+  .hv-kopf{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;background:#1c1a17;border-radius:30px 30px 0 0;color:#f7f3ea;font-size:14px}
+  .hv-kopf i{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#b98a31,#f7e6ae);flex:0 0 auto}
+  .hv-chat{flex:1;overflow:auto;padding:14px 12px;background:#0b141a;border-radius:0 0 30px 30px}
+  .hv-blase{max-width:88%;margin-left:auto;background:#005c4b;color:#e9edef;border-radius:10px 2px 10px 10px;padding:6px 8px 8px;font-size:13.5px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere}
+  .hv-blase img{display:block;width:100%;border-radius:6px;margin-bottom:6px}
+  .hv-blase a{color:#53bdeb}
+  .hv-blase small{display:block;text-align:right;font-size:10.5px;color:rgba(233,237,239,.6);margin-top:3px}
+  .hv-unten{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;color:#f7f3ea;font-size:14px}
+  .app-so{margin:8px 0 0}
+  .app-gruppe{max-width:640px;margin:18px auto 10px;padding:0 4px}
+  .app-gruppe h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f1d38b;margin:0 0 4px}
+  .app-gruppe p{margin:0 0 10px;font-size:14px;color:var(--dim);line-height:1.5}
+  .app-sprung{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+  .app-sprung::-webkit-scrollbar{display:none}
+  .app-sprung a{flex:0 0 auto;font-size:13px;padding:7px 12px;border-radius:999px;border:1px solid var(--linie2);color:var(--text);text-decoration:none;white-space:nowrap}
+  .app-sprung a:hover{border-color:rgba(241,211,139,.6)}
+  .app-sprung a:focus-visible{outline:2px solid #f1d38b;outline-offset:2px}
+  .app-so > summary{cursor:pointer;color:var(--cyan);font-size:13.5px;min-height:36px;display:inline-flex;align-items:center}
+  .app-so ol{margin:6px 0 0;padding-left:20px;display:grid;gap:5px;font-size:14px;line-height:1.5;color:var(--dim)}
+  .app-suche{position:relative;max-width:640px;margin:0 auto 14px}
+  .app-suche input{width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px 11px 40px;border-radius:12px;border:1px solid var(--linie2);background:rgba(255,255,255,.03);color:var(--text)}
+  .app-suche input:focus-visible{outline:2px solid #f1d38b;outline-offset:1px}
+  .app-suche svg{position:absolute;left:13px;top:13px;width:18px;height:18px;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round;pointer-events:none}
+  .app-suche ul{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;list-style:none;margin:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);background:#14120f;box-shadow:0 18px 40px rgba(0,0,0,.45);max-height:60vh;overflow:auto}
+  .app-suche li button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:8px;background:none;color:var(--text);font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
+  .app-suche li button small{font-size:12px;color:var(--dim)}
+  .app-suche li button:hover,.app-suche li button[aria-selected="true"]{background:rgba(241,211,139,.1)}
+  .app-suche li.leer{padding:10px;font-size:14px;color:var(--dim)}
   .weitere{margin-top:8px}
   .weitere > summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:44px;display:flex;align-items:center}
   @media (prefers-reduced-motion:reduce){.klapp > summary::after{transition:none}}
@@ -737,6 +791,7 @@ if ($p && isset($_GET['karte'])) {
   .konto-ck li.nein .ck-i{stroke:var(--leise);stroke-dasharray:3 3}
   .konto-ck-offen{margin:10px 0 0;font-size:13.5px;color:var(--cyan)}
   .emp td small{display:block;color:var(--leise);font-size:12px}
+  .emp td:first-child{min-width:6.5em}.emp td b{white-space:nowrap}.emp td.r small{white-space:normal}
   .emp .st{display:inline-block;padding:2px 9px;border-radius:999px;border:1px solid var(--linie);font-size:12.5px;white-space:nowrap}
   .emp .st.bezahlt,.emp .st.online{border-color:rgba(241,211,139,.5);color:var(--cyan)}
   .geld{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.07);border-radius:12px;padding:12px 14px;margin:0 0 14px;
@@ -883,6 +938,13 @@ if ($p && isset($_GET['karte'])) {
       'aria' => Texte::h(Texte::PARTNER_REITER['aria'], $sprache),
       'neu' => ['it' => 'novità', 'de' => 'neu', 'en' => 'new'][$sprache] ?? 'new',
       'reihe' => array_keys(Texte::PARTNER_REITER['reiter']),
+      'so' => Texte::h(Texte::PARTNER_REITER['so'], $sprache), 'suche' => Texte::h(Texte::PARTNER_REITER['suche'], $sprache),
+      'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
+      'ordnung' => ['werben' => [
+          ['titel' => Texte::h(Texte::PARTNER_REITER['g_teilen'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_teilen_satz'], $sprache),
+           'ids' => ['kalender', 'beitraege', 'galerie3d', 'arbeiten-teilen', 'stimmen-teilen', 'erfolge']],
+          ['titel' => Texte::h(Texte::PARTNER_REITER['g_selbst'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_selbst_satz'], $sprache),
+           'ids' => ['werbung', 'medien', 'branchen', 'gutschein']]]],
       'reiter' => array_map(static fn(array $r) => array_map(static fn(array $t) => Texte::h($t, $sprache), $r), Texte::PARTNER_REITER['reiter']),
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <script src="/assets/js/partner-reiter.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-reiter.js') ?>" defer></script>
@@ -892,6 +954,7 @@ if ($p && isset($_GET['karte'])) {
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler', 'konto_land_bereit'], true); ?>
     <?php if ($meldung !== '' && !$wegFehler && !str_starts_with($meldung, 'fe_') && !in_array($meldung, Partner::STRIPE_MELDUNGEN, true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
+    <?php require __DIR__ . '/app/views/partner_heute.php'; /* „Heute zu tun“ und Fortschritt (03.10.2026) */ ?>
     <?php
       /* Der eine nächste Schritt — was der Partner jetzt tun muss, nicht alles auf einmal. */
       $nWeg = PartnerWege::weg($p);
@@ -975,7 +1038,7 @@ if ($p && isset($_GET['karte'])) {
     <?php /* Trichter (27.09.2026, Uwe: Ja): was auf der Seite passiert, echte Besucher, mit Zeitraum. */
       $zr = in_array((int) ($_GET['zr'] ?? 30), [7, 30, 90], true) ? (int) ($_GET['zr'] ?? 30) : 30;
       $tr = Partner::trichter((int) $p['id'], $zr); $TP = Texte::PARTNER_SEITE; $TW = static fn(array $t): string => Texte::h($t, $sprache);
-      $trMax = max(1, $tr['besuche'], $tr['anfragen']); ?>
+      $trMax = max(1, $tr['besuche'], $tr['anfragen'], $tr['kunden'], $tr['verkaeufe']); /* Kunden kommen auch ohne gezählten Besuch (Code, Anruf) — sonst ragte der Balken aus der Karte (03.10.2026) */ ?>
     <div class="ws" id="trichter">
       <h2 style="margin-bottom:4px"><?= $h($TW($TP['t_titel'])) ?></h2>
       <p class="klein" style="margin-top:0"><?= $h($TW($TP['t_text'])) ?></p>

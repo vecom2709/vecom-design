@@ -30,6 +30,7 @@ $kaDatum = static fn(string $d): string => $kaWt[(int) date('w', strtotime($d))]
       <a class="knopf" target="_blank" rel="noopener" href="https://wa.me/?text=<?= rawurlencode($kaHeute['text']) ?>"><?= $h($MK('ka_wa')) ?></a>
       <button class="knopf" type="button" data-teilen="ka_0" hidden><?= $h($MK('ka_teilen')) ?></button>
       <a class="knopf" href="#medien"><?= $h($MK('ka_bild')) ?></a>
+      <button class="knopf" type="button" data-handy="ka_0" data-handy-wer="<?= $h((string) $p['name']) ?>" data-handy-titel="<?= $h($MK('hv_titel')) ?>" data-handy-zu="<?= $h($MK('hv_schliessen')) ?>"><?= $h($MK('hv_knopf')) ?></button>
     </div>
   </div>
   <?php if ($kaBald): $kaBaldT = Texte::h(Texte::PARTNER_KALENDER['anlaesse'][$kaBald['schluessel']]['titel'], $sprache); ?>

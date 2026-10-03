@@ -15245,6 +15245,44 @@ $klW = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
 pruefe('Einklappbar: Beiträge zum Teilen — zwei offen, der Rest hinter „Weitere … zeigen“, Klappe sauber geschlossen',
     str_contains($klW, 'if ($pbNr === 3):') && str_contains($klW, "<?php if (\$pbNr > 2): ?></details><?php endif; ?>")
     && substr_count($klW, '<details class="weitere">') === 1 && str_contains((string) file_get_contents($wurzel . '/../partner.php'), '.weitere > summary{'));
+/* Dashboard (03.10.2026, Uwe: Ja zu D1/D2): „Heute zu tun“ oben, Fortschritt zur Provision,
+   So geht's je Reiter, Werben in zwei Gruppen, Schnellsuche, Handy-Vorschau.
+   Wichtig: Ansehen verändert nichts — keine Nachricht wird gelesen, keine Tagesliste angelegt. */
+require_once $wurzel . '/src/PartnerHeute.php';
+$htP = Db::one('SELECT * FROM partner WHERE id = ?', [(int) $alP['id']]);
+Db::insert('partner_nachrichten', ['partner_id' => (int) $htP['id'], 'von' => 'vecom', 'text' => 'Kette: ungelesen']);
+$htTlVor = (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner_id = ?', [(int) $htP['id']], 0);
+$htPk = PartnerHeute::punkte($htP, 'de');
+$htKeys = array_column($htPk, 'k');
+$htQuellen = '';
+foreach (['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_plus_start.php', 'app/views/partner_plus_werben.php', 'app/views/partner_recherche.php', 'app/views/partner_kalender.php'] as $htD) { $htQuellen .= (string) file_get_contents($wurzel . '/../' . $htD); }
+$htAnkerFehlt = array_filter(array_column($htPk, 'anker'), static fn($a) => !str_contains($htQuellen, 'id="' . $a . '"'));
+pruefe('Heute zu tun: nur Punkte mit Arbeit, Posten zuletzt, höchstens sechs, jeder Sprung hat ein Ziel, ungelesene Nachricht zählt',
+    $htPk !== [] && end($htKeys) === 'posten' && count($htPk) <= PartnerHeute::HOECHSTENS && $htAnkerFehlt === []
+    && in_array('nachrichten', $htKeys, true) && !array_filter($htPk, static fn($x) => $x['n'] < 1)
+    && !array_diff($htKeys, array_keys(Texte::PARTNER_HEUTE['punkte'])), json_encode($htKeys));
+pruefe('Heute zu tun: Ansehen verändert nichts (Nachricht bleibt ungelesen, keine Tagesliste angelegt)',
+    (int) Db::wert("SELECT COUNT(*) FROM partner_nachrichten WHERE partner_id = ? AND von = 'vecom' AND gelesen_am IS NULL", [(int) $htP['id']], 0) >= 1
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner_id = ?', [(int) $htP['id']], 0) === $htTlVor);
+$htF = PartnerHeute::fortschritt($htP); $htS = Partner::summen((int) $htP['id']);
+pruefe('Fortschritt: verdient = alles außer storniert/zurückgeholt, Balken zwischen 0 und 100',
+    $htF['verdient'] === $htS['wartet'] + $htS['freigabe'] + $htS['bereit'] + $htS['unterwegs'] + $htS['ausgezahlt'] && $htF['anteil'] >= 0 && $htF['anteil'] <= 100
+    && $htF['wartet'] === $htS['wartet'] + $htS['freigabe'], json_encode($htF));
+$htTexteFehlt = [];
+foreach (Texte::PARTNER_HEUTE['punkte'] as $htK => $htZ) { foreach ($htZ as $htI => $htT) { if (count($htT) !== 3) { $htTexteFehlt[] = "$htK.$htI"; } } }
+foreach (Texte::PARTNER_REITER['reiter'] as $htK => $htR) { foreach (['so1', 'so2', 'so3'] as $htF2) { if (count($htR[$htF2] ?? []) !== 3) { $htTexteFehlt[] = "$htK.$htF2"; } } }
+foreach (['so', 'suche', 'suche_aria', 'suche_leer', 'g_teilen', 'g_teilen_satz', 'g_selbst', 'g_selbst_satz'] as $htK) { if (count(Texte::PARTNER_REITER[$htK] ?? []) !== 3) { $htTexteFehlt[] = $htK; } }
+pruefe('Dashboard-Texte: Heute, So geht’s (je Reiter drei Schritte), Suche und Gruppen dreisprachig', $htTexteFehlt === [], implode(', ', $htTexteFehlt));
+$htJs = (string) file_get_contents($wurzel . '/../assets/js/partner-reiter.js'); $htPhp = (string) file_get_contents($wurzel . '/../partner.php');
+preg_match_all("~'ids' => \[([^\]]+)\]~", $htPhp, $htOrd);
+$htOrdFehlt = [];
+foreach ($htOrd[1] as $htL) { foreach (array_map(static fn($x) => trim($x, " '"), explode(',', $htL)) as $htId) { if (!str_contains($htQuellen, 'id="' . $htId . '"')) { $htOrdFehlt[] = $htId; } } }
+pruefe('Werben geordnet (Fertig zum Teilen / Selbst gestalten): jede genannte Sprungmarke gibt es, Suche öffnet zugeklappte Listen, Handy-Vorschau baut nur Text',
+    count($htOrd[1]) === 2 && $htOrdFehlt === [] && str_contains($htPhp, "require __DIR__ . '/app/views/partner_heute.php';")
+    && str_contains($htJs, "daten.ordnung") && str_contains($htJs, "if (x.tagName === 'DETAILS') { x.open = true; }") && str_contains($htJs, "role', 'search'")
+    && str_contains($htJs, 'blase.appendChild(document.createTextNode(teil))') && !str_contains($htJs, 'blase.innerHTML')
+    && substr_count((string) file_get_contents($wurzel . '/views/partner_kalender.php') . (string) file_get_contents($wurzel . '/views/partner_werbung.php'), 'data-handy=') >= 2,
+    implode(', ', $htOrdFehlt));
 pruefe('Einklappbar: Provisionsliste — acht Zeilen offen, ältere hinter „Weitere … zeigen“',
     str_contains((string) file_get_contents($wurzel . '/../partner.php'), "if (\$provNr === 9):") && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "<?php if (\$provNr > 8): ?></details><?php endif; ?>"));
 /* Kauf erst nach Monaten: die Vormerkung aus dem Anruf gilt 12 Monate, eine gewöhnliche nur 90 Tage */

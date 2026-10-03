@@ -212,6 +212,8 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
           <?php if ($pb['bild']): ?><a class="knopf" href="<?= $h($pb['bild']) ?>" download="vecom-<?= (int) $pb['id'] ?>.jpg"><?= $h(MkPartnerBeitraege::t('bild', $sprache)) ?></a><?php endif; ?>
           <a class="knopf haupt" href="<?= $h($pb['whatsapp']) ?>" target="_blank" rel="noopener"><?= $h(MkPartnerBeitraege::t('whatsapp', $sprache)) ?></a>
           <a class="knopf" href="<?= $h($pb['facebook']) ?>" target="_blank" rel="noopener"><?= $h(MkPartnerBeitraege::t('facebook', $sprache)) ?></a>
+          <button class="knopf" type="button" data-handy="pb_<?= (int) $pb['id'] ?>" data-handy-bild="<?= $h((string) ($pb['bild'] ?? '')) ?>" data-handy-wer="<?= $h((string) $p['name']) ?>"
+                  data-handy-titel="<?= $h(Texte::h(Texte::PARTNER_MARKETING['hv_titel'], $sprache)) ?>" data-handy-zu="<?= $h(Texte::h(Texte::PARTNER_MARKETING['hv_schliessen'], $sprache)) ?>"><?= $h(Texte::h(Texte::PARTNER_MARKETING['hv_knopf'], $sprache)) ?></button>
         </div>
       </article>
     <?php endforeach; ?>
@@ -269,7 +271,9 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
     <p class="klein"><?= $h(MkMedium::gt('leer', $sprache)) ?></p>
   <?php endif; ?>
 
-  <h3 class="md-h" style="margin-top:22px"><?= $h(MkMedium::gt('b_titel', $sprache)) ?></h3>
+  <?php /* Der Wunsch an Vecom ist der seltenere Weg — zugeklappt, damit die fertigen Motive oben stehen (03.10.2026) */ ?>
+  <details class="klapp" data-klapp="g3_wunsch" style="margin-top:14px"<?= $g3Liste ? '' : ' open' ?>>
+  <summary><h3 class="md-h"><?= $h(MkMedium::gt('b_titel', $sprache)) ?></h3></summary>
   <p class="klein" style="margin-top:0"><?= $h(MkMedium::gt('b_text', $sprache)) ?></p>
   <form method="post" action="<?= $h($selbst()) ?>#galerie3d" class="g3-bestellen" id="g3_form">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="g3_bestellen">
@@ -290,6 +294,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
     <label class="g3-breit"><span class="g3-l"><?= $h(MkMedium::gt('w_titel', $sprache)) ?></span><input name="titel" maxlength="60" autocomplete="off"></label>
     <button class="knopf"><?= $h(MkMedium::gt('b_knopf', $sprache)) ?></button>
   </form>
+  </details>
   <?php if ($g3Bestellt): ?>
     <ul class="klein" style="margin:10px 0 0;padding-left:18px">
       <?php foreach ($g3Bestellt as $g3b): ?><li><?= $h($g3b['studio'] !== '' ? (string) (MkMedium::GALERIE_SZENEN[$g3b['studio']][$sprache] ?? $g3b['studio']) : '„' . mb_strimwidth($g3b['text'], 0, 60, '…') . '“') ?> · <?= $h($g3b['art'] === 'video' ? MkMedium::gt('video', $sprache) : MkMedium::gt('b_bild', $sprache)) ?> · <?= $h(MkMedium::gt(['fehler' => 'b_fehler', 'pruefen' => 'b_pruefen', 'abgelehnt' => 'b_abgelehnt'][$g3b['status']] ?? 'b_offen', $sprache)) ?></li><?php endforeach; ?>
@@ -344,8 +349,10 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
         $vkK = in_array((string) ($_GET['ks'] ?? ''), PartnerKarten::KONTAKTE, true) ? (string) $_GET['ks'] : 'email';
         $vkS = in_array((string) ($_GET['vks'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache;
         $vkL = static fn(array $x): string => $selbst(array_merge(['ks' => $vkK, 'vks' => $vkS], $x)); ?>
-  <section class="vk" id="visitenkarten" aria-labelledby="vk_titel">
-    <h3 class="md-h" id="vk_titel" style="margin-top:26px"><?= $h($T('vk_titel')) ?></h3>
+  <section class="vk" id="visitenkarten" aria-labelledby="vk_titel" style="margin-top:22px">
+   <?php /* Große Bildraster klappen zu (03.10.2026): sie machten den Reiter „Werben“ am Handy 16.000 px lang. */ ?>
+   <details class="klapp" data-klapp="visitenkarten"<?= isset($_GET['ks']) || isset($_GET['vks']) ? ' open' : '' ?>>
+    <summary><h3 class="md-h" id="vk_titel"><?= $h($T('vk_titel')) ?></h3></summary>
     <p class="klein" style="margin-top:0"><?= $h(strtr($T('vk_text'), ['{link}' => PartnerKarten::kurz($p), '{name}' => PartnerKarten::name($p)])) ?></p>
     <div class="fl-chips" role="group" aria-label="<?= $h($T('vk_kontakt')) ?>">
       <span class="klein" style="align-self:center"><?= $h($T('vk_kontakt')) ?>:</span>
@@ -376,12 +383,14 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       <?php endforeach; ?>
     </ul>
     <p class="klein"><?= $h($T('vk_hinweis')) ?></p>
+   </details>
   </section>
 
   <?php require_once dirname(__DIR__) . '/src/PartnerFlyer.php'; $flGruppen = PartnerFlyer::gruppiert(); ?>
   <?php if ($flGruppen): ?>
   <section class="fl" id="flyer" aria-labelledby="fl_titel">
-    <h3 class="md-h" id="fl_titel" style="margin-top:26px"><?= $h($T('fl_titel')) ?></h3>
+   <details class="klapp" data-klapp="flyer">
+    <summary><h3 class="md-h" id="fl_titel"><?= $h($T('fl_titel')) ?></h3></summary>
     <p class="klein" style="margin-top:0"><?= $h(strtr($T('fl_text'), ['{link}' => PartnerFlyer::kurz($p)])) ?></p>
     <div class="fl-chips" role="group" aria-label="<?= $h($T('fl_filter')) ?>">
       <button type="button" data-flg="" aria-pressed="true"><?= $h($T('fl_alle')) ?> <span><?= count(PartnerFlyer::liste()) ?></span></button>
@@ -408,6 +417,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       </div>
     <?php endforeach; ?>
     <p class="klein"><?= $h($T('fl_hinweis')) ?></p>
+   </details>
   </section>
   <script>
   (function () {

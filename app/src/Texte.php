@@ -4585,6 +4585,10 @@ final class Texte
         'ka_woche'    => ['it' => 'I prossimi giorni', 'de' => 'Die nächsten Tage', 'en' => 'The next few days'],
         'ka_kopieren' => ['it' => 'Copia il testo', 'de' => 'Text kopieren', 'en' => 'Copy text'],
         'ka_wa'       => ['it' => 'Su WhatsApp', 'de' => 'Per WhatsApp', 'en' => 'On WhatsApp'],
+        /* Handy-Vorschau (03.10.2026, Uwe: Ja zu D2) */
+        'hv_knopf'     => ['it' => 'Vedi sul telefono', 'de' => 'Am Handy ansehen', 'en' => 'Preview on phone'],
+        'hv_titel'     => ['it' => 'Così lo vedono i suoi contatti', 'de' => 'So sehen es Ihre Kontakte', 'en' => 'This is what your contacts see'],
+        'hv_schliessen'=> ['it' => 'Chiudi', 'de' => 'Schließen', 'en' => 'Close'],
         'ka_teilen'   => ['it' => 'Condividi …', 'de' => 'Teilen …', 'en' => 'Share …'],
         'ka_bild'     => ['it' => 'Crea un’immagine', 'de' => 'Bild dazu erstellen', 'en' => 'Create an image'],
         'tage'        => ['it' => ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'], 'de' => ['So', 'Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa'], 'en' => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']],
@@ -4764,33 +4768,88 @@ final class Texte
         kurz = untere Leiste am Handy, titel = Leiste am Rechner und Kopf des Reiters. */
     public const PARTNER_REITER = [
         'aria' => ['it' => 'Sezioni della pagina partner', 'de' => 'Bereiche der Partnerseite', 'en' => 'Partner page sections'],
+        /* So geht's je Reiter und Schnellsuche (03.10.2026, Uwe: Ja zu D2) */
+        'so'         => ['it' => 'Come funziona', 'de' => 'So geht’s', 'en' => 'How it works'],
+        'suche'      => ['it' => 'Cerca: volantino, video, pagamento …', 'de' => 'Suchen: Flyer, Video, Auszahlung …', 'en' => 'Search: flyer, video, payout …'],
+        'suche_aria' => ['it' => 'Cerca nella pagina partner', 'de' => 'In der Partnerseite suchen', 'en' => 'Search the partner page'],
+        'suche_leer' => ['it' => 'Nessun risultato. Provi con un’altra parola.', 'de' => 'Nichts gefunden. Versuchen Sie ein anderes Wort.', 'en' => 'Nothing found. Try another word.'],
+        /* Werben neu geordnet (03.10.2026, Uwe: Ja zu D2) — zwei Gruppen, oben das Fertige */
+        'g_teilen'       => ['it' => 'Pronto da condividere', 'de' => 'Fertig zum Teilen', 'en' => 'Ready to share'],
+        'g_teilen_satz'  => ['it' => 'Copiare, salvare, condividere — il suo link c’è già.', 'de' => 'Kopieren, speichern, teilen — Ihr Link steckt schon drin.', 'en' => 'Copy, save, share — your link is already in it.'],
+        'g_selbst'       => ['it' => 'Da personalizzare', 'de' => 'Selbst gestalten', 'en' => 'Make your own'],
+        'g_selbst_satz'  => ['it' => 'Immagini proprie, stampa, biglietti da visita e pacchetti per settore.', 'de' => 'Eigene Bilder, Druck, Visitenkarten und Pakete für Branchen.', 'en' => 'Your own images, print, business cards and industry packs.'],
         'reiter' => [
             'start' => [
                 'kurz'  => ['it' => 'Inizio', 'de' => 'Start', 'en' => 'Home'],
                 'titel' => ['it' => 'Inizio', 'de' => 'Start', 'en' => 'Home'],
                 'satz'  => ['it' => 'Il suo link, i suoi numeri e il prossimo passo.', 'de' => 'Ihr Link, Ihre Zahlen und der nächste Schritt.', 'en' => 'Your link, your numbers and the next step.'],
+                'so1'   => ['it' => 'Copi il suo link e lo mandi a cinque conoscenti.', 'de' => 'Ihren Link kopieren und an fünf Bekannte schicken.', 'en' => 'Copy your link and send it to five people you know.'],
+                'so2'   => ['it' => 'Ogni giorno: sbrighi «Da fare oggi» qui in alto.', 'de' => 'Jeden Tag: „Heute zu tun“ hier oben abarbeiten.', 'en' => 'Every day: work through “To do today” up here.'],
+                'so3'   => ['it' => 'Se qualcuno compra tramite lei, lo vede qui e sotto Guadagni.', 'de' => 'Kauft jemand über Sie, sehen Sie es hier und unter „Geld“.', 'en' => 'If someone buys through you, you see it here and under “Money”.'],
             ],
             'werben' => [
                 'kurz'  => ['it' => 'Promuovi', 'de' => 'Werben', 'en' => 'Promote'],
                 'titel' => ['it' => 'Promuovere', 'de' => 'Werben', 'en' => 'Promote'],
                 'satz'  => ['it' => 'Testi, immagini e video pronti da condividere.', 'de' => 'Fertige Texte, Bilder und Videos zum Teilen.', 'en' => 'Ready-made texts, images and videos to share.'],
+                'so1'   => ['it' => 'Sotto «Pubblichi oggi» copi il post già pronto.', 'de' => 'Unter „Heute posten“ den fertigen Beitrag kopieren.', 'en' => 'Under “Post today”, copy the ready-made post.'],
+                'so2'   => ['it' => 'Salvi l’immagine o il video — il suo link è già dentro.', 'de' => 'Bild oder Video dazu speichern — Ihr Link steckt schon drin.', 'en' => 'Save the image or video — your link is already in it.'],
+                'so3'   => ['it' => 'Lo condivida nello stato WhatsApp, su Instagram o Facebook.', 'de' => 'Im WhatsApp-Status, auf Instagram oder Facebook teilen.', 'en' => 'Share it in your WhatsApp status, on Instagram or Facebook.'],
             ],
             'finden' => [
                 'kurz'  => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
                 'titel' => ['it' => 'Trovare clienti', 'de' => 'Kunden finden', 'en' => 'Find customers'],
                 'satz'  => ['it' => 'Attività vicine, il check del sito da mostrare e clienti da segnalare.', 'de' => 'Betriebe in der Nähe, der Website-Check zum Vorzeigen und Kunden direkt melden.', 'en' => 'Businesses nearby, the website check to show and customers to report.'],
+                'so1'   => ['it' => 'Chiami le attività scelte da Vecom o visiti quelle vicine.', 'de' => 'Die Anrufliste von Vecom abtelefonieren oder Betriebe in der Nähe besuchen.', 'en' => 'Call the list from Vecom or visit businesses nearby.'],
+                'so2'   => ['it' => 'Faccia il check del sito e lo mostri al titolare.', 'de' => 'Den Website-Check machen und dem Inhaber zeigen.', 'en' => 'Run the website check and show it to the owner.'],
+                'so3'   => ['it' => 'Interessato? Lo segnali — il cliente è suo.', 'de' => 'Interessiert? Melden — der Kunde gehört Ihnen.', 'en' => 'Interested? Report it — the customer is yours.'],
             ],
             'geld' => [
                 'kurz'  => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
                 'titel' => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
                 'satz'  => ['it' => 'Provvigioni, pagamenti e come arrivano i soldi.', 'de' => 'Provisionen, Auszahlungen und wie das Geld zu Ihnen kommt.', 'en' => 'Commissions, payouts and how the money reaches you.'],
+                'so1'   => ['it' => 'Scelga una volta come ricevere i soldi.', 'de' => 'Einmal festlegen, wie das Geld zu Ihnen kommt.', 'en' => 'Choose once how the money reaches you.'],
+                'so2'   => ['it' => 'Ogni provvigione attende il periodo di recesso, poi diventa libera.', 'de' => 'Jede Provision wartet die Widerrufsfrist ab, dann wird sie frei.', 'en' => 'Each commission waits out the withdrawal period, then it is released.'],
+                'so3'   => ['it' => 'Raggiunto l’importo minimo, paghiamo — le ricevute sono qui.', 'de' => 'Ist der Mindestbetrag erreicht, zahlen wir aus — die Belege stehen hier.', 'en' => 'Once the minimum is reached, we pay out — the receipts are here.'],
             ],
             'profil' => [
                 'kurz'  => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
                 'titel' => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
                 'satz'  => ['it' => 'La sua foto, la sua pagina, i messaggi e l’app sul telefono.', 'de' => 'Ihr Foto, Ihre eigene Seite, Nachrichten und die App aufs Handy.', 'en' => 'Your photo, your own page, messages and the app on your phone.'],
+                'so1'   => ['it' => 'Aggiunga una foto e una frase — le persone si fidano dei volti.', 'de' => 'Foto und einen Satz hinzufügen — Menschen vertrauen Gesichtern.', 'en' => 'Add a photo and a sentence — people trust faces.'],
+                'so2'   => ['it' => 'Adatti colori e testi della sua pagina.', 'de' => 'Farben und Texte Ihrer Seite anpassen.', 'en' => 'Adjust the colours and texts of your page.'],
+                'so3'   => ['it' => 'Installi l’app sul telefono, così riceve subito gli avvisi.', 'de' => 'Die App aufs Handy holen, dann kommen Hinweise sofort.', 'en' => 'Put the app on your phone so alerts arrive right away.'],
             ],
         ],
+    ];
+
+    /* „Heute zu tun“ und Fortschritt ganz oben (03.10.2026, PartnerHeute). Je Punkt [eins, mehrere]. */
+    public const PARTNER_HEUTE = [
+        'titel'   => ['it' => 'Da fare oggi', 'de' => 'Heute zu tun', 'en' => 'To do today'],
+        'leer'    => ['it' => 'Per oggi è tutto fatto. Domattina qui trova cosa c’è da fare.', 'de' => 'Für heute ist alles erledigt. Morgen früh steht hier, was dran ist.', 'en' => 'All done for today. Tomorrow morning you’ll find what’s next here.'],
+        'los'     => ['it' => 'Vai', 'de' => 'Los', 'en' => 'Go'],
+        'punkte'  => [
+            'heiss'       => [['it' => 'Qualcuno sta guardando la sua verifica — chiami ora', 'de' => 'Jemand sieht gerade Ihren Website-Check an — jetzt anrufen', 'en' => 'Someone is viewing your website check — call now'],
+                              ['it' => '{n} verifiche aperte proprio ora — chiami ora', 'de' => '{n} Website-Checks gerade angesehen — jetzt anrufen', 'en' => '{n} website checks being viewed — call now']],
+            'nachhaken'   => [['it' => '1 contatto aspetta un suo messaggio', 'de' => '1 Kontakt wartet aufs Nachhaken', 'en' => '1 contact is waiting for your follow-up'],
+                              ['it' => '{n} contatti aspettano un suo messaggio', 'de' => '{n} Kontakte warten aufs Nachhaken', 'en' => '{n} contacts are waiting for your follow-up']],
+            'anrufen'     => [['it' => '1 attività da chiamare, scelta da Vecom', 'de' => '1 Betrieb von Vecom anrufen', 'en' => 'Call 1 business picked by Vecom'],
+                              ['it' => '{n} attività da chiamare, scelte da Vecom', 'de' => '{n} Betriebe von Vecom anrufen', 'en' => 'Call {n} businesses picked by Vecom']],
+            'nachrichten' => [['it' => '1 nuovo messaggio da Vecom', 'de' => '1 neue Nachricht von Vecom', 'en' => '1 new message from Vecom'],
+                              ['it' => '{n} nuovi messaggi da Vecom', 'de' => '{n} neue Nachrichten von Vecom', 'en' => '{n} new messages from Vecom']],
+            'vorbeigehen' => [['it' => '1 attività vicino a lei da visitare', 'de' => '1 Betrieb in Ihrer Nähe besuchen', 'en' => 'Visit 1 business near you'],
+                              ['it' => '{n} attività vicino a lei da visitare', 'de' => '{n} Betriebe in Ihrer Nähe besuchen', 'en' => 'Visit {n} businesses near you']],
+            'medien'      => [['it' => '1 nuovo video o immagine da Vecom', 'de' => '1 neues Video oder Bild von Vecom', 'en' => '1 new video or image from Vecom'],
+                              ['it' => '{n} nuovi video e immagini da Vecom', 'de' => '{n} neue Videos und Bilder von Vecom', 'en' => '{n} new videos and images from Vecom']],
+            'kurs'        => [['it' => 'Corso, giorno {n}: {titel}', 'de' => 'Kurs, Tag {n}: {titel}', 'en' => 'Course, day {n}: {titel}'],
+                              ['it' => 'Corso, giorno {n}: {titel}', 'de' => 'Kurs, Tag {n}: {titel}', 'en' => 'Course, day {n}: {titel}']],
+            'posten'      => [['it' => 'Pubblichi oggi: {titel}', 'de' => 'Heute posten: {titel}', 'en' => 'Post today: {titel}'],
+                              ['it' => 'Pubblichi oggi: {titel}', 'de' => 'Heute posten: {titel}', 'en' => 'Post today: {titel}']],
+        ],
+        'verdient' => ['it' => 'Guadagnato finora', 'de' => 'Bisher verdient', 'en' => 'Earned so far'],
+        'wartet'   => ['it' => 'di cui {betrag} nel periodo di recesso', 'de' => 'davon {betrag} in der Widerrufsfrist', 'en' => 'of which {betrag} in the withdrawal period'],
+        'bis_eins' => ['it' => 'Ancora 1 vendita fino a {stufe}', 'de' => 'Noch 1 Verkauf bis {stufe}', 'en' => '1 more sale to {stufe}'],
+        'bis'      => ['it' => 'Ancora {n} vendite fino a {stufe}', 'de' => 'Noch {n} Verkäufe bis {stufe}', 'en' => '{n} more sales to {stufe}'],
+        'oben'     => ['it' => 'Livello più alto raggiunto: {stufe}', 'de' => 'Höchste Stufe erreicht: {stufe}', 'en' => 'Top level reached: {stufe}'],
     ];
 
     /** Erste Schritte und Wochenverlauf im Partner-Dashboard (27.09.2026). */

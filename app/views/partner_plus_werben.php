@@ -113,7 +113,9 @@ $plusDaten = [
 <div class="block pt" id="stimmen-teilen" data-reiter="werben">
   <h2><?= $h($PP('st_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('st_text')) ?></p>
-  <?php foreach ($stListe as $si => $st): $stB = strtr($PP('st_beitrag'), ['{text}' => $st['text'], '{wer}' => $stWer($st), '{link}' => $stLink]); ?>
+  <?php /* Zwei Stimmen offen, der Rest klappt (03.10.2026) */
+        foreach ($stListe as $si => $st): $stB = strtr($PP('st_beitrag'), ['{text}' => $st['text'], '{wer}' => $stWer($st), '{link}' => $stLink]);
+        if ($si === 2): ?><details class="weitere"><summary><?= $h(strtr($T('kl_weitere'), ['{n}' => (string) (count($stListe) - 2)])) ?></summary><?php endif; ?>
     <figure class="pp-stimme">
       <?php if ($st['sterne']): ?><div class="pp-sterne" aria-label="<?= (int) $st['sterne'] ?>/5"><?= str_repeat('★', (int) $st['sterne']) ?></div><?php endif; ?>
       <blockquote><?= $h($st['text']) ?></blockquote>
@@ -125,7 +127,7 @@ $plusDaten = [
         <button class="knopf" type="button" data-stimme-bild="<?= $si ?>"><?= $h($PP('st_bild')) ?></button>
       </div>
     </figure>
-  <?php endforeach; ?>
+  <?php endforeach; if (count($stListe) > 2): ?></details><?php endif; ?>
   <canvas id="st_vorschau" width="1080" height="1080" hidden></canvas>
 </div>
 <?php endif; ?>
