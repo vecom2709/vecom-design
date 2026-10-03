@@ -1802,12 +1802,12 @@ if ($post) {
             case 'wm_angebot':
                 require_once __DIR__ . '/src/Werbemittel.php';
                 Werbemittel::angebotSpeichern((int) ($_POST['variante_id'] ?? 0), $_POST);
-                $_SESSION['gut'] = 'Angebot gespeichert — der Einkauf ist jetzt das günstigste Angebot.';
+                $_SESSION['gut'] = 'Angebot gespeichert — je Lieferland gilt das günstigste.';
                 zurueck('werbemittel');
 
             case 'wm_angebot_weg':
                 require_once __DIR__ . '/src/Werbemittel.php';
-                Werbemittel::angebotLoeschen((int) ($_POST['variante_id'] ?? 0), (string) ($_POST['anbieter'] ?? ''));
+                Werbemittel::angebotLoeschen((int) ($_POST['variante_id'] ?? 0), (string) ($_POST['anbieter'] ?? ''), (string) ($_POST['land'] ?? 'IT'));
                 $_SESSION['gut'] = 'Angebot entfernt.';
                 zurueck('werbemittel');
 

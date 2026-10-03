@@ -74,18 +74,62 @@ final class Werbemittel
 
     // ---- Partnerbereich ------------------------------------------------------
 
+    /** Länder, in die geliefert wird (Uwe, 04.10.2026: Italien und Deutschland). */
+    public const LIEFERLAENDER = ['IT' => 'Italia', 'DE' => 'Deutschland'];
+
     /**
-     * Der Katalog, wie ein Partner ihn sieht.
+     * Was Vecom für diese Auflage bei Lieferung nach $land zahlt, und bei wem.
+     * Gibt es Angebote der Druckereien, ist es das günstigste für dieses Land —
+     * gibt es für das Land keins, ist dorthin nicht lieferbar (null). Ohne
+     * jedes Angebot gilt der von Hand eingetragene Einkauf für alle Länder.
+     * @return ?array{cent:int, anbieter:?string}
+     */
+    public static function einkauf(int $varianteId, string $land): ?array
+    {
+        $land = strtoupper($land);
+        if (!isset(self::LIEFERLAENDER[$land])) { return null; }
+        $g = Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId, $land]);
+        if ($g) { return ['cent' => (int) $g['preis_cent'], 'anbieter' => (string) $g['anbieter']]; }
+        if ((int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ?', [$varianteId]) > 0) { return null; }
+        $h = (int) Db::wert('SELECT einkauf_cent FROM wm_varianten WHERE id = ?', [$varianteId], 0);
+        return $h > 0 ? ['cent' => $h, 'anbieter' => null] : null;
+    }
+
+    /** Endpreis für den Partner bei Lieferung nach $land; 0 = dorthin nicht bestellbar. */
+    public static function preisFuer(int $varianteId, string $land, array $regel): int
+    {
+        $e = self::einkauf($varianteId, $land);
+        return $e ? self::preis($e['cent'], $regel['marge_prozent'], $regel['mindestmarge_cent']) : 0;
+    }
+
+    /**
+     * In welches Land ein Partner vermutlich liefern lässt: seine zuletzt
+     * benutzte Adresse, sonst sein Land aus dem Profil, sonst Italien. Nur
+     * für die Anzeige — bestellt wird zum Preis des Landes der Adresse.
+     */
+    public static function anzeigeLand(array $p): string
+    {
+        try {
+            $l = (string) Db::wert('SELECT land FROM wm_adressen WHERE partner_id = ? ORDER BY updated_at DESC, id DESC LIMIT 1', [(int) ($p['id'] ?? 0)], '');
+        } catch (Throwable $e) { $l = ''; }
+        if (!isset(self::LIEFERLAENDER[$l])) { $l = strtoupper(trim((string) ($p['land'] ?? ''))); }
+        return isset(self::LIEFERLAENDER[$l]) ? $l : 'IT';
+    }
+
+    /**
+     * Der Katalog, wie ein Partner ihn sieht — Preise für $land, dazu je
+     * Variante die Preise aller Lieferländer ('preise').
      * @return list<array{slug:string,name:string,produkte:list<array>}>
      */
-    public static function katalog(string $sprache, bool $auchAus = false): array
+    public static function katalog(string $sprache, bool $auchAus = false, string $land = 'IT'): array
     {
         /* $auchAus nur für „Als Partner ansehen“: Uwe sieht ein Produkt, bevor
            er es einschaltet. Dann trägt jedes Produkt 'sichtbar'. */
         $sprache = in_array($sprache, self::SPRACHEN, true) ? $sprache : 'it';
+        $land = isset(self::LIEFERLAENDER[strtoupper($land)]) ? strtoupper($land) : 'IT';
         $kats = Db::all('SELECT * FROM wm_kategorien WHERE aktiv = 1 ORDER BY sortierung, id');
         $prods = Db::all('SELECT * FROM wm_produkte' . ($auchAus ? '' : ' WHERE aktiv = 1') . ' ORDER BY sortierung, id');
-        $vars = Db::all('SELECT * FROM wm_varianten WHERE aktiv = 1 AND einkauf_cent > 0 ORDER BY sortierung, auflage, id');
+        $vars = Db::all('SELECT * FROM wm_varianten WHERE aktiv = 1 ORDER BY sortierung, auflage, id');
         $jeProdukt = [];
         foreach ($vars as $v) { $jeProdukt[(int) $v['produkt_id']][] = $v; }
 
@@ -97,13 +141,22 @@ final class Werbemittel
                 $r = self::regel($p);
                 $varianten = [];
                 foreach ($jeProdukt[(int) $p['id']] as $v) {
+                    $preise = [];
+                    foreach (array_keys(self::LIEFERLAENDER) as $l) {
+                        $x = self::preisFuer((int) $v['id'], $l, $r);
+                        if ($x > 0) { $preise[$l] = $x; }
+                    }
+                    if (!$preise) { continue; }          // nirgendwohin bestellbar → nicht zeigen
                     $varianten[] = [
                         'id'         => (int) $v['id'],
                         'name'       => self::feld($v, 'name', $sprache),
                         'auflage'    => (int) $v['auflage'],
-                        'preis_cent' => self::preis((int) $v['einkauf_cent'], $r['marge_prozent'], $r['mindestmarge_cent']),
+                        'preis_cent' => $preise[$land] ?? 0,
+                        'preise'     => $preise,
                     ];
                 }
+                if (!$varianten) { continue; }
+                $imLand = array_filter(array_column($varianten, 'preis_cent'));
                 $liste[] = [
                     'id'        => (int) $p['id'],
                     'nummer'    => (string) $p['nummer'],
@@ -111,7 +164,8 @@ final class Werbemittel
                     'text'      => self::feld($p, 'text', $sprache),
                     'format'    => self::format($p),
                     'vorlage'   => (string) $p['vorlage'],
-                    'ab_cent'   => min(array_column($varianten, 'preis_cent')),
+                    'land'      => $land,
+                    'ab_cent'   => $imLand ? min($imLand) : min(array_map(static fn($v) => min($v['preise']), $varianten)),
                     'varianten' => $varianten,
                 ] + ($auchAus ? ['sichtbar' => (int) $p['aktiv'] === 1] : []);
             }
@@ -124,7 +178,7 @@ final class Werbemittel
 
     // ---- Verwaltung (nur Admin) ----------------------------------------------
 
-    /** Alles, mit Einkauf, Regel, Preis und Marge je Variante. */
+    /** Alles, mit Einkauf, Druckerei, Preis und Marge je Variante und Lieferland. */
     public static function verwaltung(): array
     {
         $kats = Db::all('SELECT * FROM wm_kategorien ORDER BY sortierung, id');
@@ -138,12 +192,19 @@ final class Werbemittel
             $p['format'] = self::format($p);
             $p['varianten'] = [];
             foreach ($jeProdukt[(int) $p['id']] ?? [] as $v) {
-                $preis = self::preis((int) $v['einkauf_cent'], $r['marge_prozent'], $r['mindestmarge_cent']);
-                $v['preis_cent'] = $preis;
-                $v['marge_cent'] = $preis > 0 ? $preis - (int) $v['einkauf_cent'] : 0;
+                $v['laender'] = [];
+                foreach (array_keys(self::LIEFERLAENDER) as $l) {
+                    $e = self::einkauf((int) $v['id'], $l);
+                    $preis = $e ? self::preis($e['cent'], $r['marge_prozent'], $r['mindestmarge_cent']) : 0;
+                    $v['laender'][$l] = ['einkauf_cent' => $e['cent'] ?? 0, 'anbieter' => $e['anbieter'] ?? null, 'preis_cent' => $preis, 'marge_cent' => $preis > 0 ? $preis - (int) $e['cent'] : 0];
+                }
+                // Italien als Hauptspalte (wie bisher), Deutschland daneben.
+                $v['preis_cent'] = $v['laender']['IT']['preis_cent'];
+                $v['marge_cent'] = $v['laender']['IT']['marge_cent'];
+                $v['hat_angebote'] = (int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ?', [(int) $v['id']]) > 0;
                 $p['varianten'][] = $v;
             }
-            $p['bestellbar'] = (bool) array_filter($p['varianten'], fn($v) => (int) $v['aktiv'] === 1 && (int) $v['preis_cent'] > 0);
+            $p['bestellbar'] = (bool) array_filter($p['varianten'], fn($v) => (int) $v['aktiv'] === 1 && array_filter(array_column($v['laender'], 'preis_cent')));
         }
         unset($p);
         return ['kategorien' => $kats, 'produkte' => $prods, 'standard' => self::standard()];
@@ -213,56 +274,45 @@ final class Werbemittel
     // ---- Preisvergleich der Druckereien (04.10.2026) --------------------------
     /*  Uwe: „Versuche immer das günstigste zu suchen … selbe Qualität wie bei
         günstigeren, nehme günstigeren.“ Je Auflage die geprüften Angebote;
-        der Einkauf der Variante ist immer das günstigste davon, und
-        anbieter_guenstig sagt, bei wem bestellt wird. Ob die Qualität gleich
-        ist, entscheidet ein Mensch beim Eintragen (Papier steht daneben). */
+        der Einkauf ist je Lieferland das günstigste davon (einkauf()).
+        wm_varianten.einkauf_cent gilt nur noch, solange es gar kein Angebot
+        gibt; anbieter_guenstig wird nicht mehr benutzt (04.10.2026, eine
+        Wahrheit statt eines Zwischenspeichers). Ob die Qualität gleich ist,
+        entscheidet ein Mensch beim Eintragen (Papier steht daneben). */
 
-    /** Angebote einer Variante, günstigstes zuerst. */
-    public static function angebote(int $varianteId): array
+    /** Angebote einer Variante (optional nur eines Landes), je Land günstigstes zuerst. */
+    public static function angebote(int $varianteId, ?string $land = null): array
     {
-        return Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY preis_cent, id', [$varianteId]);
+        return $land === null
+            ? Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY land = \'IT\' DESC, land, preis_cent, id', [$varianteId])
+            : Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id', [$varianteId, strtoupper($land)]);
     }
 
-    /** Legt ein Angebot an oder ändert es (gleicher Anbieter = selbe Zeile) und rechnet den Einkauf neu. */
+    /** Legt ein Angebot an oder ändert es (gleiche Druckerei + gleiches Land = selbe Zeile). */
     public static function angebotSpeichern(int $varianteId, array $e): void
     {
         $anbieter = mb_substr(trim((string) ($e['anbieter'] ?? '')), 0, 40);
+        $land = strtoupper(trim((string) ($e['land'] ?? 'IT')));
         $preis = self::leerOderEuro($e['preis_eur'] ?? '');
         $netto = self::leerOderEuro($e['netto_eur'] ?? '');
         $link = trim((string) ($e['link'] ?? ''));
-        if ($anbieter === '' || $preis === null || $preis <= 0) { throw new InvalidArgumentException('Anbieter und Preis (inkl. Versand, so wie Vecom zahlt) sind Pflicht.'); }
+        if ($anbieter === '' || $preis === null || $preis <= 0) { throw new InvalidArgumentException('Druckerei und Preis (inkl. Versand, so wie Vecom zahlt) sind Pflicht.'); }
+        if (!isset(self::LIEFERLAENDER[$land])) { throw new InvalidArgumentException('Lieferland muss Italien oder Deutschland sein.'); }
         if ($link !== '' && !preg_match('~^https://[^\s<>"]{4,390}$~', $link)) { throw new InvalidArgumentException('Link muss mit https:// beginnen.'); }
         $datum = trim((string) ($e['geprueft_am'] ?? '')) ?: date('Y-m-d');
         if (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $datum)) { throw new InvalidArgumentException('Datum ungültig.'); }
         if (!Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE id = ?', [$varianteId])) { throw new InvalidArgumentException('Variante unbekannt.'); }
-        Db::transaktion(static function () use ($varianteId, $anbieter, $preis, $netto, $e, $link, $datum): void {
-            Db::run('INSERT INTO wm_anbieter_preise (variante_id, anbieter, preis_cent, netto_cent, papier, lieferung, link, geprueft_am)
-                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                     ON DUPLICATE KEY UPDATE preis_cent = VALUES(preis_cent), netto_cent = VALUES(netto_cent), papier = VALUES(papier),
-                                             lieferung = VALUES(lieferung), link = VALUES(link), geprueft_am = VALUES(geprueft_am)',
-                [$varianteId, $anbieter, $preis, $netto, mb_substr(trim((string) ($e['papier'] ?? '')), 0, 120),
-                 mb_substr(trim((string) ($e['lieferung'] ?? '')), 0, 160), $link, $datum]);
-            self::guenstigsten($varianteId);
-        }, 3);
+        Db::run('INSERT INTO wm_anbieter_preise (variante_id, anbieter, land, preis_cent, netto_cent, papier, lieferung, link, geprueft_am)
+                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE preis_cent = VALUES(preis_cent), netto_cent = VALUES(netto_cent), papier = VALUES(papier),
+                                         lieferung = VALUES(lieferung), link = VALUES(link), geprueft_am = VALUES(geprueft_am)',
+            [$varianteId, $anbieter, $land, $preis, $netto, mb_substr(trim((string) ($e['papier'] ?? '')), 0, 120),
+             mb_substr(trim((string) ($e['lieferung'] ?? '')), 0, 160), $link, $datum]);
     }
 
-    public static function angebotLoeschen(int $varianteId, string $anbieter): void
+    public static function angebotLoeschen(int $varianteId, string $anbieter, string $land = 'IT'): void
     {
-        Db::transaktion(static function () use ($varianteId, $anbieter): void {
-            Db::run('DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = ?', [$varianteId, $anbieter]);
-            self::guenstigsten($varianteId);
-        }, 3);
-    }
-
-    /** Einkauf = günstigstes Angebot. Ohne Angebote bleibt der zuletzt gültige Einkauf, nur der Anbieter fällt weg. */
-    private static function guenstigsten(int $varianteId): void
-    {
-        $g = Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId]);
-        if ($g) {
-            Db::run('UPDATE wm_varianten SET einkauf_cent = ?, anbieter_guenstig = ? WHERE id = ?', [(int) $g['preis_cent'], (string) $g['anbieter'], $varianteId]);
-        } else {
-            Db::run('UPDATE wm_varianten SET anbieter_guenstig = NULL WHERE id = ?', [$varianteId]);
-        }
+        Db::run('DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = ? AND land = ?', [$varianteId, $anbieter, strtoupper($land)]);
     }
 
     /** Angebote, die älter als $tage sind, gelten als „neu prüfen“. */

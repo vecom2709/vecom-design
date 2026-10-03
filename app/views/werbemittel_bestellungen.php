@@ -4,6 +4,7 @@
    versendet. Je Zeile nur der Knopf für den nächsten Schritt. Die
    Druckdatei ist genau die, die der Partner freigegeben hat. */
 require_once dirname(__DIR__) . '/src/Gelato.php';
+require_once dirname(__DIR__) . '/src/Partner.php';
 $S = [
     'angefragt' => ['Angefragt — Zahlung klären', 'warnung'], 'offen' => ['Bezahlseite offen', 'warnung'],
     'bezahlt' => ['Bezahlt — jetzt drucken lassen', 'gut'], 'beim_drucker' => ['Beim Drucker', ''],
@@ -30,6 +31,7 @@ $S = [
     <div class="reihe" style="gap:18px;align-items:flex-start">
       <div style="flex:1;min-width:220px;font-size:14px;line-height:1.6">
         <strong><?= Fmt::h($b['partner']) ?></strong> · <?= Fmt::h($b['code']) ?><br>
+        <?php if ($pos && !empty($pos['anbieter'])): ?>Drucken bei: <strong><?= Fmt::h((string) $pos['anbieter']) ?></strong> (günstigster bei Bestellung)<br><?php endif; ?>
         <?php if ($pos): ?><?= Fmt::h($pos['produkt_nummer'] . ' ' . $pos['name']) ?> · <?= Fmt::h($pos['variante']) ?><?= str_contains((string) $pos['variante'], (string) $pos['auflage']) ? '' : ' (' . (int) $pos['auflage'] . ' Stück)' ?><br><?php endif; ?>
         Bestellt <?= Fmt::h(Fmt::datum((string) $b['created_at'])) ?>
         <?php if ($b['bezahlt_am']): ?> · bezahlt <?= Fmt::h(Fmt::datum((string) $b['bezahlt_am'])) ?> (<?= Fmt::h((string) $b['bezahlt_wie']) ?>)<?php endif; ?>
@@ -47,8 +49,8 @@ $S = [
         <span style="color:var(--leise)">Einkauf <?= Fmt::h(Werbemittel::euro($ek)) ?> · Marge <?= Fmt::h(Werbemittel::euro((int) $b['summe_cent'] - $ek)) ?></span><br>
         <?php if ($pos): ?><a class="knopf stumm" style="margin-top:6px" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $pos['entwurf_id'])) ?>" target="_blank" rel="noopener">Druckdatei (PDF)</a><?php endif; ?>
         <?php if ($pos && in_array($b['status'], ['angefragt', 'offen', 'bezahlt'], true)):
-          $ang = Werbemittel::angebote((int) $pos['variante_id']); $g = $ang[0] ?? null; ?>
-          <?php if ($g): ?><div style="margin-top:8px;font-size:12.5px;text-align:right">Günstigster Drucker heute:<br>
+          $ang = Werbemittel::angebote((int) $pos['variante_id'], (string) ($a['land'] ?? 'IT')); $g = $ang[0] ?? null; ?>
+          <?php if ($g): ?><div style="margin-top:8px;font-size:12.5px;text-align:right">Günstigster Drucker heute für <?= Partner::flagge((string) ($a['land'] ?? 'IT')) ?>:<br>
             <?= $g['link'] !== '' ? '<a href="' . Fmt::h($g['link']) . '" target="_blank" rel="noopener"><strong>' . Fmt::h($g['anbieter']) . '</strong></a>' : '<strong>' . Fmt::h($g['anbieter']) . '</strong>' ?>
             · <?= Fmt::h(Werbemittel::euro((int) $g['preis_cent'])) ?><?= Werbemittel::veraltet($g) ? ' <span class="marke2 warnung">Preis neu prüfen</span>' : '' ?></div><?php endif; ?>
         <?php endif; ?>
@@ -67,7 +69,7 @@ $S = [
         <?php if ($gs === '' && Gelato::bereit()): ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_gelato_senden"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
-            <?php $gg = $pos ? (Werbemittel::angebote((int) $pos['variante_id'])[0]['anbieter'] ?? '') : ''; ?>
+            <?php $gg = $pos ? (Werbemittel::angebote((int) $pos['variante_id'], (string) ($a['land'] ?? 'IT'))[0]['anbieter'] ?? '') : ''; ?>
             <?php if ($gg === '' || strcasecmp($gg, 'Gelato') === 0): ?><button class="knopf haupt">Als Entwurf an Gelato</button>
             <?php else: ?><button class="knopf stumm" title="<?= Fmt::h($gg) ?> ist günstiger">An Gelato (teurer als <?= Fmt::h($gg) ?>)</button><?php endif; ?></form>
         <?php elseif ($gs === 'entwurf'): ?>

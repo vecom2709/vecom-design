@@ -53,7 +53,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     <a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/vorschau')) ?>">Als Partner ansehen</a></div>
 </div>
 
-<?php require_once dirname(__DIR__) . '/src/Gelato.php'; ?>
+<?php require_once dirname(__DIR__) . '/src/Gelato.php'; require_once dirname(__DIR__) . '/src/Partner.php'; ?>
 <div class="block" style="max-width:820px"><h2>Druckanbieter Gelato</h2>
   <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
     <?php else: ?><span class="marke2 warnung">Kein Schlüssel</span> In <code>app/config.local.php</code> eintragen: <code>'gelato' => ['api' => '…']</code>. Bis dahin beauftragst du den Druck von Hand.<?php endif; ?></p>
@@ -115,12 +115,22 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
                 <input form="<?= $fid ?>" name="name_de" value="<?= Fmt::h($v['name_de'] ?? '') ?>" style="min-width:90px">
                 <input form="<?= $fid ?>" name="name_en" value="<?= Fmt::h($v['name_en'] ?? '') ?>" style="min-width:90px"></div></td>
             <td class="num"><input form="<?= $fid ?>" name="auflage" type="number" min="1" value="<?= (int) ($v['auflage'] ?? 1) ?>" style="width:80px"></td>
-            <?php $vAng = $v ? Werbemittel::angebote((int) $v['id']) : []; ?>
-            <td class="num"><?php if ($vAng): /* Einkauf = günstigstes Angebot, nicht frei */ ?>
-              <span title="günstigstes Angebot"><?= Fmt::h($eur((int) $v['einkauf_cent'])) ?></span><br><span style="font-size:11.5px;color:var(--leise)"><?= Fmt::h((string) $v['anbieter_guenstig']) ?></span>
+            <?php /* Je Lieferland (04.10.2026): Einkauf = günstigste Druckerei für das Land. */
+              $zelle = static function (?array $v, string $was) use ($eur): string {
+                  if (!$v) { return ''; }
+                  $o = [];
+                  foreach ($v['laender'] as $l => $x) {
+                      if ($x[$was] <= 0) { $o[] = Partner::flagge($l) . ' <span style="color:var(--leise)">—</span>'; continue; }
+                      $t = Partner::flagge($l) . ' ' . Fmt::h($was === 'einkauf_cent' ? $eur((int) $x[$was]) : Werbemittel::euro((int) $x[$was]));
+                      if ($was === 'einkauf_cent' && $x['anbieter']) { $t .= '<br><span style="font-size:11px;color:var(--leise)">' . Fmt::h((string) $x['anbieter']) . '</span>'; }
+                      $o[] = $t;
+                  }
+                  return implode('<br>', $o);
+              }; ?>
+            <td class="num"><?php if ($v && $v['hat_angebote']): ?><?= $zelle($v, 'einkauf_cent') ?>
             <?php else: ?><input form="<?= $fid ?>" name="einkauf_eur" inputmode="decimal" value="<?= $v ? $eur((int) $v['einkauf_cent']) : '' ?>" style="width:90px" placeholder="0,00"><?php endif; ?></td>
-            <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['preis_cent'])) : '<span style="color:var(--leise)">—</span>' ?></td>
-            <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['marge_cent'])) : '' ?></td>
+            <td class="num" style="white-space:nowrap"><?= $v ? $zelle($v, 'preis_cent') : '<span style="color:var(--leise)">—</span>' ?></td>
+            <td class="num" style="white-space:nowrap"><?= $v ? $zelle($v, 'marge_cent') : '' ?></td>
             <?php $ga = $v ? Gelato::artikel((int) $v['id']) : null; ?>
             <td><div style="display:flex;gap:4px"><input form="<?= $fid ?>" name="gelato_artikel" value="<?= Fmt::h((string) ($ga['artikel'] ?? '')) ?>" placeholder="productUid" style="min-width:150px">
               <input form="<?= $fid ?>" name="gelato_menge" type="number" min="1" value="<?= (int) ($ga['menge'] ?? ($v['auflage'] ?? 1)) ?>" style="width:80px"></div></td>
@@ -132,11 +142,12 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 
       <?php /* Preisvergleich (04.10.2026): je Auflage die geprüften Angebote; der Einkauf ist das günstigste. */ ?>
       <div style="margin-top:12px"><strong style="font-size:13.5px">Druckereien im Vergleich</strong>
-        <span style="color:var(--leise);font-size:12.5px"> — Preis so, wie Vecom zahlt: inkl. Versand nach Italien und inkl. IVA (ohne Partita IVA ist sie Kosten). Gleiche Qualität vorausgesetzt — das Papier steht daneben.</span>
+        <span style="color:var(--leise);font-size:12.5px"> — Preis so, wie Vecom zahlt: inkl. Versand ins Lieferland und inkl. Mehrwertsteuer (ohne Partita IVA ist sie Kosten). Je Land gewinnt das günstigste. Gleiche Qualität vorausgesetzt — das Papier steht daneben.</span>
         <div class="tabellenrahmen" style="margin-top:6px"><table>
-          <thead><tr><th>Auflage</th><th>Druckerei</th><th class="num">Vecom zahlt</th><th class="num">netto</th><th>Papier</th><th>Lieferung</th><th>geprüft</th><th></th></tr></thead><tbody>
-          <?php $keinAngebot = true; foreach ($p['varianten'] as $v): foreach (Werbemittel::angebote((int) $v['id']) as $ai => $an): $keinAngebot = false; ?>
-            <tr><td><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></td>
+          <thead><tr><th>Auflage</th><th>Land</th><th>Druckerei</th><th class="num">Vecom zahlt</th><th class="num">netto</th><th>Papier</th><th>Lieferung</th><th>geprüft</th><th></th></tr></thead><tbody>
+          <?php $keinAngebot = true; foreach ($p['varianten'] as $v): $vorLand = ''; foreach (Werbemittel::angebote((int) $v['id']) as $an): $keinAngebot = false;
+            $ai = $an['land'] === $vorLand ? 1 : 0; $vorLand = $an['land']; /* je Land ist das erste das günstigste */ ?>
+            <tr><td><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></td><td><?= Partner::flagge((string) $an['land']) ?> <?= Fmt::h((string) $an['land']) ?></td>
               <td><?= $an['link'] !== '' ? '<a href="' . Fmt::h($an['link']) . '" target="_blank" rel="noopener">' . Fmt::h($an['anbieter']) . '</a>' : Fmt::h($an['anbieter']) ?>
                 <?= $ai === 0 ? ' <span class="marke2 gut">günstigster</span>' : '' ?></td>
               <td class="num"><?= Fmt::h(Werbemittel::euro((int) $an['preis_cent'])) ?></td>
@@ -145,16 +156,17 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
               <td><?= Fmt::h(Fmt::datum((string) $an['geprueft_am'])) ?><?= Werbemittel::veraltet($an) ? ' <span class="marke2 warnung">neu prüfen</span>' : '' ?></td>
               <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?>
                 <input type="hidden" name="tat" value="wm_angebot_weg"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
-                <input type="hidden" name="variante_id" value="<?= (int) $v['id'] ?>"><input type="hidden" name="anbieter" value="<?= Fmt::h($an['anbieter']) ?>">
+                <input type="hidden" name="variante_id" value="<?= (int) $v['id'] ?>"><input type="hidden" name="anbieter" value="<?= Fmt::h($an['anbieter']) ?>"><input type="hidden" name="land" value="<?= Fmt::h((string) $an['land']) ?>">
                 <button class="knopf stumm">Entfernen</button></form></td></tr>
           <?php endforeach; endforeach; ?>
-          <?php if ($keinAngebot): ?><tr><td colspan="8"><div class="leer">Noch kein Angebot — dann gilt der Einkauf oben.</div></td></tr><?php endif; ?>
+          <?php if ($keinAngebot): ?><tr><td colspan="9"><div class="leer">Noch kein Angebot — dann gilt der Einkauf oben.</div></td></tr><?php endif; ?>
           </tbody></table></div>
         <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Angebot eintragen oder aktualisieren</summary>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="wm_angebot"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
             <div class="reihe">
               <div class="feld"><label>Auflage</label><select name="variante_id"><?php foreach ($p['varianten'] as $v): ?><option value="<?= (int) $v['id'] ?>"><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></option><?php endforeach; ?></select></div>
+              <div class="feld"><label>Lieferland</label><select name="land"><?php foreach (Werbemittel::LIEFERLAENDER as $lc => $ln): ?><option value="<?= $lc ?>"><?= Fmt::h($ln) ?></option><?php endforeach; ?></select></div>
               <div class="feld"><label>Druckerei</label><input name="anbieter" required placeholder="z. B. HelloPrint"></div>
               <div class="feld"><label>Vecom zahlt (€, inkl. Versand + IVA)</label><input name="preis_eur" inputmode="decimal" required></div>
               <div class="feld"><label>davon netto (€)</label><input name="netto_eur" inputmode="decimal"></div>

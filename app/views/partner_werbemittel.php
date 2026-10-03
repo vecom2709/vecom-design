@@ -34,8 +34,7 @@ if (!$wmNurLesen && isset($_GET['wmnochmal'])) {
         if ($wmNochAdr === 0) { $wmNochNeu = $wmNoch['adresse']; }
     }
 }
-$wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'CH' => 'Schweiz / Svizzera', 'FR' => 'France', 'ES' => 'España',
-    'NL' => 'Nederland', 'BE' => 'België / Belgique', 'LU' => 'Luxembourg', 'PT' => 'Portugal', 'MT' => 'Malta', 'SM' => 'San Marino'];
+$wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.2026)
 ?>
 <style>
   .wm-kopf{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
@@ -74,6 +73,8 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
   .wm-gestalten label{display:inline-flex;gap:6px;align-items:center;min-height:38px;padding:6px 12px;border:1px solid var(--linie2);border-radius:999px;font-size:13.5px;cursor:pointer}
   .wm-gestalten label:has(input:checked){border-color:rgba(241,211,139,.7);background:rgba(241,211,139,.09);color:var(--text)}
   .wm-gestalten button{justify-self:start}
+  .wm-landpreis{display:inline-block;margin-left:10px;white-space:nowrap}
+  .wm-landpreis.wm-anderes{font-weight:400;color:var(--leise);font-size:13px}
   .wm-bestellen{border-top:1px solid var(--linie);padding-top:12px;display:grid;gap:10px}
   .wm-bestellen h4{margin:0;font-size:15px}
   .wm-bfeld{border:0;padding:0;margin:0;display:grid;gap:10px;min-width:0}
@@ -144,9 +145,10 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
           <?php if ($wmP['text'] !== ''): ?><p class="wm-text"><?= $h($wmP['text']) ?></p><?php endif; ?>
           <p class="wm-meta"><?= $wmP['format'] !== '' ? $h($W('format') . ' ' . $wmP['format']) . ' · ' : '' ?><?= $h($wmP['nummer']) ?> · <?= $h(strtr($W('ab'), ['{preis}' => Werbemittel::euro((int) $wmP['ab_cent'])])) ?></p>
         </div>
+        <p class="wm-meta" style="margin:-4px 0 0"><?= $h($W('preis_land')) ?></p>
         <table class="wm-varianten" aria-label="<?= $h($W('je_auflage')) ?>">
           <?php foreach ($wmP['varianten'] as $wmV): ?>
-            <tr><td><?= $h($wmV['name']) ?></td><td><?= $h(Werbemittel::euro((int) $wmV['preis_cent'])) ?></td></tr>
+            <tr><td><?= $h($wmV['name']) ?></td><td><?php foreach ($wmV['preise'] as $wmPl => $wmPc): ?><span class="wm-landpreis<?= $wmPl === $wmP['land'] ? '' : ' wm-anderes' ?>"><?= $h(Partner::flagge($wmPl)) ?> <?= $h(Werbemittel::euro((int) $wmPc)) ?></span><?php endforeach; ?></td></tr>
           <?php endforeach; ?>
         </table>
         <?php if (!$wmNurLesen && $wmP['vorlage'] === 'visitenkarte'):
@@ -208,7 +210,7 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
         <div class="wm-bestellen" id="wm-bestellen">
           <h4><?= $h($W('bestellen')) ?></h4>
           <?php if ($wmNoch): ?><p class="wm-meldung" role="status"><?= $h($W('nochmal_satz')) ?></p><?php endif; ?>
-          <?php if (!$wmNurLesen && in_array($wmM, ['adresse', 'freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar'], true)): ?>
+          <?php if (!$wmNurLesen && in_array($wmM, ['adresse', 'freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar', 'nicht_lieferbar'], true)): ?>
             <p class="wm-meldung" role="alert"><?= $h($W('m_' . $wmM)) ?></p>
           <?php endif; ?>
           <?php if (!$wmDarf): ?>
@@ -220,7 +222,7 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
               <div class="wm-wahl" role="radiogroup" aria-label="<?= $h($W('auflage')) ?>">
                 <?php foreach ($wmP['varianten'] as $wmI => $wmV): ?>
                   <label><input type="radio" name="variante" value="<?= (int) $wmV['id'] ?>"<?= ($wmNochVar > 0 ? (int) $wmV['id'] === $wmNochVar : $wmI === 0) ? ' checked' : '' ?> required>
-                    <span><?= $h($wmV['name']) ?></span><b><?= $h(Werbemittel::euro((int) $wmV['preis_cent'])) ?></b></label>
+                    <span><?= $h($wmV['name']) ?></span><b><?php foreach ($wmV['preise'] as $wmPl => $wmPc): ?><span class="wm-landpreis<?= $wmPl === $wmP['land'] ? '' : ' wm-anderes' ?>"><?= $h(Partner::flagge($wmPl)) ?> <?= $h(Werbemittel::euro((int) $wmPc)) ?></span><?php endforeach; ?></b></label>
                 <?php endforeach; ?>
               </div>
               <p class="wm-unter"><?= $h($W('lieferadresse')) ?></p>
@@ -236,7 +238,7 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
                 <label><?= $h($W('a_plz')) ?><input name="plz" autocomplete="postal-code" inputmode="numeric" value="<?= $h((string) ($wmNochNeu['plz'] ?? '')) ?>"></label>
                 <label><?= $h($W('a_ort')) ?><input name="ort" autocomplete="address-level2" value="<?= $h((string) ($wmNochNeu['ort'] ?? '')) ?>"></label>
                 <label><?= $h($W('a_land')) ?><select name="land" autocomplete="country">
-                  <?php foreach ($wmLaender as $wmLc => $wmLn): ?><option value="<?= $wmLc ?>"<?= $wmLc === (string) ($wmNochNeu['land'] ?? 'IT') ? ' selected' : '' ?>><?= $h($wmLn) ?></option><?php endforeach; ?>
+                  <?php foreach ($wmLaender as $wmLc => $wmLn): ?><option value="<?= $wmLc ?>"<?= $wmLc === (string) ($wmNochNeu['land'] ?? $wmP['land']) ? ' selected' : '' ?>><?= $h($wmLn) ?></option><?php endforeach; ?>
                 </select></label>
                 <label><?= $h($W('a_telefon')) ?><input name="telefon" type="tel" autocomplete="tel" value="<?= $h((string) ($wmNochNeu['telefon'] ?? '')) ?>"></label>
               </div>

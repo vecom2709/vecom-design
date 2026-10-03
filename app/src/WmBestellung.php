@@ -29,7 +29,8 @@ declare(strict_types=1);
    ========================================================================== */
 final class WmBestellung
 {
-    public const LAENDER = ['IT', 'DE', 'AT', 'CH', 'FR', 'ES', 'NL', 'BE', 'LU', 'PT', 'MT', 'SM'];
+    /** Geliefert wird nach Italien und Deutschland (Uwe, 04.10.2026) — dorthin, wo der Partner wohnt. */
+    public const LAENDER = ['IT', 'DE'];
     public const OFFEN = ['angefragt', 'offen'];
     /** Höchstens so viele unbezahlte Bestellungen je Partner zugleich. */
     public const OFFEN_MAX = 5;
@@ -111,7 +112,7 @@ final class WmBestellung
                              w.aktiv AS pr_aktiv, k.aktiv AS kat_aktiv
                         FROM wm_varianten v JOIN wm_produkte w ON w.id = v.produkt_id JOIN wm_kategorien k ON k.id = w.kategorie_id
                        WHERE v.id = ?', [$varianteId]);
-        if (!$v || !(int) $v['aktiv'] || !(int) $v['pr_aktiv'] || !(int) $v['kat_aktiv'] || (int) $v['einkauf_cent'] <= 0) {
+        if (!$v || !(int) $v['aktiv'] || !(int) $v['pr_aktiv'] || !(int) $v['kat_aktiv']) {
             throw new InvalidArgumentException('nicht_verfuegbar');
         }
         $entwurf = Db::one("SELECT id FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'freigegeben' ORDER BY id DESC LIMIT 1",
@@ -120,14 +121,17 @@ final class WmBestellung
         $a = Db::one('SELECT * FROM wm_adressen WHERE id = ? AND partner_id = ?', [$adresseId, $pid]);
         if (!$a) { throw new InvalidArgumentException('adresse_fehlt'); }
 
-        // Preis neu rechnen — nie aus dem Browser.
+        // Preis neu rechnen — nie aus dem Browser — und zwar für das Land der
+        // Lieferadresse: günstigste Druckerei für genau dieses Land.
+        $ek = Werbemittel::einkauf((int) $v['id'], (string) $a['land']);
+        if (!$ek) { throw new InvalidArgumentException('nicht_lieferbar'); }
         $r = Werbemittel::regel(['marge_prozent' => $v['marge_prozent'], 'mindestmarge_cent' => $v['mindestmarge_cent']]);
-        $preis = Werbemittel::preis((int) $v['einkauf_cent'], $r['marge_prozent'], $r['mindestmarge_cent']);
+        $preis = Werbemittel::preis($ek['cent'], $r['marge_prozent'], $r['mindestmarge_cent']);
         $adresse = json_encode(array_intersect_key($a, array_flip(['name', 'firma', 'strasse', 'plz', 'ort', 'land', 'telefon'])), JSON_UNESCAPED_UNICODE);
         $sprache = in_array($sprache, Werbemittel::SPRACHEN, true) ? $sprache : 'it';
         $feld = static fn(string $f) => trim((string) ($v[$f . '_' . $sprache] ?? '')) !== '' ? (string) $v[$f . '_' . $sprache] : (string) $v[$f . '_it'];
 
-        $r = Db::transaktion(static function () use ($pid, $v, $entwurf, $adresse, $preis, $sprache, $feld): array {
+        $r = Db::transaktion(static function () use ($pid, $v, $entwurf, $adresse, $preis, $sprache, $feld, $ek): array {
             // Doppelklick, Zurück-und-nochmal: dieselbe offene Bestellung zurückgeben.
             $gleich = Db::one("SELECT b.id, b.nummer, b.summe_cent FROM wm_bestellungen b JOIN wm_positionen x ON x.bestellung_id = b.id
                                 WHERE b.partner_id = ? AND b.status IN ('angefragt', 'offen') AND b.adresse = ? AND b.summe_cent = ?
@@ -147,7 +151,7 @@ final class WmBestellung
             Db::insert('wm_positionen', [
                 'bestellung_id' => $id, 'produkt_id' => (int) $v['pr_id'], 'variante_id' => (int) $v['id'], 'entwurf_id' => (int) $entwurf['id'],
                 'produkt_nummer' => (string) $v['pr_nummer'], 'name' => $feld('name'), 'variante' => trim((string) $v['v_' . $sprache]) !== '' ? (string) $v['v_' . $sprache] : (string) $v['v_it'],
-                'auflage' => (int) $v['auflage'], 'menge' => 1, 'preis_cent' => $preis, 'einkauf_cent' => (int) $v['einkauf_cent'],
+                'auflage' => (int) $v['auflage'], 'menge' => 1, 'preis_cent' => $preis, 'einkauf_cent' => $ek['cent'], 'anbieter' => $ek['anbieter'],
             ]);
             return ['id' => $id, 'nummer' => $nummer, 'summe_cent' => $preis, 'neu' => true];
         }, 5);

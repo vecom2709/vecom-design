@@ -427,7 +427,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 } catch (InvalidArgumentException $e) {
                     $wmCode = $e->getMessage();
-                    $wmM = str_starts_with($wmCode, 'adresse') ? 'adresse' : (in_array($wmCode, ['freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar'], true) ? $wmCode : 'fehler');
+                    $wmM = str_starts_with($wmCode, 'adresse') ? 'adresse' : (in_array($wmCode, ['freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar', 'nicht_lieferbar'], true) ? $wmCode : 'fehler');
                     $wmZiel = '#wm-bestellen';
                 }
                 header('Location: ' . $selbst(['wm' => $wmM]) . $wmZiel, true, 303); exit;
@@ -1442,7 +1442,7 @@ if ($p && isset($_GET['karte'])) {
   $wmKatalog = [];
   try {
       require_once __DIR__ . '/app/src/Werbemittel.php';
-      $wmKatalog = Werbemittel::katalog($sprache);
+      $wmKatalog = Werbemittel::katalog($sprache, false, Werbemittel::anzeigeLand($p));
   } catch (Throwable $e) { $wmKatalog = []; }
   if ($wmKatalog) {
       require_once __DIR__ . '/app/src/PartnerKarten.php';
