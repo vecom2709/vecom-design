@@ -4407,6 +4407,15 @@ switch ($route) {
 
     case 'werbemittel':
         require_once __DIR__ . '/src/Werbemittel.php';
+        if (($teile[1] ?? '') === 'pdf' && ctype_digit((string) ($teile[2] ?? ''))) {
+            /* Freigegebene Druckdatei eines Partners (Phase 2): genau die gespeicherte Datei. */
+            $wmD = Werbemittel::datei((int) $teile[2], null);
+            if (!$wmD) { http_response_code(404); exit('Druckdatei nicht gefunden.'); }
+            header('Content-Type: application/pdf');
+            header('X-Content-Type-Options: nosniff');
+            header('Content-Disposition: inline; filename="druckdatei-' . (int) $wmD['id'] . '-' . substr((string) $wmD['datei_hash'], 0, 8) . '.pdf"');
+            echo $wmD['datei']; exit;
+        }
         if (($teile[1] ?? '') === 'vorschau') {
             /* Als Partner ansehen (03.10.2026): dieselbe Ansicht wie im
                Partnerbereich, aber in der Verwaltung gerendert — nicht über den
@@ -4424,7 +4433,7 @@ switch ($route) {
             ]);
             break;
         }
-        ansicht('werbemittel', ['wm' => Werbemittel::verwaltung()]);
+        ansicht('werbemittel', ['wm' => Werbemittel::verwaltung(), 'freigaben' => sicher(static fn() => Werbemittel::freigaben(), [])]);
         break;
 
     case 'stimmen':

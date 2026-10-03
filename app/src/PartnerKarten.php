@@ -221,8 +221,8 @@ final class PartnerKarten
 
         if ($art !== 'bogen') {
             $bw = 91 * $mm; $bh = 61 * $mm;
-            $pdf->seite($bw, $bh, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw, $bh, $iv));
-            $pdf->seite($bw, $bh, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw, $bh, $ih) . $qr(0, 61));
+            $pdf->seite($bw, $bh, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw, $bh, $iv), 3 * $mm);
+            $pdf->seite($bw, $bh, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw, $bh, $ih) . $qr(0, 61), 3 * $mm);
             return $pdf->fertig();
         }
 
@@ -268,7 +268,7 @@ final class KartenPdf
 {
     /** @var list<array{0:string,1:int,2:int}> */
     private array $bilder = [];
-    /** @var list<array{0:float,1:float,2:string}> */
+    /** @var list<array{0:float,1:float,2:string,3:float}> */
     private array $seiten = [];
 
     /** Kennung des Partners als Dokumenteigenschaft (PartnerSchutz). Leer = keine. */
@@ -281,9 +281,15 @@ final class KartenPdf
         return 'Im' . count($this->bilder);
     }
 
-    public function seite(float $breite, float $hoehe, string $inhalt): void
+    /**
+     * $beschnitt (in pt) > 0: die Seite ist das Format MIT Beschnitt. Dann
+     * stehen TrimBox (Endformat) und BleedBox (mit Beschnitt) im PDF — daran
+     * erkennen Druckereien und ihre Prüfprogramme das Endformat, ohne zu raten
+     * (Marketing Center, 03.10.2026).
+     */
+    public function seite(float $breite, float $hoehe, string $inhalt, float $beschnitt = 0.0): void
     {
-        $this->seiten[] = [$breite, $hoehe, $inhalt];
+        $this->seiten[] = [$breite, $hoehe, $inhalt, $beschnitt];
     }
 
     public function fertig(): string
@@ -298,10 +304,11 @@ final class KartenPdf
         foreach ($this->bilder as [$d, $w, $h]) {
             $obj[] = sprintf("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n%s\nendstream", $w, $h, strlen($d), $d);
         }
-        foreach ($this->seiten as $i => [$w, $h, $inhalt]) {
+        foreach ($this->seiten as $i => [$w, $h, $inhalt, $b]) {
             $seiteNr = 3 + $nb + 2 * $i;
             $kids[] = "$seiteNr 0 R";
-            $obj[] = sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.3F %.3F] /Resources << /XObject << %s>> >> /Contents %d 0 R >>", $w, $h, $xo, $seiteNr + 1);
+            $boxen = $b > 0 ? sprintf(' /BleedBox [0 0 %.3F %.3F] /TrimBox [%.3F %.3F %.3F %.3F]', $w, $h, $b, $b, $w - $b, $h - $b) : '';
+            $obj[] = sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.3F %.3F]%s /Resources << /XObject << %s>> >> /Contents %d 0 R >>", $w, $h, $boxen, $xo, $seiteNr + 1);
             $obj[] = sprintf("<< /Length %d >>\nstream\n%s\nendstream", strlen($inhalt), $inhalt);
         }
         $obj[1] = sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", implode(' ', $kids), $ns);

@@ -370,6 +370,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 Partner::stripeFehlerMelden($p, $r, 'Stripe-Land nicht geändert');
                 $meldung = Partner::stripeGrundOeffentlich($r);
                 $p = Partner::ausToken($token) ?? $p;
+            } elseif (($tat === 'wm_entwurf' || $tat === 'wm_freigeben') && $p) {
+                /* Marketing Center, Phase 2 (03.10.2026): Druckdatei erzeugen und
+                   freigeben. Gedruckt wird nur, was hier freigegeben wurde. */
+                require_once __DIR__ . '/app/src/Werbemittel.php';
+                require_once __DIR__ . '/app/src/PartnerKarten.php';
+                $wmPid = (int) ($_POST['produkt'] ?? 0);
+                if ($tat === 'wm_entwurf') {
+                    try {
+                        Werbemittel::entwurfAnlegen($p, $wmPid, $_POST);
+                        $wmM = 'entwurf';
+                    } catch (RuntimeException $e) { $wmM = $e->getMessage() === 'zuviel' ? 'zuviel' : 'fehler'; }
+                    catch (InvalidArgumentException $e) { $wmM = 'fehler'; }
+                } else {
+                    $wmM = Werbemittel::freigeben((int) $p['id'], (int) ($_POST['entwurf'] ?? 0), (string) ($_POST['hash'] ?? '')) ? 'frei' : 'veraltet';
+                    if ($wmM === 'frei') {
+                        PartnerSchutz::protokoll((int) $p['id'], 'freigabe', null, 'werbemittel ' . (int) ($_POST['entwurf'] ?? 0));
+                        Events::protokoll('wm_freigabe', 'Druckdatei freigegeben: ' . Partner::anzeigeName($p), null, null, null,
+                            ['partner_id' => (int) $p['id'], 'entwurf' => (int) ($_POST['entwurf'] ?? 0)]);
+                    }
+                }
+                header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-p' . $wmPid, true, 303); exit;
             } elseif ($tat === 'g3_bestellen' && $p) {
                 /* 3D-Motiv bestellen (Marketing-Studio 11): rechnet in Vecoms Nachtschicht, höchstens 2 je Woche. */
                 require_once __DIR__ . '/app/src/MkMedium.php';
@@ -474,6 +495,22 @@ if ($p && in_array((string) ($_GET['wmqr'] ?? ''), ['svg', 'png'], true)) {
     header('Content-Disposition: attachment; filename="vecom-qr-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $wmArt . '"');
     header('Content-Length: ' . strlen($wmDaten));
     echo $wmDaten;
+    exit;
+}
+/* ---------- Marketing Center: eigene Druckdatei (03.10.2026, Phase 2) ----------
+   ?wmpdf=ID — nur Entwürfe dieses Partners; liefert genau die gespeicherte Datei. */
+if ($p && isset($_GET['wmpdf'])) {
+    require_once __DIR__ . '/app/src/Werbemittel.php';
+    $wmD = Werbemittel::datei((int) $_GET['wmpdf'], (int) $p['id']);
+    if (!$wmD) { http_response_code(404); exit('—'); }
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'druckdatei');
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: application/pdf');
+    header('Cache-Control: private, no-store');
+    header('Content-Disposition: inline; filename="vecom-druckdatei-' . (int) $wmD['id'] . '.pdf"');
+    header('Content-Length: ' . strlen((string) $wmD['datei']));
+    echo $wmD['datei'];
     exit;
 }
 /* ---------- Visitenkarten in vier Stilen (28.09.2026) ----------

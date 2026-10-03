@@ -113,6 +113,23 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
   <?php endforeach; ?>
 <?php endforeach; ?>
 
+<?php /* Phase 2: was Partner freigegeben haben. Gedruckt wird nur, was hier steht. */ $freigaben = $freigaben ?? []; ?>
+<div class="block"><h2>Freigegebene Druckdateien</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">Jede Datei hat der Partner selbst geprüft und freigegeben. „ersetzt“ heißt: Er hat danach eine neuere freigegeben.</p>
+  <?php if (!$freigaben): ?><div class="leer">Noch keine Freigabe.</div>
+  <?php else: ?><div class="tabellenrahmen"><table>
+    <thead><tr><th>Freigegeben</th><th>Partner</th><th>Produkt</th><th>Wahl</th><th>Zustand</th><th></th></tr></thead><tbody>
+    <?php foreach ($freigaben as $f): $fw = (array) json_decode((string) $f['wahl'], true); ?>
+      <tr><td><?= Fmt::h(Fmt::datum((string) $f['freigegeben_am'])) ?></td>
+        <td><?= Fmt::h($f['partner']) ?> · <?= Fmt::h($f['code']) ?></td>
+        <td><?= Fmt::h($f['nummer']) ?> <?= Fmt::h($f['name_de'] ?: $f['name_it']) ?></td>
+        <td><?= Fmt::h(strtoupper((string) ($fw['stil'] ?? '')) . ' · ' . strtoupper((string) ($fw['sprache'] ?? '')) . ' · ' . ($fw['kontakt'] ?? '')) ?></td>
+        <td><span class="marke2 <?= $f['status'] === 'freigegeben' ? 'gut' : '' ?>"><?= Fmt::h($f['status']) ?></span></td>
+        <td style="text-align:right"><a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $f['id'])) ?>" target="_blank" rel="noopener">PDF</a></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div><?php endif; ?>
+</div>
+
 <div class="block" style="max-width:820px"><details><summary style="cursor:pointer"><strong>Neues Produkt anlegen</strong></summary>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_produkt"><input type="hidden" name="zurueck" value="werbemittel"><input type="hidden" name="id" value="0">

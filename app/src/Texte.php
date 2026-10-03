@@ -4902,6 +4902,21 @@ final class Texte
         'kit_medien' => ['it' => 'Immagini e video', 'de' => 'Bilder & Videos', 'en' => 'Images & videos'],
         'kit_branchen' => ['it' => 'Volantini per settore', 'de' => 'Branchen-Flyer', 'en' => 'Industry flyers'],
         'kit_gutschein' => ['it' => 'Buono regalo', 'de' => 'Gutschein', 'en' => 'Voucher'],
+        /* Phase 2: Druckdatei und Freigabe (03.10.2026) */
+        'gestalten' => ['it' => 'Personalizzare e approvare', 'de' => 'Gestalten und freigeben', 'en' => 'Customise and approve'],
+        'stil' => ['it' => 'Stile', 'de' => 'Stil', 'en' => 'Style'],
+        'erzeugen' => ['it' => 'Crea il file di stampa', 'de' => 'Druckdatei erstellen', 'en' => 'Create print file'],
+        'entwurf_titel' => ['it' => 'Il suo file di stampa — lo controlli', 'de' => 'Ihre Druckdatei — bitte prüfen', 'en' => 'Your print file — please check it'],
+        'pdf_ansehen' => ['it' => 'Apri il file di stampa (PDF)', 'de' => 'Druckdatei ansehen (PDF)', 'en' => 'Open print file (PDF)'],
+        'pruef_haken' => ['it' => 'Ho controllato il file: nome, codice partner, link e QR sono giusti. Verrà stampato esattamente questo file.', 'de' => 'Ich habe die Druckdatei geprüft: Name, Partner-ID, Link und QR-Code stimmen. Gedruckt wird genau diese Datei.', 'en' => 'I have checked the print file: name, partner ID, link and QR code are correct. Exactly this file will be printed.'],
+        'freigeben' => ['it' => 'Approva', 'de' => 'Freigeben', 'en' => 'Approve'],
+        'frei_titel' => ['it' => 'Approvato il {datum}', 'de' => 'Freigegeben am {datum}', 'en' => 'Approved on {datum}'],
+        'frei_satz' => ['it' => 'Verrà stampato questo file quando ordinerà. Vuole cambiare? Crei e approvi un nuovo file.', 'de' => 'Diese Datei wird gedruckt, sobald Sie bestellen. Etwas ändern? Einfach eine neue Druckdatei erstellen und freigeben.', 'en' => 'This file will be printed when you order. Want a change? Just create and approve a new print file.'],
+        'm_entwurf' => ['it' => 'File di stampa creato. Lo apra e, se va bene, lo approvi.', 'de' => 'Druckdatei erstellt. Bitte ansehen und, wenn alles stimmt, freigeben.', 'en' => 'Print file created. Please open it and approve it if everything is right.'],
+        'm_frei' => ['it' => 'Approvato. Verrà stampato esattamente questo file.', 'de' => 'Freigegeben. Gedruckt wird genau diese Datei.', 'en' => 'Approved. Exactly this file will be printed.'],
+        'm_veraltet' => ['it' => 'Questo file non è più quello attuale. Apra il più recente e lo approvi.', 'de' => 'Diese Druckdatei ist nicht mehr die aktuelle. Bitte die neueste ansehen und freigeben.', 'en' => 'This print file is no longer the current one. Please open the latest and approve it.'],
+        'm_zuviel' => ['it' => 'Oggi sono già stati creati molti file. Domani si continua.', 'de' => 'Heute wurden schon viele Druckdateien erstellt. Morgen geht es weiter.', 'en' => 'Many print files were created today already. You can continue tomorrow.'],
+        'm_fehler' => ['it' => 'Non ha funzionato. Riprovi, per favore.', 'de' => 'Das hat nicht geklappt. Bitte noch einmal versuchen.', 'en' => 'That did not work. Please try again.'],
     ];
 
     public const PARTNER_ANTWORTEN = [

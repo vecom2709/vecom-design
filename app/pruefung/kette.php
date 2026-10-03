@@ -21170,6 +21170,96 @@ Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) 
 Werbemittel::standardSetzen(35, 500);
 
 /* ============================================================================
+   Marketing Center: Druckdatei und Freigabe (03.10.2026, Phase 2)
+   ============================================================================ */
+abschnitt('Marketing Center: Druckdatei und Freigabe');
+foreach (['Werbemittel', 'Texte', 'Partner', 'PartnerWerbung', 'PartnerKarten', 'QrBild', 'Fmt'] as $w2Kl) { require_once $wurzel . "/src/$w2Kl.php"; }
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$w2Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w2A = Partner::laden(Partner::anlegen(['name' => 'Anja Druck', 'email' => 'anja@partner.example', 'code' => 'ANJADRUCK', 'sprache' => 'it']));
+$w2B = Partner::laden(Partner::anlegen(['name' => 'Bruno Fremd', 'email' => 'bruno@partner.example', 'code' => 'BRUNOFREMD', 'sprache' => 'de']));
+$w2Pdf = PartnerKarten::pdf($w2A, 'a', 'it', 'email');
+$w2Mm = 72 / 25.4;
+$w2Trim = preg_match('~/TrimBox \[([\d.]+) ([\d.]+) ([\d.]+) ([\d.]+)\]~', $w2Pdf, $w2T) === 1
+    && abs(((float) $w2T[3] - (float) $w2T[1]) / $w2Mm - 85) < 0.05 && abs(((float) $w2T[4] - (float) $w2T[2]) / $w2Mm - 55) < 0.05
+    && abs((float) $w2T[1] / $w2Mm - 3) < 0.05 && substr_count($w2Pdf, '/TrimBox') === 2 && substr_count($w2Pdf, '/BleedBox') === 2;
+pruefe('Druck-PDF der Visitenkarte: beide Seiten mit TrimBox 85 × 55 mm und BleedBox (3 mm Beschnitt)', $w2Trim, $w2T[0] ?? 'keine TrimBox');
+gesperrt('Ausgeschaltetes Produkt: keine Druckdatei', fn() => Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']));
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w2Vk['id']]);
+gesperrt('Unbekannter Stil wird abgelehnt', fn() => Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'z', 'sprache' => 'it', 'kontakt' => 'email']));
+gesperrt('Unbekannter Kontakt wird abgelehnt', fn() => Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'jeder@x.y']));
+$w2E1 = Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'vecom', 'mehr' => 'egal']);
+$w2R1 = Db::one('SELECT * FROM wm_entwuerfe WHERE id = ?', [$w2E1]);
+pruefe('Entwurf speichert die fertige Datei mit SHA-256, Status „entwurf“, nur die drei Wahlfelder',
+    $w2R1 && $w2R1['status'] === 'entwurf' && hash('sha256', (string) $w2R1['datei']) === $w2R1['datei_hash'] && str_starts_with((string) $w2R1['datei'], '%PDF-')
+    && json_decode((string) $w2R1['wahl'], true) === ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'vecom'] && (int) $w2R1['datei_bytes'] === strlen((string) $w2R1['datei']));
+pruefe('Fremder Partner kann den Entwurf nicht freigeben', Werbemittel::freigeben((int) $w2B['id'], $w2E1, (string) $w2R1['datei_hash']) === false);
+pruefe('Falscher Hash: keine Freigabe', Werbemittel::freigeben((int) $w2A['id'], $w2E1, str_repeat('0', 64)) === false
+    && Werbemittel::freigeben((int) $w2A['id'], $w2E1, 'kaputt') === false);
+pruefe('Fremder Partner bekommt die Datei nicht, der eigene und der Admin genau die gespeicherte',
+    Werbemittel::datei($w2E1, (int) $w2B['id']) === null
+    && hash('sha256', (string) (Werbemittel::datei($w2E1, (int) $w2A['id'])['datei'] ?? '')) === $w2R1['datei_hash']
+    && Werbemittel::datei($w2E1, null) !== null);
+pruefe('Eigener Partner mit richtigem Hash: freigegeben, mit Zeitpunkt',
+    Werbemittel::freigeben((int) $w2A['id'], $w2E1, (string) $w2R1['datei_hash']) === true
+    && Db::wert('SELECT status FROM wm_entwuerfe WHERE id = ?', [$w2E1]) === 'freigegeben'
+    && Db::wert('SELECT freigegeben_am FROM wm_entwuerfe WHERE id = ?', [$w2E1], null) !== null);
+pruefe('Ein zweites Mal freigeben geht nicht (nur aus „entwurf“)', Werbemittel::freigeben((int) $w2A['id'], $w2E1, (string) $w2R1['datei_hash']) === false);
+$w2E2 = Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'c', 'sprache' => 'it', 'kontakt' => 'email']);
+$w2E3 = Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'd', 'sprache' => 'en', 'kontakt' => 'email']);
+$w2St = Werbemittel::stand((int) $w2A['id'], (int) $w2Vk['id']);
+pruefe('Neuer Entwurf ersetzt den alten Entwurf, die Freigabe bleibt stehen',
+    (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entwurf'", [(int) $w2A['id']]) === 1
+    && (int) ($w2St['entwurf']['id'] ?? 0) === $w2E3 && (int) ($w2St['freigegeben']['id'] ?? 0) === $w2E1
+    && Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ?', [$w2E2]) == 0 && !isset($w2St['entwurf']['datei']));
+pruefe('Der ersetzte Entwurf lässt sich nicht mehr freigeben („veraltet“)',
+    Werbemittel::freigeben((int) $w2A['id'], $w2E2, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w2E3])) === false);
+Werbemittel::freigeben((int) $w2A['id'], $w2E3, (string) $w2St['entwurf']['datei_hash']);
+pruefe('Neue Freigabe macht die alte zu „ersetzt“ — sie bleibt erhalten',
+    Db::wert('SELECT status FROM wm_entwuerfe WHERE id = ?', [$w2E1]) === 'ersetzt' && Db::wert('SELECT status FROM wm_entwuerfe WHERE id = ?', [$w2E3]) === 'freigegeben'
+    && count(Werbemittel::freigaben()) === 2);
+
+// Partneransicht: Freigabeformular mit Hash und Pflichthaken, Freigabe sichtbar
+$w2E4 = Werbemittel::entwurfAnlegen($w2A, (int) $w2Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+$w2H4 = (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w2E4]);
+Db::run("UPDATE wm_varianten SET einkauf_cent = 1840 WHERE produkt_id = ? ORDER BY auflage LIMIT 1", [(int) $w2Vk['id']]);
+$_SESSION['csrf'] = 'pruef-csrf'; $_GET['wm'] = 'entwurf';
+$w2Fehler = null; set_error_handler(static function (int $n, string $m) use (&$w2Fehler): bool { $w2Fehler = $m; return true; });
+$w2Html = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })(
+    ['p' => $w2A, 'sprache' => 'it', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+     'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)),
+     'wmKatalog' => Werbemittel::katalog('it'), 'wmNurLesen' => false]);
+restore_error_handler(); unset($_GET['wm']);
+pruefe('Partneransicht: Freigabeformular mit Hash, Pflichthaken und CSRF; Freigabe mit Datum und eigenem PDF-Link; Meldung',
+    $w2Fehler === null && str_contains($w2Html, 'value="wm_freigeben"') && str_contains($w2Html, 'value="' . $w2H4 . '"')
+    && preg_match('~name="geprueft" value="1" required~', $w2Html) === 1 && str_contains($w2Html, 'value="pruef-csrf"')
+    && str_contains($w2Html, 'wmpdf=' . $w2E3) && str_contains($w2Html, 'wmpdf=' . $w2E4) && str_contains($w2Html, 'Approvato il')
+    && str_contains($w2Html, 'value="wm_entwurf"') && str_contains($w2Html, 'File di stampa creato') && str_contains($w2Html, 'id="wm-p' . (int) $w2Vk['id'] . '"'),
+    (string) $w2Fehler);
+$w2Pq = (string) file_get_contents($oben . '/partner.php');
+$w2Ix = (string) file_get_contents($wurzel . '/index.php');
+pruefe('partner.php: PDF nur über die eigene Partner-ID, Freigabe protokolliert; Verwaltung liefert die gespeicherte Datei',
+    str_contains($w2Pq, "Werbemittel::datei((int) \$_GET['wmpdf'], (int) \$p['id'])") && str_contains($w2Pq, "Werbemittel::freigeben((int) \$p['id'],")
+    && str_contains($w2Pq, "PartnerSchutz::protokoll((int) \$p['id'], 'freigabe'") && str_contains($w2Ix, 'Werbemittel::datei((int) $teile[2], null)'));
+$w2Fehler = null; set_error_handler(static function (int $n, string $m) use (&$w2Fehler): bool { $w2Fehler = $m; return true; });
+$wm = Werbemittel::verwaltung(); $freigaben = Werbemittel::freigaben(); ob_start(); require $wurzel . '/views/werbemittel.php'; $w2Adm = (string) ob_get_clean();
+restore_error_handler(); unset($wm, $freigaben);
+pruefe('Verwaltung listet die Freigaben mit Partner, Zustand und PDF-Link', $w2Fehler === null && str_contains($w2Adm, 'Freigegebene Druckdateien')
+    && str_contains($w2Adm, 'ANJADRUCK') && str_contains($w2Adm, 'werbemittel/pdf/' . $w2E3) && str_contains($w2Adm, 'ersetzt'), (string) $w2Fehler);
+// Tagesgrenze
+for ($i = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND created_at >= CURDATE()', [(int) $w2B['id']]); $i < Werbemittel::ENTWUERFE_JE_TAG; $i++) {
+    Db::insert('wm_entwuerfe', ['partner_id' => (int) $w2B['id'], 'produkt_id' => (int) $w2Vk['id'], 'wahl' => '{}', 'datei' => 'x', 'datei_hash' => str_repeat('a', 64), 'status' => 'ersetzt']);
+}
+$w2Zu = '';
+try { Werbemittel::entwurfAnlegen($w2B, (int) $w2Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']); } catch (RuntimeException $e) { $w2Zu = $e->getMessage(); }
+pruefe('Höchstens ' . Werbemittel::ENTWUERFE_JE_TAG . ' Druckdateien je Partner und Tag', $w2Zu === 'zuviel', $w2Zu);
+// Zurück auf den Stand der Migration
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $w2A['id'], (int) $w2B['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $w2A['id'], (int) $w2B['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w2Vk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w2Vk['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

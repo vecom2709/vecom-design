@@ -208,6 +208,104 @@ final class Werbemittel
         return Db::insert('wm_varianten', $d);
     }
 
+    // ---- Phase 2: Druckdatei und Freigabe (03.10.2026) ----------------------
+    /*  Vorgabe: „Keine Inhalte ohne Partnerfreigabe automatisch drucken.“
+        Gespeichert wird die fertige Datei, nicht nur die Wahl — gedruckt wird
+        später genau das, was der Partner gesehen und freigegeben hat. */
+
+    /** Höchstens so viele Entwürfe je Partner und Tag: jeder kostet Rechenzeit. */
+    public const ENTWUERFE_JE_TAG = 30;
+
+    /** Wahl prüfen und normalisieren. Wirft bei allem, was es nicht gibt. */
+    public static function wahl(array $e): array
+    {
+        require_once __DIR__ . '/PartnerKarten.php';
+        $w = [
+            'stil'    => (string) ($e['stil'] ?? ''),
+            'sprache' => (string) ($e['sprache'] ?? ''),
+            'kontakt' => (string) ($e['kontakt'] ?? ''),
+        ];
+        if (!PartnerKarten::gibt($w['stil'])) { throw new InvalidArgumentException('Stil unbekannt.'); }
+        if (!in_array($w['sprache'], self::SPRACHEN, true)) { throw new InvalidArgumentException('Sprache unbekannt.'); }
+        if (!in_array($w['kontakt'], PartnerKarten::KONTAKTE, true)) { throw new InvalidArgumentException('Kontakt unbekannt.'); }
+        return $w;
+    }
+
+    /**
+     * Erzeugt die Druckdatei für die Wahl des Partners und legt sie als Entwurf
+     * ab. Ein noch nicht freigegebener Entwurf desselben Produkts wird ersetzt.
+     */
+    public static function entwurfAnlegen(array $p, int $produktId, array $eingabe): int
+    {
+        $pr = Db::one('SELECT * FROM wm_produkte WHERE id = ? AND aktiv = 1', [$produktId]);
+        if (!$pr || $pr['vorlage'] === '') { throw new InvalidArgumentException('Produkt nicht verfügbar.'); }
+        $w = self::wahl($eingabe);
+        $heute = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND created_at >= CURDATE()', [(int) $p['id']]);
+        if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
+        $pdf = match ((string) $pr['vorlage']) {
+            'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
+            default => '',
+        };
+        if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }
+        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf): int {
+            Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf'", [(int) $p['id'], $produktId]);
+            return Db::insert('wm_entwuerfe', [
+                'partner_id' => (int) $p['id'], 'produkt_id' => $produktId,
+                'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
+                'datei' => $pdf, 'datei_hash' => hash('sha256', $pdf), 'datei_bytes' => strlen($pdf),
+            ]);
+        }, 3);
+    }
+
+    /**
+     * Freigabe durch den Partner. Nur eigener Entwurf, nur im Status
+     * „entwurf“, nur mit dem Hash, den er gesehen hat. Eine ältere Freigabe
+     * desselben Produkts wird „ersetzt“ (bleibt aber erhalten).
+     */
+    public static function freigeben(int $partnerId, int $entwurfId, string $hash): bool
+    {
+        if (!preg_match('~^[0-9a-f]{64}$~', $hash)) { return false; }
+        return (bool) Db::transaktion(static function () use ($partnerId, $entwurfId, $hash): bool {
+            $e = Db::one("SELECT id, produkt_id FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND status = 'entwurf' AND datei_hash = ? FOR UPDATE",
+                [$entwurfId, $partnerId, $hash]);
+            if (!$e) { return false; }
+            Db::run("UPDATE wm_entwuerfe SET status = 'ersetzt' WHERE partner_id = ? AND produkt_id = ? AND status = 'freigegeben'",
+                [$partnerId, (int) $e['produkt_id']]);
+            Db::run("UPDATE wm_entwuerfe SET status = 'freigegeben', freigegeben_am = NOW() WHERE id = ?", [$entwurfId]);
+            return true;
+        }, 3);
+    }
+
+    /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
+    public static function stand(int $partnerId, int $produktId): array
+    {
+        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am';
+        $hol = static function (string $status) use ($felder, $partnerId, $produktId): ?array {
+            $r = Db::one("SELECT $felder FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = ? ORDER BY id DESC LIMIT 1",
+                [$partnerId, $produktId, $status]);
+            if ($r) { $r['wahl'] = (array) json_decode((string) $r['wahl'], true); }
+            return $r;
+        };
+        return ['entwurf' => $hol('entwurf'), 'freigegeben' => $hol('freigegeben')];
+    }
+
+    /** Die Datei eines Entwurfs — für den Partner nur seine eigene ($partnerId), für den Admin jede (null). */
+    public static function datei(int $entwurfId, ?int $partnerId): ?array
+    {
+        $r = $partnerId === null
+            ? Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ?', [$entwurfId])
+            : Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ? AND partner_id = ?', [$entwurfId, $partnerId]);
+        return $r ?: null;
+    }
+
+    /** Für die Verwaltung: die letzten Freigaben mit Partner und Produkt. */
+    public static function freigaben(int $anzahl = 100): array
+    {
+        return Db::all("SELECT e.id, e.wahl, e.status, e.freigegeben_am, e.datei_bytes, e.datei_hash, p.name AS partner, p.code, w.nummer, w.name_de, w.name_it
+                          FROM wm_entwuerfe e JOIN partner p ON p.id = e.partner_id JOIN wm_produkte w ON w.id = e.produkt_id
+                         WHERE e.status IN ('freigegeben', 'ersetzt') ORDER BY e.freigegeben_am DESC, e.id DESC LIMIT " . max(1, min(500, $anzahl)));
+    }
+
     // ---- Helfer ---------------------------------------------------------------
 
     /** „85 × 55 mm“ aus den Zehntelmillimetern; leer, wenn kein Format. */

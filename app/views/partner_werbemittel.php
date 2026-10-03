@@ -36,6 +36,22 @@ $wmDl = static fn(string $art): string => $wmNurLesen ? '#' : $selbst(['wmqr' =>
   .wm-bald{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--dim);line-height:1.5}
   .wm-bald b{display:block;color:var(--text)}
   .wm-kit{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  .wm-meldung{margin:0;padding:10px 12px;border-radius:10px;border:1px solid var(--linie2);font-size:14px;color:var(--text)}
+  .wm-meldung.gut{border-color:rgba(120,200,140,.5);background:rgba(120,200,140,.08)}
+  .wm-frei,.wm-entwurf{display:grid;gap:6px;padding:12px;border-radius:12px;font-size:14px}
+  .wm-frei{border:1px solid rgba(120,200,140,.45);background:rgba(120,200,140,.06)}
+  .wm-frei b{color:#9fe0b0}
+  .wm-entwurf{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.06)}
+  .wm-entwurf .knopf{justify-self:start}
+  .wm-haken{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--dim);cursor:pointer}
+  .wm-haken input{width:20px;height:20px;flex:none;margin-top:1px}
+  .wm-gestalten summary{cursor:pointer;color:#f1d38b;font-size:14.5px;padding:4px 0}
+  .wm-gestalten form{display:grid;gap:10px;margin-top:8px}
+  .wm-gestalten fieldset{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:6px}
+  .wm-gestalten legend{font-size:12.5px;color:var(--leise);margin-bottom:4px;width:100%}
+  .wm-gestalten label{display:inline-flex;gap:6px;align-items:center;min-height:38px;padding:6px 12px;border:1px solid var(--linie2);border-radius:999px;font-size:13.5px;cursor:pointer}
+  .wm-gestalten label:has(input:checked){border-color:rgba(241,211,139,.7);background:rgba(241,211,139,.09);color:var(--text)}
+  .wm-gestalten button{justify-self:start}
   @media (max-width:520px){ .wm-kopf{grid-template-columns:1fr} .wm-qr{margin:0 auto} }
 </style>
 
@@ -68,11 +84,15 @@ $wmDl = static fn(string $art): string => $wmNurLesen ? '#' : $selbst(['wmqr' =>
   <?php foreach ($wmKatalog as $wmK): ?>
     <p class="wm-kat"><?= $h($wmK['name']) ?></p>
     <?php foreach ($wmK['produkte'] as $wmP): ?>
-      <article class="wm-produkt" id="wm-<?= $h($wmP['nummer']) ?>">
+      <?php /* Phase 2: Stand der Druckdatei dieses Partners (Entwurf/Freigabe). Die
+               Vorschau zeigt die zuletzt gewählte Fassung, sonst Stil a. */
+        $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
+        $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => 'a', 'sprache' => $sprache, 'kontakt' => 'email']; ?>
+      <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>">
         <?php if ($wmP['vorlage'] === 'visitenkarte'):
           $wmBild = $wmNurLesen
             ? 'data:image/jpeg;base64,' . base64_encode(PartnerKarten::vorschau($p, 'a', $sprache))
-            : $selbst(['vk' => 'a', 'f' => 'vorschau', 'vks' => $sprache]); ?>
+            : $selbst(['vk' => $wmJetzt['stil'], 'f' => 'vorschau', 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
           <img src="<?= $h($wmBild) ?>" width="720" height="231" loading="lazy" decoding="async"
                alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <?php endif; ?>
@@ -86,6 +106,58 @@ $wmDl = static fn(string $art): string => $wmNurLesen ? '#' : $selbst(['wmqr' =>
             <tr><td><?= $h($wmV['name']) ?></td><td><?= $h(Werbemittel::euro((int) $wmV['preis_cent'])) ?></td></tr>
           <?php endforeach; ?>
         </table>
+        <?php if (!$wmNurLesen && $wmP['vorlage'] === 'visitenkarte'):
+          $wmMeldung = (string) ($_GET['wm'] ?? '');
+          $wmWahlText = static fn(array $w): string => (PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
+              . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
+              . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email')); ?>
+          <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler'], true)): ?>
+            <p class="wm-meldung<?= in_array($wmMeldung, ['entwurf', 'frei'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmMeldung)) ?></p>
+          <?php endif; ?>
+          <?php if ($wmSt['freigegeben']): $wmF = $wmSt['freigegeben']; ?>
+            <div class="wm-frei">
+              <b>✓ <?= $h(strtr($W('frei_titel'), ['{datum}' => Fmt::datum((string) $wmF['freigegeben_am'])])) ?></b>
+              <span><?= $h($wmWahlText($wmF['wahl'])) ?></span>
+              <a href="<?= $h($selbst(['wmpdf' => (int) $wmF['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
+              <span class="wm-meta" style="margin:0"><?= $h($W('frei_satz')) ?></span>
+            </div>
+          <?php endif; ?>
+          <?php if ($wmSt['entwurf']): $wmE = $wmSt['entwurf']; ?>
+            <form class="wm-entwurf" method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>">
+              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_freigeben">
+              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>"><input type="hidden" name="entwurf" value="<?= (int) $wmE['id'] ?>">
+              <input type="hidden" name="hash" value="<?= $h((string) $wmE['datei_hash']) ?>">
+              <b><?= $h($W('entwurf_titel')) ?></b>
+              <span><?= $h($wmWahlText($wmE['wahl'])) ?></span>
+              <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
+              <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W('pruef_haken')) ?></span></label>
+              <button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
+            </form>
+          <?php endif; ?>
+          <details class="wm-gestalten"<?= !$wmSt['entwurf'] && !$wmSt['freigegeben'] ? ' open' : '' ?>>
+            <summary><?= $h($W('gestalten')) ?></summary>
+            <form method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>">
+              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_entwurf">
+              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
+              <fieldset><legend><?= $h($W('stil')) ?></legend>
+                <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!PartnerKarten::gibt($wmS)) { continue; } ?>
+                  <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
+                <?php endforeach; ?>
+              </fieldset>
+              <fieldset><legend><?= $h(Texte::h(Texte::PARTNER['vk_sprache'] ?? [], $sprache)) ?></legend>
+                <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $wmL => $wmLn): ?>
+                  <label><input type="radio" name="sprache" value="<?= $wmL ?>"<?= $wmL === $wmJetzt['sprache'] ? ' checked' : '' ?>> <?= $wmLn ?></label>
+                <?php endforeach; ?>
+              </fieldset>
+              <fieldset><legend><?= $h(Texte::h(Texte::PARTNER['vk_kontakt'] ?? [], $sprache)) ?></legend>
+                <?php foreach (PartnerKarten::KONTAKTE as $wmKo): ?>
+                  <label><input type="radio" name="kontakt" value="<?= $wmKo ?>"<?= $wmKo === $wmJetzt['kontakt'] ? ' checked' : '' ?>> <?= $h(PartnerKarten::kontakt($p, $wmKo)) ?></label>
+                <?php endforeach; ?>
+              </fieldset>
+              <button class="knopf<?= $wmSt['entwurf'] || $wmSt['freigegeben'] ? '' : ' haupt' ?>"><?= $h($W('erzeugen')) ?></button>
+            </form>
+          </details>
+        <?php endif; ?>
         <div class="wm-bald"><span aria-hidden="true">⏳</span><span><b><?= $h($W('bald')) ?></b><?= $h($W('bald_satz')) ?></span></div>
       </article>
     <?php endforeach; ?>
