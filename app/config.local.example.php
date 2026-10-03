@@ -33,4 +33,13 @@ return [
     'gelato' => [
         'api' => '',                          // API-Schlüssel aus dem Gelato-Dashboard
     ],
+
+    /* HelloPrint Connect (04.10.2026): Schlüssel über api@helloprint.com. Ein
+       Konto liefert nur in sein eigenes Land. 'modus' bleibt 'test', bis der
+       erste Testauftrag sauber durchlief — erst 'prod' druckt und berechnet. */
+    'helloprint' => [
+        'api'   => '',                        // x-api-key von HelloPrint
+        'land'  => 'IT',                      // Land des Connect-Kontos
+        'modus' => 'test',                    // 'test' oder 'prod'
+    ],
 ];

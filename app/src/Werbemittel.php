@@ -96,7 +96,7 @@ final class Werbemittel
            es bei der günstigsten überhaupt (und Uwe bekommt nach der Zahlung
            eine Meldung). */
         $g = null;
-        $auto = self::automatischeAnbieter();
+        $auto = self::automatischeAnbieter($land);
         if ($auto) {
             $ph = implode(',', array_fill(0, count($auto), '?'));
             $g = Db::one("SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? AND anbieter IN ($ph) ORDER BY preis_cent, id LIMIT 1",
@@ -109,12 +109,12 @@ final class Werbemittel
         return $h > 0 ? ['cent' => $h, 'anbieter' => null] : null;
     }
 
-    /** Druckereien, die im Automatikbetrieb Aufträge per Schnittstelle bekommen können (heute: Gelato mit Schlüssel). */
-    public static function automatischeAnbieter(): array
+    /** Druckereien, die im Automatikbetrieb Aufträge für $land per Schnittstelle bekommen können (Register: Druckerei::ANGEBUNDEN). */
+    public static function automatischeAnbieter(string $land = 'IT'): array
     {
         require_once __DIR__ . '/WmBestellung.php';
-        require_once __DIR__ . '/Gelato.php';
-        return WmBestellung::automatik() && Gelato::bereit() ? [Gelato::NAME] : [];
+        require_once __DIR__ . '/Druckerei.php';
+        return WmBestellung::automatik() ? Druckerei::bereitFuer($land) : [];
     }
 
     /** Endpreis für den Partner bei Lieferung nach $land; 0 = dorthin nicht bestellbar. */

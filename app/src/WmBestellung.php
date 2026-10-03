@@ -85,14 +85,16 @@ final class WmBestellung
         if (!self::automatik()) { return; }
         try {
             $anbieter = (string) Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ? ORDER BY id LIMIT 1', [$id], '');
-            require_once __DIR__ . '/Gelato.php';
-            if (strcasecmp($anbieter, Gelato::NAME) === 0 && Gelato::bereit()) {
-                $r = Gelato::entwurfSenden($id, true);
-                if ($r['ok']) {
-                    Events::protokoll('wm_auftrag_automatisch', 'Werbemittel-Bestellung #' . $id . ' automatisch an Gelato', null, null, null, ['wm_bestellung' => $id, 'gelato' => $r['id'] ?? '']);
-                }
-                return;
+            require_once __DIR__ . '/Druckerei.php';
+            $r = Druckerei::senden($anbieter, $id);
+            if ($r['ok']) {
+                Events::protokoll('wm_auftrag_automatisch', 'Werbemittel-Bestellung #' . $id . ' automatisch an ' . $anbieter, null, null, null, ['wm_bestellung' => $id, 'ref' => $r['id'] ?? '']);
             }
+            if (!$r['ok'] && $r['grund'] !== 'keine Anbindung' && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$id], null) === null) {
+                // Vorprüfung gescheitert (z. B. Artikelnummer fehlt) — nichts gesendet, Uwe muss es wissen.
+                Events::melden('wm_druckerei_fehler', 'Werbemittel #' . $id . ': nicht an ' . $anbieter . ' gesendet', 'schlecht', mb_substr($r['grund'], 0, 480), '/werbemittel/bestellungen');
+            }
+            if ($r['grund'] !== 'keine Anbindung') { return; }   // gesendet — oder Fehler, der gemeldet ist
             $n = (string) Db::wert('SELECT nummer FROM wm_bestellungen WHERE id = ?', [$id], '');
             Events::melden('wm_ohne_anbindung', 'Werbemittel ' . $n . ': Druckerei ohne Anbindung', 'warnung',
                 '„' . ($anbieter !== '' ? $anbieter : 'unbekannt') . '“ hat keine automatische Anbindung — diese Bestellung muss dort von Hand bestellt werden.', '/werbemittel/bestellungen');

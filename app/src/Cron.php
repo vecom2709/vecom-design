@@ -110,6 +110,11 @@ final class Cron
                 require_once __DIR__ . '/Gelato.php';
                 return Gelato::nachsehen();
             },
+            /* HelloPrint (Connect): Stand der Aufträge nachlesen, versendet → Mail an den Partner. Nur lesen. */
+            'wm_helloprint' => static function () {
+                require_once __DIR__ . '/HelloPrint.php';
+                return HelloPrint::nachsehen();
+            },
             /* Gelato-Preise je Auflage und Land (Quote-API, nur lesen), höchstens einmal je 7 Tage. */
             'wm_gelato_preise' => static function () {
                 require_once __DIR__ . '/Gelato.php';

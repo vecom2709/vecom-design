@@ -1840,6 +1840,12 @@ if ($post) {
                 $_SESSION['gut'] = $tat === 'wm_automatik_an' ? 'Automatik an: Nach der Zahlung geht der Auftrag von selbst an die Druckerei.' : 'Automatik aus: Du gibst jeden Auftrag selbst frei.';
                 zurueck('werbemittel');
 
+            case 'wm_artikel':
+                require_once __DIR__ . '/src/Druckerei.php';
+                Druckerei::artikelSetzen((int) ($_POST['variante_id'] ?? 0), (string) ($_POST['anbieter'] ?? ''), (string) ($_POST['artikel'] ?? ''), max(1, (int) ($_POST['menge'] ?? 1)));
+                $_SESSION['gut'] = 'Artikelnummer gespeichert.';
+                zurueck('werbemittel');
+
             case 'wm_gelato_preise':
                 require_once __DIR__ . '/src/Gelato.php';
                 require_once __DIR__ . '/src/Werbemittel.php';

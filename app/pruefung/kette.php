@@ -77,6 +77,7 @@ Config::setzenFuerTest([
        (Gelato::$netz) — nie gegen Gelato selbst. */
     'app_geheim' => bin2hex(random_bytes(24)),
     'gelato' => ['api' => 'kette-ersatz'],
+    'helloprint' => ['api' => 'kette-hp', 'land' => 'IT', 'modus' => 'test'],
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
@@ -21641,7 +21642,7 @@ unset($_GET['wm']);
    Marketing Center: Automatik — nach der Zahlung druckt die Druckerei (04.10.2026)
    ============================================================================ */
 abschnitt('Marketing Center: Automatik nach der Zahlung');
-foreach (['Werbemittel', 'WmBestellung', 'Gelato', 'Partner', 'PartnerKarten', 'Fmt'] as $w6Kl) { require_once $wurzel . "/src/$w6Kl.php"; }
+foreach (['Werbemittel', 'WmBestellung', 'Gelato', 'HelloPrint', 'Druckerei', 'Partner', 'PartnerKarten', 'Fmt'] as $w6Kl) { require_once $wurzel . "/src/$w6Kl.php"; }
 $w6Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
 $w6V = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage LIMIT 1', [(int) $w6Vk['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w6Vk['id']]);
@@ -21667,14 +21668,16 @@ pruefe('Gelato-Preise: Quote-API (POST /v4/orders:quote), Produkt + günstigster
     && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'DE'", [$w6V]) === 3749);
 pruefe('Automatik aus: je Land die günstigste Druckerei (HelloPrint / WIRmachenDRUCK)', Werbemittel::einkauf($w6V, 'IT')['anbieter'] === 'HelloPrint' && Werbemittel::einkauf($w6V, 'DE')['anbieter'] === 'WIRmachenDRUCK');
 WmBestellung::automatikSetzen(true);
-pruefe('Automatik an: je Land die günstigste ANGEBUNDENE Druckerei (Gelato) — sonst müsste jemand von Hand bestellen',
-    Werbemittel::einkauf($w6V, 'IT') === ['cent' => 4087, 'anbieter' => 'Gelato'] && Werbemittel::einkauf($w6V, 'DE')['anbieter'] === 'Gelato');
+pruefe('Automatik an: je Land die günstigste ANGEBUNDENE Druckerei — IT: HelloPrint (angebunden, günstiger als Gelato), DE: Gelato (WIRmachenDRUCK hat keine Anbindung, HelloPrint liefert nur nach IT)',
+    Werbemittel::einkauf($w6V, 'IT') === ['cent' => 2353, 'anbieter' => 'HelloPrint'] && Werbemittel::einkauf($w6V, 'DE') === ['cent' => 3749, 'anbieter' => 'Gelato']
+    && HelloPrint::bereit('IT') && !HelloPrint::bereit('DE') && HelloPrint::modus() === 'test');
 $w6P = Partner::laden(Partner::anlegen(['name' => 'Anna Auto', 'email' => 'anna.auto@partner.example', 'code' => 'ANNAAUTO', 'sprache' => 'it']));
 $w6Mails = [];
 WmBestellung::$senden = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$w6Mails): bool { $w6Mails[] = $anlass; return true; };
 $w6E = Werbemittel::entwurfAnlegen($w6P, (int) $w6Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
 Werbemittel::freigeben((int) $w6P['id'], $w6E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w6E]));
-$w6O = WmBestellung::anlegen($w6P, $w6V, WmBestellung::adresseSpeichern((int) $w6P['id'], ['name' => 'Anna Auto', 'strasse' => 'Via Roma 9', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT']), 'it');
+// Deutschland → Gelato
+$w6O = WmBestellung::anlegen($w6P, $w6V, WmBestellung::adresseSpeichern((int) $w6P['id'], ['name' => 'Anna Auto', 'strasse' => 'Hauptstr. 9', 'plz' => '80331', 'ort' => 'München', 'land' => 'DE']), 'it');
 $w6Vor = count($w6Netz);
 pruefe('Vor der Zahlung geht nichts an die Druckerei', count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O['id']]) === 'Gelato');
 WmBestellung::bezahltVonStripe($w6O['id'], 'pi_auto', (int) $w6O['summe_cent'], 'eur');
@@ -21687,15 +21690,52 @@ pruefe('Nach der Zahlung (Stripe): Auftrag automatisch an Gelato als ECHTER Auft
 pruefe('Sendungsnummer von Gelato: automatisch „versendet“, Partner bekommt „Unterwegs“ — ohne Klick',
     Gelato::nachsehen() >= 1 && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'versendet'
     && Db::wert('SELECT tracking FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'AUTO-1' && in_array('wm_versendet', $w6Mails, true), json_encode($w6Mails));
-// Druckerei ohne Anbindung: Meldung, nichts gesendet
-Db::run("UPDATE wm_anbieter_preise SET preis_cent = 99999 WHERE anbieter = 'Gelato' AND land = 'IT'");
+// Italien → HelloPrint
+$w6Hp = [];
+HelloPrint::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w6Hp): array {
+    $w6Hp[] = [$m, $u, $k, $r];
+    if ($m === 'POST') { return ['code' => 200, 'body' => json_encode(['success' => true, 'requestId' => 'hp-req-1'])]; }
+    return ['code' => 200, 'body' => json_encode(['success' => true, 'data' => ['status' => 'SHIPPED', 'orderItems' => [['itemReferenceId' => 'x', 'trackingUrls' => ['https://www.ups.com?parcel=HP1']]]]])];
+};
+$w6Ait = WmBestellung::adresseSpeichern((int) $w6P['id'], ['name' => 'Anna Maria Auto', 'strasse' => 'Via Roma 9', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT', 'telefon' => '+39 333 1111111']);
+$w6Oi = WmBestellung::anlegen($w6P, $w6V, $w6Ait, 'it');
+WmBestellung::vonHandBezahlt($w6Oi['id']);
+pruefe('Ohne HelloPrint-Artikelnummer: nichts gesendet, Meldung an Uwe', $w6Hp === [] && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_druckerei_fehler'") >= 1
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6Oi['id']]) === 'bezahlt');
+gesperrt('Unbekannte Druckerei bei der Artikelnummer wird abgelehnt', fn() => Druckerei::artikelSetzen($w6V, 'irgendwer', 'a~b', 1));
+Druckerei::artikelSetzen($w6V, 'helloprint', 'businesscards~bc-85x55-400-matt', 250);
+$w6R = Druckerei::senden('HelloPrint', $w6Oi['id']);
+$w6Hk = json_decode((string) ($w6Hp[0][3] ?? ''), true);
+pruefe('HelloPrint: POST /rest/v1/orders mit x-api-key, Modus „test“, unsere Nummer, variantKey + Menge, Datei = genau die freigegebene (Link f=frei), Adresse in HelloPrint-Feldern',
+    $w6R['ok'] && ($w6Hp[0][1] ?? '') === 'https://api.helloprint.com/rest/v1/orders' && in_array('x-api-key: kette-hp', $w6Hp[0][2] ?? [], true)
+    && ($w6Hk['mode'] ?? '') === 'test' && ($w6Hk['orderReferenceId'] ?? '') === $w6Oi['nummer']
+    && ($w6Hk['orderItems'][0]['variantKey'] ?? '') === 'businesscards~bc-85x55-400-matt' && ($w6Hk['orderItems'][0]['quantity'] ?? 0) === 250
+    && str_contains((string) ($w6Hk['orderItems'][0]['fileUrl'] ?? ''), '&f=frei&') && ($w6Hk['shipping']['firstName'] ?? '') === 'Anna Maria'
+    && ($w6Hk['shipping']['postcode'] ?? '') === '92100' && ($w6Hk['shipping']['country'] ?? '') === 'IT'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6Oi['id']]) === 'beim_drucker' && Druckerei::senden('HelloPrint', $w6Oi['id'])['ok'] === false, json_encode($w6Hk));
+parse_str((string) parse_url((string) ($w6Hk['orderItems'][0]['fileUrl'] ?? ''), PHP_URL_QUERY), $w6Q);
+pruefe('Link der freigegebenen Fassung ist unterschrieben; mit anderer Fassung ungültig',
+    Druckerei::linkPruefen((string) $w6Q['e'], (string) $w6Q['x'], 'frei', (string) $w6Q['s'])[0] === $w6E
+    && Druckerei::linkPruefen((string) $w6Q['e'], (string) $w6Q['x'], 'druck', (string) $w6Q['s'])[0] === 0);
+pruefe('HelloPrint versendet (Stand lesen): automatisch „versendet“ mit Tracking-Link, Partner bekommt die Mail',
+    HelloPrint::nachsehen() === 1 && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6Oi['id']]) === 'versendet'
+    && Db::wert('SELECT tracking_url FROM wm_bestellungen WHERE id = ?', [$w6Oi['id']]) === 'https://www.ups.com?parcel=HP1'
+    && ($w6Hp[1][1] ?? '') === 'https://api.helloprint.com/rest/v1/orders/orderReferenceId=' . rawurlencode($w6Oi['nummer']));
+$w6Hp2 = [];
+HelloPrint::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w6Hp2): array { $w6Hp2[] = $m; return ['code' => 200, 'body' => json_encode(['status' => 'ERROR', 'message' => 'Unknown combination'])]; };
+$w6Oi2 = WmBestellung::anlegen($w6P, $w6V, WmBestellung::adresseSpeichern((int) $w6P['id'], ['name' => 'Anna Auto', 'strasse' => 'Via 2', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT']), 'it');
+WmBestellung::vonHandBezahlt($w6Oi2['id']);
+pruefe('HelloPrint antwortet „ERROR“: Stand „fehler“, Meldung, kein zweiter Versuch', count($w6Hp2) === 1
+    && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w6Oi2['id']]) === 'fehler' && Druckerei::senden('HelloPrint', $w6Oi2['id'])['ok'] === false && count($w6Hp2) === 1);
+HelloPrint::$netz = null;
+// Druckerei ohne Anbindung: Meldung, nichts gesendet (DE ohne Gelato → WIRmachenDRUCK)
 Gelato::artikelSetzen($w6V, '', 1);
 Db::run("DELETE FROM wm_anbieter_preise WHERE anbieter = 'Gelato'");
-$w6O2 = WmBestellung::anlegen($w6P, $w6V, (int) Db::wert('SELECT id FROM wm_adressen WHERE partner_id = ?', [(int) $w6P['id']]), 'it');
+$w6O2 = WmBestellung::anlegen($w6P, $w6V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w6P['id']]), 'it');
 $w6Vor = count($w6Netz);
 WmBestellung::vonHandBezahlt($w6O2['id']);
-pruefe('Druckerei ohne Anbindung (HelloPrint): nichts gesendet, Meldung an Uwe, Bestellung bleibt „bezahlt“',
-    count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O2['id']]) === 'HelloPrint'
+pruefe('Druckerei ohne Anbindung (WIRmachenDRUCK, DE): nichts gesendet, Meldung an Uwe, Bestellung bleibt „bezahlt“',
+    count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O2['id']]) === 'WIRmachenDRUCK'
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_ohne_anbindung'") >= 1
     && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O2['id']]) === 'bezahlt');
 pruefe('Automatik einschalten fragt vorher nach (SCHWER), mit Fall im Verteiler; Cron holt Gelato-Preise höchstens wöchentlich',
