@@ -21484,6 +21484,10 @@ Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use
 };
 pruefe('Unbezahlt geht nichts an Gelato', Gelato::entwurfSenden($w4O['id'])['ok'] === false && $w4Aufrufe === []);
 WmBestellung::vonHandBezahlt($w4O['id']);
+pruefe('Migration 150: Visitenkarte ist Gelato „Premium silk 350 g, 85 × 55 mm, quer“ zugeordnet, Menge = Auflage',
+    (Gelato::artikel((int) $w4Var[0]['id'])['artikel'] ?? '') === 'cards_pf_bd_pt_350-gsm-coated-silk_cl_4-4_hor'
+    && (int) (Gelato::artikel((int) $w4Var[0]['id'])['menge'] ?? 0) === (int) $w4Var[0]['auflage']);
+Gelato::artikelSetzen((int) $w4Var[0]['id'], '', 1);
 pruefe('Ohne Gelato-Artikel geht nichts an Gelato', str_contains(Gelato::entwurfSenden($w4O['id'])['grund'], 'kein Gelato-Artikel') && $w4Aufrufe === []);
 gesperrt('Ungültige productUid wird abgelehnt', fn() => Gelato::artikelSetzen((int) $w4Var[0]['id'], 'cards; drop', 250));
 Gelato::artikelSetzen((int) $w4Var[0]['id'], 'cards_pf_test_85x55', 250);
