@@ -130,6 +130,14 @@ if (is_file($konfig)) {
                Termin erst, wenn sie wirklich gemacht sind (dort). */
             $weg = (string) ($_GET['weg'] ?? '');
             if ($weg !== '') {
+                /* Besucherliste und Sofort-Hinweis (03.10.2026, K1/N1): jeder Weg zählt im Besuch — Preis, Check, Termin, WhatsApp. */
+                if (!Partner::istRoboter((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {
+                    try {
+                        require_once __DIR__ . '/app/src/Spur.php'; require_once __DIR__ . '/app/src/PartnerBesuche.php';
+                        Spur::ereignis('partner_weg', ['seite' => '/p/' . $p['code'], 'meta' => ['weg' => mb_substr((string) preg_replace('/[^a-z]/', '', $weg), 0, 12)]]);
+                        if (($pwB = Spur::aktuellerBesuch()) !== null) { PartnerBesuche::heissMelden((int) $pwB['id']); }
+                    } catch (Throwable $e) { /* Beiwerk — der Weg selbst geht immer */ }
+                }
                 if ($weg === 'wa') {
                     $gw = PartnerSeite::gestaltung($p);
                     if ($gw['bausteine']['whatsapp'] && $gw['whatsapp'] !== '') {
@@ -166,7 +174,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'rueckruf
     try {
         foreach (['Akquise', 'PartnerRecherche', 'PartnerPost', 'WebPush', 'PartnerRueckruf'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
         $rr = PartnerRueckruf::anlegen($p, $_POST, $sprache);
-    } catch (Throwable $e) { $rr = 'rr_falle'; }
+        /* Kontakt mit Einwilligung (03.10.2026, K2/N2): nur mit dem eigenen, freiwilligen Häkchen sieht der Partner Name, Nummer und Zeitfenster. */
+        if ($rr === 'ok' && !empty($_POST['partner_darf'])) {
+            require_once __DIR__ . '/app/src/PartnerBesuche.php'; require_once __DIR__ . '/app/src/Spur.php';
+            $rrB = Spur::aktuellerBesuch();
+            $rrTag = (string) ($_POST['tag'] ?? ''); $rrF = (string) ($_POST['fenster'] ?? '');
+            $rrVon = preg_match('/^\d{4}-\d{2}-\d{2}$/', $rrTag) && isset(PartnerRueckruf::FENSTER_ENDE[$rrF])
+                ? $rrTag . ' ' . sprintf('%02d:00:00', (int) explode('–', PartnerRueckruf::FENSTER[$rrF])[0]) : null;
+            $rrBis = $rrVon !== null ? $rrTag . ' ' . sprintf('%02d:00:00', PartnerRueckruf::FENSTER_ENDE[$rrF]) : null;
+            $rrTel = (string) preg_replace('~[^\d+]~', '', (string) ($_POST['telefon'] ?? ''));
+            PartnerBesuche::kontaktAnlegen($p, $rrB !== null ? (int) $rrB['id'] : null, (string) ($_POST['name'] ?? ''), $rrTel, null, $rrVon, $rrBis, $sprache,
+                strtr(Texte::h(Texte::PARTNER_BESUCHE['einwilligung'], $sprache), ['{name}' => Partner::anzeigeName($p)]) . ' (' . date('Y-m-d H:i') . ')');
+            if ($rrB !== null) { PartnerBesuche::heissMelden((int) $rrB['id']); }
+        }
+    } catch (Throwable $e) { $rr = $rr === 'ok' ? 'ok' : 'rr_falle'; }
     header('Location: ' . $hier(['rr' => $rr]) . '#rueckruf', true, 303); exit;
 }
 /* Kurz-Check (28.09.2026, Uwe: Ja zu R7): Ergebnis gleich auf derselben Seite, nichts gespeichert. */
@@ -740,6 +761,8 @@ foreach ($g['reihenfolge'] as $baustein):
           <div><label for="rr_tag"><?= $h($S($PS['rr_tag'])) ?></label><select id="rr_tag" name="tag" data-heute="<?= $h($rrHeute) ?>"><?php foreach ($rrTage as $dt => $wk): ?><option value="<?= $h($dt) ?>"><?= $h($S($PS['rr_tage'][$wk])) ?></option><?php endforeach; ?></select></div>
           <div><label for="rr_fenster"><?= $h($S($PS['rr_fenster'])) ?></label><select id="rr_fenster" name="fenster"><?php foreach (PartnerRueckruf::FENSTER as $fk => $fw): ?><option value="<?= $h($fk) ?>"<?= in_array($fk, $rrOffen, true) ? '' : ' data-vorbei' ?>><?= $h($fw) ?></option><?php endforeach; ?></select></div>
         </div>
+        <label class="ja"><input type="checkbox" name="partner_darf" value="1"> <span><?= $h(strtr(Texte::h(Texte::PARTNER_BESUCHE['einwilligung'], $sprache), ['{name}' => $name])) ?>
+          <small style="display:block;color:var(--dim)"><?= $h(Texte::h(Texte::PARTNER_BESUCHE['einwilligung_hinweis'], $sprache)) ?></small></span></label>
         <label class="ja"><input type="checkbox" name="ok" value="1" required> <span><?= $h($S($PS['rr_ok'])) ?> <a href="<?= $h($datenschutz) ?>" style="color:var(--dim);text-decoration:underline"><?= $h($S($PS['ds_link'])) ?></a></span></label>
         <button class="knopf" type="submit"><?= $h($S($PS['rr_knopf'])) ?></button>
       </form>

@@ -45,6 +45,8 @@ final class PartnerHeute
             if ($n > 0) { $aus[] = ['k' => $k, 'n' => $n, 'anker' => $anker, 'titel' => $titel]; }
         };
 
+        // Wer sich vom Partner melden lassen will (03.10.2026, K2) — vor allem anderen.
+        $dazu('kontakte', (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ? AND erledigt_am IS NULL', [$pid], 0), 0), 'besuche');
         $dazu('heiss', count(self::still(static fn() => PartnerMarketing::heisse($pid), [])), 'heiss');
         $dazu('nachhaken', count(self::still(static fn() => PartnerMarketing::faellig($pid), [])), 'nachhaken');
         $dazu('anrufen', count(self::still(static fn() => PartnerAnrufliste::liste($pid), [])), 'anrufliste');

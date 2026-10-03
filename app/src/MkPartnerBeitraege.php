@@ -62,7 +62,7 @@ final class MkPartnerBeitraege
     public static function fuerPartner(array $p, string $sprache): array
     {
         require_once __DIR__ . '/PartnerWerbung.php';
-        $link = PartnerWerbung::link($p, self::KANAL);
+        $basis = PartnerWerbung::link($p, self::KANAL);
         $zeilen = Db::all("SELECT * FROM mk_inhalte WHERE partner = 1 AND status IN ('freigegeben', 'veroeffentlicht') AND art = 'organisch'
                               AND sprache = ? ORDER BY id DESC LIMIT " . self::HOECHSTENS, [$sprache]);
         $aus = [];
@@ -70,6 +70,7 @@ final class MkPartnerBeitraege
             $x = MkInhalt::laden((int) $z['id']);
             if ($x === null) { continue; }
             $m = MkMedium::gewaehlt((int) $x['id'], 'bild');
+            $link = $basis . '-' . (int) $x['id'];   // Link je Beitrag (K3, 03.10.2026)
             $text = self::text($x, $link);
             $aus[] = ['id' => (int) $x['id'], 'titel' => (string) $x['titel'], 'land' => (string) $x['land'],
                       'bild' => $m ? MkVeroeffentlichen::oeffentlich($m) . '&f=jpg' : null, 'text' => $text,

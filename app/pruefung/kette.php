@@ -15273,7 +15273,7 @@ $htTlVor = (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner
 $htPk = PartnerHeute::punkte($htP, 'de');
 $htKeys = array_column($htPk, 'k');
 $htQuellen = '';
-foreach (['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_plus_start.php', 'app/views/partner_plus_werben.php', 'app/views/partner_recherche.php', 'app/views/partner_kalender.php'] as $htD) { $htQuellen .= (string) file_get_contents($wurzel . '/../' . $htD); }
+foreach (['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_plus_start.php', 'app/views/partner_plus_werben.php', 'app/views/partner_recherche.php', 'app/views/partner_kalender.php', 'app/views/partner_antworten.php', 'app/views/partner_besuche.php'] as $htD) { $htQuellen .= (string) file_get_contents($wurzel . '/../' . $htD); }
 $htAnkerFehlt = array_filter(array_column($htPk, 'anker'), static fn($a) => !str_contains($htQuellen, 'id="' . $a . '"'));
 pruefe('Heute zu tun: nur Punkte mit Arbeit, Posten zuletzt, höchstens sechs, jeder Sprung hat ein Ziel, ungelesene Nachricht zählt',
     $htPk !== [] && end($htKeys) === 'posten' && count($htPk) <= PartnerHeute::HOECHSTENS && $htAnkerFehlt === []
@@ -15368,6 +15368,75 @@ pruefe('Automatik: jeder Schalter mit Text in drei Sprachen, Block im Reiter Pro
     && str_contains((string) file_get_contents($wurzel . '/views/partner_automatik.php'), '<div class="block pt" id="automatik" data-reiter="profil">')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_automatik.php'), 'name="_csrf"')
     && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'automatik' && \$p"), implode(', ', $paTexte));
+/* Wer auf der Seite war (03.10.2026, Uwe: Ja zu K1–K4, N1, N2): Besuche ohne Namen, Kontakt nur mit eigenem Häkchen,
+   Link je Beitrag, Sofort-Hinweis einmal je Besuch, Rückruf-Termin im Kalender-Abo. */
+require_once $wurzel . '/src/PartnerBesuche.php';
+pruefe('Besuche: Chance — Kontakt, Preis/Check oder 2 Minuten mit 2 Seiten ist hoch; 45 Sekunden mittel; kurz und eine Seite niedrig',
+    PartnerBesuche::chance(5, 1, [], true) === 'hoch' && PartnerBesuche::chance(5, 1, ['partner_weg'], false) === 'hoch' && PartnerBesuche::chance(130, 2, [], false) === 'hoch'
+    && PartnerBesuche::chance(50, 1, [], false) === 'mittel' && PartnerBesuche::chance(10, 1, ['page_view'], false) === 'niedrig');
+$kbIn = (int) Db::insert('mk_inhalte', ['land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => 'instagram', 'titel' => 'KB Salon um Mitternacht', 'felder' => '{}', 'status' => 'freigegeben']);
+pruefe('Link je Beitrag: Tagesbeitrag, Vecom-Beitrag und 3D-Motiv werden erkannt; Kanal-Zählung bleibt beim Grundnamen',
+    str_contains((string) PartnerBesuche::beitrag('kalender-1003', 'de'), '03.10.') && str_contains((string) PartnerBesuche::beitrag('beitrag-' . $kbIn, 'de'), 'Salon um Mitternacht')
+    && PartnerBesuche::beitrag('bild3d-5', 'de') === '3D-Bild' && PartnerBesuche::beitrag('weiter', 'de') === null && PartnerBesuche::beitrag('kalender-ab12', 'de') === null
+    && Partner::kanalBasis('kalender-1003') === 'kalender' && Partner::kanalBasis('beitrag-' . $kbIn) === 'beitrag' && Partner::kanalBasis('instagram') === 'instagram' && Partner::kanalBasis('flyer-2') === 'flyer-2'
+    && str_contains(PartnerKalender::tage($alP, 'de', time(), 1)[0]['text'], PartnerWerbung::link($alP, 'kalender-' . date('md'))));
+Partner::klick($paPid, 'kalender-1003');
+pruefe('Link je Beitrag: der Klick zählt beim Kanal „kalender“, nicht als eigener Kanal',
+    (int) Db::wert("SELECT COALESCE(SUM(anzahl),0) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal = 'kalender'", [$paPid], 0) >= 1
+    && (int) Db::wert("SELECT COUNT(*) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal LIKE 'kalender-%'", [$paPid], 0) === 0);
+pruefe('Besuche: Plattform aus der Quelle, sonst aus dem Kanal, sonst „ohne Angabe“; Region und Land in der Sprache des Partners',
+    PartnerBesuche::plattform('instagram', 'kalender-1003', 'de') === 'Instagram' && PartnerBesuche::plattform('direkt', 'weiter', 'de') === 'von einem Kunden weitergeleitet'
+    && str_starts_with(PartnerBesuche::plattform('direkt', null, 'de'), 'ohne Angabe') && PartnerBesuche::ort('IT', 'Sicily', 'de') === 'Sizilien · Italien'
+    && PartnerBesuche::ort('DE', 'Rhineland-Palatinate', 'it') === 'Renania-Palatinato · Germania' && PartnerBesuche::ort('', '', 'de') === '');
+$kbBesuch = static fn(array $x): int => (int) Db::insert('spur_besuche', $x + ['visitor_id' => 'VIS-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8)), 'session_id' => bin2hex(random_bytes(8)),
+    'partner_id' => $paPid, 'neu' => 1, 'einstieg' => '/p/x', 'aktuell' => '/p/x', 'seiten' => 1, 'ref_link' => '', 'referrer' => '', 'quelle' => 'direkt', 'geraet' => 'smartphone',
+    'browser' => 'Safari', 'system' => 'iOS', 'sprache' => 'it', 'land' => 'IT', 'region' => 'Sicily', 'status' => 'besucher', 'verdacht' => 0, 'start_am' => date('Y-m-d H:i:s', strtotime('-10 minutes')), 'zuletzt_am' => date('Y-m-d H:i:s', strtotime('-590 seconds'))]);
+$kbHeiss = $kbBesuch(['kanal' => 'kalender-1003', 'quelle' => 'instagram', 'seiten' => 3]);
+$kbKalt = $kbBesuch([]);
+$kbFalsch = $kbBesuch(['verdacht' => 1]);
+Db::insert('spur_ereignisse', ['besuch_id' => $kbHeiss, 'visitor_id' => 'x', 'session_id' => 'x', 'partner_id' => $paPid, 'event_type' => 'partner_weg', 'seite' => '/p/x', 'meta' => '{"weg":"preis"}']);
+$kbL = PartnerBesuche::liste(Db::one('SELECT * FROM partner WHERE id = ?', [$paPid]), 'de');
+$kbIds = array_column($kbL, 'id'); $kbH = array_values(array_filter($kbL, static fn($b) => $b['id'] === $kbHeiss))[0] ?? [];
+pruefe('Besucherliste: Zeit, Plattform, Beitrag, Gegend, Taten und Chance — Mehrfachklicks (Verdacht) nicht, kein Name, keine IP',
+    in_array($kbHeiss, $kbIds, true) && in_array($kbKalt, $kbIds, true) && !in_array($kbFalsch, $kbIds, true) && ($kbH['plattform'] ?? '') === 'Instagram'
+    && str_contains((string) ($kbH['beitrag'] ?? ''), '03.10.') && ($kbH['ort'] ?? '') === 'Sizilien · Italien' && in_array('Preise angesehen', $kbH['taten'] ?? [], true)
+    && ($kbH['chance'] ?? '') === 'hoch' && !array_key_exists('ip_hash', $kbH) && !array_key_exists('visitor_id', $kbH), json_encode($kbH, JSON_UNESCAPED_UNICODE));
+$kbH1 = PartnerBesuche::heissMelden($kbHeiss); $kbAm = Db::wert('SELECT heiss_am FROM spur_besuche WHERE id = ?', [$kbHeiss], null);
+pruefe('Sofort-Hinweis: heißer Besuch wird einmal vermerkt (zweiter Aufruf tut nichts), kalter nie — Push geht über PartnerPost (Urlaubsmodus gilt)',
+    $kbAm !== null && PartnerBesuche::heissMelden($kbHeiss) === false && Db::wert('SELECT heiss_am FROM spur_besuche WHERE id = ?', [$kbHeiss], null) === $kbAm
+    && PartnerBesuche::heissMelden($kbKalt) === false && Db::wert('SELECT heiss_am FROM spur_besuche WHERE id = ?', [$kbKalt], null) === null
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerBesuche.php'), 'PartnerPost::push(') && in_array('heiss', array_keys(PartnerAutomatik::SCHALTER), true)
+    && str_contains((string) file_get_contents($wurzel . '/../t.php'), 'PartnerBesuche::heissMelden((int) $b[\'id\'])'), json_encode([$kbH1, $kbAm]));
+// Kontakt mit Einwilligung und Rückruf-Termin
+$kbP = Db::one('SELECT * FROM partner WHERE id = ?', [$paPid]);
+$kbVon = date('Y-m-d', strtotime('+1 day')) . ' 09:00:00'; $kbBis = date('Y-m-d', strtotime('+1 day')) . ' 12:00:00';
+$kbK = PartnerBesuche::kontaktAnlegen($kbP, $kbHeiss, 'Maria Rossi', '+39 333 1234567', null, $kbVon, $kbBis, 'it', 'Kette');
+$kbKs = PartnerBesuche::kontakte($paPid); $kbKz = $kbKs[0] ?? [];
+$kbWa = (string) PartnerBesuche::waLink($kbP, $kbKz);
+pruefe('Kontakt mit Einwilligung: erscheint beim Partner, WhatsApp mit fertigem Text in der Sprache des Besuchers und Link „antwort“; Besuch wird hoch',
+    count($kbKs) === 1 && str_starts_with($kbWa, 'https://wa.me/393331234567?text=') && str_contains(rawurldecode($kbWa), 'Ciao Maria') && str_contains(rawurldecode($kbWa), '/antwort')
+    && str_contains(PartnerBesuche::text($kbP, $kbKz, 'mail'), 'Buongiorno Maria') && (array_values(array_filter(PartnerBesuche::liste($kbP, 'de'), static fn($b) => $b['id'] === $kbHeiss))[0]['kontakt']['name'] ?? '') === 'Maria Rossi');
+PartnerAutomatik::speichern($paPid, ['kalender' => '1']);
+$kbIcs = str_replace("\r\n ", '', (string) PartnerAutomatik::ics(PartnerAutomatik::icsToken($paPid)));
+pruefe('Rückruf-Termin: mit Uhrzeit im Kalender-Abo (09–12 Uhr am gewählten Tag), Name und Nummer nur, weil freigegeben',
+    str_contains($kbIcs, 'DTSTART:' . date('Ymd', strtotime('+1 day')) . 'T090000') && str_contains($kbIcs, 'DTEND:' . date('Ymd', strtotime('+1 day')) . 'T120000')
+    && str_contains($kbIcs, 'Maria Rossi') && str_contains($kbIcs, '+39 333 1234567'), $kbIcs);
+pruefe('Kontakt erledigt: nur der eigene Partner, danach weg aus Liste und „Heute zu tun“',
+    in_array('kontakte', array_column(PartnerHeute::punkte($kbP, 'de'), 'k'), true) && PartnerBesuche::erledigt($paPid + 999, $kbK) === false
+    && PartnerBesuche::erledigt($paPid, $kbK) === true && PartnerBesuche::kontakte($paPid) === [] && !in_array('kontakte', array_column(PartnerHeute::punkte($kbP, 'de'), 'k'), true));
+Db::run('UPDATE partner_kontaktfreigaben SET created_at = NOW() - INTERVAL 91 DAY WHERE id = ?', [$kbK]);
+pruefe('Kontaktfreigaben: nach 90 Tagen gelöscht', PartnerBesuche::aufraeumen() >= 1 && (int) Db::wert('SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE id = ?', [$kbK], 0) === 0);
+$kbPp = (string) file_get_contents($wurzel . '/../p.php');
+$kbAw = (string) file_get_contents($wurzel . '/views/partner_antworten.php');
+$kbAwFehlt = [];
+foreach (Texte::PARTNER_ANTWORTEN['lagen'] as $kbLk => $kbLt) { foreach (['it', 'de', 'en'] as $kbS) { if (!str_contains((string) ($kbLt['text'][$kbS] ?? ''), '{link}') || trim((string) ($kbLt['name'][$kbS] ?? '')) === '') { $kbAwFehlt[] = "$kbLk.$kbS"; } } }
+pruefe('Partnerseite: Häkchen „darf sich selbst melden“ freiwillig (nicht vorausgewählt, nicht Pflicht), Wege zählen im Besuch, Lebenszeichen nur außerhalb der Vorschau; Antwort-Helfer in drei Sprachen mit Link, nichts als HTML',
+    (bool) preg_match('~<input type="checkbox" name="partner_darf" value="1">~', $kbPp) && !preg_match('~name="partner_darf"[^>]*(required|checked)~', $kbPp)
+    && str_contains($kbPp, "Spur::ereignis('partner_weg'") && str_contains((string) file_get_contents($wurzel . '/../assets/js/partnerseite.js'), '/[?&]n=1(&|$)/.test(location.search)')
+    && $kbAwFehlt === [] && str_contains($kbAw, '<div class="block pt" id="antworten" data-reiter="werben">') && !str_contains($kbAw, 'innerHTML')
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'kontakt_erledigt' && \$p"), implode(', ', $kbAwFehlt));
+Db::run('DELETE FROM spur_ereignisse WHERE besuch_id IN (?, ?, ?)', [$kbHeiss, $kbKalt, $kbFalsch]); Db::run('DELETE FROM spur_besuche WHERE id IN (?, ?, ?)', [$kbHeiss, $kbKalt, $kbFalsch]);
+Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$kbIn]);
 Db::run('DELETE FROM partner_automatik WHERE partner_id = ?', [$paPid]);
 Db::run('DELETE FROM partner_reservierungen WHERE firma_id IN (?, ?)', [$paFk, $paFc]);
 /* Kauf erst nach Monaten: die Vormerkung aus dem Anruf gilt 12 Monate, eine gewöhnliche nur 90 Tage */

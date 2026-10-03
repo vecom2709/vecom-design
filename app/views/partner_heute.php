@@ -32,7 +32,7 @@ $htF = PartnerHeute::fortschritt($p);
   <?php else: ?>
     <ul class="ht-liste">
       <?php foreach ($htPunkte as $hp): $htText = strtr($htW($HT['punkte'][$hp['k']][$hp['n'] === 1 ? 0 : 1]), ['{n}' => (string) $hp['n'], '{titel}' => $hp['titel']]); ?>
-        <li><a class="ht-p<?= in_array($hp['k'], ['heiss', 'nachhaken', 'anrufen'], true) ? ' warm' : '' ?>" href="#<?= $h($hp['anker']) ?>" data-heute="<?= $h($hp['k']) ?>">
+        <li><a class="ht-p<?= in_array($hp['k'], ['kontakte', 'heiss', 'nachhaken', 'anrufen'], true) ? ' warm' : '' ?>" href="#<?= $h($hp['anker']) ?>" data-heute="<?= $h($hp['k']) ?>">
           <span><?= $h(rtrim($htText, ' :')) ?></span><span class="ht-los" aria-hidden="true"><?= $h($htW($HT['los'])) ?></span></a></li>
       <?php endforeach; ?>
     </ul>

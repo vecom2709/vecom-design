@@ -90,7 +90,7 @@ final class PartnerKalender
             $k = $themen[intdiv(strtotime($datum . ' 12:00:00'), 86400) % count($themen)];
             $e = Texte::PARTNER_KALENDER['themen'][$k];
         }
-        $link = PartnerWerbung::link($p, self::KANAL);
+        $link = PartnerWerbung::link($p, self::KANAL . '-' . date('md', strtotime($datum)));   // Link je Tag (K3)
         return ['datum' => $datum, 'schluessel' => $k, 'anlass' => $anlass !== null,
                 'titel' => Texte::h($e['titel'], $sprache), 'text' => strtr(Texte::h($e['text'], $sprache), ['{link}' => $link])];
     }

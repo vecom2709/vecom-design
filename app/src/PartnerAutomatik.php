@@ -27,7 +27,7 @@ final class PartnerAutomatik
 {
     /** Schalter und ihr Stand ab Werk. Der Kalender ist aus, bis der Partner ihn will. */
     public const SCHALTER = ['medien' => true, 'wochenpaket' => true, 'autopilot' => true, 'nachfass' => true,
-                             'check' => true, 'wochenbericht' => true, 'kalender' => false];
+                             'check' => true, 'wochenbericht' => true, 'heiss' => true, 'kalender' => false];
     public const ANZAHL = [3, 5, 10];
     public const STUNDEN = [7, 8, 9, 10];
     /** Höchstens so viele automatische Checks je Cronlauf — jeder ruft eine fremde Website ab. */
@@ -149,6 +149,12 @@ final class PartnerAutomatik
             $termine[] = ['uid' => 'nachhaken-' . (int) $f['id'] . '-' . $tage, 'tag' => date('Y-m-d', strtotime((string) $f['am'] . " +$tage days")),
                           'titel' => strtr($W('nachhaken'), ['{name}' => (string) $f['name']]), 'text' => trim((string) $f['telefon'])];
         }
+        /* Rückruf-Termin mit Freigabe (03.10.2026, N2): zur gewählten Zeit, mit Nummer — nur was der Besucher selbst freigegeben hat. */
+        foreach (Db::all('SELECT id, name, telefon, email, wann_von, wann_bis FROM partner_kontaktfreigaben
+                           WHERE partner_id = ? AND erledigt_am IS NULL AND wann_von IS NOT NULL AND wann_von >= CURDATE() - INTERVAL 1 DAY', [$pid]) as $k) {
+            $termine[] = ['uid' => 'freigabe-' . (int) $k['id'], 'tag' => substr((string) $k['wann_von'], 0, 10), 'von' => (string) $k['wann_von'], 'bis' => (string) ($k['wann_bis'] ?: $k['wann_von']),
+                          'titel' => strtr($W('rueckruf'), ['{name}' => (string) $k['name']]), 'text' => trim((string) ($k['telefon'] ?? '') . ' ' . (string) ($k['email'] ?? ''))];
+        }
         $host = (string) parse_url((string) Config::get('website', 'https://vecom-design.it'), PHP_URL_HOST);
         $z = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Vecom Design//Partner//" . strtoupper($sp), "CALSCALE:GREGORIAN", "METHOD:PUBLISH",
               "X-WR-CALNAME:" . self::icsText($W('name')), "REFRESH-INTERVAL;VALUE=DURATION:PT6H"];
@@ -158,8 +164,13 @@ final class PartnerAutomatik
             $z[] = 'BEGIN:VEVENT';
             $z[] = 'UID:' . $t['uid'] . '@' . ($host ?: 'vecom-design.it');
             $z[] = 'DTSTAMP:' . $jetzt;
-            $z[] = 'DTSTART;VALUE=DATE:' . str_replace('-', '', $tag);
-            $z[] = 'DTEND;VALUE=DATE:' . date('Ymd', strtotime($tag . ' +1 day'));
+            if (!empty($t['von'])) {   // mit Uhrzeit (Ortszeit des Partners, „schwebend“ — der Kalender nimmt seine Zone)
+                $z[] = 'DTSTART:' . date('Ymd\THis', strtotime($t['von']));
+                $z[] = 'DTEND:' . date('Ymd\THis', max(strtotime($t['bis']), strtotime($t['von']) + 1800));
+            } else {
+                $z[] = 'DTSTART;VALUE=DATE:' . str_replace('-', '', $tag);
+                $z[] = 'DTEND;VALUE=DATE:' . date('Ymd', strtotime($tag . ' +1 day'));
+            }
             $z[] = 'SUMMARY:' . self::icsText($t['titel']);
             if ($t['text'] !== '') { $z[] = 'DESCRIPTION:' . self::icsText($t['text']); }
             $z[] = 'END:VEVENT';
@@ -286,6 +297,8 @@ final class PartnerAutomatik
     /** Alles aus dem Cronlauf; jede Aufgabe fällt für sich. */
     public static function lauf(): array
     {
-        return ['wochenbericht' => self::still(static fn() => self::wochenbericht(), -1), 'checks' => self::still(static fn() => self::checksNachholen(), -1)];
+        require_once __DIR__ . '/PartnerBesuche.php';
+        return ['wochenbericht' => self::still(static fn() => self::wochenbericht(), -1), 'checks' => self::still(static fn() => self::checksNachholen(), -1),
+                'kontakte_weg' => self::still(static fn() => PartnerBesuche::aufraeumen(), -1)];
     }
 }

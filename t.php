@@ -71,7 +71,12 @@ try {
         Spur::einwilligen($e === 'ja');
         $antwort(['ok' => 1]);
     }
-    if ($e === 'ping') { Spur::ping(); $antwort(['ok' => 1]); }
+    if ($e === 'ping') {
+        Spur::ping();
+        /* Sofort-Hinweis (03.10.2026, N1): bleibt jemand auf der Partnerseite, ist das ein heißer Besuch. */
+        if (!empty($b['partner_id'])) { try { require_once __DIR__ . '/app/src/PartnerBesuche.php'; PartnerBesuche::heissMelden((int) $b['id']); } catch (Throwable $x) { } }
+        $antwort(['ok' => 1]);
+    }
     if ($e === 'page_view') {
         $seite = Spur::pfad((string) ($d['p'] ?? '/'));
         Spur::ereignis('page_view', ['besuch' => $b, 'seite' => $seite]);

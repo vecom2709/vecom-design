@@ -61,6 +61,7 @@ final class Spur
         'lead_created' => 'Anfrage / Lead erstellt', 'offer_created' => 'Angebot erstellt', 'customer_created' => 'Kunde geworden',
         'order_created' => 'Auftrag angenommen', 'payment_completed' => 'Zahlung eingegangen',
         'website_check_completed' => 'Website-Check gemacht', 'appointment_requested' => 'Termin gebucht',
+        'partner_weg' => 'Auf der Partnerseite: Preis, Check, Termin oder WhatsApp', 'callback_requested' => 'Rückruf gewünscht, Kontakt für den Partner freigegeben',
     ];
 
     /** Status eines Besuchs, aufsteigend. */
@@ -72,6 +73,7 @@ final class Spur
         'questionnaire_completed' => 'anfrage', 'lead_created' => 'anfrage', 'offer_created' => 'angebot',
         'customer_created' => 'kunde', 'order_created' => 'kunde', 'payment_completed' => 'abgeschlossen',
         'website_check_completed' => 'interessent', 'appointment_requested' => 'anfrage',
+        'partner_weg' => 'interessent', 'callback_requested' => 'anfrage',
     ];
 
     public const QUELLEN = ['facebook' => 'Facebook', 'instagram' => 'Instagram', 'tiktok' => 'TikTok', 'whatsapp' => 'WhatsApp',
@@ -205,6 +207,8 @@ final class Spur
         'payment_completed' => 'Hat bezahlt',
         'website_check_completed' => 'Hat den kostenlosen Website-Check gemacht',
         'appointment_requested' => 'Hat einen Termin gebucht',
+        'partner_weg' => 'Hat auf der Seite des Partners Preise, Check, Termin oder WhatsApp geöffnet',
+        'callback_requested' => 'Möchte zurückgerufen werden und hat seinen Kontakt für den Partner freigegeben',
     ];
     /** Was der Stand eines Besuchs bedeutet — für die Zeile über der Journey. */
     public const STATUS_ERKLAERT = [

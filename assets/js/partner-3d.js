@@ -35,6 +35,8 @@
   var FARBE = { text: '#f7f3ea', leise: '#cfc7b8', gold: '#f1d38b', dunkel: '#0a0908' };
   var ABSPANN = 2.5;
   var wahl = { stueck: 0, format: 'hoch' };
+  /* Link je Motiv (03.10.2026, K3): …/bild3d-45 — so sieht der Partner, welches Motiv die Klicks brachte. */
+  function lk(basis) { var s = D.items && D.items[wahl.stueck]; return basis + (s && s.id ? '-' + s.id : ''); }
 
   var logo = new Image(); logo.src = '/assets/img/logo-mark.webp?v=gold2609';
   var schriften = (document.fonts && document.fonts.load)
@@ -87,7 +89,7 @@
     x.save(); x.globalAlpha = a;
     x.fillStyle = 'rgba(10,9,8,0.94)'; x.fillRect(0, 0, B, H);
     var qrG = Math.round(Math.min(B, H) * 0.42);
-    zeichneQr(x, D.link, (B - qrG) / 2, H * 0.30, qrG);
+    zeichneQr(x, lk(D.link), (B - qrG) / 2, H * 0.30, qrG);
     x.textAlign = 'center'; x.textBaseline = 'top'; x.fillStyle = FARBE.text;
     var gr = Math.round(B * 0.058); x.font = '800 ' + gr + 'px Archivo, sans-serif'; x.fillText(D.scan, B / 2, H * 0.30 - gr * 1.8);
     x.font = '600 ' + Math.round(B * 0.045) + 'px Inter, sans-serif'; x.fillStyle = FARBE.gold; x.fillText(D.kurz, B / 2, H * 0.30 + qrG + gr * 0.7);
@@ -123,8 +125,8 @@
     leinwand.width = f[0]; leinwand.height = f[1];
     Promise.all([quelle(wahl.stueck), schriften]).then(function (r) {
       var q = r[0], x = leinwand.getContext('2d');
-      if (q && q.tagName === 'VIDEO') { setTimeout(function () { decke(x, q, f[0], f[1]); band(x, f[0], f[1], motiv(s), D.linkBild); }, 120); return; }
-      if (q) { decke(x, q, f[0], f[1]); } band(x, f[0], f[1], motiv(s), D.linkBild);
+      if (q && q.tagName === 'VIDEO') { setTimeout(function () { decke(x, q, f[0], f[1]); band(x, f[0], f[1], motiv(s), lk(D.linkBild)); }, 120); return; }
+      if (q) { decke(x, q, f[0], f[1]); } band(x, f[0], f[1], motiv(s), lk(D.linkBild));
     });
     var istVideo = s.art === 'video';
     vKnopf.hidden = !istVideo; laden.hidden = istVideo; teilen.hidden = istVideo || !teilenMoeglich(new File([new Blob(['x'], { type: 'image/png' })], 'p.png', { type: 'image/png' }));

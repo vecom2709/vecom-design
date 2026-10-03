@@ -102,3 +102,22 @@
     }
   }
 })();
+
+/* Verweildauer (03.10.2026, Uwe: Ja zu K1/N1): Solange die Seite sichtbar ist,
+   alle 30 Sekunden ein Lebenszeichen an /t.php — höchstens 20 Mal. Daraus
+   wird die Dauer in der Besucherliste des Partners; bleibt jemand über zwei
+   Minuten, bekommt der Partner den Sofort-Hinweis. Nur in der echten Seite,
+   nicht in der Vorschau des Partners (n=1). Keine Daten über den Besucher. */
+(function () {
+  'use strict';
+  if (!window.fetch || /[?&]n=1(&|$)/.test(location.search)) { return; }
+  var n = 0;
+  var uhr = setInterval(function () {
+    if (document.visibilityState !== 'visible') { return; }
+    if (++n > 20) { clearInterval(uhr); return; }
+    try {
+      fetch('/t.php', { method: 'POST', credentials: 'same-origin', keepalive: true, headers: { 'Content-Type': 'application/json' }, body: '{"e":"ping"}' })
+        .then(function (r) { return r.json(); }).then(function (j) { if (j && j.aus) { clearInterval(uhr); } }).catch(function () {});
+    } catch (e) { /* Beiwerk */ }
+  }, 30000);
+})();

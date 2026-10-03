@@ -521,12 +521,25 @@ final class Partner
              + (int) self::still(static fn() => Db::wert('SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks_archiv WHERE partner_id = ?', [$partnerId], 0), 0);
     }
 
+    /**
+     * Link je Beitrag (03.10.2026, Uwe: Ja zu K3): Tagesbeitrag, Vecom-Beitrag und 3D-Motiv tragen
+     * eine Kennung hinter dem Kanal (kalender-1003, beitrag-12, bild3d-45). Die Kanal-Zählung bleibt
+     * beim Grundnamen — die Besucherliste liest die Kennung aus der Spur.
+     */
+    public const BEITRAG_KANAELE = ['kalender', 'beitrag', 'bild3d', 'video3d'];
+
+    public static function kanalBasis(?string $kanal): ?string
+    {
+        if ($kanal === null) { return null; }
+        return preg_match('/^(' . implode('|', self::BEITRAG_KANAELE) . ')-[a-z0-9]{1,8}$/', $kanal, $m) ? $m[1] : $kanal;
+    }
+
     public static function klick(int $partnerId, ?string $kanal = null): void
     {
         self::still(static fn() => Db::run(
             'INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 1)
              ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId]), null);
-        $kanal = self::kanal((string) $kanal);
+        $kanal = self::kanalBasis(self::kanal((string) $kanal));
         if ($kanal !== null) {
             self::still(static fn() => Db::run(
                 'INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, ?, CURDATE(), 1)

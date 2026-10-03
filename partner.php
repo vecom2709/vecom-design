@@ -308,6 +308,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst($zurueck) . '#recherche', true, 303); exit;
                 }
                 $meldung = $f;
+            } elseif ($tat === 'kontakt_erledigt' && $p) {
+                /* Freigegebener Kontakt erledigt (03.10.2026, PartnerBesuche) — nur der eigene. */
+                require_once __DIR__ . '/app/src/PartnerBesuche.php';
+                PartnerBesuche::erledigt((int) $p['id'], (int) ($_POST['id'] ?? 0));
+                header('Location: ' . $selbst() . '#besuche', true, 303); exit;
             } elseif ($tat === 'automatik' && $p) {
                 /* Automatisierungen des Partners (03.10.2026, PartnerAutomatik): nur seine eigenen Schalter. */
                 require_once __DIR__ . '/app/src/PartnerAutomatik.php';
@@ -670,6 +675,21 @@ if ($p && isset($_GET['karte'])) {
   .app-suche li button small{font-size:12px;color:var(--dim)}
   .app-suche li button:hover,.app-suche li button[aria-selected="true"]{background:rgba(241,211,139,.1)}
   .app-suche li.leer{padding:10px;font-size:14px;color:var(--dim)}
+  /* Wer auf Ihrer Seite war (03.10.2026): Chance als Rand und Marke, Kontakt mit fertigem Text */
+  .pb-liste{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
+  .pb-b{border:1px solid var(--linie);border-left-width:3px;border-radius:12px;padding:10px 12px;display:grid;gap:3px}
+  .pb-b.pb-hoch{border-left-color:#f1d38b}
+  .pb-b.pb-mittel{border-left-color:rgba(241,211,139,.45)}
+  .pb-kopf{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:14.5px}
+  .pb-chance{font-size:11.5px;padding:2px 9px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim);white-space:nowrap}
+  .pb-hoch .pb-chance{border-color:rgba(241,211,139,.6);color:#f1d38b}
+  .pb-beitrag{font-size:13px;color:var(--cyan)}
+  .pb-b small{color:var(--leise);font-size:12.5px;line-height:1.45}
+  .pb-taten{font-size:13px;color:var(--text)}
+  .pb-tipp{font-size:12.5px;color:var(--dim);text-decoration:underline}
+  .pb-kontakte{border:1px solid rgba(241,211,139,.45);border-radius:14px;padding:12px;margin:6px 0 14px;background:rgba(241,211,139,.04)}
+  .pb-kontakte .md-h{margin-top:0}
+  .pb-text pre{white-space:pre-wrap;font-family:inherit;font-size:13.5px;color:var(--dim);margin:6px 0 0}
   .weitere{margin-top:8px}
   .weitere > summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:44px;display:flex;align-items:center}
   @media (prefers-reduced-motion:reduce){.klapp > summary::after{transition:none}}
@@ -967,7 +987,7 @@ if ($p && isset($_GET['karte'])) {
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [
           ['titel' => Texte::h(Texte::PARTNER_REITER['g_teilen'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_teilen_satz'], $sprache),
-           'ids' => ['kalender', 'beitraege', 'galerie3d', 'arbeiten-teilen', 'stimmen-teilen', 'erfolge']],
+           'ids' => ['kalender', 'antworten', 'beitraege', 'galerie3d', 'arbeiten-teilen', 'stimmen-teilen', 'erfolge']],
           ['titel' => Texte::h(Texte::PARTNER_REITER['g_selbst'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_selbst_satz'], $sprache),
            'ids' => ['werbung', 'medien', 'branchen', 'gutschein']]]],
       'reiter' => array_map(static fn(array $r) => array_map(static fn(array $t) => Texte::h($t, $sprache), $r), Texte::PARTNER_REITER['reiter']),
@@ -1099,6 +1119,8 @@ if ($p && isset($_GET['karte'])) {
       <?php endif; endforeach; ?>
     </p>
   </div>
+
+  <?php require __DIR__ . '/app/views/partner_besuche.php'; /* Wer auf Ihrer Seite war (03.10.2026) */ ?>
 
   <?php require __DIR__ . '/app/views/partner_wettbewerb.php'; ?>
 
@@ -1275,6 +1297,7 @@ if ($p && isset($_GET['karte'])) {
   </div>
 
   <?php require __DIR__ . '/app/views/partner_kalender.php'; ?>
+  <?php require __DIR__ . '/app/views/partner_antworten.php'; /* Antwort-Helfer (03.10.2026) */ ?>
 
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
