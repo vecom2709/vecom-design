@@ -4509,3 +4509,30 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
 .footer__settori { display: flex; flex-wrap: wrap; gap: .2rem 1rem; margin-top: 1rem; font-size: var(--t-sm); color: var(--c-text-faint); }
 .footer__settori a { color: var(--c-text-dim); text-decoration: none; display: inline-block; padding: .6rem 0; }
 .footer__settori a:hover { color: var(--c-text); }
+
+/* --------------------------------------------------------------------------
+   Gütesiegel „Vecom Quality Standard“ (03.10.2026, Uwe: „als ob es
+   daraufgelegt ist, so eine Art Schatten“). Freigestellt (WebP mit Alpha),
+   leicht gedreht, und mit drei Schatten wie ein echtes Stück Metall auf
+   einer Fläche: ein enger, dunkler Kontaktschatten setzt es auf, ein
+   mittlerer gibt die Dicke, ein weiter, weicher den Abstand zum Licht.
+   Der Halter trägt die Position, weil die Kästen darunter overflow: hidden
+   haben und das Siegel über ihre Kante ragen soll.
+   -------------------------------------------------------------------------- */
+.siegel-halter { position: relative; --siegel: clamp(96px, 11vw, 170px); }
+.siegel-halter--antwort { max-width: 74ch; --siegel: clamp(92px, 10vw, 150px); }
+.siegel { margin: 0; position: absolute; z-index: 3; pointer-events: none; width: var(--siegel); }
+.siegel--ecke { top: calc(var(--siegel) * -0.42); right: calc(var(--siegel) * -0.12); }
+.siegel img {
+  display: block; width: 100%; height: auto; rotate: -9deg;
+  filter:
+    drop-shadow(0 1px 1px rgba(0, 0, 0, .7))
+    drop-shadow(0 6px 9px rgba(0, 0, 0, .5))
+    drop-shadow(0 18px 26px rgba(0, 0, 0, .42));
+}
+/* Neben dem Siegel läuft kein Text darunter durch. */
+@media (min-width: 641px) { .siegel-halter--antwort .antwort__text { padding-right: calc(var(--siegel) * .55); } }
+/* Auf dem Handy nicht über den Rand hinaus — sonst schiebt es die Seite seitlich. */
+@media (max-width: 640px) {
+  .siegel--ecke { right: 6px; top: calc(var(--siegel) * -0.5); }
+}

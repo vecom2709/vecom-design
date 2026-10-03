@@ -183,7 +183,10 @@ $datum = static function (?string $d): string {
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   .lead{color:var(--dim);font-size:15px;line-height:1.65}
-  .akopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie)}
+  .akopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie);position:relative;padding-right:clamp(84px,22vw,118px)}
+  /* Gütesiegel (03.10.2026): liegt rechts oben auf dem Blatt, leicht gedreht, mit Kontakt- und Weitschatten. */
+  .akopf .siegel{position:absolute;top:-6px;right:-4px;width:clamp(78px,20vw,108px);height:auto;rotate:-9deg;pointer-events:none;
+    filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)) drop-shadow(0 5px 8px rgba(0,0,0,.45)) drop-shadow(0 14px 22px rgba(0,0,0,.35))}
   .eck{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--leise);margin-top:10px}
   .eck b{color:var(--dim);font-weight:600}
   .pos{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--linie);align-items:flex-start}
@@ -277,6 +280,7 @@ $datum = static function (?string $d): string {
   <?php if ($m === 'zustimmung'): ?><div class="hinweis warnung"><?= $h($T('fehlerZust')) ?></div><?php endif; ?>
 
   <div class="akopf">
+    <img class="siegel" src="/assets/img/siegel/vecom-siegel-240.webp" width="240" height="240" alt="<?= $h($T('siegel')) ?>" decoding="async">
     <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T('titel')) ?></h1>
     <p class="lead" style="margin:0"><?= $h($T('lead')) ?></p>
     <div class="eck">

@@ -2624,6 +2624,10 @@ final class Texte
        ---------------------------------------------------------------------- */
     public const ANGEBOT = [
         'titel'   => ['it' => 'La sua offerta', 'de' => 'Ihr Angebot', 'en' => 'Your quote'],
+        /* Gütesiegel (03.10.2026) — Alternativtext des Siegels im Kopf */
+        'siegel'  => ['it' => 'Sigillo «Vecom Quality Standard» di Vecom Design: ogni sito nasce secondo il nostro standard di qualità',
+                      'de' => 'Gütesiegel „Vecom Quality Standard“ von Vecom Design: Jede Website entsteht nach unserem eigenen Qualitätsstandard',
+                      'en' => '“Vecom Quality Standard” seal by Vecom Design: every website is built to our own quality standard'],
         'lead'    => [
             'it' => 'Ecco che cosa costa quello che ci siamo detti. Nessuna sorpresa dopo: quello che legge qui è il prezzo.',
             'de' => 'Das kostet, worüber wir gesprochen haben. Keine Überraschungen danach — was hier steht, ist der Preis.',
