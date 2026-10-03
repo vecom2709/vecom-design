@@ -4841,6 +4841,15 @@ final class Texte
                 'so2'   => ['it' => 'Salvi l’immagine o il video — il suo link è già dentro.', 'de' => 'Bild oder Video dazu speichern — Ihr Link steckt schon drin.', 'en' => 'Save the image or video — your link is already in it.'],
                 'so3'   => ['it' => 'Lo condivida nello stato WhatsApp, su Instagram o Facebook.', 'de' => 'Im WhatsApp-Status, auf Instagram oder Facebook teilen.', 'en' => 'Share it in your WhatsApp status, on Instagram or Facebook.'],
             ],
+            /* Marketing Center (03.10.2026, Phase 1): erscheint erst, wenn Uwe ein Produkt freigeschaltet hat. */
+            'werbemittel' => [
+                'kurz'  => ['it' => 'Materiali', 'de' => 'Material', 'en' => 'Materials'],
+                'titel' => ['it' => 'Marketing Center', 'de' => 'Marketing Center', 'en' => 'Marketing Center'],
+                'satz'  => ['it' => 'Materiali stampati con il suo nome, il suo codice e il suo QR.', 'de' => 'Druckfertige Werbemittel mit Ihrem Namen, Ihrer ID und Ihrem QR-Code.', 'en' => 'Print-ready materials with your name, your ID and your QR code.'],
+                'so1'   => ['it' => 'Guardi come appaiono i suoi materiali con i suoi dati.', 'de' => 'Ansehen, wie Ihre Werbemittel mit Ihren Daten aussehen.', 'en' => 'See how your materials look with your details.'],
+                'so2'   => ['it' => 'Scarichi il suo QR per stampe proprie.', 'de' => 'Ihren QR-Code für eigene Drucksachen herunterladen.', 'en' => 'Download your QR code for your own prints.'],
+                'so3'   => ['it' => 'Presto potrà ordinare qui — nulla viene stampato senza il suo sì.', 'de' => 'Bald hier bestellen — nichts wird ohne Ihr Ja gedruckt.', 'en' => 'Soon you can order here — nothing is printed without your yes.'],
+            ],
             'finden' => [
                 'kurz'  => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
                 'titel' => ['it' => 'Trovare clienti', 'de' => 'Kunden finden', 'en' => 'Find customers'],
@@ -4869,6 +4878,32 @@ final class Texte
     ];
 
     /* Antwort-Helfer für Kommentare und Nachrichten (03.10.2026, Uwe: Ja zu K4). {zitat} wird zu „…“, wenn der Partner den Kommentar einfügt. */
+    /* Marketing Center im Partnerbereich (03.10.2026, Phase 1). Keine Aussage
+       zu Steuer oder Versand, solange beides nicht festgelegt ist. */
+    public const PARTNER_WERBEMITTEL = [
+        'lead' => ['it' => 'Materiali con il suo nome, il suo codice partner e il QR verso la sua pagina. Ogni scansione conta per lei.', 'de' => 'Werbemittel mit Ihrem Namen, Ihrer Partner-ID und dem QR-Code zu Ihrer Seite. Jeder Scan zählt für Sie.', 'en' => 'Materials with your name, your partner ID and the QR code to your page. Every scan counts for you.'],
+        'daten' => ['it' => 'I suoi dati su ogni materiale', 'de' => 'Ihre Daten auf jedem Werbemittel', 'en' => 'Your details on every item'],
+        'name' => ['it' => 'Nome', 'de' => 'Name', 'en' => 'Name'],
+        'id' => ['it' => 'Codice partner', 'de' => 'Partner-ID', 'en' => 'Partner ID'],
+        'link' => ['it' => 'Link del QR', 'de' => 'Link im QR-Code', 'en' => 'Link in the QR code'],
+        'qr_satz' => ['it' => 'Il QR porta alla sua pagina e viene contato a parte: così vede quante persone arrivano dai materiali stampati.', 'de' => 'Der QR-Code führt auf Ihre Seite und wird eigens gezählt — so sehen Sie, wie viele über Gedrucktes kommen.', 'en' => 'The QR code leads to your page and is counted separately — so you see how many come through print.'],
+        'qr_svg' => ['it' => 'QR per la stampa (SVG)', 'de' => 'QR für den Druck (SVG)', 'en' => 'QR for print (SVG)'],
+        'qr_png' => ['it' => 'QR come immagine (PNG)', 'de' => 'QR als Bild (PNG)', 'en' => 'QR as image (PNG)'],
+        'katalog' => ['it' => 'Catalogo', 'de' => 'Katalog', 'en' => 'Catalogue'],
+        'ab' => ['it' => 'da {preis}', 'de' => 'ab {preis}', 'en' => 'from {preis}'],
+        'je_auflage' => ['it' => 'Prezzo per tiratura', 'de' => 'Preis je Auflage', 'en' => 'Price per print run'],
+        'format' => ['it' => 'Formato', 'de' => 'Format', 'en' => 'Size'],
+        'vorschau_alt' => ['it' => 'Anteprima con i suoi dati: {name}', 'de' => 'Vorschau mit Ihren Daten: {name}', 'en' => 'Preview with your details: {name}'],
+        'bald' => ['it' => 'Ordinazione presto disponibile', 'de' => 'Bestellen bald möglich', 'en' => 'Ordering coming soon'],
+        'bald_satz' => ['it' => 'Prima di ogni stampa vedrà l’anteprima e darà lei il via — nulla viene stampato senza il suo sì.', 'de' => 'Vor jedem Druck sehen Sie die Vorschau und geben selbst frei — nichts wird ohne Ihr Ja gedruckt.', 'en' => 'Before every print you see the preview and approve it yourself — nothing is printed without your yes.'],
+        'kit' => ['it' => 'Kit digitale gratuito', 'de' => 'Digitales Marketing-Kit, kostenlos', 'en' => 'Free digital marketing kit'],
+        'kit_satz' => ['it' => 'Testi, immagini, video e volantini da scaricare subito — con il suo link già dentro.', 'de' => 'Texte, Bilder, Videos und Flyer zum sofortigen Herunterladen — Ihr Link steckt schon drin.', 'en' => 'Texts, images, videos and flyers to download right away — your link is already in them.'],
+        'kit_werbung' => ['it' => 'Testi pronti', 'de' => 'Fertige Texte', 'en' => 'Ready texts'],
+        'kit_medien' => ['it' => 'Immagini e video', 'de' => 'Bilder & Videos', 'en' => 'Images & videos'],
+        'kit_branchen' => ['it' => 'Volantini per settore', 'de' => 'Branchen-Flyer', 'en' => 'Industry flyers'],
+        'kit_gutschein' => ['it' => 'Buono regalo', 'de' => 'Gutschein', 'en' => 'Voucher'],
+    ];
+
     public const PARTNER_ANTWORTEN = [
         'titel' => ['it' => 'Aiuto risposte', 'de' => 'Antwort-Helfer', 'en' => 'Reply helper'],
         'text' => ['it' => 'Qualcuno ha commentato, scritto o messo like? Scelga cosa ha fatto, incolli il commento se vuole — il testo pronto porta alla sua pagina.', 'de' => 'Jemand hat kommentiert, geschrieben oder geliked? Wählen Sie, was er getan hat, fügen Sie den Kommentar ein, wenn Sie mögen — der fertige Text führt auf Ihre Seite.', 'en' => 'Someone commented, wrote or liked? Pick what they did, paste the comment if you like — the ready text leads to your page.'],

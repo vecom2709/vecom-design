@@ -12781,8 +12781,9 @@ foreach (Texte::PARTNER_REITER['reiter'] as $prK => $prR) {
     foreach (['kurz', 'titel', 'satz'] as $prF) { foreach (['it', 'de', 'en'] as $prL) { if (trim((string) ($prR[$prF][$prL] ?? '')) === '') { $prFehlt[] = "$prK.$prF.$prL"; } } }
     if (mb_strlen((string) $prR['kurz']['it']) > 9 || mb_strlen((string) $prR['kurz']['de']) > 9 || mb_strlen((string) $prR['kurz']['en']) > 9) { $prFehlt[] = "$prK.kurz zu lang fürs Handy"; }
 }
-pruefe('Reiter: Start · Werben · Kunden finden · Geld · Profil, dreisprachig, kurze Namen passen in die Handyleiste',
-    array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'finden', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
+/* Marketing Center (03.10.2026): sechster Reiter nach „Werben“; erscheint nur mit Katalog. */
+pruefe('Reiter: Start · Werben · Marketing Center · Kunden finden · Geld · Profil, dreisprachig, kurze Namen passen in die Handyleiste',
+    array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'werbemittel', 'finden', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
 $prJs = (string) @file_get_contents($wurzel . '/../assets/js/partner-reiter.js');
 $prSeite = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Reiter: ohne Skript bleibt alles sichtbar (die Leiste entsteht erst im Skript), eigene Klasse ohne Zusammenstoß mit dem Werbe-Paket',
@@ -21047,6 +21048,126 @@ pruefe('Sprache sichtbar: jede Beitragskarte trägt „Text auf …“ mit Fähn
 Telegram::$netz = $kgTgAlt;
 Telegram::setzen('tg_kanal_id', ''); Telegram::setzen('tg_kanal_menue_id', '');
 foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz'] as $kgS) { Telegram::setzen($kgS, ''); }
+
+/* ============================================================================
+   Marketing Center: Katalog und Preis (03.10.2026, Uwe: Ja zu Phase 1)
+   ============================================================================ */
+abschnitt('Marketing Center: Katalog und Preis');
+require_once $wurzel . '/src/Werbemittel.php';
+$wmVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+pruefe('Migration legt sechs Kategorien und die Visitenkarte an — mit VEC-Nummer, 85 × 55 mm, 3 mm Beschnitt, aus bis Preise da sind',
+    (int) Db::wert('SELECT COUNT(*) FROM wm_kategorien') === 6 && $wmVk !== null
+    && preg_match('~^VEC-\d{4}$~', (string) $wmVk['nummer']) === 1 && Werbemittel::format($wmVk) === '85 × 55 mm'
+    && (int) $wmVk['beschnitt_zmm'] === 30 && (int) $wmVk['aktiv'] === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ? AND einkauf_cent = 0', [(int) $wmVk['id']]) === 3);
+pruefe('Preis: Einkauf + Marge, nie unter Einkauf + Mindestmarge, auf 10 Cent aufgerundet; ohne Einkauf 0',
+    Werbemittel::preis(1000, 35, 500) === 1500 && Werbemittel::preis(10000, 35, 500) === 13500
+    && Werbemittel::preis(1001, 35, 0) === 1360 && Werbemittel::preis(0, 35, 500) === 0 && Werbemittel::preis(999, 0, 0) === 1000);
+$wmUnter = 0;
+mt_srand(145);
+for ($i = 0; $i < 2000; $i++) {
+    $e = mt_rand(1, 500000); $p = mt_rand(0, 200); $m = mt_rand(0, 5000); $v = Werbemittel::preis($e, $p, $m);
+    if ($v < $e + $m || $v * 100 < $e * (100 + $p) || $v % 10 !== 0) { $wmUnter++; }
+}
+pruefe('Preis: in 2.000 Zufallsfällen fällt die Marge nie unter die Regel', $wmUnter === 0, "$wmUnter Fälle");
+pruefe('Beträge werden ohne Fließkomma gelesen: „12,5“ = 1250, „12,05“ = 1205, „0,07“ = 7, leer = keiner',
+    Werbemittel::leerOderEuro('12,5') === 1250 && Werbemittel::leerOderEuro('12,05') === 1205
+    && Werbemittel::leerOderEuro('0,07') === 7
+    && Werbemittel::leerOderEuro('') === null);
+gesperrt('Unsinniger Betrag wird abgelehnt', fn() => Werbemittel::leerOderEuro('12,345'));
+gesperrt('Marge über 500 % wird abgelehnt', fn() => Werbemittel::standardSetzen(501, 0));
+pruefe('Ohne Einkaufspreis und solange aus: die Visitenkarte steht nicht im Katalog', Werbemittel::katalog('de') === []);
+
+$wmVar = Db::all('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $wmVk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $wmVk['id']]);
+pruefe('Eingeschaltet, aber ohne Einkauf: noch immer nicht im Katalog (kein „0,00 €“)', Werbemittel::katalog('de') === []);
+Werbemittel::varianteSpeichern((int) $wmVk['id'], ['name_it' => '250 pezzi', 'name_de' => '250 Stück', 'auflage' => 250, 'einkauf_eur' => '18,40', 'aktiv' => 1], (int) $wmVar[0]['id']);
+$wmKat = Werbemittel::katalog('de');
+$wmP = $wmKat[0]['produkte'][0] ?? [];
+pruefe('Mit Einkaufspreis: Katalog zeigt nur die bestellbare Variante mit Endpreis (18,40 € + 35 % = 24,84 € → 24,90 €)',
+    count($wmKat) === 1 && $wmKat[0]['name'] === 'Visitenkarten' && ($wmP['name'] ?? '') === 'Visitenkarte Vecom-Partner'
+    && count($wmP['varianten'] ?? []) === 1 && ($wmP['varianten'][0]['preis_cent'] ?? 0) === 2490 && ($wmP['ab_cent'] ?? 0) === 2490,
+    json_encode($wmP));
+$wmJson = json_encode($wmKat);
+pruefe('Der Partner-Katalog enthält keinen Einkauf, keine Marge, keine Regel', !str_contains($wmJson, 'einkauf') && !str_contains($wmJson, 'marge') && !str_contains($wmJson, 'regel'));
+pruefe('Sprache: italienisch und englisch kommen aus ihren Spalten, fehlende fallen auf Italienisch zurück',
+    (Werbemittel::katalog('it')[0]['produkte'][0]['varianten'][0]['name'] ?? '') === '250 pezzi'
+    && (Werbemittel::katalog('en')[0]['produkte'][0]['varianten'][0]['name'] ?? '') === '250 pezzi'
+    && (Werbemittel::katalog('en')[0]['produkte'][0]['name'] ?? '') === 'Vecom partner business card');
+Werbemittel::standardSetzen(50, 500);
+pruefe('Neue Standardmarge gilt sofort (50 % → 27,60 €)', (Werbemittel::katalog('de')[0]['produkte'][0]['varianten'][0]['preis_cent'] ?? 0) === 2760);
+Werbemittel::produktSpeichern(array_merge($wmVk, ['breite_mm' => '85', 'hoehe_mm' => '55', 'beschnitt_mm' => '3', 'marge_prozent' => '20', 'mindestmarge_eur' => '2', 'aktiv' => 1]), (int) $wmVk['id']);
+pruefe('Eigene Produktregel geht vor (20 %, mindestens 2 €): 22,08 € → 22,10 €; Nummer bleibt',
+    (Werbemittel::katalog('de')[0]['produkte'][0]['varianten'][0]['preis_cent'] ?? 0) === 2210
+    && Db::wert('SELECT nummer FROM wm_produkte WHERE id = ?', [(int) $wmVk['id']]) === $wmVk['nummer']);
+$wmV = Werbemittel::verwaltung();
+$wmVp = array_values(array_filter($wmV['produkte'], fn($p) => (int) $p['id'] === (int) $wmVk['id']))[0] ?? [];
+pruefe('Verwaltung zeigt Einkauf, Preis und Marge in Cent je Variante', ($wmVp['varianten'][0]['marge_cent'] ?? 0) === 2210 - 1840 && !empty($wmVp['bestellbar']));
+$wmNeu = Werbemittel::produktSpeichern(['kategorie_id' => (int) $wmVk['kategorie_id'], 'name_it' => 'Prova', 'breite_mm' => '148', 'hoehe_mm' => '210']);
+pruefe('Neues Produkt bekommt eine fortlaufende VEC-Nummer und ist aus', Db::wert('SELECT nummer FROM wm_produkte WHERE id = ?', [$wmNeu]) === sprintf('VEC-%04d', $wmNeu)
+    && (int) Db::wert('SELECT aktiv FROM wm_produkte WHERE id = ?', [$wmNeu]) === 0);
+gesperrt('Variante eines anderen Produkts lässt sich nicht über die id umschreiben', fn() => Werbemittel::varianteSpeichern($wmNeu, ['name_it' => 'x', 'einkauf_eur' => '1'], (int) $wmVar[1]['id']));
+gesperrt('Produkt ohne italienischen Namen wird abgelehnt', fn() => Werbemittel::produktSpeichern(['kategorie_id' => (int) $wmVk['kategorie_id'], 'name_it' => ' ']));
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$wmFehler = null; set_error_handler(static function (int $n, string $m) use (&$wmFehler): bool { $wmFehler = $m; return true; });
+$wm = Werbemittel::verwaltung(); ob_start(); require $wurzel . '/views/werbemittel.php'; $wmHtml = (string) ob_get_clean();
+restore_error_handler(); unset($wm);
+pruefe('Verwaltung „Marketing Center“ rendert ohne Warnung: Standardmarge, VEC-Nummer, Partnerpreis, Formulare je Variante',
+    $wmFehler === null && str_contains($wmHtml, 'Standardmarge') && str_contains($wmHtml, (string) $wmVk['nummer'])
+    && str_contains($wmHtml, "22,10\u{00A0}€") && str_contains($wmHtml, 'value="wm_variante"') && str_contains($wmHtml, 'value="wm_produkt"')
+    && substr_count($wmHtml, 'name="_csrf"') >= 5, (string) $wmFehler);
+$wmLayout = (string) file_get_contents($wurzel . '/views/layout.php');
+$wmIndex = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Reiter „Marketing Center“ unter Empfehlungen, mit Fall im Verteiler und den drei Taten',
+    str_contains($wmLayout, "['werbemittel', 'Marketing Center', 'werbemittel']") && str_contains($wmIndex, "    case 'werbemittel':")
+    && str_contains($wmIndex, "case 'wm_standard':") && str_contains($wmIndex, "case 'wm_produkt':") && str_contains($wmIndex, "case 'wm_variante':"));
+// Partnerbereich: Reiter, Katalog ohne Einkauf, eigener QR-Code
+foreach (['Texte', 'Partner', 'PartnerWerbung', 'PartnerKarten', 'QrBild'] as $wmKl) { require_once $wurzel . "/src/$wmKl.php"; }
+$wmPa = Partner::laden(Partner::anlegen(['name' => 'Wanda Mittel', 'email' => 'wanda@partner.example', 'code' => 'WANDAM', 'sprache' => 'de']));
+$wmFehler = null; set_error_handler(static function (int $n, string $m) use (&$wmFehler): bool { $wmFehler = $m; return true; });
+$wmWerte = ['p' => $wmPa, 'sprache' => 'de', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+    'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)),
+    'wmKatalog' => Werbemittel::katalog('de'), 'wmNurLesen' => false];
+$wmPaHtml = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })($wmWerte);
+restore_error_handler();
+pruefe('Partner-Reiter „Marketing Center“ rendert ohne Warnung: Name, ID, QR auf /p/CODE/qr, Endpreis, „Bestellen bald möglich“, Kit-Verweise',
+    $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 3 && str_contains($wmPaHtml, 'WANDAM')
+    && str_contains($wmPaHtml, '/p/WANDAM/qr') && str_contains($wmPaHtml, "22,10\u{00A0}€") && str_contains($wmPaHtml, 'Bestellen bald möglich')
+    && str_contains($wmPaHtml, 'href="#medien"') && str_contains($wmPaHtml, 'wmqr=svg') && str_contains($wmPaHtml, 'wmqr=png'), (string) $wmFehler);
+pruefe('Im Partner-HTML steht kein Einkaufspreis und keine Marge (18,40 € / 3,70 €)',
+    !str_contains($wmPaHtml, '18,40') && !str_contains($wmPaHtml, '3,70') && !str_contains(mb_strtolower($wmPaHtml), 'einkauf') && !str_contains(mb_strtolower($wmPaHtml), 'marge'));
+$wmPng = QrBild::png(PartnerWerbung::link($wmPa, 'qr'));
+$wmGr = @getimagesizefromstring($wmPng);
+pruefe('QR als PNG: echtes PNG, mindestens 1200 px, quadratisch', is_array($wmGr) && $wmGr[2] === IMAGETYPE_PNG && $wmGr[0] >= 1200 && $wmGr[0] === $wmGr[1]);
+$wmPq = (string) file_get_contents($oben . '/partner.php');
+pruefe('partner.php: QR-Download wird protokolliert, und der Reiter kommt nur mit Katalog (if ($wmKatalog))',
+    str_contains($wmPq, "PartnerSchutz::protokoll((int) \$p['id'], 'download', null, 'qr')") && str_contains($wmPq, 'if ($wmKatalog) {')
+    && strpos($wmPq, "isset(\$_GET['wmqr'])") === false && str_contains($wmPq, "in_array((string) (\$_GET['wmqr'] ?? ''), ['svg', 'png'], true)")
+    && array_key_exists('werbemittel', Texte::PARTNER_REITER['reiter'])
+    && str_contains((string) file_get_contents($oben . '/assets/js/partner-reiter.js'), 'werbemittel:'));
+// Als Partner ansehen: dieselbe Ansicht, nur lesen, ausgeschaltete Produkte markiert
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $wmVk['id']]);
+pruefe('Ausgeschaltet: Partner-Katalog leer, Vorschau-Katalog zeigt es mit sichtbar = false; der Partner-Katalog kennt das Feld nicht',
+    Werbemittel::katalog('de') === [] && (Werbemittel::katalog('de', true)[0]['produkte'][0]['sichtbar'] ?? null) === false);
+$wmFehler = null; set_error_handler(static function (int $n, string $m) use (&$wmFehler): bool { $wmFehler = $m; return true; });
+$wmVoHtml = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/werbemittel_vorschau.php'; return (string) ob_get_clean(); })(
+    ['katalog' => Werbemittel::katalog('it', true), 'sprache' => 'it', 'liste' => [['id' => $wmPa['id'], 'name' => $wmPa['name'], 'code' => $wmPa['code']]], 'partner' => $wmPa]);
+restore_error_handler();
+pruefe('„Als Partner ansehen“ rendert ohne Warnung, italienisch, mit Markierung „für Partner noch aus“ und Kartenvorschau als Bild',
+    $wmFehler === null && str_contains($wmVoHtml, 'Biglietto da visita Vecom Partner') && str_contains($wmVoHtml, 'für Partner noch aus')
+    && str_contains($wmVoHtml, 'data:image/jpeg;base64,') && str_contains($wmVoHtml, '/p/WANDAM/qr'), (string) $wmFehler);
+pruefe('Vorschau ist nur lesen: kein Download, kein Formular mit POST, kein Kit-Link, kein Token',
+    !str_contains($wmVoHtml, 'wmqr=') && !str_contains($wmVoHtml, ' download') && !str_contains($wmVoHtml, 'method="post"')
+    && !str_contains($wmVoHtml, 'href="#medien"') && !str_contains($wmVoHtml, (string) $wmPa['token']));
+pruefe('Verteiler: Vorschau läuft über die Admin-Sitzung, nicht über partner.php?t=',
+    str_contains($wmIndex, "(\$teile[1] ?? '') === 'vorschau'") && str_contains($wmIndex, "Werbemittel::katalog(\$wmSp, true)")
+    && !str_contains(substr($wmIndex, (int) strpos($wmIndex, "    case 'werbemittel':"), 2500), 'partner.php?t='));
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $wmPa['id']]);
+// Zurück auf den Stand der Migration, damit spätere Abschnitte nichts erben.
+Db::run('DELETE FROM wm_produkte WHERE id = ?', [$wmNeu]);
+Db::run('UPDATE wm_produkte SET aktiv = 0, marge_prozent = NULL, mindestmarge_cent = NULL WHERE id = ?', [(int) $wmVk['id']]);
+Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $wmVk['id']]);
+Werbemittel::standardSetzen(35, 500);
 
 /* ============================================================================
    Aufräumen und Bilanz

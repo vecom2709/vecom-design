@@ -459,6 +459,23 @@ if ($p && isset($_GET['fl'])) {
     echo $flDaten;
     exit;
 }
+/* ---------- Marketing Center: der eigene QR-Code (03.10.2026) ----------
+   ?wmqr=svg|png — führt auf /p/CODE/qr, damit Scans von Gedrucktem eigens
+   zählen. SVG für die Druckerei (Vektor), PNG für Canva, Word & Co. */
+if ($p && in_array((string) ($_GET['wmqr'] ?? ''), ['svg', 'png'], true)) {
+    PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'qr');
+    require_once __DIR__ . '/app/src/QrBild.php';
+    $wmArt = (string) $_GET['wmqr'];
+    $wmDaten = $wmArt === 'svg' ? QrBild::svg(PartnerWerbung::link($p, 'qr'), 1000, 4) : QrBild::png(PartnerWerbung::link($p, 'qr'));
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: ' . ($wmArt === 'svg' ? 'image/svg+xml' : 'image/png'));
+    header('Cache-Control: private, max-age=3600');
+    header('Content-Disposition: attachment; filename="vecom-qr-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $wmArt . '"');
+    header('Content-Length: ' . strlen($wmDaten));
+    echo $wmDaten;
+    exit;
+}
 /* ---------- Visitenkarten in vier Stilen (28.09.2026) ----------
    ?vk=a|b|c|d&f=vorschau|vorn|hinten|pdf|bogen&ks=email|vecom&vks=it|de|en */
 if ($p && isset($_GET['vk'])) {
@@ -1341,6 +1358,21 @@ if ($p && isset($_GET['karte'])) {
     <?php endif; ?>
   </div>
   <?php endif; ?>
+
+  <?php /* Marketing Center (03.10.2026, Phase 1). Der Reiter erscheint erst,
+           wenn Uwe ein Produkt mit Preis freigeschaltet hat — vorher gibt es
+           keinen Block mit data-reiter="werbemittel", also keinen Reiter. */
+  $wmKatalog = [];
+  try {
+      require_once __DIR__ . '/app/src/Werbemittel.php';
+      $wmKatalog = Werbemittel::katalog($sprache);
+  } catch (Throwable $e) { $wmKatalog = []; }
+  if ($wmKatalog) {
+      require_once __DIR__ . '/app/src/PartnerKarten.php';
+      require_once __DIR__ . '/app/src/QrBild.php';
+      $wmNurLesen = false;
+      require __DIR__ . '/app/views/partner_werbemittel.php';
+  } ?>
 
   <?php require __DIR__ . '/app/views/partner_seite.php'; ?>
 

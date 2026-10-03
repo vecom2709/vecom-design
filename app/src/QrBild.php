@@ -28,4 +28,31 @@ final class QrBild
         return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ' . $g . ' ' . $g . '" width="' . $masse . '" height="' . $masse
             . '" shape-rendering="crispEdges" role="img" aria-label="QR"><rect width="100%" height="100%" fill="#fff"/><path fill="#000" d="' . $weg . '"/></svg>';
     }
+
+    /**
+     * Derselbe Code als PNG, für Programme, die kein SVG nehmen (Canva, Word,
+     * WhatsApp). Ganze Pixel je Modul, damit keine Kante weichgezeichnet wird:
+     * Die Bildgröße ist das nächste Vielfache der Modulzahl über $mindest.
+     * (Marketing Center, 03.10.2026)
+     */
+    public static function png(string $inhalt, int $mindest = 1200, int $rand = 4): string
+    {
+        require_once dirname(__DIR__) . '/lib/qrcode.php';
+        $qr = QRCode::getMinimumQRCode($inhalt, QR_ERROR_CORRECT_LEVEL_M);
+        $n = $qr->getModuleCount();
+        $g = $n + 2 * $rand;
+        $m = max(1, (int) ceil($mindest / $g));
+        $im = imagecreate($g * $m, $g * $m);
+        imagecolorallocate($im, 255, 255, 255);
+        $schwarz = imagecolorallocate($im, 0, 0, 0);
+        for ($r = 0; $r < $n; $r++) {
+            for ($c = 0; $c < $n; $c++) {
+                if ($qr->isDark($r, $c)) {
+                    imagefilledrectangle($im, ($c + $rand) * $m, ($r + $rand) * $m, ($c + $rand + 1) * $m - 1, ($r + $rand + 1) * $m - 1, $schwarz);
+                }
+            }
+        }
+        ob_start(); imagepng($im, null, 9); imagedestroy($im);
+        return (string) ob_get_clean();
+    }
 }

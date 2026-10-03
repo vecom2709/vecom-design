@@ -1782,6 +1782,29 @@ if ($post) {
                 $_SESSION['gut'] = 'Die Abnahme ist wieder zu. Ansehen kann er die Seite weiterhin.';
                 zurueck('vorgaenge');
 
+            /* Marketing Center (03.10.2026, Phase 1): Katalog, Einkauf, Marge.
+               Fehleingaben werfen InvalidArgumentException; der Fang unten
+               zeigt sie als Meldung, gespeichert wird dann nichts. */
+            case 'wm_standard':
+                require_once __DIR__ . '/src/Werbemittel.php';
+                Werbemittel::standardSetzen(
+                    (int) trim((string) ($_POST['marge_prozent'] ?? '')),
+                    (int) (Werbemittel::leerOderEuro($_POST['mindestmarge_eur'] ?? '') ?? 0));
+                $_SESSION['gut'] = 'Standardmarge gespeichert — sie gilt ab sofort für alle Produkte ohne eigene Regel.';
+                zurueck('werbemittel');
+
+            case 'wm_produkt':
+                require_once __DIR__ . '/src/Werbemittel.php';
+                $wmId = Werbemittel::produktSpeichern($_POST, (int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = (int) ($_POST['id'] ?? 0) > 0 ? 'Produkt gespeichert.' : 'Produkt angelegt. Jetzt Varianten mit Einkaufspreis eintragen.';
+                zurueck('werbemittel#wm-' . $wmId);
+
+            case 'wm_variante':
+                require_once __DIR__ . '/src/Werbemittel.php';
+                Werbemittel::varianteSpeichern((int) ($_POST['produkt_id'] ?? 0), $_POST, (int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Variante gespeichert.';
+                zurueck('werbemittel');
+
             case 'stimme_frei':
                 require_once __DIR__ . '/src/Stimme.php';
                 Stimme::veroeffentlichen((int) ($_POST['id'] ?? 0));
@@ -4380,6 +4403,28 @@ switch ($route) {
             'warten'    => sicher(static fn() => Leistungen::warten(), []),
             'hosting'   => sicher(static fn() => Leistungen::hosting(), []),
         ]);
+        break;
+
+    case 'werbemittel':
+        require_once __DIR__ . '/src/Werbemittel.php';
+        if (($teile[1] ?? '') === 'vorschau') {
+            /* Als Partner ansehen (03.10.2026): dieselbe Ansicht wie im
+               Partnerbereich, aber in der Verwaltung gerendert — nicht über den
+               Token-Link, der ein Partner-Cookie setzen und Downloads
+               protokollieren würde. Nur lesen: keine Formulare, keine Links. */
+            require_once __DIR__ . '/src/Partner.php';
+            $wmSp = in_array($_GET['sprache'] ?? '', Werbemittel::SPRACHEN, true) ? (string) $_GET['sprache'] : 'de';
+            $wmListe = sicher(static fn() => Db::all("SELECT id, name, code FROM partner WHERE status = 'aktiv' ORDER BY name LIMIT 300"), []);
+            $wmPa = isset($_GET['p']) ? Partner::laden((int) $_GET['p']) : null;
+            if (!$wmPa && $wmListe) { $wmPa = Partner::laden((int) $wmListe[0]['id']); }
+            ansicht('werbemittel_vorschau', [
+                'katalog' => Werbemittel::katalog($wmSp, true),
+                'sprache' => $wmSp, 'liste' => $wmListe,
+                'partner' => $wmPa ?: ['id' => 0, 'name' => 'Maria Rossi', 'code' => 'MUSTER', 'email' => 'maria@example.com', 'sprache' => $wmSp],
+            ]);
+            break;
+        }
+        ansicht('werbemittel', ['wm' => Werbemittel::verwaltung()]);
         break;
 
     case 'stimmen':
