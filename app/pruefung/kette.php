@@ -12054,6 +12054,91 @@ pruefe('Kundenstimme: höchstens 5 am Tag je Partner; Seite ohne Index und mit e
     && str_contains((string) file_get_contents($wurzel . '/../p.php'), 'PartnerStimmen::fotoDaten((int) $_GET[\'sfoto\'])')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_stimme_sammeln.php'), '<div class="block pt" id="stimme-sammeln" data-reiter="werben">'));
 Db::run('DELETE FROM stimmen WHERE partner_id = ?', [$psId]);
+
+/* Titelbilder aus Blender und Unreal (03.10.2026, Uwe: Ja zu B1 Kino-Kopf, B3 Piazza-Intro, B4 Jahreszeiten) */
+require_once $wurzel . '/src/PartnerKopf.php'; require_once $wurzel . '/src/MkMedium.php';
+$pkZeit = static fn(string $d): int => (int) (new DateTimeImmutable($d . ' 12:00', new DateTimeZone('Europe/Rome')))->getTimestamp();
+$pkBilderOk = array_diff(array_keys(PartnerKopf::SZENE), array_keys(PartnerSeite::BILDER)) === [] && array_diff(PartnerKopf::szenen(), array_keys(MkMedium::STUDIO_NAMEN)) === []
+    && isset(MkMedium::STUDIO_NAMEN[PartnerKopf::PIAZZA_SZENE]);
+pruefe('Titelbild: Jahreszeit in italienischer Zeit (März–Mai Frühling … Dezember–Februar Winter), danach die nächste; jede Kino-Szene ist ein Titelbild der Auswahl und eine Szene in branchen_ort.py',
+    PartnerKopf::saison($pkZeit('2026-03-01')) === 'fruehling' && PartnerKopf::saison($pkZeit('2026-08-31')) === 'sommer' && PartnerKopf::saison($pkZeit('2026-10-03')) === 'herbst'
+    && PartnerKopf::saison($pkZeit('2027-02-28')) === 'winter' && PartnerKopf::saison($pkZeit('2026-12-01')) === 'winter' && PartnerKopf::naechste('winter') === 'fruehling' && $pkBilderOk
+    && PartnerSeite::gestaltung(['seite_json' => null])['kino'] === 'auto' && PartnerSeite::gestaltung(['seite_json' => '{"kino":"quatsch"}'])['kino'] === 'auto'
+    && PartnerSeite::gestaltung(['seite_json' => '{"kino":"piazza"}'])['kino'] === 'piazza');
+Db::run("DELETE FROM mk_auftraege WHERE parameter LIKE '%\"kopf\":{%'");
+$pkLeer = PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'auto']);
+$pkN = PartnerKopf::bestellen(PartnerKopf::JE_KLICK, $pkZeit('2026-10-03'));
+$pkAuftr = array_map(static fn($a) => json_decode((string) $a['parameter'], true), Db::all("SELECT parameter FROM mk_auftraege WHERE parameter LIKE '%\"kopf\":{%' ORDER BY id"));
+$pkSeeds = [];
+foreach ($pkAuftr as $pkA) { $pkSeeds[$pkA['kopf']['studio'] . '|' . $pkA['kopf']['saison']][] = $pkA['seed']; }
+$pkN2 = PartnerKopf::bestellen(2, $pkZeit('2026-10-03'));
+$pkAuftr2 = array_map(static fn($a) => json_decode((string) $a['parameter'], true), Db::all("SELECT parameter FROM mk_auftraege WHERE parameter LIKE '%\"kopf\":{%' ORDER BY id"));
+$pkDoppelt = count($pkAuftr2) !== count(array_unique(array_map(static fn($a) => $a['kopf']['studio'] . '|' . $a['kopf']['saison'] . '|' . $a['kopf']['art'], $pkAuftr2)));
+pruefe('Titelbild bestellen: ohne Freigabe zeigt die Seite das Standbild der Auswahl; erst das Piazza-Intro, dann die laufende Jahreszeit; Bild und Film derselben Szene mit gleicher Zufallszahl; nie Text im Bild; nichts doppelt',
+    $pkLeer === null && $pkN === PartnerKopf::JE_KLICK && count($pkAuftr) === PartnerKopf::JE_KLICK
+    && $pkAuftr[0]['kopf']['studio'] === 'piazza' && $pkAuftr[0]['studio'] === PartnerKopf::PIAZZA_SZENE && $pkAuftr[1]['kopf']['art'] === 'film' && $pkAuftr[1]['kopf']['schleife'] === false
+    && $pkAuftr[1]['kopf']['sekunden'] === PartnerKopf::INTRO_SEKUNDEN && $pkAuftr[1]['wunsch']['stimmung'] === 'abend'
+    && $pkAuftr[2]['kopf']['saison'] === 'herbst' && $pkAuftr[3]['kopf']['art'] === 'film' && $pkAuftr[3]['kopf']['schleife'] === true && $pkAuftr[3]['kopf']['px'] === PartnerKopf::FILM_PX
+    && $pkAuftr[3]['kopf']['sekunden'] === PartnerKopf::SCHLEIFE_SEKUNDEN && $pkAuftr[3]['film_titel'] === '' && $pkAuftr[3]['abspann'] === '' && $pkAuftr[3]['format'] === '16:9'
+    && array_filter($pkSeeds, static fn($s) => count(array_unique($s)) !== 1) === [] && $pkN2 === 2 && !$pkDoppelt
+    && PartnerKopf::stand()['piazza']['']['bild'] === 'rechnet' && PartnerKopf::stand()['gastro']['winter']['bild'] === 'fehlt',
+    json_encode([$pkN, array_map(static fn($a) => $a['kopf'], $pkAuftr)], JSON_UNESCAPED_UNICODE));
+/* Der echte Weg vom PC: Stück hochladen → Medium → wartet auf Uwe → Freigabe → WebP in zwei Breiten. */
+$pkHoch = static function (array $param, string $roh): array {
+    $aid = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => '', 'land' => 'IT', 'status' => 'laeuft', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]);
+    return MkMedium::teilMelden(['auftrag_id' => $aid, 'teil' => 1, 'von' => 1, 'daten' => base64_encode($roh), 'sha256' => hash('sha256', $roh)]) + ['auftrag' => $aid];
+};
+$pkBild = imagecreatetruecolor(1920, 1080); imagefill($pkBild, 0, 0, imagecolorallocate($pkBild, 190, 120, 60)); ob_start(); imagepng($pkBild); $pkPng = (string) ob_get_clean(); imagedestroy($pkBild);
+$pkMp4 = (string) hex2bin('000000186674797069736f6d0000020069736f6d69736f32') . str_repeat("\0", 4000);
+$pkSeed = PartnerKopf::seedFuer('gastro', 'herbst');
+$pkB = $pkHoch(['medium' => 'bild', 'seed' => $pkSeed, 'kopf' => ['studio' => 'gastro', 'saison' => 'herbst', 'art' => 'bild']], $pkPng);
+$pkF = $pkHoch(['medium' => 'video', 'seed' => $pkSeed, 'kopf' => ['studio' => 'gastro', 'saison' => 'herbst', 'art' => 'film']], $pkMp4);
+$pkFx = $pkHoch(['medium' => 'video', 'seed' => $pkSeed + 1, 'kopf' => ['studio' => 'gastro', 'saison' => 'winter', 'art' => 'film']], $pkMp4);
+$pkW = PartnerKopf::wartend();
+$pkIdB = (int) Db::wert("SELECT id FROM partner_koepfe WHERE medium_id = ?", [(int) ($pkB['id'] ?? 0)], 0);
+$pkIdF = (int) Db::wert("SELECT id FROM partner_koepfe WHERE medium_id = ?", [(int) ($pkF['id'] ?? 0)], 0);
+$pkVorFrei = PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'auto'], $pkZeit('2026-10-03'));
+$pkFehlerB = PartnerKopf::freigeben($pkIdB);
+$pkNurBild = PartnerKopf::fuerSeite(['bild' => 'gastro_hell', 'kino' => 'auto'], $pkZeit('2026-10-03'));
+$pkFehlerF = PartnerKopf::freigeben($pkIdF);
+$pkMit = PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'auto'], $pkZeit('2026-10-03'));
+$pkWinter = PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'auto'], $pkZeit('2027-01-10'));
+$pkGr = PartnerKopf::datei($pkIdB, 'gross'); $pkKl = PartnerKopf::datei($pkIdB, 'klein');
+$pkGrI = $pkGr ? getimagesize($pkGr['pfad']) : null; $pkKlI = $pkKl ? getimagesize($pkKl['pfad']) : null;
+pruefe('Titelbild vom PC: kommt nicht in die Galerie, sondern wartet auf Uwe; nach dem Ja Standbild als WebP (1600 und 800 breit), Film nur mit gleicher Zufallszahl; außerhalb der Jahreszeit eine andere derselben Szene',
+    ($pkB['ok'] ?? false) && ($pkF['ok'] ?? false) && count($pkW) === 3 && $pkIdB > 0 && $pkVorFrei === null && $pkFehlerB === null && $pkFehlerF === null
+    && (int) Db::wert('SELECT COUNT(*) FROM mk_medien WHERE id = ? AND galerie = 1', [(int) $pkB['id']], 0) === 0
+    && is_array($pkNurBild) && $pkNurBild['film'] === null && ($pkNurBild['bild'] ?? '') === '/p.php?kopf=' . $pkIdB . '&g=gross'
+    && ($pkMit['film'] ?? '') === '/p.php?kopf=' . $pkIdF && ($pkMit['schleife'] ?? false) === true && ($pkMit['saison'] ?? '') === 'herbst' && ($pkMit['klein'] ?? '') === '/p.php?kopf=' . $pkIdB . '&g=klein'
+    && ($pkWinter['saison'] ?? '') === 'herbst' && ($pkWinter['film'] ?? '') === '/p.php?kopf=' . $pkIdF
+    && $pkGr !== null && $pkGr['typ'] === 'image/webp' && ($pkGrI[0] ?? 0) === 1600 && ($pkGrI[1] ?? 0) === 900 && ($pkKlI[0] ?? 0) === 800
+    && PartnerKopf::datei($pkIdF)['typ'] === 'video/mp4' && PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'aus']) === null
+    && PartnerKopf::fuerSeite(['bild' => 'villa_garten', 'kino' => 'auto']) === null && PartnerKopf::fuerSeite(['bild' => 'gastro', 'kino' => 'piazza']) === null,
+    json_encode([count($pkW), $pkIdB, $pkVorFrei, $pkNurBild, PartnerKopf::datei($pkIdF), (int) Db::wert('SELECT COUNT(*) FROM mk_medien WHERE id = ? AND galerie = 1', [(int) $pkB['id']], 0)], JSON_UNESCAPED_UNICODE));
+$pkIdFx = (int) Db::wert("SELECT id FROM partner_koepfe WHERE medium_id = ?", [(int) ($pkFx['id'] ?? 0)], 0);
+$pkSeedVor = PartnerKopf::seedFuer('gastro', 'winter');
+pruefe('Titelbild: Verwerfen gibt beim nächsten Mal einen neuen Blickwinkel; Wartendes und Verworfenes liefert p.php nie aus; zweimal entscheiden geht nicht',
+    PartnerKopf::datei($pkIdFx) === null && PartnerKopf::verwerfen($pkIdFx) && !PartnerKopf::verwerfen($pkIdFx) && PartnerKopf::datei($pkIdFx) === null
+    && PartnerKopf::seedFuer('gastro', 'winter') !== $pkSeedVor && PartnerKopf::freigeben($pkIdB) !== null && PartnerKopf::datei(999999) === null);
+pruefe('Titelbild-Film mit Bereichsabfragen (Safari): ganze Datei, Anfang, Ende, unerfüllbar, Unsinn',
+    PartnerKopf::bereich('', 1000) === [0, 999] && PartnerKopf::bereich('bytes=0-1', 1000) === [0, 1] && PartnerKopf::bereich('bytes=-200', 1000) === [800, 999]
+    && PartnerKopf::bereich('bytes=500-', 1000) === [500, 999] && PartnerKopf::bereich('bytes=900-5000', 1000) === [900, 999] && PartnerKopf::bereich('bytes=2000-', 1000) === null
+    && PartnerKopf::bereich('kaputt', 1000) === [0, 999] && PartnerKopf::bereich('', 0) === null);
+$pkP = (string) file_get_contents($wurzel . '/../p.php'); $pkJs = (string) file_get_contents($wurzel . '/../assets/js/partnerseite.js');
+pruefe('Titelbild auf der Seite: eigenes Foto geht immer vor; Film stumm, versteckt vor Vorlesern, mit Halt-Knopf; bei „Bewegung reduzieren“, Datensparen und 2G nur das Standbild; PC und Auftrag tragen die Angaben',
+    str_contains($pkP, "\$kino = \$g['bild'] !== 'eigen' ? PartnerKopf::fuerSeite(\$g) : null;") && str_contains($pkP, 'PartnerKopf::ausliefern((int) $_GET[\'kopf\']')
+    && str_contains($pkP, '<video class="lp-kino" data-kino muted playsinline preload="none"') && str_contains($pkP, 'aria-hidden="true" tabindex="-1"') && str_contains($pkP, 'class="lp-kino-halt"')
+    && str_contains($pkP, '@media (prefers-reduced-motion: reduce){.lp-kino{display:none}}')
+    && str_contains($pkJs, "if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || netz.saveData || /(^|-)2g$/.test(netz.effectiveType || '')) { return; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), "'kopf' => isset(\$p['kopf']) && is_array(\$p['kopf'])")
+    && str_contains((string) file_get_contents($wurzel . '/../tools/akquise/src/ki/render3d.ts'), "titel: '', abspann: ''")
+    && str_contains((string) file_get_contents($wurzel . '/../3d-produktion/scripts/branchen_ort.py'), "_saison = {'fruehling'")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_seite.php'), 'name="kino"'));
+foreach (Db::all('SELECT datei_gross, datei_klein FROM partner_koepfe') as $pkD) { foreach ($pkD as $pkDa) { if ($pkDa) { @unlink(MkMedium::ordner() . '/' . $pkDa); } } }
+foreach (Db::all('SELECT m.datei FROM mk_medien m JOIN partner_koepfe k ON k.medium_id = m.id') as $pkD) { @unlink(MkMedium::ordner() . '/' . $pkD['datei']); }
+Db::run('DELETE m FROM mk_medien m JOIN partner_koepfe k ON k.medium_id = m.id'); Db::run('DELETE FROM partner_koepfe');
+Db::run("DELETE FROM mk_auftraege WHERE parameter LIKE '%\"kopf\":{%'");
+
 $psLum = static function (string $hex): float {
     $c = array_map(static fn($x) => hexdec($x) / 255, str_split(ltrim($hex, '#'), 2));
     $c = array_map(static fn($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $c);

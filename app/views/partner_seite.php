@@ -131,6 +131,17 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       </div>
       <div class="gs-vorschlag" id="ga_ersetzen" hidden><span><?= $h($W($PS['ga_look_ersetzen'])) ?></span><button class="knopf" type="button" data-ja><?= $h($W($PS['ga_look_ja'])) ?></button></div>
 
+      <?php /* Bewegtes Titelbild (03.10.2026, Uwe: Ja zu B1/B3/B4) — nur, was Uwe freigegeben hat. */
+        $gaKino = PartnerKopf::fuerSeite($gs); $gaKinoSzene = isset(PartnerKopf::SZENE[$gs['bild']]); ?>
+      <p class="gs-h"><?= $h($W($PS['ga_kino'])) ?></p>
+      <div class="gs-wahl gs-reihe" role="radiogroup" aria-label="<?= $h($W($PS['ga_kino'])) ?>">
+        <?php foreach (PartnerKopf::WAHL as $gaKw): ?>
+          <label><input type="radio" name="kino" value="<?= $h($gaKw) ?>" <?= $gs['kino'] === $gaKw ? 'checked' : '' ?>><?= $h($W($PS['ga_kino_' . $gaKw])) ?></label>
+        <?php endforeach; ?>
+      </div>
+      <p class="klein" style="margin:4px 0 0"><?= $h($W($PS['ga_kino_hilfe'])) ?></p>
+      <?php if ($gs['bild'] !== 'eigen' && $gaKino === null && ($gs['kino'] === 'piazza' || ($gs['kino'] === 'auto' && $gaKinoSzene))): ?><p class="klein" style="margin:4px 0 0;color:var(--leise)"><?= $h($W($PS['ga_kino_bald'])) ?></p><?php endif; ?>
+
       <details class="ga-selbst"<?= $gs['bild'] === 'eigen' ? ' open' : '' ?>><summary><?= $h($W($PS['ga_selbst'])) ?></summary>
     <p class="gs-h"><?= $h($W($PS['g_vorlage'])) ?></p>
     <div class="gs-wahl" role="radiogroup">

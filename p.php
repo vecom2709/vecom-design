@@ -35,7 +35,7 @@ if (!isset($_GET['c']) && preg_match('~^/p/([A-Za-z0-9]{5,16})(?:/([A-Za-z0-9-]{
 $p = null; $sprache = 'it'; $zaehlen = false;
 if (is_file($konfig)) {
     try {
-        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite', 'PartnerMarketing'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+        foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite', 'PartnerKopf', 'PartnerMarketing'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
         /* Das Foto der Empfehlungsseite (siehe PartnerWerbung). Nur aktive
            Partner; die Adresse trägt einen Versionsanhang, also darf lange
            zwischengespeichert werden. */
@@ -56,6 +56,10 @@ if (is_file($konfig)) {
             header('Cache-Control: public, max-age=86400');
             header('X-Content-Type-Options: nosniff');
             echo $f; exit;
+        }
+        /* Titelbild aus Blender/Unreal (03.10.2026, B1/B3/B4) — nur freigegeben; Filme mit Bereichsabfragen. */
+        if (isset($_GET['kopf'])) {
+            PartnerKopf::ausliefern((int) $_GET['kopf'], (string) ($_GET['g'] ?? ''));
         }
         /* Das eigene Titelbild der gestalteten Seite (PartnerSeite). */
         if (isset($_GET['titel'])) {
@@ -251,14 +255,18 @@ $S = static fn(array $t): string => strtr(Texte::h($t, $sprache), ['{name}' => P
 $vorlageHell = PartnerSeite::VORLAGEN[$g['vorlage']]['hell'];
 $metall = $g['vorlage'] === 'gold' && $g['akzent'] === 'gold';
 $titelbild = PartnerSeite::bildAdresse($p, $g);
+/* Kino-Kopf, Jahreszeit, Piazza-Intro (03.10.2026, B1/B3/B4): ein von Uwe freigegebenes 3D-Titelbild ersetzt
+   das Standbild der Auswahl — nie das eigene Foto des Partners. Ohne Freigabe bleibt alles, wie es war. */
+$kino = $g['bild'] !== 'eigen' ? PartnerKopf::fuerSeite($g) : null;
+if ($kino !== null) { $titelbild = $kino['bild']; }
 $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
 $PS = Texte::PARTNER_SEITE;
 $name = Partner::anzeigeName($p);
 $foto = PartnerWerbung::fotoAdresse($p);
 $satz = trim((string) ($p['profil_satz'] ?? ''));
 /* Kleines Titelbild fürs Handy, wo es eins gibt (Auswahl hat -800-Fassungen). */
-$titelKlein = ($titelbild !== null && isset(PartnerSeite::BILDER[$g['bild']]) && !str_contains($titelbild, 'haar/'))
-    ? preg_replace('~\.webp$~', '-800.webp', $titelbild) : null;
+$titelKlein = $kino !== null ? $kino['klein'] : (($titelbild !== null && isset(PartnerSeite::BILDER[$g['bild']]) && !str_contains($titelbild, 'haar/'))
+    ? preg_replace('~\.webp$~', '-800.webp', $titelbild) : null);
 $wegAdresse = static fn(string $weg, array $extra = []): string => '/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $sprache, 'weg' => $weg] + $extra));
 $wege = $g['bausteine']['wege'] ? PartnerSeite::wege() : [];
 /* Der Kurz-Check steht als eigener Abschnitt da -- dann nicht noch einmal als Weg. */
@@ -359,6 +367,12 @@ $wegIcon = [
   .lp-held{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;aspect-ratio:16/9;background:var(--flaeche2)}
   .lp-held img{width:100%;height:100%;object-fit:cover;display:block}
   .lp-held::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.28))}
+  /* Kino-Kopf (B1/B3): der Film liegt über dem gleichen Standbild und blendet erst ein, wenn er läuft. */
+  .lp-kino{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s cubic-bezier(.16,1,.3,1);pointer-events:none}
+  .lp-kino.an{opacity:1}
+  .lp-kino-halt{position:absolute;top:10px;right:10px;z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.38);color:#fff;font-size:12px;letter-spacing:-1px;cursor:pointer;display:grid;place-items:center}
+  .lp-kino-halt:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
+  @media (prefers-reduced-motion: reduce){.lp-kino{display:none}}
   .lp h2{font-family:var(--f-titel,var(--f-display));font-weight:var(--f-titel-w2,700);font-size:calc(20px * var(--f-titel-s,1));margin:0 0 14px}
   /* Drei Wege (27.09.2026) */
   .lp-wege{display:grid;gap:10px}
@@ -553,6 +567,10 @@ $wegIcon = [
   <?php $buehne = $titelbild && $g['kopf'] === 'buehne'; ?>
   <div class="block ld lp-start<?= $titelbild ? ' mit-bild' : '' ?><?= $buehne ? ' buehne' : '' ?>" id="start">
     <?php if ($titelbild): ?><div class="lp-held<?= $buehne ? ' lp-buehne' : '' ?>"><img src="<?= $h($titelbild) ?>"<?php if ($titelKlein): ?> srcset="<?= $h($titelKlein) ?> 800w, <?= $h($titelbild) ?> 1600w" sizes="<?= $buehne ? '(min-width:980px) 1080px, 100vw' : '(max-width:600px) 100vw, (min-width:980px) 540px, 560px' ?>"<?php endif; ?> alt="" width="1600" height="900" fetchpriority="high">
+      <?php if ($kino !== null && $kino['film'] !== null): /* Film erst nach dem Laden, nie bei „Bewegung reduzieren“ (partnerseite.js) */ ?>
+        <video class="lp-kino" data-kino muted playsinline preload="none"<?= $kino['schleife'] ? ' loop' : '' ?> aria-hidden="true" tabindex="-1"><source src="<?= $h($kino['film']) ?>" type="video/mp4"></video>
+        <button type="button" class="lp-kino-halt" hidden data-halt="<?= $h($S($PS['kino_halt'])) ?>" data-weiter="<?= $h($S($PS['kino_weiter'])) ?>" aria-label="<?= $h($S($PS['kino_halt'])) ?>"><span aria-hidden="true">❚❚</span></button>
+      <?php endif; ?>
       <?php if ($buehne): ?><div class="lp-buehne-text"><h1><?= $h($L('titel')) ?></h1><p class="lead"><?= $h($L('lead')) ?></p></div><?php endif; ?></div><?php endif; ?>
     <div class="lp-inhalt"><div class="lp-a">
     <div class="lp-kopf">

@@ -22,6 +22,8 @@ declare(strict_types=1);
  * Änderungen gehen sofort live (Uwe); Vecom bekommt eine Meldung und kann in
  * der Partnerakte mit einem Klick auf den Standard zurücksetzen.
  */
+require_once __DIR__ . '/PartnerKopf.php';
+
 final class PartnerSeite
 {
     /** Vorlagen: Grundfarben der Seite (CSS-Variablen von kunde.css). hell = Akzent in dunkler Fassung, Knopftext weiß. */
@@ -200,7 +202,9 @@ final class PartnerSeite
         $knopf = in_array($roh['knopf'] ?? '', self::KNOEPFE, true) ? (string) $roh['knopf'] : 'loslegen';
         $schrift = isset(self::SCHRIFTEN[$roh['schrift'] ?? '']) ? (string) $roh['schrift'] : 'modern';
         $kopf = in_array($roh['kopf'] ?? '', self::KOEPFE, true) ? (string) $roh['kopf'] : 'karte';
-        return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
+        /* Bewegtes Titelbild (03.10.2026, B1/B3): auto = Kino-Kopf der Szene, wo Uwe einen freigegeben hat. */
+        $kino = in_array($roh['kino'] ?? '', PartnerKopf::WAHL, true) ? (string) $roh['kino'] : 'auto';
+        return ['vorlage' => $vorlage, 'kino' => $kino, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
                 'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film, 'schrift' => $schrift, 'kopf' => $kopf,
                 'auto' => $auto, 'auto_von' => in_array($roh['auto_von'] ?? '', ['it', 'de', 'en'], true) ? (string) $roh['auto_von'] : '',
                 'auto_hash' => (string) ($roh['auto_hash'] ?? ''), 'auto_offen' => !empty($roh['auto_offen']),
@@ -363,6 +367,7 @@ final class PartnerSeite
             'film' => in_array($d['film'] ?? '', self::filme(), true) ? (string) $d['film'] : $alt['film'],
             'schrift' => isset(self::SCHRIFTEN[$d['schrift'] ?? '']) ? (string) $d['schrift'] : $alt['schrift'],
             'kopf' => in_array($d['kopf'] ?? '', self::KOEPFE, true) ? (string) $d['kopf'] : $alt['kopf'],
+            'kino' => in_array($d['kino'] ?? '', PartnerKopf::WAHL, true) ? (string) $d['kino'] : $alt['kino'],
         ];
         return $neu;
     }

@@ -104,3 +104,12 @@ test('Werbespot: Bericht nennt Einstellungen, Dauer, Ausweichen und ob Musik dab
   assert.equal(t, 'Werbespot · 5 Einstellungen · 20 s · Szene gastro · ausgewichen: gleiten Gegenseite · ohne Musik (Ordner 3d-produktion/musik leer) · 40 min gerechnet · Belichtung gemessen 0,41 · ohne Credits');
   assert.match(berichtText({ vecom: true, einstellungen_n: 6, dauer_s: 18.9, musik: true }, true), /^Vecom-Werbespot · 6 Einstellungen · 18,9 s · mit Musik/);
 });
+
+test('Titelbild der Partnerseite (B1/B3/B4): Schleife ohne Text, eigene Pixel, Jahreszeit; Unsinn fällt zurück', () => {
+  const k = blenderAuftrag({ ...basis, medium: 'video', format: '16:9', drei_d: { ...basis.drei_d, kopf: { schleife: true, saison: 'herbst', sekunden: 6, px: '1280x720' } } }, 'C:/x/k.mp4') as any;
+  assert.deepEqual(k, { px: '1280x720', seed: 42, aus: 'C:/x/k.mp4', saison: 'herbst', sekunden: 6, titel: '', abspann: '', schleife: true });
+  const b = blenderAuftrag({ ...basis, format: '16:9', drei_d: { ...basis.drei_d, kopf: { saison: 'sommer', px: '1920x1080' } } }, 'C:/x/k.png') as any;
+  assert.deepEqual(b, { px: '1920x1080', seed: 42, aus: 'C:/x/k.png', saison: 'sommer' });
+  const u = blenderAuftrag({ ...basis, medium: 'video', format: '16:9', drei_d: { ...basis.drei_d, wunsch: { stimmung: 'abend' }, kopf: { saison: 'monsun', sekunden: 99, px: '1;rm' } } }, 'C:/x/u.mp4') as any;
+  assert.equal(u.px, '1920x1080'); assert.equal(u.saison, undefined); assert.equal(u.sekunden, 6); assert.equal(u.schleife, undefined); assert.equal(u.stimmung, 'abend');
+});

@@ -121,3 +121,39 @@
     } catch (e) { /* Beiwerk */ }
   }, 30000);
 })();
+
+/* Kino-Kopf und Piazza-Intro (03.10.2026, Uwe: Ja zu B1/B3/B4). Das Standbild
+   steht sofort; der Film lädt erst, wenn der Kopf zu sehen ist, und nie bei
+   „Bewegung reduzieren“, Datensparen oder langsamem Netz. Er blendet erst ein,
+   wenn er wirklich läuft — bis dahin sieht man dasselbe Standbild. Ein Knopf
+   hält ihn an (länger als fünf Sekunden Bewegung braucht einen Halt). */
+(function () {
+  'use strict';
+  var v = document.querySelector('video[data-kino]');
+  if (!v) { return; }
+  var netz = navigator.connection || {};
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches || netz.saveData || /(^|-)2g$/.test(netz.effectiveType || '')) { return; }
+  if (!('IntersectionObserver' in window)) { return; }
+  var halt = v.parentNode.querySelector('.lp-kino-halt'), angehalten = false, zuEnde = false;
+  function knopf() {
+    if (!halt) { return; }
+    halt.setAttribute('aria-label', angehalten ? halt.dataset.weiter : halt.dataset.halt);
+    halt.firstChild.textContent = angehalten ? '▶' : '❚❚';
+  }
+  v.addEventListener('playing', function () { v.classList.add('an'); if (halt) { halt.hidden = false; } });
+  v.addEventListener('ended', function () { zuEnde = true; if (halt) { halt.hidden = true; } });   // Intro: bleibt auf dem letzten Bild
+  v.addEventListener('error', function () { v.classList.remove('an'); if (halt) { halt.hidden = true; } }, true);
+  if (halt) {
+    halt.addEventListener('click', function () {
+      angehalten = !angehalten;
+      if (angehalten) { v.pause(); } else { v.play().catch(function () {}); }
+      knopf();
+    });
+  }
+  new IntersectionObserver(function (e) {
+    e.forEach(function (x) {
+      if (x.isIntersecting && !angehalten && !zuEnde) { v.preload = 'auto'; var p = v.play(); if (p && p.catch) { p.catch(function () {}); } }
+      else if (!x.isIntersecting) { v.pause(); }
+    });
+  }, { threshold: 0.25 }).observe(v.parentNode);
+})();

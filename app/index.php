@@ -728,6 +728,26 @@ if ($post) {
                 } else { $_SESSION['fehler'] = 'Dieser Wunsch ist schon entschieden.'; }
                 weiter('freigabe#partner3d');
 
+            /* Titelbilder der Partnerseiten (03.10.2026, B1/B3/B4): bestellen, freigeben, verwerfen. */
+            case 'koepfe_bestellen':
+                require_once __DIR__ . '/src/PartnerKopf.php';
+                $pkN = PartnerKopf::bestellen();
+                $_SESSION[$pkN > 0 ? 'gut' : 'fehler'] = $pkN > 0 ? $pkN . ' Titelbilder bestellt — dein PC rechnet sie in der nächsten Nachtschicht. Danach hier ansehen und freigeben.' : 'Es fehlt nichts, oder alles ist schon beim PC.';
+                weiter('freigabe#koepfe');
+            case 'kopf_freigeben':
+            case 'kopf_verwerfen':
+                require_once __DIR__ . '/src/PartnerKopf.php';
+                $pkId = (int) ($_POST['kopf_id'] ?? 0);
+                if ($tat === 'kopf_freigeben') {
+                    $pkF = PartnerKopf::freigeben($pkId);
+                    if ($pkF === null) { Events::pruefspur($tat, 'partner_koepfe', $pkId, ['status' => 'wartet'], ['status' => 'frei']); $_SESSION['gut'] = 'Freigegeben — steht ab sofort auf den passenden Partnerseiten.'; }
+                    else { $_SESSION['fehler'] = $pkF; }
+                } elseif (PartnerKopf::verwerfen($pkId)) {
+                    Events::pruefspur($tat, 'partner_koepfe', $pkId, ['status' => 'wartet'], ['status' => 'verworfen']);
+                    $_SESSION['gut'] = 'Verworfen. „Rechnen lassen“ bestellt es mit neuem Blickwinkel neu.';
+                } else { $_SESSION['fehler'] = 'Dieses Titelbild ist schon entschieden.'; }
+                weiter('freigabe#koepfe');
+
             /* Studio (03.10.2026): ein Eintrag aus dem Katalog — immer nur einer gleichzeitig. */
             case 'studio_produzieren':
                 require_once __DIR__ . '/src/MkStudio.php';

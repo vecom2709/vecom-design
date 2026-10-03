@@ -4088,6 +4088,15 @@ final class Texte
        ------------------------------------------------------------------------ */
     public const PARTNER_SEITE = [
         /* Gestalter als Assistent (03.10.2026, Uwe: Ja zu E1–E4) */
+        /* Bewegtes Titelbild (03.10.2026, B1/B3/B4) */
+        'ga_kino' => ['it' => 'Immagine in movimento', 'de' => 'Bewegtes Titelbild', 'en' => 'Moving header image'],
+        'ga_kino_auto' => ['it' => 'Scena 3D del settore, cambia con la stagione', 'de' => '3D-Szene der Branche, wechselt mit der Jahreszeit', 'en' => '3D scene of the trade, changes with the season'],
+        'ga_kino_aus' => ['it' => 'Solo l’immagine fissa', 'de' => 'Nur das Standbild', 'en' => 'Still image only'],
+        'ga_kino_piazza' => ['it' => 'Intro: piazza di Palermo all’ora d’oro', 'de' => 'Intro: Piazza in Palermo zur goldenen Stunde', 'en' => 'Intro: piazza in Palermo at golden hour'],
+        'ga_kino_hilfe' => ['it' => 'Prima appare l’immagine fissa, poi il filmato senza audio. Chi ha attivato “riduci movimento” vede solo l’immagine. Con la tua foto vale sempre la tua foto.', 'de' => 'Zuerst steht das Standbild da, dann läuft der Film ohne Ton. Wer „Bewegung reduzieren“ eingestellt hat, sieht nur das Bild. Mit eigenem Foto gilt immer Ihr Foto.', 'en' => 'The still image appears first, then the silent film. Visitors with “reduce motion” see only the image. With your own photo, your photo always wins.'],
+        'ga_kino_bald' => ['it' => 'Per questa immagine il filmato è in preparazione — fino ad allora resta l’immagine fissa.', 'de' => 'Für dieses Bild ist der Film in Arbeit — bis dahin bleibt das Standbild.', 'en' => 'The film for this image is in the works — until then the still image stays.'],
+        'kino_halt' => ['it' => 'Ferma il movimento', 'de' => 'Bewegung anhalten', 'en' => 'Pause motion'],
+        'kino_weiter' => ['it' => 'Riprendi il movimento', 'de' => 'Bewegung fortsetzen', 'en' => 'Resume motion'],
         'ga_ab' => ['it' => 'Seconda intestazione da testare (facoltativa)', 'de' => 'Zweite Überschrift zum Testen (freiwillig)', 'en' => 'Second headline to test (optional)'],
         'ga_ab_hilfe' => ['it' => 'La pagina mostra a turno le due intestazioni. Dopo 100 visite resta da sola quella con cui più visitatori hanno fatto qualcosa.', 'de' => 'Die Seite zeigt abwechselnd beide Überschriften. Nach 100 Besuchen bleibt von selbst die, nach der mehr Besucher etwas getan haben.', 'en' => 'The page shows both headlines in turn. After 100 visits the one after which more visitors did something stays on its own.'],
         'ga_ab_stand' => ['it' => 'Test in corso: A {ab} visite, {ae} attive · B {bb} visite, {be} attive', 'de' => 'Test läuft: A {ab} Besuche, {ae} aktiv · B {bb} Besuche, {be} aktiv', 'en' => 'Test running: A {ab} visits, {ae} active · B {bb} visits, {be} active'],

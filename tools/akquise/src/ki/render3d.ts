@@ -34,7 +34,9 @@ export type DreiD = { studio: string | null; generativ: boolean; seed: number; s
   /** Partner-Wunsch (W1–W3): Feinwahl für Branchen-Szenen; partner_wunsch = prompt ist der freie Text eines Partners. */
   wunsch?: { blick?: string; naehe?: string; stimmung?: string } | null; partner_wunsch?: boolean;
   /** Werbespot (01.10.2026, marketing_spot.py): Abspann; beim Vecom-Spot Szenenfolge, Branchen-Zeilen und das goldene V. */
-  spot?: { marke?: string; claim?: string; url?: string; montage?: string[]; etiketten?: string[]; endclip?: boolean } | null };
+  spot?: { marke?: string; claim?: string; url?: string; montage?: string[]; etiketten?: string[]; endclip?: boolean } | null;
+  /** Titelbild einer Partnerseite (03.10.2026, B1/B3/B4): nahtlose Schleife, Licht der Jahreszeit, eigene Länge und Pixel, nie Text im Bild. */
+  kopf?: { schleife?: boolean; saison?: string; sekunden?: number; px?: string } | null };
 export type DreiDAuftrag = MedienAuftrag & { drei_d: DreiD };
 
 /** Repo-Wurzel (tools/akquise/src/ki → ../../../../). */
@@ -109,6 +111,15 @@ export function blenderAuftrag(a: DreiDAuftrag, aus: string): Record<string, unk
   const film = a.medium === 'video';
   const w = a.drei_d.wunsch ?? {};
   const fein = Object.fromEntries((['blick', 'naehe', 'stimmung'] as const).filter((k) => typeof w[k] === 'string' && w[k]).map((k) => [k, w[k] as string]));
+  const k = a.drei_d.kopf;
+  if (k) {
+    // Titelbild: kein Titel, kein Abspann — der Text der Seite steht daneben, nicht im Bild.
+    const px = /^\d{3,4}x\d{3,4}$/.test(k.px ?? '') ? (k.px as string) : pixel(a.format, a.medium);
+    const saison = ['fruehling', 'sommer', 'herbst', 'winter'].includes(k.saison ?? '') ? { saison: k.saison } : {};
+    const sek = Number(k.sekunden);
+    return { px, seed: a.drei_d.seed, aus, ...fein, ...saison,
+      ...(film ? { sekunden: sek >= 3 && sek <= 12 ? sek : 6, titel: '', abspann: '', ...(k.schleife ? { schleife: true } : {}) } : {}) };
+  }
   return {
     px: pixel(a.format, a.medium), seed: a.drei_d.seed, aus, ...fein,
     ...(film ? { sekunden: 8, titel: a.drei_d.film_titel, abspann: a.drei_d.abspann || 'vecom-design.it' } : {}),

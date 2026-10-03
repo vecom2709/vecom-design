@@ -169,7 +169,7 @@ def ort(sz, auftrag, tex):
     return {'hdri_yaw': yaw, 'projektion_cm': hoehe, 'eigenschaften': {k: str(v) for k, v in eigen.items()}}
 
 
-def nachbearbeitung():
+def nachbearbeitung(weiss_k=None):
     ppv = _spawn(unreal.PostProcessVolume, name='Nachbearbeitung')
     _setz(ppv, 'unbound', True)
     e = ppv.settings
@@ -182,6 +182,11 @@ def nachbearbeitung():
                        ('film_grain_intensity', 0.0), ('motion_blur_amount', 0.0)):
         _setz(e, 'override_' + feld, True)
         _setz(e, feld, wert)
+    # Weissabgleich wie in Blender (03.10.2026, Piazza-Intro zur goldenen Stunde, B3):
+    # gleiche Bedeutung -- hoeher = waermer. Ohne Angabe bleibt Unreals Standard (6500 K).
+    if weiss_k:
+        _setz(e, 'override_white_temp', True)
+        _setz(e, 'white_temp', float(weiss_k))
     _setz(ppv, 'settings', e)
 
 
@@ -390,7 +395,7 @@ def main():
         print('[m01] Achsen: Abweichung %.1f cm' % bericht['achsen_abweichung_cm'])
     tex = hdri_importieren(sz['hdri'])
     bericht['ort'] = ort(sz, auftrag, tex)
-    nachbearbeitung()
+    nachbearbeitung(sz.get('weissabgleich_k'))
     n = len(sz['bilder'])
     kam, bericht['kamera'] = kamera(sz, auftrag)
     seqpfad = sequenz(sz, kam, n)

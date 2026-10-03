@@ -287,3 +287,47 @@ require __DIR__ . '/mk_stil.php';
     <button class="knopf">Rechnen (nächste Nachtschicht)</button>
   </form>
 </section>
+
+<?php /* Titelbilder der Partnerseiten (03.10.2026, Uwe: Ja zu B1 Kino-Kopf, B3 Piazza-Intro, B4 Jahreszeiten). */
+  require_once dirname(__DIR__) . '/src/PartnerKopf.php';
+  $pkStand = PartnerKopf::stand(); $pkWartet = PartnerKopf::wartend(); $pkJetzt = PartnerKopf::saison();
+  $pkFehlt = 0; foreach ($pkStand as $pkS) { foreach ($pkS as $pkZ) { foreach ($pkZ as $pkW) { $pkFehlt += $pkW === 'fehlt' ? 1 : 0; } } }
+  $pkZeichen = ['frei' => ['●', 'frei', '#34d39b'], 'wartet' => ['◆', 'wartet auf dich', '#f1d38b'], 'rechnet' => ['○', 'beim PC', '#8fb4ff'], 'fehlt' => ['–', 'fehlt', 'rgba(255,255,255,.4)']]; ?>
+<section class="block mk-start" id="koepfe" aria-labelledby="mk-pk-titel" style="margin-top:16px">
+  <h2 id="mk-pk-titel">Titelbilder der Partnerseiten <span class="mehr">Kino-Kopf je Branche · Licht der Jahreszeit · Piazza-Intro aus Unreal · erst dein Ja bringt sie auf die Seiten</span></h2>
+  <p class="mk-fein" style="margin:0 0 10px;max-width:92ch;line-height:1.55">Je Szene ein Standbild (1920×1080) und eine stumme Schleife von <?= PartnerKopf::SCHLEIFE_SEKUNDEN ?> Sekunden (1280×720), gerechnet mit Cycles auf deinem PC in der Nachtschicht — keine Credits. Die Seite zeigt zuerst das Standbild; die Schleife beginnt im selben Blickwinkel und blendet darüber. Jetzt ist <b><?= Fmt::h(PartnerKopf::SAISONEN[$pkJetzt]) ?></b>; die Seiten nehmen von selbst die passende Jahreszeit. Es wechseln Licht und Farbe, keine Gegenstände. Das Piazza-Intro (Quattro Canti, Palermo, goldene Stunde, <?= PartnerKopf::INTRO_SEKUNDEN ?> s) rechnet Unreal, wenn freigeschaltet, sonst Blender.</p>
+  <div class="tabellenrahmen" style="overflow-x:auto"><table style="min-width:560px;font-variant-numeric:tabular-nums">
+    <thead><tr><th scope="col">Szene</th><?php foreach (PartnerKopf::SAISONEN as $pkSk => $pkSn): ?><th scope="col"><?= Fmt::h($pkSn) ?><?= $pkSk === $pkJetzt ? ' (jetzt)' : '' ?></th><?php endforeach; ?></tr></thead>
+    <tbody>
+    <?php foreach ($pkStand as $pkSt => $pkS): ?>
+      <tr><th scope="row"><?= Fmt::h($pkSt === PartnerKopf::PIAZZA ? 'Piazza-Intro Palermo (ganzjährig)' : (MkMedium::STUDIO_NAMEN[$pkSt] ?? $pkSt)) ?></th>
+        <?php foreach ($pkSt === PartnerKopf::PIAZZA ? ['' => ''] : PartnerKopf::SAISONEN as $pkSk => $pkSn): $pkZ = $pkS[$pkSk] ?? ['bild' => 'fehlt', 'film' => 'fehlt']; ?>
+          <td<?= $pkSt === PartnerKopf::PIAZZA ? ' colspan="4"' : '' ?>><?php foreach (['bild' => 'Bild', 'film' => 'Film'] as $pkA => $pkAn): $pkZe = $pkZeichen[$pkZ[$pkA]]; ?><span style="color:<?= $pkZe[2] ?>;margin-right:10px" title="<?= Fmt::h($pkAn . ': ' . $pkZe[1]) ?>"><?= $pkZe[0] ?> <?= $pkAn ?></span><?php endforeach; ?></td>
+        <?php endforeach; ?></tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+  <p class="mk-fein" style="margin:6px 0 10px"><?php foreach ($pkZeichen as $pkZe): ?><span style="color:<?= $pkZe[2] ?>;margin-right:14px"><?= $pkZe[0] ?> <?= Fmt::h($pkZe[1]) ?></span><?php endforeach; ?></p>
+  <?php if ($pkWartet): ?>
+    <div class="mk-galerie">
+      <?php foreach ($pkWartet as $pk): ?>
+        <figure class="mk-galerie__stueck">
+          <?php if ($pk['art'] === 'film'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $pk['medium_id'])) ?>" controls muted loop preload="metadata" playsinline></video>
+          <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $pk['medium_id'])) ?>" alt="Titelbild <?= Fmt::h((string) $pk['studio']) ?>" loading="lazy"><?php endif; ?>
+          <figcaption><span><?= Fmt::h($pk['studio'] === PartnerKopf::PIAZZA ? 'Piazza-Intro' : (MkMedium::STUDIO_NAMEN[$pk['studio']] ?? $pk['studio'])) ?> · <?= Fmt::h(PartnerKopf::SAISONEN[$pk['saison']] ?? 'ganzjährig') ?> · <?= $pk['art'] === 'film' ? 'Film' : 'Standbild' ?></span>
+            <span class="mk-galerie__knoepfe">
+              <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kopf_freigeben"><input type="hidden" name="kopf_id" value="<?= (int) $pk['id'] ?>"><button class="knopf klein">Freigeben</button></form>
+              <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="kopf_verwerfen"><input type="hidden" name="kopf_id" value="<?= (int) $pk['id'] ?>"><button class="knopf klein">Verwerfen</button></form>
+            </span>
+          </figcaption>
+        </figure>
+      <?php endforeach; ?>
+    </div>
+  <?php endif; ?>
+  <?php if ($pkFehlt > 0): ?>
+    <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" class="mk-zeile" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="koepfe_bestellen">
+      <span><?= $pkFehlt ?> fehlen noch — je Klick die nächsten <?= PartnerKopf::JE_KLICK ?> (Piazza und die laufende Jahreszeit zuerst; Verworfenes wird mit neuem Blickwinkel neu gerechnet).</span>
+      <button class="knopf">Rechnen lassen (nächste Nachtschicht)</button>
+    </form>
+  <?php endif; ?>
+</section>

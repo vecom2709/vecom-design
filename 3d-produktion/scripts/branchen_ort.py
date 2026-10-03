@@ -1041,6 +1041,18 @@ if MK:
         except Exception:
             pass
         _bericht['stimmung'] = 'abend'
+    # Jahreszeit (B4, 03.10.2026, Titelbilder der Partnerseiten): dasselbe Licht,
+    # wie es ein Fotograf zur Jahreszeit belichten wuerde -- Weissabgleich und
+    # Belichtung nach der Messung. Es wechseln Licht und Farbe, keine Gegenstaende.
+    _saison = {'fruehling': (6000.0, 0.15), 'sommer': (6900.0, 0.25), 'herbst': (7900.0, -0.25), 'winter': (5200.0, -0.35)}.get(str(MK.get('saison', '')))
+    if _saison:
+        sc.view_settings.exposure += _saison[1]
+        try:
+            sc.view_settings.use_white_balance = True
+            sc.view_settings.white_balance_temperature = _saison[0] + (1700.0 if _bericht.get('stimmung') == 'abend' else 0.0)
+        except Exception:
+            pass
+        _bericht['saison'] = str(MK.get('saison'))
     r.resolution_percentage, sc.cycles.samples = _alt
     try:
         os.remove(_probe)
@@ -1117,6 +1129,7 @@ if MK:
         szene_ue = {'glb': glb, 'px': list(MK_PX), 'fps': FPS, 'bilder': bilder, 'ziel': [ziel.x, ziel.y, ziel.z],
                     'brennweite_mm': cam_d.lens, 'blende': cam_d.dof.aperture_fstop, 'hdri': os.path.join(Q, _hdri), 'hdri_drehung_grad': O['dreh'],
                     'hdri_staerke': O['staerke'], 'kamera_hoehe_m': cam.location.z - boden_z, 'boden_z': boden_z, 'belichtung': sc.view_settings.exposure,
+                    'weissabgleich_k': sc.view_settings.white_balance_temperature if getattr(sc.view_settings, 'use_white_balance', False) else None,
                     'titel': MK.get('titel', ''), 'abspann': MK.get('abspann', ''), 'probe_mittel': _bericht.get('probe_mittel'), 'grenzen': _grenzen, 'referenz': _ref}
         with open(_aus, 'w', encoding='utf-8') as _f:
             json.dump(szene_ue, _f, ensure_ascii=False, indent=1)
@@ -1176,12 +1189,22 @@ if MK:
         w0 = math.atan2(-d0.x, -d0.y); rad0 = math.hypot(d0.x, d0.y); h0 = d0.z
         spanne = math.radians(float(MK.get('spanne', 34.0)))
         t0 = time.time()
+        schleife = bool(MK.get('schleife'))
         for f in range(N):
-            t = f / (N - 1)
-            e = t * t * (3 - 2 * t)                  # weich an- und auslaufen
-            w = w0 - spanne / 2 + spanne * e
-            rad = rad0 * (1.0 - 0.09 * e)            # leichtes Heranfahren
-            pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0 * (0.95 + 0.07 * e)))
+            if schleife:
+                # Titelbild (B1): nahtlose Schleife -- Bild N waere wieder Bild 0, und Bild 0
+                # steht genau dort, wo das Standbild derselben Zufallszahl steht. Ruhiges
+                # Pendeln um ein Drittel der Spanne, kaum Atmen in Abstand und Hoehe.
+                u = 2 * math.pi * f / N
+                w = w0 + spanne * 0.35 * math.sin(u)
+                rad = rad0 * (1.0 - 0.03 * (1 - math.cos(u)))
+                pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0 * (1.0 + 0.02 * math.sin(u))))
+            else:
+                t = f / (N - 1)
+                e = t * t * (3 - 2 * t)              # weich an- und auslaufen
+                w = w0 - spanne / 2 + spanne * e
+                rad = rad0 * (1.0 - 0.09 * e)        # leichtes Heranfahren
+                pos = Vector((ziel.x - math.sin(w) * rad, ziel.y - math.cos(w) * rad, ziel.z + h0 * (0.95 + 0.07 * e)))
             cam.location = pos
             cam.rotation_euler = (ziel - pos).to_track_quat('-Z', 'Y').to_euler()
             cam_d.dof.focus_distance = (ziel - pos).length

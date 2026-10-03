@@ -328,6 +328,11 @@ final class MkMedium
             'credits' => is_numeric($d['credits'] ?? null) ? round((float) $d['credits'], 2) : null, 'prompt' => (string) ($p['prompt'] ?? ''),
             'quelle_url' => preg_match('~^https://[^\s"<>]{8,590}$~', $url) ? $url : null,
         ]);
+        /* Titelbild einer Partnerseite (03.10.2026, B1/B3/B4): wartet in Freigeben › Titelbilder statt in der Galerie. */
+        if (!empty($p['kopf'])) {
+            require_once __DIR__ . '/PartnerKopf.php';
+            PartnerKopf::eingang($id, $auftrag, $p);
+        }
         return ['ok' => true, 'id' => $id];
     }
 

@@ -284,7 +284,10 @@ final class MkAuftrag
                         /* Partner-Wunsch (W1–W3): Feinwahl für Branchen-Szenen; bei eigener Idee ist prompt der Wunschtext. */
                         'wunsch' => isset($p['wunsch']) && is_array($p['wunsch']) ? $p['wunsch'] : null, 'partner_wunsch' => isset($p['wunschtext']) && $p['wunschtext'] !== '',
                         /* Werbespot (01.10.2026): Abspann, beim Vecom-Spot die Szenenfolge und das goldene V */
-                        'spot' => isset($p['spot']) && is_array($p['spot']) ? $p['spot'] : null] : null]];
+                        'spot' => isset($p['spot']) && is_array($p['spot']) ? $p['spot'] : null,
+                        /* Titelbild einer Partnerseite (03.10.2026, B1/B3/B4): Schleife, Jahreszeit, Länge, Pixel */
+                        'kopf' => isset($p['kopf']) && is_array($p['kopf']) ? ['schleife' => !empty($p['kopf']['schleife']), 'saison' => (string) ($p['kopf']['saison'] ?? ''),
+                            'sekunden' => (int) ($p['kopf']['sekunden'] ?? 0), 'px' => (string) ($p['kopf']['px'] ?? '')] : null] : null]];
             }
             $branche = (string) $a['branche'];
             $land = (string) $a['land'];
