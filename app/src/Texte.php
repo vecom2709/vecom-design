@@ -4822,6 +4822,55 @@ final class Texte
         ],
     ];
 
+    /* Automatisierungen, die der Partner selbst schaltet (03.10.2026, PartnerAutomatik). */
+    public const PARTNER_AUTOMATIK = [
+        'titel'   => ['it' => 'Automatico per lei', 'de' => 'Automatisch für Sie', 'en' => 'Automatic for you'],
+        'text'    => ['it' => 'Lei decide cosa succede da solo. Niente viene inviato a terzi a suo nome — solo avvisi sul suo telefono.', 'de' => 'Sie entscheiden, was von selbst passiert. Nichts geht in Ihrem Namen an andere — nur Hinweise auf Ihr Handy.', 'en' => 'You decide what happens on its own. Nothing is sent to others in your name — only alerts on your phone.'],
+        'schalter' => [
+            'medien'        => [['it' => 'Nuovi video e immagini subito sul telefono', 'de' => 'Neue Videos und Bilder sofort aufs Handy', 'en' => 'New videos and images straight to your phone'],
+                                ['it' => 'Appena Vecom approva un nuovo video, lo sa.', 'de' => 'Sobald Vecom ein neues Video freigibt, wissen Sie es.', 'en' => 'As soon as Vecom approves a new video, you know.']],
+            'wochenpaket'   => [['it' => 'Il lunedì: pacchetto pubblicitario della settimana', 'de' => 'Montags: Werbepaket der Woche', 'en' => 'Mondays: this week’s promo pack'],
+                                ['it' => 'Un’idea pronta e il link ai post della settimana.', 'de' => 'Eine fertige Idee und der Sprung zu den Beiträgen der Woche.', 'en' => 'A ready idea and a jump to the week’s posts.']],
+            'autopilot'     => [['it' => 'Ogni mattina: attività vicine da visitare', 'de' => 'Jeden Morgen: Betriebe zum Vorbeigehen', 'en' => 'Every morning: businesses to visit'],
+                                ['it' => 'Quante e a che ora — sceglie lei.', 'de' => 'Wie viele und um wie viel Uhr — Sie wählen.', 'en' => 'How many and at what time — you choose.']],
+            'nachfass'      => [['it' => 'Promemoria per ricontattare', 'de' => 'Erinnerung zum Nachhaken', 'en' => 'Follow-up reminder'],
+                                ['it' => 'Dopo 3 e dopo 7 giorni, se non ha ancora risposto nessuno.', 'de' => 'Nach 3 und nach 7 Tagen, wenn noch niemand geantwortet hat.', 'en' => 'After 3 and after 7 days, if nobody has replied yet.']],
+            'check'         => [['it' => 'Verifica e cartella da sole', 'de' => 'Check und Mappe von selbst', 'en' => 'Check and folder on their own'],
+                                ['it' => 'Prenota un’attività con sito? Prepariamo la verifica e glielo diciamo.', 'de' => 'Reservieren Sie einen Betrieb mit Website, liegt der Check kurz darauf bereit.', 'en' => 'Reserve a business with a website and the check is ready shortly after.']],
+            'wochenbericht' => [['it' => 'Il venerdì: la sua settimana in una frase', 'de' => 'Freitags: Ihre Woche in einem Satz', 'en' => 'Fridays: your week in one sentence'],
+                                ['it' => 'Visite, clienti, vendite e provvigione.', 'de' => 'Besuche, Kunden, Verkäufe und Provision.', 'en' => 'Visits, customers, sales and commission.']],
+            'kalender'      => [['it' => 'Richiamate nel suo calendario', 'de' => 'Rückrufe in Ihren Kalender', 'en' => 'Callbacks in your calendar'],
+                                ['it' => 'Abbonamento per il calendario del telefono — si aggiorna da solo.', 'de' => 'Ein Abo für den Kalender im Handy — aktualisiert sich von selbst.', 'en' => 'A subscription for your phone calendar — updates itself.']],
+        ],
+        'anzahl'   => ['it' => 'Quante', 'de' => 'Wie viele', 'en' => 'How many'],
+        'stunde'   => ['it' => 'Alle ore', 'de' => 'Um', 'en' => 'At'],
+        'uhr'      => ['it' => '{h}:00', 'de' => '{h} Uhr', 'en' => '{h}:00'],
+        'ruhe'     => ['it' => 'Modalità vacanza', 'de' => 'Urlaubsmodus', 'en' => 'Holiday mode'],
+        'ruhe_text'=> ['it' => 'Fino a questo giorno: nessun avviso e nessuna lista del mattino. I soldi arrivano comunque.', 'de' => 'Bis zu diesem Tag: keine Hinweise und keine Morgenliste. Geld kommt trotzdem.', 'en' => 'Until this day: no alerts and no morning list. Money still arrives.'],
+        'ruhe_bis' => ['it' => 'Fino al', 'de' => 'Bis einschließlich', 'en' => 'Until'],
+        'ruhig'    => ['it' => 'In vacanza fino al {datum} — tutto tace.', 'de' => 'Im Urlaub bis {datum} — alles ist still.', 'en' => 'On holiday until {datum} — all quiet.'],
+        'kal_link' => ['it' => 'Link per il calendario', 'de' => 'Link für den Kalender', 'en' => 'Calendar link'],
+        'kal_abo'  => ['it' => 'Aggiungi al calendario', 'de' => 'Im Kalender abonnieren', 'en' => 'Subscribe in calendar'],
+        'kal_hinweis' => ['it' => 'Il link vale solo per il calendario, non apre la sua area partner.', 'de' => 'Der Link gilt nur für den Kalender, er öffnet nicht Ihren Partnerbereich.', 'en' => 'The link only works for the calendar; it does not open your partner area.'],
+        'ohne_push'=> ['it' => 'Gli avvisi arrivano solo se ha attivato gli avvisi sul telefono (Profilo › Sul telefono).', 'de' => 'Hinweise kommen nur, wenn Sie sie am Handy eingeschaltet haben (Profil › Aufs Handy).', 'en' => 'Alerts only arrive if you have turned them on on your phone (Profile › On your phone).'],
+        'speichern'=> ['it' => 'Salva', 'de' => 'Speichern', 'en' => 'Save'],
+        'gespeichert' => ['it' => 'Salvato.', 'de' => 'Gespeichert.', 'en' => 'Saved.'],
+        'push' => [
+            'medien_video' => ['it' => 'Nuovo video da Vecom', 'de' => 'Neues Video von Vecom', 'en' => 'New video from Vecom'],
+            'medien_bild'  => ['it' => 'Nuova immagine da Vecom', 'de' => 'Neues Bild von Vecom', 'en' => 'New image from Vecom'],
+            'medien_text'  => ['it' => 'Pronto da condividere, con il suo link.', 'de' => 'Fertig zum Teilen, mit Ihrem Link.', 'en' => 'Ready to share, with your link.'],
+            'bericht_titel'=> ['it' => 'La sua settimana', 'de' => 'Ihre Woche', 'en' => 'Your week'],
+            'bericht_text' => ['it' => '{klicks} visite · {kunden} clienti · {verkaeufe} vendite · {betrag}', 'de' => '{klicks} Besuche · {kunden} Kunden · {verkaeufe} Verkäufe · {betrag}', 'en' => '{klicks} visits · {kunden} customers · {verkaeufe} sales · {betrag}'],
+            'check_titel'  => ['it' => 'Verifica pronta: {name}', 'de' => 'Check fertig: {name}', 'en' => 'Check ready: {name}'],
+            'check_text'   => ['it' => 'La cartella da mostrare è pronta.', 'de' => 'Die Mappe zum Zeigen liegt bereit.', 'en' => 'The folder to show is ready.'],
+        ],
+        'ics' => [
+            'name'      => ['it' => 'Vecom – chiamate', 'de' => 'Vecom – Anrufe', 'en' => 'Vecom – calls'],
+            'rueckruf'  => ['it' => 'Richiamare: {name}', 'de' => 'Zurückrufen: {name}', 'en' => 'Call back: {name}'],
+            'nachhaken' => ['it' => 'Ricontattare: {name}', 'de' => 'Nachhaken: {name}', 'en' => 'Follow up: {name}'],
+        ],
+    ];
+
     /* „Heute zu tun“ und Fortschritt ganz oben (03.10.2026, PartnerHeute). Je Punkt [eins, mehrere]. */
     public const PARTNER_HEUTE = [
         'titel'   => ['it' => 'Da fare oggi', 'de' => 'Heute zu tun', 'en' => 'To do today'],

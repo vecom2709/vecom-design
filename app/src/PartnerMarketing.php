@@ -169,7 +169,9 @@ final class PartnerMarketing
         if ($stunde < 9 || $stunde >= 20) { return 0; }
         require_once __DIR__ . '/PartnerPost.php';
         $n = 0;
+        require_once __DIR__ . '/PartnerAutomatik.php';
         foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND EXISTS (SELECT 1 FROM partner_push pp WHERE pp.partner_id = p.id)") as $p) {
+            if (!PartnerAutomatik::an((int) $p['id'], 'nachfass')) { continue; }   // Schalter des Partners (03.10.2026)
             $neu = array_values(array_filter(self::faellig((int) $p['id']), static fn($e) => $e['stufe'] > $e['gemeldet']));
             if (!$neu) { continue; }
             foreach ($neu as $e) {

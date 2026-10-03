@@ -120,9 +120,17 @@ final class PartnerPost
         Db::run('DELETE FROM partner_push WHERE partner_id = ? AND endpoint_hash = ?', [$partnerId, hash('sha256', $endpoint)]);
     }
 
-    /** @return int Zahl der zugestellten Hinweise */
-    public static function push(int $partnerId, string $titel, string $text, string $link): int
+    /**
+     * @param bool $immer auch im Urlaubsmodus (nur Geld: eine neue Provision will man auch im Urlaub wissen)
+     * @return int Zahl der zugestellten Hinweise
+     */
+    public static function push(int $partnerId, string $titel, string $text, string $link, bool $immer = false): int
     {
+        // Urlaubsmodus (03.10.2026, PartnerAutomatik): bis ruhe_bis kein Hinweis -- an genau einer Stelle, damit kein Weg vorbeiführt.
+        if (!$immer) {
+            require_once __DIR__ . '/PartnerAutomatik.php';
+            if (self::still(static fn() => PartnerAutomatik::ruhig($partnerId), false)) { return 0; }
+        }
         $n = 0;
         foreach (self::still(static fn() => Db::all('SELECT * FROM partner_push WHERE partner_id = ?', [$partnerId]), []) as $abo) {
             $r = self::still(static fn() => WebPush::senden($abo, ['titel' => $titel, 'text' => $text, 'link' => $link]),
@@ -148,7 +156,7 @@ final class PartnerPost
         require_once __DIR__ . '/Fmt.php';
         $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
         self::push($partnerId, strtr(self::t('push_prov_t', $sp), ['{betrag}' => Fmt::geld($cents)]), self::t('push_prov_x', $sp),
-            Partner::portalLink($p));
+            Partner::portalLink($p), true);
     }
 
     /* ==================================================================== */
@@ -201,6 +209,9 @@ final class PartnerPost
         foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND " . PartnerSchutz::sqlFrei('p') . "
                             AND EXISTS (SELECT 1 FROM partner_push pp WHERE pp.partner_id = p.id)
                             AND (p.impuls_am IS NULL OR p.impuls_am < ?)", [date('Y-m-d H:i:s', $jetzt - 6 * 86400)]) as $p) {
+            // Schalter „Montags: Werbepaket der Woche“ (03.10.2026, PartnerAutomatik)
+            require_once __DIR__ . '/PartnerAutomatik.php';
+            if (!PartnerAutomatik::an((int) $p['id'], 'wochenpaket')) { continue; }
             // Erst vermerken, dann schicken: Ein hängender Push-Dienst darf keine Serie auslösen.
             Db::run('UPDATE partner SET impuls_am = ? WHERE id = ?', [date('Y-m-d H:i:s', $jetzt), (int) $p['id']]);
             $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';

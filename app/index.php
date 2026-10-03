@@ -768,6 +768,12 @@ if ($post) {
                         MkMedium::status((int) $g3M['id'], $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen');
                         Events::pruefspur($tat, 'mk_medien', (int) $g3M['id'], ['status' => $g3M['status']], ['status' => $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen']);
                         $_SESSION['gut'] = $tat === 'galerie_freigeben' ? (!empty($g3M['partner_id']) ? 'Freigegeben — der Partner sieht es jetzt in seinem Dashboard.' : 'Steht jetzt in der Galerie aller Partner.') : 'Verworfen.';
+                        if ($tat === 'galerie_freigeben') {
+                            /* Schalter „Neue Videos sofort aufs Handy“ (03.10.2026, PartnerAutomatik) */
+                            require_once __DIR__ . '/src/PartnerAutomatik.php';
+                            $g3Push = (static function (int $id): int { try { return PartnerAutomatik::medienMelden($id); } catch (Throwable $e) { return 0; } })((int) $g3M['id']);
+                            if ($g3Push > 0) { $_SESSION['gut'] .= ' ' . $g3Push . ' Partner per Handy benachrichtigt.'; }
+                        }
                     }
                 }
                 weiter('freigabe#partner3d');

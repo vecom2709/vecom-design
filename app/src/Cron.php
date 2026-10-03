@@ -150,6 +150,8 @@ final class Cron
                                           'neufassung' => (static function (): int { try { return PartnerSchutz::hinweiseVersenden(); } catch (Throwable $e) { return -1; } })(),
                                           'weckrufe' => PartnerSteuerung::weckruf(), 'autopilot' => (static function (): int {
                                               try { require_once __DIR__ . '/PartnerAutopilot.php'; return PartnerAutopilot::morgen(); } catch (Throwable $e) { return -1; }
+                                          })(), 'automatik' => (static function (): array {
+                                              try { require_once __DIR__ . '/PartnerAutomatik.php'; return PartnerAutomatik::lauf(); } catch (Throwable $e) { return ['fehler' => 1]; }
                                           })(), 'rueckrufe' => (static function (): int {
                                               try { require_once __DIR__ . '/PartnerAnrufliste.php'; return PartnerAnrufliste::morgen(); } catch (Throwable $e) { return -1; }
                                           })()];

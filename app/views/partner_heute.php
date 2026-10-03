@@ -23,6 +23,10 @@ $htF = PartnerHeute::fortschritt($p);
     <?php endif; ?>
   </div>
   <h2 id="ht_titel"><?= $h($htW($HT['titel'])) ?></h2>
+  <?php require_once dirname(__DIR__) . '/src/PartnerAutomatik.php';
+        if (PartnerAutomatik::ruhig((int) $p['id'])): /* Urlaubsmodus sichtbar machen, sonst wundert man sich über die Stille */ ?>
+    <p class="klein" style="margin:0 0 8px"><a href="#automatik" style="color:var(--cyan)"><?= $h(strtr(Texte::h(Texte::PARTNER_AUTOMATIK['ruhig'], $sprache), ['{datum}' => date($sprache === 'de' ? 'd.m.Y' : 'd/m/Y', (int) strtotime((string) PartnerAutomatik::einstellungen((int) $p['id'])['ruhe_bis']))])) ?></a></p>
+  <?php endif; ?>
   <?php if (!$htPunkte): ?>
     <p class="klein" style="margin:0"><?= $h($htW($HT['leer'])) ?></p>
   <?php else: ?>

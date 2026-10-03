@@ -15285,6 +15285,73 @@ pruefe('Werben geordnet (Fertig zum Teilen / Selbst gestalten): jede genannte Sp
     implode(', ', $htOrdFehlt));
 pruefe('Einklappbar: Provisionsliste — acht Zeilen offen, ältere hinter „Weitere … zeigen“',
     str_contains((string) file_get_contents($wurzel . '/../partner.php'), "if (\$provNr === 9):") && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "<?php if (\$provNr > 8): ?></details><?php endif; ?>"));
+/* Automatisch für Sie (03.10.2026, Uwe: Ja zu acht Automatisierungen). Jeder Schalter gehört dem
+   Partner; nichts geht in seinem Namen an Dritte. Urlaubsmodus an genau einer Stelle (PartnerPost::push). */
+require_once $wurzel . '/src/PartnerAutomatik.php';
+$paPid = (int) $alP['id'];
+Db::run('DELETE FROM partner_automatik WHERE partner_id = ?', [$paPid]);
+$paE0 = PartnerAutomatik::einstellungen($paPid);
+pruefe('Automatik: ab Werk alles an außer Kalender, 5 Betriebe um 8 Uhr, kein Urlaub',
+    $paE0['medien'] && $paE0['wochenpaket'] && $paE0['autopilot'] && $paE0['nachfass'] && $paE0['check'] && $paE0['wochenbericht'] && !$paE0['kalender']
+    && $paE0['anzahl'] === 5 && $paE0['stunde'] === 8 && $paE0['ruhe_bis'] === null && !PartnerAutomatik::ruhig($paPid));
+PartnerAutomatik::speichern($paPid, ['medien' => '1', 'kalender' => '1', 'anzahl' => '7', 'stunde' => '10', 'ruhe' => '1', 'ruhe_bis' => date('Y-m-d', strtotime('+400 days')), 'fremd' => '1']);
+$paE1 = PartnerAutomatik::einstellungen($paPid);
+pruefe('Automatik: Formular — fehlende Haken sind aus, falsche Anzahl bleibt beim Alten, Urlaub höchstens 60 Tage, Fremdes ignoriert',
+    $paE1['medien'] && $paE1['kalender'] && !$paE1['wochenpaket'] && !$paE1['nachfass'] && $paE1['anzahl'] === 5 && $paE1['stunde'] === 10
+    && $paE1['ruhe_bis'] === date('Y-m-d', strtotime('+' . PartnerAutomatik::RUHE_MAX_TAGE . ' days')) && PartnerAutomatik::ruhig($paPid)
+    && !array_key_exists('fremd', $paE1), json_encode($paE1));
+pruefe('Automatik: Urlaubsmodus hält jeden Hinweis an einer Stelle an — nur eine neue Provision kommt trotzdem',
+    PartnerPost::push($paPid, 'Kette', 'Kette', 'https://example.invalid') === 0
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerPost.php'), "if (self::still(static fn() => PartnerAutomatik::ruhig(\$partnerId), false)) { return 0; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerPost.php'), "Partner::portalLink(\$p), true);"));
+PartnerAutomatik::speichern($paPid, ['kalender' => '1', 'check' => '1', 'anzahl' => '3', 'stunde' => '7', 'ruhe_bis' => date('Y-m-d', strtotime('+3 days'))]);
+pruefe('Automatik: Urlaub aus, wenn der Haken fehlt — auch mit Datum; Anzahl 3 gewählt',
+    !PartnerAutomatik::ruhig($paPid) && PartnerAutomatik::einstellungen($paPid)['anzahl'] === 3 && PartnerAutopilot::anzahl($paPid) === 3);
+// Kalender-Abo
+$paFk = $alNeu('AL00000099', ['name' => 'Bäckerei Kalendermann mit einem sehr langen Namen, der die Zeile über fünfundsiebzig Byte treibt', 'land' => 'DE', 'branche' => 'baeckerei', 'stadt' => 'Bad Kreuznach', 'telefon' => '+49 671 123123']);
+Db::insert('partner_reservierungen', ['firma_id' => $paFk, 'partner_id' => $paPid, 'bis' => date('Y-m-d', strtotime('+20 days')), 'herkunft' => 'vecom', 'anruf_status' => 'nicht_erreicht', 'versuche' => 1, 'naechster_versuch' => date('Y-m-d', strtotime('+2 days'))]);
+$paTok = PartnerAutomatik::icsToken($paPid);
+$paIcs = (string) PartnerAutomatik::ics($paTok);
+$paZeilen = explode("\r\n", rtrim($paIcs, "\r\n"));
+$paLang = array_filter($paZeilen, static fn($l) => strlen($l) > 75);
+$paUnfalt = str_replace("\r\n ", '', $paIcs);
+pruefe('Kalender-Abo: Rückruf als Ganztagstermin, Zeilen höchstens 75 Byte und umlautsicher gefaltet, kein Zugangslink, eigener Schlüssel',
+    str_starts_with($paIcs, "BEGIN:VCALENDAR\r\n") && str_contains($paIcs, "END:VCALENDAR\r\n") && str_contains($paUnfalt, 'Kalendermann')
+    && str_contains($paIcs, 'DTSTART;VALUE=DATE:' . date('Ymd', strtotime('+2 days'))) && $paLang === [] && mb_check_encoding($paIcs, 'UTF-8')
+    && !str_contains($paIcs, 'partner.php') && !str_contains($paIcs, (string) $alP['token']) && $paTok !== (string) $alP['token']
+    && PartnerAutomatik::icsToken($paPid) === $paTok, json_encode(array_values($paLang)));
+PartnerAutomatik::speichern($paPid, ['check' => '1']);
+pruefe('Kalender-Abo: falscher Schlüssel und abgeschalteter Kalender liefern nichts',
+    PartnerAutomatik::ics(str_repeat('0', 32)) === null && PartnerAutomatik::ics('kaputt') === null && PartnerAutomatik::ics($paTok) === null
+    && str_contains((string) file_get_contents($wurzel . '/../partner-kalender.php'), 'http_response_code(404)'));
+// Check von selbst: eine Website, die es nicht gibt, wird einmal versucht und nicht jede halbe Stunde wieder
+$paFc = $alNeu('AL00000098', ['name' => 'Nirgendwo Bar', 'land' => 'IT', 'branche' => 'bar_cafe', 'stadt' => 'Aragona', 'url' => 'https://nirgendwo-bar.invalid', 'domain' => 'nirgendwo-bar.invalid']);
+Db::insert('partner_reservierungen', ['firma_id' => $paFc, 'partner_id' => $paPid, 'bis' => date('Y-m-d', strtotime('+20 days'))]);
+$paC1 = PartnerAutomatik::checksNachholen($paPid);   // nur dieser Partner — die Kette ruft keine fremden Websites ab
+$paRoh = json_decode((string) Db::wert('SELECT einstellungen FROM partner_automatik WHERE partner_id = ?', [$paPid], '{}'), true);
+PartnerAutomatik::speichern($paPid, ['check' => '1', 'medien' => '1']);
+$paRoh2 = json_decode((string) Db::wert('SELECT einstellungen FROM partner_automatik WHERE partner_id = ?', [$paPid], '{}'), true);
+pruefe('Check von selbst: Fehlschlag wird gemerkt und nicht wiederholt, Speichern behält das Gedächtnis, höchstens drei je Lauf',
+    $paC1 === 0 && in_array($paFc, $paRoh['check_versucht'] ?? [], true) && in_array($paFc, $paRoh2['check_versucht'] ?? [], true)
+    && PartnerAutomatik::checksNachholen($paPid) === 0 && PartnerAutomatik::CHECKS_JE_LAUF === 3, json_encode($paRoh2));
+pruefe('Automatik: Wochenbericht nur freitags 17–21 Uhr; Werbepaket, Nachhaken und Autopilot fragen den Schalter; Freigabe meldet neue Medien',
+    PartnerAutomatik::wochenbericht(strtotime('next thursday 18:00')) === 0 && PartnerAutomatik::wochenbericht(strtotime('next friday 10:00')) === 0
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerPost.php'), "if (!PartnerAutomatik::an((int) \$p['id'], 'wochenpaket')) { continue; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerMarketing.php'), "if (!PartnerAutomatik::an((int) \$p['id'], 'nachfass')) { continue; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerAutopilot.php'), "if (!\$pa['autopilot'] || PartnerAutomatik::ruhig((int) \$p['id'], \$heute) || \$stunde < (int) \$pa['stunde']) { continue; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerAutopilot.php'), 'LIMIT " . self::anzahl($pid)')
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), 'PartnerAutomatik::medienMelden($id)')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'PartnerAutomatik::lauf()'));
+$paTexte = [];
+foreach (Texte::PARTNER_AUTOMATIK['schalter'] as $paK => $paZ) { foreach ($paZ as $paT) { if (count($paT) !== 3) { $paTexte[] = $paK; } } }
+foreach (['push', 'ics'] as $paG) { foreach (Texte::PARTNER_AUTOMATIK[$paG] as $paK => $paT) { if (count($paT) !== 3) { $paTexte[] = "$paG.$paK"; } } }
+pruefe('Automatik: jeder Schalter mit Text in drei Sprachen, Block im Reiter Profil, Formular mit CSRF',
+    $paTexte === [] && array_keys(Texte::PARTNER_AUTOMATIK['schalter']) === array_keys(PartnerAutomatik::SCHALTER)
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_automatik.php'), '<div class="block pt" id="automatik" data-reiter="profil">')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_automatik.php'), 'name="_csrf"')
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'automatik' && \$p"), implode(', ', $paTexte));
+Db::run('DELETE FROM partner_automatik WHERE partner_id = ?', [$paPid]);
+Db::run('DELETE FROM partner_reservierungen WHERE firma_id IN (?, ?)', [$paFk, $paFc]);
 /* Kauf erst nach Monaten: die Vormerkung aus dem Anruf gilt 12 Monate, eine gewöhnliche nur 90 Tage */
 Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@anruf.example', 'telefon' => null, 'quelle' => 'anruf', 'art' => 'anruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);
 Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@link.example', 'telefon' => null, 'quelle' => 'link', 'art' => 'rueckruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);

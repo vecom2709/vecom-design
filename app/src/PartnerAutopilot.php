@@ -69,6 +69,13 @@ final class PartnerAutopilot
                   ORDER BY t.id', [$pid, $datum]));
     }
 
+    /** Wie viele Betriebe am Tag — der Partner wählt 3, 5 oder 10 (03.10.2026, PartnerAutomatik). */
+    public static function anzahl(int $pid): int
+    {
+        require_once __DIR__ . '/PartnerAutomatik.php';
+        try { return (int) PartnerAutomatik::einstellungen($pid)['anzahl']; } catch (Throwable $e) { return self::JE_TAG; }
+    }
+
     private static function anlegen(int $pid, string $ort, string $datum): int
     {
         $wie = '%' . addcslashes($ort, '%_\\') . '%';
@@ -83,7 +90,7 @@ final class PartnerAutopilot
                            AND NOT EXISTS (SELECT 1 FROM partner_tagesliste t WHERE t.partner_id = ? AND t.firma_id = f.id
                                             AND t.datum > DATE_SUB(?, INTERVAL " . self::PAUSE_TAGE . " DAY))
                       ORDER BY (f.url IS NULL OR f.url = '') DESC, COALESCE(f.score, 0) DESC, MD5(CONCAT(f.id, ?, ?))
-                         LIMIT " . self::JE_TAG, [$wie, $ort, $wie, $pid, $pid, $datum, $pid, $datum]);
+                         LIMIT " . self::anzahl($pid), [$wie, $ort, $wie, $pid, $pid, $datum, $pid, $datum]);
         foreach ($ids as $z) {
             Db::run('INSERT IGNORE INTO partner_tagesliste (partner_id, firma_id, datum) VALUES (?, ?, ?)', [$pid, (int) $z['id'], $datum]);
         }
@@ -116,6 +123,10 @@ final class PartnerAutopilot
         foreach (Db::all("SELECT p.* FROM partner p WHERE p.status = 'aktiv' AND " . PartnerSchutz::sqlFrei('p') . " AND p.heimatort IS NOT NULL AND p.heimatort <> ''
                             AND NOT EXISTS (SELECT 1 FROM partner_tagesliste t WHERE t.partner_id = p.id AND t.datum = ? AND t.gemeldet = 1)
                           LIMIT 200", [$heute]) as $p) {
+            // Schalter, Uhrzeit und Urlaubsmodus des Partners (03.10.2026): erst zu seiner Stunde, im Urlaub gar nicht.
+            require_once __DIR__ . '/PartnerAutomatik.php';
+            $pa = PartnerAutomatik::einstellungen((int) $p['id']);
+            if (!$pa['autopilot'] || PartnerAutomatik::ruhig((int) $p['id'], $heute) || $stunde < (int) $pa['stunde']) { continue; }
             $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
             $liste = self::heute($p, $sp, $heute);
             Db::run('UPDATE partner_tagesliste SET gemeldet = 1 WHERE partner_id = ? AND datum = ?', [(int) $p['id'], $heute]);

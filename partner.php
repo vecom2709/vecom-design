@@ -308,6 +308,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst($zurueck) . '#recherche', true, 303); exit;
                 }
                 $meldung = $f;
+            } elseif ($tat === 'automatik' && $p) {
+                /* Automatisierungen des Partners (03.10.2026, PartnerAutomatik): nur seine eigenen Schalter. */
+                require_once __DIR__ . '/app/src/PartnerAutomatik.php';
+                PartnerAutomatik::speichern((int) $p['id'], $_POST);
+                header('Location: ' . $selbst(['pa' => 1]) . '#automatik', true, 303); exit;
             } elseif ($tat === 'seite' && $p) {
                 /* Selbst gestaltete Empfehlungsseite (26.09.2026): sofort live,
                    Vecom bekommt eine Meldung und kann in der Akte zurücksetzen. */
@@ -625,6 +630,26 @@ if ($p && isset($_GET['karte'])) {
   .hv-blase a{color:#53bdeb}
   .hv-blase small{display:block;text-align:right;font-size:10.5px;color:rgba(233,237,239,.6);margin-top:3px}
   .hv-unten{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-top:14px;color:#f7f3ea;font-size:14px}
+  /* Automatisch für Sie (03.10.2026): Schalter als Zeilen, ganze Zeile tippbar */
+  .pa{gap:0 !important}
+  .pa-zeile{border-top:1px solid var(--linie);padding:12px 0}
+  .pa-zeile:first-of-type{border-top:0}
+  .pt .pa-schalter{display:flex;gap:14px;align-items:flex-start;cursor:pointer;color:var(--text);font-size:15px}
+  .pa-schalter input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:44px;height:26px;margin:1px 0 0;border-radius:13px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:background .18s}
+  .pa-schalter input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#f7f3ea;transition:transform .18s cubic-bezier(.16,1,.3,1)}
+  .pa-schalter input:checked{background:linear-gradient(115deg,#b98a31,#f1d38b)}
+  .pa-schalter input:checked::after{transform:translateX(18px);background:#16120b}
+  .pa-schalter input:focus-visible{outline:2px solid #f1d38b;outline-offset:3px}
+  .pa-was b{display:block;font-weight:600;line-height:1.35}
+  .pa-was small{display:block;color:var(--dim);font-size:13px;line-height:1.5;margin-top:2px}
+  .pa-wahl{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 0 58px}
+  .pt .pa-wahl label{display:flex;flex-direction:column;gap:4px;font-size:12.5px}
+  .pa-wahl select,.pa-wahl input{font-size:16px;padding:8px 10px;border-radius:10px;min-height:42px;color-scheme:dark}
+  .pa-kal{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0 0 58px}
+  .pa-kal small{flex:1 1 100%;color:var(--leise);font-size:12px}
+  .pa-ohne a{color:var(--cyan)}
+  .pa .knopf.haupt{margin-top:12px;align-self:flex-start}
+  @media (prefers-reduced-motion:reduce){.pa-schalter input,.pa-schalter input::after{transition:none}}
   .app-so{margin:8px 0 0}
   .app-gruppe{max-width:640px;margin:18px auto 10px;padding:0 4px}
   .app-gruppe h2{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f1d38b;margin:0 0 4px}
@@ -1440,6 +1465,8 @@ if ($p && isset($_GET['karte'])) {
       <noscript><button class="knopf"><?= $h($T('w_speichern')) ?></button></noscript>
     </form>
   </div>
+
+  <?php require __DIR__ . '/app/views/partner_automatik.php'; ?>
 
   <div class="block pt" id="app" data-reiter="profil">
     <h2><?= $h($T('app_titel')) ?></h2>
