@@ -300,6 +300,7 @@ final class PartnerAutomatik
         require_once __DIR__ . '/PartnerBesuche.php';
         return ['wochenbericht' => self::still(static fn() => self::wochenbericht(), -1), 'checks' => self::still(static fn() => self::checksNachholen(), -1),
                 'kontakte_weg' => self::still(static fn() => PartnerBesuche::aufraeumen(), -1),
-                'uebersetzen' => self::still(static function (): int { require_once __DIR__ . '/PartnerSeite.php'; return (int) PartnerSeite::uebersetzungAnstossen(); }, -1)];
+                'uebersetzen' => self::still(static function (): int { require_once __DIR__ . '/PartnerSeite.php'; return (int) PartnerSeite::uebersetzungAnstossen(); }, -1),
+                'ueberschriften' => self::still(static function (): int { require_once __DIR__ . '/PartnerSeite.php'; return PartnerSeite::abEntscheiden(); }, -1)];
     }
 }

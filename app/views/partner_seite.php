@@ -220,6 +220,12 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
           <?php endforeach; ?>
         </details>
       </div>
+      <?php /* Zwei Überschriften testen (03.10.2026, N3) */ $gaAb = $gs['ab']; $gaAbSt = $gaAb !== null && $gaAb['gewinner'] === null ? PartnerSeite::abStand($p, $gs) : null; ?>
+      <label for="gs_titel_b" style="margin-top:12px"><?= $h($W($PS['ga_ab'])) ?> <span style="color:var(--leise)">(max. <?= PartnerSeite::TEXT_MAX['titel'] ?>)</span></label>
+      <input id="gs_titel_b" type="text" name="titel_b" maxlength="<?= PartnerSeite::TEXT_MAX['titel'] ?>" value="<?= $h($gaAb !== null && $gaAb['gewinner'] === null ? $gaAb['b'] : '') ?>">
+      <p class="klein" style="margin:4px 0 0"><?= $h($W($PS['ga_ab_hilfe'])) ?></p>
+      <?php if ($gaAbSt !== null): ?><p class="klein ga-ab"><?= $h(strtr($W($PS['ga_ab_stand']), ['{ab}' => (string) $gaAbSt['a']['besuche'], '{ae}' => (string) $gaAbSt['a']['aktiv'], '{bb}' => (string) $gaAbSt['b']['besuche'], '{be}' => (string) $gaAbSt['b']['aktiv']])) ?></p>
+      <?php elseif ($gaAb !== null && $gaAb['gewinner'] !== null): ?><p class="klein ga-ab"><?= $h(strtr($W($PS['ga_ab_gewonnen']), ['{v}' => strtoupper($gaAb['gewinner']), '{t}' => $gaAb['gewinner'] === 'b' ? $gaAb['b'] : $gaAb['a']])) ?></p><?php endif; ?>
       <label for="gs_wa" id="gs_wa_l"><?= $h($W($PS['g_wa'])) ?></label>
       <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
 

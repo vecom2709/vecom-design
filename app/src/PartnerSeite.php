@@ -203,7 +203,79 @@ final class PartnerSeite
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
                 'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film, 'schrift' => $schrift, 'kopf' => $kopf,
                 'auto' => $auto, 'auto_von' => in_array($roh['auto_von'] ?? '', ['it', 'de', 'en'], true) ? (string) $roh['auto_von'] : '',
-                'auto_hash' => (string) ($roh['auto_hash'] ?? ''), 'auto_offen' => !empty($roh['auto_offen'])];
+                'auto_hash' => (string) ($roh['auto_hash'] ?? ''), 'auto_offen' => !empty($roh['auto_offen']),
+                'ab' => is_array($roh['ab'] ?? null) && trim((string) ($roh['ab']['b'] ?? '')) !== '' && in_array($roh['ab']['sprache'] ?? '', ['it', 'de', 'en'], true)
+                    ? ['b' => mb_substr((string) $roh['ab']['b'], 0, self::TEXT_MAX['titel']), 'sprache' => (string) $roh['ab']['sprache'], 'seit' => (string) ($roh['ab']['seit'] ?? ''),
+                       'gewinner' => in_array($roh['ab']['gewinner'] ?? null, ['a', 'b'], true) ? (string) $roh['ab']['gewinner'] : null, 'a' => (string) ($roh['ab']['a'] ?? '')]
+                    : null];
+    }
+
+    /** Ab so vielen Besuchen (beide zusammen, je mindestens 30) entscheidet der Test. */
+    public const AB_BESUCHE = 100;
+
+    /**
+     * Welche Überschrift ein Besucher sieht: einmal gelost, dann gemerkt (Keks je Partner).
+     * Null, wenn kein Test läuft oder der Besucher die Seite in einer anderen Sprache sieht.
+     */
+    public static function abVariante(array $g, string $sprache, ?string $keks): ?string
+    {
+        if ($g['ab'] === null || $g['ab']['gewinner'] !== null || $g['ab']['sprache'] !== $sprache) { return null; }
+        return in_array($keks, ['a', 'b'], true) ? $keks : (random_int(0, 1) === 1 ? 'b' : 'a');
+    }
+
+    /** Stand des Tests: Besuche und „aktive“ Besuche (Preis, Check, Termin, WhatsApp, Rückruf …) je Variante. */
+    public static function abStand(array $p, array $g): array
+    {
+        $aus = ['a' => ['besuche' => 0, 'aktiv' => 0], 'b' => ['besuche' => 0, 'aktiv' => 0]];
+        if ($g['ab'] === null) { return $aus; }
+        require_once __DIR__ . '/PartnerBesuche.php';
+        $stark = "'" . implode("','", PartnerBesuche::STARK) . "'";
+        try {
+            foreach (Db::all("SELECT b.ab_variante AS v, COUNT(*) AS n, SUM(EXISTS (SELECT 1 FROM spur_ereignisse e WHERE e.besuch_id = b.id AND e.event_type IN ($stark))) AS aktiv
+                                FROM spur_besuche b WHERE b.partner_id = ? AND b.verdacht = 0 AND b.ab_variante IN ('a','b') AND b.start_am >= ? GROUP BY b.ab_variante",
+                             [(int) $p['id'], $g['ab']['seit'] ?: '2000-01-01']) as $z) {
+                $aus[(string) $z['v']] = ['besuche' => (int) $z['n'], 'aktiv' => (int) $z['aktiv']];
+            }
+        } catch (Throwable $e) { }
+        return $aus;
+    }
+
+    /**
+     * Cronlauf: Tests mit genug Besuchen entscheiden. Gewinnt B, wird B die Überschrift (und alte
+     * Übersetzungen stimmen nicht mehr — sie werden neu angestoßen). Gleichstand: A bleibt.
+     * @return int entschiedene Tests
+     */
+    public static function abEntscheiden(): int
+    {
+        $n = 0;
+        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND seite_json LIKE '%\"ab\":{%' LIMIT 200") as $p) {
+            $g = self::gestaltung($p);
+            if ($g['ab'] === null || $g['ab']['gewinner'] !== null) { continue; }
+            $st = self::abStand($p, $g);
+            if ($st['a']['besuche'] + $st['b']['besuche'] < self::AB_BESUCHE || min($st['a']['besuche'], $st['b']['besuche']) < 30) { continue; }
+            $rate = static fn(array $x): float => $x['besuche'] > 0 ? $x['aktiv'] / $x['besuche'] : 0.0;
+            $sieger = $rate($st['b']) > $rate($st['a']) ? 'b' : 'a';
+            $roh = json_decode((string) $p['seite_json'], true) ?: [];
+            $l = $g['ab']['sprache'];
+            $roh['ab']['gewinner'] = $sieger;
+            $roh['ab']['a'] = (string) ($g['texte'][$l]['titel'] ?? strtr(Texte::h(Texte::PARTNER_LANDE['titel'] ?? [], $l), ['{name}' => Partner::anzeigeName($p)]));
+            if ($sieger === 'b') {
+                $roh['texte'][$l]['titel'] = $g['ab']['b'];
+                if (($roh['auto_von'] ?? '') === $l) {   // die Vorlage der Übersetzung hat sich geändert
+                    $roh['auto_hash'] = substr(hash('sha256', $l . json_encode($roh['texte'][$l], JSON_UNESCAPED_UNICODE)), 0, 16);
+                    $roh['auto'] = []; $roh['auto_offen'] = true;
+                }
+            }
+            Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode($roh, JSON_UNESCAPED_UNICODE), (int) $p['id']]);
+            $n++;
+            try {
+                require_once __DIR__ . '/PartnerPost.php';
+                $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
+                $t = $sieger === 'b' ? $g['ab']['b'] : $roh['ab']['a'];
+                PartnerPost::push((int) $p['id'], Texte::h(Texte::PARTNER_SEITE['ga_ab_push_t'], $sp), strtr(Texte::h(Texte::PARTNER_SEITE['ga_ab_push_x'], $sp), ['{t}' => $t]), Partner::portalLink($p) . '#seite');
+            } catch (Throwable $e) { }
+        }
+        return $n;
     }
 
     /** Gibt es überhaupt eine eigene Gestaltung? */
@@ -271,7 +343,16 @@ final class PartnerSeite
         $hash = $quelle ? substr(hash('sha256', $von . json_encode($quelle, JSON_UNESCAPED_UNICODE)), 0, 16) : '';
         $auto = $hash !== '' && $hash === $alt['auto_hash'] ? $alt['auto'] : [];
         $offen = $hash !== '' && ($hash !== $alt['auto_hash'] || $alt['auto_offen']);
+        /* Zwei Überschriften testen (03.10.2026, Uwe: Ja zu N3): B in der eigenen Sprache; neues B startet den Test neu. */
+        $b = trim((string) preg_replace('/\s+/u', ' ', strip_tags((string) ($d['titel_b'] ?? ''))));
+        if ($b !== '' && preg_match('~https?://|www\.|\.(com|it|de|net|org|eu|info)\b|@~i', $b)) { return 'text_link'; }
+        $ab = null;
+        if ($b !== '' && $von !== '') {
+            $b = mb_substr($b, 0, self::TEXT_MAX['titel']);
+            $ab = ($alt['ab'] !== null && $alt['ab']['b'] === $b && $alt['ab']['sprache'] === $von) ? $alt['ab'] : ['b' => $b, 'sprache' => $von, 'seit' => date('Y-m-d H:i:s'), 'gewinner' => null, 'a' => ''];
+        }
         $neu = [
+            'ab' => $ab,
             'auto' => $auto, 'auto_von' => $von, 'auto_hash' => $hash, 'auto_offen' => $offen,
             'vorlage' => isset(self::VORLAGEN[$d['vorlage'] ?? '']) ? (string) $d['vorlage'] : $alt['vorlage'],
             'akzent' => isset(self::AKZENTE[$d['akzent'] ?? '']) ? (string) $d['akzent'] : $alt['akzent'],
@@ -532,13 +613,20 @@ final class PartnerSeite
     public static function stimmen(array $p, string $sprache, int $n = 3): array
     {
         try {
-            $zeilen = Db::all("SELECT s.name, s.firma, s.ort, s.text, s.sterne FROM stimmen s
-                                WHERE s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0
-                             ORDER BY (s.customer_id IS NOT NULL AND s.customer_id IN (SELECT customer_id FROM partner_zuordnungen WHERE partner_id = ?)) DESC,
-                                      (s.sprache = ?) DESC, s.sort, s.veroeffentlicht_am DESC, s.id DESC LIMIT " . max(1, min(6, $n)), [(int) $p['id'], $sprache]);
-        } catch (Throwable $e) { return []; }
+            /* Über den Sammellink eines Partners (03.10.2026, N4): nur auf SEINER Seite, dort zuerst. */
+            $zeilen = Db::all("SELECT s.id, s.name, s.firma, s.ort, s.text, s.sterne, s.foto IS NOT NULL AS hat_foto FROM stimmen s
+                                WHERE s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0 AND (s.partner_id IS NULL OR s.partner_id = ?)
+                             ORDER BY (s.partner_id = ?) DESC, (s.customer_id IS NOT NULL AND s.customer_id IN (SELECT customer_id FROM partner_zuordnungen WHERE partner_id = ?)) DESC,
+                                      (s.sprache = ?) DESC, s.sort, s.veroeffentlicht_am DESC, s.id DESC LIMIT " . max(1, min(6, $n)), [(int) $p['id'], (int) $p['id'], (int) $p['id'], $sprache]);
+        } catch (Throwable $e) {
+            try {   // vor Migration 143 (ohne partner_id/foto)
+                $zeilen = Db::all("SELECT s.id, s.name, s.firma, s.ort, s.text, s.sterne, 0 AS hat_foto FROM stimmen s WHERE s.status = 'veroeffentlicht' AND s.erlaubnis = 1 AND s.demo = 0
+                                ORDER BY (s.sprache = ?) DESC, s.sort, s.veroeffentlicht_am DESC, s.id DESC LIMIT " . max(1, min(6, $n)), [$sprache]);
+            } catch (Throwable $e2) { return []; }
+        }
         return array_map(static fn(array $z): array => ['name' => (string) $z['name'], 'firma' => (string) ($z['firma'] ?? ''), 'ort' => (string) ($z['ort'] ?? ''),
-            'text' => (string) $z['text'], 'sterne' => $z['sterne'] === null ? null : (int) $z['sterne']], $zeilen);
+            'text' => (string) $z['text'], 'sterne' => $z['sterne'] === null ? null : (int) $z['sterne'],
+            'foto' => !empty($z['hat_foto']) ? '/p.php?sfoto=' . (int) $z['id'] : null], $zeilen);
     }
 
     /**

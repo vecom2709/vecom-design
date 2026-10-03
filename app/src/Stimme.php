@@ -103,6 +103,8 @@ final class Stimme
             "SELECT * FROM stimmen WHERE status = 'veroeffentlicht' AND erlaubnis = 1
               ORDER BY sort, veroeffentlicht_am DESC, id DESC"), []);
 
+        /* Stimmen über den Sammellink eines Partners (03.10.2026, N4) stehen nur auf SEINER Seite. */
+        $alle = array_values(array_filter($alle, static fn($s) => empty($s['partner_id'])));
         $passend = array_values(array_filter($alle, static fn($s) => (string) $s['sprache'] === $sprache));
         $rest    = array_values(array_filter($alle, static fn($s) => (string) $s['sprache'] !== $sprache));
         return array_slice(array_merge($passend, $rest), 0, $hoechst);

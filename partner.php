@@ -676,6 +676,7 @@ if ($p && isset($_GET['karte'])) {
   .app-suche li button:hover,.app-suche li button[aria-selected="true"]{background:rgba(241,211,139,.1)}
   .app-suche li.leer{padding:10px;font-size:14px;color:var(--dim)}
   /* Wer auf Ihrer Seite war (03.10.2026): Chance als Rand und Marke, Kontakt mit fertigem Text */
+  .mk-sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}
   .pb-liste{list-style:none;margin:8px 0 0;padding:0;display:grid;gap:8px}
   .pb-b{border:1px solid var(--linie);border-left-width:3px;border-radius:12px;padding:10px 12px;display:grid;gap:3px}
   .pb-b.pb-hoch{border-left-color:#f1d38b}
@@ -987,7 +988,7 @@ if ($p && isset($_GET['karte'])) {
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [
           ['titel' => Texte::h(Texte::PARTNER_REITER['g_teilen'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_teilen_satz'], $sprache),
-           'ids' => ['kalender', 'antworten', 'beitraege', 'galerie3d', 'arbeiten-teilen', 'stimmen-teilen', 'erfolge']],
+           'ids' => ['kalender', 'antworten', 'beitraege', 'galerie3d', 'arbeiten-teilen', 'stimmen-teilen', 'stimme-sammeln', 'erfolge']],
           ['titel' => Texte::h(Texte::PARTNER_REITER['g_selbst'], $sprache), 'satz' => Texte::h(Texte::PARTNER_REITER['g_selbst_satz'], $sprache),
            'ids' => ['werbung', 'medien', 'branchen', 'gutschein']]]],
       'reiter' => array_map(static fn(array $r) => array_map(static fn(array $t) => Texte::h($t, $sprache), $r), Texte::PARTNER_REITER['reiter']),
@@ -1302,6 +1303,7 @@ if ($p && isset($_GET['karte'])) {
   <?php require __DIR__ . '/app/views/partner_werbung.php'; ?>
 
   <?php require __DIR__ . '/app/views/partner_plus_werben.php'; ?>
+  <?php require __DIR__ . '/app/views/partner_stimme_sammeln.php'; /* Kundenstimme sammeln (03.10.2026) */ ?>
 
   <?php $erfolge = PartnerErfolg::liste((int) $p['id']); if ($erfolge || $kacheln): $PE = Texte::PARTNER_ERFOLG; $MKe = static fn(string $k): string => Texte::h(Texte::PARTNER_MARKETING[$k] ?? [], $sprache); ?>
   <div class="block pt" id="erfolge" data-reiter="werben">

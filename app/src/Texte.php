@@ -4088,6 +4088,12 @@ final class Texte
        ------------------------------------------------------------------------ */
     public const PARTNER_SEITE = [
         /* Gestalter als Assistent (03.10.2026, Uwe: Ja zu E1–E4) */
+        'ga_ab' => ['it' => 'Seconda intestazione da testare (facoltativa)', 'de' => 'Zweite Überschrift zum Testen (freiwillig)', 'en' => 'Second headline to test (optional)'],
+        'ga_ab_hilfe' => ['it' => 'La pagina mostra a turno le due intestazioni. Dopo 100 visite resta da sola quella con cui più visitatori hanno fatto qualcosa.', 'de' => 'Die Seite zeigt abwechselnd beide Überschriften. Nach 100 Besuchen bleibt von selbst die, nach der mehr Besucher etwas getan haben.', 'en' => 'The page shows both headlines in turn. After 100 visits the one after which more visitors did something stays on its own.'],
+        'ga_ab_stand' => ['it' => 'Test in corso: A {ab} visite, {ae} attive · B {bb} visite, {be} attive', 'de' => 'Test läuft: A {ab} Besuche, {ae} aktiv · B {bb} Besuche, {be} aktiv', 'en' => 'Test running: A {ab} visits, {ae} active · B {bb} visits, {be} active'],
+        'ga_ab_gewonnen' => ['it' => 'Ha vinto {v}: «{t}»', 'de' => 'Gewonnen hat {v}: „{t}“', 'en' => '{v} won: “{t}”'],
+        'ga_ab_push_t' => ['it' => 'Test delle intestazioni concluso', 'de' => 'Überschriften-Test entschieden', 'en' => 'Headline test decided'],
+        'ga_ab_push_x' => ['it' => 'Resta: «{t}»', 'de' => 'Es bleibt: „{t}“', 'en' => 'Staying: “{t}”'],
         'ga_s1' => ['it' => '1 · Stile', 'de' => '1 · Stil', 'en' => '1 · Style'],
         'ga_s2' => ['it' => '2 · Le sue parole', 'de' => '2 · Ihre Worte', 'en' => '2 · Your words'],
         'ga_s3' => ['it' => '3 · Cosa c’è sulla pagina', 'de' => '3 · Was auf der Seite steht', 'en' => '3 · What’s on the page'],
@@ -4874,6 +4880,34 @@ final class Texte
             'folgt' => ['name' => ['it' => 'La segue', 'de' => 'Folgt Ihnen neu', 'en' => 'New follower'], 'text' => ['it' => 'Benvenuto/a {vorname}! Qui parlo di siti web per attività locali. Se vuole sapere come va il suo: controllo gratuito qui — {link}', 'de' => 'Willkommen, {vorname}! Hier geht es um Websites für Betriebe vor Ort. Wenn Sie wissen wollen, wie gut Ihre ist: kostenloser Check hier — {link}', 'en' => 'Welcome, {vorname}! I post about websites for local businesses. Curious how yours does? Free check here — {link}']],
             'hat_schon' => ['name' => ['it' => '«Ho già un sito»', 'de' => '„Hab schon eine Website“', 'en' => '“I already have a website”'], 'text' => ['it' => 'Ottimo, {vorname}! Allora vale la pena vedere se porta clienti: il controllo gratuito le dice in un minuto cosa funziona e cosa no — {link}', 'de' => 'Sehr gut, {vorname}! Dann lohnt der Blick, ob sie Kunden bringt: Der kostenlose Check zeigt in einer Minute, was funktioniert und was nicht — {link}', 'en' => 'Great, {vorname}! Then it’s worth checking whether it brings customers: the free check shows in a minute what works and what doesn’t — {link}']],
         ],
+    ];
+
+    /* Kundenstimmen über den Link des Partners (03.10.2026, PartnerStimmen, N4). */
+    public const PARTNER_STIMMEN = [
+        'titel' => ['it' => 'Com’è andata con {name}?', 'de' => 'Wie war es mit {name}?', 'en' => 'How was it with {name}?'],
+        'lead' => ['it' => 'Due frasi sincere bastano. Con il suo permesso compaiono, con nome e foto, sulla pagina di {name} — dopo un controllo di Vecom Design.', 'de' => 'Zwei ehrliche Sätze genügen. Mit Ihrer Erlaubnis erscheinen sie mit Name und Foto auf der Seite von {name} — nach einer Prüfung durch Vecom Design.', 'en' => 'Two honest sentences are enough. With your permission they appear with your name and photo on {name}’s page — after a check by Vecom Design.'],
+        'name' => ['it' => 'Nome e cognome', 'de' => 'Vor- und Nachname', 'en' => 'First and last name'],
+        'firma' => ['it' => 'Attività (facoltativo)', 'de' => 'Betrieb (freiwillig)', 'en' => 'Business (optional)'],
+        'ort' => ['it' => 'Città (facoltativo)', 'de' => 'Ort (freiwillig)', 'en' => 'Town (optional)'],
+        'text' => ['it' => 'La sua esperienza', 'de' => 'Ihre Erfahrung', 'en' => 'Your experience'],
+        'text_ph' => ['it' => 'Es. Mi ha spiegato tutto con calma, il sito era pronto in due settimane.', 'de' => 'Z. B. Er hat mir alles in Ruhe erklärt, die Website war in zwei Wochen fertig.', 'en' => 'E.g. He explained everything calmly, the website was ready in two weeks.'],
+        'sterne' => ['it' => 'Voto', 'de' => 'Bewertung', 'en' => 'Rating'],
+        'foto' => ['it' => 'Foto (facoltativo — lei o la sua attività)', 'de' => 'Foto (freiwillig — Sie oder Ihr Betrieb)', 'en' => 'Photo (optional — you or your business)'],
+        'ok' => ['it' => 'Acconsento che il mio testo compaia con nome, attività, città e foto sulla pagina di {name} (Vecom Design). Posso revocarlo in qualsiasi momento.', 'de' => 'Ich bin einverstanden, dass mein Text mit Name, Betrieb, Ort und Foto auf der Seite von {name} (Vecom Design) erscheint. Ich kann das jederzeit widerrufen.', 'en' => 'I agree that my text appears with name, business, town and photo on {name}’s page (Vecom Design). I can withdraw this at any time.'],
+        'knopf' => ['it' => 'Invia', 'de' => 'Absenden', 'en' => 'Send'],
+        'danke' => ['it' => 'Grazie! Il suo testo compare dopo un breve controllo.', 'de' => 'Danke! Ihr Text erscheint nach einer kurzen Prüfung.', 'en' => 'Thank you! Your text appears after a short check.'],
+        'f_st_name' => ['it' => 'Inserisca il suo nome.', 'de' => 'Bitte Ihren Namen eintragen.', 'en' => 'Please enter your name.'],
+        'f_st_text' => ['it' => 'Scriva almeno due frasi, senza link.', 'de' => 'Bitte mindestens zwei Sätze, ohne Links.', 'en' => 'Please write at least two sentences, without links.'],
+        'f_st_ok' => ['it' => 'Senza il suo consenso non possiamo pubblicarlo.', 'de' => 'Ohne Ihre Zustimmung können wir es nicht zeigen.', 'en' => 'Without your consent we cannot show it.'],
+        'f_st_zeit' => ['it' => 'Il modulo è scaduto — ricarichi la pagina e riprovi.', 'de' => 'Das Formular ist abgelaufen — Seite neu laden und noch einmal.', 'en' => 'The form expired — reload the page and try again.'],
+        'f_st_genug' => ['it' => 'Oggi abbiamo già ricevuto molti testi — riprovi domani.', 'de' => 'Heute kamen schon viele Texte — bitte morgen noch einmal.', 'en' => 'We received many texts today — please try again tomorrow.'],
+        'f_st_foto' => ['it' => 'La foto non si apre (JPG, PNG o WebP, al massimo 8 MB).', 'de' => 'Das Foto lässt sich nicht öffnen (JPG, PNG oder WebP, höchstens 8 MB).', 'en' => 'The photo cannot be opened (JPG, PNG or WebP, max. 8 MB).'],
+        'f_st_falle' => ['it' => 'Qualcosa non ha funzionato — riprovi.', 'de' => 'Das hat nicht geklappt — bitte noch einmal.', 'en' => 'That didn’t work — please try again.'],
+        'p_titel' => ['it' => 'Raccogliere una recensione', 'de' => 'Kundenstimme sammeln', 'en' => 'Collect a review'],
+        'p_text' => ['it' => 'Manda questo link a chi è contento del suo sito. Scrive due frasi, se vuole con foto — dopo il controllo di Vecom compare sulla sua pagina.', 'de' => 'Schicken Sie diesen Link an Kunden, die mit ihrer Website zufrieden sind. Sie schreiben zwei Sätze, gern mit Foto — nach Vecoms Prüfung steht das auf Ihrer Seite.', 'en' => 'Send this link to customers who are happy with their website. They write two sentences, with a photo if they like — after Vecom’s check it appears on your page.'],
+        'p_msg' => ['it' => 'Ciao! Sei contento del tuo nuovo sito? Mi aiuteresti con due frasi? Ci vogliono 30 secondi: {link}', 'de' => 'Hallo! Sind Sie zufrieden mit Ihrer neuen Website? Würden Sie mir mit zwei Sätzen helfen? Dauert 30 Sekunden: {link}', 'en' => 'Hi! Are you happy with your new website? Would you help me with two sentences? Takes 30 seconds: {link}'],
+        'p_wartet' => ['it' => '{n} in attesa del controllo', 'de' => '{n} warten auf Prüfung', 'en' => '{n} awaiting review'],
+        'p_online' => ['it' => '{n} sulla sua pagina', 'de' => '{n} auf Ihrer Seite', 'en' => '{n} on your page'],
     ];
 
     /* Wer auf der Partnerseite war, Kontakt mit Einwilligung, Sofort-Hinweis (03.10.2026, PartnerBesuche). */

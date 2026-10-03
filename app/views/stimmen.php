@@ -24,6 +24,11 @@
           style="color:var(--linie2)"><?= str_repeat('★', 5 - (int) $s['sterne']) ?></span></div>
       <?php endif; ?>
 
+      <?php if (!empty($s['partner_id'])): /* Über den Sammellink eines Partners (03.10.2026, N4): steht nach der Freigabe nur auf SEINER Seite. */
+        $stP = Db::one('SELECT name, code FROM partner WHERE id = ?', [(int) $s['partner_id']]); ?>
+        <p class="marke2" style="display:inline-block;margin:0 0 8px">über Partner <?= Fmt::h((string) ($stP['name'] ?? '?')) ?> · erscheint nur auf seiner Seite</p>
+      <?php endif; ?>
+      <?php if (!empty($s['foto'])): ?><img src="data:image/webp;base64,<?= base64_encode((string) $s['foto']) ?>" alt="Foto zur Stimme" width="72" height="72" style="border-radius:50%;object-fit:cover;float:right;margin:0 0 8px 12px"><?php endif; ?>
       <p style="white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--dim)"><?= Fmt::h((string) $s['text']) ?></p>
       <p style="color:var(--leise);font-size:12.5px">
         <?= Fmt::h($s['name']) ?><?= $s['firma'] ? ' · ' . Fmt::h((string) $s['firma']) : '' ?><?= $s['ort'] ? ' · ' . Fmt::h((string) $s['ort']) : '' ?>

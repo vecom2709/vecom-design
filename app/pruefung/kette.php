@@ -11995,6 +11995,65 @@ pruefe('Assistent: drei Schritte in einem Formular, Looks für jede Branche mit 
     && str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), "'partnerseiten' => self::still(static fn() => PartnerSeite::ohneUebersetzung(), [])")
     && $psTexteFehlt === [], implode(', ', $psTexteFehlt));
 Db::run("DELETE FROM mk_auftraege WHERE art = 'uebersetzen'");
+/* Zwei Überschriften testen (03.10.2026, Uwe: Ja zu N3) */
+PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'texte' => ['it' => ['titel' => 'Titolo A']], 'titel_b' => 'Titolo B più forte']);
+$abG = PartnerSeite::gestaltung($psP());
+$abSeit = $abG['ab']['seit'] ?? '';
+PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'texte' => ['it' => ['titel' => 'Titolo A']], 'titel_b' => 'Titolo B più forte']);
+pruefe('Überschriften-Test: B in der eigenen Sprache gespeichert, gleiches B behält den Start, Links verboten; Variante nur in dieser Sprache, Keks gilt',
+    ($abG['ab']['b'] ?? '') === 'Titolo B più forte' && ($abG['ab']['sprache'] ?? '') === 'it' && PartnerSeite::gestaltung($psP())['ab']['seit'] === $abSeit
+    && PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'titel_b' => 'Vai su www.x.it']) === 'text_link'
+    && PartnerSeite::abVariante($abG, 'de', null) === null && PartnerSeite::abVariante($abG, 'it', 'b') === 'b' && in_array(PartnerSeite::abVariante($abG, 'it', null), ['a', 'b'], true)
+    && PartnerSeite::abVariante(PartnerSeite::gestaltung(['seite_json' => '', 'seite_bild_am' => null]), 'it', null) === null);
+$abNeu = static function (string $v, bool $aktiv) use ($psId): void {
+    $id = (int) Db::insert('spur_besuche', ['visitor_id' => 'VIS-' . strtoupper(substr(bin2hex(random_bytes(4)), 0, 8)), 'session_id' => bin2hex(random_bytes(8)), 'partner_id' => $psId, 'neu' => 1,
+        'einstieg' => '/p/x', 'aktuell' => '/p/x', 'seiten' => 1, 'ref_link' => '', 'referrer' => '', 'quelle' => 'direkt', 'geraet' => 'smartphone', 'browser' => 'x', 'system' => 'x',
+        'sprache' => 'it', 'land' => 'IT', 'region' => '', 'status' => 'besucher', 'verdacht' => 0, 'ab_variante' => $v, 'start_am' => date('Y-m-d H:i:s', strtotime('+1 second')), 'zuletzt_am' => date('Y-m-d H:i:s', strtotime('+1 second'))]);
+    if ($aktiv) { Db::insert('spur_ereignisse', ['besuch_id' => $id, 'visitor_id' => 'x', 'session_id' => 'x', 'partner_id' => $psId, 'event_type' => 'partner_weg', 'seite' => '/p/x', 'meta' => '{"weg":"preis"}']); }
+};
+for ($abI = 0; $abI < 40; $abI++) { $abNeu('a', $abI < 4); $abNeu('b', $abI < 12); }
+$abSt1 = PartnerSeite::abStand($psP(), PartnerSeite::gestaltung($psP()));
+$abE1 = PartnerSeite::abEntscheiden();
+for ($abI = 0; $abI < 20; $abI++) { $abNeu('a', false); $abNeu('b', $abI < 3); }
+$abE2 = PartnerSeite::abEntscheiden();
+$abG2 = PartnerSeite::gestaltung($psP());
+pruefe('Überschriften-Test: zählt Besuche und aktive Besuche je Variante, entscheidet erst ab 100 Besuchen — B gewinnt und wird die Überschrift, danach keine Lose mehr',
+    $abSt1['a'] === ['besuche' => 40, 'aktiv' => 4] && $abSt1['b'] === ['besuche' => 40, 'aktiv' => 12] && $abE1 === 0 && $abE2 >= 1
+    && ($abG2['ab']['gewinner'] ?? '') === 'b' && ($abG2['texte']['it']['titel'] ?? '') === 'Titolo B più forte' && ($abG2['ab']['a'] ?? '') === 'Titolo A'
+    && PartnerSeite::abVariante($abG2, 'it', null) === null && PartnerSeite::abEntscheiden() === 0, json_encode([$abSt1, $abG2['ab'] ?? null], JSON_UNESCAPED_UNICODE));
+Db::run('DELETE FROM spur_ereignisse WHERE partner_id = ?', [$psId]); Db::run('DELETE FROM spur_besuche WHERE partner_id = ?', [$psId]);
+/* Kundenstimmen mit Foto über den Link des Partners (03.10.2026, Uwe: Ja zu N4) */
+require_once $wurzel . '/src/PartnerStimmen.php'; require_once $wurzel . '/src/PartnerRueckruf.php'; require_once $wurzel . '/src/Stimme.php';
+$ksP = $psP();
+$ksSt = PartnerRueckruf::stempel((string) $ksP['code'], time() - 30);
+$ksGut = ['st' => $ksSt, 'name' => 'Marco Bianchi', 'firma' => 'Bar Centrale', 'ort' => 'Agrigento', 'text' => 'Gianni mi ha seguito passo passo, il sito è bellissimo.', 'sterne' => '5', 'ok' => '1'];
+$ksBild = imagecreatetruecolor(400, 300); imagefill($ksBild, 0, 0, imagecolorallocate($ksBild, 200, 160, 60)); $ksPfad = tempnam(sys_get_temp_dir(), 'ks'); imagepng($ksBild, $ksPfad); imagedestroy($ksBild);
+$ksFoto = PartnerStimmen::foto($ksPfad, (int) filesize($ksPfad)); file_put_contents($ksPfad, 'kein Bild');
+pruefe('Kundenstimme: Link nur mit Unterschrift, Falle, Zeitstempel, zwei Sätze ohne Link, Zustimmung Pflicht; Foto wird 320er-WebP, Unsinn kein Bild',
+    PartnerStimmen::partner((string) $ksP['code'], 'falsch') === null && (int) (PartnerStimmen::partner((string) $ksP['code'], PartnerStimmen::unterschrift((string) $ksP['code']))['id'] ?? 0) === $psId
+    && PartnerStimmen::abgeben($ksP, ['website' => 'x'] + $ksGut, null, 'it') === 'st_falle' && PartnerStimmen::abgeben($ksP, ['st' => '1.abc'] + $ksGut, null, 'it') === 'st_zeit'
+    && PartnerStimmen::abgeben($ksP, ['text' => 'Bravo'] + $ksGut, null, 'it') === 'st_text' && PartnerStimmen::abgeben($ksP, ['text' => 'Ottimo lavoro, guardate su www.x.it subito!'] + $ksGut, null, 'it') === 'st_text'
+    && PartnerStimmen::abgeben($ksP, ['ok' => ''] + $ksGut, null, 'it') === 'st_ok' && is_string($ksFoto) && str_starts_with($ksFoto, 'RIFF')
+    && PartnerStimmen::foto($ksPfad, (int) filesize($ksPfad)) === null && str_contains(PartnerStimmen::link($ksP), '/stimme.php?c=' . $ksP['code'] . '&s='));
+@unlink($ksPfad);
+$ksR = PartnerStimmen::abgeben($ksP, $ksGut, null, 'it');
+$ksId = (int) Db::wert('SELECT MAX(id) FROM stimmen WHERE partner_id = ?', [$psId], 0);
+Db::run('UPDATE stimmen SET foto = ? WHERE id = ?', [$ksFoto, $ksId]);
+$ksVorher = PartnerStimmen::fotoDaten($ksId);
+Stimme::veroeffentlichen($ksId);
+$ksSeite = PartnerSeite::stimmen($psP(), 'it', 3);
+$ksFremd = PartnerSeite::stimmen(['id' => $psId + 100000], 'it', 6);
+pruefe('Kundenstimme: wartet auf Uwes Freigabe; danach zuerst auf der Seite DIESES Partners mit Foto — nicht bei anderen Partnern, nicht auf vecom-design.it',
+    $ksR === 'ok' && $ksVorher === null && ($ksSeite[0]['name'] ?? '') === 'Marco Bianchi' && ($ksSeite[0]['foto'] ?? '') === '/p.php?sfoto=' . $ksId
+    && PartnerStimmen::fotoDaten($ksId) === $ksFoto && !in_array('Marco Bianchi', array_column($ksFremd, 'name'), true)
+    && !in_array('Marco Bianchi', array_column(Stimme::oeffentliche('it', 50), 'name'), true), json_encode([$ksR, $ksSeite], JSON_UNESCAPED_UNICODE));
+for ($ksI = 0; $ksI < 4; $ksI++) { PartnerStimmen::abgeben($ksP, $ksGut, null, 'it'); }
+pruefe('Kundenstimme: höchstens 5 am Tag je Partner; Seite ohne Index und mit eigener Richtlinie, Foto nur über p.php?sfoto',
+    PartnerStimmen::abgeben($ksP, $ksGut, null, 'it') === 'st_genug'
+    && str_contains((string) file_get_contents($wurzel . '/../stimme.php'), "header('X-Robots-Tag: noindex, nofollow, noarchive');")
+    && str_contains((string) file_get_contents($wurzel . '/../p.php'), 'PartnerStimmen::fotoDaten((int) $_GET[\'sfoto\'])')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_stimme_sammeln.php'), '<div class="block pt" id="stimme-sammeln" data-reiter="werben">'));
+Db::run('DELETE FROM stimmen WHERE partner_id = ?', [$psId]);
 $psLum = static function (string $hex): float {
     $c = array_map(static fn($x) => hexdec($x) / 255, str_split(ltrim($hex, '#'), 2));
     $c = array_map(static fn($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $c);
@@ -15316,7 +15375,7 @@ $htTlVor = (int) Db::wert('SELECT COUNT(*) FROM partner_tagesliste WHERE partner
 $htPk = PartnerHeute::punkte($htP, 'de');
 $htKeys = array_column($htPk, 'k');
 $htQuellen = '';
-foreach (['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_plus_start.php', 'app/views/partner_plus_werben.php', 'app/views/partner_recherche.php', 'app/views/partner_kalender.php', 'app/views/partner_antworten.php', 'app/views/partner_besuche.php'] as $htD) { $htQuellen .= (string) file_get_contents($wurzel . '/../' . $htD); }
+foreach (['partner.php', 'app/views/partner_werbung.php', 'app/views/partner_plus_start.php', 'app/views/partner_plus_werben.php', 'app/views/partner_recherche.php', 'app/views/partner_kalender.php', 'app/views/partner_antworten.php', 'app/views/partner_besuche.php', 'app/views/partner_stimme_sammeln.php'] as $htD) { $htQuellen .= (string) file_get_contents($wurzel . '/../' . $htD); }
 $htAnkerFehlt = array_filter(array_column($htPk, 'anker'), static fn($a) => !str_contains($htQuellen, 'id="' . $a . '"'));
 pruefe('Heute zu tun: nur Punkte mit Arbeit, Posten zuletzt, höchstens sechs, jeder Sprung hat ein Ziel, ungelesene Nachricht zählt',
     $htPk !== [] && end($htKeys) === 'posten' && count($htPk) <= PartnerHeute::HOECHSTENS && $htAnkerFehlt === []

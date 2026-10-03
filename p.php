@@ -47,6 +47,16 @@ if (is_file($konfig)) {
             header('X-Content-Type-Options: nosniff');
             echo $f; exit;
         }
+        /* Foto einer veröffentlichten Kundenstimme (03.10.2026, N4) — nur freigegeben und mit Erlaubnis. */
+        if (isset($_GET['sfoto'])) {
+            require_once __DIR__ . '/app/src/PartnerStimmen.php';
+            $f = PartnerStimmen::fotoDaten((int) $_GET['sfoto']);
+            if ($f === null) { http_response_code(404); exit; }
+            header('Content-Type: image/webp');
+            header('Cache-Control: public, max-age=86400');
+            header('X-Content-Type-Options: nosniff');
+            echo $f; exit;
+        }
         /* Das eigene Titelbild der gestalteten Seite (PartnerSeite). */
         if (isset($_GET['titel'])) {
             $f = Db::wert("SELECT seite_bild FROM partner WHERE code = ? AND status = 'aktiv' AND seite_bild IS NOT NULL", [strtoupper((string) $_GET['titel'])], null);
@@ -174,6 +184,21 @@ if (isset($_GET['n'], $_GET['vs']) && strlen((string) $_GET['vs']) < 16000
     $vsD = json_decode((string) base64_decode(strtr((string) $_GET['vs'], '-_', '+/'), true), true);
     if (is_array($vsD)) { try { $g = PartnerSeite::vorschau($p, $vsD); } catch (Throwable $e) { } }
 }
+/* Zwei Überschriften testen (03.10.2026, N3): einmal gelost, im Keks gemerkt, im Besuch vermerkt.
+   Nicht in der Vorschau (n=1) — der Partner sieht dort immer seine Überschrift A. */
+if (!isset($_GET['n'])) {
+    $abKeks = 'vdab' . strtolower((string) $p['code']);
+    $abV = PartnerSeite::abVariante($g, $sprache, isset($_COOKIE[$abKeks]) ? (string) $_COOKIE[$abKeks] : null);
+    if ($abV !== null) {
+        // Nur ein Sitzungs-Keks, wie alle Kekse dieser Seite (Datenschutz): kein Ablaufdatum.
+        @setcookie($abKeks, $abV, ['path' => '/', 'secure' => ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off', 'httponly' => true, 'samesite' => 'Lax']);
+        if ($abV === 'b') { $g['texte'][$sprache]['titel'] = $g['ab']['b']; }
+        try {
+            require_once __DIR__ . '/app/src/Spur.php';
+            if (($abB = Spur::aktuellerBesuch()) !== null) { Db::run('UPDATE spur_besuche SET ab_variante = ? WHERE id = ? AND ab_variante IS NULL', [$abV, (int) $abB['id']]); }
+        } catch (Throwable $e) { /* Beiwerk */ }
+    }
+}
 $hier = static fn(array $extra = []): string => '/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $sprache, 'n' => 1] + $extra));
 /* Rückrufwunsch (27.09.2026): danach zurück auf dieselbe Seite (n=1: kein neuer Klick). */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'rueckruf' && $g['bausteine']['rueckruf']) {
@@ -284,6 +309,7 @@ $wegIcon = [
              font-size:13px;color:var(--cyan);margin:0 0 16px}
   .ld h1{font-family:var(--f-titel,var(--f-display));font-weight:var(--f-titel-w,800);font-size:calc(clamp(28px,7vw,40px) * var(--f-titel-s,1));line-height:1.12;margin:0 0 14px}
   .ld .lead{color:var(--dim);font-size:16.5px;line-height:1.65;margin:0 0 20px}
+  .lp-st-foto{width:56px;height:56px;border-radius:50%;object-fit:cover;border:1px solid var(--linie2);float:right;margin:0 0 8px 12px}
   .ld ul{list-style:none;padding:0;margin:0 0 22px;display:grid;gap:10px}
   .ld li{display:flex;gap:10px;font-size:15px;line-height:1.55}
   .ld li::before{content:"";flex:0 0 8px;height:8px;margin-top:8px;border-radius:50%;background:var(--metall)}
@@ -717,7 +743,7 @@ foreach ($g['reihenfolge'] as $baustein):
       if (!$stimmen) { break; } ?>
   <section class="block ld lp"><h2><?= $h($S($PS['stimmen_titel'])) ?></h2>
     <div class="lp-stimmen"><?php foreach ($stimmen as $st): ?>
-      <figure><?php if ($st['sterne']): ?><div class="sterne" aria-label="<?= (int) $st['sterne'] ?>/5"><?= str_repeat('★', (int) $st['sterne']) ?></div><?php endif; ?>
+      <figure><?php if (!empty($st['foto'])): ?><img class="lp-st-foto" src="<?= $h($st['foto']) ?>" alt="" width="56" height="56" loading="lazy"><?php endif; ?><?php if ($st['sterne']): ?><div class="sterne" aria-label="<?= (int) $st['sterne'] ?>/5"><?= str_repeat('★', (int) $st['sterne']) ?></div><?php endif; ?>
         <blockquote><?= $h($st['text']) ?></blockquote>
         <figcaption>— <?= $h($st['name']) ?><?= $st['firma'] !== '' ? ', ' . $h($st['firma']) : '' ?><?= $st['ort'] !== '' ? ' · ' . $h($st['ort']) : '' ?></figcaption></figure>
     <?php endforeach; ?></div>
