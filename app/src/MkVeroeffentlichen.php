@@ -191,6 +191,11 @@ final class MkVeroeffentlichen
             Db::update('mk_inhalte', $id, ['status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'geplant_am' => null,
                                            'post_ids' => json_encode($ids), 'post_fehler' => null]);
             Events::pruefspur('inhalt_gepostet', 'mk_inhalte', $id, ['status' => 'freigegeben'], ['status' => 'veroeffentlicht', 'plattform' => $x['plattform']] + $ids);
+            /* 03.10.2026 (Uwe: Ja zu „Story mit Link-Sticker“): Instagram nimmt Link-Sticker nicht per
+               Schnittstelle an — deshalb kommt die Story-Fassung aufs Handy. Scheitert das, bleibt der Beitrag trotzdem veröffentlicht. */
+            if ($x['plattform'] === 'instagram') {
+                try { require_once __DIR__ . '/MkHandy.php'; MkHandy::story(MkInhalt::laden($id) ?? $x); } catch (Throwable $y) { }
+            }
             return ['ok' => true, 'grund' => null];
         }
         Db::update('mk_inhalte', $id, ['post_ids' => $ids ? json_encode($ids) : null, 'post_fehler' => mb_substr((string) $erg['grund'], 0, 300)]);

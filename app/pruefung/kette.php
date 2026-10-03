@@ -17973,6 +17973,18 @@ TelegramMarketing::$gesendet = [];
 $apKnopf('v:mn:' . $apEins, 803);
 pruefe('Telegram: „Nein“ verwirft; ist alles durch, sagt der Bot es', MkInhalt::laden($apEins)['status'] === 'verworfen'
     && str_contains(json_encode(TelegramMarketing::$gesendet, JSON_UNESCAPED_UNICODE), 'Alles durchgesehen in Deutschland'));
+/* Story mit Link-Sticker (03.10.2026, Uwe: Ja): nach einem Instagram-Beitrag die Story-Fassung aufs Handy */
+require_once $wurzel . '/src/MkHandy.php';
+$stIg = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $apZ1['id'], 'branche' => 'friseur', 'land' => 'IT', 'sprache' => 'it', 'art' => 'organisch', 'format' => 'beitrag', 'plattform' => 'instagram', 'titel' => 'ST Story', 'felder' => '{"text":"Story-Test"}']);
+MkInhalt::freigeben($stIg); $mvDatei($stIg, 'bild', 'image/png');
+MkHandy::$gesendet = [];
+$stErg = MkHandy::story(MkInhalt::laden($stIg));
+$stFoto = MkHandy::$gesendet[0] ?? [null, []]; $stLink = MkHandy::$gesendet[1] ?? [null, []];
+pruefe('Story mit Link-Sticker: Bild mit drei Schritten (italienisch „Analisi gratuita del sito“) und der eigene Link als eigene Nachricht an den Admin; nur für Instagram',
+    $stErg['ok'] === true && $stFoto[0] === 'sendPhoto' && ($stFoto[1]['chat_id'] ?? 0) === $apChat && str_contains((string) ($stFoto[1]['caption'] ?? ''), 'Sticker „Link“')
+    && str_contains((string) $stFoto[1]['caption'], 'Analisi gratuita del sito') && $stLink[0] === 'sendMessage' && ($stLink[1]['text'] ?? '') === MkInhalt::link(MkInhalt::laden($stIg))
+    && MkHandy::story(['plattform' => 'facebook', 'art' => 'organisch', 'id' => $stIg])['ok'] === false
+    && str_contains((string) file_get_contents($wurzel . '/src/MkVeroeffentlichen.php'), "if (\$x['plattform'] === 'instagram') {"), json_encode(MkHandy::$gesendet, JSON_UNESCAPED_UNICODE));
 /* Ohne Admin-Rechte kein Stapel */
 Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE chat_id = ?', [$apChat]); TelegramAdmin::vergessen();
 $apFid = (int) Db::insert('mk_inhalte', ['zielgruppe_id' => (int) $apZ1['id'], 'branche' => 'friseur', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'telegram', 'plattform' => 'telegram', 'titel' => 'AP Fremd', 'felder' => '{"text":"x"}']);

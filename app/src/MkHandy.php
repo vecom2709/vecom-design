@@ -115,6 +115,58 @@ final class MkHandy
         return ['ok' => true, 'grund' => null];
     }
 
+    /**
+     * Story-Fassung eines eben veröffentlichten Instagram-Beitrags aufs Handy (03.10.2026, Uwe: Ja).
+     * Der Link-Sticker ist der einzige klickbare Link in Instagram außer der Bio — und ihn setzt nur
+     * die App. Also: Bild oder Video, darunter drei Schritte und der eigene Link zum Kopieren.
+     * Kein „Gepostet“-Knopf: Die Story zählt über die Klicks auf den Link, nicht über eine Bestätigung.
+     * @return array{ok:bool, grund:?string}
+     */
+    public static function story(array $x): array
+    {
+        require_once __DIR__ . '/Telegram.php';
+        require_once __DIR__ . '/MkMedium.php';
+        require_once __DIR__ . '/MkVeroeffentlichen.php';
+        if (($x['plattform'] ?? '') !== 'instagram' || ($x['art'] ?? '') !== 'organisch') { return ['ok' => false, 'grund' => 'Nur für organische Instagram-Beiträge.']; }
+        $chats = self::chats();
+        if ($chats === []) { return ['ok' => false, 'grund' => 'Kein Admin-Chat verbunden.']; }
+        $id = (int) $x['id'];
+        $link = MkInhalt::link($x);
+        if ($link === null) { return ['ok' => false, 'grund' => 'Das Stück hat noch keinen eigenen Link.']; }
+        $medium = MkMedium::gewaehlt($id, 'video') ?? MkMedium::gewaehlt($id, 'bild');
+        $wort = ($x['sprache'] ?? 'it') === 'de' ? 'Kostenloser Website-Check' : 'Analisi gratuita del sito';
+        $kopf = '📲 <b>Story dazu (Instagram)</b>' . "
+" . self::h((string) $x['titel'])
+              . "
+
+1. " . ($medium ? ($medium['art'] === 'video' ? 'Video' : 'Bild') . ' speichern' : 'Ein Bild aus dem Beitrag nehmen') . ' → Instagram → Story'
+              . "
+2. Sticker „Link“ → Link aus der nächsten Nachricht einfügen, Text: „" . self::h($wort) . '“'
+              . "
+3. Teilen — jeder Klick zählt wie beim Beitrag.";
+        $ok = false;
+        foreach ($chats as $chat) {
+            if ($medium) {
+                $art = $medium['art'] === 'video' ? 'video' : 'photo';
+                $d = ['chat_id' => $chat, $art => MkVeroeffentlichen::oeffentlich($medium) . ($art === 'photo' ? '&f=jpg' : ''), 'caption' => mb_substr($kopf, 0, 1024), 'parse_mode' => 'HTML'];
+                self::$gesendet[] = [$art === 'video' ? 'sendVideo' : 'sendPhoto', $d];
+                if (!(Telegram::rufen($art === 'video' ? 'sendVideo' : 'sendPhoto', $d)['ok'] ?? false)) {
+                    $d = ['chat_id' => $chat, 'text' => $kopf, 'parse_mode' => 'HTML'];
+                    self::$gesendet[] = ['sendMessage', $d];
+                    Telegram::rufen('sendMessage', $d);
+                }
+            } else {
+                $d = ['chat_id' => $chat, 'text' => $kopf, 'parse_mode' => 'HTML'];
+                self::$gesendet[] = ['sendMessage', $d];
+                Telegram::rufen('sendMessage', $d);
+            }
+            $t = ['chat_id' => $chat, 'text' => $link, 'link_preview_options' => ['is_disabled' => true]];
+            self::$gesendet[] = ['sendMessage', $t];
+            $ok = (bool) (Telegram::rufen('sendMessage', $t)['ok'] ?? false) || $ok;
+        }
+        return $ok ? ['ok' => true, 'grund' => null] : ['ok' => false, 'grund' => 'Telegram hat die Nachricht nicht angenommen.'];
+    }
+
     /** Wartet ein Stück auf „Gepostet“? (aufs Handy geschickt, noch nicht bestätigt) */
     public static function wartetAufBestaetigung(?string $land = null): int
     {
