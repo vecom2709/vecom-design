@@ -201,11 +201,74 @@ final class Werbemittel
             if (!Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE id = ? AND produkt_id = ?', [$id, $produktId])) {
                 throw new InvalidArgumentException('Variante gehört nicht zu diesem Produkt.');
             }
+            // Gibt es geprüfte Angebote, ist der Einkauf das günstigste davon — nicht frei einzutragen.
+            if ((int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ?', [$id]) > 0) { unset($d['einkauf_cent']); }
             Db::update('wm_varianten', $id, $d);
             return $id;
         }
         $d['produkt_id'] = $produktId;
         return Db::insert('wm_varianten', $d);
+    }
+
+    // ---- Preisvergleich der Druckereien (04.10.2026) --------------------------
+    /*  Uwe: „Versuche immer das günstigste zu suchen … selbe Qualität wie bei
+        günstigeren, nehme günstigeren.“ Je Auflage die geprüften Angebote;
+        der Einkauf der Variante ist immer das günstigste davon, und
+        anbieter_guenstig sagt, bei wem bestellt wird. Ob die Qualität gleich
+        ist, entscheidet ein Mensch beim Eintragen (Papier steht daneben). */
+
+    /** Angebote einer Variante, günstigstes zuerst. */
+    public static function angebote(int $varianteId): array
+    {
+        return Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY preis_cent, id', [$varianteId]);
+    }
+
+    /** Legt ein Angebot an oder ändert es (gleicher Anbieter = selbe Zeile) und rechnet den Einkauf neu. */
+    public static function angebotSpeichern(int $varianteId, array $e): void
+    {
+        $anbieter = mb_substr(trim((string) ($e['anbieter'] ?? '')), 0, 40);
+        $preis = self::leerOderEuro($e['preis_eur'] ?? '');
+        $netto = self::leerOderEuro($e['netto_eur'] ?? '');
+        $link = trim((string) ($e['link'] ?? ''));
+        if ($anbieter === '' || $preis === null || $preis <= 0) { throw new InvalidArgumentException('Anbieter und Preis (inkl. Versand, so wie Vecom zahlt) sind Pflicht.'); }
+        if ($link !== '' && !preg_match('~^https://[^\s<>"]{4,390}$~', $link)) { throw new InvalidArgumentException('Link muss mit https:// beginnen.'); }
+        $datum = trim((string) ($e['geprueft_am'] ?? '')) ?: date('Y-m-d');
+        if (!preg_match('~^\d{4}-\d{2}-\d{2}$~', $datum)) { throw new InvalidArgumentException('Datum ungültig.'); }
+        if (!Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE id = ?', [$varianteId])) { throw new InvalidArgumentException('Variante unbekannt.'); }
+        Db::transaktion(static function () use ($varianteId, $anbieter, $preis, $netto, $e, $link, $datum): void {
+            Db::run('INSERT INTO wm_anbieter_preise (variante_id, anbieter, preis_cent, netto_cent, papier, lieferung, link, geprueft_am)
+                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE preis_cent = VALUES(preis_cent), netto_cent = VALUES(netto_cent), papier = VALUES(papier),
+                                             lieferung = VALUES(lieferung), link = VALUES(link), geprueft_am = VALUES(geprueft_am)',
+                [$varianteId, $anbieter, $preis, $netto, mb_substr(trim((string) ($e['papier'] ?? '')), 0, 120),
+                 mb_substr(trim((string) ($e['lieferung'] ?? '')), 0, 160), $link, $datum]);
+            self::guenstigsten($varianteId);
+        }, 3);
+    }
+
+    public static function angebotLoeschen(int $varianteId, string $anbieter): void
+    {
+        Db::transaktion(static function () use ($varianteId, $anbieter): void {
+            Db::run('DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = ?', [$varianteId, $anbieter]);
+            self::guenstigsten($varianteId);
+        }, 3);
+    }
+
+    /** Einkauf = günstigstes Angebot. Ohne Angebote bleibt der zuletzt gültige Einkauf, nur der Anbieter fällt weg. */
+    private static function guenstigsten(int $varianteId): void
+    {
+        $g = Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId]);
+        if ($g) {
+            Db::run('UPDATE wm_varianten SET einkauf_cent = ?, anbieter_guenstig = ? WHERE id = ?', [(int) $g['preis_cent'], (string) $g['anbieter'], $varianteId]);
+        } else {
+            Db::run('UPDATE wm_varianten SET anbieter_guenstig = NULL WHERE id = ?', [$varianteId]);
+        }
+    }
+
+    /** Angebote, die älter als $tage sind, gelten als „neu prüfen“. */
+    public static function veraltet(array $angebot, int $tage = 30): bool
+    {
+        return strtotime((string) $angebot['geprueft_am']) < strtotime('-' . $tage . ' days');
     }
 
     // ---- Phase 2: Druckdatei und Freigabe (03.10.2026) ----------------------

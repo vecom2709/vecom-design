@@ -46,6 +46,12 @@ $S = [
         Partner zahlt <strong><?= Fmt::h(Werbemittel::euro((int) $b['summe_cent'])) ?></strong><br>
         <span style="color:var(--leise)">Einkauf <?= Fmt::h(Werbemittel::euro($ek)) ?> · Marge <?= Fmt::h(Werbemittel::euro((int) $b['summe_cent'] - $ek)) ?></span><br>
         <?php if ($pos): ?><a class="knopf stumm" style="margin-top:6px" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $pos['entwurf_id'])) ?>" target="_blank" rel="noopener">Druckdatei (PDF)</a><?php endif; ?>
+        <?php if ($pos && in_array($b['status'], ['angefragt', 'offen', 'bezahlt'], true)):
+          $ang = Werbemittel::angebote((int) $pos['variante_id']); $g = $ang[0] ?? null; ?>
+          <?php if ($g): ?><div style="margin-top:8px;font-size:12.5px;text-align:right">Günstigster Drucker heute:<br>
+            <?= $g['link'] !== '' ? '<a href="' . Fmt::h($g['link']) . '" target="_blank" rel="noopener"><strong>' . Fmt::h($g['anbieter']) . '</strong></a>' : '<strong>' . Fmt::h($g['anbieter']) . '</strong>' ?>
+            · <?= Fmt::h(Werbemittel::euro((int) $g['preis_cent'])) ?><?= Werbemittel::veraltet($g) ? ' <span class="marke2 warnung">Preis neu prüfen</span>' : '' ?></div><?php endif; ?>
+        <?php endif; ?>
       </div>
     </div>
 
@@ -61,7 +67,9 @@ $S = [
         <?php if ($gs === '' && Gelato::bereit()): ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_gelato_senden"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
-            <button class="knopf haupt">Als Entwurf an Gelato</button></form>
+            <?php $gg = $pos ? (Werbemittel::angebote((int) $pos['variante_id'])[0]['anbieter'] ?? '') : ''; ?>
+            <?php if ($gg === '' || strcasecmp($gg, 'Gelato') === 0): ?><button class="knopf haupt">Als Entwurf an Gelato</button>
+            <?php else: ?><button class="knopf stumm" title="<?= Fmt::h($gg) ?> ist günstiger">An Gelato (teurer als <?= Fmt::h($gg) ?>)</button><?php endif; ?></form>
         <?php elseif ($gs === 'entwurf'): ?>
           <span class="marke2 warnung">Entwurf bei Gelato <?= Fmt::h((string) $b['anbieter_ref']) ?> — im <a href="https://dashboard.gelato.com" target="_blank" rel="noopener">Gelato-Dashboard</a> prüfen und bestätigen</span>
         <?php elseif ($gs === 'wird_gesendet' || $gs === 'fehler'): ?>

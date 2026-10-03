@@ -115,7 +115,10 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
                 <input form="<?= $fid ?>" name="name_de" value="<?= Fmt::h($v['name_de'] ?? '') ?>" style="min-width:90px">
                 <input form="<?= $fid ?>" name="name_en" value="<?= Fmt::h($v['name_en'] ?? '') ?>" style="min-width:90px"></div></td>
             <td class="num"><input form="<?= $fid ?>" name="auflage" type="number" min="1" value="<?= (int) ($v['auflage'] ?? 1) ?>" style="width:80px"></td>
-            <td class="num"><input form="<?= $fid ?>" name="einkauf_eur" inputmode="decimal" value="<?= $v ? $eur((int) $v['einkauf_cent']) : '' ?>" style="width:90px" placeholder="0,00"></td>
+            <?php $vAng = $v ? Werbemittel::angebote((int) $v['id']) : []; ?>
+            <td class="num"><?php if ($vAng): /* Einkauf = günstigstes Angebot, nicht frei */ ?>
+              <span title="günstigstes Angebot"><?= Fmt::h($eur((int) $v['einkauf_cent'])) ?></span><br><span style="font-size:11.5px;color:var(--leise)"><?= Fmt::h((string) $v['anbieter_guenstig']) ?></span>
+            <?php else: ?><input form="<?= $fid ?>" name="einkauf_eur" inputmode="decimal" value="<?= $v ? $eur((int) $v['einkauf_cent']) : '' ?>" style="width:90px" placeholder="0,00"><?php endif; ?></td>
             <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['preis_cent'])) : '<span style="color:var(--leise)">—</span>' ?></td>
             <td class="num"><?= $v && $v['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $v['marge_cent'])) : '' ?></td>
             <?php $ga = $v ? Gelato::artikel((int) $v['id']) : null; ?>
@@ -126,6 +129,45 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           </tr>
         <?php endforeach; ?>
         </tbody></table></div>
+
+      <?php /* Preisvergleich (04.10.2026): je Auflage die geprüften Angebote; der Einkauf ist das günstigste. */ ?>
+      <div style="margin-top:12px"><strong style="font-size:13.5px">Druckereien im Vergleich</strong>
+        <span style="color:var(--leise);font-size:12.5px"> — Preis so, wie Vecom zahlt: inkl. Versand nach Italien und inkl. IVA (ohne Partita IVA ist sie Kosten). Gleiche Qualität vorausgesetzt — das Papier steht daneben.</span>
+        <div class="tabellenrahmen" style="margin-top:6px"><table>
+          <thead><tr><th>Auflage</th><th>Druckerei</th><th class="num">Vecom zahlt</th><th class="num">netto</th><th>Papier</th><th>Lieferung</th><th>geprüft</th><th></th></tr></thead><tbody>
+          <?php $keinAngebot = true; foreach ($p['varianten'] as $v): foreach (Werbemittel::angebote((int) $v['id']) as $ai => $an): $keinAngebot = false; ?>
+            <tr><td><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></td>
+              <td><?= $an['link'] !== '' ? '<a href="' . Fmt::h($an['link']) . '" target="_blank" rel="noopener">' . Fmt::h($an['anbieter']) . '</a>' : Fmt::h($an['anbieter']) ?>
+                <?= $ai === 0 ? ' <span class="marke2 gut">günstigster</span>' : '' ?></td>
+              <td class="num"><?= Fmt::h(Werbemittel::euro((int) $an['preis_cent'])) ?></td>
+              <td class="num"><?= $an['netto_cent'] !== null ? Fmt::h(Werbemittel::euro((int) $an['netto_cent'])) : '—' ?></td>
+              <td><?= Fmt::h($an['papier']) ?></td><td style="font-size:12.5px"><?= Fmt::h($an['lieferung']) ?></td>
+              <td><?= Fmt::h(Fmt::datum((string) $an['geprueft_am'])) ?><?= Werbemittel::veraltet($an) ? ' <span class="marke2 warnung">neu prüfen</span>' : '' ?></td>
+              <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?>
+                <input type="hidden" name="tat" value="wm_angebot_weg"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
+                <input type="hidden" name="variante_id" value="<?= (int) $v['id'] ?>"><input type="hidden" name="anbieter" value="<?= Fmt::h($an['anbieter']) ?>">
+                <button class="knopf stumm">Entfernen</button></form></td></tr>
+          <?php endforeach; endforeach; ?>
+          <?php if ($keinAngebot): ?><tr><td colspan="8"><div class="leer">Noch kein Angebot — dann gilt der Einkauf oben.</div></td></tr><?php endif; ?>
+          </tbody></table></div>
+        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Angebot eintragen oder aktualisieren</summary>
+          <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
+            <input type="hidden" name="tat" value="wm_angebot"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
+            <div class="reihe">
+              <div class="feld"><label>Auflage</label><select name="variante_id"><?php foreach ($p['varianten'] as $v): ?><option value="<?= (int) $v['id'] ?>"><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></option><?php endforeach; ?></select></div>
+              <div class="feld"><label>Druckerei</label><input name="anbieter" required placeholder="z. B. HelloPrint"></div>
+              <div class="feld"><label>Vecom zahlt (€, inkl. Versand + IVA)</label><input name="preis_eur" inputmode="decimal" required></div>
+              <div class="feld"><label>davon netto (€)</label><input name="netto_eur" inputmode="decimal"></div>
+            </div>
+            <div class="reihe">
+              <div class="feld"><label>Papier / Qualität</label><input name="papier" placeholder="z. B. 400 g matt, 4/4"></div>
+              <div class="feld"><label>Lieferung</label><input name="lieferung" placeholder="z. B. gratis, 5 Werktage"></div>
+              <div class="feld"><label>Link (https://…)</label><input name="link" type="url"></div>
+              <div class="feld"><label>geprüft am</label><input name="geprueft_am" type="date" value="<?= date('Y-m-d') ?>"></div>
+            </div>
+            <button class="knopf haupt">Speichern</button>
+          </form></details>
+      </div>
 
       <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Produkt bearbeiten</summary>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">

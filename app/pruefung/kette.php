@@ -21059,6 +21059,14 @@ foreach (['tg_gruppe_id', 'tg_gruppe_titel', 'tg_gruppe_name', 'tg_gruppe_schutz
    ============================================================================ */
 abschnitt('Marketing Center: Katalog und Preis');
 require_once $wurzel . '/src/Werbemittel.php';
+/* Migration 151 (04.10.2026): HelloPrint-Angebote vom 03.10.2026, Einkauf = günstigstes (inkl. IVA). */
+$wm151 = Db::all("SELECT v.auflage, v.einkauf_cent, v.anbieter_guenstig FROM wm_varianten v JOIN wm_produkte p ON p.id = v.produkt_id WHERE p.vorlage = 'visitenkarte' ORDER BY v.auflage");
+pruefe('Migration 151: HelloPrint-Angebote eingetragen, Einkauf = Bruttopreis inkl. 22 % IVA (23,53 / 25,61 / 28,05 €)',
+    array_map(static fn($r) => [(int) $r['auflage'], (int) $r['einkauf_cent'], $r['anbieter_guenstig']], $wm151)
+    === [[250, 2353, 'HelloPrint'], [500, 2561, 'HelloPrint'], [1000, 2805, 'HelloPrint']], json_encode($wm151));
+// Für die folgenden Abschnitte: Stand ohne Angebote und ohne Einkauf
+Db::run('DELETE FROM wm_anbieter_preise');
+Db::run("UPDATE wm_varianten SET einkauf_cent = 0, anbieter_guenstig = NULL");
 $wmVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
 pruefe('Migration legt sechs Kategorien und die Visitenkarte an — mit VEC-Nummer, 85 × 55 mm, 3 mm Beschnitt, aus bis Preise da sind',
     (int) Db::wert('SELECT COUNT(*) FROM wm_kategorien') === 6 && $wmVk !== null
@@ -21547,6 +21555,55 @@ Db::run('DELETE FROM partner WHERE id = ?', [(int) $w4P['id']]);
 Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w4Vk['id']]);
 Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) $w4Vk['id']]);
+
+/* ============================================================================
+   Marketing Center: Preisvergleich der Druckereien (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketing Center: Preisvergleich der Druckereien');
+foreach (['Werbemittel', 'WmBestellung', 'Gelato', 'Partner', 'PartnerKarten', 'Fmt'] as $w5Kl) { require_once $wurzel . "/src/$w5Kl.php"; }
+$w5Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w5V = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage LIMIT 1', [(int) $w5Vk['id']]);
+Werbemittel::angebotSpeichern($w5V, ['anbieter' => 'Gelato', 'preis_eur' => '52,00', 'papier' => 'Silk 350 g', 'link' => 'https://dashboard.gelato.com']);
+Werbemittel::angebotSpeichern($w5V, ['anbieter' => 'HelloPrint', 'preis_eur' => '23,53', 'netto_eur' => '19,29', 'papier' => 'Opaca 400 g']);
+$w5Ein = static fn(): array => Db::one('SELECT einkauf_cent, anbieter_guenstig FROM wm_varianten WHERE id = ?', [$w5V]);
+pruefe('Einkauf ist immer das günstigste Angebot, mit Druckerei', $w5Ein() == ['einkauf_cent' => 2353, 'anbieter_guenstig' => 'HelloPrint']
+    && Werbemittel::angebote($w5V)[0]['anbieter'] === 'HelloPrint');
+Werbemittel::angebotSpeichern($w5V, ['anbieter' => 'Gelato', 'preis_eur' => '19,00']);
+pruefe('Wird ein anderes günstiger, wechselt Einkauf und Druckerei; gleicher Anbieter = dieselbe Zeile', $w5Ein() == ['einkauf_cent' => 1900, 'anbieter_guenstig' => 'Gelato']
+    && count(Werbemittel::angebote($w5V)) === 2);
+Werbemittel::varianteSpeichern((int) $w5Vk['id'], ['name_it' => '250 pezzi', 'name_de' => '250 Stück', 'auflage' => 250, 'einkauf_eur' => '1,00', 'aktiv' => 1], $w5V);
+pruefe('Mit Angeboten lässt sich der Einkauf nicht von Hand überschreiben', (int) $w5Ein()['einkauf_cent'] === 1900);
+Werbemittel::angebotLoeschen($w5V, 'Gelato');
+pruefe('Angebot entfernt: das nächstgünstige gilt', $w5Ein() == ['einkauf_cent' => 2353, 'anbieter_guenstig' => 'HelloPrint']);
+gesperrt('Angebot ohne Preis wird abgelehnt', fn() => Werbemittel::angebotSpeichern($w5V, ['anbieter' => 'X', 'preis_eur' => '']));
+gesperrt('Link ohne https wird abgelehnt', fn() => Werbemittel::angebotSpeichern($w5V, ['anbieter' => 'X', 'preis_eur' => '5', 'link' => 'http://x.example']));
+pruefe('Angebote älter als 30 Tage heißen „neu prüfen“', Werbemittel::veraltet(['geprueft_am' => date('Y-m-d', strtotime('-31 days'))]) && !Werbemittel::veraltet(['geprueft_am' => date('Y-m-d')]));
+// Verwaltung: Vergleich sichtbar; Bestellung zeigt günstigsten Drucker, Gelato-Knopf tritt zurück
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w5Vk['id']]);
+$w5P = Partner::laden(Partner::anlegen(['name' => 'Pia Preis', 'email' => 'pia@partner.example', 'code' => 'PIAPREIS', 'sprache' => 'it']));
+WmBestellung::$senden = static fn(): bool => true;
+$w5E = Werbemittel::entwurfAnlegen($w5P, (int) $w5Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+Werbemittel::freigeben((int) $w5P['id'], $w5E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w5E]));
+$w5O = WmBestellung::anlegen($w5P, $w5V, WmBestellung::adresseSpeichern((int) $w5P['id'], ['name' => 'Pia Preis', 'strasse' => 'Via 1', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT']), 'it');
+WmBestellung::vonHandBezahlt($w5O['id']);
+pruefe('Bestellung rechnet mit dem günstigsten Einkauf (23,53 € + 35 % = 31,77 € → 31,80 €)', (int) $w5O['summe_cent'] === 3180, (string) $w5O['summe_cent']);
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$w5F = null; set_error_handler(static function (int $n, string $m) use (&$w5F): bool { $w5F = $m; return true; });
+$wm = Werbemittel::verwaltung(); ob_start(); require $wurzel . '/views/werbemittel.php'; $w5A = (string) ob_get_clean();
+$liste = WmBestellung::verwaltung(); $zahlweg = 'anfrage'; ob_start(); require $wurzel . '/views/werbemittel_bestellungen.php'; $w5B = (string) ob_get_clean();
+restore_error_handler(); unset($wm, $liste, $zahlweg);
+pruefe('Verwaltung: Vergleichstabelle mit „günstigster“, Einkauf nur noch angezeigt; Bestellung nennt den günstigsten Drucker, Gelato-Knopf als „teurer als HelloPrint“',
+    $w5F === null && str_contains($w5A, 'Druckereien im Vergleich') && str_contains($w5A, 'günstigster') && str_contains($w5A, 'value="wm_angebot"')
+    && str_contains($w5B, 'Günstigster Drucker heute') && str_contains($w5B, 'An Gelato (teurer als HelloPrint)'), (string) $w5F);
+// Zurück
+WmBestellung::$senden = null;
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w5P['id']]);
+Db::run('DELETE FROM wm_adressen WHERE partner_id = ?', [(int) $w5P['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w5P['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $w5P['id']]);
+Db::run('DELETE FROM wm_anbieter_preise');
+Db::run('UPDATE wm_varianten SET einkauf_cent = 0, anbieter_guenstig = NULL');
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w5Vk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

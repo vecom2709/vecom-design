@@ -1799,6 +1799,18 @@ if ($post) {
                 $_SESSION['gut'] = (int) ($_POST['id'] ?? 0) > 0 ? 'Produkt gespeichert.' : 'Produkt angelegt. Jetzt Varianten mit Einkaufspreis eintragen.';
                 zurueck('werbemittel#wm-' . $wmId);
 
+            case 'wm_angebot':
+                require_once __DIR__ . '/src/Werbemittel.php';
+                Werbemittel::angebotSpeichern((int) ($_POST['variante_id'] ?? 0), $_POST);
+                $_SESSION['gut'] = 'Angebot gespeichert — der Einkauf ist jetzt das günstigste Angebot.';
+                zurueck('werbemittel');
+
+            case 'wm_angebot_weg':
+                require_once __DIR__ . '/src/Werbemittel.php';
+                Werbemittel::angebotLoeschen((int) ($_POST['variante_id'] ?? 0), (string) ($_POST['anbieter'] ?? ''));
+                $_SESSION['gut'] = 'Angebot entfernt.';
+                zurueck('werbemittel');
+
             case 'wm_variante':
                 require_once __DIR__ . '/src/Werbemittel.php';
                 $wmVid = Werbemittel::varianteSpeichern((int) ($_POST['produkt_id'] ?? 0), $_POST, (int) ($_POST['id'] ?? 0));
