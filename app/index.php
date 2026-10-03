@@ -1850,7 +1850,7 @@ if ($post) {
                 require_once __DIR__ . '/src/Gelato.php';
                 require_once __DIR__ . '/src/Werbemittel.php';
                 $wmN = Gelato::preiseAktualisieren();
-                $_SESSION[$wmN > 0 ? 'gut' : 'fehler'] = $wmN > 0 ? $wmN . ' Gelato-Preise geholt und eingetragen.' : 'Keine Preise erhalten — Schlüssel, Artikel und Gelato prüfen.';
+                $_SESSION[$wmN > 0 ? 'gut' : 'fehler'] = $wmN > 0 ? $wmN . ' Gelato-Preise geholt und eingetragen.' : 'Keine Preise erhalten — Gelato sagt: ' . (Gelato::$letzterGrund !== '' ? Gelato::$letzterGrund : 'nichts (kein Artikel zugeordnet?)');
                 zurueck('werbemittel');
 
             case 'wm_gelato_senden':

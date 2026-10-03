@@ -225,6 +225,9 @@ final class Gelato
      * Versand, netto in Cent, oder null.
      * @return ?array{netto:int, versand:string, min:int, max:int}
      */
+    /** Grund der letzten Absage beim Preisholen (HTTP-Status und Gelatos eigener Text), für die Meldung in der Verwaltung. */
+    public static string $letzterGrund = '';
+
     public static function angebotHolen(string $artikel, int $menge, string $land): ?array
     {
         $empf = ['IT' => ['firstName' => 'Vecom', 'lastName' => 'Design', 'addressLine1' => 'Via Atenea 1', 'city' => 'Agrigento', 'postCode' => '92100'],
@@ -238,15 +241,20 @@ final class Gelato
         ]);
         $d = json_decode($r['body'], true);
         $q = is_array($d) ? ($d['quotes'][0] ?? null) : null;
-        if ($r['code'] !== 200 || !is_array($q)) { return null; }
+        if ($r['code'] !== 200 || !is_array($q)) {
+            // Was Gelato sagt, damit die Verwaltung den Grund zeigen kann (nie der Schlüssel — der steht nur in der Kopfzeile).
+            $text = is_array($d) ? (string) ($d['message'] ?? json_encode($d, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)) : (string) $r['body'];
+            self::$letzterGrund = 'HTTP ' . $r['code'] . ($text !== '' ? ': ' . mb_substr(trim($text), 0, 300) : '');
+            return null;
+        }
         $produkt = 0.0;
-        foreach ((array) ($q['products'] ?? []) as $x) { if (strtoupper((string) ($x['currency'] ?? '')) !== 'EUR') { return null; } $produkt += (float) ($x['price'] ?? 0); }
+        foreach ((array) ($q['products'] ?? []) as $x) { if (strtoupper((string) ($x['currency'] ?? '')) !== 'EUR') { self::$letzterGrund = 'Preis nicht in Euro'; return null; } $produkt += (float) ($x['price'] ?? 0); }
         $versand = null;
         foreach ((array) ($q['shipmentMethods'] ?? []) as $m) {
             if (strtoupper((string) ($m['currency'] ?? '')) !== 'EUR' || !in_array((string) ($m['type'] ?? ''), ['normal', 'standard'], true)) { continue; }
             if ($versand === null || (float) $m['price'] < (float) $versand['price']) { $versand = $m; }
         }
-        if ($produkt <= 0 || $versand === null) { return null; }
+        if ($produkt <= 0 || $versand === null) { self::$letzterGrund = $produkt <= 0 ? 'kein Produktpreis in der Antwort' : 'keine Standard-Versandart in Euro'; return null; }
         return ['netto' => (int) round(($produkt + (float) $versand['price']) * 100), 'versand' => (string) ($versand['name'] ?? ''),
                 'min' => (int) ($versand['minDeliveryDays'] ?? 0), 'max' => (int) ($versand['maxDeliveryDays'] ?? 0)];
     }
@@ -274,7 +282,7 @@ final class Gelato
                         'link' => 'https://dashboard.gelato.com', 'geprueft_am' => date('Y-m-d'),
                     ]);
                     $n++;
-                } catch (Throwable $e) { error_log('Gelato::preiseAktualisieren: ' . $e->getMessage()); }
+                } catch (Throwable $e) { self::$letzterGrund = 'keine Antwort: ' . mb_substr($e->getMessage(), 0, 200); error_log('Gelato::preiseAktualisieren: ' . $e->getMessage()); }
             }
         }
         return $n;

@@ -21666,6 +21666,12 @@ pruefe('Gelato-Preise: Quote-API (POST /v4/orders:quote), Produkt + günstigster
     && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'IT'", [$w6V]) === 4087
     && (int) Db::wert("SELECT netto_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'IT'", [$w6V]) === 3350
     && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'DE'", [$w6V]) === 3749);
+$w6Alt = Gelato::$netz;
+Gelato::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 401, 'body' => json_encode(['code' => 'unauthorized', 'message' => 'Invalid API key'])];
+Gelato::$letzterGrund = '';
+pruefe('Gelato lehnt ab: Preisholen liefert 0, der Grund (HTTP-Status und Gelatos Text) steht für die Meldung bereit — ohne den Schlüssel',
+    Gelato::preiseAktualisieren() === 0 && Gelato::$letzterGrund === 'HTTP 401: Invalid API key' && !str_contains(Gelato::$letzterGrund, 'kette-ersatz'), Gelato::$letzterGrund);
+Gelato::$netz = $w6Alt;
 pruefe('Automatik aus: je Land die günstigste Druckerei (HelloPrint / WIRmachenDRUCK)', Werbemittel::einkauf($w6V, 'IT')['anbieter'] === 'HelloPrint' && Werbemittel::einkauf($w6V, 'DE')['anbieter'] === 'WIRmachenDRUCK');
 WmBestellung::automatikSetzen(true);
 pruefe('Automatik an: je Land die günstigste ANGEBUNDENE Druckerei — IT: HelloPrint (angebunden, günstiger als Gelato), DE: Gelato (WIRmachenDRUCK hat keine Anbindung, HelloPrint liefert nur nach IT)',
