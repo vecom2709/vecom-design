@@ -21264,6 +21264,8 @@ Db::run('UPDATE wm_varianten SET einkauf_cent = 0 WHERE produkt_id = ?', [(int) 
    ============================================================================ */
 abschnitt('Marketing Center: Bestellungen');
 foreach (['Werbemittel', 'WmBestellung', 'Partner', 'PartnerKarten', 'Fmt', 'Config'] as $w3Kl) { require_once $wurzel . "/src/$w3Kl.php"; }
+$w3Mails = [];
+WmBestellung::$senden = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$w3Mails): bool { $w3Mails[] = [$anlass, $an, $betreff, $text]; return true; };
 $w3Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
 $w3Var = Db::all('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $w3Vk['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w3Vk['id']]);
@@ -21370,6 +21372,14 @@ pruefe('Partner mit Freigabe: Bestellformular mit Auflagen, gespeicherter Adress
 [$w3HtmlB, $w3FB] = $w3Render($w3B);
 pruefe('Partner ohne Freigabe: kein Bestellformular, nur der Hinweis; keine fremden Bestellungen', $w3FB === null && !str_contains($w3HtmlB, 'value="wm_bestellen"')
     && str_contains($w3HtmlB, 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.') && !str_contains($w3HtmlB, 'VEC-MKT-'));
+$_GET['wmnochmal'] = (string) $w3O1['id'];
+[$w3HtmlN, $w3FN] = $w3Render($w3A);
+unset($_GET['wmnochmal']);
+pruefe('Nochmal bestellen: Knopf an alten Bestellungen; Formular mit Auflage und alter Adresse vorbefüllt, Preis von heute, bestellt erst mit Haken',
+    $w3FN === null && str_contains($w3Html, 'wmnochmal=' . $w3O1['id']) && str_contains($w3HtmlN, 'zum heutigen Preis')
+    && preg_match('~name="variante" value="' . (int) $w3Var[0]['id'] . '" checked~', $w3HtmlN) === 1
+    && preg_match('~name="adresse" value="neu" checked~', $w3HtmlN) === 1 && str_contains($w3HtmlN, 'value="Via Atenea 12"')
+    && str_contains($w3HtmlN, 'Nochmal bestellen'), (string) $w3FN);
 $w3Fake = new class { public function bereit(): bool { return true; } };
 WmBestellung::zahlwegSetzen('stripe');
 pruefe('Zahlweg Stripe nur, wenn Uwe ihn einschaltet UND der Schlüssel da ist', WmBestellung::zahlweg($w3Fake) === 'stripe'
@@ -21386,6 +21396,13 @@ pruefe('Webhook: Werbemittel-Bestellung (metadata wm_bestellung) wird vor den Ra
     $w3WmPos !== false && $w3WmPos < (int) strpos($w3Wh, "\$zahlungId = (int) (\$o['metadata']['zahlung_id'] ?? \$o['client_reference_id'] ?? 0);")
     && str_contains(substr($w3Wh, $w3WmPos, 700), "(\$o['payment_status'] ?? '') === 'paid'") && str_contains(substr($w3Wh, $w3WmPos, 700), 'WmBestellung::bezahltVonStripe(')
     && str_contains($w3Cr, "'wm_abgleich' => static function ()") && str_contains($w3Cr, 'WmBestellung::abgleichen($s)'));
+$w3Anl = array_count_values(array_column($w3Mails, 0));
+$w3Vers = array_values(array_filter($w3Mails, static fn($m) => $m[0] === 'wm_versendet'))[0] ?? ['', '', '', ''];
+pruefe('Mails an den Partner in seiner Sprache: Eingang je neuer Bestellung (nicht beim Doppelklick), „Zahlung erhalten“ je Zahlung, „Unterwegs“ mit Sendungsnummer und Link',
+    ($w3Anl['wm_eingang'] ?? 0) === 5 && ($w3Anl['wm_bezahlt'] ?? 0) === 3 && ($w3Anl['wm_versendet'] ?? 0) === 1
+    && $w3Vers[1] === 'alba@partner.example' && str_starts_with($w3Vers[2], 'In viaggio: VEC-MKT-') && str_contains($w3Vers[3], '1Z999')
+    && str_contains($w3Vers[3], 'https://track.example/1Z999') && !str_contains(implode(' ', array_column($w3Mails, 3)), '{'), json_encode($w3Anl));
+WmBestellung::$senden = null;
 // Verwaltung der Bestellungen
 require_once $wurzel . '/src/Ablauf.php';
 if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }

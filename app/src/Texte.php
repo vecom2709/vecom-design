@@ -1526,6 +1526,32 @@ final class Texte
             'de' => ['Ihre Jahresübersicht {jahr} für die Steuer', "Guten Tag {name},\n\ndie Übersicht aller {jahr} ausgezahlten Provisionen liegt als PDF auf Ihrer Partnerseite — für Ihre Steuererklärung:\n{portal}"],
             'en' => ['Your {jahr} summary for your tax return', "Hello {name},\n\nthe summary of all commissions paid in {jahr} is ready as a PDF on your partner page — for your tax return:\n{portal}"],
         ],
+        /* Marketing Center (03.10.2026): Bestellungen von Werbemitteln. {zahlung}
+           kommt aus PARTNER_WERBEMITTEL (mail_anfrage / mail_stripe). */
+        'wm_eingang' => [
+            'it' => ['Il suo ordine {nummer} è arrivato',
+                "Buongiorno {name},\n\ngrazie per l’ordine {nummer}: {produkt} per {betrag}.\n\nVerrà stampato esattamente il file che ha approvato — solo dopo il pagamento. {zahlung}\n\nLo stato lo vede sempre nella sua area partner, sezione «Marketing Center»:\n{portal}"],
+            'de' => ['Ihre Bestellung {nummer} ist eingegangen',
+                "Guten Tag {name},\n\ndanke für Ihre Bestellung {nummer}: {produkt} für {betrag}.\n\nGedruckt wird genau die Druckdatei, die Sie freigegeben haben — erst nach der Zahlung. {zahlung}\n\nDen Stand sehen Sie jederzeit in Ihrem Partnerbereich unter „Marketing Center“:\n{portal}"],
+            'en' => ['Your order {nummer} has been received',
+                "Hello {name},\n\nthank you for your order {nummer}: {produkt} for {betrag}.\n\nExactly the print file you approved will be printed — only after payment. {zahlung}\n\nYou can see the status any time in your partner area under “Marketing Center”:\n{portal}"],
+        ],
+        'wm_bezahlt' => [
+            'it' => ['Pagamento ricevuto: {nummer}',
+                "Buongiorno {name},\n\nabbiamo ricevuto il pagamento di {betrag} per l’ordine {nummer}. I suoi materiali vanno ora in stampa; appena spediti, riceve il numero di spedizione.\n\n{portal}"],
+            'de' => ['Zahlung erhalten: {nummer}',
+                "Guten Tag {name},\n\nwir haben Ihre Zahlung von {betrag} für die Bestellung {nummer} erhalten. Ihre Werbemittel gehen jetzt in Druck; sobald sie verschickt sind, bekommen Sie die Sendungsnummer.\n\n{portal}"],
+            'en' => ['Payment received: {nummer}',
+                "Hello {name},\n\nwe have received your payment of {betrag} for order {nummer}. Your materials are now going to print; once they ship, you will get the tracking number.\n\n{portal}"],
+        ],
+        'wm_versendet' => [
+            'it' => ['In viaggio: {nummer}',
+                "Buongiorno {name},\n\nil suo ordine {nummer} è stato spedito.\nNumero di spedizione: {tracking}\n{tracking_url}\n\nTutti i suoi ordini sono nella sua area partner:\n{portal}"],
+            'de' => ['Unterwegs: {nummer}',
+                "Guten Tag {name},\n\nIhre Bestellung {nummer} ist verschickt.\nSendungsnummer: {tracking}\n{tracking_url}\n\nAlle Bestellungen finden Sie in Ihrem Partnerbereich:\n{portal}"],
+            'en' => ['On its way: {nummer}',
+                "Hello {name},\n\nyour order {nummer} has shipped.\nTracking number: {tracking}\n{tracking_url}\n\nAll your orders are in your partner area:\n{portal}"],
+        ],
         /* Partnerprogramm (26.09.2026) */
         'partner_willkommen' => [
             'it' => ['Benvenuto nel programma partner di Vecom Design',
@@ -4935,6 +4961,8 @@ final class Texte
         'erst_freigeben' => ['it' => 'Per ordinare, crei e approvi prima il file di stampa qui sopra.', 'de' => 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.', 'en' => 'To order, first create and approve a print file above.'],
         'summe' => ['it' => 'Totale', 'de' => 'Gesamt', 'en' => 'Total'],
         'meine' => ['it' => 'I miei ordini', 'de' => 'Meine Bestellungen', 'en' => 'My orders'],
+        'nochmal' => ['it' => 'Ordina di nuovo', 'de' => 'Nochmal bestellen', 'en' => 'Order again'],
+        'nochmal_satz' => ['it' => 'Tiratura e indirizzo come l’ultima volta — al prezzo di oggi. Controlli e confermi.', 'de' => 'Auflage und Adresse wie beim letzten Mal — zum heutigen Preis. Bitte prüfen und bestätigen.', 'en' => 'Print run and address as last time — at today’s price. Please check and confirm.'],
         'jetzt_bezahlen' => ['it' => 'Paga ora', 'de' => 'Jetzt bezahlen', 'en' => 'Pay now'],
         'sendung' => ['it' => 'Traccia la spedizione', 'de' => 'Sendung verfolgen', 'en' => 'Track shipment'],
         's_angefragt' => ['it' => 'Ricevuto — Vecom la contatta', 'de' => 'Eingegangen — Vecom meldet sich', 'en' => 'Received — Vecom will contact you'],
@@ -4950,6 +4978,8 @@ final class Texte
         'm_adresse' => ['it' => 'Compili per favore l’indirizzo completo.', 'de' => 'Bitte die Lieferadresse vollständig ausfüllen.', 'en' => 'Please fill in the full delivery address.'],
         'm_zuviel_offen' => ['it' => 'Ha già 5 ordini non pagati. Prima paghi o attenda.', 'de' => 'Sie haben schon 5 unbezahlte Bestellungen. Bitte erst bezahlen oder abwarten.', 'en' => 'You already have 5 unpaid orders. Please pay or wait first.'],
         'm_nicht_verfuegbar' => ['it' => 'Questa tiratura al momento non è ordinabile.', 'de' => 'Diese Auflage ist gerade nicht bestellbar.', 'en' => 'This print run cannot be ordered right now.'],
+        'mail_anfrage' => ['it' => 'Ci facciamo sentire a breve con le modalità di pagamento.', 'de' => 'Wir melden uns in Kürze mit dem Zahlungsweg.', 'en' => 'We will be in touch shortly about payment.'],
+        'mail_stripe' => ['it' => 'Se il pagamento è ancora aperto, può completarlo nella sua area in «I miei ordini».', 'de' => 'Ist die Zahlung noch offen, schließen Sie sie in Ihrem Bereich unter „Meine Bestellungen“ ab.', 'en' => 'If payment is still open, you can complete it in your area under “My orders”.'],
         'm_stripe' => ['it' => 'La pagina di pagamento non si è aperta. L’ordine è salvato: paghi più tardi in «I miei ordini».', 'de' => 'Die Bezahlseite ließ sich gerade nicht öffnen. Die Bestellung ist gespeichert — bitte später unter „Meine Bestellungen“ bezahlen.', 'en' => 'The payment page could not be opened. Your order is saved — please pay later under “My orders”.'],
     ];
 

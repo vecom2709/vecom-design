@@ -18,6 +18,22 @@ require_once dirname(__DIR__) . '/src/WmBestellung.php';
 $wmZahlweg = WmBestellung::zahlweg();
 $wmAdressen = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? WmBestellung::adressen((int) $p['id']) : [];
 $wmBestellungen = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? WmBestellung::fuerPartner((int) $p['id']) : [];
+/* Nachbestellen (03.10.2026): ?wmnochmal=ID füllt das Formular mit Auflage und
+   Adresse der alten Bestellung vor. Bestellt wird erst mit Haken und Klick —
+   zum Preis von heute, nicht zu dem von damals. */
+$wmNoch = null; $wmNochVar = 0; $wmNochAdr = 0; $wmNochNeu = [];
+if (!$wmNurLesen && isset($_GET['wmnochmal'])) {
+    foreach ($wmBestellungen as $wmX) { if ((int) $wmX['id'] === (int) $_GET['wmnochmal']) { $wmNoch = $wmX; break; } }
+    if ($wmNoch) {
+        $wmNochVar = (int) Db::wert('SELECT variante_id FROM wm_positionen WHERE bestellung_id = ? ORDER BY id LIMIT 1', [(int) $wmNoch['id']], 0);
+        foreach ($wmAdressen as $wmX) {
+            $gleich = true;
+            foreach (['name', 'firma', 'strasse', 'plz', 'ort', 'land', 'telefon'] as $wmF) { if ((string) ($wmX[$wmF] ?? '') !== (string) ($wmNoch['adresse'][$wmF] ?? '')) { $gleich = false; break; } }
+            if ($gleich) { $wmNochAdr = (int) $wmX['id']; break; }
+        }
+        if ($wmNochAdr === 0) { $wmNochNeu = $wmNoch['adresse']; }
+    }
+}
 $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'CH' => 'Schweiz / Svizzera', 'FR' => 'France', 'ES' => 'España',
     'NL' => 'Nederland', 'BE' => 'België / Belgique', 'LU' => 'Luxembourg', 'PT' => 'Portugal', 'MT' => 'Malta', 'SM' => 'San Marino'];
 ?>
@@ -191,6 +207,7 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
           $wmM = (string) ($_GET['wm'] ?? ''); ?>
         <div class="wm-bestellen" id="wm-bestellen">
           <h4><?= $h($W('bestellen')) ?></h4>
+          <?php if ($wmNoch): ?><p class="wm-meldung" role="status"><?= $h($W('nochmal_satz')) ?></p><?php endif; ?>
           <?php if (!$wmNurLesen && in_array($wmM, ['adresse', 'freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar'], true)): ?>
             <p class="wm-meldung" role="alert"><?= $h($W('m_' . $wmM)) ?></p>
           <?php endif; ?>
@@ -202,26 +219,26 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
               <?php if (!$wmNurLesen): ?><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_bestellen"><?php endif; ?>
               <div class="wm-wahl" role="radiogroup" aria-label="<?= $h($W('auflage')) ?>">
                 <?php foreach ($wmP['varianten'] as $wmI => $wmV): ?>
-                  <label><input type="radio" name="variante" value="<?= (int) $wmV['id'] ?>"<?= $wmI === 0 ? ' checked' : '' ?> required>
+                  <label><input type="radio" name="variante" value="<?= (int) $wmV['id'] ?>"<?= ($wmNochVar > 0 ? (int) $wmV['id'] === $wmNochVar : $wmI === 0) ? ' checked' : '' ?> required>
                     <span><?= $h($wmV['name']) ?></span><b><?= $h(Werbemittel::euro((int) $wmV['preis_cent'])) ?></b></label>
                 <?php endforeach; ?>
               </div>
               <p class="wm-unter"><?= $h($W('lieferadresse')) ?></p>
               <?php foreach ($wmAdressen as $wmAi => $wmA): ?>
-                <label class="wm-adr"><input type="radio" name="adresse" value="<?= (int) $wmA['id'] ?>"<?= $wmAi === 0 ? ' checked' : '' ?>>
+                <label class="wm-adr"><input type="radio" name="adresse" value="<?= (int) $wmA['id'] ?>"<?= ($wmNoch ? (int) $wmA['id'] === $wmNochAdr : $wmAi === 0) ? ' checked' : '' ?>>
                   <span><?= $h($wmA['name'] . ($wmA['firma'] !== '' ? ' · ' . $wmA['firma'] : '') . ', ' . $wmA['strasse'] . ', ' . $wmA['plz'] . ' ' . $wmA['ort'] . ' (' . $wmA['land'] . ')') ?></span></label>
               <?php endforeach; ?>
-              <?php if ($wmAdressen): ?><label class="wm-adr"><input type="radio" name="adresse" value="neu"> <span><?= $h($W('neue_adresse')) ?></span></label><?php else: ?><input type="hidden" name="adresse" value="neu"><?php endif; ?>
+              <?php if ($wmAdressen): ?><label class="wm-adr"><input type="radio" name="adresse" value="neu"<?= $wmNoch && $wmNochAdr === 0 ? ' checked' : '' ?>> <span><?= $h($W('neue_adresse')) ?></span></label><?php else: ?><input type="hidden" name="adresse" value="neu"><?php endif; ?>
               <div class="wm-neu"<?= $wmAdressen ? ' data-nur-neu="1"' : '' ?>>
-                <label><?= $h($W('a_name')) ?><input name="name" autocomplete="name" value="<?= $h($wmAdressen ? '' : (string) ($p['name'] ?? '')) ?>"></label>
-                <label><?= $h($W('a_firma')) ?><input name="firma" autocomplete="organization"></label>
-                <label class="wm-breit"><?= $h($W('a_strasse')) ?><input name="strasse" autocomplete="street-address"></label>
-                <label><?= $h($W('a_plz')) ?><input name="plz" autocomplete="postal-code" inputmode="numeric"></label>
-                <label><?= $h($W('a_ort')) ?><input name="ort" autocomplete="address-level2"></label>
+                <label><?= $h($W('a_name')) ?><input name="name" autocomplete="name" value="<?= $h((string) ($wmNochNeu['name'] ?? ($wmAdressen ? '' : (string) ($p['name'] ?? '')))) ?>"></label>
+                <label><?= $h($W('a_firma')) ?><input name="firma" autocomplete="organization" value="<?= $h((string) ($wmNochNeu['firma'] ?? '')) ?>"></label>
+                <label class="wm-breit"><?= $h($W('a_strasse')) ?><input name="strasse" autocomplete="street-address" value="<?= $h((string) ($wmNochNeu['strasse'] ?? '')) ?>"></label>
+                <label><?= $h($W('a_plz')) ?><input name="plz" autocomplete="postal-code" inputmode="numeric" value="<?= $h((string) ($wmNochNeu['plz'] ?? '')) ?>"></label>
+                <label><?= $h($W('a_ort')) ?><input name="ort" autocomplete="address-level2" value="<?= $h((string) ($wmNochNeu['ort'] ?? '')) ?>"></label>
                 <label><?= $h($W('a_land')) ?><select name="land" autocomplete="country">
-                  <?php foreach ($wmLaender as $wmLc => $wmLn): ?><option value="<?= $wmLc ?>"<?= $wmLc === 'IT' ? ' selected' : '' ?>><?= $h($wmLn) ?></option><?php endforeach; ?>
+                  <?php foreach ($wmLaender as $wmLc => $wmLn): ?><option value="<?= $wmLc ?>"<?= $wmLc === (string) ($wmNochNeu['land'] ?? 'IT') ? ' selected' : '' ?>><?= $h($wmLn) ?></option><?php endforeach; ?>
                 </select></label>
-                <label><?= $h($W('a_telefon')) ?><input name="telefon" type="tel" autocomplete="tel"></label>
+                <label><?= $h($W('a_telefon')) ?><input name="telefon" type="tel" autocomplete="tel" value="<?= $h((string) ($wmNochNeu['telefon'] ?? '')) ?>"></label>
               </div>
               <label class="wm-haken"><input type="checkbox" name="verbindlich" value="1" required> <span><?= $h($W('verbindlich')) ?></span></label>
               <button class="knopf haupt"><?= $h($W($wmZahlweg === 'stripe' ? 'knopf_stripe' : 'knopf_anfrage')) ?></button>
@@ -235,7 +252,7 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
   <?php endforeach; ?>
 </div>
 
-<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe'], true))): ?>
+<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => $x['vorlage'] === 'visitenkarte')); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe'], true))): ?>
 <div class="block pt" id="wm-bestellungen" data-reiter="werbemittel">
   <h2><?= $h($W('meine')) ?></h2>
   <?php if (in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe'], true)): ?>
@@ -246,6 +263,9 @@ $wmLaender = ['IT' => 'Italia', 'DE' => 'Deutschland', 'AT' => 'Österreich', 'C
       <div class="wm-best-kopf"><b><?= $h($wmB['nummer']) ?></b><span class="wm-status wm-s-<?= $h($wmB['status']) ?>"><?= $h($W('s_' . $wmB['status'])) ?></span></div>
       <div class="wm-meta" style="margin:0"><?= $h(Fmt::datum((string) $wmB['created_at'])) ?><?php if ($wmPos): ?> · <?= $h($wmPos['name'] . ' · ' . $wmPos['variante']) ?><?php endif; ?></div>
       <div class="wm-best-fuss"><span><?= $h($W('summe')) ?> <b><?= $h(Werbemittel::euro((int) $wmB['summe_cent'])) ?></b></span>
+        <?php if (in_array($wmB['status'], ['bezahlt', 'beim_drucker', 'versendet', 'storniert'], true) && $wmPos && $wmDarfNoch): ?>
+          <a class="knopf" href="<?= $h($selbst(['wmnochmal' => (int) $wmB['id']])) ?>#wm-bestellen"><?= $h($W('nochmal')) ?></a>
+        <?php endif; ?>
         <?php if ($wmB['status'] === 'versendet' && !empty($wmB['tracking'])): ?>
           <?php if (!empty($wmB['tracking_url'])): ?><a href="<?= $h((string) $wmB['tracking_url']) ?>" target="_blank" rel="noopener"><?= $h($W('sendung')) ?> · <?= $h((string) $wmB['tracking']) ?></a>
           <?php else: ?><span><?= $h($W('sendung')) ?>: <?= $h((string) $wmB['tracking']) ?></span><?php endif; ?>

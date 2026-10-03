@@ -33,6 +33,8 @@ final class WmBestellung
     public const OFFEN = ['angefragt', 'offen'];
     /** Höchstens so viele unbezahlte Bestellungen je Partner zugleich. */
     public const OFFEN_MAX = 5;
+    /** Prüfnaht: ersetzt Mail::senden (Kette). Null = echte Mail. */
+    public static $senden = null;
 
     // ---- Zahlweg ----------------------------------------------------------------
 
@@ -125,7 +127,7 @@ final class WmBestellung
         $sprache = in_array($sprache, Werbemittel::SPRACHEN, true) ? $sprache : 'it';
         $feld = static fn(string $f) => trim((string) ($v[$f . '_' . $sprache] ?? '')) !== '' ? (string) $v[$f . '_' . $sprache] : (string) $v[$f . '_it'];
 
-        return Db::transaktion(static function () use ($pid, $v, $entwurf, $adresse, $preis, $sprache, $feld): array {
+        $r = Db::transaktion(static function () use ($pid, $v, $entwurf, $adresse, $preis, $sprache, $feld): array {
             // Doppelklick, Zurück-und-nochmal: dieselbe offene Bestellung zurückgeben.
             $gleich = Db::one("SELECT b.id, b.nummer, b.summe_cent FROM wm_bestellungen b JOIN wm_positionen x ON x.bestellung_id = b.id
                                 WHERE b.partner_id = ? AND b.status IN ('angefragt', 'offen') AND b.adresse = ? AND b.summe_cent = ?
@@ -149,6 +151,9 @@ final class WmBestellung
             ]);
             return ['id' => $id, 'nummer' => $nummer, 'summe_cent' => $preis, 'neu' => true];
         }, 5);
+        // Bestätigung an den Partner: Antwort auf seine eigene Bestellung, erst nach dem Speichern.
+        if ($r['neu']) { self::mailen($r['id'], 'wm_eingang'); }
+        return $r;
     }
 
     /**
@@ -195,7 +200,7 @@ final class WmBestellung
     /** @return string gebucht|schon|abweichung|unbekannt */
     public static function bezahltVonStripe(int $id, string $referenz, int $betrag, string $waehrung): string
     {
-        return (string) Db::transaktion(static function () use ($id, $referenz, $betrag, $waehrung): string {
+        $r = (string) Db::transaktion(static function () use ($id, $referenz, $betrag, $waehrung): string {
             $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ? FOR UPDATE', [$id]);
             if (!$b) { return 'unbekannt'; }
             if ($b['bezahlt_am'] !== null) { return 'schon'; }
@@ -210,14 +215,18 @@ final class WmBestellung
                 Fmt::geld((int) $b['summe_cent'], (string) $b['waehrung']) . ' — jetzt beim Drucker beauftragen.', '/werbemittel/bestellungen');
             return 'gebucht';
         }, 3);
+        if ($r === 'gebucht') { self::mailen($id, 'wm_bezahlt'); }
+        return $r;
     }
 
     /** Überweisung o. Ä., von Uwe in der Verwaltung bestätigt. */
     public static function vonHandBezahlt(int $id, string $wie = 'ueberweisung'): bool
     {
         $wie = in_array($wie, ['ueberweisung', 'bar', 'stripe'], true) ? $wie : 'ueberweisung';
-        return Db::run("UPDATE wm_bestellungen SET status = 'bezahlt', bezahlt_am = NOW(), bezahlt_wie = ? WHERE id = ? AND status IN ('angefragt', 'offen') AND bezahlt_am IS NULL",
+        $ok = Db::run("UPDATE wm_bestellungen SET status = 'bezahlt', bezahlt_am = NOW(), bezahlt_wie = ? WHERE id = ? AND status IN ('angefragt', 'offen') AND bezahlt_am IS NULL",
             [$wie, $id])->rowCount() === 1;
+        if ($ok) { self::mailen($id, 'wm_bezahlt'); }
+        return $ok;
     }
 
     // ---- Weiter im Ablauf (Verwaltung) -----------------------------------------
@@ -236,8 +245,10 @@ final class WmBestellung
         $url = trim($url);
         if ($tracking === '') { throw new InvalidArgumentException('Sendungsnummer fehlt.'); }
         if ($url !== '' && !preg_match('~^https://[^\s<>"]{4,390}$~', $url)) { throw new InvalidArgumentException('Link zur Sendungsverfolgung muss mit https:// beginnen.'); }
-        return Db::run("UPDATE wm_bestellungen SET status = 'versendet', versendet_am = NOW(), tracking = ?, tracking_url = ? WHERE id = ? AND status = 'beim_drucker'",
+        $ok = Db::run("UPDATE wm_bestellungen SET status = 'versendet', versendet_am = NOW(), tracking = ?, tracking_url = ? WHERE id = ? AND status = 'beim_drucker'",
             [$tracking, $url !== '' ? $url : null, $id])->rowCount() === 1;
+        if ($ok) { self::mailen($id, 'wm_versendet'); }
+        return $ok;
     }
 
     /** Nur bis „bezahlt“. Bereits bezahlt: Erstattung macht Uwe bei Stripe selbst — hier wird nichts zurückgebucht. */
@@ -245,6 +256,32 @@ final class WmBestellung
     {
         return Db::run("UPDATE wm_bestellungen SET status = 'storniert', storniert_am = NOW() WHERE id = ? AND status IN ('angefragt', 'offen', 'bezahlt')",
             [$id])->rowCount() === 1;
+    }
+
+    /**
+     * Mail an den Partner zu seiner Bestellung, in seiner Sprache. Ein
+     * Fehler beim Versand hält den Ablauf nicht auf — die Bestellung ist
+     * gespeichert, und der Partner sieht den Stand in seinem Bereich.
+     */
+    private static function mailen(int $id, string $anlass): void
+    {
+        try {
+            require_once __DIR__ . '/Partner.php';
+            require_once __DIR__ . '/Werbemittel.php';
+            $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ?', [$id]);
+            if (!$b) { return; }
+            $pos = Db::one('SELECT name, variante FROM wm_positionen WHERE bestellung_id = ? ORDER BY id LIMIT 1', [$id]);
+            $sp = Db::wert('SELECT sprache FROM partner WHERE id = ?', [(int) $b['partner_id']], 'it');
+            $sp = in_array($sp, ['it', 'de', 'en'], true) ? (string) $sp : 'it';
+            Partner::schreiben((int) $b['partner_id'], $anlass, [
+                'nummer' => (string) $b['nummer'],
+                'betrag' => Werbemittel::euro((int) $b['summe_cent']),
+                'produkt' => trim(($pos['name'] ?? '') . ' · ' . ($pos['variante'] ?? ''), ' ·'),
+                'tracking' => (string) ($b['tracking'] ?? ''),
+                'tracking_url' => (string) ($b['tracking_url'] ?? ''),
+                'zahlung' => Texte::h(Texte::PARTNER_WERBEMITTEL[self::zahlweg() === 'stripe' ? 'mail_stripe' : 'mail_anfrage'], $sp),
+            ], self::$senden);
+        } catch (Throwable $e) { error_log('WmBestellung::mailen ' . $anlass . ' ' . $id . ': ' . $e->getMessage()); }
     }
 
     // ---- Lesen -------------------------------------------------------------------

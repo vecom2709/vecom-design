@@ -444,8 +444,11 @@ final class Ablauf
             'Ja, vermerken'],
         /* Marketing Center (03.10.2026): Geld und Partner hängen daran. */
         'wm_b_bezahlt' => [self::SCHWER,
-            'Die Werbemittel-Bestellung gilt danach als bezahlt und kann in Druck gehen. Nur bestätigen, wenn das Geld wirklich da ist.',
+            'Die Werbemittel-Bestellung gilt danach als bezahlt und kann in Druck gehen; der Partner bekommt die E-Mail „Zahlung erhalten“. Nur bestätigen, wenn das Geld wirklich da ist.',
             'Ja, Zahlung ist da'],
+        'wm_b_versendet' => [self::RAUS,
+            'Der Partner bekommt jetzt eine E-Mail mit der Sendungsnummer.',
+            'Ja, E-Mail an den Partner'],
         'wm_b_storno' => [self::SCHWER,
             'Die Bestellung wird storniert. War sie schon bezahlt, erstattest du das Geld selbst (bei Stripe oder per Überweisung) — hier wird nichts zurückgebucht.',
             'Ja, stornieren'],
