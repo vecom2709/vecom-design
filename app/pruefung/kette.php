@@ -11952,6 +11952,49 @@ pruefe('Vorlage, Farbe, Bild aus der Auswahl; WhatsApp-Knopf ohne Nummer bleibt 
 $psFehlend = [];
 foreach (PartnerSeite::BILDER as $psK => $psD) { if (!is_file($wurzel . '/../assets/img/' . $psD)) { $psFehlend[] = $psD; } }
 pruefe('Jedes Titelbild der Auswahl liegt im Repository', $psFehlend === [], implode(', ', $psFehlend));
+/* Gestalter als Assistent (03.10.2026, Uwe: Ja zu E1–E4): Live-Vorschau ohne Speichern, ein Text statt drei —
+   die anderen Sprachen übersetzt Claude auf Uwes PC; eigene Texte gehen vor, eine neue Vorlage macht alte Übersetzungen ungültig. */
+require_once $wurzel . '/src/MkZielgruppe.php';
+$psVor = PartnerSeite::gestaltung($psP());
+$psVs = PartnerSeite::vorschau($psP(), ['vorlage' => 'nacht', 'akzent' => 'gold', 'texte' => ['it' => ['titel' => 'Solo anteprima']]]);
+$psVsBoese = PartnerSeite::vorschau($psP(), ['texte' => ['it' => ['titel' => 'www.boese.it']]]);
+pruefe('Live-Vorschau: zeigt ungespeicherte Wahlen, speichert nichts, Links fallen auf die gespeicherte Fassung zurück; nur im eigenen Browser des Partners',
+    $psVs['vorlage'] === 'nacht' && ($psVs['texte']['it']['titel'] ?? '') === 'Solo anteprima' && PartnerSeite::gestaltung($psP()) == $psVor && $psVsBoese == $psVor
+    && str_contains((string) file_get_contents($wurzel . '/../p.php'), "strtoupper((string) (\$_COOKIE[Partner::KEKS_SELBST] ?? '')) === strtoupper((string) \$p['code'])) {\n    \$vsD"));
+Db::run("DELETE FROM mk_auftraege WHERE art = 'uebersetzen'");
+PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'vorlage' => 'mediterran', 'texte' => ['it' => ['titel' => 'Siti web per la sua attività', 'lead' => 'Chiaro, veloce, con prezzo fisso.']]]);
+$psU = PartnerSeite::ohneUebersetzung();
+$psUe = array_values(array_filter($psU, static fn($x) => $x['id'] === $psId))[0] ?? [];
+pruefe('Ein Text statt drei: Speichern in der eigenen Sprache legt einen Übersetzungsauftrag an den PC (nach DE und EN)',
+    ($psUe['von'] ?? '') === 'it' && ($psUe['nach'] ?? []) === ['de', 'en'] && ($psUe['texte']['titel'] ?? '') === 'Siti web per la sua attività' && strlen((string) ($psUe['hash'] ?? '')) === 16
+    && (int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'uebersetzen' AND status = 'wartet'", [], 0) === 1, json_encode($psU, JSON_UNESCAPED_UNICODE));
+$psMeld = MkZielgruppe::uebersetzungMelden(['profile' => [], 'inhalte' => [], 'partnerseiten' => [
+    ['id' => $psId, 'hash' => 'falsch-falsch-12', 'texte' => ['de' => ['titel' => 'Falsch']]],
+    ['id' => $psId, 'hash' => $psUe['hash'] ?? '', 'texte' => ['de' => ['titel' => 'Websites für Ihren Betrieb', 'lead' => 'Klar, schnell, mit Festpreis. Mehr auf www.x.de'], 'en' => ['titel' => 'Websites for your business'], 'it' => ['titel' => 'Darf nicht überschreiben']]]]]);
+$psG2 = PartnerSeite::gestaltung($psP());
+pruefe('Übersetzung vom PC: mit passender Kennung eingetragen (eine veraltete wird verworfen), nie die Quellsprache, keine Links — Besucher sehen sie, eigene Texte gehen vor',
+    $psMeld['partnerseiten'] === 1 && ($psG2['auto']['de']['titel'] ?? '') === 'Websites für Ihren Betrieb' && !isset($psG2['auto']['de']['lead']) && !isset($psG2['auto']['it'])
+    && !$psG2['auto_offen'] && PartnerSeite::text($psG2, 'en', 'titel', 'Standard') === 'Websites for your business' && PartnerSeite::text($psG2, 'it', 'titel', 'Standard') === 'Siti web per la sua attività'
+    && PartnerSeite::text($psG2, 'de', 'lead', 'Standard') === 'Standard' && PartnerSeite::ohneUebersetzung() === [], json_encode($psG2['auto'], JSON_UNESCAPED_UNICODE));
+PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'vorlage' => 'mediterran', 'texte' => ['it' => ['titel' => 'Siti web per la sua attività', 'lead' => 'Chiaro, veloce, con prezzo fisso.'], 'de' => ['titel' => 'Mein eigener Titel']]]);
+$psG3 = PartnerSeite::gestaltung($psP());
+PartnerSeite::speichern($psId, ['sprache_quelle' => 'it', 'texte' => ['it' => ['titel' => 'Nuovo titolo']]]);
+$psG4 = PartnerSeite::gestaltung($psP());
+pruefe('Gleiche Vorlage behält die Übersetzung, eigener Text geht vor; neue Vorlage macht sie ungültig und stößt neu an',
+    ($psG3['auto']['de']['titel'] ?? '') === 'Websites für Ihren Betrieb' && PartnerSeite::text($psG3, 'de', 'titel', 'x') === 'Mein eigener Titel' && !$psG3['auto_offen']
+    && $psG4['auto'] === [] && $psG4['auto_offen'] && count(PartnerSeite::ohneUebersetzung()) >= 1);
+$psView = (string) file_get_contents($wurzel . '/views/partner_seite.php');
+$psJs = (string) file_get_contents($wurzel . '/../assets/js/partner-gestalter.js');
+$psTs = (string) file_get_contents($wurzel . '/../tools/akquise/src/ki/marketing.ts');
+$psTexteFehlt = array_filter(array_keys(Texte::PARTNER_SEITE), static fn($k) => str_starts_with($k, 'ga_') && count(Texte::PARTNER_SEITE[$k]) !== 3);
+pruefe('Assistent: drei Schritte in einem Formular, Looks für jede Branche mit Schrift, eigene Sprache offen, Reihenfolge per Pfeil (Zahlen bleiben), Worker übersetzt Partnerseiten mit Kennung',
+    substr_count($psView, 'class="ga-schritt"') === 3 && substr_count($psView, '<form method="post"') <= 4 && str_contains($psView, 'name="sprache_quelle"')
+    && array_diff(array_keys(Texte::SEITE_BRANCHEN), array_keys(PartnerSeite::LOOK_SCHRIFT)) === [] && str_contains($psView, 'data-look=')
+    && str_contains($psView, 'name="pos[<?= $bs ?>]"') && str_contains($psJs, "s.value = String(i + 1)") && str_contains($psJs, "'&vs=' + encodeURIComponent(b64)")
+    && str_contains($psTs, 'partnerseiten: seiten') && str_contains($psTs, "hash: (a.partnerseiten ?? []).find((q) => q.id === s.id)?.hash ?? ''")
+    && str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), "'partnerseiten' => self::still(static fn() => PartnerSeite::ohneUebersetzung(), [])")
+    && $psTexteFehlt === [], implode(', ', $psTexteFehlt));
+Db::run("DELETE FROM mk_auftraege WHERE art = 'uebersetzen'");
 $psLum = static function (string $hex): float {
     $c = array_map(static fn($x) => hexdec($x) / 255, str_split(ltrim($hex, '#'), 2));
     $c = array_map(static fn($v) => $v <= 0.03928 ? $v / 12.92 : (($v + 0.055) / 1.055) ** 2.4, $c);

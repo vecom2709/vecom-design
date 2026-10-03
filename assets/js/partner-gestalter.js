@@ -110,3 +110,137 @@
     }).catch(function () { knopf.hidden = true; });
   });
 })();
+
+/* Gestalter als Assistent (03.10.2026, Uwe: Ja zu E1–E4).
+   - Drei Schritte statt einer langen Seite; ohne Skript steht alles untereinander.
+   - Ein-Klick-Looks je Branche: Bild, Vorlage, Farbe, Schrift und Texte auf einmal.
+   - Live-Vorschau: jede Änderung sofort in der Vorschau (p.php prüft wie beim Speichern,
+     gespeichert wird nichts) — am Handy in einem Telefonrahmen.
+   - Reihenfolge der Abschnitte mit Pfeilen; die Zahlenlisten bleiben die Wahrheit. */
+(function () {
+  'use strict';
+  var form = document.getElementById('gs_form');
+  if (!form) { return; }
+  var nav = form.querySelector('.ga-schritte'), schritte = [].slice.call(form.querySelectorAll('.ga-schritt'));
+  var zurueck = form.querySelector('[data-ga-zurueck]'), weiter = form.querySelector('[data-ga-weiter]'), vKnopf = form.querySelector('[data-ga-vorschau]');
+  var jetzt = 1;
+  form.classList.add('js-ga');
+
+  function zeigen(n, rollen) {
+    jetzt = Math.max(1, Math.min(3, n));
+    schritte.forEach(function (s) { s.hidden = +s.dataset.schritt !== jetzt; });
+    [].forEach.call(nav.querySelectorAll('[data-ga]'), function (b) { b.setAttribute('aria-current', +b.dataset.ga === jetzt ? 'step' : 'false'); });
+    zurueck.hidden = jetzt === 1; weiter.hidden = jetzt === 3;
+    if (rollen) { nav.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+  }
+  nav.hidden = false;
+  nav.addEventListener('click', function (e) { var b = e.target.closest('[data-ga]'); if (b) { zeigen(+b.dataset.ga, true); } });
+  zurueck.addEventListener('click', function () { zeigen(jetzt - 1, true); });
+  weiter.addEventListener('click', function () { zeigen(jetzt + 1, true); });
+  // Sprünge aus „Es fehlt: …“ in den richtigen Schritt
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('a[href^="#gs_"]'); if (!a) { return; }
+    var ziel = document.getElementById(a.getAttribute('href').slice(1)); if (!ziel || !form.contains(ziel)) { return; }
+    e.preventDefault();
+    var s = ziel.closest('.ga-schritt'); zeigen(s ? +s.dataset.schritt : 1, false);
+    ziel.scrollIntoView({ block: 'center', behavior: 'smooth' }); if (ziel.focus) { ziel.focus({ preventScroll: true }); }
+  });
+  zeigen(1, false);
+
+  /* Live-Vorschau */
+  var basis = form.dataset.vorschau, rahmen = document.querySelector('.gs-vorschau iframe'), dlg = null, uhr = null;
+  function daten() {
+    var o = {};
+    new FormData(form).forEach(function (wert, schluessel) {
+      if (typeof wert !== 'string' || ['_csrf', 'tat', 'MAX_FILE_SIZE'].indexOf(schluessel) >= 0) { return; }
+      var teile = schluessel.replace(/\]/g, '').split('['), z = o;
+      for (var i = 0; i < teile.length - 1; i++) { z[teile[i]] = z[teile[i]] || {}; z = z[teile[i]]; }
+      z[teile[teile.length - 1]] = wert;
+    });
+    return o;
+  }
+  function adresse() {
+    var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(daten())))).replace(/\+/g, '-').replace(/\//g, '_');
+    return basis + '&vs=' + encodeURIComponent(b64);
+  }
+  function auffrischen() {
+    clearTimeout(uhr);
+    uhr = setTimeout(function () {
+      var u = adresse();
+      if (rahmen) { rahmen.src = u; }
+      if (dlg && dlg.open) { dlg.querySelector('iframe').src = u; }
+    }, 450);
+  }
+  form.addEventListener('input', auffrischen);
+  form.addEventListener('change', auffrischen);
+  if (vKnopf && typeof HTMLDialogElement !== 'undefined') {
+    vKnopf.hidden = false;
+    vKnopf.addEventListener('click', function () {
+      if (!dlg) {
+        dlg = document.createElement('dialog');
+        dlg.className = 'ga-vorschau-dlg';
+        dlg.innerHTML = '<div class="hv-rahmen"><iframe title=""></iframe></div><div class="hv-unten"><span></span><button class="knopf" type="button"></button></div>';
+        dlg.querySelector('iframe').title = vKnopf.textContent;
+        dlg.querySelector('span').textContent = form.dataset.live || '';
+        dlg.querySelector('button').textContent = form.dataset.zu || '×';
+        dlg.querySelector('button').addEventListener('click', function () { dlg.close(); });
+        dlg.addEventListener('click', function (e) { if (e.target === dlg) { dlg.close(); } });
+        document.body.appendChild(dlg);
+      }
+      dlg.querySelector('iframe').src = adresse();
+      dlg.showModal();
+    });
+  }
+
+  /* Ein-Klick-Looks */
+  var B = {}; try { B = JSON.parse(document.getElementById('gs_branchen').textContent); } catch (e) { }
+  var looks = [].slice.call(form.querySelectorAll('[data-look]')), frage = document.getElementById('ga_ersetzen'), offen = null;
+  var felder = ['titel', 'lead', 'p1', 'p2', 'p3'], sprachen = ['it', 'de', 'en'];
+  function setzen(name, wert) { var r = form.querySelector('input[name="' + name + '"][value="' + wert + '"]'); if (r) { r.checked = true; } }
+  function texte(gruppe, ueberall) {
+    if (!B[gruppe]) { return; }
+    sprachen.forEach(function (l) {
+      felder.forEach(function (k) { var f = document.getElementById('gs_' + l + k); if (f && B[gruppe][l] && (ueberall || f.value.trim() === '')) { f.value = B[gruppe][l][k] || ''; } });
+    });
+  }
+  looks.forEach(function (k) {
+    k.addEventListener('click', function () {
+      setzen('bild', k.dataset.bild); setzen('vorlage', k.dataset.vorlage); setzen('akzent', k.dataset.akzent); setzen('schrift', k.dataset.schrift);
+      looks.forEach(function (a) { a.setAttribute('aria-pressed', a === k ? 'true' : 'false'); });
+      var vs = document.getElementById('gs_vorschlag'); if (vs) { vs.hidden = true; }
+      var eigene = sprachen.some(function (l) { return felder.some(function (f) { var e = document.getElementById('gs_' + l + f); return e && e.value.trim() !== ''; }); });
+      texte(k.dataset.look, false);
+      offen = eigene ? k.dataset.look : null;
+      if (frage) { frage.hidden = !eigene; }
+      auffrischen();
+    });
+  });
+  if (frage) {
+    frage.querySelector('[data-ja]').addEventListener('click', function () { if (offen) { texte(offen, true); auffrischen(); } frage.hidden = true; offen = null; });
+  }
+
+  /* Reihenfolge mit Pfeilen */
+  var reihe = form.querySelector('.ga-reihe');
+  if (reihe) {
+    var zeilen = function () { return [].slice.call(reihe.querySelectorAll('.gs-zeile')); };
+    var nummern = function () {
+      zeilen().forEach(function (z, i, alle) {
+        var s = z.querySelector('select'); if (s) { s.value = String(i + 1); s.hidden = true; }
+        z.querySelector('[data-hoch]').disabled = i === 0; z.querySelector('[data-runter]').disabled = i === alle.length - 1;
+      });
+    };
+    zeilen().forEach(function (z) {
+      ['hoch', 'runter'].forEach(function (r) {
+        var b = document.createElement('button'); b.type = 'button'; b.className = 'ga-pfeil'; b.dataset[r] = '1';
+        b.textContent = r === 'hoch' ? '↑' : '↓'; b.setAttribute('aria-label', reihe.dataset[r] + ' — ' + z.querySelector('label').textContent.trim());
+        b.addEventListener('click', function () {
+          if (r === 'hoch' && z.previousElementSibling) { reihe.insertBefore(z, z.previousElementSibling); }
+          if (r === 'runter' && z.nextElementSibling) { reihe.insertBefore(z.nextElementSibling, z); }
+          nummern(); b.focus(); auffrischen();
+        });
+        z.appendChild(b);
+      });
+    });
+    nummern();
+  }
+})();

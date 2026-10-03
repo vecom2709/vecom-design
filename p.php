@@ -167,6 +167,13 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; media-src '
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
 $g = PartnerSeite::gestaltung($p);
+/* Live-Vorschau im Gestalter (03.10.2026, E3): ungespeicherte Wahlen, geprüft wie beim Speichern —
+   nur in der Vorschau (n=1) und nur im eigenen Browser des Partners, nie für Besucher. */
+if (isset($_GET['n'], $_GET['vs']) && strlen((string) $_GET['vs']) < 16000
+    && strtoupper((string) ($_COOKIE[Partner::KEKS_SELBST] ?? '')) === strtoupper((string) $p['code'])) {
+    $vsD = json_decode((string) base64_decode(strtr((string) $_GET['vs'], '-_', '+/'), true), true);
+    if (is_array($vsD)) { try { $g = PartnerSeite::vorschau($p, $vsD); } catch (Throwable $e) { } }
+}
 $hier = static fn(array $extra = []): string => '/p.php?' . http_build_query(array_filter(['c' => $p['code'], 'k' => $_GET['k'] ?? null, 'lang' => $sprache, 'n' => 1] + $extra));
 /* Rückrufwunsch (27.09.2026): danach zurück auf dieselbe Seite (n=1: kein neuer Klick). */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'rueckruf' && $g['bausteine']['rueckruf']) {

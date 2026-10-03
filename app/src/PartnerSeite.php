@@ -151,6 +151,9 @@ final class PartnerSeite
     ];
     public const PREIS_GRUND = ['material' => ['texte', 'fotos', 'logo'], 'bestand' => 'neu', 'zeit' => 'offen', 'betreuung' => 'nein'];
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
+    /** Schrift zum Ein-Klick-Look je Branche (03.10.2026, E2). */
+    public const LOOK_SCHRIFT = ['gastro' => 'klassisch', 'hotel' => 'elegant', 'beauty' => 'elegant', 'auto' => 'modern', 'handwerk' => 'modern',
+                                'produkte' => 'klassisch', 'laden' => 'elegant', 'transport' => 'modern'];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
     /** Die gültige Gestaltung eines Partners -- fehlende oder unbekannte Werte fallen auf den Standard. */
@@ -168,6 +171,14 @@ final class PartnerSeite
             foreach (self::TEXT_MAX as $k => $max) {
                 $t = trim((string) ($roh['texte'][$l][$k] ?? ''));
                 if ($t !== '') { $texte[$l][$k] = mb_substr($t, 0, $max); }
+            }
+        }
+        /* Übersetzt von Vecom (03.10.2026, E4): eigene Texte gehen immer vor. */
+        $auto = [];
+        foreach (['it', 'de', 'en'] as $l) {
+            foreach (self::TEXT_MAX as $k => $max) {
+                $t = trim((string) ($roh['auto'][$l][$k] ?? ''));
+                if ($t !== '') { $auto[$l][$k] = mb_substr($t, 0, $max); }
             }
         }
         $bausteine = [];
@@ -190,7 +201,9 @@ final class PartnerSeite
         $schrift = isset(self::SCHRIFTEN[$roh['schrift'] ?? '']) ? (string) $roh['schrift'] : 'modern';
         $kopf = in_array($roh['kopf'] ?? '', self::KOEPFE, true) ? (string) $roh['kopf'] : 'karte';
         return ['vorlage' => $vorlage, 'akzent' => $akzent, 'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
-                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film, 'schrift' => $schrift, 'kopf' => $kopf];
+                'reihenfolge' => $reihe, 'arbeiten' => $arbeiten, 'knopf' => $knopf, 'film' => $film, 'schrift' => $schrift, 'kopf' => $kopf,
+                'auto' => $auto, 'auto_von' => in_array($roh['auto_von'] ?? '', ['it', 'de', 'en'], true) ? (string) $roh['auto_von'] : '',
+                'auto_hash' => (string) ($roh['auto_hash'] ?? ''), 'auto_offen' => !empty($roh['auto_offen'])];
     }
 
     /** Gibt es überhaupt eine eigene Gestaltung? */
@@ -207,6 +220,28 @@ final class PartnerSeite
     public static function speichern(int $partnerId, array $d): string
     {
         $alt = self::gestaltung((array) Db::one('SELECT seite_json, seite_bild_am FROM partner WHERE id = ?', [$partnerId]));
+        $neu = self::ausFormular($alt, $d);
+        if (is_string($neu)) { return $neu; }
+        Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
+        if ($neu['auto_offen']) { try { self::uebersetzungAnstossen(); } catch (Throwable $e) { /* der Cronlauf holt es nach */ } }
+        return 'ok';
+    }
+
+    /**
+     * Live-Vorschau (03.10.2026, Uwe: Ja zu E3): dieselbe Prüfung wie beim Speichern, nur nichts
+     * gespeichert — p.php zeigt damit, wie die Seite mit den ungespeicherten Wahlen aussähe.
+     * Nur im eigenen Browser des Partners (Keks), siehe p.php.
+     */
+    public static function vorschau(array $p, array $d): array
+    {
+        $alt = self::gestaltung($p);
+        $neu = self::ausFormular($alt, $d);
+        return is_string($neu) ? $alt : self::gestaltung(['seite_json' => json_encode($neu, JSON_UNESCAPED_UNICODE)] + $p);
+    }
+
+    /** Formular → Gestaltung, geprüft. @return array<string,mixed>|string Fehlerschlüssel */
+    private static function ausFormular(array $alt, array $d): array|string
+    {
         $texte = [];
         foreach (['it', 'de', 'en'] as $l) {
             foreach (self::TEXT_MAX as $k => $max) {
@@ -228,7 +263,16 @@ final class PartnerSeite
         foreach (self::REIHENFOLGE as $i => $b) { $pos[$b] = [max(1, min(count(self::BAUSTEINE), (int) ($d['pos'][$b] ?? ($i + 1)))), $i]; }
         uasort($pos, static fn($x, $y) => $x <=> $y);
         $arbeiten = array_slice(array_values(array_filter(self::ARBEITEN, static fn($a) => !empty($d['arbeiten'][$a]))), 0, self::ARBEITEN_MAX);
+        /* Ein Text statt drei (03.10.2026, Uwe: Ja zu E4): Der Partner schreibt in SEINER Sprache, die
+           anderen beiden übersetzt Claude auf Uwes PC (Auftrag „uebersetzen“). Ändert sich die Vorlage,
+           gelten alte Übersetzungen nicht mehr. Was der Partner selbst in eine Sprache schreibt, geht vor. */
+        $von = in_array((string) ($d['sprache_quelle'] ?? ''), ['it', 'de', 'en'], true) ? (string) $d['sprache_quelle'] : '';
+        $quelle = $von !== '' ? ($texte[$von] ?? []) : [];
+        $hash = $quelle ? substr(hash('sha256', $von . json_encode($quelle, JSON_UNESCAPED_UNICODE)), 0, 16) : '';
+        $auto = $hash !== '' && $hash === $alt['auto_hash'] ? $alt['auto'] : [];
+        $offen = $hash !== '' && ($hash !== $alt['auto_hash'] || $alt['auto_offen']);
         $neu = [
+            'auto' => $auto, 'auto_von' => $von, 'auto_hash' => $hash, 'auto_offen' => $offen,
             'vorlage' => isset(self::VORLAGEN[$d['vorlage'] ?? '']) ? (string) $d['vorlage'] : $alt['vorlage'],
             'akzent' => isset(self::AKZENTE[$d['akzent'] ?? '']) ? (string) $d['akzent'] : $alt['akzent'],
             'bild' => $bild, 'texte' => $texte, 'bausteine' => $bausteine, 'whatsapp' => $wa,
@@ -239,8 +283,60 @@ final class PartnerSeite
             'schrift' => isset(self::SCHRIFTEN[$d['schrift'] ?? '']) ? (string) $d['schrift'] : $alt['schrift'],
             'kopf' => in_array($d['kopf'] ?? '', self::KOEPFE, true) ? (string) $d['kopf'] : $alt['kopf'],
         ];
-        Db::run('UPDATE partner SET seite_json = ?, seite_am = NOW() WHERE id = ?', [json_encode($neu, JSON_UNESCAPED_UNICODE), $partnerId]);
-        return 'ok';
+        return $neu;
+    }
+
+    /**
+     * Partnerseiten, deren Texte noch übersetzt werden wollen — für den Auftrag „uebersetzen“.
+     * @return list<array{id:int, von:string, nach:list<string>, texte:array<string,string>}>
+     */
+    public static function ohneUebersetzung(int $max = 20): array
+    {
+        $aus = [];
+        foreach (Db::all("SELECT id, seite_json, seite_bild_am FROM partner WHERE status = 'aktiv' AND seite_json LIKE '%\"auto_offen\":true%' ORDER BY seite_am LIMIT " . max(1, min(50, $max))) as $p) {
+            $g = self::gestaltung($p);
+            if (!$g['auto_offen'] || $g['auto_von'] === '' || empty($g['texte'][$g['auto_von']])) { continue; }
+            $aus[] = ['id' => (int) $p['id'], 'hash' => $g['auto_hash'], 'von' => $g['auto_von'], 'nach' => array_values(array_diff(['it', 'de', 'en'], [$g['auto_von']])), 'texte' => $g['texte'][$g['auto_von']]];
+        }
+        return $aus;
+    }
+
+    /** Einen Übersetzungsauftrag an den PC legen, wenn keiner wartet. @return ?int */
+    public static function uebersetzungAnstossen(): ?int
+    {
+        if (self::ohneUebersetzung(1) === []) { return null; }
+        if (Db::one("SELECT id FROM mk_auftraege WHERE art = 'uebersetzen' AND status IN ('wartet','laeuft') LIMIT 1")) { return null; }
+        return (int) Db::insert('mk_auftraege', ['art' => 'uebersetzen', 'branche' => '', 'land' => 'IT', 'parameter' => json_encode(['profile' => 0, 'inhalte' => 0, 'partnerseiten' => count(self::ohneUebersetzung())])]);
+    }
+
+    /**
+     * Ergebnis vom PC: Übersetzungen eintragen — nur, wenn die Vorlage noch dieselbe ist
+     * (sonst hat der Partner inzwischen neu geschrieben, und der nächste Auftrag übersetzt das).
+     * @return int eingetragene Partnerseiten
+     */
+    public static function uebersetzungSetzen(array $liste): int
+    {
+        $n = 0;
+        foreach (array_slice($liste, 0, 20) as $x) {
+            $p = Db::one('SELECT id, seite_json, seite_bild_am FROM partner WHERE id = ?', [(int) ($x['id'] ?? 0)]);
+            if (!$p) { continue; }
+            $roh = json_decode((string) $p['seite_json'], true) ?: [];
+            $g = self::gestaltung($p);
+            if ($g['auto_von'] === '' || ($x['hash'] ?? $g['auto_hash']) !== $g['auto_hash']) { continue; }
+            $auto = [];
+            foreach (array_diff(['it', 'de', 'en'], [$g['auto_von']]) as $l) {
+                foreach (self::TEXT_MAX as $k => $max) {
+                    $t = trim((string) preg_replace('/\s+/u', ' ', strip_tags((string) ($x['texte'][$l][$k] ?? ''))));
+                    if ($t === '' || preg_match('~https?://|www\.|@~i', $t)) { continue; }
+                    $auto[$l][$k] = mb_substr($t, 0, $max);
+                }
+            }
+            if ($auto === []) { continue; }
+            $roh['auto'] = $auto; $roh['auto_offen'] = false;
+            Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode($roh, JSON_UNESCAPED_UNICODE), (int) $p['id']]);
+            $n++;
+        }
+        return $n;
     }
 
     /**
@@ -422,7 +518,7 @@ final class PartnerSeite
     /** Ein Text der Seite: eigener, sonst Standard (Texte::PARTNER_LANDE). */
     public static function text(array $g, string $sprache, string $k, string $standard): string
     {
-        return (string) ($g['texte'][$sprache][$k] ?? $standard);
+        return (string) ($g['texte'][$sprache][$k] ?? $g['auto'][$sprache][$k] ?? $standard);
     }
 
     /**

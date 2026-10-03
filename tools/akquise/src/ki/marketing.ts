@@ -296,7 +296,11 @@ type UebersetzenAuftrag = {
   id: number; art: 'uebersetzen'; beschreibung: string;
   profile: { id: number; titel: string; listen: Record<string, string[]> }[];
   inhalte: { id: number; format: string; felder: Record<string, unknown> }[];
+  /** Texte, die Partner für ihre Empfehlungsseite in ihrer Sprache schreiben (03.10.2026, E4). */
+  partnerseiten?: { id: number; hash: string; von: string; nach: string[]; texte: Record<string, string> }[];
 };
+
+const SEITENTEXTE = { type: 'object', properties: { titel: { type: 'string' }, lead: { type: 'string' }, p1: { type: 'string' }, p2: { type: 'string' }, p3: { type: 'string' } } };
 
 export const SCHEMA_UEBERSETZEN = {
   type: 'object',
@@ -307,6 +311,9 @@ export const SCHEMA_UEBERSETZEN = {
       de: { type: 'object', properties: { einwaende: LISTE, fragen: LISTE, suchbegriffe: LISTE, botschaften: LISTE, keywords: LISTE } },
     } } },
     inhalte: { type: 'array', items: { type: 'object', required: ['id', 'uebersetzung'], properties: { id: { type: 'integer' }, uebersetzung: { type: 'string' } } } },
+    partnerseiten: { type: 'array', items: { type: 'object', required: ['id', 'texte'], properties: {
+      id: { type: 'integer' }, texte: { type: 'object', properties: { it: SEITENTEXTE, de: SEITENTEXTE, en: SEITENTEXTE } },
+    } } },
   },
 };
 
@@ -325,7 +332,12 @@ INHALTE: je Stück das ganze Stück auf Deutsch als ein Lesetext — gleiche Rei
 Aufruf; bei Anzeigen jede Variante und jede Überschrift in einer eigenen Zeile). Absätze mit Leerzeile.
 ${JSON.stringify(a.inhalte ?? [], null, 1).slice(0, 120_000)}
 
-Liefere für jedes Profil und jedes Stück oben einen Eintrag mit seiner id.`;
+${(a.partnerseiten ?? []).length ? `PARTNERSEITEN: Texte, die ein Partner von Vecom Design für seine eigene Empfehlungsseite in seiner Sprache („von“)
+geschrieben hat. Übersetze jede Seite in jede Sprache aus „nach“ — natürlich, werbend, im selben Ton und in der Du-/Sie-/Lei-Form, die dort üblich ist;
+nichts dazuerfinden, nichts weglassen, keine Links. Höchstlängen: titel 80, lead 320, p1–p3 je 100 Zeichen. Leere Felder bleiben leer.
+${JSON.stringify((a.partnerseiten ?? []).map(({ id, von, nach, texte }) => ({ id, von, nach, texte })), null, 1).slice(0, 40_000)}
+
+` : ''}Liefere für jedes Profil, jedes Stück${(a.partnerseiten ?? []).length ? ' und jede Partnerseite' : ''} oben einen Eintrag mit seiner id.`;
 }
 
 async function uebersetzenLauf(a: UebersetzenAuftrag): Promise<void> {
@@ -337,9 +349,12 @@ async function uebersetzenLauf(a: UebersetzenAuftrag): Promise<void> {
     writeFileSync(join(ordner, `auftrag-${a.id}.json`), roh);
     const innen = innenLesen(roh);
     if (!innen || !Array.isArray(innen.profile) || !Array.isArray(innen.inhalte)) throw new Error('Ergebnis ohne profile/inhalte.');
-    const j = await api('marketing_uebersetzung', { profile: innen.profile.slice(0, 20), inhalte: innen.inhalte.slice(0, 100) });
+    // Die Kennung der Vorlage geht unverändert zurück: Hat der Partner inzwischen neu geschrieben, verwirft der Server die Übersetzung.
+    const seiten = (Array.isArray(innen.partnerseiten) ? innen.partnerseiten : []).slice(0, 20)
+      .map((s: { id: number; texte: unknown }) => ({ ...s, hash: (a.partnerseiten ?? []).find((q) => q.id === s.id)?.hash ?? '' }));
+    const j = await api('marketing_uebersetzung', { profile: innen.profile.slice(0, 20), inhalte: innen.inhalte.slice(0, 100), partnerseiten: seiten });
     const fehler: string[] = j.fehler ?? [];
-    const zahl = (j.profile ?? 0) + (j.inhalte ?? 0);
+    const zahl = (j.profile ?? 0) + (j.inhalte ?? 0) + (j.partnerseiten ?? 0);
     await api('marketing_auftrag_melden', { id: a.id, ok: zahl > 0, zielgruppen: j.profile ?? 0, inhalte: j.inhalte ?? 0,
       text: fehler.length ? 'Übersprungen: ' + fehler.join('; ') : (zahl > 0 ? '' : 'Claude hat nichts Verwertbares geliefert.') });
     log.info('marketing', `Auftrag #${a.id} fertig: ${j.profile ?? 0} Profile, ${j.inhalte ?? 0} Inhalte auf Deutsch`);

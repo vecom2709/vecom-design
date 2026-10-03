@@ -45,6 +45,7 @@ final class MkAuftrag
     {
         if (($a['art'] ?? 'recherche') === 'uebersetzen') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            if ((int) ($p['partnerseiten'] ?? 0) > 0 && (int) ($p['profile'] ?? 0) + (int) ($p['inhalte'] ?? 0) === 0) { return 'Übersetzung · Texte von ' . (int) $p['partnerseiten'] . ' Partnerseite(n)'; }
             return 'Deutsche Fassung · ' . (int) ($p['profile'] ?? 0) . ' Zielgruppen, ' . (int) ($p['inhalte'] ?? 0) . ' Inhalte auf Italienisch';
         }
         if (($a['art'] ?? 'recherche') === 'seite') {   // S6
@@ -250,7 +251,9 @@ final class MkAuftrag
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
             if (($a['art'] ?? 'recherche') === 'inhalte') { return ['ok' => true, 'auftrag' => self::inhalteAuftrag($a)]; }
             if (($a['art'] ?? 'recherche') === 'uebersetzen') {
-                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()];
+                require_once __DIR__ . '/PartnerSeite.php';   // E4 (03.10.2026): Texte der Partnerseiten fahren mit
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()
+                    + ['partnerseiten' => self::still(static fn() => PartnerSeite::ohneUebersetzung(), [])]];
             }
             if (($a['art'] ?? 'recherche') === 'seite') {
                 /* S6: Landingpage — Claude schreibt aus dem freigegebenen Profil. */

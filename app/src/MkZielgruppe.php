@@ -385,7 +385,13 @@ final class MkZielgruppe
             if ($id <= 0 || $t === '') { $fehler[] = "Inhalt #$i ohne Übersetzung"; continue; }
             $ni += Db::run("UPDATE mk_inhalte SET uebersetzung = ? WHERE id = ? AND sprache <> 'de'", [$t, $id])->rowCount();
         }
-        return ['ok' => true, 'profile' => $np, 'inhalte' => $ni, 'fehler' => $fehler];
+        /* Partnerseiten (03.10.2026, E4) */
+        $nps = 0;
+        if (is_array($d['partnerseiten'] ?? null) && $d['partnerseiten'] !== []) {
+            require_once __DIR__ . '/PartnerSeite.php';
+            $nps = PartnerSeite::uebersetzungSetzen($d['partnerseiten']);
+        }
+        return ['ok' => true, 'profile' => $np, 'inhalte' => $ni, 'partnerseiten' => $nps, 'fehler' => $fehler];
     }
 
     /* ------------------------------------------------------------------ */

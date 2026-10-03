@@ -46,6 +46,38 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .gs-gruss audio{width:100%;max-width:420px}
   .gs-gruss-zeit{font-variant-numeric:tabular-nums;color:var(--dim);font-size:14px}
   .gs-gruss [data-aufnahme].laeuft{border-color:#e5534b;color:#e5534b}
+  /* Assistent (03.10.2026, E1–E4) */
+  .ga-fertig{display:grid;gap:8px;border:1px solid var(--linie2);border-radius:12px;padding:10px 12px;margin:0 0 14px;font-size:14px}
+  .ga-fertig b{display:block}
+  .ga-fertig span{color:var(--dim)}
+  .ga-fertig a{color:var(--cyan)}
+  .ga-balken{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.08);overflow:hidden}
+  .ga-balken i{display:block;height:100%;background:linear-gradient(90deg,#b98a31,#f1d38b)}
+  .ga-schritte{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:0 0 12px}
+  .ga-schritte button{min-height:44px;border-radius:10px;border:1px solid var(--linie2);background:none;color:var(--dim);font:inherit;font-size:13px;cursor:pointer;padding:6px}
+  .ga-schritte button[aria-current="step"]{border-color:#f1d38b;color:var(--text);background:rgba(241,211,139,.08)}
+  .ga-schritte button:focus-visible{outline:2px solid #f1d38b;outline-offset:2px}
+  .ga-h{font-size:16px;margin:4px 0 6px}
+  .js-ga .ga-h{display:none}
+  .ga-looks{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+  .ga-look{display:flex;flex-direction:column;gap:6px;padding:0 0 8px;border:2px solid var(--linie2);border-radius:12px;background:none;color:var(--text);font:inherit;font-size:13.5px;cursor:pointer;overflow:hidden;text-align:center}
+  .ga-look img{width:100%;aspect-ratio:16/9;object-fit:cover;display:block}
+  .ga-look[aria-pressed="true"]{border-color:#f1d38b;box-shadow:0 0 0 2px rgba(241,211,139,.35)}
+  .ga-look:focus-visible{outline:2px solid #f1d38b;outline-offset:2px}
+  .ga-selbst{margin-top:12px;border-top:1px solid var(--linie);padding-top:8px}
+  .ga-selbst > summary,.ga-andere > summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:40px;display:flex;align-items:center}
+  .ga-eigen label{font-size:12.5px;color:var(--dim);display:block;margin:8px 0 4px}
+  .ga-eigen input,.ga-eigen textarea{width:100%;font-size:15px;padding:10px 12px;box-sizing:border-box}
+  .ga-andere{margin-top:10px}
+  .ga-reihe .gs-zeile{gap:6px}
+  .ga-reihe .gs-zeile label{flex:1 1 auto}
+  .ga-reihe .ga-pfeil{min-width:40px;min-height:40px;border-radius:10px;border:1px solid var(--linie2);background:none;color:var(--text);cursor:pointer;font-size:16px;line-height:1}
+  .ga-reihe .ga-pfeil:disabled{opacity:.35;cursor:default}
+  .ga-unten{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+  .ga-vorschau-dlg{border:0;padding:0;background:transparent;max-width:none;max-height:none}
+  .ga-vorschau-dlg::backdrop{background:rgba(5,4,3,.8)}
+  .ga-vorschau-dlg .hv-rahmen{width:min(390px,92vw);height:min(760px,84vh);padding:10px}
+  .ga-vorschau-dlg iframe{border:0;width:100%;height:100%;border-radius:30px;background:#0b0a09}
   .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}
@@ -56,11 +88,50 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   <?php if ($gFehler): ?><div class="hinweis schlecht" role="alert"><?= $h($W($PS[$gFehler])) ?></div><?php endif; ?>
   <p class="klein" style="margin-top:0"><?= $h($W($PS['g_text'])) ?></p>
 
-  <form method="post" action="<?= $h($selbst()) ?>#seite" enctype="multipart/form-data">
+  <?php /* Fertig-Anzeige (03.10.2026, E3): was der Seite noch fehlt, mit Sprung dorthin. */
+    $gaFehlt = array_filter([
+        'f_foto' => empty($p['foto_am']) ? '#profil' : null, 'f_satz' => trim((string) ($p['profil_satz'] ?? '')) === '' ? '#profil' : null,
+        'f_bild' => $gs['bild'] === '' ? '#gs_schritt1' : null, 'f_text' => empty($gs['texte'][$sprache]['titel']) && empty($gs['texte'][$sprache]['lead']) ? '#gs_schritt2' : null,
+        'f_wa' => $gs['whatsapp'] === '' ? '#gs_wa' : null, 'f_gruss' => $grussJetzt === null ? '#gs_schritt2' : null]);
+    $gaProzent = (int) round(100 * (6 - count($gaFehlt)) / 6); ?>
+  <div class="ga-fertig" role="status">
+    <div><b><?= $h($gaFehlt ? strtr($W($PS['ga_fertig']), ['{p}' => (string) $gaProzent]) : $W($PS['ga_fertig_alles'])) ?></b>
+      <?php if ($gaFehlt): ?><span><?= $h($W($PS['ga_fehlt'])) ?><?php $gaI = 0; foreach ($gaFehlt as $gaK => $gaZ): ?><?= $gaI++ ? ', ' : '' ?><a href="<?= $h($gaZ) ?>"><?= $h($W($PS['ga_' . $gaK])) ?></a><?php endforeach; ?></span><?php endif; ?></div>
+    <span class="ga-balken" aria-hidden="true"><i style="width:<?= $gaProzent ?>%"></i></span>
+  </div>
+
+  <form method="post" action="<?= $h($selbst()) ?>#seite" enctype="multipart/form-data" id="gs_form" data-vorschau="<?= $h($vorschau) ?>" data-live="<?= $h($W($PS['ga_vorschau_live'])) ?>" data-zu="<?= $h($W($PS['ga_schliessen'])) ?>">
     <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
     <input type="hidden" name="tat" value="seite">
+    <input type="hidden" name="sprache_quelle" value="<?= $h($sprache) ?>">
     <input type="hidden" name="MAX_FILE_SIZE" value="<?= PartnerSeite::BILD_MAX_BYTE ?>">
 
+    <?php /* Drei Schritte (E1). Ohne Skript stehen sie untereinander; alles bleibt ein Formular. */ ?>
+    <nav class="ga-schritte" aria-label="<?= $h($W($PS['g_titel'])) ?>" hidden>
+      <?php foreach ([1, 2, 3] as $gaN): ?><button type="button" data-ga="<?= $gaN ?>" aria-current="<?= $gaN === 1 ? 'step' : 'false' ?>"><?= $h($W($PS['ga_s' . $gaN])) ?></button><?php endforeach; ?>
+    </nav>
+
+    <section class="ga-schritt" id="gs_schritt1" data-schritt="1">
+      <h3 class="ga-h"><?= $h($W($PS['ga_s1'])) ?></h3>
+      <?php /* Ein-Klick-Looks je Branche (E2): Bild, Vorlage, Farbe, Schrift und Texte in einem Tipp. */
+        $gaLooks = [];
+        foreach (Texte::SEITE_BRANCHEN as $gaB => $gaBd) {
+            $gaBild = array_search($gaB, PartnerSeite::BILD_BRANCHE, true);
+            if ($gaBild === false || !isset(PartnerSeite::BILDER[$gaBild])) { continue; }
+            [$gaV, $gaA] = PartnerSeite::BILD_FARBE[$gaBild] ?? [$gs['vorlage'], $gs['akzent']];
+            $gaLooks[$gaB] = ['bild' => $gaBild, 'vorlage' => $gaV, 'akzent' => $gaA, 'schrift' => PartnerSeite::LOOK_SCHRIFT[$gaB] ?? 'modern', 'name' => Texte::h($gaBd['name'], $sprache)];
+        } ?>
+      <p class="gs-h" style="margin-top:4px"><?= $h($W($PS['ga_look_titel'])) ?></p>
+      <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['ga_look_text'])) ?></p>
+      <div class="ga-looks" role="group" aria-label="<?= $h($W($PS['ga_look_titel'])) ?>">
+        <?php foreach ($gaLooks as $gaB => $gaL): ?>
+          <button type="button" class="ga-look" data-look="<?= $h($gaB) ?>" data-bild="<?= $h($gaL['bild']) ?>" data-vorlage="<?= $h($gaL['vorlage']) ?>" data-akzent="<?= $h($gaL['akzent']) ?>" data-schrift="<?= $h($gaL['schrift']) ?>"
+                  aria-pressed="<?= $gs['bild'] === $gaL['bild'] ? 'true' : 'false' ?>"><img src="<?= $h($daumen(PartnerSeite::BILDER[$gaL['bild']])) ?>" alt="" loading="lazy"><span><?= $h($gaL['name']) ?></span></button>
+        <?php endforeach; ?>
+      </div>
+      <div class="gs-vorschlag" id="ga_ersetzen" hidden><span><?= $h($W($PS['ga_look_ersetzen'])) ?></span><button class="knopf" type="button" data-ja><?= $h($W($PS['ga_look_ja'])) ?></button></div>
+
+      <details class="ga-selbst"<?= $gs['bild'] === 'eigen' ? ' open' : '' ?>><summary><?= $h($W($PS['ga_selbst'])) ?></summary>
     <p class="gs-h"><?= $h($W($PS['g_vorlage'])) ?></p>
     <div class="gs-wahl" role="radiogroup">
       <?php foreach (PartnerSeite::VORLAGEN as $vk => $v): $ak = PartnerSeite::AKZENTE[$v['akzent']][$v['hell'] ? 'hell' : 'dunkel']; ?>
@@ -102,19 +173,6 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
     <label for="gs_bild" style="margin-top:10px"><?= $h($W($PS['g_bild_hoch'])) ?></label>
     <input id="gs_bild" type="file" name="titelbild" accept="image/jpeg,image/png,image/webp">
 
-    <?php /* Sprachnachricht (28.09.2026, Uwe: Ja zu R6) */ ?>
-    <p class="gs-h"><?= $h($W($PS['g_gruss'])) ?></p>
-    <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_gruss_hilfe'])) ?></p>
-    <?php if ($grussJetzt): ?><p class="klein" style="margin:0 0 4px"><?= $h($W($PS['g_gruss_jetzt'])) ?></p><audio controls preload="none" src="<?= $h($grussJetzt) ?>" style="width:100%;max-width:420px;margin-bottom:8px"></audio><?php endif; ?>
-    <div class="gs-gruss" id="gs_gruss" data-auf="<?= $h($W($PS['g_gruss_auf'])) ?>" data-stop="<?= $h($W($PS['g_gruss_stop'])) ?>" data-neu="<?= $h($W($PS['g_gruss_neu'])) ?>">
-      <button class="knopf" type="button" data-aufnahme hidden><?= $h($W($PS['g_gruss_auf'])) ?></button>
-      <span class="gs-gruss-zeit" data-zeit hidden>0:00 / 0:30</span>
-      <audio data-probe controls hidden></audio>
-      <p class="klein" data-hinweis hidden></p>
-    </div>
-    <label for="gs_gruss_datei" style="margin-top:8px"><?= $h($W($PS['g_gruss_datei'])) ?></label>
-    <input id="gs_gruss_datei" type="file" name="gruss" accept="audio/*">
-
     <p class="gs-h"><?= $h($W($PS['g_kopf'])) ?></p>
     <div class="gs-wahl gs-reihe" role="radiogroup">
       <?php foreach (PartnerSeite::KOEPFE as $kk): ?>
@@ -129,26 +187,58 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
           <span class="gs-schrift" style="font-family:<?= $h($sd['familie']) ?>;font-weight:<?= (int) $sd['gewicht'] ?>">Aa</span><?= $h($W($PS['schriften'][$sk])) ?></label>
       <?php endforeach; ?>
     </div>
+      </details>
+    </section>
 
-    <p class="gs-h"><?= $h($W($PS['g_texte'])) ?></p>
-    <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_sprache_hinweis'])) ?></p>
-    <div class="gs-sprachen">
-      <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): $eigenT = !empty($gs['texte'][$l]); ?>
-        <details <?= $l === $sprache ? 'open' : '' ?>><summary><?= $h($wie) ?> <span class="gs-marke<?= $eigenT ? ' an' : '' ?>"><?= $h($W($PS[$eigenT ? 'g_eigen' : 'g_std'])) ?></span></summary>
-          <?php foreach (PartnerSeite::TEXT_MAX as $tk => $max):
-            $std = strtr(Texte::h(Texte::PARTNER_LANDE[$tk], $l), ['{name}' => Partner::anzeigeName($p)]);
-            $wort = $tk === 'titel' ? $W($PS['g_t_titel']) : ($tk === 'lead' ? $W($PS['g_t_lead']) : strtr($W($PS['g_t_p']), ['{n}' => substr($tk, 1)])); ?>
-            <label for="gs_<?= $l . $tk ?>"><?= $h($wort) ?> <span style="color:var(--leise)">(max. <?= $max ?>)</span></label>
-            <?php if ($tk === 'lead'): ?>
-              <textarea id="gs_<?= $l . $tk ?>" name="texte[<?= $l ?>][<?= $tk ?>]" rows="3" maxlength="<?= $max ?>" placeholder="<?= $h($std) ?>"><?= $h((string) ($gs['texte'][$l][$tk] ?? '')) ?></textarea>
-            <?php else: ?>
-              <input id="gs_<?= $l . $tk ?>" type="text" name="texte[<?= $l ?>][<?= $tk ?>]" maxlength="<?= $max ?>" placeholder="<?= $h($std) ?>" value="<?= $h((string) ($gs['texte'][$l][$tk] ?? '')) ?>">
-            <?php endif; ?>
+    <section class="ga-schritt" id="gs_schritt2" data-schritt="2">
+      <h3 class="ga-h"><?= $h($W($PS['ga_s2'])) ?></h3>
+      <?php /* Ein Text statt drei (E4): die eigene Sprache offen, die anderen übersetzt Vecom. */
+        $gaSpNamen = ['it' => ['it' => 'italiano', 'de' => 'Italienisch', 'en' => 'Italian'], 'de' => ['it' => 'tedesco', 'de' => 'Deutsch', 'en' => 'German'], 'en' => ['it' => 'inglese', 'de' => 'Englisch', 'en' => 'English']];
+        $gaFeld = static function (string $l) use ($gs, $p, $h, $W, $PS): string {
+            $o = '';
+            foreach (PartnerSeite::TEXT_MAX as $tk => $max) {
+                $std = (string) ($gs['auto'][$l][$tk] ?? strtr(Texte::h(Texte::PARTNER_LANDE[$tk], $l), ['{name}' => Partner::anzeigeName($p)]));
+                $wort = $tk === 'titel' ? $W($PS['g_t_titel']) : ($tk === 'lead' ? $W($PS['g_t_lead']) : strtr($W($PS['g_t_p']), ['{n}' => substr($tk, 1)]));
+                $o .= '<label for="gs_' . $l . $tk . '">' . $h($wort) . ' <span style="color:var(--leise)">(max. ' . $max . ')</span></label>';
+                $wert = $h((string) ($gs['texte'][$l][$tk] ?? ''));
+                $o .= $tk === 'lead'
+                    ? '<textarea id="gs_' . $l . $tk . '" name="texte[' . $l . '][' . $tk . ']" rows="3" maxlength="' . $max . '" placeholder="' . $h($std) . '">' . $wert . '</textarea>'
+                    : '<input id="gs_' . $l . $tk . '" type="text" name="texte[' . $l . '][' . $tk . ']" maxlength="' . $max . '" placeholder="' . $h($std) . '" value="' . $wert . '">';
+            }
+            return $o;
+        }; ?>
+      <div class="gs-sprachen">
+        <p class="gs-h" style="margin-top:4px"><?= $h(strtr($W($PS['ga_eigene']), ['{sprache}' => $gaSpNamen[$sprache][$sprache]])) ?></p>
+        <div class="ga-eigen"><?= $gaFeld($sprache) ?></div>
+        <details class="ga-andere"><summary><?= $h($W($PS['ga_andere'])) ?></summary>
+          <p class="klein" style="margin:6px 0 4px"><?= $h($W($PS['ga_auto_hinweis'])) ?></p>
+          <?php foreach (array_diff(['it', 'de', 'en'], [$sprache]) as $l): $gaAuto = !empty($gs['auto'][$l]); $eigenT = !empty($gs['texte'][$l]); ?>
+            <details><summary><?= $h(['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$l]) ?>
+              <span class="gs-marke<?= $eigenT || $gaAuto ? ' an' : '' ?>"><?= $h($eigenT ? $W($PS['g_eigen']) : ($gaAuto ? $W($PS['ga_auto_fertig']) : ($gs['auto_offen'] ? $W($PS['ga_auto_offen']) : $W($PS['g_std'])))) ?></span></summary>
+              <?= $gaFeld($l) ?>
+            </details>
           <?php endforeach; ?>
         </details>
-      <?php endforeach; ?>
-    </div>
+      </div>
+      <label for="gs_wa" id="gs_wa_l"><?= $h($W($PS['g_wa'])) ?></label>
+      <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
 
+    <?php /* Sprachnachricht (28.09.2026, Uwe: Ja zu R6) */ ?>
+    <p class="gs-h"><?= $h($W($PS['g_gruss'])) ?></p>
+    <p class="klein" style="margin:0 0 8px"><?= $h($W($PS['g_gruss_hilfe'])) ?></p>
+    <?php if ($grussJetzt): ?><p class="klein" style="margin:0 0 4px"><?= $h($W($PS['g_gruss_jetzt'])) ?></p><audio controls preload="none" src="<?= $h($grussJetzt) ?>" style="width:100%;max-width:420px;margin-bottom:8px"></audio><?php endif; ?>
+    <div class="gs-gruss" id="gs_gruss" data-auf="<?= $h($W($PS['g_gruss_auf'])) ?>" data-stop="<?= $h($W($PS['g_gruss_stop'])) ?>" data-neu="<?= $h($W($PS['g_gruss_neu'])) ?>">
+      <button class="knopf" type="button" data-aufnahme hidden><?= $h($W($PS['g_gruss_auf'])) ?></button>
+      <span class="gs-gruss-zeit" data-zeit hidden>0:00 / 0:30</span>
+      <audio data-probe controls hidden></audio>
+      <p class="klein" data-hinweis hidden></p>
+    </div>
+    <label for="gs_gruss_datei" style="margin-top:8px"><?= $h($W($PS['g_gruss_datei'])) ?></label>
+    <input id="gs_gruss_datei" type="file" name="gruss" accept="audio/*">
+    </section>
+
+    <section class="ga-schritt" id="gs_schritt3" data-schritt="3">
+      <h3 class="ga-h"><?= $h($W($PS['ga_s3'])) ?></h3>
     <p class="gs-h"><?= $h($W($PS['g_knopf'])) ?></p>
     <div class="gs-knoepfe">
       <?php foreach (PartnerSeite::KNOEPFE as $kk): ?>
@@ -156,14 +246,16 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <?php endforeach; ?>
     </div>
 
-    <?php /* An/aus und Reihenfolge (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“) -- ohne Ziehen, mit Positionsnummer. */ ?>
+    <?php /* An/aus und Reihenfolge (27.09.2026, Uwe: Ja zu „Bausteine umsortieren“) -- ohne Ziehen, mit Positionsnummer; Pfeile per Skript (E4, 03.10.2026). */ ?>
     <p class="gs-h"><?= $h($W($PS['g_reihenfolge'])) ?></p>
+    <div class="ga-reihe" data-hoch="<?= $h($W($PS['ga_hoch'])) ?>" data-runter="<?= $h($W($PS['ga_runter'])) ?>">
     <?php $nB = count(PartnerSeite::BAUSTEINE); $gsFilm = PartnerSeite::film() !== null; foreach ($gs['reihenfolge'] as $i => $bs): if ($bs === 'film' && !$gsFilm) { continue; } ?>
       <div class="gs-zeile">
         <label class="gs-haken"><input type="checkbox" name="bausteine[<?= $bs ?>]" value="1" <?= $gs['bausteine'][$bs] ? 'checked' : '' ?>> <?= $h($W($PS['g_b_' . $bs])) ?></label>
         <select name="pos[<?= $bs ?>]" aria-label="<?= $h($W($PS['g_reihenfolge']) . ' — ' . $W($PS['g_b_' . $bs])) ?>"><?php for ($n = 1; $n <= $nB; $n++): ?><option value="<?= $n ?>"<?= $n === $i + 1 ? ' selected' : '' ?>><?= $n ?></option><?php endfor; ?></select>
       </div>
     <?php endforeach; ?>
+    </div>
 
     <?php $gsFilme = PartnerSeite::filme(); if (count($gsFilme) > 1): ?>
       <p class="gs-h"><?= $h($W($PS['g_film_wahl'])) ?></p>
@@ -176,10 +268,14 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
       <label class="gs-haken"><input type="checkbox" name="arbeiten[<?= $h($ak) ?>]" value="1" <?= in_array($ak, $gs['arbeiten'], true) ? 'checked' : '' ?>> <span><b><?= $h($ar['name']) ?></b> <span style="color:var(--leise)">· <?= $h(Texte::h($ar, $sprache)) ?></span>
         <?php $arUrl = PartnerSeite::arbeitUrl($ak); if ($arUrl): ?><a href="<?= $h($arUrl) ?>" target="_blank" rel="noopener" style="color:var(--leise);text-decoration:underline"><?= $h(preg_replace('~^www\.~', '', (string) parse_url($arUrl, PHP_URL_HOST))) ?></a><?php endif; ?></span></label>
     <?php endforeach; ?>
-    <label for="gs_wa"><?= $h($W($PS['g_wa'])) ?></label>
-    <input id="gs_wa" type="text" name="whatsapp" inputmode="tel" autocomplete="tel" maxlength="20" value="<?= $h($gs['whatsapp']) ?>" placeholder="+39 …">
+    </section>
 
-    <button class="knopf haupt" type="submit" style="margin-top:14px"><?= $h($W($PS['g_speichern'])) ?></button>
+    <div class="ga-unten">
+      <button class="knopf" type="button" data-ga-zurueck hidden><?= $h($W($PS['ga_zurueck'])) ?></button>
+      <button class="knopf" type="button" data-ga-weiter hidden><?= $h($W($PS['ga_weiter'])) ?></button>
+      <button class="knopf haupt" type="submit"><?= $h($W($PS['g_speichern'])) ?></button>
+      <button class="knopf" type="button" data-ga-vorschau hidden><?= $h($W($PS['ga_vorschau'])) ?></button>
+    </div>
   </form>
 
   <div class="knoepfe" style="margin-top:10px">
