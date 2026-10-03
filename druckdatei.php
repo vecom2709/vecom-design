@@ -17,22 +17,26 @@ header('Referrer-Policy: no-referrer');
 if (!is_file(__DIR__ . '/app/config.local.php')) { http_response_code(404); exit; }
 foreach (['Config', 'Db', 'Status', 'Fmt', 'Events', 'Gelato', 'Druckerei'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
 
-/* Zwei Fassungen (04.10.2026): f=druck (4 mm, Gelato) oder f=frei (genau die
-   freigegebene Datei, HelloPrint u. a.). Links ohne f sind die älteren
-   Gelato-Links und liefern die Druckfassung. */
+/* Fassungen (04.10.2026): f=druck (4 mm, Gelato), f=frei (genau die
+   freigegebene Datei, HelloPrint u. a.), f=pf_vorn/pf_hinten (Printful,
+   eingepasst, JPEG). Links ohne f sind die älteren Gelato-Links und liefern
+   die Druckfassung. */
 if (isset($_GET['f'])) {
     [$id, $fassung] = Druckerei::linkPruefen((string) ($_GET['e'] ?? ''), (string) ($_GET['x'] ?? ''), (string) $_GET['f'], (string) ($_GET['s'] ?? ''));
 } else {
     $id = Gelato::linkPruefen((string) ($_GET['e'] ?? ''), (string) ($_GET['x'] ?? ''), (string) ($_GET['s'] ?? ''));
     $fassung = 'druck';
 }
-$spalte = $fassung === 'frei' ? 'datei' : 'datei_druck';
+$spalte = ['frei' => 'datei', 'druck' => 'datei_druck', 'pf_vorn' => 'datei_pf_vorn', 'pf_hinten' => 'datei_pf_hinten'][$fassung] ?? '';
+if ($spalte === '') { http_response_code(404); exit; }
 $d = $id > 0 ? Db::one("SELECT e.id, e.$spalte AS datei_druck FROM wm_entwuerfe e
                          WHERE e.id = ? AND e.$spalte IS NOT NULL
                            AND (e.status IN ('freigegeben', 'ersetzt') OR EXISTS (SELECT 1 FROM wm_positionen x WHERE x.entwurf_id = e.id))", [$id]) : null;
 if (!$d) { http_response_code(404); exit; }
 
-header('Content-Type: application/pdf');
-header('Content-Disposition: inline; filename="vecom-druck-' . (int) $d['id'] . '.pdf"');
+// Printful bekommt je Seite ein JPEG (eingepasst 90 × 50 mm), alle anderen das PDF.
+$bild = str_starts_with($fassung, 'pf_');
+header('Content-Type: ' . ($bild ? 'image/jpeg' : 'application/pdf'));
+header('Content-Disposition: inline; filename="vecom-druck-' . (int) $d['id'] . ($bild ? '-' . substr($fassung, 3) . '.jpg' : '.pdf') . '"');
 header('Content-Length: ' . strlen((string) $d['datei_druck']));
 echo $d['datei_druck'];

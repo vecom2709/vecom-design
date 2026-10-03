@@ -301,6 +301,40 @@ final class PartnerKarten
         return $pdf->fertig();
     }
 
+    /**
+     * Eine Seite „eingepasst“ in ein anderes Seitenverhältnis (Printful:
+     * 90 × 50 mm statt 85 × 55 mm, 04.10.2026, Uwes Entscheidung): die Karte
+     * samt Beschnitt unverändert auf die volle Höhe skaliert, mittig, die
+     * fehlende Breite links und rechts gespiegelt aus dem eigenen Rand. Kein
+     * Text und kein Code wird verschoben — nur kleiner. JPEG, $breite × $hoehe px.
+     */
+    public static function eingepasst(array $p, string $stil, string $seite, string $sprache, string $kontakt, int $breite, int $hoehe): string
+    {
+        if (!self::gibt($stil) || $breite < 100 || $hoehe < 100) { return ''; }
+        $im = self::leinwand($p, $stil, $seite, $sprache, $kontakt);
+        if (!$im) { return ''; }
+        $sw = (int) round(imagesx($im) * $hoehe / imagesy($im));
+        $sk = imagecreatetruecolor($sw, $hoehe);
+        imagecopyresampled($sk, $im, 0, 0, 0, 0, $sw, $hoehe, imagesx($im), imagesy($im));
+        $aus = imagecreatetruecolor($breite, $hoehe);
+        if ($sw >= $breite) {                      // schmaleres Ziel: mittig beschneiden (bei Printful nicht der Fall)
+            imagecopy($aus, $sk, 0, 0, intdiv($sw - $breite, 2), 0, $breite, $hoehe);
+            return self::jpeg($aus, 93);
+        }
+        $x0 = intdiv($breite - $sw, 2);
+        $rechts = $breite - $sw - $x0;
+        imagecopy($aus, $sk, $x0, 0, 0, 0, $sw, $hoehe);
+        foreach ([[0, 0, $x0], [$x0 + $sw, $sw - min($rechts, $sw), $rechts]] as [$ziel, $von, $w]) {
+            $w = min($w, $sw);
+            if ($w <= 0) { continue; }
+            $t = imagecrop($sk, ['x' => $von, 'y' => 0, 'width' => $w, 'height' => $hoehe]);
+            if (!$t) { continue; }
+            imageflip($t, IMG_FLIP_HORIZONTAL);
+            imagecopy($aus, $t, $ziel, 0, 0, 0, $w, $hoehe);
+        }
+        return self::jpeg($aus, 93);
+    }
+
     /** Setzt an jeden Rand $px Pixel an, gespiegelt aus dem Bild selbst. */
     private static function spiegelRand(\GdImage $im, int $px): \GdImage
     {

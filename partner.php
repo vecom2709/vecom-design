@@ -553,6 +553,20 @@ if ($p && isset($_GET['wmpdf'])) {
     echo $wmD['datei'];
     exit;
 }
+/* ---------- Marketing Center: Fassung 90 × 50 mm (04.10.2026, Printful) ----------
+   ?wmpf=ID&s=vorn|hinten — nur Entwürfe dieses Partners; genau das gespeicherte Bild. */
+if ($p && isset($_GET['wmpf'])) {
+    require_once __DIR__ . '/app/src/Werbemittel.php';
+    $wmB = Werbemittel::eingepasstBild((int) $_GET['wmpf'], (int) $p['id'], (string) ($_GET['s'] ?? 'vorn'));
+    if ($wmB === null) { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, no-store');
+    header('Content-Length: ' . strlen($wmB));
+    echo $wmB;
+    exit;
+}
 /* ---------- Visitenkarten in vier Stilen (28.09.2026) ----------
    ?vk=a|b|c|d&f=vorschau|vorn|hinten|pdf|bogen&ks=email|vecom&vks=it|de|en */
 if ($p && isset($_GET['vk'])) {

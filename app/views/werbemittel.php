@@ -54,11 +54,14 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 </div>
 
 <?php require_once dirname(__DIR__) . '/src/Gelato.php'; require_once dirname(__DIR__) . '/src/Partner.php'; require_once dirname(__DIR__) . '/src/WmBestellung.php'; ?>
-<?php require_once dirname(__DIR__) . '/src/HelloPrint.php'; require_once dirname(__DIR__) . '/src/Druckerei.php'; ?>
+<?php require_once dirname(__DIR__) . '/src/HelloPrint.php'; require_once dirname(__DIR__) . '/src/Printful.php'; require_once dirname(__DIR__) . '/src/Druckerei.php'; ?>
 <div class="block" style="max-width:820px"><h2>Angebundene Druckereien</h2>
   <p style="font-size:14px;margin:0 0 6px"><strong>HelloPrint (Connect):</strong>
     <?php if (HelloPrint::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> liefert nach <?= Partner::flagge(HelloPrint::land()) ?> <?= Fmt::h(HelloPrint::land()) ?> · Modus <strong><?= HelloPrint::modus() === 'prod' ? 'echt' : 'Test (es wird nichts gedruckt)' ?></strong>
     <?php else: ?><span class="marke2">nicht angebunden</span> Zugang über api@helloprint.com; danach in <code>app/config.local.php</code>: <code>'helloprint' => ['api' => '…', 'land' => 'IT', 'modus' => 'test']</code>.<?php endif; ?></p>
+  <p style="font-size:14px;margin:0 0 6px"><strong>Printful:</strong>
+    <?php if (Printful::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> liefert nach 🇮🇹 IT und 🇩🇪 DE · Format 90 × 50 mm (eingepasst, der Partner sieht es vor der Freigabe) · Modus <strong><?= Printful::modus() === 'auftrag' ? 'echt (sofort in die Fertigung)' : 'Entwurf (du bestätigst im Printful-Dashboard)' ?></strong>
+    <?php else: ?><span class="marke2">nicht angebunden</span> Schlüssel im Printful-Konto unter Developers → Tokens erzeugen; danach in <code>app/config.local.php</code>: <code>'printful' => ['api' => '…']</code> (bei einem Konto-Schlüssel zusätzlich <code>'store' => 'Store-ID'</code>). Währung im Konto auf EUR stellen.<?php endif; ?></p>
   <p style="font-size:14px;margin:0 0 10px"><strong>Gelato:</strong></p>
 
   <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
@@ -69,8 +72,8 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
       <input type="hidden" name="tat" value="<?= $auto ? 'wm_automatik_aus' : 'wm_automatik_an' ?>"><button class="knopf"><?= $auto ? 'Automatik ausschalten' : 'Automatik einschalten' ?></button></form>
-    <?php if (Gelato::bereit()): ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
-      <input type="hidden" name="tat" value="wm_gelato_preise"><button class="knopf stumm">Gelato-Preise jetzt holen</button></form><?php endif; ?>
+    <?php if (Gelato::bereit() || Printful::bereit()): ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
+      <input type="hidden" name="tat" value="wm_gelato_preise"><button class="knopf stumm">Preise der Druckereien jetzt holen</button></form><?php endif; ?>
   </div>
 </div>
 
@@ -175,17 +178,19 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           <?php endforeach; endforeach; ?>
           <?php if ($keinAngebot): ?><tr><td colspan="9"><div class="leer">Noch kein Angebot — dann gilt der Einkauf oben.</div></td></tr><?php endif; ?>
           </tbody></table></div>
-        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Artikelnummern bei HelloPrint (variantKey)</summary>
+        <?php foreach (['helloprint' => ['HelloPrint (variantKey)', 'productKey~sku', 'Menge'], 'printful' => ['Printful (variant_id; Menge = Zahl der Packs zu 50/100)', 'z. B. 18555', 'Packs']] as $dKey => [$dTitel, $dMuster, $dMenge]): ?>
+        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Artikelnummern bei <?= Fmt::h($dTitel) ?></summary>
           <div style="display:grid;gap:6px;margin-top:8px">
-          <?php foreach ($p['varianten'] as $v): $hp = Druckerei::artikel((int) $v['id'], 'helloprint'); ?>
+          <?php foreach ($p['varianten'] as $v): $hp = Druckerei::artikel((int) $v['id'], $dKey); ?>
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="wm_artikel"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
-              <input type="hidden" name="anbieter" value="helloprint"><input type="hidden" name="variante_id" value="<?= (int) $v['id'] ?>">
+              <input type="hidden" name="anbieter" value="<?= $dKey ?>"><input type="hidden" name="variante_id" value="<?= (int) $v['id'] ?>">
               <span style="min-width:90px"><?= Fmt::h($v['name_de'] ?: $v['name_it']) ?></span>
-              <input name="artikel" value="<?= Fmt::h((string) ($hp['artikel'] ?? '')) ?>" placeholder="productKey~sku" style="min-width:260px">
-              <input name="menge" type="number" min="1" value="<?= (int) ($hp['menge'] ?? $v['auflage']) ?>" style="width:90px">
+              <input name="artikel" value="<?= Fmt::h((string) ($hp['artikel'] ?? '')) ?>" placeholder="<?= Fmt::h($dMuster) ?>" style="min-width:260px">
+              <input name="menge" type="number" min="1" value="<?= (int) ($hp['menge'] ?? ($dKey === 'printful' ? 1 : $v['auflage'])) ?>" style="width:90px" title="<?= Fmt::h($dMenge) ?>">
               <button class="knopf stumm">Speichern</button></form>
           <?php endforeach; ?></div></details>
+        <?php endforeach; ?>
         <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Angebot eintragen oder aktualisieren</summary>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="wm_angebot"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">

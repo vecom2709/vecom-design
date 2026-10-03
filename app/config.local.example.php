@@ -42,4 +42,13 @@ return [
         'land'  => 'IT',                      // Land des Connect-Kontos
         'modus' => 'test',                    // 'test' oder 'prod'
     ],
+    /* Printful (04.10.2026): privater Schlüssel aus dem Printful-Konto
+       (Developers → Tokens). Konto-Schlüssel brauchen zusätzlich die Store-ID.
+       Währung im Konto auf EUR. 'modus' bleibt 'entwurf' (Bestätigung im
+       Printful-Dashboard), bis 'auftrag' gesetzt wird. */
+    'printful' => [
+        'api'   => '',                        // Bearer-Schlüssel
+        'store' => '',                        // nur bei Konto-Schlüssel
+        'modus' => 'entwurf',                 // 'entwurf' oder 'auftrag'
+    ],
 ];

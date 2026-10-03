@@ -115,6 +115,19 @@ final class Cron
                 require_once __DIR__ . '/HelloPrint.php';
                 return HelloPrint::nachsehen();
             },
+            /* Printful (04.10.2026): Stand der Aufträge nachlesen, Sendung → Mail an den Partner. Nur lesen. */
+            'wm_printful' => static function () {
+                require_once __DIR__ . '/Printful.php';
+                return Printful::nachsehen();
+            },
+            /* Printful-Preise je Auflage und Land (estimate-costs, nur lesen), höchstens einmal je 7 Tage. */
+            'wm_printful_preise' => static function () {
+                require_once __DIR__ . '/Printful.php';
+                $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'wm_printful_preise_am'", [], '');
+                if (!Printful::bereit() || ($zuletzt !== '' && strtotime($zuletzt) > time() - 7 * 86400)) { return 0; }
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('wm_printful_preise_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d H:i:s')]);
+                return Printful::preiseAktualisieren();
+            },
             /* Gelato-Preise je Auflage und Land (Quote-API, nur lesen), höchstens einmal je 7 Tage. */
             'wm_gelato_preise' => static function () {
                 require_once __DIR__ . '/Gelato.php';

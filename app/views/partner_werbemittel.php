@@ -64,6 +64,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
   .wm-frei b{color:#9fe0b0}
   .wm-entwurf{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.06)}
   .wm-entwurf .knopf{justify-self:start}
+  .wm-pf{display:flex;gap:8px;flex-wrap:wrap}.wm-pf img{display:block;width:180px;height:auto;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
   .wm-haken{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--dim);cursor:pointer}
   .wm-haken input{width:20px;height:20px;flex:none;margin-top:1px}
   .wm-gestalten summary{cursor:pointer;color:#f1d38b;font-size:14.5px;padding:4px 0}
@@ -175,7 +176,11 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
               <b><?= $h($W('entwurf_titel')) ?></b>
               <span><?= $h($wmWahlText($wmE['wahl'])) ?></span>
               <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
-              <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W('pruef_haken')) ?></span></label>
+              <?php if (!empty($wmE['hat_pf'])): ?>
+                <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>
+                <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="180" height="108" loading="lazy"></a><?php endforeach; ?></span>
+              <?php endif; ?>
+              <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W(!empty($wmE['hat_pf']) ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
               <button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
             </form>
           <?php endif; ?>

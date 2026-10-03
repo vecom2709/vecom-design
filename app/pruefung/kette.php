@@ -78,6 +78,7 @@ Config::setzenFuerTest([
     'app_geheim' => bin2hex(random_bytes(24)),
     'gelato' => ['api' => 'kette-ersatz'],
     'helloprint' => ['api' => 'kette-hp', 'land' => 'IT', 'modus' => 'test'],
+    'printful' => ['api' => 'kette-pf'],
 ]);
 
 foreach (['Db', 'Status', 'Fmt', 'Csrf', 'Auth', 'Events', 'Einrichtung',
@@ -21756,6 +21757,134 @@ Db::run('DELETE FROM partner WHERE id = ?', [(int) $w6P['id']]);
 Db::run('DELETE FROM wm_anbieter_preise'); Db::run('DELETE FROM wm_anbieter_produkte');
 Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w6Vk['id']]);
+
+/* ============================================================================
+   Marketing Center: Printful (04.10.2026, Uwe: „bringe trotzdem Printful
+   zusätzlich mit rein“). Format 90 × 50 mm „eingepasst“ — der Partner sieht
+   die Fassung vor der Freigabe. Alles gegen einen Ersatz (Printful::$netz).
+   ============================================================================ */
+abschnitt('Marketing Center: Printful');
+foreach (['Werbemittel', 'WmBestellung', 'Printful', 'Druckerei', 'Partner', 'PartnerKarten', 'Fmt'] as $w7Kl) { require_once $wurzel . "/src/$w7Kl.php"; }
+$w7Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w7V = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage LIMIT 1', [(int) $w7Vk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w7Vk['id']]);
+$w7P = Partner::laden(Partner::anlegen(['name' => 'Paula Printful', 'email' => 'paula.pf@partner.example', 'code' => 'PAULAPF', 'sprache' => 'de']));
+$w7E = Werbemittel::entwurfAnlegen($w7P, (int) $w7Vk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'email']);
+$w7Roh = Db::one('SELECT datei_pf_vorn, datei_pf_hinten FROM wm_entwuerfe WHERE id = ?', [$w7E]);
+$w7Gv = @getimagesizefromstring((string) $w7Roh['datei_pf_vorn']); $w7Gh = @getimagesizefromstring((string) $w7Roh['datei_pf_hinten']);
+pruefe('Entwurf bringt die eingepasste Fassung mit: Vorder- und Rückseite als JPEG in genau Printful::VORLAGE (1125 × 675 px)',
+    is_array($w7Gv) && is_array($w7Gh) && $w7Gv[0] === 1125 && $w7Gv[1] === 675 && $w7Gh[0] === 1125 && $w7Gh[1] === 675 && $w7Gv['mime'] === 'image/jpeg',
+    json_encode([$w7Gv[0] ?? null, $w7Gv[1] ?? null]));
+// Eingepasst heißt: nur kleiner, nicht verzerrt — die Mitte der Rückseite ist die verkleinerte Karte.
+$w7Im = imagecreatefromstring((string) $w7Roh['datei_pf_hinten']);
+pruefe('Eingepasst, nicht verzerrt: Karte auf volle Höhe, seitlich gespiegelter Rand (Spalte links = Spiegel der ersten Kartenspalte)',
+    $w7Im !== false && (function () use ($w7Im): bool {
+        $kw = (int) round(imagesx($w7Im)); $x0 = intdiv(1125 - (int) round(675 * 910 / 610), 2);
+        $a = imagecolorat($w7Im, $x0 - 1, 300); $b = imagecolorat($w7Im, $x0, 300);
+        $da = [($a >> 16) & 255, ($a >> 8) & 255, $a & 255]; $db = [($b >> 16) & 255, ($b >> 8) & 255, $b & 255];
+        return $kw === 1125 && $x0 > 40 && max(array_map(static fn($i) => abs($da[$i] - $db[$i]), [0, 1, 2])) < 40;
+    })());
+$w7St = Werbemittel::stand((int) $w7P['id'], (int) $w7Vk['id']);
+pruefe('Der Partner sieht die 90 × 50-Fassung vor der Freigabe — nur seine eigene; der Haken nennt beide Formate',
+    !empty($w7St['entwurf']['hat_pf']) && Werbemittel::eingepasstBild($w7E, (int) $w7P['id'], 'vorn') !== null
+    && Werbemittel::eingepasstBild($w7E, (int) $w7P['id'] + 999, 'vorn') === null
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), "'pruef_haken_pf'")
+    && str_contains((string) file_get_contents($oben . '/partner.php'), "Werbemittel::eingepasstBild((int) \$_GET['wmpf'], (int) \$p['id']"));
+Werbemittel::freigeben((int) $w7P['id'], $w7E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w7E]));
+$w7L = Druckerei::dateiLink($w7E, 'pf_vorn'); parse_str((string) parse_url($w7L, PHP_URL_QUERY), $w7Q);
+pruefe('Signierter Link je Seite (pf_vorn/pf_hinten); fremde Fassung im selben Link ungültig',
+    Druckerei::linkPruefen((string) $w7Q['e'], (string) $w7Q['x'], 'pf_vorn', (string) $w7Q['s']) === [$w7E, 'pf_vorn']
+    && Druckerei::linkPruefen((string) $w7Q['e'], (string) $w7Q['x'], 'pf_hinten', (string) $w7Q['s'])[0] === 0
+    && str_contains((string) file_get_contents($oben . '/druckdatei.php'), "'pf_vorn' => 'datei_pf_vorn'"));
+// Preise: estimate-costs je Land, nur Euro
+Druckerei::artikelSetzen($w7V, 'printful', '18554', 5);
+$w7Netz = [];
+$w7Antwort = static function (string $m, string $u, ?string $r): array {
+    if (str_ends_with($u, '/orders/estimate-costs')) {
+        $land = json_decode((string) $r, true)['recipient']['country_code'] ?? 'IT';
+        return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['costs' => ['currency' => 'EUR', 'subtotal' => 51.75, 'discount' => 0, 'shipping' => 4.99,
+            'vat' => $land === 'DE' ? 10.78 : 12.48, 'tax' => 0, 'total' => $land === 'DE' ? 67.52 : 69.22]]])];
+    }
+    if (str_contains($u, '/mockup-generator/printfiles/724')) {
+        return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['product_id' => 724, 'printfiles' => [['printfile_id' => 9, 'width' => 1125, 'height' => 675, 'dpi' => 300]],
+            'variant_printfiles' => [['variant_id' => 18554, 'placements' => ['default' => 9, 'back' => 9]]]]])];
+    }
+    if ($m === 'POST' && str_contains($u, '/orders')) { return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['id' => 777, 'status' => 'draft']])]; }
+    return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['id' => 777, 'status' => 'fulfilled',
+        'shipments' => [['carrier' => 'DHL', 'tracking_number' => 'PF-1', 'tracking_url' => 'https://www.dhl.com/track?PF-1']]]])];
+};
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Netz, $w7Antwort): array { $w7Netz[] = [$m, $u, $k, $r]; return $w7Antwort($m, $u, $r); };
+pruefe('Printful-Preise: POST /orders/estimate-costs je Land, Bearer-Schlüssel, Gesamtpreis inkl. Versand und MwSt als Angebot (IT 69,22 €, DE 67,52 €)',
+    Printful::preiseAktualisieren() === 2 && ($w7Netz[0][1] ?? '') === 'https://api.printful.com/orders/estimate-costs'
+    && in_array('Authorization: Bearer kette-pf', $w7Netz[0][2] ?? [], true)
+    && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Printful' AND land = 'IT'", [$w7V]) === 6922
+    && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Printful' AND land = 'DE'", [$w7V]) === 6752
+    && (int) Db::wert("SELECT netto_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Printful' AND land = 'DE'", [$w7V]) === 5674);
+$w7Usd = Printful::$netz;
+Printful::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 200, 'body' => json_encode(['result' => ['costs' => ['currency' => 'USD', 'total' => 60.0]]])];
+pruefe('Printful rechnet nicht in Euro: kein Angebot, der Grund nennt die Währung', Printful::preiseAktualisieren() === 0 && str_contains(Printful::$letzterGrund, 'USD'), Printful::$letzterGrund);
+Printful::$netz = $w7Usd;
+// Automatik: DE ohne andere angebundene Druckerei → Printful
+WmBestellung::automatikSetzen(true);
+Werbemittel::angebotSpeichern($w7V, ['anbieter' => 'WIRmachenDRUCK', 'land' => 'DE', 'preis_eur' => '15,49']);
+$w7Mails = [];
+WmBestellung::$senden = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$w7Mails): bool { $w7Mails[] = $anlass; return true; };
+pruefe('Automatik: in DE ist Printful die günstigste ANGEBUNDENE Druckerei (WIRmachenDRUCK ohne Anbindung, Gelato ohne Artikel)',
+    Werbemittel::einkauf($w7V, 'DE') === ['cent' => 6752, 'anbieter' => 'Printful'] && Printful::bereit('DE') && Printful::modus() === 'entwurf', json_encode(Werbemittel::einkauf($w7V, 'DE')));
+$w7O = WmBestellung::anlegen($w7P, $w7V, WmBestellung::adresseSpeichern((int) $w7P['id'], ['name' => 'Paula Printful', 'strasse' => 'Hauptstr. 1', 'plz' => '80331', 'ort' => 'München', 'land' => 'DE']), 'de');
+$w7Vor = count($w7Netz);
+WmBestellung::bezahltVonStripe($w7O['id'], 'pi_pf', (int) $w7O['summe_cent'], 'eur');
+$w7Post = null;
+foreach (array_slice($w7Netz, $w7Vor) as $w7Z) { if ($w7Z[0] === 'POST') { $w7Post = $w7Z; } }
+$w7Rumpf = json_decode((string) ($w7Post[3] ?? ''), true);
+pruefe('Nach der Zahlung: erst Druckfläche geprüft, dann EIN Entwurf an Printful (ohne confirm), Variante × Packs, Vorder- und Rückseite als signierte Links',
+    ($w7Netz[$w7Vor][1] ?? '') === 'https://api.printful.com/mockup-generator/printfiles/724'
+    && ($w7Post[1] ?? '') === 'https://api.printful.com/orders' && ($w7Rumpf['external_id'] ?? '') === $w7O['nummer']
+    && ($w7Rumpf['items'][0]['variant_id'] ?? 0) === 18554 && ($w7Rumpf['items'][0]['quantity'] ?? 0) === 5
+    && array_column($w7Rumpf['items'][0]['files'] ?? [], 'type') === ['default', 'back']
+    && str_contains((string) ($w7Rumpf['items'][0]['files'][1]['url'] ?? ''), 'f=pf_hinten')
+    && ($w7Rumpf['recipient']['country_code'] ?? '') === 'DE' && ($w7Rumpf['recipient']['zip'] ?? '') === '80331'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O['id']]) === 'beim_drucker'
+    && Db::wert('SELECT anbieter_ref FROM wm_bestellungen WHERE id = ?', [$w7O['id']]) === '777', json_encode($w7Rumpf));
+$w7Zahl = count($w7Netz);
+pruefe('Genau einmal: ein zweiter Versuch sendet nichts', Druckerei::senden('Printful', $w7O['id'])['ok'] === false && count($w7Netz) === $w7Zahl);
+pruefe('Printful versendet (Stand lesen über GET /orders/@Nummer): automatisch „versendet“ mit Sendungsnummer und Link, Partner bekommt die Mail',
+    Printful::nachsehen() === 1 && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O['id']]) === 'versendet'
+    && Db::wert('SELECT tracking FROM wm_bestellungen WHERE id = ?', [$w7O['id']]) === 'PF-1'
+    && Db::wert('SELECT tracking_url FROM wm_bestellungen WHERE id = ?', [$w7O['id']]) === 'https://www.dhl.com/track?PF-1'
+    && ($w7Netz[count($w7Netz) - 1][1] ?? '') === 'https://api.printful.com/orders/@' . rawurlencode($w7O['nummer']) && in_array('wm_versendet', $w7Mails, true));
+// Druckfläche passt nicht → nichts senden, Meldung
+$w7Netz2 = [];
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Netz2): array {
+    $w7Netz2[] = $m;
+    return ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 3, 'width' => 1000, 'height' => 1000]], 'variant_printfiles' => [['variant_id' => 18554, 'placements' => ['default' => 3, 'back' => 3]]]]])];
+};
+$w7O2 = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+WmBestellung::vonHandBezahlt($w7O2['id']);
+pruefe('Druckfläche passt nicht zum Bild: KEIN Auftrag (nur gelesen), Bestellung bleibt „bezahlt“, Meldung an Uwe',
+    $w7Netz2 === ['GET'] && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']]) === 'bezahlt'
+    && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']], 'leer') === 'leer'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_druckerei_fehler'") >= 1);
+// Ältere Freigabe ohne eingepasste Fassung → nichts an Printful
+Db::run('UPDATE wm_entwuerfe SET datei_pf_vorn = NULL WHERE id = ?', [$w7E]);
+$w7Netz2 = [];
+$w7O3 = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+WmBestellung::vonHandBezahlt($w7O3['id']);
+pruefe('Freigabe ohne 90 × 50-Fassung (älter als heute): nichts gesendet, Grund nennt die fehlende Fassung',
+    $w7Netz2 === [] && str_contains(Printful::auftragSenden($w7O3['id'])['grund'], 'eingepasste Fassung'));
+pruefe('Preis-Knopf holt alle Druckereien mit Preis-Schnittstelle, Cron Printful höchstens wöchentlich, Konfig-Beispiel nennt Printful',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (['Gelato', 'Printful'] as \$wmK)")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_preise'")
+    && str_contains((string) file_get_contents($wurzel . '/config.local.example.php'), "'printful'"));
+// Zurück
+Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);
+Db::run('DELETE FROM wm_adressen WHERE partner_id = ?', [(int) $w7P['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w7P['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $w7P['id']]);
+Db::run('DELETE FROM wm_anbieter_preise'); Db::run('DELETE FROM wm_anbieter_produkte');
+Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w7Vk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

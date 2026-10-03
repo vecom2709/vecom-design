@@ -18,7 +18,7 @@ declare(strict_types=1);
 final class Druckerei
 {
     /** Name (wie in den Angeboten) => Klasse. */
-    public const ANGEBUNDEN = ['Gelato' => 'Gelato', 'HelloPrint' => 'HelloPrint'];
+    public const ANGEBUNDEN = ['Gelato' => 'Gelato', 'HelloPrint' => 'HelloPrint', 'Printful' => 'Printful'];
 
     private static function laden(string $klasse): void
     {
@@ -100,14 +100,18 @@ final class Druckerei
             [mb_substr($ref, 0, 120), $id]);
     }
 
+    /** Fassungen einer Druckdatei, die ein Link ausliefern darf. */
+    public const FASSUNGEN = ['druck', 'frei', 'pf_vorn', 'pf_hinten'];
+
     /**
      * Unterschriebener, befristeter Link zur Druckdatei. $fassung: 'druck'
-     * (4 mm Beschnitt, Gelato) oder 'frei' (genau die freigegebene Datei,
-     * 3 mm). Ohne app_geheim kein Link.
+     * (4 mm Beschnitt, Gelato), 'frei' (genau die freigegebene Datei, 3 mm)
+     * oder 'pf_vorn'/'pf_hinten' (Printful: eingepasst 90 × 50 mm, JPEG je
+     * Seite — vom Partner vor der Freigabe gesehen). Ohne app_geheim kein Link.
      */
     public static function dateiLink(int $entwurfId, string $fassung = 'frei', int $tage = 14): string
     {
-        $fassung = $fassung === 'druck' ? 'druck' : 'frei';
+        $fassung = in_array($fassung, self::FASSUNGEN, true) ? $fassung : 'frei';
         $geheim = (string) Config::get('app_geheim', '');
         if (strlen($geheim) < 16) { throw new RuntimeException('app_geheim fehlt in config.local.php — ohne ihn kein Link für die Druckdatei.'); }
         $bis = time() + $tage * 86400;
@@ -119,7 +123,7 @@ final class Druckerei
     public static function linkPruefen(string $e, string $x, string $f, string $s): array
     {
         $geheim = (string) Config::get('app_geheim', '');
-        if (!in_array($f, ['druck', 'frei'], true) || strlen($geheim) < 16 || !ctype_digit($e) || !ctype_digit($x) || (int) $x < time()) { return [0, '']; }
+        if (!in_array($f, self::FASSUNGEN, true) || strlen($geheim) < 16 || !ctype_digit($e) || !ctype_digit($x) || (int) $x < time()) { return [0, '']; }
         return hash_equals(hash_hmac('sha256', 'wm-druck|' . $e . '|' . $x . '|' . $f, $geheim), $s) ? [(int) $e, $f] : [0, ''];
     }
 }

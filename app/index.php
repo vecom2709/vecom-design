@@ -1847,10 +1847,18 @@ if ($post) {
                 zurueck('werbemittel');
 
             case 'wm_gelato_preise':
+                // Alle Druckereien mit Preis-Schnittstelle (Gelato, Printful) — je eine Zeile, mit dem Grund, wenn eine absagt.
                 require_once __DIR__ . '/src/Gelato.php';
+                require_once __DIR__ . '/src/Printful.php';
                 require_once __DIR__ . '/src/Werbemittel.php';
-                $wmN = Gelato::preiseAktualisieren();
-                $_SESSION[$wmN > 0 ? 'gut' : 'fehler'] = $wmN > 0 ? $wmN . ' Gelato-Preise geholt und eingetragen.' : 'Keine Preise erhalten — Gelato sagt: ' . (Gelato::$letzterGrund !== '' ? Gelato::$letzterGrund : 'nichts (kein Artikel zugeordnet?)');
+                $wmZeilen = []; $wmGut = false;
+                foreach (['Gelato', 'Printful'] as $wmK) {
+                    if (!$wmK::bereit()) { continue; }
+                    $wmN = $wmK::preiseAktualisieren();
+                    $wmGut = $wmGut || $wmN > 0;
+                    $wmZeilen[] = $wmN > 0 ? $wmK . ': ' . $wmN . ' Preise geholt und eingetragen.' : $wmK . ': keine Preise — ' . ($wmK::$letzterGrund !== '' ? $wmK::$letzterGrund : 'nichts (kein Artikel zugeordnet?)');
+                }
+                $_SESSION[$wmGut ? 'gut' : 'fehler'] = $wmZeilen ? implode(' · ', $wmZeilen) : 'Keine Druckerei mit Preis-Schnittstelle angebunden.';
                 zurueck('werbemittel');
 
             case 'wm_gelato_senden':

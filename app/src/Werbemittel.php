@@ -388,13 +388,23 @@ final class Werbemittel
             'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
             default => '',
         };
-        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf, $druck): int {
+        // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
+        // Partner sieht sie vor der Freigabe als zweite Vorschau — ohne sie geht nichts an Printful.
+        $pf = ['', ''];
+        if ((string) $pr['vorlage'] === 'visitenkarte') {
+            require_once __DIR__ . '/Printful.php';
+            [$pw, $ph] = Printful::VORLAGE;
+            $pf = [PartnerKarten::eingepasst($p, $w['stil'], 'vorn', $w['sprache'], $w['kontakt'], $pw, $ph),
+                   PartnerKarten::eingepasst($p, $w['stil'], 'hinten', $w['sprache'], $w['kontakt'], $pw, $ph)];
+        }
+        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf, $druck, $pf): int {
             Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf'", [(int) $p['id'], $produktId]);
             return Db::insert('wm_entwuerfe', [
                 'partner_id' => (int) $p['id'], 'produkt_id' => $produktId,
                 'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
                 'datei' => $pdf, 'datei_hash' => hash('sha256', $pdf), 'datei_bytes' => strlen($pdf),
                 'datei_druck' => $druck !== '' ? $druck : null, 'datei_druck_hash' => $druck !== '' ? hash('sha256', $druck) : null,
+                'datei_pf_vorn' => $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, 'datei_pf_hinten' => $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null,
             ]);
         }, 3);
     }
@@ -421,7 +431,7 @@ final class Werbemittel
     /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
     public static function stand(int $partnerId, int $produktId): array
     {
-        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am';
+        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
         $hol = static function (string $status) use ($felder, $partnerId, $produktId): ?array {
             $r = Db::one("SELECT $felder FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = ? ORDER BY id DESC LIMIT 1",
                 [$partnerId, $produktId, $status]);
@@ -438,6 +448,14 @@ final class Werbemittel
             ? Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ?', [$entwurfId])
             : Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ? AND partner_id = ?', [$entwurfId, $partnerId]);
         return $r ?: null;
+    }
+
+    /** Eine Seite der eingepassten Fassung (90 × 50 mm) — nur eigene Entwürfe des Partners. JPEG oder null. */
+    public static function eingepasstBild(int $entwurfId, int $partnerId, string $seite): ?string
+    {
+        $spalte = $seite === 'hinten' ? 'datei_pf_hinten' : 'datei_pf_vorn';
+        $b = Db::wert("SELECT $spalte FROM wm_entwuerfe WHERE id = ? AND partner_id = ?", [$entwurfId, $partnerId]);
+        return is_string($b) && $b !== '' ? $b : null;
     }
 
     /** Für die Verwaltung: die letzten Freigaben mit Partner und Produkt. */
