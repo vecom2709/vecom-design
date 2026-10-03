@@ -57,6 +57,48 @@ final class WmBestellung
         return $stripe->bereit() ? 'stripe' : 'anfrage';
     }
 
+    /**
+     * Automatikbetrieb (Uwe, 04.10.2026: „Nichts von Hand — nach Zahlung des
+     * Partners soll automatisch der Anbieter die Bestellung abwickeln“).
+     * An: Nach der Zahlung geht die Bestellung als echter Auftrag an die
+     * Druckerei der Bestellung, sofern die eine Anbindung hat; die
+     * Sendungsnummer kommt von dort, und der Partner bekommt die Mail.
+     * Voreinstellung: an.
+     */
+    public static function automatik(): bool
+    {
+        try { return (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'wm_automatik'", [], '1') !== '0'; } catch (Throwable $e) { return true; }
+    }
+
+    public static function automatikSetzen(bool $an): void
+    {
+        Db::run("INSERT INTO settings (skey, svalue) VALUES ('wm_automatik', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$an ? '1' : '0']);
+    }
+
+    /**
+     * Nach bestätigter Zahlung: Auftrag automatisch an die Druckerei, wenn
+     * sie angebunden ist. Ein Fehler wird festgehalten und gemeldet, NICHT
+     * wiederholt. Ohne Anbindung: Meldung an Uwe, mehr nicht.
+     */
+    public static function nachZahlung(int $id): void
+    {
+        if (!self::automatik()) { return; }
+        try {
+            $anbieter = (string) Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ? ORDER BY id LIMIT 1', [$id], '');
+            require_once __DIR__ . '/Gelato.php';
+            if (strcasecmp($anbieter, Gelato::NAME) === 0 && Gelato::bereit()) {
+                $r = Gelato::entwurfSenden($id, true);
+                if ($r['ok']) {
+                    Events::protokoll('wm_auftrag_automatisch', 'Werbemittel-Bestellung #' . $id . ' automatisch an Gelato', null, null, null, ['wm_bestellung' => $id, 'gelato' => $r['id'] ?? '']);
+                }
+                return;
+            }
+            $n = (string) Db::wert('SELECT nummer FROM wm_bestellungen WHERE id = ?', [$id], '');
+            Events::melden('wm_ohne_anbindung', 'Werbemittel ' . $n . ': Druckerei ohne Anbindung', 'warnung',
+                '„' . ($anbieter !== '' ? $anbieter : 'unbekannt') . '“ hat keine automatische Anbindung — diese Bestellung muss dort von Hand bestellt werden.', '/werbemittel/bestellungen');
+        } catch (Throwable $e) { error_log('WmBestellung::nachZahlung ' . $id . ': ' . $e->getMessage()); }
+    }
+
     public static function zahlwegSetzen(string $weg): void
     {
         Db::run("INSERT INTO settings (skey, svalue) VALUES ('wm_zahlweg', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
@@ -219,7 +261,7 @@ final class WmBestellung
                 Fmt::geld((int) $b['summe_cent'], (string) $b['waehrung']) . ' — jetzt beim Drucker beauftragen.', '/werbemittel/bestellungen');
             return 'gebucht';
         }, 3);
-        if ($r === 'gebucht') { self::mailen($id, 'wm_bezahlt'); }
+        if ($r === 'gebucht') { self::mailen($id, 'wm_bezahlt'); self::nachZahlung($id); }
         return $r;
     }
 
@@ -229,7 +271,7 @@ final class WmBestellung
         $wie = in_array($wie, ['ueberweisung', 'bar', 'stripe'], true) ? $wie : 'ueberweisung';
         $ok = Db::run("UPDATE wm_bestellungen SET status = 'bezahlt', bezahlt_am = NOW(), bezahlt_wie = ? WHERE id = ? AND status IN ('angefragt', 'offen') AND bezahlt_am IS NULL",
             [$wie, $id])->rowCount() === 1;
-        if ($ok) { self::mailen($id, 'wm_bezahlt'); }
+        if ($ok) { self::mailen($id, 'wm_bezahlt'); self::nachZahlung($id); }
         return $ok;
     }
 

@@ -76,6 +76,8 @@ final class Werbemittel
 
     /** Länder, in die geliefert wird (Uwe, 04.10.2026: Italien und Deutschland). */
     public const LIEFERLAENDER = ['IT' => 'Italia', 'DE' => 'Deutschland'];
+    /** Mehrwertsteuer je Lieferland in Prozent — für Netto-Preise von Druckereien (Gelato-Quote). */
+    public const MWST = ['IT' => 22, 'DE' => 19];
 
     /**
      * Was Vecom für diese Auflage bei Lieferung nach $land zahlt, und bei wem.
@@ -88,11 +90,31 @@ final class Werbemittel
     {
         $land = strtoupper($land);
         if (!isset(self::LIEFERLAENDER[$land])) { return null; }
-        $g = Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId, $land]);
+        /* Automatikbetrieb (04.10.2026): Wenn eine Druckerei mit Anbindung ein
+           Angebot fürs Land hat, gewinnt die günstigste MIT Anbindung — sonst
+           müsste jemand von Hand bestellen. Ohne angebundene Druckerei bleibt
+           es bei der günstigsten überhaupt (und Uwe bekommt nach der Zahlung
+           eine Meldung). */
+        $g = null;
+        $auto = self::automatischeAnbieter();
+        if ($auto) {
+            $ph = implode(',', array_fill(0, count($auto), '?'));
+            $g = Db::one("SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? AND anbieter IN ($ph) ORDER BY preis_cent, id LIMIT 1",
+                array_merge([$varianteId, $land], $auto)) ?: null;
+        }
+        $g ??= Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId, $land]);
         if ($g) { return ['cent' => (int) $g['preis_cent'], 'anbieter' => (string) $g['anbieter']]; }
         if ((int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ?', [$varianteId]) > 0) { return null; }
         $h = (int) Db::wert('SELECT einkauf_cent FROM wm_varianten WHERE id = ?', [$varianteId], 0);
         return $h > 0 ? ['cent' => $h, 'anbieter' => null] : null;
+    }
+
+    /** Druckereien, die im Automatikbetrieb Aufträge per Schnittstelle bekommen können (heute: Gelato mit Schlüssel). */
+    public static function automatischeAnbieter(): array
+    {
+        require_once __DIR__ . '/WmBestellung.php';
+        require_once __DIR__ . '/Gelato.php';
+        return WmBestellung::automatik() && Gelato::bereit() ? [Gelato::NAME] : [];
     }
 
     /** Endpreis für den Partner bei Lieferung nach $land; 0 = dorthin nicht bestellbar. */

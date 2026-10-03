@@ -1833,6 +1833,20 @@ if ($post) {
                     : 'Zahlweg „Anfrage“: Bestellungen werden gespeichert, du klärst die Zahlung.';
                 zurueck('werbemittel');
 
+            case 'wm_automatik_an':
+            case 'wm_automatik_aus':
+                require_once __DIR__ . '/src/WmBestellung.php';
+                WmBestellung::automatikSetzen($tat === 'wm_automatik_an');
+                $_SESSION['gut'] = $tat === 'wm_automatik_an' ? 'Automatik an: Nach der Zahlung geht der Auftrag von selbst an die Druckerei.' : 'Automatik aus: Du gibst jeden Auftrag selbst frei.';
+                zurueck('werbemittel');
+
+            case 'wm_gelato_preise':
+                require_once __DIR__ . '/src/Gelato.php';
+                require_once __DIR__ . '/src/Werbemittel.php';
+                $wmN = Gelato::preiseAktualisieren();
+                $_SESSION[$wmN > 0 ? 'gut' : 'fehler'] = $wmN > 0 ? $wmN . ' Gelato-Preise geholt und eingetragen.' : 'Keine Preise erhalten — Schlüssel, Artikel und Gelato prüfen.';
+                zurueck('werbemittel');
+
             case 'wm_gelato_senden':
             case 'wm_gelato_zurueck':
                 require_once __DIR__ . '/src/Gelato.php';

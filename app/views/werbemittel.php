@@ -53,11 +53,19 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     <a class="knopf stumm" href="<?= Fmt::h(url('werbemittel/vorschau')) ?>">Als Partner ansehen</a></div>
 </div>
 
-<?php require_once dirname(__DIR__) . '/src/Gelato.php'; require_once dirname(__DIR__) . '/src/Partner.php'; ?>
+<?php require_once dirname(__DIR__) . '/src/Gelato.php'; require_once dirname(__DIR__) . '/src/Partner.php'; require_once dirname(__DIR__) . '/src/WmBestellung.php'; ?>
 <div class="block" style="max-width:820px"><h2>Druckanbieter Gelato</h2>
   <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
     <?php else: ?><span class="marke2 warnung">Kein Schlüssel</span> In <code>app/config.local.php</code> eintragen: <code>'gelato' => ['api' => '…']</code>. Bis dahin beauftragst du den Druck von Hand.<?php endif; ?></p>
   <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
+  <?php $auto = WmBestellung::automatik(); ?>
+  <p style="font-size:14px;margin:12px 0 6px"><strong>Automatik:</strong> <?= $auto ? '<span class="marke2 gut">an</span> Nach der Zahlung geht der Auftrag von selbst an die Druckerei der Bestellung (wenn angebunden); die Sendungsnummer kommt von dort, der Partner bekommt die Mail. Je Land gewinnt dann die günstigste <em>angebundene</em> Druckerei.' : '<span class="marke2">aus</span> Du gibst jeden Auftrag selbst frei.' ?></p>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
+      <input type="hidden" name="tat" value="<?= $auto ? 'wm_automatik_aus' : 'wm_automatik_an' ?>"><button class="knopf"><?= $auto ? 'Automatik ausschalten' : 'Automatik einschalten' ?></button></form>
+    <?php if (Gelato::bereit()): ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
+      <input type="hidden" name="tat" value="wm_gelato_preise"><button class="knopf stumm">Gelato-Preise jetzt holen</button></form><?php endif; ?>
+  </div>
 </div>
 
 <div class="block" style="max-width:820px"><h2>Standardmarge</h2>

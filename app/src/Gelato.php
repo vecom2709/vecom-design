@@ -94,10 +94,13 @@ final class Gelato
     }
 
     /**
-     * Schickt eine bezahlte Bestellung als ENTWURF an Gelato.
+     * Schickt eine bezahlte Bestellung an Gelato — als ENTWURF (Uwe bestätigt
+     * im Dashboard) oder, im Automatikbetrieb, als echten AUFTRAG
+     * (orderType "order": Gelato druckt und berechnet sofort). Beides nur
+     * einmal; ein Fehler bleibt stehen und wird nicht wiederholt.
      * @return array{ok:bool, grund:string, id?:string}
      */
-    public static function entwurfSenden(int $bestellungId): array
+    public static function entwurfSenden(int $bestellungId, bool $auftrag = false): array
     {
         if (!self::bereit()) { return ['ok' => false, 'grund' => 'Gelato-Schlüssel fehlt in config.local.php.']; }
         $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ?', [$bestellungId]);
@@ -119,17 +122,19 @@ final class Gelato
         if (!$items) { return ['ok' => false, 'grund' => 'Die Bestellung hat keine Position.']; }
         $ad = (array) json_decode((string) $b['adresse'], true);
         [$vor, $nach] = self::namen((string) ($ad['name'] ?? ''));
+        // Feldlängen laut Doku (Quote/Order, 04.10.2026): Name je 25, Straße 35, Ort 30, PLZ 15, Telefon 25.
+        $k = static fn(string $t, int $n): string => mb_substr(trim($t), 0, $n);
         $koerper = [
-            'orderType' => 'draft',
+            'orderType' => $auftrag ? 'order' : 'draft',
             'orderReferenceId' => (string) $b['nummer'],
             'customerReferenceId' => 'partner-' . (int) $b['partner_id'],
             'currency' => 'EUR',
             'items' => $items,
             'shippingAddress' => array_filter([
-                'firstName' => $vor, 'lastName' => $nach, 'companyName' => (string) ($ad['firma'] ?? ''),
-                'addressLine1' => (string) ($ad['strasse'] ?? ''), 'city' => (string) ($ad['ort'] ?? ''),
-                'postCode' => (string) ($ad['plz'] ?? ''), 'country' => (string) ($ad['land'] ?? 'IT'),
-                'email' => (string) ($p['email'] ?? ''), 'phone' => (string) ($ad['telefon'] ?? ''),
+                'firstName' => $k($vor, 25), 'lastName' => $k($nach, 25), 'companyName' => $k((string) ($ad['firma'] ?? ''), 60),
+                'addressLine1' => $k((string) ($ad['strasse'] ?? ''), 35), 'city' => $k((string) ($ad['ort'] ?? ''), 30),
+                'postCode' => $k((string) ($ad['plz'] ?? ''), 15), 'country' => (string) ($ad['land'] ?? 'IT'),
+                'email' => (string) ($p['email'] ?? ''), 'phone' => $k((string) ($ad['telefon'] ?? ''), 25),
             ], static fn($v) => $v !== ''),
         ];
 
@@ -150,7 +155,12 @@ final class Gelato
             self::fehler($bestellungId, 'Gelato lehnte ab (HTTP ' . $r['code'] . '): ' . mb_substr($grund, 0, 400));
             return ['ok' => false, 'grund' => 'Gelato lehnte ab: ' . mb_substr($grund, 0, 300)];
         }
-        Db::run("UPDATE wm_bestellungen SET anbieter_ref = ?, anbieter_status = 'entwurf' WHERE id = ?", [mb_substr((string) $d['id'], 0, 120), $bestellungId]);
+        if ($auftrag) {
+            Db::run("UPDATE wm_bestellungen SET anbieter_ref = ?, anbieter_status = 'auftrag', status = 'beim_drucker', beim_drucker_am = NOW() WHERE id = ? AND status = 'bezahlt'",
+                [mb_substr((string) $d['id'], 0, 120), $bestellungId]);
+        } else {
+            Db::run("UPDATE wm_bestellungen SET anbieter_ref = ?, anbieter_status = 'entwurf' WHERE id = ?", [mb_substr((string) $d['id'], 0, 120), $bestellungId]);
+        }
         return ['ok' => true, 'grund' => '', 'id' => (string) $d['id']];
     }
 
@@ -169,6 +179,7 @@ final class Gelato
     public static function nachsehen(): int
     {
         if (!self::bereit()) { return 0; }
+        require_once __DIR__ . '/WmBestellung.php';
         $n = 0;
         foreach (Db::all("SELECT id, status, anbieter_ref, tracking FROM wm_bestellungen WHERE anbieter = ? AND anbieter_ref IS NOT NULL
                            AND status IN ('bezahlt', 'beim_drucker') AND anbieter_status IN ('entwurf', 'auftrag') LIMIT 30", [self::NAME]) as $b) {
@@ -187,15 +198,84 @@ final class Gelato
                     $code = trim((string) ($pk['trackingCode'] ?? ''));
                     $url = trim((string) ($pk['trackingUrl'] ?? ''));
                     if ($code !== '' && (string) $b['tracking'] === '') {
-                        Db::run('UPDATE wm_bestellungen SET tracking = ?, tracking_url = ? WHERE id = ? AND tracking IS NULL',
-                            [mb_substr($code, 0, 120), str_starts_with($url, 'https://') ? mb_substr($url, 0, 400) : null, (int) $b['id']]);
-                        Events::melden('wm_sendung', 'Werbemittel unterwegs: Sendungsnummer von Gelato', 'hinweis',
-                            'Gelato meldet ' . $code . '. In der Verwaltung „Versendet“ klicken — dann bekommt der Partner die Mail.', '/werbemittel/bestellungen');
+                        $link = str_starts_with($url, 'https://') ? mb_substr($url, 0, 390) : '';
+                        if (WmBestellung::automatik()) {
+                            // Automatikbetrieb (Uwe, 04.10.2026: „nichts von Hand“): versendet, Partner bekommt die Mail.
+                            Db::run("UPDATE wm_bestellungen SET status = 'beim_drucker', beim_drucker_am = COALESCE(beim_drucker_am, NOW()) WHERE id = ? AND status = 'bezahlt'", [(int) $b['id']]);
+                            WmBestellung::versendet((int) $b['id'], mb_substr($code, 0, 120), $link);
+                        } else {
+                            Db::run('UPDATE wm_bestellungen SET tracking = ?, tracking_url = ? WHERE id = ? AND tracking IS NULL',
+                                [mb_substr($code, 0, 120), $link !== '' ? $link : null, (int) $b['id']]);
+                            Events::melden('wm_sendung', 'Werbemittel unterwegs: Sendungsnummer von Gelato', 'hinweis',
+                                'Gelato meldet ' . $code . '. In der Verwaltung „Versendet“ klicken — dann bekommt der Partner die Mail.', '/werbemittel/bestellungen');
+                        }
                         $n++;
                         break;
                     }
                 }
             } catch (Throwable $e) { error_log('Gelato::nachsehen ' . $b['id'] . ': ' . $e->getMessage()); }
+        }
+        return $n;
+    }
+
+    /**
+     * Preis bei Gelato erfragen (Quote-API, Doku gelesen 04.10.2026:
+     * POST https://order.gelatoapis.com/v4/orders:quote). Nur lesen — es
+     * entsteht keine Bestellung. Zurück: Produkt + günstigster normaler
+     * Versand, netto in Cent, oder null.
+     * @return ?array{netto:int, versand:string, min:int, max:int}
+     */
+    public static function angebotHolen(string $artikel, int $menge, string $land): ?array
+    {
+        $empf = ['IT' => ['firstName' => 'Vecom', 'lastName' => 'Design', 'addressLine1' => 'Via Atenea 1', 'city' => 'Agrigento', 'postCode' => '92100'],
+                 'DE' => ['firstName' => 'Vecom', 'lastName' => 'Design', 'addressLine1' => 'Unter den Linden 1', 'city' => 'Berlin', 'postCode' => '10117']][$land] ?? null;
+        if ($empf === null) { return null; }
+        $empf += ['country' => $land, 'email' => (string) Config::get('email', 'kontakt@vecom-design.it')];
+        $r = self::rufen('POST', '/v4/orders:quote', [
+            'orderReferenceId' => 'preis-' . $land . '-' . $menge, 'customerReferenceId' => 'vecom-preis', 'currency' => 'EUR',
+            'allowMultipleQuotes' => false, 'recipient' => $empf,
+            'products' => [['itemReferenceId' => 'p1', 'productUid' => $artikel, 'quantity' => $menge]],
+        ]);
+        $d = json_decode($r['body'], true);
+        $q = is_array($d) ? ($d['quotes'][0] ?? null) : null;
+        if ($r['code'] !== 200 || !is_array($q)) { return null; }
+        $produkt = 0.0;
+        foreach ((array) ($q['products'] ?? []) as $x) { if (strtoupper((string) ($x['currency'] ?? '')) !== 'EUR') { return null; } $produkt += (float) ($x['price'] ?? 0); }
+        $versand = null;
+        foreach ((array) ($q['shipmentMethods'] ?? []) as $m) {
+            if (strtoupper((string) ($m['currency'] ?? '')) !== 'EUR' || !in_array((string) ($m['type'] ?? ''), ['normal', 'standard'], true)) { continue; }
+            if ($versand === null || (float) $m['price'] < (float) $versand['price']) { $versand = $m; }
+        }
+        if ($produkt <= 0 || $versand === null) { return null; }
+        return ['netto' => (int) round(($produkt + (float) $versand['price']) * 100), 'versand' => (string) ($versand['name'] ?? ''),
+                'min' => (int) ($versand['minDeliveryDays'] ?? 0), 'max' => (int) ($versand['maxDeliveryDays'] ?? 0)];
+    }
+
+    /**
+     * Gelato-Preise aller zugeordneten Auflagen für Italien und Deutschland
+     * holen und als Angebote eintragen (brutto mit der Mehrwertsteuer des
+     * Lieferlands, weil Vecom ohne Partita IVA sie zahlt). Cron, wöchentlich.
+     */
+    public static function preiseAktualisieren(): int
+    {
+        if (!self::bereit()) { return 0; }
+        require_once __DIR__ . '/Werbemittel.php';
+        $n = 0;
+        foreach (Db::all("SELECT variante_id, artikel, menge FROM wm_anbieter_produkte WHERE anbieter = 'gelato'") as $z) {
+            foreach (array_keys(Werbemittel::LIEFERLAENDER) as $land) {
+                try {
+                    $a = self::angebotHolen((string) $z['artikel'], (int) $z['menge'], $land);
+                    if (!$a) { continue; }
+                    $brutto = (int) round($a['netto'] * (100 + Werbemittel::MWST[$land]) / 100);
+                    Werbemittel::angebotSpeichern((int) $z['variante_id'], [
+                        'anbieter' => self::NAME, 'land' => $land, 'preis_eur' => number_format($brutto / 100, 2, ',', ''),
+                        'netto_eur' => number_format($a['netto'] / 100, 2, ',', ''), 'papier' => 'laut Gelato-Artikel ' . $z['artikel'],
+                        'lieferung' => trim($a['versand'] . ($a['max'] > 0 ? ', ' . $a['min'] . '–' . $a['max'] . ' Tage' : '')) . ' · automatisch',
+                        'link' => 'https://dashboard.gelato.com', 'geprueft_am' => date('Y-m-d'),
+                    ]);
+                    $n++;
+                } catch (Throwable $e) { error_log('Gelato::preiseAktualisieren: ' . $e->getMessage()); }
+            }
         }
         return $n;
     }

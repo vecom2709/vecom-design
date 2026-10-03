@@ -21068,6 +21068,9 @@ $wm152 = array_map(static fn($r) => [(int) $r['auflage'], (string) $r['anbieter'
 pruefe('Migration 152: Deutschland-Angebote WIRmachenDRUCK brutto inkl. 19 % (15,49 / 19,55 / 21,71 €), Italien bleibt HelloPrint',
     $wm152 === [[250, 'WIRmachenDRUCK', 1549], [500, 'WIRmachenDRUCK', 1955], [1000, 'WIRmachenDRUCK', 2171]]
     && (int) Db::wert("SELECT COUNT(*) FROM wm_anbieter_preise WHERE land = 'IT' AND anbieter = 'HelloPrint'") === 3, json_encode($wm152));
+require_once $wurzel . '/src/WmBestellung.php';
+pruefe('Automatik ist voreingestellt an (Uwe: „nichts von Hand“)', WmBestellung::automatik() === true);
+WmBestellung::automatikSetzen(false);   // die folgenden Abschnitte prüfen den Ablauf von Hand; die Automatik hat ihren eigenen
 // Für die folgenden Abschnitte: Stand ohne Angebote und ohne Einkauf
 Db::run('DELETE FROM wm_anbieter_preise');
 Db::run("UPDATE wm_varianten SET einkauf_cent = 0, anbieter_guenstig = NULL");
@@ -21633,6 +21636,80 @@ Db::run('DELETE FROM wm_anbieter_preise');
 Db::run('UPDATE wm_varianten SET einkauf_cent = 0, anbieter_guenstig = NULL');
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w5Vk['id']]);
 unset($_GET['wm']);
+
+/* ============================================================================
+   Marketing Center: Automatik — nach der Zahlung druckt die Druckerei (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketing Center: Automatik nach der Zahlung');
+foreach (['Werbemittel', 'WmBestellung', 'Gelato', 'Partner', 'PartnerKarten', 'Fmt'] as $w6Kl) { require_once $wurzel . "/src/$w6Kl.php"; }
+$w6Vk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$w6V = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage LIMIT 1', [(int) $w6Vk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w6Vk['id']]);
+Gelato::artikelSetzen($w6V, 'cards_pf_bd_pt_350-gsm-coated-silk_cl_4-4_hor', 250);
+Werbemittel::angebotSpeichern($w6V, ['anbieter' => 'HelloPrint', 'land' => 'IT', 'preis_eur' => '23,53']);
+Werbemittel::angebotSpeichern($w6V, ['anbieter' => 'WIRmachenDRUCK', 'land' => 'DE', 'preis_eur' => '15,49']);
+$w6Netz = [];
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w6Netz): array {
+    $w6Netz[] = [$m, $u, $r];
+    if (str_ends_with($u, '/v4/orders:quote')) {
+        $land = json_decode((string) $r, true)['recipient']['country'] ?? 'IT';
+        return ['code' => 200, 'body' => json_encode(['quotes' => [['products' => [['price' => $land === 'DE' ? 28.0 : 30.0, 'currency' => 'EUR']],
+            'shipmentMethods' => [['name' => 'Express', 'price' => 1.0, 'currency' => 'EUR', 'type' => 'express'], ['name' => 'Standard', 'price' => 3.5, 'currency' => 'EUR', 'type' => 'normal', 'minDeliveryDays' => 4, 'maxDeliveryDays' => 6]]]]])];
+    }
+    if ($m === 'POST') { return ['code' => 200, 'body' => json_encode(['id' => 'gel-auto-1', 'orderType' => json_decode((string) $r, true)['orderType'] ?? ''])]; }
+    return ['code' => 200, 'body' => json_encode(['id' => 'gel-auto-1', 'orderType' => 'order', 'fulfillmentStatus' => 'shipped',
+        'shipment' => ['packages' => [['trackingCode' => 'AUTO-1', 'trackingUrl' => 'https://track.example/AUTO-1']]]])];
+};
+pruefe('Gelato-Preise: Quote-API (POST /v4/orders:quote), Produkt + günstigster NORMALER Versand, brutto mit MwSt des Lieferlands (IT 33,50 × 1,22 = 40,87 €; DE 31,50 × 1,19 = 37,49 €)',
+    Gelato::preiseAktualisieren() === 2 && ($w6Netz[0][1] ?? '') === 'https://order.gelatoapis.com/v4/orders:quote'
+    && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'IT'", [$w6V]) === 4087
+    && (int) Db::wert("SELECT netto_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'IT'", [$w6V]) === 3350
+    && (int) Db::wert("SELECT preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Gelato' AND land = 'DE'", [$w6V]) === 3749);
+pruefe('Automatik aus: je Land die günstigste Druckerei (HelloPrint / WIRmachenDRUCK)', Werbemittel::einkauf($w6V, 'IT')['anbieter'] === 'HelloPrint' && Werbemittel::einkauf($w6V, 'DE')['anbieter'] === 'WIRmachenDRUCK');
+WmBestellung::automatikSetzen(true);
+pruefe('Automatik an: je Land die günstigste ANGEBUNDENE Druckerei (Gelato) — sonst müsste jemand von Hand bestellen',
+    Werbemittel::einkauf($w6V, 'IT') === ['cent' => 4087, 'anbieter' => 'Gelato'] && Werbemittel::einkauf($w6V, 'DE')['anbieter'] === 'Gelato');
+$w6P = Partner::laden(Partner::anlegen(['name' => 'Anna Auto', 'email' => 'anna.auto@partner.example', 'code' => 'ANNAAUTO', 'sprache' => 'it']));
+$w6Mails = [];
+WmBestellung::$senden = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$w6Mails): bool { $w6Mails[] = $anlass; return true; };
+$w6E = Werbemittel::entwurfAnlegen($w6P, (int) $w6Vk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+Werbemittel::freigeben((int) $w6P['id'], $w6E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w6E]));
+$w6O = WmBestellung::anlegen($w6P, $w6V, WmBestellung::adresseSpeichern((int) $w6P['id'], ['name' => 'Anna Auto', 'strasse' => 'Via Roma 9', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT']), 'it');
+$w6Vor = count($w6Netz);
+pruefe('Vor der Zahlung geht nichts an die Druckerei', count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O['id']]) === 'Gelato');
+WmBestellung::bezahltVonStripe($w6O['id'], 'pi_auto', (int) $w6O['summe_cent'], 'eur');
+$w6Post = json_decode((string) ($w6Netz[$w6Vor][2] ?? ''), true);
+pruefe('Nach der Zahlung (Stripe): Auftrag automatisch an Gelato als ECHTER Auftrag (orderType „order“), genau einmal; Status „beim Drucker“',
+    count($w6Netz) === $w6Vor + 1 && ($w6Netz[$w6Vor][1] ?? '') === 'https://order.gelatoapis.com/v4/orders' && ($w6Post['orderType'] ?? '') === 'order'
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'beim_drucker'
+    && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'auftrag'
+    && Gelato::entwurfSenden($w6O['id'], true)['ok'] === false && count($w6Netz) === $w6Vor + 1);
+pruefe('Sendungsnummer von Gelato: automatisch „versendet“, Partner bekommt „Unterwegs“ — ohne Klick',
+    Gelato::nachsehen() >= 1 && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'versendet'
+    && Db::wert('SELECT tracking FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'AUTO-1' && in_array('wm_versendet', $w6Mails, true), json_encode($w6Mails));
+// Druckerei ohne Anbindung: Meldung, nichts gesendet
+Db::run("UPDATE wm_anbieter_preise SET preis_cent = 99999 WHERE anbieter = 'Gelato' AND land = 'IT'");
+Gelato::artikelSetzen($w6V, '', 1);
+Db::run("DELETE FROM wm_anbieter_preise WHERE anbieter = 'Gelato'");
+$w6O2 = WmBestellung::anlegen($w6P, $w6V, (int) Db::wert('SELECT id FROM wm_adressen WHERE partner_id = ?', [(int) $w6P['id']]), 'it');
+$w6Vor = count($w6Netz);
+WmBestellung::vonHandBezahlt($w6O2['id']);
+pruefe('Druckerei ohne Anbindung (HelloPrint): nichts gesendet, Meldung an Uwe, Bestellung bleibt „bezahlt“',
+    count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O2['id']]) === 'HelloPrint'
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_ohne_anbindung'") >= 1
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O2['id']]) === 'bezahlt');
+pruefe('Automatik einschalten fragt vorher nach (SCHWER), mit Fall im Verteiler; Cron holt Gelato-Preise höchstens wöchentlich',
+    (Ablauf::TRAGWEITE['wm_automatik_an'][0] ?? '') === Ablauf::SCHWER && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'wm_automatik_an':")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "strtotime(\$zuletzt) > time() - 7 * 86400"));
+// Zurück
+Gelato::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w6P['id']]);
+Db::run('DELETE FROM wm_adressen WHERE partner_id = ?', [(int) $w6P['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w6P['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $w6P['id']]);
+Db::run('DELETE FROM wm_anbieter_preise'); Db::run('DELETE FROM wm_anbieter_produkte');
+Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w6Vk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

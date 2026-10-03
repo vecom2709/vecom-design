@@ -110,6 +110,14 @@ final class Cron
                 require_once __DIR__ . '/Gelato.php';
                 return Gelato::nachsehen();
             },
+            /* Gelato-Preise je Auflage und Land (Quote-API, nur lesen), höchstens einmal je 7 Tage. */
+            'wm_gelato_preise' => static function () {
+                require_once __DIR__ . '/Gelato.php';
+                $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'wm_gelato_preise_am'", [], '');
+                if (!Gelato::bereit() || ($zuletzt !== '' && strtotime($zuletzt) > time() - 7 * 86400)) { return 0; }
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('wm_gelato_preise_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [date('Y-m-d H:i:s')]);
+                return Gelato::preiseAktualisieren();
+            },
             'wm_abgleich' => static function () {
                 require_once __DIR__ . '/WmBestellung.php';
                 require_once __DIR__ . '/Zahlung/Anbieter.php';
