@@ -304,6 +304,11 @@ final class Cron
                 require_once __DIR__ . '/MkAutopilot.php';
                 return MkAutopilot::lauf();
             },
+            /* TikTok täglich (03.10.2026): hält drei Tage Vorrat — Schreibauftrag an den PC, wenn er knapp wird (ab Werk aus). */
+            'tiktok_takt' => static function () {
+                require_once __DIR__ . '/MkTiktokTakt.php';
+                return MkTiktokTakt::lauf();
+            },
             /* Redaktionsplan des Telegram-Kanals (01.10.2026, Kanal-Vorschlag 2): einmal je Woche drei Beiträge zur Freigabe. */
             'telegram_plan' => static function () {
                 require_once __DIR__ . '/TelegramKanalPlan.php';

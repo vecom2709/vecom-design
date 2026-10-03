@@ -18013,6 +18013,76 @@ Db::run("DELETE FROM settings WHERE skey LIKE 'mk_autopilot_%'");
    Marketing-Studio 8: Empfehlen leicht gemacht (Kunden und Partner) und ein
    kleiner Einstieg — Google-Unternehmensprofil (01.10.2026, Uwe: „ja“ zu S3, S6)
    ============================================================================ */
+/* ============================================================================
+   TikTok täglich (03.10.2026, Uwe: „jeden Tag … kinoreif … deutsch, wenige italienisch“)
+   ============================================================================ */
+abschnitt('TikTok täglich: zwei Sendeplätze, Vorrat, Stimme und Werbespot im Wechsel');
+require_once $wurzel . '/src/MkTiktokTakt.php';
+$ttJetzt = strtotime('2031-05-05 09:00');
+$ttS1 = MkVeroeffentlichen::naechsterSlot('tiktok', $ttJetzt);
+$ttNeu = static function (string $titel, ?string $geplant = null, string $status = 'freigegeben') use ($ciZid): int {
+    return (int) Db::insert('mk_inhalte', ['zielgruppe_id' => $ciZid, 'branche' => 'restaurant', 'land' => 'DE', 'sprache' => 'de', 'art' => 'organisch', 'format' => 'reel',
+        'plattform' => 'tiktok', 'titel' => $titel, 'felder' => json_encode(['hook' => 'Was kostet Sie das Portal im Monat?', 'text' => 'x'], JSON_UNESCAPED_UNICODE), 'status' => $status, 'geplant_am' => $geplant]);
+};
+$ttA = $ttNeu('TT Platz 1', '2031-05-05 15:30:00');
+$ttS2 = MkVeroeffentlichen::naechsterSlot('tiktok', $ttJetzt);
+$ttB = $ttNeu('TT Platz 2', '2031-05-05 20:00:00');
+$ttS3 = MkVeroeffentlichen::naechsterSlot('tiktok', $ttJetzt);
+pruefe('TikTok täglich: zwei Sendeplätze am Tag (15:30, 20:00), jeder einmal belegt — dann der nächste Tag; andere Plattformen bleiben bei einem Platz',
+    $ttS1 === '2031-05-05 15:30' && $ttS2 === '2031-05-05 20:00' && $ttS3 === '2031-05-06 15:30'
+    && MkVeroeffentlichen::naechsterSlot('tiktok', strtotime('2031-05-05 19:45')) === '2031-05-06 15:30'
+    && str_ends_with(MkVeroeffentlichen::naechsterSlot('facebook', $ttJetzt), MkVeroeffentlichen::SENDEZEIT), json_encode([$ttS1, $ttS2, $ttS3]));
+Db::run('DELETE FROM mk_inhalte WHERE id IN (?, ?)', [$ttA, $ttB]);
+/* Ein Video mit Stimme: Trailer-Bildsprache, der Einstieg wird auf Deutsch gesprochen, keine Schrift */
+$ttP = MkMedium::prompt(['plattform' => 'tiktok', 'sprache' => 'de', 'land' => 'DE', 'titel' => 'T', 'bildidee' => 'Leere Trattoria am Morgen',
+    'felder' => json_encode(['hook' => 'Was kostet Sie das Portal im Monat?'])], 'video');
+$ttPit = MkMedium::prompt(['plattform' => 'tiktok', 'sprache' => 'it', 'land' => 'IT', 'titel' => 'T', 'bildidee' => 'x', 'felder' => json_encode(['hook' => 'Quanto le costa?'])], 'video');
+pruefe('TikTok-Video: Trailer-Look, der Einstieg wird in der Sprache des Stücks gesprochen, keine Schrift im Bild; andere Plattformen behalten ihren Stil',
+    str_contains($ttP, 'Cinematic movie-trailer look') && str_contains($ttP, 'native German narrator') && str_contains($ttP, '"Was kostet Sie das Portal im Monat?"')
+    && str_contains($ttP, 'no on-screen text') && str_contains($ttPit, 'native Italian narrator')
+    && !str_contains(MkMedium::prompt(['plattform' => 'instagram', 'titel' => 'T', 'bildidee' => 'x'], 'video'), 'trailer'), $ttP);
+/* Schalter und Vorrat */
+Db::run("DELETE FROM settings WHERE skey = 'mk_tiktok_takt'");
+$ttAus = MkTiktokTakt::lauf();
+MkTiktokTakt::schalten(true);
+Db::run('UPDATE mk_auftraege SET created_at = created_at - INTERVAL 3 DAY');   // Tagesgrenze der Schreibaufträge: hier nur dieser Abschnitt
+$ttZ = MkZielgruppe::melden($mzProfil(['branche' => 'restaurant', 'land' => 'DE', 'titel' => 'TT Restaurants DE']));
+MkZielgruppe::freigeben((int) $ttZ['id']);
+$ttL1 = MkTiktokTakt::lauf();
+$ttAid = (int) ($ttL1['auftrag'] ?? 0);
+$ttPar = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [$ttAid], '{}'), true) ?: [];
+$ttL2 = MkTiktokTakt::lauf();
+pruefe('TikTok täglich: ab Werk aus; an und ohne Vorrat ein Schreibauftrag — nur TikTok, vier Stücke, mit Videos, deutsch; solange er läuft, kein zweiter',
+    $ttAus === ['an' => false] && MkTiktokTakt::an() && $ttAid > 0 && ($ttL1['land'] ?? '') === 'DE' && $ttPar['plattformen'] === ['tiktok'] && $ttPar['anzahl'] === 4
+    && $ttPar['mit_bildern'] === true && $ttPar['tiktok_takt'] === true && $ttPar['umfang'] === 'organisch' && ($ttL2['laeuft'] ?? 0) === $ttAid, json_encode([$ttL1, $ttL2, $ttPar]));
+/* Jeder fünfte Auftrag italienisch */
+$ttLaender = [];
+foreach (range(1, 4) as $_) { Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => 'restaurant', 'land' => 'DE', 'status' => 'fertig', 'parameter' => '{"tiktok_takt":true}']); }
+$ttLaender[] = MkTiktokTakt::naechstesLand();
+Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => 'restaurant', 'land' => 'IT', 'status' => 'fertig', 'parameter' => '{"tiktok_takt":true}']);
+$ttLaender[] = MkTiktokTakt::naechstesLand();
+pruefe('TikTok täglich: nach vier deutschen Aufträgen ein italienischer, danach wieder deutsch', $ttLaender === ['IT', 'DE'], json_encode($ttLaender));
+/* Nach der Lieferung: Stimme (Kie.ai Veo 3.1 Quality) und Werbespot im Wechsel, 9:16 */
+Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$ttAid]);
+AkquiseWorker::ausfuehren('marketing_inhalte', ['auftrag_id' => $ttAid, 'inhalte' => [
+    ['format' => 'reel', 'plattform' => 'tiktok', 'titel' => 'TT Eins', 'felder' => ['hook' => 'Was kostet Sie das Portal?', 'szenen' => [['sekunden' => 4, 'bild' => 'a'], ['sekunden' => 4, 'bild' => 'b']], 'text' => 'Eins']],
+    ['format' => 'reel', 'plattform' => 'tiktok', 'titel' => 'TT Zwei', 'felder' => ['hook' => 'Ihr Tisch ist frei.', 'szenen' => [['sekunden' => 4, 'bild' => 'c'], ['sekunden' => 4, 'bild' => 'd']], 'text' => 'Zwei']],
+]]);
+MkAuftrag::melden(['id' => $ttAid, 'ok' => true, 'inhalte' => 2]);
+$ttDiag = [Db::one('SELECT status, ergebnis FROM mk_auftraege WHERE id = ?', [$ttAid]), Db::all('SELECT id, status, plattform FROM mk_inhalte WHERE auftrag_id = ?', [$ttAid])];
+$ttMed = array_map(static fn($z) => json_decode((string) $z['parameter'], true) ?: [], Db::all("SELECT parameter FROM mk_auftraege WHERE art = 'medien' AND parameter LIKE '%TT %' ORDER BY id"));
+pruefe('TikTok täglich: das erste Stück bekommt ein Kie-Video mit Stimme (Veo 3.1 Quality), das zweite den Werbespot vom PC — oder ebenfalls Kie, wenn es für die Branche keine 3D-Szene gibt; alles 9:16',
+    count($ttMed) === 2 && $ttMed[0]['modell'] === 'veo3' && $ttMed[0]['format'] === '9:16' && str_contains((string) $ttMed[0]['prompt'], 'narrator')
+    && in_array($ttMed[1]['modell'], ['spot', 'veo3'], true) && $ttMed[1]['format'] === '9:16'
+    && str_contains((string) file_get_contents($wurzel . '/src/TelegramMarketing.php'), "empty(\$p['tiktok_takt'])"), json_encode([$ttMed, $ttDiag], JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE mk_auftraege SET created_at = created_at + INTERVAL 3 DAY WHERE created_at < NOW() - INTERVAL 2 DAY');
+Db::run("DELETE FROM mk_auftraege WHERE parameter LIKE '%\"tiktok_takt\":true%' OR (art = 'medien' AND parameter LIKE '%\"titel\":\"TT %')");   // nichts liegen lassen für spätere Abschnitte
+MkTiktokTakt::schalten(false);
+pruefe('TikTok täglich: Schalter in der Verwaltung (hinter CSRF wie alle Taten) und im Cronlauf',
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'tiktok_takt':") && str_contains((string) file_get_contents($wurzel . '/views/kanaele.php'), 'name="tat" value="tiktok_takt"')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'tiktok_takt' => static function") && !MkTiktokTakt::an()
+    && str_contains((string) file_get_contents($wurzel . '/src/MkHandy.php'), 'In der TikTok-App einen passenden Sound wählen'));
+
 abschnitt('Marketing-Studio 8: Empfehlen und Google-Profil');
 require_once $wurzel . '/src/MkPartnerBeitraege.php';
 require_once $wurzel . '/src/Partner.php';
@@ -20160,7 +20230,7 @@ pruefe('Redaktionsplan: ohne Kanal und ausgeschaltet läuft nichts', $kgL3['hinw
     && TelegramKanalPlan::naechsterLauf() === null);
 TelegramKanalPlan::speichern(['an' => '1', 'tag' => '3', 'stunde' => '8']);
 pruefe('Redaktionsplan: fertige Entwürfe melden sich wie ein Kampagnen-Paket zur Freigabe (Telegram: Ja / Nein / Später)',
-    str_contains((string) file_get_contents($wurzel . '/src/TelegramMarketing.php'), "if (empty(\$p['paket']) && empty(\$p['kanalplan'])) { return false; }")
+    str_contains((string) file_get_contents($wurzel . '/src/TelegramMarketing.php'), "if (empty(\$p['paket']) && empty(\$p['kanalplan']) && empty(\$p['tiktok_takt'])) { return false; }")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'TelegramKanalPlan::lauf()'));
 $kgIn = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'format' => 'beitrag', 'plattform' => 'telegram', 'titel' => 'Kanal-Prüfbeitrag', 'felder' => '{}',
     'status' => 'veroeffentlicht', 'veroeffentlicht_am' => date('Y-m-d H:i:s'), 'creative_id' => 999999]);

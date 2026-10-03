@@ -924,6 +924,13 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Gespeichert.';
                 weiter('kampagnen/' . $mkId);
 
+            /* TikTok täglich (03.10.2026) — Schalter; Fragen stellt jedes Stück selbst (Freigabe) */
+            case 'tiktok_takt':
+                require_once __DIR__ . '/src/MkTiktokTakt.php';
+                MkTiktokTakt::schalten(($_POST['an'] ?? '') === '1');
+                $_SESSION['gut'] = MkTiktokTakt::an() ? 'TikTok täglich ist an. Der nächste Cronlauf gibt den ersten Schreibauftrag an deinen PC.' : 'TikTok täglich ist aus.';
+                weiter('kanaele#pf-tiktok');
+
             /* P1/P2 (01.10.2026): Kanäle verbinden */
             case 'kanal_pruefen':
                 require_once __DIR__ . '/src/MkKanaele.php';

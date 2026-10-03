@@ -122,6 +122,15 @@ $pfAntrag = [
         <?php if ($e['client_id'] !== '' && $e['secret']): ?><form method="post" action="<?= Fmt::h(url('kanaele')) ?>" style="margin:0"><?= $csrf() ?><input type="hidden" name="tat" value="plattform_verbinden"><input type="hidden" name="plattform" value="<?= $pk ?>"><button class="knopf haupt"><?= $e['verbunden'] ? 'Neu verbinden' : 'Verbinden' ?></button></form><?php endif; ?>
         <?php if ($e['verbunden']): ?><form method="post" action="<?= Fmt::h(url('kanaele')) ?>" style="margin:0"><?= $csrf() ?><input type="hidden" name="tat" value="plattform_trennen"><input type="hidden" name="plattform" value="<?= $pk ?>"><button class="knopf">Trennen</button></form><span class="mk-fein" style="align-self:center">verbunden seit <?= Fmt::h((string) $e['verbunden_am']) ?></span><?php endif; ?>
       </div>
+      <?php if ($pk === 'tiktok'): require_once dirname(__DIR__) . '/src/MkTiktokTakt.php'; $ttAn = MkTiktokTakt::an(); /* 03.10.2026: TikTok täglich */ ?>
+      <form method="post" action="<?= Fmt::h(url('kanaele')) ?>" class="mk-takt" style="margin-top:12px;padding-top:12px;border-top:1px dashed var(--linie)">
+        <?= $csrf() ?><input type="hidden" name="tat" value="tiktok_takt"><input type="hidden" name="an" value="<?= $ttAn ? '0' : '1' ?>">
+        <p style="margin:0 0 8px;max-width:82ch;line-height:1.55"><b>Jeden Tag TikTok</b> — <?= $ttAn ? '<b>an</b>' : 'aus' ?> · zwei Videos am Tag, <?= Fmt::h(implode(' und ', MkTiktokTakt::ZEITEN)) ?> Uhr ·
+          eines mit Stimme (Kie.ai, Veo 3.1 Quality, etwa 400 Credits), eines als Werbespot von deinem PC (ohne Credits, TikTok-Sound legst du in der App darüber) ·
+          fast alles deutsch, jeder fünfte Auftrag italienisch · Vorrat <?= MkTiktokTakt::vorrat() ?> von <?= MkTiktokTakt::VORRAT ?> Stücken. Jedes Stück kommt vorher zu dir: Ja oder Nein.</p>
+        <button class="knopf<?= $ttAn ? '' : ' haupt' ?>"><?= $ttAn ? 'Ausschalten' : 'Einschalten' ?></button>
+      </form>
+      <?php endif; ?>
     </details>
   <?php endforeach; ?>
 </div>

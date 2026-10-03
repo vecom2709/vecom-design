@@ -111,6 +111,25 @@ final class MkVeroeffentlichen
     public static function naechsterSlot(string $plattform, ?int $jetzt = null): string
     {
         $jetzt ??= time();
+        /* TikTok täglich (03.10.2026): zwei Sendeplätze am Tag, jeder einmal belegt. */
+        if ($plattform === 'tiktok') {
+            require_once __DIR__ . '/MkTiktokTakt.php';
+            $belegt = [];
+            foreach (Db::all("SELECT DATE_FORMAT(geplant_am, '%Y-%m-%d %H:%i') AS t FROM mk_inhalte WHERE status = 'freigegeben' AND plattform = 'tiktok' AND geplant_am IS NOT NULL") as $r) {
+                $belegt[(string) $r['t']] = true;
+            }
+            $heuteFertig = (int) Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE status = 'veroeffentlicht' AND plattform = 'tiktok' AND DATE(veroeffentlicht_am) = ?", [date('Y-m-d', $jetzt)], 0);
+            for ($tag = 0; $tag < 60; $tag++) {
+                $d = date('Y-m-d', strtotime(date('Y-m-d', $jetzt) . ' +' . $tag . ' day'));
+                $frei = MkTiktokTakt::ZEITEN;
+                if ($tag === 0) { $frei = array_slice($frei, min(count($frei), $heuteFertig)); }   // heute schon gepostete Plätze zählen mit
+                foreach ($frei as $z) {
+                    $t = strtotime($d . ' ' . $z);
+                    if ($t < $jetzt + 1800 || isset($belegt[$d . ' ' . $z])) { continue; }
+                    return date('Y-m-d H:i', $t);
+                }
+            }
+        }
         $tag = strtotime(date('Y-m-d', $jetzt) . ' ' . self::SENDEZEIT);
         if ($tag < $jetzt + 1800) { $tag = strtotime(date('Y-m-d', $jetzt + 86400) . ' ' . self::SENDEZEIT); }
         $belegt = [];

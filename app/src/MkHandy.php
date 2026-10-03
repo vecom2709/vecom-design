@@ -79,6 +79,8 @@ final class MkHandy
               . (!in_array($x['plattform'], MkInhalt::LINK_IM_TEXT, true) ? "\n3. Den Link in Bio, Sticker oder Knopf setzen" : '')
               . "\nDanach „Gepostet“ drücken.";
         if (!$video && $x['format'] === 'reel') { $kopf .= "\n\n🎬 Für dieses Reel gibt es noch kein Video — das Skript steht im Text."; }
+        /* TikTok täglich (03.10.2026): Werbespots haben keine Stimme — in der App einen passenden TikTok-Sound darüberlegen. */
+        if ($x['plattform'] === 'tiktok' && $video) { $kopf .= "\n\n🎵 Ohne Stimme? In der TikTok-App einen passenden Sound wählen, Originalton leiser."; }
         $knoepfe = ['inline_keyboard' => [[['text' => '✅ Gepostet', 'callback_data' => 'v:mp:' . $id]],
                                           [['text' => '🛠 In der Verwaltung', 'url' => $basis . '/inhalte/' . $id]]]];
         /* TikTok verbunden (02.10.2026): ein Knopf zur Bestätigungsseite — dort geht es ohne Speichern, App und Einfügen raus. */

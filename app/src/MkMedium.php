@@ -170,6 +170,19 @@ final class MkMedium
     {
         /* 01.10.2026 (Uwe: „zusätzlich kann man per Prompt Videos oder Bilder erstellen“): ein eigener Prompt geht vor. */
         $kern = trim($eigen) ?: trim((string) ($x['bild_prompt'] ?? '')) ?: trim((string) ($x['bildidee'] ?? '')) ?: trim((string) $x['titel']);
+        /* TikTok-Video (03.10.2026, Uwe: „kinoreif wie eine Art Trailer, hyperrealistisch … wo Stimme drin ist Kie.ai“):
+           Trailer-Bildsprache, und der Einstieg wird gesprochen — in der Sprache des Stücks.
+           Keine Schrift im Bild: Veo schreibt Zahlen falsch (gemessen 03.10.: „760–1,0000 € al mese al mese“). */
+        if ($art === 'video' && ($x['plattform'] ?? '') === 'tiktok' && $eigen === '') {
+            $f = json_decode((string) ($x['felder'] ?? ''), true) ?: [];
+            $satz = trim((string) ($f['hook'] ?? ''));
+            $satz = mb_substr(preg_replace('~\s+~u', ' ', $satz) ?? '', 0, 140);
+            $sprache = ($x['sprache'] ?? 'de') === 'it' ? 'Italian' : 'German';
+            $stimme = $satz !== '' ? "\n\nVoiceover: a calm, confident native " . $sprache . ' narrator says, clearly and slowly enough to understand: "' . str_replace('"', "'", $satz) . '"' : '';
+            return mb_substr($kern . $stimme . "\n\nCinematic movie-trailer look, hyperrealistic and photorealistic, anamorphic lens, shallow depth of field, motivated warm light, slow dolly or crane move, "
+                . 'subtle film grain, tense build-up in the first two seconds, vertical 9:16, authentic small business in ' . (($x['land'] ?? 'DE') === 'DE' ? 'Germany or Sicily' : 'Sicily')
+                . '. Absolutely no on-screen text, no numbers, no captions, no subtitles, no logos of other brands.', 0, 2400);
+        }
         $stil = $art === 'video'
             ? 'Realistic handheld footage, natural light, calm camera, authentic local business in Sicily, no logos of other brands, no subtitles.'
             : 'Photorealistic, natural light, authentic local business setting in Sicily, true-to-life colours, shallow depth of field, no logos of other brands, no watermark. Any text in the image: at most five words, large and legible.';

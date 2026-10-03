@@ -145,7 +145,9 @@ final class MkAuftrag
                   /* Marketing-Studio 6: Kampagnen-Paket (feste Mischung) und Bilder gleich mit (Kie.ai, nach der Lieferung). */
                   'paket' => !empty($p['paket']), 'mit_bildern' => !empty($p['mit_bildern']), 'autopilot' => !empty($p['autopilot']),
                   /* Redaktionsplan des Telegram-Kanals (01.10.2026, TelegramKanalPlan): meldet sich wie ein Paket, wenn die Entwürfe da sind. */
-                  'kanalplan' => !empty($p['kanalplan'])];
+                  'kanalplan' => !empty($p['kanalplan']),
+                  /* TikTok täglich (03.10.2026, MkTiktokTakt): Stimme und Werbespot im Wechsel, Meldung wie ein Paket. */
+                  'tiktok_takt' => !empty($p['tiktok_takt'])];
         $id = (int) Db::insert('mk_auftraege', ['art' => 'inhalte', 'branche' => (string) $zg['branche'], 'land' => (string) $zg['land'],
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
         Events::protokoll('inhalte_auftrag', 'Inhalte angestoßen: ' . self::beschreibung(['art' => 'inhalte', 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE)]), null, null, null, ['auftrag_id' => $id]);
@@ -383,9 +385,20 @@ final class MkAuftrag
         $bilder = 0;
         if ($ok && $istInhalt && !empty((json_decode((string) $a['parameter'], true) ?: [])['mit_bildern'])) {
             require_once __DIR__ . '/MkMedium.php';
+            $takt = !empty((json_decode((string) $a['parameter'], true) ?: [])['tiktok_takt']);
+            $nTt = 0;
             foreach (Db::all("SELECT id, plattform FROM mk_inhalte WHERE auftrag_id = ? AND status = 'entwurf' AND format <> 'google_anzeige' ORDER BY id", [$id]) as $r) {
                 /* TikTok nimmt nur Videos: dort gleich ein Hochkant-Video (Motor wie eingestellt: Werbespot oder Kie.ai). */
                 $mArt = $r['plattform'] === 'tiktok' ? 'video' : 'bild';
+                if ($takt && $r['plattform'] === 'tiktok') {
+                    /* TikTok täglich: Stimme (Kie.ai) und Werbespot (Blender) im Wechsel; ohne 3D-Szene für die Branche wird es Kie.ai. */
+                    require_once __DIR__ . '/MkTiktokTakt.php';
+                    $mod = MkTiktokTakt::motor($nTt++);
+                    $erg = self::still(static fn() => MkMedium::anlegen((int) $r['id'], 'video', $mod, '9:16'), 'x');
+                    if (!is_int($erg) && $mod !== 'veo3') { $erg = self::still(static fn() => MkMedium::anlegen((int) $r['id'], 'video', 'veo3', '9:16'), 'x'); }
+                    if (is_int($erg)) { $bilder++; }
+                    continue;
+                }
                 if (is_int(self::still(static fn() => MkMedium::anlegen((int) $r['id'], $mArt), 'x'))) { $bilder++; }
             }
             if ($bilder > 0) { $text = trim($text . "
