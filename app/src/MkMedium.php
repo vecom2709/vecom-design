@@ -377,9 +377,9 @@ final class MkMedium
         'v_laden' => ['it' => 'Scarica video', 'de' => 'Video laden', 'en' => 'Download video'],
         'v_nein'  => ['it' => 'Questo browser non sa creare video. Provi con Chrome o Safari aggiornato.', 'de' => 'Dieser Browser kann keine Videos erzeugen. Bitte mit aktuellem Chrome oder Safari.', 'en' => 'This browser cannot create videos. Please use an up-to-date Chrome or Safari.'],
         'b_titel' => ['it' => 'Ordinare un motivo 3D', 'de' => '3D-Motiv bestellen', 'en' => 'Order a 3D motif'],
-        'b_text'  => ['it' => 'Vecom lo calcola stanotte; domattina è nella sua galleria. Al massimo 2 a settimana. Nei video il suo link compare alla fine.',
-                      'de' => 'Vecom rechnet es heute Nacht; morgen früh liegt es in Ihrer Galerie. Höchstens 2 je Woche. Im Video steht am Ende Ihr Link.',
-                      'en' => 'Vecom renders it tonight; tomorrow morning it is in your gallery. At most 2 per week. Videos end with your link.'],
+        'b_text'  => ['it' => 'Vecom controlla il suo desiderio, lo produce e lo approva — poi è nella sua galleria. Al massimo 2 a settimana. Nei video il suo link compare alla fine.',
+                      'de' => 'Vecom prüft Ihren Wunsch, produziert ihn und gibt ihn frei — dann liegt er in Ihrer Galerie. Höchstens 2 je Woche. Im Video steht am Ende Ihr Link.',
+                      'en' => 'Vecom reviews your request, produces it and approves it — then it is in your gallery. At most 2 per week. Videos end with your link.'],
         'b_szene' => ['it' => 'Scena', 'de' => 'Szene', 'en' => 'Scene'],
         'b_art'   => ['it' => 'Immagine o video', 'de' => 'Bild oder Video', 'en' => 'Image or video'],
         'b_bild'  => ['it' => 'Immagine', 'de' => 'Bild', 'en' => 'Image'],
@@ -410,7 +410,7 @@ final class MkMedium
         'st_abend' => ['it' => 'Più calda, serale', 'de' => 'Wärmer, abendlich', 'en' => 'Warmer, evening'],
         'b_pruefen'=> ['it' => 'In attesa di approvazione da Vecom', 'de' => 'Wartet auf Freigabe durch Vecom', 'en' => 'Waiting for Vecom’s approval'],
         'b_abgelehnt'=> ['it' => 'Non approvato — lo riformuli', 'de' => 'Nicht freigegeben — bitte anders formulieren', 'en' => 'Not approved — please rephrase'],
-        'b_ok_pruefen'=> ['it' => 'Ricevuto. Vecom controlla la sua idea, poi la calcola di notte.', 'de' => 'Angekommen. Vecom prüft Ihre Idee und rechnet sie danach nachts.', 'en' => 'Received. Vecom reviews your idea, then renders it overnight.'],
+        'b_ok_pruefen'=> ['it' => 'Ricevuto. Vecom lo controlla, lo produce e lo approva — poi compare nella sua galleria.', 'de' => 'Angekommen. Vecom prüft es, produziert es und gibt es frei — dann erscheint es in Ihrer Galerie.', 'en' => 'Received. Vecom reviews, produces and approves it — then it appears in your gallery.'],
         'b_kurz'   => ['it' => 'Descriva la sua idea in almeno qualche parola.', 'de' => 'Bitte beschreiben Sie Ihre Idee in ein paar Worten.', 'en' => 'Please describe your idea in a few words.'],
     ];
     /* Feinwahl (W3): erlaubte Werte, der erste ist der Standard. */
@@ -512,14 +512,15 @@ final class MkMedium
                 + ($partner !== null ? ['partner_id' => (int) $partner['id']] : ['galerie' => 1]);
         /* partner_id muss für die Wochengrenze mit Komma folgen — darum hinten ein fester Schlüssel. */
         $param['ende'] = 1;
-        /* W4: Alles mit freiem Text (eigene Idee oder eigener Titel) wartet auf Uwes Ja. */
-        $pruefen = $partner !== null && ($eigen || $w['titel'] !== '');
+        /* W4: Alles mit freiem Text wartete auf Uwes Ja. Seit 03.10.2026 (Uwe: „Es werden immer erst von mir in der
+           Verwaltung Videos produziert, dann erst freigegeben“) wartet jede Partner-Bestellung auf sein Ja. */
+        $pruefen = $partner !== null;
         $id = (int) Db::insert('mk_auftraege', ['art' => 'medien', 'branche' => '', 'land' => $sp === 'de' ? 'DE' : 'IT',
                                                 'parameter' => json_encode($param, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]
                                                + ($pruefen ? ['status' => 'pruefen'] : []));
         if ($pruefen) {
             Events::melden('g3_wunsch', '3D-Wunsch von Partner ' . (string) $partner['name'] . ' wartet auf dein Ja', 'info',
-                ($art === 'video' ? 'Video: ' : 'Bild: ') . mb_substr($eigen ? $w['text'] : 'Titel „' . $w['titel'] . '“', 0, 300), '/freigabe#partner3d');
+                ($art === 'video' ? 'Video: ' : 'Bild: ') . mb_substr($eigen ? $w['text'] : ($w['titel'] !== '' ? 'Titel „' . $w['titel'] . '“' : (self::STUDIO_NAMEN[$studio] ?? $studio)), 0, 300), '/freigabe#partner3d');
         }
         return $id;
     }
@@ -556,15 +557,17 @@ final class MkMedium
         return $n;
     }
 
-    /** Was ein Partner im Reiter „Werben“ sieht: freigegebene Galerie, freigegebene 3D-Medien aus dem Marketing, seine eigenen. */
+    /**
+     * Was ein Partner im Reiter „Werben“ sieht: nur, was Uwe im Studio produziert und freigegeben hat
+     * (Galerie), und seine eigenen Wünsche — ebenfalls erst nach Uwes Freigabe (03.10.2026).
+     * Kie.ai-Trailer gehören seit dem Studio genauso dazu wie die 3D-Motoren.
+     */
     public static function galerieFuerPartner(array $p): array
     {
         require_once __DIR__ . '/MkVeroeffentlichen.php';
         try {
-            $zeilen = Db::all("SELECT m.* FROM mk_medien m LEFT JOIN mk_inhalte i ON i.id = m.inhalt_id
-                                WHERE m.status <> 'verworfen' AND m.modell IN ('blender', 'unreal', 'spot')
-                                  AND ((m.galerie = 1 AND m.status = 'gewaehlt') OR m.partner_id = ?
-                                       OR (m.inhalt_id > 0 AND m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht') AND i.art = 'organisch'))
+            $zeilen = Db::all("SELECT m.* FROM mk_medien m
+                                WHERE m.inhalt_id = 0 AND m.status = 'gewaehlt' AND (m.galerie = 1 OR m.partner_id = ?)
                              ORDER BY (m.partner_id = ?) DESC, m.id DESC LIMIT 24", [(int) $p['id'], (int) $p['id']]);
         } catch (Throwable $e) { return []; }
         return array_map(static fn(array $m): array => ['id' => (int) $m['id'], 'art' => (string) $m['art'], 'format' => (string) $m['format'],
@@ -586,10 +589,10 @@ final class MkMedium
         } catch (Throwable $e) { return []; }
     }
 
-    /** Vecom-Galerie, die auf Uwes Ja wartet (Verwaltung, Reiter „Freigeben“). */
+    /** Galerie und Partner-Wünsche, die auf Uwes Ja warten (Verwaltung, Reiter „Freigeben“). */
     public static function galerieOffen(): array
     {
-        try { return Db::all("SELECT * FROM mk_medien WHERE galerie = 1 AND status = 'neu' ORDER BY id DESC LIMIT 30"); } catch (Throwable $e) { return []; }
+        try { return Db::all("SELECT * FROM mk_medien WHERE inhalt_id = 0 AND (galerie = 1 OR partner_id IS NOT NULL) AND status = 'neu' ORDER BY id DESC LIMIT 30"); } catch (Throwable $e) { return []; }
     }
 
     public static function zuInhalt(int $inhaltId, bool $mitVerworfenen = false): array

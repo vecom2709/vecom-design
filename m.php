@@ -34,7 +34,8 @@ try {
                    WHERE m.token = ? AND m.status = 'gewaehlt' AND i.status IN ('freigegeben', 'veroeffentlicht')", [$t]);
     /* Marketing-Studio 11: 3D-Galerie für Partner (nach Uwes Ja) und die eigenen 3D-Bestellungen eines Partners. */
     if (!$m) {
-        $m = Db::one("SELECT * FROM mk_medien WHERE token = ? AND inhalt_id = 0 AND ((galerie = 1 AND status = 'gewaehlt') OR (partner_id IS NOT NULL AND status <> 'verworfen'))", [$t]);
+        /* 03.10.2026: auch Partner-Wünsche erst nach Uwes Freigabe. */
+        $m = Db::one("SELECT * FROM mk_medien WHERE token = ? AND inhalt_id = 0 AND (galerie = 1 OR partner_id IS NOT NULL) AND status = 'gewaehlt'", [$t]);
     }
 } catch (Throwable $e) { $m = null; }
 if (!$m) { http_response_code(404); exit; }

@@ -18511,8 +18511,11 @@ pruefe('Starterpaket: je Szene ein Bild 4:5 und drei Filme 9:16 für die Vecom-G
 $g3Gal = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'bild', 'datei' => 'g3-gal.bin', 'mime' => 'image/png', 'sha256' => str_repeat('d', 64), 'modell' => 'blender', 'status' => 'neu', 'galerie' => 1, 'studio' => 'wein']);
 $g3Gal2 = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'bild', 'datei' => 'g3-gal2.bin', 'mime' => 'image/png', 'sha256' => str_repeat('e', 64), 'modell' => 'blender', 'status' => 'gewaehlt', 'galerie' => 1, 'studio' => 'kueche']);
 $g3Ids = static fn(array $p): array => array_column(MkMedium::galerieFuerPartner($p), 'id');
-pruefe('Galerie im Portal: Vecom-Motive erst nach Uwes Ja; eigene Bestellungen nur beim Besteller; alles über m.php mit Zufallsschlüssel',
-    !in_array($g3Gal, $g3Ids($g3P), true) && in_array($g3Gal2, $g3Ids($g3P), true) && in_array((int) $g3M['id'], $g3Ids($g3P), true) && !in_array((int) $g3M['id'], $g3Ids($g3P2), true)
+$g3VorJa = in_array((int) $g3M['id'], $g3Ids($g3P), true);
+$g3InFreigabe = in_array((int) $g3M['id'], array_map('intval', array_column(MkMedium::galerieOffen(), 'id')), true);
+MkMedium::status((int) $g3M['id'], 'gewaehlt');
+pruefe('Galerie im Portal: Vecom-Motive und eigene Wünsche erst nach Uwes Ja (03.10.2026: auch die eigenen); eigene nur beim Besteller; alles über m.php mit Zufallsschlüssel',
+    !in_array($g3Gal, $g3Ids($g3P), true) && in_array($g3Gal2, $g3Ids($g3P), true) && !$g3VorJa && $g3InFreigabe && in_array((int) $g3M['id'], $g3Ids($g3P), true) && !in_array((int) $g3M['id'], $g3Ids($g3P2), true)
     && str_contains((string) (MkMedium::galerieFuerPartner($g3P)[0]['url'] ?? ''), '/m.php?t=') && in_array($g3Gal, array_map('intval', array_column(MkMedium::galerieOffen(), 'id')), true));
 MkMedium::status($g3Gal, 'gewaehlt');
 pruefe('Freigeben in der Galerie wählt eines, ohne die anderen abzuwählen (kein Inhalt dahinter)',
@@ -18522,7 +18525,7 @@ $g3Pw = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
 $g3Js = (string) file_get_contents($oben . '/assets/js/partner-3d.js');
 $g3Pp = (string) file_get_contents($oben . '/partner.php');
 pruefe('m.php: Galerie (gewählt) und Partner-Medien ausliefern, Videos mit Byte-Bereichen (Safari)',
-    str_contains($g3Mp, "inhalt_id = 0 AND ((galerie = 1 AND status = 'gewaehlt') OR (partner_id IS NOT NULL AND status <> 'verworfen'))") && str_contains($g3Mp, 'http_response_code(206)'));
+    str_contains($g3Mp, "inhalt_id = 0 AND (galerie = 1 OR partner_id IS NOT NULL) AND status = 'gewaehlt'") && str_contains($g3Mp, 'http_response_code(206)'));
 pruefe('Partnerportal: Block „3D-Bilder und -Videos“ im Reiter Werben — Text, QR und Link im Browser, Film mit Abspann, Bestellung hinter CSRF, eigene Kanäle bild3d/video3d',
     str_contains($g3Pw, '<div class="block pt" id="galerie3d" data-reiter="werben">') && str_contains($g3Pw, 'name="tat" value="g3_bestellen"') && str_contains($g3Js, 'function abspann(')
     && str_contains($g3Js, 'captureStream') && strpos($g3Pp, "} elseif (\$tat === 'g3_bestellen' && \$p) {") > strpos($g3Pp, "hash_equals((string) \$_SESSION['csrf']")
@@ -18556,8 +18559,8 @@ pruefe('W1/W2: freier Wunsch (auch als Video) — Text bereinigt als Bildidee, o
 pruefe('W4: Solange er prüft, holt der PC ihn nicht', !in_array((int) (MkAuftrag::holen()['auftrag']['id'] ?? 0), [$wuA], true));
 $wuB = MkMedium::anlegenGalerie('salon', 'bild', '', $wuP, 'de', ['blick' => 'links', 'naehe' => 'nah', 'stimmung' => 'abend', 'text' => 'wird ignoriert']);
 $wuPb = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [(int) $wuB], ''), true) ?: [];
-pruefe('W3: Feinwahl bei fertiger Szene rechnet ohne Prüfung — Blickwinkel, Nähe, Stimmung gehen mit; unbekannte Werte fallen auf den Standard',
-    (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$wuB], '') === 'wartet' && $wuPb['wunsch'] === ['blick' => 'links', 'naehe' => 'nah', 'stimmung' => 'abend']
+pruefe('W3: Feinwahl bei fertiger Szene — Blickwinkel, Nähe, Stimmung gehen mit; seit 03.10.2026 wartet auch sie auf Uwes Ja; unbekannte Werte fallen auf den Standard',
+    (string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [$wuB], '') === 'pruefen' && $wuPb['wunsch'] === ['blick' => 'links', 'naehe' => 'nah', 'stimmung' => 'abend']
     && $wuPb['prompt'] === '' && MkMedium::wunschBereinigen(['blick' => 'quatsch'])['blick'] === 'zufall');
 pruefe('Wochengrenze gilt auch für Wünsche (2 je Woche, abgelehnte zählen nicht)', MkMedium::anlegenGalerie('gastro', 'bild', '', $wuP, 'de') === 'zuviel');
 MkMedium::wunschEntscheiden($wuA, false);
@@ -18571,6 +18574,50 @@ $wuPw = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
 pruefe('Portal und Verwaltung: Textfeld, Feinwahl und Titel im Bestellformular; Ja/Nein unter Freigeben hinter CSRF',
     str_contains($wuPw, 'name="wunsch"') && str_contains($wuPw, '<option value="eigen">') && str_contains($wuPw, 'name="titel"')
     && strpos($wuIdx, "case 'g3_wunsch_ja':") > strpos($wuIdx, 'Csrf::pruefen()') && str_contains((string) file_get_contents($wurzel . '/views/freigabe.php'), 'g3_wunsch_nein'));
+Db::run('DELETE FROM mk_auftraege');
+/* Studio (03.10.2026, Uwe: „immer erst von mir produziert, dann freigegeben … ein Video nach einander … ohne Kie-Guthaben nur Blender“) */
+require_once $wurzel . '/src/MkStudio.php';
+$stA = MkStudio::produzieren('b_gastro', 'video', 'auto', 'de', '9:16');
+$stPa = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($stA) ? $stA : 0], '{}'), true) ?: [];
+$stZweit = MkStudio::produzieren('b_salon', 'video', 'auto', 'de');
+pruefe('Studio: „Automatisch“ = Kie.ai mit Stimme (Veo 3.1 Quality), Trailer-Look, deutscher Satz, keine Schrift; Galerie, kein Inhalt; ein zweiter Auftrag geht erst, wenn der erste fertig ist',
+    is_int($stA) && $stPa['modell'] === 'veo3' && (int) $stPa['galerie'] === 1 && (int) $stPa['inhalt_id'] === 0 && $stPa['studio_katalog'] === 'b_gastro' && $stPa['studio_motor'] === 'kie'
+    && str_contains($stPa['prompt'], 'native German narrator') && str_contains($stPa['prompt'], MkStudio::KATALOG['b_gastro'][4]['de']) && str_contains($stPa['prompt'], 'no on-screen text')
+    && empty($stPa['drei_d']) && is_string($stZweit) && str_contains($stZweit, 'läuft schon'), json_encode([$stPa, $stZweit], JSON_UNESCAPED_UNICODE));
+Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ?", [$stA]);
+AkquiseWorker::ausfuehren('marketing_auftrag_melden', ['id' => $stA, 'ok' => false, 'text' => 'Kie-Guthaben 12 Credits — zu wenig für etwa 400 Credits. Bitte bei Kie.ai aufladen.']);
+$stB = Db::one("SELECT * FROM mk_auftraege WHERE art = 'medien' AND status = 'wartet' AND parameter LIKE '%\"studio_katalog\":\"b_gastro\"%' ORDER BY id DESC LIMIT 1");
+$stPb = json_decode((string) ($stB['parameter'] ?? '{}'), true) ?: [];
+pruefe('Studio: Kie-Guthaben zu knapp → derselbe Eintrag kommt von selbst als Blender-Werbespot (Musik, keine Credits), mit dem Satz als Abspann; kein zweiter Kie-Versuch',
+    $stB !== null && $stPb['modell'] === 'spot' && $stPb['studio'] === 'gastro' && $stPb['drei_d'] === true && (int) $stPb['galerie'] === 1 && $stPb['credits_ca'] === 0
+    && ($stPb['spot']['claim'] ?? '') === MkStudio::KATALOG['b_gastro'][4]['de'] && MkStudio::nachKieFehler($stB, 'Kie-Guthaben 0') === null, json_encode($stPb, JSON_UNESCAPED_UNICODE));
+Db::run("UPDATE mk_auftraege SET status = 'fertig' WHERE id = ?", [(int) $stB['id']]);
+$stOhne = MkStudio::produzieren('p_vorort', 'video', 'spot', 'it');
+$stUn = MkStudio::produzieren('b_wein', 'video', 'unreal', 'it');
+pruefe('Studio: ohne 3D-Szene kein Blender (Partner-Einträge nur Kie.ai); Unreal nur, wenn freigeschaltet; unbekannter Eintrag abgelehnt',
+    is_string($stOhne) && str_contains($stOhne, 'keine 3D-Szene') && (MkMedium::motor()['unreal_bereit'] ? is_int($stUn) : (is_string($stUn) && str_contains($stUn, 'Unreal')))
+    && MkStudio::produzieren('gibtsnicht', 'video', 'auto', 'de') === 'Diesen Eintrag gibt es nicht.');
+Db::run("UPDATE mk_auftraege SET status = 'fertig' WHERE art = 'medien' AND status IN ('wartet', 'laeuft')");
+$stIt = MkStudio::produzieren('p_check', 'video', 'kie', 'it');
+$stPi = json_decode((string) Db::wert('SELECT parameter FROM mk_auftraege WHERE id = ?', [is_int($stIt) ? $stIt : 0], '{}'), true) ?: [];
+pruefe('Studio: Partner-Eintrag auf Italienisch — italienische Stimme, Satz aus dem Katalog; die Stimme nennt keine Adresse (den Link setzt das Dashboard des Partners)',
+    is_int($stIt) && str_contains($stPi['prompt'], 'native Italian narrator') && str_contains($stPi['prompt'], MkStudio::KATALOG['p_check'][4]['it'])
+    && !str_contains($stPi['prompt'], 'vecom-design.it') && !str_contains($stPi['prompt'], 'http'));
+/* Galerie leeren: umkehrbar, nur Galerie und Partner-Wünsche, Medien von Beiträgen bleiben */
+$stG1 = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'video', 'datei' => 'st-1.bin', 'mime' => 'video/mp4', 'sha256' => str_repeat('a', 64), 'modell' => 'spot', 'status' => 'gewaehlt', 'galerie' => 1, 'studio' => 'gastro']);
+$stG2 = (int) Db::insert('mk_medien', ['inhalt_id' => 0, 'art' => 'bild', 'datei' => 'st-2.bin', 'mime' => 'image/png', 'sha256' => str_repeat('b', 64), 'modell' => 'blender', 'status' => 'neu', 'partner_id' => (int) $wuP['id'], 'studio' => 'salon']);
+$stIn = (int) Db::insert('mk_inhalte', ['land' => 'IT', 'sprache' => 'it', 'format' => 'beitrag', 'plattform' => 'instagram', 'titel' => 'ST Beitrag', 'felder' => '{}', 'status' => 'freigegeben']);
+$stG3 = (int) Db::insert('mk_medien', ['inhalt_id' => $stIn, 'art' => 'bild', 'datei' => 'st-3.bin', 'mime' => 'image/png', 'sha256' => str_repeat('c', 64), 'modell' => 'blender', 'status' => 'gewaehlt']);
+$stL = MkStudio::galerieLeeren();
+pruefe('Galerie leeren: alle Galerie-Medien und Partner-Wünsche verworfen (umkehrbar, Dateien bleiben), offene Galerie-Aufträge abgebrochen — Bilder von Beiträgen bleiben unberührt',
+    $stL['medien'] >= 2 && Db::wert('SELECT status FROM mk_medien WHERE id = ?', [$stG1]) === 'verworfen' && Db::wert('SELECT status FROM mk_medien WHERE id = ?', [$stG2]) === 'verworfen'
+    && Db::wert('SELECT status FROM mk_medien WHERE id = ?', [$stG3]) === 'gewaehlt' && MkMedium::galerieFuerPartner($wuP) === [] && MkStudio::laeuft() === null, json_encode($stL));
+$stFg = (string) file_get_contents($wurzel . '/views/freigabe.php'); $stIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Verwaltung: Studio-Formular (Katalog nach Gruppen, Motor, Sprache) und „Alle entfernen“ mit Rückfrage unter Freigeben, beide Taten hinter CSRF; Starterpaket-Knopf weg (eins nach dem anderen)',
+    str_contains($stFg, 'value="studio_produzieren"') && str_contains($stFg, 'value="galerie_leeren"') && str_contains($stFg, 'onsubmit="return confirm(') && !str_contains($stFg, 'value="galerie_starter"')
+    && strpos($stIdx, "case 'studio_produzieren':") > strpos($stIdx, 'Csrf::pruefen()') && strpos($stIdx, "case 'galerie_leeren':") > strpos($stIdx, 'Csrf::pruefen()')
+    && str_contains((string) file_get_contents($wurzel . '/src/MkAuftrag.php'), 'MkStudio::nachKieFehler($a, $text)'));
+Db::run('DELETE FROM mk_medien WHERE inhalt_id = 0 OR id = ?', [$stG3]); Db::run('DELETE FROM mk_inhalte WHERE id = ?', [$stIn]);
 Db::run('DELETE FROM mk_auftraege');
 
 /* Journey in ganzen Sätzen (Uwe: „mache es verständlicher“) */

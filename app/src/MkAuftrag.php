@@ -374,6 +374,8 @@ final class MkAuftrag
             if (!$ok) { self::still(static fn() => Events::melden('medien_fertig', 'Bild/Video nicht geklappt: ' . (string) ($p['titel'] ?? ''), 'info', $text,
                 (int) ($p['inhalt_id'] ?? 0) > 0 ? 'inhalte/' . (int) $p['inhalt_id'] : 'freigabe#partner3d'), null); }
             if ($ok && !empty($p['vn'])) { require_once __DIR__ . '/MkVorherNachher.php'; self::still(static fn() => MkVorherNachher::verteilen($a), null); }
+            /* Studio (03.10.2026): Kie-Guthaben zu knapp → derselbe Eintrag als Blender-Fassung. */
+            if (!$ok && !empty($p['studio_katalog'])) { require_once __DIR__ . '/MkStudio.php'; self::still(static fn() => MkStudio::nachKieFehler($a, $text), null); }
             /* Marketing-Studio 7: War das das letzte Bild einer Kampagne, kommt jetzt der Stapel per Telegram. */
             $elternId = (int) Db::wert('SELECT auftrag_id FROM mk_inhalte WHERE id = ?', [(int) ($p['inhalt_id'] ?? 0)], 0);
             if ($elternId > 0) { require_once __DIR__ . '/TelegramMarketing.php'; TelegramMarketing::vielleichtMelden($elternId); }

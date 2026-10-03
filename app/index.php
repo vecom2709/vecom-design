@@ -728,10 +728,28 @@ if ($post) {
                 } else { $_SESSION['fehler'] = 'Dieser Wunsch ist schon entschieden.'; }
                 weiter('freigabe#partner3d');
 
+            /* Studio (03.10.2026): ein Eintrag aus dem Katalog — immer nur einer gleichzeitig. */
+            case 'studio_produzieren':
+                require_once __DIR__ . '/src/MkStudio.php';
+                $stR = MkStudio::produzieren((string) ($_POST['katalog'] ?? ''), ($_POST['art'] ?? '') === 'bild' ? 'bild' : 'video', (string) ($_POST['motor'] ?? 'auto'),
+                    (string) ($_POST['sprache'] ?? 'de'), (string) ($_POST['format'] ?? ''));
+                if (is_int($stR)) { $_SESSION['gut'] = 'Im Studio angestoßen. Kie.ai entsteht in wenigen Minuten, 3D in der nächsten Nachtschicht — danach hier ansehen und freigeben.'; }
+                else { $_SESSION['fehler'] = $stR; }
+                weiter('freigabe#partner3d');
+
+            /* 03.10.2026 (Uwe: „die 3D-Videos und Bilder … lösche alle“): umkehrbar verworfen, Dateien bleiben bis zum endgültigen Löschen. */
+            case 'galerie_leeren':
+                require_once __DIR__ . '/src/MkStudio.php';
+                $glR = MkStudio::galerieLeeren();
+                $_SESSION['gut'] = $glR['medien'] . ' Bilder/Videos aus Dashboard und Verwaltung genommen, ' . $glR['auftraege'] . ' offene Aufträge abgebrochen.';
+                weiter('freigabe#partner3d');
+
             case 'vecom_spot':
                 /* Werbespot (01.10.2026): Vecom-Spot über alle Branchen-Szenen, landet in der Galerie unten. */
                 require_once __DIR__ . '/src/MkMedium.php';
-                $vsR = MkMedium::anlegenVecomSpot((string) ($_POST['format'] ?? '9:16'), (string) ($_POST['sprache'] ?? 'it'));
+                require_once __DIR__ . '/src/MkStudio.php';
+                /* Seit dem Studio (03.10.2026) geht auch der Vecom-Spot nur, wenn nichts anderes läuft. */
+                $vsR = MkStudio::laeuft() !== null ? 'Es läuft schon ein Studio-Auftrag — der Spot geht, sobald er fertig ist.' : MkStudio::produzieren('v_spot', 'video', 'spot', (string) ($_POST['sprache'] ?? 'it'), (string) ($_POST['format'] ?? '9:16'));
                 if (is_int($vsR)) { $_SESSION['gut'] = 'Vecom-Werbespot liegt bereit — dein PC rechnet ihn in der nächsten Nachtschicht (etwa eine Stunde). Danach hier ansehen und freigeben.'; }
                 else { $_SESSION['fehler'] = $vsR; }
                 weiter('freigabe#partner3d');
@@ -745,11 +763,11 @@ if ($post) {
                     $_SESSION['gut'] = $g3N . ' 3D-Aufträge für die Partner-Galerie liegen bereit — dein PC rechnet sie in der nächsten Nachtschicht. Danach hier ansehen und freigeben.';
                 } else {
                     $g3M = MkMedium::laden((int) ($_POST['medium_id'] ?? 0));
-                    if ($g3M === null || (int) $g3M['galerie'] !== 1) { $_SESSION['fehler'] = 'Kein Galerie-Bild.'; }
+                    if ($g3M === null || (int) $g3M['inhalt_id'] !== 0 || ((int) $g3M['galerie'] !== 1 && empty($g3M['partner_id']))) { $_SESSION['fehler'] = 'Kein Galerie-Bild.'; }
                     else {
                         MkMedium::status((int) $g3M['id'], $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen');
                         Events::pruefspur($tat, 'mk_medien', (int) $g3M['id'], ['status' => $g3M['status']], ['status' => $tat === 'galerie_freigeben' ? 'gewaehlt' : 'verworfen']);
-                        $_SESSION['gut'] = $tat === 'galerie_freigeben' ? 'Steht jetzt in der Galerie aller Partner.' : 'Verworfen.';
+                        $_SESSION['gut'] = $tat === 'galerie_freigeben' ? (!empty($g3M['partner_id']) ? 'Freigegeben — der Partner sieht es jetzt in seinem Dashboard.' : 'Steht jetzt in der Galerie aller Partner.') : 'Verworfen.';
                     }
                 }
                 weiter('freigabe#partner3d');

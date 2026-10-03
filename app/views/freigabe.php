@@ -220,7 +220,7 @@ require __DIR__ . '/mk_stil.php';
 
 <?php $g3Offen = MkMedium::galerieOffen();   /* Marketing-Studio 11: 3D-Galerie für Partner — erst nach deinem Ja sichtbar */ ?>
 <section class="block mk-start" id="partner3d" aria-labelledby="mk-g3-titel" style="margin-top:16px">
-  <h2 id="mk-g3-titel">3D für Partner <span class="mehr">Galerie im Partnerportal (Reiter Werben) · Partner bestellen selbst höchstens <?= MkMedium::PARTNER_JE_WOCHE ?> je Woche · ihr Link kommt drauf</span></h2>
+  <h2 id="mk-g3-titel">Studio für Partner <span class="mehr">du produzierst, du gibst frei — erst dann steht es im Partner-Dashboard (Reiter Werben) · Partner dürfen höchstens <?= MkMedium::PARTNER_JE_WOCHE ?> Wünsche je Woche schicken · ihr Link kommt beim Teilen drauf</span></h2>
   <?php $g3Wuensche = MkMedium::wuenscheOffen(); if ($g3Wuensche): ?>
     <h3 class="mk-fein" style="margin:4px 0 8px;font-size:14px;color:var(--text)">Wünsche von Partnern — erst nach deinem Ja wird gerechnet</h3>
     <?php foreach ($g3Wuensche as $g3w): ?>
@@ -244,7 +244,7 @@ require __DIR__ . '/mk_stil.php';
         <figure class="mk-galerie__stueck">
           <?php if ($g3['art'] === 'video'): ?><video class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" controls preload="metadata" playsinline></video>
           <?php else: ?><img class="mk-medium" src="<?= Fmt::h(url('medien/' . (int) $g3['id'])) ?>" alt="3D <?= Fmt::h((string) $g3['studio']) ?>" loading="lazy"><?php endif; ?>
-          <figcaption><span><?= Fmt::h((string) $g3['studio'] === 'vecom' ? 'Vecom-Werbespot' : (MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? ((string) $g3['studio'] !== '' ? (string) $g3['studio'] : 'eigene Idee'))) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
+          <figcaption><span><?= !empty($g3['partner_id']) ? 'Wunsch eines Partners · ' : '' ?><?= in_array((string) $g3['modell'], ['veo3', 'veo3_fast', 'nano-banana-pro'], true) ? 'Kie.ai · ' : '' ?><?= Fmt::h((string) $g3['studio'] === 'vecom' ? 'Vecom-Werbespot' : (MkMedium::STUDIO_NAMEN[(string) $g3['studio']] ?? ((string) $g3['studio'] !== '' ? (string) $g3['studio'] : 'eigene Idee'))) ?> · <?= Fmt::h((string) $g3['format']) ?></span>
             <span class="mk-galerie__knoepfe">
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_freigeben"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein haupt">Für Partner freigeben</button></form>
               <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_verwerfen"><input type="hidden" name="medium_id" value="<?= (int) $g3['id'] ?>"><button class="knopf klein">Verwerfen</button></form>
@@ -254,11 +254,30 @@ require __DIR__ . '/mk_stil.php';
       <?php endforeach; ?>
     </div>
   <?php else: ?>
-    <p class="mk-fein" style="margin:0 0 10px">Nichts wartet. Freigegebene 3D-Bilder deiner eigenen Beiträge stehen automatisch mit in der Partner-Galerie.</p>
+    <p class="mk-fein" style="margin:0 0 10px">Nichts wartet. Partner sehen nur, was du hier im Studio produzierst und freigibst.</p>
   <?php endif; ?>
-  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin-top:10px">
-    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_starter">
-    <button class="knopf">Starterpaket rechnen: je Szene ein Bild, drei Filme (nächste Nachtschicht)</button>
+  <?php require_once dirname(__DIR__) . '/src/MkStudio.php'; $stLauf = MkStudio::laeuft(); $stLp = $stLauf ? (json_decode((string) $stLauf['parameter'], true) ?: []) : []; /* Studio, 03.10.2026 */ ?>
+  <div class="mk-studio" id="studio" style="margin-top:14px;padding:14px 16px;border:1px solid rgba(241,211,139,.35);border-radius:12px">
+    <h3 style="margin:0 0 6px;font-size:17px">Studio — ein Video nach dem anderen</h3>
+    <p class="mk-fein" style="margin:0 0 10px;max-width:90ch;line-height:1.55">Kinoreif wie ein Trailer: mit Stimme über Kie.ai (Veo 3.1 Quality, etwa 400 Credits). Fehlt das Kie-Guthaben, kommt derselbe Eintrag automatisch als Blender-Werbespot mit Musik. Partner sehen es erst nach deinem „Für Partner freigeben“, und beim Teilen setzt ihr Dashboard ihren Link ans Ende — so führt jedes Video auf die Seite dessen, der es teilt.</p>
+    <?php if ($stLauf): ?>
+      <p class="hinweis" style="margin:0 0 10px">Läuft gerade: <b><?= Fmt::h((string) ($stLp['titel'] ?? '')) ?></b> · <?= $stLauf['status'] === 'laeuft' ? 'dein PC arbeitet daran' : 'wartet auf deinen PC' ?>. Das nächste geht, sobald es fertig ist.</p>
+    <?php else: ?>
+    <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" class="mk-formular" style="display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end">
+      <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="studio_produzieren">
+      <div class="feld" style="flex:2 1 280px"><label for="st_k">Was</label>
+        <select id="st_k" name="katalog"><?php foreach (MkStudio::GRUPPEN as $stG => $stGn): ?><optgroup label="<?= Fmt::h($stGn) ?>"><?php foreach (MkStudio::KATALOG as $stK => $stE): if ($stE[0] !== $stG) { continue; } ?><option value="<?= Fmt::h($stK) ?>"><?= Fmt::h($stE[1]) ?></option><?php endforeach; ?></optgroup><?php endforeach; ?></select></div>
+      <div class="feld"><label for="st_a">Art</label><select id="st_a" name="art"><option value="video">Video</option><option value="bild">Bild</option></select></div>
+      <div class="feld" style="flex:1 1 220px"><label for="st_m">Motor</label><select id="st_m" name="motor"><?php foreach (MkStudio::MOTOREN as $stM => $stMn): ?><option value="<?= Fmt::h($stM) ?>"><?= Fmt::h($stMn) ?></option><?php endforeach; ?></select></div>
+      <div class="feld"><label for="st_s">Sprache</label><select id="st_s" name="sprache"><option value="de">Deutsch</option><option value="it">Italienisch</option><option value="en">Englisch</option></select></div>
+      <div class="feld"><label for="st_f">Format</label><select id="st_f" name="format"><option value="9:16">hoch 9:16</option><option value="16:9">quer 16:9</option><option value="4:5">Bild 4:5</option><option value="1:1">Bild 1:1</option></select></div>
+      <button class="knopf haupt">Produzieren</button>
+    </form>
+    <?php endif; ?>
+  </div>
+  <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" style="margin-top:12px" onsubmit="return confirm('Alle bisherigen 3D-Bilder und -Videos aus den Partner-Dashboards und der Verwaltung nehmen und offene Galerie-Aufträge abbrechen? Die Dateien bleiben bis zum endgültigen Löschen auf dem Server.')">
+    <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="galerie_leeren">
+    <button class="knopf klein">Alle bisherigen Galerie-Bilder und -Videos entfernen</button>
   </form>
   <form method="post" action="<?= Fmt::h(url('freigabe')) ?>" class="mk-zeile" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center">
     <input type="hidden" name="_csrf" value="<?= Fmt::h(Csrf::token()) ?>"><input type="hidden" name="tat" value="vecom_spot">
