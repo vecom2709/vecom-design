@@ -196,7 +196,12 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   <h2><?= $h(MkPartnerBeitraege::t('titel', $sprache)) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h(MkPartnerBeitraege::t('text', $sprache)) ?></p>
   <div class="tafel">
-    <?php foreach ($pbListe as $pb): ?>
+    <?php /* Zwei Beiträge stehen offen, der Rest klappt (03.10.2026, „alle langen Listen einklappbar“) */
+          $pbNr = 0; foreach ($pbListe as $pb): $pbNr++; if ($pbNr === 3): ?>
+  </div>
+  <details class="weitere"><summary><?= $h(strtr($T('kl_weitere'), ['{n}' => (string) (count($pbListe) - 2)])) ?></summary>
+  <div class="tafel">
+    <?php endif; ?>
       <article class="vorlage">
         <h4><?= $pb['land'] === 'DE' ? '🇩🇪' : '🇮🇹' ?> <?= $h($pb['titel']) ?></h4>
         <?php if ($pb['bild']): ?><img src="<?= $h($pb['bild']) ?>" alt="<?= $h($pb['titel']) ?>" loading="lazy" style="display:block;width:100%;max-width:420px;border-radius:10px;margin:0 0 8px"><?php endif; ?>
@@ -211,6 +216,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       </article>
     <?php endforeach; ?>
   </div>
+  <?php if ($pbNr > 2): ?></details><?php endif; ?>
 </div>
 <?php endif; ?>
 <?php /* 3D-Galerie (Marketing-Studio 11, 01.10.2026, Uwe: Ja zu P1–P3): fotoreal von Vecoms PC — Text, Link und QR legt partner-3d.js im Browser drauf. */

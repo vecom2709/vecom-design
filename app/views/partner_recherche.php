@@ -147,6 +147,12 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .al-an-ohne{margin-top:6px!important;font-size:14.5px;color:#f1d38b}
   .al-an ul{margin:8px 0 0;padding-left:20px;display:grid;gap:3px;font-size:14.5px;line-height:1.45;color:var(--text)}
   @media (max-width:520px){.al-sb{grid-template-columns:1fr;gap:2px}.al-sb dd{margin-bottom:8px}}
+  .al-mehr{margin-top:8px;border-top:1px solid var(--linie);padding-top:4px}
+  .al-mehr > summary{cursor:pointer;color:var(--gold, #f1d38b);font-size:14px;min-height:40px;display:flex;align-items:center;justify-content:space-between;gap:10px;list-style:none}
+  .al-mehr > summary::-webkit-details-marker{display:none}
+  .al-mehr > summary::after{content:"";flex:0 0 auto;width:7px;height:7px;margin:0 7px 3px 0;border-right:2px solid currentColor;border-bottom:2px solid currentColor;transform:rotate(45deg);transition:transform .18s cubic-bezier(.16,1,.3,1)}
+  .al-mehr[open] > summary::after{transform:rotate(-135deg);margin-bottom:-3px}
+  .al-mehr[open] > summary{margin-bottom:2px}
   .al-sagen{margin-top:8px}
   .al-sagen summary{cursor:pointer;font-size:14px;color:var(--text)}
   .al-skript{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
@@ -158,7 +164,10 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   .al-skript li.al-einw b{color:var(--gold, #f1d38b);font-weight:600}
   #anrufliste .al-erg{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-start;margin-top:10px}
   #anrufliste .al-erg form{display:inline-flex;flex-direction:row;gap:0;margin:0}
-  #anrufliste .al-ja{flex:1 1 100%}
+  #anrufliste .al-ja{flex:0 0 auto}
+  #anrufliste .al-ja[open]{flex:1 1 100%}
+  /* Ergebnis in einer Zeile: drei kleine Knöpfe statt drei Stockwerke (03.10.2026) */
+  #anrufliste .al-erg .knopf{min-height:40px;padding:8px 14px;font-size:14px}
   #anrufliste .al-ja > summary{list-style:none;display:inline-flex;border-color:rgba(52,211,155,.6);color:#34d39b}
   #anrufliste .al-ja > summary::-webkit-details-marker{display:none}
   #anrufliste .al-ja[open] > summary{margin-bottom:10px}
@@ -187,7 +196,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
         $alMeld = preg_match('~^al_[a-z_]+$~', (string) ($_GET['al'] ?? '')) ? (string) $_GET['al'] : '';
         if ($alListe || array_sum($alErl) > 0 || $alMeld !== '' || PartnerAnrufliste::wiedervorlage((int) $p['id'])['n'] > 0): $alSatz = Partner::satzWort(PartnerAnrufliste::satz($p), true); ?>
   <section class="al" id="anrufliste" aria-labelledby="al_titel">
-    <h3 class="md-h" id="al_titel" style="margin-top:4px"><?= $h(strtr($T('al_titel'), ['{n}' => (string) count($alListe)])) ?></h3>
+   <details class="klapp" data-klapp="anrufliste" open>
+    <summary><h3 class="md-h" id="al_titel"><?= $h(strtr($T('al_titel'), ['{n}' => (string) count($alListe)])) ?></h3></summary>
     <p class="klein" style="margin-top:0"><?= $h(strtr($T('al_text'), ['{satz}' => $alSatz])) ?></p>
     <p class="klein" style="margin-top:0"><?= $h($T('al_regel')) ?> <?= $h($T('al_wv_hinweis')) ?></p>
     <?php if ($alMeld !== ''): ?><div class="hinweis <?= in_array($alMeld, ['al_danke', 'al_danke_wa', 'al_ok', 'al_raus'], true) ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($alMeld)) ?></div><?php endif; ?>
@@ -199,7 +209,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
       <p class="klein"><?= $h($T('al_leer')) ?></p>
     <?php else: ?>
       <ol class="firmen al-liste">
-        <?php foreach ($alListe as $af):
+        <?php $alNr = 0; foreach ($alListe as $af): $alNr++;
           $alAudit = Akquise::letzterAudit((int) $af['id']);   /* Problem und Lösung aus der Fehler-Analyse dieses Betriebs */
           $alBef = $alAudit ? Akquise::befunde((int) $alAudit['id']) : [];
           $alP = AkquiseAnsprechen::paket($af, $alBef, null, '', (string) $p['name']);
@@ -215,6 +225,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             <div class="al-knoepfe">
               <a class="knopf haupt" href="tel:<?= $h($alTel) ?>"><?= $h($T('al_anrufen')) ?>: <?= $h((string) $af['telefon']) ?></a>
             </div>
+            <?php /* Nur der erste Betrieb steht offen — die übrigen zeigen Name, Anrufknopf und Ergebnis, der Rest klappt (03.10.2026). */ ?>
+            <details class="al-mehr"<?= $alNr === 1 ? ' open' : '' ?>><summary><?= $h($T('kl_details')) ?></summary>
             <?php /* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Ergebnis der Prüfung */
               $sbW = static fn(string $k): string => PartnerSteckbrief::wort($k, $sprache);
               $sb = PartnerSteckbrief::steckbrief($af);
@@ -257,6 +269,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
                 <li><small lang="<?= $h($sprache) ?>"><?= $h($T('al_s_nein')) ?></small><p><?= $h($alP['saetze']['nein']) ?></p></li>
               </ol>
             </details>
+            </details>
             <div class="al-erg">
               <details class="al-ja"><summary class="knopf"><?= $h($T('al_zugestimmt')) ?></summary>
                 <?= $alForm('zugestimmt', '
@@ -275,6 +288,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
         <?php endforeach; ?>
       </ol>
     <?php endif; ?>
+   </details>
   </section>
   <?php endif; ?>
 
@@ -282,7 +296,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
         require_once dirname(__DIR__) . '/src/PartnerAutopilot.php'; require_once dirname(__DIR__) . '/src/PartnerFlyer.php';
         $apOrt = PartnerAutopilot::ort($p); $apListe = $apOrt !== '' ? PartnerAutopilot::heute($p, $sprache) : []; ?>
   <section class="ap" id="heute" aria-labelledby="ap_titel">
-    <h3 class="md-h" id="ap_titel" style="margin-top:4px"><?= $h($apOrt !== '' ? strtr($T('ap_titel'), ['{n}' => (string) count($apListe), '{ort}' => $apOrt]) : $T('ap_titel_leer')) ?></h3>
+   <details class="klapp" data-klapp="heute" open>
+    <summary><h3 class="md-h" id="ap_titel"><?= $h($apOrt !== '' ? strtr($T('ap_titel'), ['{n}' => (string) count($apListe), '{ort}' => $apOrt]) : $T('ap_titel_leer')) ?></h3></summary>
     <p class="klein" style="margin-top:0"><?= $h($T('ap_text')) ?></p>
     <?php if ($apOrt === ''): ?>
       <form method="post" action="<?= $h($selbst()) ?>#heute" class="ap-ort">
@@ -321,6 +336,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
           <button class="knopf" type="submit"><?= $h($T('ap_ort_knopf')) ?></button>
         </form></details>
     <?php endif; ?>
+   </details>
   </section>
 
   <h3 class="md-h" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>
@@ -352,7 +368,8 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     </div>
   <?php endif; ?>
   <?php if ($ckLetzte && !$checkNeu): ?>
-    <p class="md-l"><?= $h($T('ck_letzte')) ?></p>
+    <details class="klapp" data-klapp="ck_letzte"<?= count($ckLetzte) <= 3 ? ' open' : '' ?>>
+    <summary><span class="md-l"><?= $h($T('ck_letzte')) ?></span><span class="klapp__zahl"><?= count($ckLetzte) ?></span></summary>
     <ul class="firmen">
       <?php foreach ($ckLetzte as $c): ?>
         <li class="firma"><div class="firma__kopf"><b><?= $h($c['host']) ?></b><small><?= $h($datum($c['created_at'])) ?></small></div>
@@ -370,6 +387,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             </span></div></li>
       <?php endforeach; ?>
     </ul>
+    </details>
   <?php endif; ?>
 
   <h3 class="md-h" style="margin-top:24px"><?= $h($T('fi_titel')) ?></h3>
@@ -393,7 +411,10 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     <?php if (!$fiErg['ok']): ?><div class="hinweis" style="margin-top:10px"><?= $h($T($fiErg['grund'] === 'fi_ort' ? 'fi_keine' : $fiErg['grund'])) ?></div>
     <?php elseif (!$fiErg['treffer']): ?><p class="klein"><?= $h($T('fi_keine')) ?></p>
     <?php else: ?>
-      <ul class="firmen"><?php foreach ($fiErg['treffer'] as $f) { echo $firmaZeile($f, false); } ?></ul>
+      <?php $fiZeigen = array_slice($fiErg['treffer'], 0, 5); $fiRest = array_slice($fiErg['treffer'], 5); ?>
+      <ul class="firmen"><?php foreach ($fiZeigen as $f) { echo $firmaZeile($f, false); } ?></ul>
+      <?php if ($fiRest): ?><details class="weitere"><summary><?= $h(strtr($T('kl_weitere'), ['{n}' => (string) count($fiRest)])) ?></summary>
+        <ul class="firmen"><?php foreach ($fiRest as $f) { echo $firmaZeile($f, false); } ?></ul></details><?php endif; ?>
       <p class="klein"><?= $h($T('fi_hinweis')) ?></p>
       <p class="klein" style="margin-top:4px;font-size:11.5px"><?= $h($T('fi_osm')) ?></p>
     <?php endif; ?>
@@ -428,8 +449,10 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   </details>
 
   <?php if ($fiMeine): ?>
-    <p class="md-l" style="margin-top:16px"><?= $h($T('fi_meine')) ?> (<?= count($fiMeine) ?>)</p>
+    <details class="klapp" data-klapp="fi_meine" style="margin-top:16px"<?= count($fiMeine) <= 3 ? ' open' : '' ?>>
+    <summary><span class="md-l"><?= $h($T('fi_meine')) ?></span><span class="klapp__zahl"><?= count($fiMeine) ?></span></summary>
     <ul class="firmen"><?php foreach ($fiMeine as $f) { echo $firmaZeile($f, true); } ?></ul>
+    </details>
   <?php endif; ?>
 
   <div class="leitfaden" id="leitfaden" style="margin-top:22px">

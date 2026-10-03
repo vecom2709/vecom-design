@@ -581,6 +581,19 @@ if ($p && isset($_GET['karte'])) {
   .text-kopie{display:flex;gap:8px;align-items:flex-start;margin:8px 0}
   .text-kopie textarea{flex:1;min-height:74px;font-size:13.5px;line-height:1.5;padding:10px 12px}
   .knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+  /* Einklappbare Listen (03.10.2026, Uwe: „einklappbar, dass man nicht ewig nach unten scrollen muss“).
+     Die Überschrift ist der Griff; der Pfeil rechts sagt, ob offen oder zu. */
+  .klapp > summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;min-height:44px;border-radius:8px}
+  .klapp > summary::-webkit-details-marker{display:none}
+  .klapp > summary h3,.klapp > summary .md-l{margin:0;flex:1 1 auto}
+  .klapp > summary::after{content:"";flex:0 0 auto;width:8px;height:8px;margin:0 6px 4px 0;border-right:2px solid var(--dim);border-bottom:2px solid var(--dim);transform:rotate(45deg);transition:transform .18s cubic-bezier(.16,1,.3,1)}
+  .klapp[open] > summary::after{transform:rotate(-135deg);margin-bottom:-4px}
+  .klapp > summary:hover::after{border-color:var(--text)}
+  .klapp > summary:focus-visible{outline:2px solid #f1d38b;outline-offset:3px}
+  .klapp__zahl{font-size:12px;font-variant-numeric:tabular-nums;padding:2px 9px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim)}
+  .weitere{margin-top:8px}
+  .weitere > summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:44px;display:flex;align-items:center}
+  @media (prefers-reduced-motion:reduce){.klapp > summary::after{transition:none}}
   /* 3D-Galerie (Marketing-Studio 11) */
   .g3-raster{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px;margin:6px 0 12px}
   .g3-stueck{position:relative;padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;background:#111;cursor:pointer;aspect-ratio:4/5;min-height:44px}
@@ -1323,12 +1336,18 @@ if ($p && isset($_GET['karte'])) {
   <div class="block pt" id="provisionen" data-reiter="geld">
     <h2><?= $h($T('liste')) ?></h2>
     <?php if (!$liste): ?><p class="klein"><?= $h($T('keine')) ?></p><?php else: ?>
+    <?php /* Acht Zeilen stehen offen, ältere klappen (03.10.2026, „alle langen Listen einklappbar“) */ $provNr = 0; ?>
     <table><thead><tr><th><?= $h($T('datum')) ?></th><th><?= $h($T('art')) ?></th><th class="r"><?= $h($T('betrag')) ?></th><th><?= $h($T('stand')) ?></th></tr></thead><tbody>
-    <?php foreach ($liste as $z): ?>
+    <?php foreach ($liste as $z): $provNr++; if ($provNr === 9): ?>
+    </tbody></table>
+    <details class="weitere"><summary><?= $h(strtr($T('kl_weitere'), ['{n}' => (string) (count($liste) - 8)])) ?></summary>
+    <table><tbody>
+    <?php endif; ?>
       <tr><td><?= $h(Fmt::datum((string) $z['created_at'])) ?></td><td><?= $h($T('a_' . $z['art'])) ?></td>
           <td class="r"><?= $h(Fmt::geld((int) $z['provision_cents'])) ?></td><td><?= $h($T('s_' . $z['status'])) ?><?php if ($z['status'] === 'wartet'): ?><br><small style="color:var(--leise)"><?= $h(strtr($T('frei_ab'), ['{datum}' => Fmt::datum((string) $z['frei_ab'])])) ?></small><?php endif; ?></td></tr>
     <?php endforeach; ?>
     </tbody></table>
+    <?php if ($provNr > 8): ?></details><?php endif; ?>
     <?php endif; ?>
     <p class="klein"><?= $h($T('privat')) ?></p>
   </div>

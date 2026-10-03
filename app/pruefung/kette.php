@@ -15222,6 +15222,31 @@ pruefe('T1/T2: Häkchen und „Zum Abtelefonieren übergeben“ in der Verwaltun
     && str_contains($alView, 'id="anrufliste"') && str_contains($alView, 'href="tel:') && str_contains($alView, "'al_s_ja'")
     && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "\$tat === 'al_ergebnis'")
     && !array_filter(array_keys(Texte::PARTNER), static fn($k) => str_starts_with($k, 'al_') && count(Texte::PARTNER[$k]) !== 3));
+/* Einklappbare Listen (03.10.2026, Uwe: „die Anruflisten einklappbar, dass man nicht ewig nach unten scrollen muss“).
+   Was der Partner am Telefon braucht — Name, Anrufknopf, Ergebnis — bleibt außerhalb der Klappe;
+   die Sprungmarke nach dem Speichern öffnet die Liste wieder. */
+$klV = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+$klJs = (string) file_get_contents($wurzel . '/../assets/js/partner-reiter.js');
+$klAb = (int) strpos($klV, 'id="anrufliste"'); $klBis = (int) strpos($klV, '<details id="eintragen"');
+$klStueck = substr($klV, $klAb, max(0, $klBis - $klAb));
+$klMehr = (int) strpos($klV, '<details class="al-mehr"');
+pruefe('Einklappbar: Anrufliste (ganz und je Betrieb), Heute für Sie, Prüfungen, Reservierungen, Finder ab fünf Treffern',
+    $klAb > 0 && $klBis > $klAb && substr_count($klStueck, '<details') === substr_count($klStueck, '</details>')
+    && str_contains($klV, 'data-klapp="anrufliste" open') && str_contains($klV, 'data-klapp="heute" open') && str_contains($klV, 'data-klapp="ck_letzte"') && str_contains($klV, 'data-klapp="fi_meine"')
+    && str_contains($klV, "<details class=\"al-mehr\"<?= \$alNr === 1 ? ' open' : '' ?>>") && str_contains($klV, "array_slice(\$fiErg['treffer'], 5)")
+    && $klMehr > 0 && (int) strpos($klV, 'href="tel:') < $klMehr && (int) strpos($klV, '<div class="al-erg">') > (int) strpos($klV, 'class="al-sb"')
+    && str_contains($klV, 'id="al_titel"') && str_contains($klV, 'id="ap_titel"')
+    && count(Texte::PARTNER['kl_details']) === 3 && count(Texte::PARTNER['kl_weitere']) === 3 && str_contains(Texte::PARTNER['kl_weitere']['de'], '{n}'));
+pruefe('Einklappbar: Zustand je Liste gemerkt, Sprungmarke öffnet die Klappe, Pfeil und Fokus sichtbar',
+    str_contains($klJs, "localStorage.setItem(schluessel, d.open ? 'auf' : 'zu')") && str_contains($klJs, "if (e.tagName === 'DETAILS') { e.open = true; }")
+    && str_contains($klJs, "window.addEventListener('hashchange', oeffnen)")
+    && str_contains((string) file_get_contents($wurzel . '/../partner.php'), '.klapp > summary:focus-visible{'));
+$klW = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+pruefe('Einklappbar: Beiträge zum Teilen — zwei offen, der Rest hinter „Weitere … zeigen“, Klappe sauber geschlossen',
+    str_contains($klW, 'if ($pbNr === 3):') && str_contains($klW, "<?php if (\$pbNr > 2): ?></details><?php endif; ?>")
+    && substr_count($klW, '<details class="weitere">') === 1 && str_contains((string) file_get_contents($wurzel . '/../partner.php'), '.weitere > summary{'));
+pruefe('Einklappbar: Provisionsliste — acht Zeilen offen, ältere hinter „Weitere … zeigen“',
+    str_contains((string) file_get_contents($wurzel . '/../partner.php'), "if (\$provNr === 9):") && str_contains((string) file_get_contents($wurzel . '/../partner.php'), "<?php if (\$provNr > 8): ?></details><?php endif; ?>"));
 /* Kauf erst nach Monaten: die Vormerkung aus dem Anruf gilt 12 Monate, eine gewöhnliche nur 90 Tage */
 Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@anruf.example', 'telefon' => null, 'quelle' => 'anruf', 'art' => 'anruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);
 Db::insert('partner_vormerkungen', ['partner_id' => (int) $alP['id'], 'email' => 'spaet@link.example', 'telefon' => null, 'quelle' => 'link', 'art' => 'rueckruf', 'created_at' => date('Y-m-d H:i:s', strtotime('-5 months'))]);

@@ -134,3 +134,28 @@
     zeigen(gemerkt && links[gemerkt] ? gemerkt : reihe[0]);
   }
 })();
+
+/* Einklappbare Listen (03.10.2026, Uwe: „die Anruflisten einklappbar, dass man
+ * nicht ewig nach unten scrollen muss“). Jede Liste merkt sich, ob der Partner
+ * sie zu- oder aufgeklappt hat. Wer über eine Sprungmarke kommt -- nach dem
+ * Speichern eines Ergebnisses steht #anrufliste in der Adresse --, sieht die
+ * Liste offen, auch wenn er sie vorher zugeklappt hatte. Ohne Skript sind die
+ * Listen so offen, wie die Seite sie ausliefert. */
+(function () {
+  var VORSILBE = 'vd_klapp_';
+  [].forEach.call(document.querySelectorAll('details[data-klapp]'), function (d) {
+    var schluessel = VORSILBE + d.dataset.klapp, wert = null;
+    try { wert = localStorage.getItem(schluessel); } catch (e) { }
+    if (wert === 'zu') { d.open = false; } else if (wert === 'auf') { d.open = true; }
+    d.addEventListener('toggle', function () { try { localStorage.setItem(schluessel, d.open ? 'auf' : 'zu'); } catch (e) { } });
+  });
+  function oeffnen() {
+    var id = ''; try { id = decodeURIComponent(location.hash.slice(1)); } catch (e) { return; }
+    var ziel = id ? document.getElementById(id) : null;
+    if (!ziel) { return; }
+    for (var e = ziel; e; e = e.parentElement) { if (e.tagName === 'DETAILS') { e.open = true; } }
+    [].forEach.call(ziel.querySelectorAll('details[data-klapp]'), function (d) { d.open = true; });
+  }
+  oeffnen();
+  window.addEventListener('hashchange', oeffnen);
+})();
