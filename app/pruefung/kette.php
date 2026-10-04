@@ -16794,6 +16794,9 @@ pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisbloc
     /* Gleich beim Aufruf sichtbar (04.10.2026): im Startbild, ohne Einblendung (kein data-reveal) */
     && preg_match('~<figure class="siegel siegel--held" tabindex="0"[^>]*>~', (string) file_get_contents($wurzel . '/../index.html'))
     && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel--held" data-reveal')
+    /* Was das Siegel bedeutet (04.10.2026): Karte „VQ – Vecom Quality Standard“ mit neun Haken, dreisprachig */
+    && substr_count((string) file_get_contents($wurzel . '/../index.html'), '<li data-i18n="siegel.h') === 9
+    && count(array_filter($sgI18n, static fn($t) => str_contains($t, 'titel: "VQ – Vecom Quality Standard"') && str_contains($t, 'h9: "'))) === 3
     && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'data-i18n="siegel.hinweis"')
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), "\$T('siegel_hinweis')")
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, ', hinweis: "') && preg_match('~(Zertifizierung|certificazione|certification)~', $t))) === 3

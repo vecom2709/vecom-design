@@ -842,7 +842,7 @@ masz: {
     },
     /* Story-Scrolling (02.10.2026): Leitsaetze, Preisstapel, Kapitel-Leiste */
     story: { l1: "Die meisten Kunden entscheiden, bevor sie Sie anrufen.", l2: "Ein fester Preis. Sie kennen ihn, bevor wir anfangen.", l3: "Die Seite ist online – und niemand ruft an. Diesen Moment kenne ich gut.", p_k: "So entsteht der Betrag", p1: "Grundgerüst", p2: "Seiten", p3: "Sprachen", p4: "Buchung oder Shop", p5: "Texte und Fotos", p_sum: "= Ihr Preis, Posten für Posten", leiste: "Kapitel", ueber: "Über mich" },
-    siegel: { alt: "Gütesiegel „Vecom Quality Standard“ von Vecom Design: Jede Website entsteht nach unserem eigenen Qualitätsstandard", hinweis: "Der Vecom Quality Standard ist ein von Vecom Design definierter interner Qualitätsstandard für von Vecom Design entwickelte digitale Projekte. Er stellt keine Zertifizierung durch eine unabhängige Prüforganisation dar." },
+    siegel: { alt: "Gütesiegel „Vecom Quality Standard“ von Vecom Design: Jede Website entsteht nach unserem eigenen Qualitätsstandard", hinweis: "Der Vecom Quality Standard ist ein von Vecom Design definierter interner Qualitätsstandard für von Vecom Design entwickelte digitale Projekte. Er stellt keine Zertifizierung durch eine unabhängige Prüforganisation dar.", titel: "VQ – Vecom Quality Standard", h1: "Responsive Design", h2: "Performance-Optimierung", h3: "SEO-Grundoptimierung", h4: "saubere technische Umsetzung", h5: "Sicherheits-Basics", h6: "Barrierearmut", h7: "individuelle Gestaltung", h8: "getestete Darstellung auf Smartphone, Tablet und Desktop", h9: "saubere Übergabe an den Kunden" },
     zl: {
       g1: "0 €", z1: "Antwort innerhalb eines Werktags",
       g2: "Anzahlung 50 % bei Auftrag", z2: "Sie geben die erste Ansicht frei",
