@@ -601,6 +601,10 @@ final class Werbemittel
                 $druck !== '' ? $druck : null, $druck !== '' ? hash('sha256', $druck) : null,
                 $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null, $id]);
         }, 3);
+        // QR-Prüfung vor der Produktion (Schritt 8): die fertigen Dateien zurücklesen. Fällt sie durch,
+        // bleibt der Entwurf sichtbar, ist aber nicht freigebbar (freigeben) und geht nie in den Druck.
+        require_once __DIR__ . '/QrPruefung.php';
+        QrPruefung::fuerEntwurf($id);
         return $id;
     }
 
@@ -663,6 +667,7 @@ final class Werbemittel
     public static function freigeben(int $partnerId, int $entwurfId, string $hash): bool
     {
         if (!preg_match('~^[0-9a-f]{64}$~', $hash)) { return false; }
+        if (self::qrGesperrt($partnerId, $entwurfId)) { return false; }
         return (bool) Db::transaktion(static function () use ($partnerId, $entwurfId, $hash): bool {
             $e = Db::one("SELECT id, produkt_id FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND status = 'entwurf' AND datei_hash = ? FOR UPDATE",
                 [$entwurfId, $partnerId, $hash]);
@@ -672,6 +677,14 @@ final class Werbemittel
             Db::run("UPDATE wm_entwuerfe SET status = 'freigegeben', freigegeben_am = NOW() WHERE id = ?", [$entwurfId]);
             return true;
         }, 3);
+    }
+
+    /** Eigener Entwurf, dessen Codes die QR-Prüfung nicht bestehen (ältere werden jetzt geprüft)? */
+    public static function qrGesperrt(int $partnerId, int $entwurfId): bool
+    {
+        if (!Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND partner_id = ?', [$entwurfId, $partnerId])) { return false; }
+        require_once __DIR__ . '/QrPruefung.php';
+        return !QrPruefung::ok($entwurfId);
     }
 
     /**
@@ -688,7 +701,7 @@ final class Werbemittel
     /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
     public static function stand(int $partnerId, int $produktId): array
     {
-        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, scans, mockup_status, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
+        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, scans, mockup_status, qr_ok, qr_pruefung, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
         $hol = static function (string $status) use ($felder, $partnerId, $produktId): ?array {
             $r = Db::one("SELECT $felder FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = ? ORDER BY id DESC LIMIT 1",
                 [$partnerId, $produktId, $status]);

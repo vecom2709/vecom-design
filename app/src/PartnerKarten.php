@@ -369,6 +369,20 @@ final class PartnerKarten
         return self::jpeg($aus, 93);
     }
 
+    /**
+     * Lage des Codes in der eingepassten Fassung (eingepasst(), Rückseite) in Pixeln: [x, y, Kante].
+     * Gleiche Rechnung wie dort — Karte auf die Zielhöhe skaliert, mittig gesetzt (QR-Prüfung, 04.10.2026).
+     */
+    public static function qrLageEingepasst(string $stil, int $breite, int $hoehe): array
+    {
+        if (!self::gibt($stil)) { return [0.0, 0.0, 0.0]; }
+        [$qx, $qy, $qs] = self::layout($stil)['qr'];
+        $f = $hoehe / self::LH;
+        $sw = (int) round(self::LW * $f);
+        $x0 = $sw >= $breite ? -intdiv($sw - $breite, 2) : intdiv($breite - $sw, 2);
+        return [$x0 + $qx * $f, $qy * $f, $qs * $f];
+    }
+
     /** Setzt an jeden Rand $px Pixel an, gespiegelt aus dem Bild selbst. */
     private static function spiegelRand(\GdImage $im, int $px): \GdImage
     {

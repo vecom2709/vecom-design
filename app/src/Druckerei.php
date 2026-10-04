@@ -67,6 +67,13 @@ final class Druckerei
             if (!Db::wert("SELECT id FROM wm_bestellungen WHERE id = ? AND status = 'bezahlt' AND anbieter_status IS NULL", [$bestellungId])) {
                 return ['ok' => false, 'grund' => 'Diese Bestellung wurde schon gesendet (oder ist nicht bezahlt).'];
             }
+            // QR-Prüfung vor der Produktion (Schritt 8): Jede Datei dieses Auftrags muss sie bestanden haben.
+            require_once __DIR__ . '/QrPruefung.php';
+            foreach (Db::all('SELECT DISTINCT entwurf_id FROM wm_positionen WHERE bestellung_id = ? AND entwurf_id IS NOT NULL', [$bestellungId]) as $qe) {
+                if (!QrPruefung::ok((int) $qe['entwurf_id'])) {
+                    return ['ok' => false, 'grund' => 'QR-Prüfung nicht bestanden (Entwurf ' . (int) $qe['entwurf_id'] . ') — nichts gesendet. Datei neu erstellen lassen.'];
+                }
+            }
             if (method_exists($klasse, 'preisJetzt')) {
                 require_once __DIR__ . '/Fmt.php';
                 $ek = (int) Db::wert('SELECT COALESCE(SUM(einkauf_cent * menge), 0) FROM wm_positionen WHERE bestellung_id = ?', [$bestellungId], 0);

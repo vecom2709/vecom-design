@@ -22763,6 +22763,109 @@ pruefe('Partnerbereich: Auswahl als Liste (name="titel"), Vorschau mit tt=, nur 
     && str_contains((string) file_get_contents($wurzel . '/src/Werbemittel.php'), "\$p['_wm_titel'] = (string) (\$w['titel'] ?? '');"));
 
 /* ============================================================================
+   Marketingcenter, Schritt 8a: QR-Prüfung vor der Produktion (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: QR-Prüfung');
+foreach (['Werbemittel', 'WmDruck', 'QrPruefung', 'Printful', 'PartnerFlyer'] as $qpKl) { require_once $wurzel . "/src/$qpKl.php"; }
+$qpVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$qpA6 = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id IN (?, ?)', [(int) $qpVk['id'], (int) $qpA6['id']]);
+$qpA = Partner::laden(Partner::anlegen(['name' => 'Quirino Prova', 'email' => 'quirino@partner.example', 'code' => 'QRPRUEF', 'sprache' => 'it']));
+$qpB = Partner::laden(Partner::anlegen(['name' => 'Bruno Altro', 'email' => 'bruno@partner.example', 'code' => 'QRFREMD', 'sprache' => 'it']));
+$qpBr = (string) (array_values(array_filter(Designlinie::stileDa('flyer_a6'), static fn($x) => strlen((string) $x) > 1))[0] ?? '');
+$qpE1 = Werbemittel::entwurfAnlegen($qpA, (int) $qpVk['id'], ['stil' => 'c', 'sprache' => 'it', 'kontakt' => 'email']);
+$qpE2 = Werbemittel::entwurfAnlegen($qpA, (int) $qpA6['id'], ['stil' => $qpBr, 'sprache' => 'it', 'kontakt' => 'email']);
+$qpR1 = Db::one('SELECT * FROM wm_entwuerfe WHERE id = ?', [$qpE1]);
+$qpR2 = Db::one('SELECT * FROM wm_entwuerfe WHERE id = ?', [$qpE2]);
+$qpL1 = QrPruefung::erwartet($qpA, 'visitenkarte', $qpE1);
+$qpC1 = QrPruefung::ausPdf((string) $qpR1['datei']);
+$qpC2 = QrPruefung::ausPdf((string) $qpR2['datei']);
+pruefe('Codes aus der Druckdatei zurückgelesen: Karte 1 Code (Rückseite), A6-Branche 2 (vorn und hinten), Modul für Modul der Link mit eigener Nummer',
+    count($qpC1) === 1 && $qpC1[0]['seite'] === 2 && count($qpC2) === 2 && str_ends_with($qpL1, '/p/QRPRUEF/wm-' . $qpE1)
+    && $qpC1[0]['raster'] === PartnerKarten::raster($qpL1)[1]
+    && $qpC2[0]['raster'] === PartnerKarten::raster(QrPruefung::erwartet($qpA, 'flyer_a6', $qpE2))[1], json_encode(array_map(static fn($c) => [$c['seite'], $c['n'], $c['mm']], $qpC2)));
+pruefe('Neuer Entwurf wird sofort geprüft: Ansicht, Druckerei-Fassung und Printful-Bild bestanden, Link und Größe gespeichert',
+    (int) $qpR1['qr_ok'] === 1 && (int) $qpR2['qr_ok'] === 1 && $qpR1['qr_am'] !== null
+    && (json_decode((string) $qpR1['qr_pruefung'], true)['link'] ?? '') === $qpL1 && (float) (json_decode((string) $qpR1['qr_pruefung'], true)['mm'] ?? 0) >= QrPruefung::MIN_MM
+    && $qpR1['datei_pf_hinten'] !== null, (string) $qpR1['qr_pruefung'] . ' | ' . (string) $qpR2['qr_pruefung']);
+$qpFremd = QrPruefung::erwartet($qpB, 'visitenkarte', $qpE1);
+$qpOhne = preg_replace('~(0 0 0 rg\n[^\n]+\n)[^\n]+ re f\n~', '$1', (string) $qpR1['datei'], 1);
+pruefe('Falscher Link, fehlender Code, ein gelöschtes Modul, zu kleiner Code: jeweils durchgefallen',
+    QrPruefung::pruefen((string) $qpR1['datei'], $qpFremd, 'visitenkarte')['fehler'] === ['falscher_link']
+    && QrPruefung::pruefen((string) $qpR1['datei'], QrPruefung::erwartet($qpA, 'visitenkarte', $qpE1 + 1), 'visitenkarte')['ok'] === false
+    && QrPruefung::pruefen('%PDF-1.4 leer', $qpL1)['fehler'] === ['kein_code']
+    && $qpOhne !== (string) $qpR1['datei'] && in_array('falscher_link', QrPruefung::pruefen($qpOhne, $qpL1, 'visitenkarte')['fehler'], true)
+    && in_array('zu_klein', QrPruefung::pruefen((string) $qpR1['datei'], $qpL1, 'rollup_85')['fehler'], true)
+    && QrPruefung::pruefen((string) $qpR1['datei'], $qpL1, 'visitenkarte')['ok']);
+[$qpPw, $qpPh] = Printful::VORLAGE;
+$qpBox = PartnerKarten::qrLageEingepasst('c', $qpPw, $qpPh);
+pruefe('Printful-Bild (Raster, das Printful druckt): Code an der berechneten Stelle ist der eigene, ein fremder Link fällt durch',
+    QrPruefung::imBild((string) $qpR1['datei_pf_hinten'], $qpBox, $qpL1) && !QrPruefung::imBild((string) $qpR1['datei_pf_hinten'], $qpBox, $qpFremd)
+    && !QrPruefung::imBild((string) $qpR1['datei_pf_vorn'], $qpBox, $qpL1));
+Db::run('UPDATE wm_entwuerfe SET qr_ok = 0 WHERE id = ?', [$qpE1]);
+pruefe('Durchgefallen: keine Freigabe (auch mit richtigem Hash), und für fremde Partner gibt es nichts zu sperren',
+    Werbemittel::qrGesperrt((int) $qpA['id'], $qpE1) && !Werbemittel::freigeben((int) $qpA['id'], $qpE1, (string) $qpR1['datei_hash'])
+    && !Werbemittel::qrGesperrt((int) $qpB['id'], $qpE1)
+    && Db::wert('SELECT status FROM wm_entwuerfe WHERE id = ?', [$qpE1]) === 'entwurf');
+Db::run('UPDATE wm_entwuerfe SET qr_ok = NULL, qr_pruefung = NULL WHERE id = ?', [$qpE1]);
+pruefe('Ältere Entwürfe ohne Prüfung werden vor der Freigabe geprüft, dann freigegeben',
+    Werbemittel::freigeben((int) $qpA['id'], $qpE1, (string) $qpR1['datei_hash'])
+    && (int) Db::wert('SELECT qr_ok FROM wm_entwuerfe WHERE id = ?', [$qpE1]) === 1 && Db::wert('SELECT status FROM wm_entwuerfe WHERE id = ?', [$qpE1]) === 'freigegeben');
+$qpDr = (string) file_get_contents($wurzel . '/src/Druckerei.php');
+$qpV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+pruefe('Vor jedem Auftrag an eine Druckerei: alle Entwürfe der Bestellung müssen bestanden haben (vor Preisabfrage und Senden); Partner sieht Ergebnis, ohne Bestehen keinen Freigabe-Knopf',
+    str_contains($qpDr, "QrPruefung::ok((int) \$qe['entwurf_id'])") && strpos($qpDr, 'QrPruefung::ok') < strpos($qpDr, '$klasse::auftragSenden($bestellungId)')
+    && str_contains($qpV, "<?php if (\$mcQrOk): ?><button class=\"knopf haupt\">") && str_contains($qpV, "\$mcT('qr_fehler')")
+    && str_contains((string) file_get_contents($oben . '/partner.php'), "Werbemittel::qrGesperrt((int) \$p['id']"));
+// Ruhezone der Vorlagen: heller Rand um jede Codefläche, gemessen in den Vorlagenbildern (Code mit 29 Modulen,
+// so viele hat jeder Partnerlink mindestens). Gemessen 04.10.2026: 2,0–2,4 Module (Roll-up hell 7) — reicht für
+// zbar und OpenCV auch unscharf; fällt sie unter 1,9 Module, hat sich eine Vorlage verändert.
+$qpZone = static function (\GdImage $im, float $x, float $y, float $s, float $pxmm): float {
+    for ($d = 1; $d < 400; $d++) {
+        $x0 = (int) floor($x - $d); $y0 = (int) floor($y - $d); $x1 = (int) ceil($x + $s + $d); $y1 = (int) ceil($y + $s + $d);
+        if ($x0 < 0 || $y0 < 0 || $x1 >= imagesx($im) || $y1 >= imagesy($im)) { return ($d - 1) / $pxmm; }
+        for ($i = $x0; $i <= $x1; $i++) { foreach ([[$i, $y0], [$i, $y1]] as [$a, $b]) { $c = imagecolorat($im, $a, $b); if (0.299 * (($c >> 16) & 255) + 0.587 * (($c >> 8) & 255) + 0.114 * ($c & 255) < 200) { return ($d - 1) / $pxmm; } } }
+        for ($j = $y0; $j <= $y1; $j++) { foreach ([[$x0, $j], [$x1, $j]] as [$a, $b]) { $c = imagecolorat($im, $a, $b); if (0.299 * (($c >> 16) & 255) + 0.587 * (($c >> 8) & 255) + 0.114 * ($c & 255) < 200) { return ($d - 1) / $pxmm; } } }
+    }
+    return 400 / $pxmm;
+};
+$qpSchlecht = [];
+$qpPruef = static function (string $was, string $datei, array $qr, float $k) use ($qpZone, &$qpSchlecht): void {
+    $im = @imagecreatefromjpeg($datei);
+    if (!$im) { $qpSchlecht[] = "$was: Bild fehlt"; return; }
+    [$qx, $qy, $qs] = $qr;
+    $z = $qpZone($im, $qx * $k, $qy * $k, $qs * $k, $k * 10);
+    $module = $z / ($qs / 10 / 29);
+    if ($module < 1.9) { $qpSchlecht[] = sprintf('%s: %.2f mm = %.1f Module', $was, $z, $module); }
+};
+$qpRk = new ReflectionClass('PartnerKarten');
+$qpLay = $qpRk->getMethod('layout'); $qpLay->setAccessible(true); $qpDat = $qpRk->getMethod('datei'); $qpDat->setAccessible(true);
+foreach (str_split('abcdefg') as $qpS) {
+    if (!PartnerKarten::gibt($qpS)) { continue; }
+    $qpIm = (string) $qpDat->invoke(null, $qpS, 'hinten', 'de'); [$qpW] = getimagesize($qpIm);
+    $qpPruef("Karte $qpS", $qpIm, $qpLay->invoke(null, $qpS)['qr'], $qpW / 910);
+}
+foreach (['flyer_a5', 'flyer_a6', 'aufkleber_50', 'rollup_85'] as $qpF) {
+    $qpL = WmDruck::layout($qpF);
+    foreach ($qpL['stile'] as $qpS => $qpX) {
+        $qpIm = $wurzel . "/druckvorlagen/$qpF/$qpS-" . (!empty($qpL['einseitig']) ? 'vorn' : 'hinten') . '-de' . (WmDruck::gross($qpF) ? '-klein' : '') . '.jpg';
+        [$qpW] = getimagesize($qpIm);
+        $qpPruef("$qpF $qpS", $qpIm, $qpX['qr'], $qpW / (($qpL['b'] + 2 * $qpL['beschnitt']) * 10));
+    }
+}
+foreach (array_keys(PartnerFlyer::liste()) as $qpS) {
+    if (!PartnerFlyer::gibt($qpS) || !PartnerFlyer::sprachen($qpS)) { continue; }
+    $qpIm = PartnerFlyer::datei($qpS, PartnerFlyer::sprachen($qpS)[0]);
+    $qpQ = WmDruck::qrVorn($qpS, null, 'flyer_a5'); [$qpW] = getimagesize($qpIm);
+    $qpPruef("Branche $qpS", $qpIm, $qpQ['qr'], $qpW / ((WmDruck::layout('flyer_a5')['b'] + 2 * WmDruck::layout('flyer_a5')['beschnitt']) * 10));
+}
+pruefe('Ruhezone: um jeden Code in jeder Vorlage (Karten, Flyer, Aufkleber, Roll-up, alle Branchenmotive) mindestens 1,9 Module heller Rand', $qpSchlecht === [], implode('; ', array_slice($qpSchlecht, 0, 5)));
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $qpA['id'], (int) $qpB['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $qpA['id'], (int) $qpB['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $qpVk['aktiv'], (int) $qpVk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $qpA6['aktiv'], (int) $qpA6['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

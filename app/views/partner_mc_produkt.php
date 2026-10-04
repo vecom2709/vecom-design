@@ -95,7 +95,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
 
     <div class="mc-schritte">
       <?php if (!$wmNurLesen && $wmGest): $wmMeldung = (string) ($_GET['wm'] ?? ''); ?>
-      <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler', 'verworfen'], true)): ?>
+      <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler', 'verworfen', 'qr'], true)): ?>
         <p class="wm-meldung<?= in_array($wmMeldung, ['entwurf', 'frei', 'verworfen'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmMeldung)) ?></p>
       <?php endif; ?>
 
@@ -174,8 +174,18 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
               <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>
               <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="180" height="108" loading="lazy"></a><?php endforeach; ?></span>
             <?php endif; ?>
+            <?php /* QR-Prüfung vor der Produktion (Schritt 8): bestanden → grüner Hinweis; durchgefallen → keine Freigabe. */
+              $mcQr = $wmE['qr_ok'] === null ? null : (array) json_decode((string) $wmE['qr_pruefung'], true);
+              $mcQrOk = $wmE['qr_ok'] === null || (int) $wmE['qr_ok'] === 1; ?>
+            <?php if ($mcQr && $mcQrOk): ?>
+              <span class="mc-qr-ok">✓ <?= $h($mcT('qr_ok', ['{mm}' => str_replace('.', $sprache === 'en' ? '.' : ',', (string) round(((float) ($mcQr['mm'] ?? 0)) / 10, 1)), '{link}' => preg_replace('~^https?://~', '', (string) ($mcQr['link'] ?? ''))])) ?></span>
+            <?php elseif (!$mcQrOk): ?>
+              <span class="mc-qr-fehler" role="alert"><?= $h($mcT('qr_fehler')) ?></span>
+            <?php endif; ?>
+            <?php if ($mcQrOk): ?>
             <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W(!empty($wmE['hat_pf']) ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
-            <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
+            <?php endif; ?>
+            <span style="display:flex;gap:8px;flex-wrap:wrap"><?php if ($mcQrOk): ?><button class="knopf haupt"><?= $h($W('freigeben')) ?></button><?php endif; ?>
               <button class="knopf" form="wm-weg-<?= (int) $wmE['id'] ?>"><?= $h($W('verwerfen')) ?></button></span>
           </form>
           <form id="wm-weg-<?= (int) $wmE['id'] ?>" method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" data-frage="<?= $h($W('verwerfen_frage')) ?>" class="wm-frage" hidden>

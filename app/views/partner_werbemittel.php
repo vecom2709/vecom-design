@@ -180,6 +180,8 @@ if ($mcEigen) {
   .mc-kachel .mc-linienname{display:block;min-width:0;margin-top:2px;font-size:10px}
   .mc-zeile2{display:grid;gap:8px}
   .mc-titel[hidden]{display:none}
+  .mc-qr-ok{font-size:13.5px;color:#9fe0b0;line-height:1.4}
+  .mc-qr-fehler{font-size:14px;color:#ffb4a8;border:1px solid rgba(255,140,120,.45);border-radius:10px;padding:10px 12px;line-height:1.4}
   .mc-titelliste{display:grid;gap:6px}
   .mc-titelliste label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--linie);border-radius:10px;cursor:pointer;font-size:14.5px;line-height:1.3}
   .mc-titelliste label:has(input:checked){border-color:rgba(227,194,122,.7);background:rgba(227,194,122,.07)}

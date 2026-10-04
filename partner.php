@@ -391,7 +391,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     } catch (RuntimeException $e) { $wmM = $e->getMessage() === 'zuviel' ? 'zuviel' : 'fehler'; }
                     catch (InvalidArgumentException $e) { $wmM = 'fehler'; }
                 } else {
-                    $wmM = Werbemittel::freigeben((int) $p['id'], (int) ($_POST['entwurf'] ?? 0), (string) ($_POST['hash'] ?? '')) ? 'frei' : 'veraltet';
+                    $wmM = Werbemittel::qrGesperrt((int) $p['id'], (int) ($_POST['entwurf'] ?? 0)) ? 'qr'
+                        : (Werbemittel::freigeben((int) $p['id'], (int) ($_POST['entwurf'] ?? 0), (string) ($_POST['hash'] ?? '')) ? 'frei' : 'veraltet');
                     if ($wmM === 'frei') {
                         PartnerSchutz::protokoll((int) $p['id'], 'freigabe', null, 'werbemittel ' . (int) ($_POST['entwurf'] ?? 0));
                         Events::protokoll('wm_freigabe', 'Druckdatei freigegeben: ' . Partner::anzeigeName($p), null, null, null,
