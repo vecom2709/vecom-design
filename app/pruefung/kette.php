@@ -16819,10 +16819,14 @@ pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisbloc
     /* Gleich beim Aufruf sichtbar (04.10.2026): im Startbild, ohne Einblendung (kein data-reveal).
        Ohne Karte und ohne Hinweis daneben (Uwe, 04.10.2026: „lass den Text zu dem Siegel weg“) —
        der Hinweis „keine Zertifizierung“ bleibt am Preisblock, auf der Preisseite und im Angebot. */
-    && str_contains((string) file_get_contents($wurzel . '/../index.html'), '<figure class="siegel siegel--held">')
+    && preg_match('~<figure class="siegel siegel--held" tabindex="0"[^>]*>~', (string) file_get_contents($wurzel . '/../index.html'))
     && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel--held" data-reveal')
-    && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel__karte')
-    && count(array_filter($sgI18n, static fn($t) => !str_contains($t, 'titel: "VQ'))) === 3
+    /* Was das Siegel bedeutet (04.10.2026, zweimal von Uwe gewünscht): Karte „VQ – Vecom Quality Standard“ mit neun
+       Haken, dreisprachig, das Siegel auf ihrer oberen rechten Ecke — ohne Hinweistext am Startbild. */
+    && substr_count((string) file_get_contents($wurzel . '/../index.html'), '<li data-i18n="siegel.h') === 9
+    && count(array_filter($sgI18n, static fn($t) => str_contains($t, 'titel: "VQ – Vecom Quality Standard"') && str_contains($t, 'h9: "'))) === 3
+    && preg_match('~<figure class="siegel siegel--held".*?</figure>~s', (string) file_get_contents($wurzel . '/../index.html'), $sgHeld) === 1
+    && str_contains($sgHeld[0], 'class="siegel__karte"') && !str_contains($sgHeld[0], 'siegel__hinweis')
     && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'data-i18n="siegel.hinweis"')
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), "\$T('siegel_hinweis')")
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, ', hinweis: "') && preg_match('~(Zertifizierung|certificazione|certification)~', $t))) === 3

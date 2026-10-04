@@ -842,7 +842,7 @@ masz: {
     },
     /* Story-Scrolling (02.10.2026): Leitsaetze, Preisstapel, Kapitel-Leiste */
     story: { l1: "Most customers decide before they ever call you.", l2: "A fixed price. You know it before we start.", l3: "The site is live — and nobody calls. I know that moment well.", p_k: "How the figure comes together", p1: "Basic structure", p2: "Pages", p3: "Languages", p4: "Booking or shop", p5: "Copy and photos", p_sum: "= your price, item by item", leiste: "Chapters", ueber: "About me" },
-    siegel: { alt: "“Vecom Quality Standard” seal by Vecom Design: every website is built to our own quality standard", hinweis: "The Vecom Quality Standard is an internal quality standard defined by Vecom Design for digital projects developed by Vecom Design. It is not a certification by an independent testing organisation." },
+    siegel: { alt: "“Vecom Quality Standard” seal by Vecom Design: every website is built to our own quality standard", hinweis: "The Vecom Quality Standard is an internal quality standard defined by Vecom Design for digital projects developed by Vecom Design. It is not a certification by an independent testing organisation.", titel: "VQ – Vecom Quality Standard", h1: "Responsive design", h2: "Performance optimisation", h3: "Basic SEO optimisation", h4: "Clean technical implementation", h5: "Security basics", h6: "Low-barrier accessibility", h7: "Individual design", h8: "Tested display on smartphone, tablet and desktop", h9: "Clean handover to the client" },
     zl: {
       g1: "€0", z1: "Reply within one working day",
       g2: "50 % deposit on order", z2: "You approve the first screen",
