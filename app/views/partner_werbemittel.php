@@ -138,6 +138,11 @@ if ($mcEigen) {
   .mc-produktkopf{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
   .mc-produktkopf h3{font-size:19px}
   .mc-ab{color:#f1d38b;font-weight:600}
+  .mc-foto{display:grid;gap:6px}
+  .mc-foto img{width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid var(--linie2)}
+  .mc-fakten{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0;font-size:13.5px}
+  .mc-fakten dt{color:var(--leise)}
+  .mc-fakten dd{margin:0;color:var(--text)}
   .mc-raster{display:grid;gap:16px}
   /* Die Vorschau bleibt beim Scrollen durch die Schritte oben stehen — man sieht sofort, was ein Tipp ändert. */
   .mc-produkt{container-type:inline-size}

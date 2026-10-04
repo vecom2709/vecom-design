@@ -22169,7 +22169,7 @@ $w7Apr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'aufkleber_50'");
 pruefe('Aufkleber Ø 5 cm: eine Seite 54 × 54 mm (2 mm Beschnitt wie Flyeralarm), Code vorn als Vektor ≥ 2 cm, Vorschau quadratisch, Produkt aus mit 100/250/500 und Preisen IT/DE',
     str_starts_with($w7Ap, '%PDF') && preg_match('~/MediaBox \[0 0 153\.0\d* 153\.0\d*\]~', $w7Ap) === 1 && preg_match('~/TrimBox \[\s*5\.66\d* 5\.66\d*~', $w7Ap) === 1
     && substr_count($w7Ap, '/MediaBox') === 1 && WmDruck::einseitig('aufkleber_50') && !WmDruck::einseitig('flyer_a6')
-    && (float) WmDruck::layout('aufkleber_50')['stile']['a']['qr'][2] >= 200 && is_array($w7Av) && $w7Av[0] === 360 && $w7Av[1] === 360
+    && (float) WmDruck::layout('aufkleber_50')['stile']['a']['qr'][2] >= 200 && is_array($w7Av) && $w7Av[0] === 760 && $w7Av[1] === 760
     && $w7Apr !== null && (int) $w7Apr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Apr['id']]) === 3
     && Werbemittel::gestaltbar('aufkleber_50') && !WmDruck::gibt('aufkleber_50', 'b'),
     (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Ap, $w7Tm) ? $w7Tm[0] : '') . ' ' . json_encode($w7Av));
@@ -22182,13 +22182,13 @@ pruefe('Roll-up 85 × 200 cm: Datenformat 87 × 227 cm (1 cm Beschnitt), eine Se
     str_starts_with($w7Rp, '%PDF') && preg_match('~/MediaBox \[0 0 2466\.1\d* 6434\.6\d*\]~', $w7Rp) === 1 && preg_match('~/TrimBox \[\s*28\.34\d*~', $w7Rp) === 1
     && substr_count($w7Rp, '/MediaBox') === 1 && WmDruck::gross('rollup_85') && !WmDruck::gross('aufkleber_50')
     && (float) WmDruck::layout('rollup_85')['stile']['a']['qr'][2] >= 3000 && memory_get_peak_usage() - $w7Rm < 64 * 1024 * 1024
-    && is_array($w7Rv) && $w7Rv[1] === 420 && $w7Rv[0] < $w7Rv[1]
+    && is_array($w7Rv) && $w7Rv[1] === 760 && $w7Rv[0] < $w7Rv[1]
     && $w7Rpr !== null && (int) $w7Rpr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Rpr['id']]) === 1,
     (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Rp, $w7Tm) ? $w7Tm[0] : '') . ' ' . json_encode($w7Rv));
 $w7Fv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_a5', 'd', 'de', 'email'));
 $w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
 pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
-    $w7Fl !== null && (int) $w7Fl['aktiv'] === 0 && is_array($w7Fv) && $w7Fv[1] === 360 && $w7Fv[0] > 360
+    $w7Fl !== null && (int) $w7Fl['aktiv'] === 0 && is_array($w7Fv) && $w7Fv[1] === 760 && $w7Fv[0] > 760
     && Werbemittel::gestaltbar('flyer_a5') && !Werbemittel::gestaltbar('quatsch'));
 // Branchen-Flyer A5 DE/IT/EN (04.10.2026): Branche statt Stil, vorn Foto + Code, hinten Name/Kontakt
 require_once $wurzel . '/src/PartnerFlyer.php';
@@ -22200,7 +22200,7 @@ $w7Bv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_branche',
 pruefe('Branchen-Flyer im Marketing Center: jede Branche × 3 Sprachen druckbar, Druck-PDF A5 mit Beschnitt, Code vorn ≥ 2 cm, alte Stile gelten hier nicht',
     count($w7Br) >= 2 && !array_filter($w7Br, fn ($s) => !WmDruck::gibt('flyer_branche', $s)) && !WmDruck::gibt('flyer_branche', 'a') && !WmDruck::gibt('flyer_branche', '../x')
     && str_starts_with($w7Bp, '%PDF') && preg_match('~/TrimBox \[\s*8\.50\d* 8\.50\d* 428\.0\d* 603\.7\d*~', $w7Bp) === 1
-    && $w7Bq[2] >= 200 && is_array($w7Bv) && $w7Bv[1] === 360,
+    && $w7Bq[2] >= 200 && is_array($w7Bv) && $w7Bv[1] === 760,
     json_encode(['br' => count($w7Br), 'qr' => $w7Bq, 'trim' => preg_match('~/TrimBox \[[^\]]*\]~', $w7Bp, $w7Tm) ? $w7Tm[0] : '']));
 $w7Bpr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_branche'");
 $w7Bw = null; $w7Bfalsch = false;
@@ -22571,8 +22571,8 @@ pruefe('Wahl für A6 nimmt das Branchenmotiv an', $bfW['stil'] === $bfS);
 $bfOrdner = $wurzel . '/zwischenspeicher/mini';
 $bfMini = Werbemittel::miniBild('flyer_a6', $bfS, 'it');
 $bfMg = @getimagesizefromstring($bfMini);
-pruefe('Kachelbild: Vorderseite ohne Partnerdaten, 260 px breit, Hochformat; danach aus dem Zwischenspeicher; Unbekanntes leer',
-    is_array($bfMg) && $bfMg[0] === 260 && $bfMg[1] > 300 && glob($bfOrdner . '/*.jpg') !== []
+pruefe('Kachelbild: Vorderseite ohne Partnerdaten, 420 px breit (doppelt für scharfe Bildschirme), Hochformat; danach aus dem Zwischenspeicher; Unbekanntes leer',
+    is_array($bfMg) && $bfMg[0] === 420 && $bfMg[1] > 500 && glob($bfOrdner . '/*.jpg') !== []
     && Werbemittel::miniBild('flyer_a6', $bfS, 'it') === $bfMini && Werbemittel::miniBild('flyer_a6', 'zz', 'it') === ''
     && is_array(@getimagesizefromstring(Werbemittel::miniBild('visitenkarte', 'e', 'de'))) && Werbemittel::miniBild('gibtsnicht', 'a', 'de') === '');
 $bfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
@@ -22585,6 +22585,74 @@ foreach (glob($bfOrdner . '/*.jpg') ?: [] as $bfX) { @unlink($bfX); }
 $bfMig = (string) file_get_contents($wurzel . '/migrations/162_branchen_flyer_aus.sql');
 pruefe('Migration 162: Branchen-Flyer A5 nur aus, wenn Flyer A5 an ist; nichts gelöscht',
     str_contains($bfMig, "a.vorlage = 'flyer_a5' AND a.aktiv = 1") && str_contains($bfMig, "b.vorlage = 'flyer_branche'") && !preg_match('~\bDELETE\b~i', $bfMig));
+
+/* ============================================================================
+   Marketingcenter: Produktfoto der Druckerei, Material und Lieferung (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Produktfoto und Material');
+foreach (['Werbemittel', 'Printful', 'Druckerei', 'PartnerKarten'] as $pfKl) { require_once $wurzel . "/src/$pfKl.php"; }
+$pfVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $pfVk['id']]);
+$pfVar = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? AND aktiv = 1 ORDER BY sortierung, auflage, id LIMIT 1', [(int) $pfVk['id']], 0);
+Db::run("INSERT INTO wm_anbieter_preise (variante_id, anbieter, land, preis_cent, netto_cent, papier, lieferung, link, geprueft_am) VALUES
+         (?, 'Printful', 'IT', 1900, 1557, 'Munken Lynx 300 g', 'Versand inklusive, 5–8 Werktage', '', CURDATE()),
+         (?, 'Teuer', 'IT', 2500, 2049, 'anders', 'Economico (ca. 11 Tage), Standard +6 €', '', CURDATE()),
+         (?, 'Teuer', 'DE', 2500, 2049, 'Karton 350 g', 'Economico (ca. 11 Tage), Standard +6 €', '', CURDATE())", [$pfVar, $pfVar, $pfVar]);
+$pfKat = Werbemittel::katalog('de', false, 'IT');
+$pfPr = null; foreach ($pfKat as $pfK) { foreach ($pfK['produkte'] as $pfX) { if ((int) $pfX['id'] === (int) $pfVk['id']) { $pfPr = $pfX; } } }
+$pfKatDe = Werbemittel::katalog('de', false, 'DE'); $pfPrDe = null; foreach ($pfKatDe as $pfK) { foreach ($pfK['produkte'] as $pfX) { if ((int) $pfX['id'] === (int) $pfVk['id']) { $pfPrDe = $pfX; } } }
+pruefe('Material und Lieferung kommen aus dem günstigsten Angebot fürs Land — ohne Druckereiname, ohne Beträge',
+    $pfPr !== null && $pfPr['material'] === 'Munken Lynx 300 g' && $pfPr['lieferung'] === 'Versand inklusive, 5–8 Werktage'
+    && $pfPrDe !== null && $pfPrDe['material'] === 'Karton 350 g' && $pfPrDe['lieferung'] === 'Economico (ca. 11 Tage)'
+    && !array_intersect(array_keys($pfPr), ['anbieter', 'einkauf_cent', 'netto_cent']) && Werbemittel::ohneBetrag('A, B +6 €, C 2,50') === 'A',
+    json_encode([$pfPr['material'] ?? null, $pfPr['lieferung'] ?? null, $pfPrDe['material'] ?? null, $pfPrDe['lieferung'] ?? null], JSON_UNESCAPED_UNICODE));
+pruefe('Hersteller je Land = Druckerei des günstigsten Angebots (wie beim Bestellen)',
+    Werbemittel::hersteller($pfPr, 'IT') === 'Printful' && Werbemittel::hersteller($pfPr, 'DE') === 'Teuer');
+$pfA = Partner::laden(Partner::anlegen(['name' => 'Pia Foto', 'email' => 'pia.f@partner.example', 'code' => 'PIAFOTO', 'sprache' => 'it']));
+$pfB = Partner::laden(Partner::anlegen(['name' => 'Paul Fremd', 'email' => 'paul.f@partner.example', 'code' => 'PAULFRM', 'sprache' => 'it']));
+$pfE = Werbemittel::entwurfAnlegen($pfA, (int) $pfVk['id'], ['stil' => 'e', 'sprache' => 'it', 'kontakt' => 'email']);
+$pfNetz = []; $pfAntwort = 'ok';
+$pfJpg = (static function (): string { $i = imagecreatetruecolor(40, 40); ob_start(); imagejpeg($i); return (string) ob_get_clean(); })();
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$pfNetz, &$pfAntwort, $pfJpg): array {
+    $pfNetz[] = [$m, $u, $r];
+    if (str_contains($u, '/mockup-generator/create-task/')) { return $pfAntwort === 'grenze' ? ['code' => 429, 'body' => '{"error":{"message":"Too many"}}'] : ['code' => 200, 'body' => '{"result":{"task_key":"gt-4711"}}']; }
+    if (str_contains($u, '/mockup-generator/task?task_key=gt-4711')) { return ['code' => 200, 'body' => json_encode(['result' => ['status' => 'completed', 'mockups' => [['placement' => 'default', 'mockup_url' => $pfAntwort === 'fremd' ? 'https://boese.example/x.jpg' : 'https://files.cdn.printful.com/m.jpg']]]])]; }
+    if ($u === 'https://files.cdn.printful.com/m.jpg') { return ['code' => 200, 'body' => $pfJpg]; }
+    return ['code' => 404, 'body' => ''];
+};
+$pfAntwort = 'grenze';
+$pfG = Printful::mockupAnstossen($pfE);
+pruefe('Produktfoto: Grenze bei Printful (429) → später nochmal, nichts als Fehler markiert',
+    $pfG === 'grenze' && (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ? AND mockup_status IS NULL', [$pfE], 0) === 1);
+$pfAntwort = 'ok';
+$pfO = Printful::mockupAnstossen($pfE);
+$pfReq = json_decode((string) ($pfNetz[count($pfNetz) - 1][2] ?? ''), true);
+pruefe('Produktfoto anstoßen: offizieller Weg create-task/724, Variante 18554, Vorder- und Rückseite als signierte Links, Auftrag gemerkt, nur einmal',
+    $pfO === 'ok' && str_ends_with((string) $pfNetz[count($pfNetz) - 1][1], '/mockup-generator/create-task/724')
+    && ($pfReq['variant_ids'] ?? null) === [18554] && array_column($pfReq['files'] ?? [], 'placement') === ['default', 'back']
+    && str_contains((string) ($pfReq['files'][0]['image_url'] ?? ''), 'druckdatei.php?') && str_contains((string) ($pfReq['files'][0]['image_url'] ?? ''), 'f=pf_vorn')
+    && Db::wert('SELECT mockup_status FROM wm_entwuerfe WHERE id = ?', [$pfE]) === 'wartet' && Printful::mockupAnstossen($pfE) === 'fehlt');
+$pfH = Printful::mockupsHolen();
+pruefe('Produktfoto abholen: fertig → Bild gespeichert; nur der eigene Partner bekommt es',
+    $pfH === 1 && Db::wert('SELECT mockup_status FROM wm_entwuerfe WHERE id = ?', [$pfE]) === 'fertig'
+    && Werbemittel::produktfoto($pfE, (int) $pfA['id']) === $pfJpg && Werbemittel::produktfoto($pfE, (int) $pfB['id']) === null);
+$pfE2 = Werbemittel::entwurfAnlegen($pfA, (int) $pfVk['id'], ['stil' => 'f', 'sprache' => 'it', 'kontakt' => 'email']);
+Printful::mockupAnstossen($pfE2); $pfAntwort = 'fremd';
+Printful::mockupsHolen();
+pruefe('Foto von fremder Adresse wird nicht geholt (nur https auf *.printful.com) → Fehler, kein Bild',
+    Db::wert('SELECT mockup_status FROM wm_entwuerfe WHERE id = ?', [$pfE2]) === 'fehler' && Werbemittel::produktfoto($pfE2, (int) $pfA['id']) === null
+    && !in_array('https://boese.example/x.jpg', array_column($pfNetz, 1), true));
+Printful::$netz = null;
+$pfPhp = (string) file_get_contents($oben . '/partner.php');
+$pfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+pruefe('Partnerbereich: Foto nur für den eigenen Partner, Anstoß nach dem Erstellen, Anzeige nur wenn Printful das Produkt herstellt; Cron holt ab',
+    str_contains($pfPhp, "Werbemittel::produktfoto((int) \$_GET['wmfoto'], (int) \$p['id'])") && str_contains($pfPhp, 'Printful::mockupAnstossen($wmNeuId)')
+    && str_contains($pfV, "Werbemittel::hersteller(\$wmP, (string) \$wmP['land']) === 'Printful'")
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_fotos'"));
+Db::run("DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter IN ('Printful', 'Teuer')", [$pfVar]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $pfA['id'], (int) $pfB['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $pfA['id'], (int) $pfB['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $pfVk['aktiv'], (int) $pfVk['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

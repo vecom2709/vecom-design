@@ -4978,6 +4978,10 @@ final class Texte
         'motiv_allgemein' => ['it' => 'Design generale', 'de' => 'Allgemeine Gestaltung', 'en' => 'General design'],
         'sprache'     => ['it' => 'Lingua', 'de' => 'Sprache', 'en' => 'Language'],
         'kontakt'     => ['it' => 'Contatto sul materiale', 'de' => 'Kontakt auf dem Werbemittel', 'en' => 'Contact on the material'],
+        'foto_titel'  => ['it' => 'Così arriva da lei — foto della tipografia', 'de' => 'So kommt es bei Ihnen an — Foto der Druckerei', 'en' => 'How it arrives — photo from the printer'],
+        'foto_wartet' => ['it' => 'La tipografia sta preparando una foto del prodotto con il suo design. Compare qui tra pochi minuti.', 'de' => 'Die Druckerei erstellt gerade ein Foto des Produkts mit Ihrem Design. Es erscheint hier in wenigen Minuten.', 'en' => 'The printer is creating a photo of the product with your design. It will appear here in a few minutes.'],
+        'material'    => ['it' => 'Materiale', 'de' => 'Material', 'en' => 'Material'],
+        'lieferung'   => ['it' => 'Consegna', 'de' => 'Lieferung', 'en' => 'Delivery'],
         'gruppe_alle' => ['it' => 'Tutti', 'de' => 'Alle', 'en' => 'All'],
         'vorschau'    => ['it' => 'Anteprima con i suoi dati', 'de' => 'Vorschau mit Ihren Daten', 'en' => 'Preview with your details'],
         /* Designlinien (Schritt 3, 04.10.2026) */

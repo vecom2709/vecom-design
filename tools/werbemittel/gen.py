@@ -23,7 +23,7 @@ FORMATE = {
     # Roll-up 85 × 200 cm, Flyeralarm-Datenblätter der 85×200-Roll-ups (rollupba/rollupbl_85x200_sydr):
     # Datenformat 87 × 227 cm, unten 25 cm in der Kassette (unsichtbar). 100 dpi reichen für Lesen
     # aus 1–3 m; PHP lädt das Bild nie in GD (zu groß), sondern bettet es so ins PDF (04.10.2026).
-    'rollup_85': {'b': 850, 'h': 2250, 'beschnitt': 10, 'dpi': 100, 'einseitig': True, 'stile': 'AD', 'gross': True},
+    'rollup_85': {'b': 850, 'h': 2250, 'beschnitt': 10, 'dpi': 150, 'einseitig': True, 'stile': 'AD', 'gross': True},
 }
 
 T = {
@@ -221,17 +221,48 @@ if __name__ == '__main__':
     out = sys.argv[1]
     nur = sys.argv[2:] or list(FORMATE)
     with sync_playwright() as p:
-        b = p.chromium.launch(executable_path='/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None)
+        # Ohne GPU-Rasterung: Bei 150 dpi (Roll-up 5138 × 13406 px) lieferte die GPU teils schwarze Kacheln (04.10.2026).
+        b = p.chromium.launch(executable_path='/opt/pw-browsers/chromium' if os.path.exists('/opt/pw-browsers/chromium') else None,
+                              args=['--disable-gpu', '--disable-gpu-rasterization'] if os.environ.get('WM_OHNE_GPU', '1') == '1' else [])
         for fmt in nur:
             os.makedirs(f'{out}/{fmt}', exist_ok=True)
             layout = {}
-            for stil in FORMATE[fmt].get('stile', 'ABCD'):
+            for stil in os.environ.get('WM_STILE') or FORMATE[fmt].get('stile', 'ABCD'):
                 for art in (('vorn',) if FORMATE[fmt].get('einseitig') else ('vorn', 'hinten')):
                     for lang in ('de', 'it', 'en'):
                         html, lay, W, H, dpi = seite(fmt, stil, art, lang)
-                        pg = b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=dpi / 25.4 / 10)
-                        pg.set_content(html); pg.wait_for_timeout(200)
-                        pg.screenshot(path=f'{out}/{fmt}/{stil.lower()}-{art}-{lang}.png', clip={'x': 0, 'y': 0, 'width': W, 'height': H})
+                        ziel = f'{out}/{fmt}/{stil.lower()}-{art}-{lang}.png'
+                        if FORMATE[fmt].get('gross'):
+                            # Großformat in Streifen (04.10.2026): Ein Bild von 5138 × 13406 px am Stück — und auch
+                            # Ausschnitte einer riesigen Seite — lieferte Chromium gemessen mit schwarzen, nicht
+                            # gezeichneten Kacheln. Darum ist das Fenster nur einen Streifen hoch, die Grafik wird
+                            # darunter verschoben, und jeder Streifen ist vollständig sichtbar, bevor er fotografiert wird.
+                            from PIL import Image
+                            Image.MAX_IMAGE_PIXELS = None
+                            STREIFEN = 1200
+                            pg = b.new_page(viewport={'width': W, 'height': STREIFEN}, device_scale_factor=dpi / 25.4 / 10)
+                            pg.set_content(html.replace('<body>', '<body style="overflow:hidden"><div id="wanne" style="will-change:transform">', 1)
+                                                .replace('</body>', '</div></body>', 1))
+                            pg.wait_for_timeout(500)
+                            teile, y = [], 0
+                            while y < H:
+                                h = min(STREIFEN, H - y)
+                                pg.evaluate(f"document.getElementById('wanne').style.transform = 'translateY(-{y}px)'")
+                                pg.wait_for_timeout(700)
+                                pfad = f'{ziel}.{y}.png'
+                                pg.screenshot(path=pfad, clip={'x': 0, 'y': 0, 'width': W, 'height': h}, timeout=300000)
+                                teile.append(pfad); y += h
+                            bilder = [Image.open(t).convert('RGB') for t in teile]
+                            hoehe = round(H * dpi / 254)
+                            ganz = Image.new('RGB', (bilder[0].width, sum(x.height for x in bilder)))
+                            yy = 0
+                            for x in bilder: ganz.paste(x, (0, yy)); yy += x.height
+                            ganz.crop((0, 0, ganz.width, min(ganz.height, hoehe))).save(ziel)
+                            for t in teile: os.remove(t)
+                        else:
+                            pg = b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=dpi / 25.4 / 10)
+                            pg.set_content(html); pg.wait_for_timeout(200)
+                            pg.screenshot(path=ziel, clip={'x': 0, 'y': 0, 'width': W, 'height': H}, timeout=300000)
                         pg.close()
                         if lang == 'de' and (art == 'hinten' or FORMATE[fmt].get('einseitig')):
                             layout[stil.lower()] = lay

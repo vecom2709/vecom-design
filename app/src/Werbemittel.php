@@ -53,7 +53,7 @@ final class Werbemittel
         $quelle = $vorlage === 'visitenkarte' ? PartnerKarten::vornDatei($stil) : WmDruck::vornDatei($vorlage, $stil, $sprache);
         if ($quelle === '' || !is_file($quelle)) { return ''; }
         $ordner = dirname(__DIR__) . '/zwischenspeicher/mini';
-        $ziel = $ordner . '/' . substr(hash('sha256', $quelle . '|' . filemtime($quelle) . '|v1'), 0, 24) . '.jpg';
+        $ziel = $ordner . '/' . substr(hash('sha256', $quelle . '|' . filemtime($quelle) . '|v2'), 0, 24) . '.jpg';
         if (is_file($ziel)) { return (string) file_get_contents($ziel); }
         $im = @imagecreatefromjpeg($quelle);
         if (!$im) { return ''; }
@@ -61,8 +61,8 @@ final class Werbemittel
         $l = $vorlage === 'visitenkarte' ? ['b' => 85, 'beschnitt' => 3] : WmDruck::layout(WmDruck::branche($vorlage, $stil) ? 'flyer_a5' : $vorlage);
         $rand = (int) round(imagesx($im) * $l['beschnitt'] / ($l['b'] + 2 * $l['beschnitt']));
         $zu = imagecrop($im, ['x' => $rand, 'y' => $rand, 'width' => imagesx($im) - 2 * $rand, 'height' => imagesy($im) - 2 * $rand]) ?: $im;
-        $klein = imagescale($zu, 260, -1, IMG_BICUBIC) ?: $zu;
-        ob_start(); imagejpeg($klein, null, 82); $jpg = (string) ob_get_clean();
+        $klein = imagescale($zu, 420, -1, IMG_BICUBIC) ?: $zu;     // Kachel ~140–200 px breit: doppelt für scharfe Bildschirme
+        ob_start(); imagejpeg($klein, null, 84); $jpg = (string) ob_get_clean();
         if (!is_dir($ordner)) { @mkdir($ordner, 0775, true); }
         @file_put_contents($ziel, $jpg, LOCK_EX);
         return $jpg;
@@ -72,9 +72,11 @@ final class Werbemittel
     public static function vorschauBild(array $p, string $vorlage, string $stil, string $sprache, string $kontakt): string
     {
         require_once __DIR__ . '/PartnerKarten.php';
-        if ($vorlage === 'visitenkarte') { return PartnerKarten::vorschau($p, $stil, $sprache, $kontakt); }
+        /* Doppelte Auflösung (04.10.2026, Uwe: „alles qualitativ hochwertig, auch von der Auflösung“):
+           die Vorschau steht bis ~540 px breit da — auf hochauflösenden Handys braucht sie das Doppelte. */
+        if ($vorlage === 'visitenkarte') { return PartnerKarten::vorschau($p, $stil, $sprache, $kontakt, 1440); }
         require_once __DIR__ . '/WmDruck.php';
-        return WmDruck::vorschau($p, $vorlage, $stil, $sprache, $kontakt);
+        return WmDruck::vorschau($p, $vorlage, $stil, $sprache, $kontakt, 760);
     }
 
     /** Gibt es den Stil für diese Vorlage? */
@@ -292,6 +294,10 @@ final class Werbemittel
                 }
                 if (!$varianten) { continue; }
                 $imLand = array_filter(array_column($varianten, 'preis_cent'));
+                /* Material und Lieferung (04.10.2026, Uwe: „exakt das, was der Partner kauft“): aus dem
+                   günstigsten geprüften Angebot fürs Land — dieselbe Druckerei, die beim Bestellen gewählt wird.
+                   Nur Beschreibung, nie Druckereiname oder Einkaufspreis. */
+                $ang = self::angebote((int) $varianten[0]['id'], $land)[0] ?? null;
                 $liste[] = [
                     'id'        => (int) $p['id'],
                     'nummer'    => (string) $p['nummer'],
@@ -303,6 +309,8 @@ final class Werbemittel
                     'land'      => $land,
                     'ab_cent'   => $imLand ? min($imLand) : min(array_map(static fn($v) => min($v['preise']), $varianten)),
                     'varianten' => $varianten,
+                    'material'  => trim((string) ($ang['papier'] ?? '')),
+                    'lieferung' => self::ohneBetrag((string) ($ang['lieferung'] ?? '')),
                 ] + ($auchAus ? ['sichtbar' => (int) $p['aktiv'] === 1] : []);
             }
             if ($liste) {
@@ -429,6 +437,27 @@ final class Werbemittel
         return $land === null
             ? Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? ORDER BY land = \'IT\' DESC, land, preis_cent, id', [$varianteId])
             : Db::all('SELECT * FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id', [$varianteId, strtoupper($land)]);
+    }
+
+    /** Produktfoto der Druckerei zu einem Entwurf — nur für den eigenen Partner, nur wenn fertig. */
+    public static function produktfoto(int $entwurfId, int $partnerId): ?string
+    {
+        $b = Db::wert("SELECT mockup FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND mockup_status = 'fertig'", [$entwurfId, $partnerId], null);
+        return is_string($b) && $b !== '' ? $b : null;
+    }
+
+    /** Wer stellt dieses Produkt im Land her? Die Druckerei des günstigsten geprüften Angebots (wie beim Bestellen). */
+    public static function hersteller(array $produkt, string $land): string
+    {
+        $v = (int) ($produkt['varianten'][0]['id'] ?? 0);
+        return $v > 0 ? (string) (self::angebote($v, $land)[0]['anbieter'] ?? '') : '';
+    }
+
+    /** Lieferhinweis ohne Beträge: „… (ca. 11 Tage), Standard +6 €“ → „… (ca. 11 Tage)“ — Partner sehen keine Druckereipreise. */
+    public static function ohneBetrag(string $t): string
+    {
+        $teile = array_filter(array_map('trim', preg_split('~,\s+~u', $t) ?: []), static fn($x) => $x !== '' && !preg_match('~€|\bEUR\b|\d+[.,]\d{2}~u', $x));
+        return implode(', ', $teile);
     }
 
     /** Legt ein Angebot an oder ändert es (gleiche Druckerei + gleiches Land = selbe Zeile). */
@@ -646,7 +675,7 @@ final class Werbemittel
     /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
     public static function stand(int $partnerId, int $produktId): array
     {
-        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, scans, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
+        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, scans, mockup_status, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
         $hol = static function (string $status) use ($felder, $partnerId, $produktId): ?array {
             $r = Db::one("SELECT $felder FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = ? ORDER BY id DESC LIMIT 1",
                 [$partnerId, $produktId, $status]);

@@ -137,6 +137,11 @@ final class Cron
                 require_once __DIR__ . '/Printful.php';
                 return Printful::nachsehen();
             },
+            /* Produktfotos der Druckerei abholen (04.10.2026): Printful rechnet sie in wenigen Sekunden bis Minuten. */
+            'wm_printful_fotos' => static function () {
+                require_once __DIR__ . '/Printful.php';
+                return Printful::mockupsHolen();
+            },
             /* Printful-Preise je Auflage und Land (estimate-costs, nur lesen), höchstens einmal je 7 Tage. */
             'wm_printful_preise' => static function () {
                 require_once __DIR__ . '/Printful.php';

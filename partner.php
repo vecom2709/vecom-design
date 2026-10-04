@@ -383,8 +383,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $wmPid = (int) ($_POST['produkt'] ?? 0);
                 if ($tat === 'wm_entwurf') {
                     try {
-                        Werbemittel::entwurfAnlegen($p, $wmPid, $_POST);
+                        $wmNeuId = Werbemittel::entwurfAnlegen($p, $wmPid, $_POST);
                         $wmM = 'entwurf';
+                        /* Produktfoto der Druckerei (04.10.2026): Printful fotografiert die echte Karte mit diesem Design.
+                           Scheitert es, bleibt der Entwurf trotzdem — das Foto ist eine Zugabe, keine Bedingung. */
+                        try { require_once __DIR__ . '/app/src/Printful.php'; Printful::mockupAnstossen($wmNeuId); } catch (Throwable $e) { error_log('Produktfoto: ' . $e->getMessage()); }
                     } catch (RuntimeException $e) { $wmM = $e->getMessage() === 'zuviel' ? 'zuviel' : 'fehler'; }
                     catch (InvalidArgumentException $e) { $wmM = 'fehler'; }
                 } else {
@@ -596,6 +599,18 @@ if ($p && isset($_GET['wmv'])) {
     header('Content-Type: image/jpeg');
     header('Cache-Control: private, max-age=600');
     echo $wmBild;
+    exit;
+}
+/* ---------- Marketing Center: Produktfoto der Druckerei (04.10.2026) ---------- */
+if ($p && isset($_GET['wmfoto'])) {
+    require_once __DIR__ . '/app/src/Werbemittel.php';
+    $wmFoto = Werbemittel::produktfoto((int) $_GET['wmfoto'], (int) $p['id']);
+    if ($wmFoto === null) { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: ' . ((getimagesizefromstring($wmFoto)[2] ?? 0) === IMAGETYPE_PNG ? 'image/png' : 'image/jpeg'));
+    header('Cache-Control: private, max-age=86400');
+    echo $wmFoto;
     exit;
 }
 /* ---------- Marketing Center: Kachelbild für die Auswahl (04.10.2026) ----------

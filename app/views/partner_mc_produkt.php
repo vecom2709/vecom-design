@@ -38,6 +38,15 @@ $wmWahlText = static fn(array $w): string => $mcStilName((string) ($w['stil'] ??
     . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
     . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email'));
 $mcNoch = $wmNoch && in_array($wmNochVar, array_column($wmP['varianten'], 'id'), true);
+/* Produktfoto der Druckerei — nur, wenn genau diese Druckerei das Produkt im Land des Partners herstellt
+   (sonst wäre es ein anderes Produkt als das, was er kauft). */
+$mcFotoDa = !$wmNurLesen && Werbemittel::hersteller($wmP, (string) $wmP['land']) === 'Printful';
+$mcFoto = static function (array $e) use ($h, $selbst, $mcT, $mcFotoDa): void {
+    if (!$mcFotoDa || empty($e['mockup_status']) || $e['mockup_status'] === 'fehler') { return; } ?>
+    <div class="mc-foto"><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_titel')) ?></span>
+      <?php if ($e['mockup_status'] === 'fertig'): ?><img src="<?= $h($selbst(['wmfoto' => (int) $e['id']])) ?>" alt="" loading="lazy" width="1000" height="1000">
+      <?php else: ?><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_wartet')) ?></span><?php endif; ?></div>
+<?php };
 $mcKachel = static function (string $s, string $linie, string $gruppe = '', string $linienName = '') use ($h, $wmJetzt, $mcMini, $mcStilName, $mcQuer, $wmNurLesen): void { ?>
   <label class="mc-kachel<?= $mcQuer ? ' mc-quer' : '' ?>" data-linie="<?= $linie ?>"<?= $gruppe !== '' ? ' data-flg="' . $h($gruppe) . '"' : '' ?>>
     <input type="radio" name="stil" value="<?= $h($s) ?>"<?= $s === $wmJetzt['stil'] ? ' checked' : '' ?>>
@@ -52,6 +61,12 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
       <h3><?= $h($wmP['name']) ?><?php if (isset($wmP['sichtbar']) && !$wmP['sichtbar']): ?> <span class="marke2 warnung" style="font-size:12px">für Partner noch aus</span><?php endif; ?></h3>
       <?php if ($wmP['text'] !== ''): ?><p class="wm-text"><?= $h($wmP['text']) ?></p><?php endif; ?>
       <p class="wm-meta"><?= $wmP['format'] !== '' ? $h($W('format') . ' ' . $wmP['format']) . ' · ' : '' ?><?= $h($wmP['nummer']) ?> · <b class="mc-ab"><?= $h(strtr($W('ab'), ['{preis}' => Werbemittel::euro((int) $wmP['ab_cent'])])) ?></b></p>
+      <?php if (($wmP['material'] ?? '') !== '' || ($wmP['lieferung'] ?? '') !== ''): ?>
+        <dl class="mc-fakten">
+          <?php if ($wmP['material'] !== ''): ?><dt><?= $h($mcT('material')) ?></dt><dd><?= $h($wmP['material']) ?></dd><?php endif; ?>
+          <?php if ($wmP['lieferung'] !== ''): ?><dt><?= $h($mcT('lieferung')) ?></dt><dd><?= $h($wmP['lieferung']) ?></dd><?php endif; ?>
+        </dl>
+      <?php endif; ?>
     </div>
     <?php if ($mcEigen): $mcIst = in_array((int) $wmP['id'], $mcFav, true); ?>
       <form method="post" action="<?= $h($selbst()) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>">
@@ -136,6 +151,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
             <input type="hidden" name="hash" value="<?= $h((string) $wmE['datei_hash']) ?>">
             <b><?= $h($W('entwurf_titel')) ?></b>
             <span><?= $h($wmWahlText($wmE['wahl'])) ?></span>
+            <?php $mcFoto($wmE); ?>
             <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmE)])) ?></span>
             <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
             <?php if (!empty($wmE['hat_pf'])): ?>
@@ -156,6 +172,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
             <b>✓ <?= $h(strtr($W('frei_titel'), ['{datum}' => Fmt::datum((string) $wmF['freigegeben_am'])])) ?></b>
             <span><?= $h($wmWahlText($wmF['wahl'])) ?></span>
             <a href="<?= $h($selbst(['wmpdf' => (int) $wmF['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
+            <?php $mcFoto($wmF); ?>
             <span class="wm-meta" style="margin:0"><?= $h($W('frei_satz')) ?></span>
             <?php $wmEr = Werbemittel::erfolg((int) $p['id'], (int) $wmF['id']); ?>
             <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmF)])) ?><br>

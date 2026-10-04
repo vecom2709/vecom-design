@@ -254,6 +254,84 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         return '';
     }
 
+    // ---- Produktfoto (Mockup-Generator, 04.10.2026) ------------------------------------
+    /*  Quelle: offizielle OpenAPI v1.0 (developers.printful.com/docs/openapi.json, geprüft 04.10.2026):
+        POST /mockup-generator/create-task/{id} {variant_ids, format, width, files[{placement, image_url}]}
+        → result.task_key; GET /mockup-generator/task?task_key= → result.status (pending|completed|failed),
+        result.mockups[].mockup_url. Grenze: 2 (neuer Shop) bis 10 Aufträge je 60 s, sonst 60 s Sperre. */
+
+    /** Variante, die fotografiert wird (50 Stück — Karte und Papier sind bei allen Auflagen gleich). */
+    public const MOCKUP_VARIANTE = 18554;
+
+    /**
+     * Foto für einen Entwurf bei Printful bestellen — einmal; ohne eingepasste Fassung nicht.
+     * @return string ok|aus|fehlt|grenze|fehler
+     */
+    public static function mockupAnstossen(int $entwurfId): string
+    {
+        if (!self::bereit()) { return 'aus'; }
+        require_once __DIR__ . '/Druckerei.php';
+        $e = Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL AND mockup_status IS NULL', [$entwurfId]);
+        if (!$e) { return 'fehlt'; }
+        $koerper = ['variant_ids' => [self::MOCKUP_VARIANTE], 'format' => 'jpg', 'width' => 1000, 'files' => [
+            ['placement' => 'default', 'image_url' => Druckerei::dateiLink($entwurfId, 'pf_vorn', 3)],
+            ['placement' => 'back', 'image_url' => Druckerei::dateiLink($entwurfId, 'pf_hinten', 3)],
+        ]];
+        try { $r = self::rufen('POST', '/mockup-generator/create-task/' . self::PRODUKT, $koerper); }
+        catch (Throwable $ex) { self::$letzterGrund = $ex->getMessage(); return 'fehler'; }
+        if ($r['code'] === 429) { self::$letzterGrund = self::grund($r); return 'grenze'; }   // später wieder: Status bleibt leer
+        $k = (string) (json_decode($r['body'], true)['result']['task_key'] ?? '');
+        if ($r['code'] !== 200 || !preg_match('~^[A-Za-z0-9_.:-]{4,80}$~', $k)) {
+            self::$letzterGrund = self::grund($r);
+            Db::run("UPDATE wm_entwuerfe SET mockup_status = 'fehler', mockup_am = NOW() WHERE id = ?", [$entwurfId]);
+            return 'fehler';
+        }
+        Db::run("UPDATE wm_entwuerfe SET mockup_task = ?, mockup_status = 'wartet', mockup_am = NOW() WHERE id = ? AND mockup_status IS NULL", [$k, $entwurfId]);
+        return 'ok';
+    }
+
+    /** Cron: fertige Fotos abholen und speichern; Liegengebliebenes (älter als 1 Tag) gilt als Fehler. @return int abgeholt */
+    public static function mockupsHolen(int $max = 10): int
+    {
+        if (!self::bereit()) { return 0; }
+        $n = 0;
+        foreach (Db::all("SELECT id, mockup_task, mockup_am FROM wm_entwuerfe WHERE mockup_status = 'wartet' ORDER BY id LIMIT " . max(1, min(50, $max))) as $e) {
+            try { $r = self::rufen('GET', '/mockup-generator/task?task_key=' . rawurlencode((string) $e['mockup_task']), null); }
+            catch (Throwable $ex) { continue; }
+            $d = (array) (json_decode($r['body'], true)['result'] ?? []);
+            $st = (string) ($d['status'] ?? '');
+            if ($r['code'] === 200 && $st === 'completed') {
+                $bild = self::fotoLaden((string) ($d['mockups'][0]['mockup_url'] ?? ''));
+                if ($bild !== null) {
+                    Db::run("UPDATE wm_entwuerfe SET mockup = ?, mockup_status = 'fertig', mockup_am = NOW() WHERE id = ?", [$bild, (int) $e['id']]);
+                    $n++;
+                    continue;
+                }
+                Db::run("UPDATE wm_entwuerfe SET mockup_status = 'fehler' WHERE id = ?", [(int) $e['id']]);
+            } elseif ($st === 'failed' || strtotime((string) $e['mockup_am']) < time() - 86400) {
+                Db::run("UPDATE wm_entwuerfe SET mockup_status = 'fehler' WHERE id = ?", [(int) $e['id']]);
+            }
+        }
+        return $n;
+    }
+
+    /** Foto von Printfuls Server holen — nur https auf *.printful.com, nur JPEG/PNG, höchstens 8 MB. */
+    private static function fotoLaden(string $url): ?string
+    {
+        $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+        if (!str_starts_with($url, 'https://') || ($host !== 'printful.com' && !str_ends_with($host, '.printful.com'))) { return null; }
+        if (self::$netz !== null) { $r = (self::$netz)('GET', $url, [], null); }
+        else {
+            $ch = curl_init($url);
+            curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 30, CURLOPT_FOLLOWLOCATION => false, CURLOPT_MAXFILESIZE => 8 * 1024 * 1024]);
+            $roh = curl_exec($ch); $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+            $r = ['code' => $code, 'body' => is_string($roh) ? $roh : ''];
+        }
+        $b = (string) $r['body'];
+        $g = $r['code'] === 200 && strlen($b) <= 8 * 1024 * 1024 ? @getimagesizefromstring($b) : false;
+        return $g && in_array($g[2], [IMAGETYPE_JPEG, IMAGETYPE_PNG], true) ? $b : null;
+    }
+
     /** Lieferadresse nach Printful-Feldern (Längen sind in der Doku nicht begrenzt; wir kürzen trotzdem vernünftig). */
     private static function empfaenger(array $ad): array
     {
