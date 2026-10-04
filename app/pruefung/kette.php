@@ -21908,6 +21908,36 @@ pruefe('Preis-Knopf holt alle Druckereien mit Preis-Schnittstelle, Cron Printful
     str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (['Gelato', 'Printful'] as \$wmK)")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_preise'")
     && str_contains((string) file_get_contents($wurzel . '/config.local.example.php'), "'printful'"));
+// Probe-Entwurf (Musterkarte, kein Partner, nie gedruckt)
+require_once $wurzel . '/src/Gelato.php';
+$w7Mp = Druckerei::musterDatei('probe_druck'); $w7Mj = @getimagesizefromstring(Druckerei::musterDatei('probe_pf_vorn'));
+$w7Pl = Druckerei::dateiLink(0, 'probe_druck', 2); parse_str((string) parse_url($w7Pl, PHP_URL_QUERY), $w7Pq);
+pruefe('Musterkarte: PDF für Gelato, JPEG in Printful-Größe; signierter Link mit Entwurf 0 gilt nur für die Probe-Fassung',
+    str_starts_with($w7Mp, '%PDF') && is_array($w7Mj) && $w7Mj[0] === 1125 && $w7Mj[1] === 675
+    && Druckerei::linkPruefen('0', (string) $w7Pq['x'], 'probe_druck', (string) $w7Pq['s']) === [0, 'probe_druck']
+    && Druckerei::linkPruefen('0', (string) $w7Pq['x'], 'frei', (string) $w7Pq['s'])[0] === 0
+    && str_contains((string) file_get_contents($oben . '/druckdatei.php'), "str_starts_with((string) \$fassung, 'probe_') && \$id === 0"));
+Gelato::artikelSetzen($w7V, 'cards_pf_bd_pt_350-gsm-coated-silk_cl_4-4_hor', 250);
+$w7Gp = [];
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Gp): array { $w7Gp[] = [$m, $u, $r]; return ['code' => 200, 'body' => json_encode(['id' => 'gel-probe-1'])]; };
+$w7Bvor = (int) Db::wert('SELECT COUNT(*) FROM wm_bestellungen');
+$w7Gr = Druckerei::probeSenden('Gelato');
+$w7Gb = json_decode((string) ($w7Gp[0][2] ?? ''), true);
+pruefe('Probe-Entwurf an Gelato: genau ein POST, orderType „draft“, Bezug PROBE-…, Datei = Musterkarte, keine Bestellung in der Datenbank, Protokolleintrag',
+    $w7Gr['ok'] && ($w7Gr['id'] ?? '') === 'gel-probe-1' && count($w7Gp) === 1 && ($w7Gb['orderType'] ?? '') === 'draft'
+    && str_starts_with((string) ($w7Gb['orderReferenceId'] ?? ''), 'PROBE-') && str_contains((string) ($w7Gb['items'][0]['files'][0]['url'] ?? ''), 'f=probe_druck')
+    && ($w7Gb['shippingAddress']['firstName'] ?? '') === 'PROBE'
+    && (int) Db::wert('SELECT COUNT(*) FROM wm_bestellungen') === $w7Bvor
+    && (int) Db::wert("SELECT COUNT(*) FROM activities WHERE type = 'wm_probe'") >= 1, json_encode($w7Gb));
+$w7Pp = [];
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Pp, $w7Antwort): array { $w7Pp[] = [$m, $u, $r]; return $w7Antwort($m, $u, $r); };
+$w7Pr = Druckerei::probeSenden('Printful');
+$w7Pb = null; foreach ($w7Pp as $w7Z) { if ($w7Z[0] === 'POST') { $w7Pb = $w7Z; } }
+$w7Pj = json_decode((string) ($w7Pb[2] ?? ''), true);
+pruefe('Probe-Entwurf an Printful: erst Druckfläche, dann EIN Entwurf ohne confirm, ein Pack, Vorder-/Rückseite der Musterkarte',
+    $w7Pr['ok'] && ($w7Pb[1] ?? '') === 'https://api.printful.com/orders' && ($w7Pj['items'][0]['quantity'] ?? 0) === 1
+    && str_contains((string) ($w7Pj['items'][0]['files'][1]['url'] ?? ''), 'f=probe_pf_hinten') && str_starts_with((string) ($w7Pj['external_id'] ?? ''), 'PROBE-')
+    && (Ablauf::TRAGWEITE['wm_probe'][0] ?? '') === Ablauf::RAUS && Druckerei::probeSenden('HelloPrint')['ok'] === false, json_encode($w7Pj));
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);

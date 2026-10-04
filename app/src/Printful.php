@@ -115,6 +115,27 @@ final class Printful
         return ['ok' => true, 'grund' => '', 'id' => (string) $d['result']['id']];
     }
 
+    /** Probe-Entwurf mit der Musterkarte (siehe Druckerei::probeSenden) — ein Pack, nie mit confirm. */
+    public static function probeSenden(): array
+    {
+        require_once __DIR__ . '/Druckerei.php';
+        $a = Db::one("SELECT artikel FROM wm_anbieter_produkte WHERE anbieter = 'printful' ORDER BY menge, id LIMIT 1");
+        if (!$a || !ctype_digit((string) $a['artikel'])) { return ['ok' => false, 'grund' => 'Keine Printful-Variante zugeordnet.']; }
+        $passt = self::flaechePruefen([(int) $a['artikel']]);
+        if ($passt !== '') { return ['ok' => false, 'grund' => $passt]; }
+        $ref = 'PROBE-' . date('Ymd-His');
+        try {
+            $r = self::rufen('POST', '/orders', ['external_id' => $ref, 'shipping' => 'STANDARD', 'recipient' => self::empfaenger(Druckerei::MUSTER_ADRESSE),
+                'items' => [['external_id' => $ref . '-1', 'variant_id' => (int) $a['artikel'], 'quantity' => 1, 'files' => [
+                    ['type' => 'default', 'url' => Druckerei::dateiLink(0, 'probe_pf_vorn', 2)],
+                    ['type' => 'back', 'url' => Druckerei::dateiLink(0, 'probe_pf_hinten', 2)],
+                ]]]]);
+        } catch (Throwable $e) { return ['ok' => false, 'grund' => 'Keine Antwort von Printful: ' . $e->getMessage()]; }
+        $d = json_decode($r['body'], true);
+        if ($r['code'] < 200 || $r['code'] >= 300 || !isset($d['result']['id'])) { return ['ok' => false, 'grund' => 'Printful lehnte ab (' . self::grund($r) . ')']; }
+        return ['ok' => true, 'grund' => '', 'id' => (string) $d['result']['id'], 'ref' => $ref];
+    }
+
     /** Cron: Stand nachlesen. Sendung da → WmBestellung::versendet (Mail an den Partner); abgelehnt → Meldung. */
     public static function nachsehen(): int
     {

@@ -1861,6 +1861,15 @@ if ($post) {
                 $_SESSION[$wmGut ? 'gut' : 'fehler'] = $wmZeilen ? implode(' · ', $wmZeilen) : 'Keine Druckerei mit Preis-Schnittstelle angebunden.';
                 zurueck('werbemittel');
 
+            case 'wm_probe':
+                require_once __DIR__ . '/src/Druckerei.php';
+                $wmA = (string) ($_POST['anbieter'] ?? '');
+                $wmR = Druckerei::probeSenden($wmA);
+                $_SESSION[$wmR['ok'] ? 'gut' : 'fehler'] = $wmR['ok']
+                    ? 'Probe-Entwurf bei ' . $wmA . ' angelegt (Nummer ' . ($wmR['id'] ?? '') . ', Bezug ' . ($wmR['ref'] ?? '') . '). Im Dashboard der Druckerei ansehen und wieder löschen — nicht bestätigen.'
+                    : 'Probe an ' . $wmA . ' nicht angelegt: ' . $wmR['grund'];
+                zurueck('werbemittel');
+
             case 'wm_gelato_senden':
             case 'wm_gelato_zurueck':
                 require_once __DIR__ . '/src/Gelato.php';

@@ -74,6 +74,8 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
       <input type="hidden" name="tat" value="<?= $auto ? 'wm_automatik_aus' : 'wm_automatik_an' ?>"><button class="knopf"><?= $auto ? 'Automatik ausschalten' : 'Automatik einschalten' ?></button></form>
     <?php if (Gelato::bereit() || Printful::bereit()): ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
       <input type="hidden" name="tat" value="wm_gelato_preise"><button class="knopf stumm">Preise der Druckereien jetzt holen</button></form><?php endif; ?>
+    <?php foreach (['Gelato', 'Printful'] as $wmPk): if (!$wmPk::bereit()) { continue; } ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="zurueck" value="werbemittel">
+      <input type="hidden" name="tat" value="wm_probe"><input type="hidden" name="anbieter" value="<?= $wmPk ?>"><button class="knopf stumm" title="Musterkarte als Entwurf — nichts wird gedruckt">Probe-Entwurf an <?= $wmPk ?></button></form><?php endforeach; ?>
   </div>
 </div>
 

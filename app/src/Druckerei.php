@@ -100,8 +100,50 @@ final class Druckerei
             [mb_substr($ref, 0, 120), $id]);
     }
 
+    /**
+     * PROBE-ENTWURF (04.10.2026, Uwe: Test-Entwurf ansehen und wieder löschen).
+     * Prüft mit einer MUSTERKARTE — kein Partner, kein Partnerinhalt —, ob die
+     * Druckerei unsere Datei annimmt. Immer nur Entwurf (Gelato orderType
+     * „draft“, Printful ohne confirm): gedruckt und berechnet wird nichts,
+     * solange Uwe ihn nicht im Dashboard bestätigt. Keine Bestellung in der
+     * Datenbank, nur ein Eintrag im Protokoll.
+     */
+    public const MUSTER = ['id' => 0, 'name' => 'Mario Rossi', 'code' => 'PROBE', 'email' => 'kontakt@vecom-design.it', 'sprache' => 'it'];
+
+    /** Adresse auf dem Entwurf: deutlich als Probe beschriftet (wird nie versendet). */
+    public const MUSTER_ADRESSE = ['name' => 'PROBE Nicht-drucken', 'firma' => 'Vecom Design', 'strasse' => 'Via Atenea 1', 'plz' => '92100', 'ort' => 'Agrigento', 'land' => 'IT'];
+
+    /** Die Musterkarte in der Fassung $fassung (probe_druck = PDF für Gelato, probe_pf_* = JPEG für Printful). */
+    public static function musterDatei(string $fassung): string
+    {
+        // Dieselben Bausteine wie im Partnerbereich (Link, QR, Name) — druckdatei.php lädt sie sonst nicht.
+        foreach (['Fmt', 'Partner', 'PartnerWerbung', 'PartnerKarten'] as $k) { require_once __DIR__ . '/' . $k . '.php'; }
+        return match ($fassung) {
+            'probe_druck' => PartnerKarten::druckPdf(self::MUSTER, 'a', 'it', 'email', 4.0, 300),
+            'probe_pf_vorn', 'probe_pf_hinten' => (static function () use ($fassung): string {
+                require_once __DIR__ . '/Printful.php';
+                return PartnerKarten::eingepasst(self::MUSTER, 'a', $fassung === 'probe_pf_vorn' ? 'vorn' : 'hinten', 'it', 'email', Printful::VORLAGE[0], Printful::VORLAGE[1]);
+            })(),
+            default => '',
+        };
+    }
+
+    /** Probe-Entwurf an die Druckerei $name. @return array{ok:bool, grund:string, id?:string} */
+    public static function probeSenden(string $name): array
+    {
+        foreach (self::ANGEBUNDEN as $n => $klasse) {
+            if (strcasecmp($n, $name) !== 0) { continue; }
+            self::laden($klasse);
+            if (!$klasse::bereit() || !method_exists($klasse, 'probeSenden')) { break; }
+            $r = $klasse::probeSenden();
+            if ($r['ok']) { Events::protokoll('wm_probe', 'Probe-Entwurf an ' . $n . ' (Musterkarte, nichts gedruckt)', null, null, null, ['anbieter' => $n, 'ref' => $r['id'] ?? '']); }
+            return $r;
+        }
+        return ['ok' => false, 'grund' => $name . ' ist nicht angebunden.'];
+    }
+
     /** Fassungen einer Druckdatei, die ein Link ausliefern darf. */
-    public const FASSUNGEN = ['druck', 'frei', 'pf_vorn', 'pf_hinten'];
+    public const FASSUNGEN = ['druck', 'frei', 'pf_vorn', 'pf_hinten', 'probe_druck', 'probe_pf_vorn', 'probe_pf_hinten'];
 
     /**
      * Unterschriebener, befristeter Link zur Druckdatei. $fassung: 'druck'

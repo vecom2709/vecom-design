@@ -296,6 +296,32 @@ final class Gelato
         Events::melden('wm_gelato_fehler', 'Gelato: Entwurf nicht angelegt', 'schlecht', mb_substr($text, 0, 480), '/werbemittel/bestellungen');
     }
 
+    /** Probe-Entwurf mit der Musterkarte (siehe Druckerei::probeSenden) — kleinste zugeordnete Auflage, immer „draft“. */
+    public static function probeSenden(): array
+    {
+        require_once __DIR__ . '/Druckerei.php';
+        $a = Db::one("SELECT artikel, menge FROM wm_anbieter_produkte WHERE anbieter = 'gelato' ORDER BY menge, id LIMIT 1");
+        if (!$a) { return ['ok' => false, 'grund' => 'Kein Gelato-Artikel zugeordnet.']; }
+        $ad = Druckerei::MUSTER_ADRESSE;
+        [$vor, $nach] = self::namen($ad['name']);
+        $ref = 'PROBE-' . date('Ymd-His');
+        try {
+            $r = self::rufen('POST', '/v4/orders', [
+                'orderType' => 'draft', 'orderReferenceId' => $ref, 'customerReferenceId' => 'vecom-probe', 'currency' => 'EUR',
+                'items' => [['itemReferenceId' => $ref . '-1', 'productUid' => (string) $a['artikel'], 'quantity' => (int) $a['menge'],
+                             'files' => [['type' => 'default', 'url' => Druckerei::dateiLink(0, 'probe_druck', 2)]]]],
+                'shippingAddress' => ['firstName' => $vor, 'lastName' => $nach, 'companyName' => $ad['firma'], 'addressLine1' => $ad['strasse'],
+                                      'city' => $ad['ort'], 'postCode' => $ad['plz'], 'country' => $ad['land'], 'email' => (string) Config::get('email', 'kontakt@vecom-design.it')],
+            ]);
+        } catch (Throwable $e) { return ['ok' => false, 'grund' => 'Keine Antwort von Gelato: ' . $e->getMessage()]; }
+        $d = json_decode($r['body'], true);
+        if ($r['code'] < 200 || $r['code'] >= 300 || !is_array($d) || empty($d['id'])) {
+            $grund = is_array($d) ? (string) ($d['message'] ?? json_encode($d, JSON_UNESCAPED_UNICODE)) : mb_substr($r['body'], 0, 300);
+            return ['ok' => false, 'grund' => 'Gelato lehnte ab (HTTP ' . $r['code'] . '): ' . mb_substr($grund, 0, 300)];
+        }
+        return ['ok' => true, 'grund' => '', 'id' => (string) $d['id'], 'ref' => $ref];
+    }
+
     /** „Maria Rossi“ → [Maria, Rossi]; ein Wort → [Wort, Wort] (beide Felder sind Pflicht). */
     public static function namen(string $name): array
     {

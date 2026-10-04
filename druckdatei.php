@@ -27,6 +27,18 @@ if (isset($_GET['f'])) {
     $id = Gelato::linkPruefen((string) ($_GET['e'] ?? ''), (string) ($_GET['x'] ?? ''), (string) ($_GET['s'] ?? ''));
     $fassung = 'druck';
 }
+// Probe-Entwurf: die Musterkarte (kein Partner) — nur mit gültigem Link, Entwurfs-id 0.
+// ($fassung ist nur gesetzt, wenn die Unterschrift stimmt — linkPruefen liefert sonst '').
+if (str_starts_with((string) $fassung, 'probe_') && $id === 0) {
+    $muster = Druckerei::musterDatei((string) $fassung);
+    if ($muster === '') { http_response_code(404); exit; }
+    $istPdf = $fassung === 'probe_druck';
+    header('Content-Type: ' . ($istPdf ? 'application/pdf' : 'image/jpeg'));
+    header('Content-Disposition: inline; filename="vecom-probe-' . substr((string) $fassung, 6) . ($istPdf ? '.pdf' : '.jpg') . '"');
+    header('Content-Length: ' . strlen($muster));
+    echo $muster;
+    exit;
+}
 $spalte = ['frei' => 'datei', 'druck' => 'datei_druck', 'pf_vorn' => 'datei_pf_vorn', 'pf_hinten' => 'datei_pf_hinten'][$fassung] ?? '';
 if ($spalte === '') { http_response_code(404); exit; }
 $d = $id > 0 ? Db::one("SELECT e.id, e.$spalte AS datei_druck FROM wm_entwuerfe e
