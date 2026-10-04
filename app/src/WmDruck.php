@@ -26,7 +26,14 @@ final class WmDruck
         'flyer_a6' => 'Flyer A6 (Vorlage)',
         'flyer_a5' => 'Flyer A5 (Vorlage)',
         'flyer_branche' => 'Branchen-Flyer A5 (Vorlage)',
+        'aufkleber_50' => 'Aufkleber rund Ø 5 cm (Vorlage)',
     ];
+
+    /** Nur eine Seite (Aufkleber): der Code steht vorn, die Druckdatei hat eine Seite. */
+    public static function einseitig(string $fmt): bool
+    {
+        return !empty(self::layout($fmt)['einseitig']);
+    }
 
     /**
      * Branchen-Flyer (04.10.2026, Uwe: „die Flyer einzeln in DE/IT/EN … zusätzlich ins
@@ -83,8 +90,8 @@ final class WmDruck
         }
         $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
         if (!$im) { return null; }
-        if ($seite !== 'hinten') { return $im; }
         $lay = self::layout($fmt);
+        if ($seite !== (empty($lay['einseitig']) ? 'hinten' : 'vorn')) { return $im; }
         $L = $lay['stile'][$stil];
         $k = imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10);          // Pixel je 1/10 mm
         imagealphablending($im, true);
@@ -155,8 +162,9 @@ final class WmDruck
         if (!self::gibt($fmt, $stil)) { return ''; }
         $lay = self::layout($fmt);
         $weg = $beschnitt === null ? 0.0 : max(0.0, (float) $lay['beschnitt'] - $beschnitt);   // mm je Seite
-        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !isset(self::RUECKSEITE[$fmt]));
-        $h = self::leinwand($p, $fmt, $stil, 'hinten', $sprache, $kontakt, false);
+        $ein = self::einseitig($fmt);
+        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !isset(self::RUECKSEITE[$fmt]) && !$ein);
+        $h = $ein ? $v : self::leinwand($p, $fmt, $stil, 'hinten', $sprache, $kontakt, false);
         if (!$v || !$h) { return ''; }
         $bw = $lay['b'] + 2 * $lay['beschnitt']; $bh = $lay['h'] + 2 * $lay['beschnitt'];
         if ($weg > 0) {
@@ -173,12 +181,14 @@ final class WmDruck
         $pdf = new KartenPdf();
         if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }
         $iv = $pdf->bild(self::jpeg($v, 92), imagesx($v), imagesy($v));
-        $ih = $pdf->bild(self::jpeg($h, 92), imagesx($h), imagesy($h));
+        $ih = $ein ? $iv : $pdf->bild(self::jpeg($h, 92), imagesx($h), imagesy($h));
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
         // Branchen-Flyer: Code auch vorn — dort im PDF als Vektor, nicht als Pixel.
         // Lage der Codes: in Koordinaten der Vorlage, um den abgeschnittenen Rand verschoben.
-        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, -$weg, (float) $bh0 - $weg) : '';
+        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, -$weg, (float) $bh0 - $weg)
+            : ($ein ? PartnerKarten::qrVektor($lay['stile'][$stil], $n, $raster, -$weg, (float) $bh0 - $weg) : '');
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv) . $vornQr, $sb * $mm);
+        if ($ein) { return $pdf->fertig(); }
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $ih)
             . PartnerKarten::qrVektor($lay['stile'][self::RUECKSEITE[$fmt][1] ?? $stil], $n, $raster, -$weg, (float) $bh0 - $weg), $sb * $mm);
         return $pdf->fertig();
@@ -190,12 +200,23 @@ final class WmDruck
         if (!self::gibt($fmt, $stil)) { return ''; }
         $lay = self::layout($fmt);
         $teile = [];
-        foreach (['vorn', 'hinten'] as $s) {
+        foreach (self::einseitig($fmt) ? ['vorn'] : ['vorn', 'hinten'] as $s) {
             $im = self::leinwand($p, $fmt, $stil, $s, $sprache, $kontakt);
             if (!$im) { return ''; }
             $b = (int) round(imagesx($im) * $lay['beschnitt'] / ($lay['b'] + 2 * $lay['beschnitt']));
             $zu = imagecrop($im, ['x' => $b, 'y' => $b, 'width' => imagesx($im) - 2 * $b, 'height' => imagesy($im) - 2 * $b]) ?: $im;
             $teile[] = imagescale($zu, (int) round(imagesx($zu) * $hoehe / imagesy($zu)), $hoehe, IMG_BICUBIC) ?: $zu;
+        }
+        if (count($teile) === 1) {
+            // Aufkleber: rund zeigen, wie er geschnitten wird — außerhalb des Kreises weiß.
+            $t = $teile[0]; $d = imagesx($t);
+            $weiss = imagecolorallocate($t, 255, 255, 255);
+            for ($y = 0; $y < imagesy($t); $y++) {
+                for ($x = 0; $x < $d; $x++) {
+                    if ((($x - $d / 2 + 0.5) ** 2 + ($y - $hoehe / 2 + 0.5) ** 2) > ($d / 2) ** 2) { imagesetpixel($t, $x, $y, $weiss); }
+                }
+            }
+            return self::jpeg($t, 86);
         }
         $abstand = (int) round($hoehe * 0.05);
         $aus = imagecreatetruecolor(imagesx($teile[0]) + imagesx($teile[1]) + $abstand, $hoehe);

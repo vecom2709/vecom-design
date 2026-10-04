@@ -17,6 +17,9 @@ from playwright.sync_api import sync_playwright
 FORMATE = {
     'flyer_a6': {'b': 105, 'h': 148, 'beschnitt': 3, 'dpi': 300},
     'flyer_a5': {'b': 148, 'h': 210, 'beschnitt': 3, 'dpi': 300},
+    # Aufkleber rund Ø 5 cm, Flyeralarm-Datenblatt aufkl_mini_rund_5,0: Datenformat 5,4 × 5,4 cm,
+    # Sicherheitsabstand 4 mm — also 2 mm Beschnitt, alles Wichtige im Kreis Ø 42 mm (04.10.2026).
+    'aufkleber_50': {'b': 50, 'h': 50, 'beschnitt': 2, 'dpi': 300, 'einseitig': True, 'stile': 'AD'},
 }
 
 T = {
@@ -30,6 +33,7 @@ T = {
     'cta2': {'de': 'Code scannen und mehr erfahren', 'it': 'Scansioni il codice e scopra di più', 'en': 'Scan the code to learn more'},
     'ansprech': {'de': 'Ihr Ansprechpartner', 'it': 'Il suo referente', 'en': 'Your contact'},
     'jetzt': {'de': 'Jetzt scannen', 'it': 'Scansiona ora', 'en': 'Scan now'},
+    'website': {'de': 'Ihre neue Website', 'it': 'Il suo nuovo sito', 'en': 'Your new website'},
 }
 
 def grund(stil, W, H, hinten=False):
@@ -131,13 +135,36 @@ def flyer_hinten(stil, lang, W, H):
     g += K.logo_quer(W/2 - lh*2.6, H - K.B - W*0.06 - lh, lh)
     return g, lay
 
+def aufkleber(stil, lang, W, H):
+    """Runder Aufkleber: V-Marke, „Ihre neue Website“, Code des Partners, „Jetzt scannen“ — alles im Sicherkreis."""
+    hell = stil == 'D'
+    hellt, gold = ('#1f1a13', '#9a6f25') if hell else ('#f6f1e6', '#e6b85c')
+    cx, cy, r = W/2, H/2, (W - 2*K.B) / 2
+    g = (f'<rect width="{W}" height="{H}" fill="#f4efe6"/><rect width="{W}" height="{H}" filter="url(#papier)"/>' if hell
+         else K.schwarz_grund())
+    # Goldring knapp innerhalb der Schnittkante (Blitzer fallen nicht auf: der Grund läuft bis in den Beschnitt)
+    g += f'<circle cx="{cx}" cy="{cy}" r="{r - 14}" fill="none" stroke="url(#gold)" stroke-width="9"/>'
+    m, _, _ = K.logo_defs('gold')
+    mx, my, mw, mh = K.BB['marke']
+    mb = 70; k = mb / mw
+    g += f'<g filter="url(#{"praegunghell" if hell else "praegung"})"><g transform="translate({cx - (mx + mw/2)*k},{cy - 200 - my*k}) scale({k})">{m}</g></g>'
+    g += text(cx, cy - 110, T['website'][lang], 25, 700, gold, extra='letter-spacing="0.5"')
+    qs = 236   # Modulfläche 85 % = 2 cm: der Code ist nie kleiner als 2 cm (Regel der Kette)
+    box, modul = K.qr_box(cx - qs/2, cy - 90, qs, 'B' if not hell else 'D')
+    g += box
+    g += text(cx, cy + 178, T['jetzt'][lang], 23, 700, hellt, extra='letter-spacing="2"')   # Ecken der Zeile im Sicherkreis (4 mm)
+    return g, {'qr': modul, 'einseitig': True}
+
 def seite(fmt, stil, art, lang):
     f = FORMATE[fmt]
     K.B = f['beschnitt'] * 10
     W = (f['b'] + 2*f['beschnitt']) * 10
     H = (f['h'] + 2*f['beschnitt']) * 10
     K.W, K.H = W, H
-    inhalt, lay = (flyer_vorn if art == 'vorn' else flyer_hinten)(stil, lang, W, H)
+    if f.get('einseitig'):
+        inhalt, lay = aufkleber(stil, lang, W, H)
+    else:
+        inhalt, lay = (flyer_vorn if art == 'vorn' else flyer_hinten)(stil, lang, W, H)
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{K.FONTFACE}
 html,body{{margin:0;padding:0;background:#000}} svg{{display:block}}</style></head><body>
 <svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{K.defs()}{inhalt}</svg></body></html>"""
@@ -151,16 +178,16 @@ if __name__ == '__main__':
         for fmt in nur:
             os.makedirs(f'{out}/{fmt}', exist_ok=True)
             layout = {}
-            for stil in 'ABCD':
-                for art in ('vorn', 'hinten'):
+            for stil in FORMATE[fmt].get('stile', 'ABCD'):
+                for art in (('vorn',) if FORMATE[fmt].get('einseitig') else ('vorn', 'hinten')):
                     for lang in ('de', 'it', 'en'):
                         html, lay, W, H, dpi = seite(fmt, stil, art, lang)
                         pg = b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=dpi / 25.4 / 10)
                         pg.set_content(html); pg.wait_for_timeout(200)
                         pg.screenshot(path=f'{out}/{fmt}/{stil.lower()}-{art}-{lang}.png', clip={'x': 0, 'y': 0, 'width': W, 'height': H})
                         pg.close()
-                        if art == 'hinten' and lang == 'de':
+                        if lang == 'de' and (art == 'hinten' or FORMATE[fmt].get('einseitig')):
                             layout[stil.lower()] = lay
                         print(fmt, stil, art, lang, flush=True)
-            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
+            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
         b.close()

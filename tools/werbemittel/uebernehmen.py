@@ -14,6 +14,7 @@ for fmt in sorted(os.listdir(quelle)):
         if isinstance(v, dict):
             return '[\n' + ''.join(f"{ein}    '{k}' => {php(x, ein + '    ')},\n" for k, x in v.items()) + ein + ']'
         if isinstance(v, list): return '[' + ', '.join(php(x) for x in v) + ']'
+        if isinstance(v, bool): return 'true' if v else 'false'
         if isinstance(v, str): return "'" + v.replace("'", "\\'") + "'"
         return repr(round(v, 1)) if isinstance(v, float) else str(v)
     open(os.path.join(z, 'layout.php'), 'w').write("<?php\ndeclare(strict_types=1);\n/* Automatisch erzeugt (tools/werbemittel/gen.py). Einheit 1/10 mm auf der Leinwand mit Beschnitt; Felder wie bei den Visitenkarten. */\nreturn " + php(lay) + ";\n")

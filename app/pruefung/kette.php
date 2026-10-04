@@ -22077,10 +22077,11 @@ Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w7Fremd['id']])
 require_once $wurzel . '/src/WmDruck.php';
 $w7Qmin = 9999; $w7Fehlt = [];
 foreach (array_diff(array_keys(WmDruck::FORMATE), array_keys(WmDruck::RUECKSEITE)) as $w7F) {
-    foreach (['a', 'b', 'c', 'd'] as $w7S) {
+    // Flyer: vier Stile, zwei Seiten. Aufkleber (04.10.2026): Stile laut layout.php, eine Seite.
+    foreach (str_starts_with($w7F, 'flyer') ? ['a', 'b', 'c', 'd'] : array_keys(WmDruck::layout($w7F)['stile'] ?? []) as $w7S) {
         if (!WmDruck::gibt($w7F, $w7S)) { $w7Fehlt[] = "$w7F/$w7S"; continue; }
         $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0));
-        foreach (['de', 'it', 'en'] as $w7L) { foreach (['vorn', 'hinten'] as $w7Se) {
+        foreach (['de', 'it', 'en'] as $w7L) { foreach (WmDruck::einseitig($w7F) ? ['vorn'] : ['vorn', 'hinten'] as $w7Se) {
             if (!is_file($wurzel . "/druckvorlagen/$w7F/$w7S-$w7Se-$w7L.jpg")) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
         } }
     }
@@ -22160,6 +22161,17 @@ $w7Fa = WmDruck::pdf($w7P, 'flyer_a6', 'c', 'it', 'vecom', Werbemittel::FLYERALA
 pruefe('Flyer für Flyeralarm: 1 mm Beschnitt (Datenformat 107 × 150 mm laut Datenblatt), Code bleibt Vektor',
     preg_match('~/MediaBox \[0 0 303\.3\d* 425\.19\d*\]~', $w7Fa) === 1 && preg_match('~/TrimBox \[\s*2\.83\d* 2\.83\d* 300\.4\d* 422\.3\d*~', $w7Fa) === 1
     && Werbemittel::FLYERALARM_BESCHNITT === 1.0, (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Fa, $w7Tm) ? $w7Tm[0] : ''));
+/* Aufkleber rund Ø 5 cm (04.10.2026): eine Seite, Flyeralarm-Datenformat 54 × 54 mm, Code ≥ 2 cm, Vorschau rund */
+$w7Ap = WmDruck::pdf($w7P, 'aufkleber_50', 'a', 'it', 'email');
+$w7Av = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'aufkleber_50', 'd', 'en', 'email'));
+$w7Apr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'aufkleber_50'");
+pruefe('Aufkleber Ø 5 cm: eine Seite 54 × 54 mm (2 mm Beschnitt wie Flyeralarm), Code vorn als Vektor ≥ 2 cm, Vorschau quadratisch, Produkt aus mit 100/250/500 und Preisen IT/DE',
+    str_starts_with($w7Ap, '%PDF') && preg_match('~/MediaBox \[0 0 153\.0\d* 153\.0\d*\]~', $w7Ap) === 1 && preg_match('~/TrimBox \[\s*5\.66\d* 5\.66\d*~', $w7Ap) === 1
+    && substr_count($w7Ap, '/MediaBox') === 1 && WmDruck::einseitig('aufkleber_50') && !WmDruck::einseitig('flyer_a6')
+    && (float) WmDruck::layout('aufkleber_50')['stile']['a']['qr'][2] >= 200 && is_array($w7Av) && $w7Av[0] === 360 && $w7Av[1] === 360
+    && $w7Apr !== null && (int) $w7Apr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Apr['id']]) === 3
+    && Werbemittel::gestaltbar('aufkleber_50') && !WmDruck::gibt('aufkleber_50', 'b'),
+    (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Ap, $w7Tm) ? $w7Tm[0] : '') . ' ' . json_encode($w7Av));
 $w7Fv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_a5', 'd', 'de', 'email'));
 $w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
 pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
