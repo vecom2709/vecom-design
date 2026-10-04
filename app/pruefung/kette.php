@@ -21868,17 +21868,22 @@ $w7P = Partner::laden(Partner::anlegen(['name' => 'Paula Printful', 'email' => '
 $w7E = Werbemittel::entwurfAnlegen($w7P, (int) $w7Vk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'email']);
 $w7Roh = Db::one('SELECT datei_pf_vorn, datei_pf_hinten FROM wm_entwuerfe WHERE id = ?', [$w7E]);
 $w7Gv = @getimagesizefromstring((string) $w7Roh['datei_pf_vorn']); $w7Gh = @getimagesizefromstring((string) $w7Roh['datei_pf_hinten']);
-pruefe('Entwurf bringt die eingepasste Fassung mit: Vorder- und Rückseite als JPEG in genau Printful::VORLAGE (1125 × 675 px)',
-    is_array($w7Gv) && is_array($w7Gh) && $w7Gv[0] === 1125 && $w7Gv[1] === 675 && $w7Gh[0] === 1125 && $w7Gh[1] === 675 && $w7Gv['mime'] === 'image/jpeg',
+pruefe('Entwurf bringt die eingepasste Fassung mit: Vorder- und Rückseite als JPEG in genau Printful::VORLAGE (1200 × 750 px, wie Printful die Druckfläche meldet)',
+    Printful::VORLAGE === [1200, 750] && Printful::RAND === 75 && Printful::ARTEN['visitenkarte']['px'] === Printful::VORLAGE
+    && is_array($w7Gv) && is_array($w7Gh) && $w7Gv[0] === 1200 && $w7Gv[1] === 750 && $w7Gh[0] === 1200 && $w7Gh[1] === 750 && $w7Gv['mime'] === 'image/jpeg',
     json_encode([$w7Gv[0] ?? null, $w7Gv[1] ?? null]));
 // Eingepasst heißt: nur kleiner, nicht verzerrt — die Mitte der Rückseite ist die verkleinerte Karte.
 $w7Im = imagecreatefromstring((string) $w7Roh['datei_pf_hinten']);
-pruefe('Eingepasst, nicht verzerrt: Karte auf volle Höhe, seitlich gespiegelter Rand (Spalte links = Spiegel der ersten Kartenspalte)',
+pruefe('Eingepasst, nicht verzerrt: Endformat der Karte (550 px hoch) genau in Printfuls Endformat (600 px = 750 − 2 × 75), ringsum gespiegelter Rand',
     $w7Im !== false && (function () use ($w7Im): bool {
-        $kw = (int) round(imagesx($w7Im)); $x0 = intdiv(1125 - (int) round(675 * 910 / 610), 2);
-        $a = imagecolorat($w7Im, $x0 - 1, 300); $b = imagecolorat($w7Im, $x0, 300);
-        $da = [($a >> 16) & 255, ($a >> 8) & 255, $a & 255]; $db = [($b >> 16) & 255, ($b >> 8) & 255, $b & 255];
-        return $kw === 1125 && $x0 > 40 && max(array_map(static fn($i) => abs($da[$i] - $db[$i]), [0, 1, 2])) < 40;
+        $f = 600 / 550; $x0 = intdiv(1200 - (int) round(910 * $f), 2); $y0 = intdiv(750 - (int) round(610 * $f), 2);
+        $gleich = static function ($im, int $x1, int $y1, int $x2, int $y2): bool {
+            $a = imagecolorat($im, $x1, $y1); $b = imagecolorat($im, $x2, $y2);
+            return max(abs((($a >> 16) & 255) - (($b >> 16) & 255)), abs((($a >> 8) & 255) - (($b >> 8) & 255)), abs(($a & 255) - ($b & 255))) < 40;
+        };
+        // Oberkante unseres Endformats (nach 30 px Beschnitt) liegt genau auf Printfuls Schnittkante (75 px).
+        return imagesx($w7Im) === 1200 && $x0 > 40 && $y0 > 0 && abs($y0 + 30 * $f - 75) < 1.5
+            && $gleich($w7Im, $x0 - 1, 375, $x0, 375) && $gleich($w7Im, 600, $y0 - 1, 600, $y0);
     })());
 $w7St = Werbemittel::stand((int) $w7P['id'], (int) $w7Vk['id']);
 pruefe('Der Partner sieht die 90 × 50-Fassung vor der Freigabe — nur seine eigene; der Haken nennt beide Formate',
@@ -21902,7 +21907,7 @@ $w7Antwort = static function (string $m, string $u, ?string $r): array {
             'vat' => $land === 'DE' ? 10.78 : 12.48, 'tax' => 0, 'total' => $land === 'DE' ? 67.52 : 69.22]]])];
     }
     if (str_contains($u, '/mockup-generator/printfiles/724')) {
-        return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['product_id' => 724, 'printfiles' => [['printfile_id' => 9, 'width' => 1125, 'height' => 675, 'dpi' => 300]],
+        return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['product_id' => 724, 'printfiles' => [['printfile_id' => 9, 'width' => 1200, 'height' => 750, 'dpi' => 300]],
             'variant_printfiles' => [['variant_id' => 18554, 'placements' => ['default' => 9, 'back' => 9]]]]])];
     }
     if ($m === 'POST' && str_contains($u, '/orders')) { return ['code' => 200, 'body' => json_encode(['code' => 200, 'result' => ['id' => 777, 'status' => 'draft']])]; }
@@ -21963,6 +21968,16 @@ pruefe('Druckfläche passt nicht zum Bild: KEIN Auftrag (nur gelesen), Bestellun
     $w7Netz2 === ['POST /orders/estimate-costs', 'GET /mockup-generator/printfiles/724'] && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']]) === 'bezahlt'
     && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']], 'leer') === 'leer'
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_druckerei_fehler'") >= 1);
+// Freigabe vom 04.10.2026 mit der alten Größe (1125 × 675, 1/8 Zoll Beschnitt angenommen) → gilt als fehlend
+$w7Alt = imagecreatetruecolor(1125, 675); ob_start(); imagejpeg($w7Alt, null, 80); $w7AltJ = (string) ob_get_clean();
+$w7Echt = (string) Db::wert('SELECT datei_pf_hinten FROM wm_entwuerfe WHERE id = ?', [$w7E]);
+Db::run('UPDATE wm_entwuerfe SET datei_pf_hinten = ? WHERE id = ?', [$w7AltJ, $w7E]);
+$w7O4 = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+WmBestellung::vonHandBezahlt($w7O4['id']);
+$w7Netz2 = [];
+pruefe('Freigabe mit altem Printful-Bild (1125 × 675 statt 1200 × 750): nichts gesendet, Grund verlangt neue Freigabe',
+    !in_array('POST /orders', $w7Netz2, true) && str_contains(Printful::auftragSenden($w7O4['id'])['grund'], 'neu freigeben'), json_encode($w7Netz2));
+Db::run('UPDATE wm_entwuerfe SET datei_pf_hinten = ? WHERE id = ?', [$w7Echt, $w7E]);
 // Ältere Freigabe ohne eingepasste Fassung → nichts an Printful
 Db::run('UPDATE wm_entwuerfe SET datei_pf_vorn = NULL WHERE id = ?', [$w7E]);
 $w7Netz2 = [];
@@ -21986,7 +22001,7 @@ require_once $wurzel . '/src/Gelato.php';
 $w7Mp = Druckerei::musterDatei('probe_druck'); $w7Mj = @getimagesizefromstring(Druckerei::musterDatei('probe_pf_vorn'));
 $w7Pl = Druckerei::dateiLink(0, 'probe_druck', 2); parse_str((string) parse_url($w7Pl, PHP_URL_QUERY), $w7Pq);
 pruefe('Musterkarte: PDF für Gelato, JPEG in Printful-Größe; signierter Link mit Entwurf 0 gilt nur für die Probe-Fassung',
-    str_starts_with($w7Mp, '%PDF') && is_array($w7Mj) && $w7Mj[0] === 1125 && $w7Mj[1] === 675
+    str_starts_with($w7Mp, '%PDF') && is_array($w7Mj) && $w7Mj[0] === 1200 && $w7Mj[1] === 750
     && Druckerei::linkPruefen('0', (string) $w7Pq['x'], 'probe_druck', (string) $w7Pq['s']) === [0, 'probe_druck']
     && Druckerei::linkPruefen('0', (string) $w7Pq['x'], 'frei', (string) $w7Pq['s'])[0] === 0
     && str_contains((string) file_get_contents($oben . '/druckdatei.php'), "str_starts_with((string) \$fassung, 'probe_') && \$id === 0"));
@@ -22811,7 +22826,7 @@ pruefe('Falscher Link, fehlender Code, ein gelöschtes Modul, zu kleiner Code: j
     && in_array('zu_klein', QrPruefung::pruefen((string) $qpR1['datei'], $qpL1, 'rollup_85')['fehler'], true)
     && QrPruefung::pruefen((string) $qpR1['datei'], $qpL1, 'visitenkarte')['ok']);
 [$qpPw, $qpPh] = Printful::VORLAGE;
-$qpBox = PartnerKarten::qrLageEingepasst('c', $qpPw, $qpPh);
+$qpBox = PartnerKarten::qrLageEingepasst('c', $qpPw, $qpPh, Printful::RAND);
 pruefe('Printful-Bild (Raster, das Printful druckt): Code an der berechneten Stelle ist der eigene, ein fremder Link fällt durch',
     QrPruefung::imBild((string) $qpR1['datei_pf_hinten'], $qpBox, $qpL1) && !QrPruefung::imBild((string) $qpR1['datei_pf_hinten'], $qpBox, $qpFremd)
     && !QrPruefung::imBild((string) $qpR1['datei_pf_vorn'], $qpBox, $qpL1));

@@ -173,7 +173,7 @@ final class QrPruefung
                 require_once __DIR__ . '/Printful.php';
                 $w = (array) json_decode((string) $e['wahl'], true);
                 [$pw, $ph] = Printful::VORLAGE;
-                if (!self::imBild((string) $e['datei_pf_hinten'], PartnerKarten::qrLageEingepasst((string) ($w['stil'] ?? ''), $pw, $ph), $link)) { $fehler[] = 'printful_bild'; }
+                if (!self::imBild((string) $e['datei_pf_hinten'], PartnerKarten::qrLageEingepasst((string) ($w['stil'] ?? ''), $pw, $ph, Printful::RAND), $link)) { $fehler[] = 'printful_bild'; }
             }
         }
         $fehler = array_values(array_unique($fehler));

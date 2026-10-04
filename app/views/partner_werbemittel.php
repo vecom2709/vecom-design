@@ -99,7 +99,7 @@ if ($mcEigen) {
   .wm-frei b{color:#9fe0b0}
   .wm-entwurf{border:1px solid rgba(241,211,139,.55);background:rgba(241,211,139,.06)}
   .wm-entwurf .knopf{justify-self:start}
-  .wm-pf{display:flex;gap:8px;flex-wrap:wrap}.wm-pf img{display:block;width:180px;height:auto;border-radius:6px;border:1px solid rgba(255,255,255,.18)}
+  .wm-pf{display:flex;gap:8px;flex-wrap:wrap}.wm-pf a{display:block;width:180px;height:103px;overflow:hidden;border-radius:6px;border:1px solid rgba(255,255,255,.18)}.wm-pf img{display:block;width:205.7px;height:128.6px;max-width:none;margin:-12.86px 0 0 -12.86px}
   .wm-haken{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.5;color:var(--dim);cursor:pointer}
   .wm-haken input{width:20px;height:20px;flex:none;margin-top:1px}
   .wm-gestalten summary{cursor:pointer;color:#f1d38b;font-size:14.5px;padding:4px 0}

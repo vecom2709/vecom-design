@@ -337,50 +337,65 @@ final class PartnerKarten
 
     /**
      * Eine Seite „eingepasst“ in ein anderes Seitenverhältnis (Printful:
-     * 90 × 50 mm statt 85 × 55 mm, 04.10.2026, Uwes Entscheidung): die Karte
-     * samt Beschnitt unverändert auf die volle Höhe skaliert, mittig, die
-     * fehlende Breite links und rechts gespiegelt aus dem eigenen Rand. Kein
-     * Text und kein Code wird verschoben — nur kleiner. JPEG, $breite × $hoehe px.
+     * 90 × 50 mm statt 85 × 55 mm, 04.10.2026, Uwes Entscheidung). Kein Text
+     * und kein Code wird verschoben — nur kleiner. JPEG, $breite × $hoehe px.
+     *
+     * $rand = Beschnitt des Ziels je Seite in px. Das ENDFORMAT der Karte
+     * (ohne unseren Beschnitt) wird in das Endformat des Ziels eingepasst,
+     * mittig; alles drumherum wird gespiegelt aus dem eigenen Rand ergänzt.
+     * WARUM (05.10.2026): Bis dahin wurde die Karte samt Beschnitt auf die volle
+     * Bildhöhe gezogen — bei 1/8 Zoll Ziel-Beschnitt gingen so 4 px verloren.
+     * Printful meldet aber 1200 × 750 px, also 1/4 Zoll je Seite; mit der alten
+     * Rechnung wären oben und unten je 3 mm Inhalt abgeschnitten worden.
      */
-    public static function eingepasst(array $p, string $stil, string $seite, string $sprache, string $kontakt, int $breite, int $hoehe): string
+    public static function eingepasst(array $p, string $stil, string $seite, string $sprache, string $kontakt, int $breite, int $hoehe, int $rand = 0): string
     {
-        if (!self::gibt($stil) || $breite < 100 || $hoehe < 100) { return ''; }
+        if (!self::gibt($stil) || $breite < 100 || $hoehe < 100 || 2 * $rand >= min($breite, $hoehe)) { return ''; }
         $im = self::leinwand($p, $stil, $seite, $sprache, $kontakt);
         if (!$im) { return ''; }
-        $sw = (int) round(imagesx($im) * $hoehe / imagesy($im));
-        $sk = imagecreatetruecolor($sw, $hoehe);
-        imagecopyresampled($sk, $im, 0, 0, 0, 0, $sw, $hoehe, imagesx($im), imagesy($im));
+        [$x0, $y0, $f] = self::einpassung($breite, $hoehe, $rand);
+        $sw = (int) round(self::LW * $f); $sh = (int) round(self::LH * $f);
+        $sk = imagecreatetruecolor($sw, $sh);
+        imagecopyresampled($sk, $im, 0, 0, 0, 0, $sw, $sh, imagesx($im), imagesy($im));
         $aus = imagecreatetruecolor($breite, $hoehe);
-        if ($sw >= $breite) {                      // schmaleres Ziel: mittig beschneiden (bei Printful nicht der Fall)
-            imagecopy($aus, $sk, 0, 0, intdiv($sw - $breite, 2), 0, $breite, $hoehe);
-            return self::jpeg($aus, 93);
-        }
-        $x0 = intdiv($breite - $sw, 2);
-        $rechts = $breite - $sw - $x0;
-        imagecopy($aus, $sk, $x0, 0, 0, 0, $sw, $hoehe);
-        foreach ([[0, 0, $x0], [$x0 + $sw, $sw - min($rechts, $sw), $rechts]] as [$ziel, $von, $w]) {
-            $w = min($w, $sw);
-            if ($w <= 0) { continue; }
-            $t = imagecrop($sk, ['x' => $von, 'y' => 0, 'width' => $w, 'height' => $hoehe]);
-            if (!$t) { continue; }
-            imageflip($t, IMG_FLIP_HORIZONTAL);
-            imagecopy($aus, $t, $ziel, 0, 0, 0, $w, $hoehe);
-        }
+        // Ragt die Karte samt Beschnitt über das Ziel hinaus, wird nur ihr Beschnitt gekappt (nie das Endformat).
+        $qx = max(0, -$x0); $qy = max(0, -$y0); $zx = max(0, $x0); $zy = max(0, $y0);
+        $bw = min($sw - $qx, $breite - $zx); $bh = min($sh - $qy, $hoehe - $zy);
+        imagecopy($aus, $sk, $zx, $zy, $qx, $qy, $bw, $bh);
+        // Fehlendes ringsum gespiegelt ergänzen: erst links/rechts, dann oben/unten über die volle Breite.
+        $links = $zx; $rechts = $breite - $zx - $bw; $oben = $zy; $unten = $hoehe - $zy - $bh;
+        $spiegel = static function (\GdImage $ziel, int $sx, int $sy, int $w, int $h, int $dx, int $dy, int $flip): void {
+            if ($w <= 0 || $h <= 0) { return; }
+            $t = imagecrop($ziel, ['x' => $sx, 'y' => $sy, 'width' => $w, 'height' => $h]);
+            if (!$t) { return; }
+            imageflip($t, $flip);
+            imagecopy($ziel, $t, $dx, $dy, 0, 0, $w, $h);
+        };
+        for ($rest = $links; $rest > 0; ) { $w = min($rest, $bw); $spiegel($aus, $rest, $zy, $w, $bh, $rest - $w, $zy, IMG_FLIP_HORIZONTAL); $rest -= $w; }
+        for ($da = $zx + $bw; $da < $breite; ) { $w = min($breite - $da, $bw); $spiegel($aus, $da - $w, $zy, $w, $bh, $da, $zy, IMG_FLIP_HORIZONTAL); $da += $w; }
+        for ($rest = $oben; $rest > 0; ) { $h = min($rest, $bh); $spiegel($aus, 0, $rest, $breite, $h, 0, $rest - $h, IMG_FLIP_VERTICAL); $rest -= $h; }
+        for ($da = $zy + $bh; $da < $hoehe; ) { $h = min($hoehe - $da, $bh); $spiegel($aus, 0, $da - $h, $breite, $h, 0, $da, IMG_FLIP_VERTICAL); $da += $h; }
         return self::jpeg($aus, 93);
+    }
+
+    /** Lage und Maßstab der Karte (samt Beschnitt) in der eingepassten Fassung: [x0, y0, Faktor] — eingepasst() und qrLageEingepasst() rechnen gleich. */
+    private static function einpassung(int $breite, int $hoehe, int $rand): array
+    {
+        $ew = self::LW - 2 * self::BESCHNITT; $eh = self::LH - 2 * self::BESCHNITT;     // unser Endformat in px
+        $f = min(($breite - 2 * $rand) / $ew, ($hoehe - 2 * $rand) / $eh);
+        return [intdiv($breite - (int) round(self::LW * $f), 2), intdiv($hoehe - (int) round(self::LH * $f), 2), $f];
     }
 
     /**
      * Lage des Codes in der eingepassten Fassung (eingepasst(), Rückseite) in Pixeln: [x, y, Kante].
-     * Gleiche Rechnung wie dort — Karte auf die Zielhöhe skaliert, mittig gesetzt (QR-Prüfung, 04.10.2026).
+     * Gleiche Rechnung wie dort (einpassung) — QR-Prüfung, 04.10.2026.
      */
-    public static function qrLageEingepasst(string $stil, int $breite, int $hoehe): array
+    public static function qrLageEingepasst(string $stil, int $breite, int $hoehe, int $rand = 0): array
     {
         if (!self::gibt($stil)) { return [0.0, 0.0, 0.0]; }
         [$qx, $qy, $qs] = self::layout($stil)['qr'];
-        $f = $hoehe / self::LH;
-        $sw = (int) round(self::LW * $f);
-        $x0 = $sw >= $breite ? -intdiv($sw - $breite, 2) : intdiv($breite - $sw, 2);
-        return [$x0 + $qx * $f, $qy * $f, $qs * $f];
+        [$x0, $y0, $f] = self::einpassung($breite, $hoehe, $rand);
+        return [$x0 + $qx * $f, $y0 + $qy * $f, $qs * $f];
     }
 
     /** Setzt an jeden Rand $px Pixel an, gespiegelt aus dem Bild selbst. */

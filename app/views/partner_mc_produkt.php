@@ -197,7 +197,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
             <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
             <?php if (!empty($wmE['hat_pf'])): ?>
               <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>
-              <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="180" height="108" loading="lazy"></a><?php endforeach; ?></span>
+              <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="206" height="129" loading="lazy"></a><?php endforeach; ?></span>
             <?php endif; ?>
             <?php /* QR-Prüfung vor der Produktion (Schritt 8): bestanden → grüner Hinweis; durchgefallen → keine Freigabe. */
               $mcQr = $wmE['qr_ok'] === null ? null : (array) json_decode((string) $wmE['qr_pruefung'], true);

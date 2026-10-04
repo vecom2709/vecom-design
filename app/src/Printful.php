@@ -30,11 +30,14 @@ require_once __DIR__ . '/DruckereiSchnittstelle.php';
 
    FORMAT: Printful druckt Visitenkarten nur 3,5 × 2 Zoll. Die Karte wird
    eingepasst (PartnerKarten::eingepasst, Uwes Entscheidung) und der Partner
-   sieht diese Fassung vor der Freigabe. Die Bildgröße VORLAGE ist 3,75 ×
-   2,25 Zoll bei 300 dpi (Endformat plus 1/8 Zoll Beschnitt). Das ist eine
-   Annahme — deshalb prüft auftragSenden() vorher das Seitenverhältnis gegen
-   die Druckfläche, die Printful selbst meldet, und sendet bei Abweichung
-   NICHTS.
+   sieht diese Fassung vor der Freigabe. Die Bildgröße VORLAGE ist 4 × 2,5
+   Zoll bei 300 dpi = 1200 × 750 px: so meldet Printful die Druckfläche selbst
+   (GET /mockup-generator/printfiles/724, vom Server gelesen 05.10.2026).
+   Endformat 3,5 × 2 Zoll = 1050 × 600 px → 150 px mehr in beiden Richtungen,
+   also 1/4 Zoll (RAND = 75 px) Beschnitt je Seite. Die erste Fassung hatte
+   1125 × 675 (1/8 Zoll) angenommen; die Flächenprüfung unten hat das vor dem
+   ersten Auftrag abgefangen. auftragSenden() prüft weiter das
+   Seitenverhältnis gegen Printfuls Meldung und sendet bei Abweichung NICHTS.
 
    SICHERHEIT WIE BEI DEN ANDEREN: Modus „entwurf“, bis in config.local.php
    'modus' => 'auftrag' steht. Senden genau einmal, Fehler bleiben stehen.
@@ -44,7 +47,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     public const NAME = 'Printful';
     public const BASIS = 'https://api.printful.com';
     public const PRODUKT = 724;                  // „Set of Business Cards“
-    public const VORLAGE = [1125, 675];          // px, siehe Kopf
+    public const VORLAGE = [1200, 750];          // px, siehe Kopf
+    public const RAND = 75;                      // px Beschnitt je Seite (1/4 Zoll), siehe Kopf
     public const LAENDER = ['IT', 'DE'];
 
     /**
@@ -54,7 +58,7 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
      * Material der Tasse aus Printfuls Katalogtext (GET /products/19): Keramik, spülmaschinen- und mikrowellenfest.
      */
     public const ARTEN = [
-        'visitenkarte' => ['produkt' => 724, 'px' => [1125, 675], 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 18554,
+        'visitenkarte' => ['produkt' => 724, 'px' => [1200, 750], 'rand' => 75, 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 18554,
                            'material' => 'Munken Lynx 300 g, 90 × 50 mm (eingepasst)'],
         'tasse_11'     => ['produkt' => 19, 'px' => [2700, 1050], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 1320,
                            'material' => 'Keramiktasse weiß glänzend, 11 oz (325 ml), spülmaschinen- und mikrowellenfest'],
@@ -118,8 +122,16 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     /** Liegen alle Printful-Dateien dieses Entwurfs vor? */
     private static function dateienDa(int $entwurfId, array $art): bool
     {
-        $spalten = array_map(static fn(string $f): string => 'datei_' . $f . ' IS NOT NULL', array_values($art['dateien']));
-        return (bool) Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND ' . implode(' AND ', $spalten), [$entwurfId]);
+        $spalten = array_map(static fn(string $f): string => 'datei_' . $f, array_values($art['dateien']));
+        $e = Db::one('SELECT ' . implode(', ', $spalten) . ' FROM wm_entwuerfe WHERE id = ?', [$entwurfId]);
+        if (!$e) { return false; }
+        // Auch die Größe muss stimmen: Freigaben vor dem 05.10.2026 haben die Karte in 1125 × 675 px (falsch
+        // angenommener Beschnitt). Die gelten als fehlend — der Partner gibt neu frei und sieht dabei die richtige.
+        foreach ($spalten as $sp) {
+            $g = is_string($e[$sp] ?? null) && $e[$sp] !== '' ? @getimagesizefromstring($e[$sp]) : false;
+            if (!$g || $g[0] !== $art['px'][0] || $g[1] !== $art['px'][1]) { return false; }
+        }
+        return true;
     }
 
     /** Prüfnaht für die Kette: fn(string $methode, string $url, array $kopf, ?string $rumpf): array{code:int, body:string} */

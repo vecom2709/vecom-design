@@ -634,8 +634,8 @@ final class Werbemittel
             if ((string) $pr['vorlage'] === 'visitenkarte') {
                 require_once __DIR__ . '/Printful.php';
                 [$pw, $ph] = Printful::VORLAGE;
-                $pf = [PartnerKarten::eingepasst($p, $w['stil'], 'vorn', $w['sprache'], $w['kontakt'], $pw, $ph),
-                       PartnerKarten::eingepasst($p, $w['stil'], 'hinten', $w['sprache'], $w['kontakt'], $pw, $ph)];
+                $pf = [PartnerKarten::eingepasst($p, $w['stil'], 'vorn', $w['sprache'], $w['kontakt'], $pw, $ph, Printful::RAND),
+                       PartnerKarten::eingepasst($p, $w['stil'], 'hinten', $w['sprache'], $w['kontakt'], $pw, $ph, Printful::RAND)];
             }
         } catch (Throwable $e) {
             Db::run("DELETE FROM wm_entwuerfe WHERE id = ? AND status = 'entsteht'", [$id]);

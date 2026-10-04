@@ -162,7 +162,7 @@ final class Druckerei
         if (preg_match('~^probe_vf_(visitenkarte|tasse_11)_([a-g])_(it|de|en)_(vorn|hinten)$~', $fassung, $m)) {
             require_once __DIR__ . '/Printful.php';
             [$pw, $ph] = Printful::ARTEN[$m[1]]['px'];
-            if ($m[1] === 'visitenkarte') { return PartnerKarten::eingepasst(self::MUSTER, $m[2], $m[4], $m[3], 'email', $pw, $ph); }
+            if ($m[1] === 'visitenkarte') { return PartnerKarten::eingepasst(self::MUSTER, $m[2], $m[4], $m[3], 'email', $pw, $ph, Printful::RAND); }
             require_once __DIR__ . '/WmDruck.php';
             return $m[4] === 'vorn' ? WmDruck::bild(self::MUSTER, $m[1], $m[2], $m[3], 'email') : '';
         }
@@ -170,7 +170,7 @@ final class Druckerei
             'probe_druck' => PartnerKarten::druckPdf(self::MUSTER, 'a', 'it', 'email', 4.0, 300),
             'probe_pf_vorn', 'probe_pf_hinten' => (static function () use ($fassung): string {
                 require_once __DIR__ . '/Printful.php';
-                return PartnerKarten::eingepasst(self::MUSTER, 'a', $fassung === 'probe_pf_vorn' ? 'vorn' : 'hinten', 'it', 'email', Printful::VORLAGE[0], Printful::VORLAGE[1]);
+                return PartnerKarten::eingepasst(self::MUSTER, 'a', $fassung === 'probe_pf_vorn' ? 'vorn' : 'hinten', 'it', 'email', Printful::VORLAGE[0], Printful::VORLAGE[1], Printful::RAND);
             })(),
             default => '',
         };
