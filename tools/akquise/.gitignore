@@ -3,3 +3,6 @@
 .env
 daten/
 node_modules/
+# Sicherungen der .env (z. B. .env.vorher) enthalten dieselben Schluessel.
+.env.*
+!.env.beispiel
