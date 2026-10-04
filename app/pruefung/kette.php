@@ -16771,6 +16771,13 @@ pruefe('Besucherliste: Stadt vorn und in der Sprache des Partners, doppelte Regi
     PartnerBesuche::ort('IT', 'Sicily', 'de', 'Palermo') === 'Palermo · Sizilien · Italien' && PartnerBesuche::ort('IT', 'Lombardy', 'it', 'Milan') === 'Milano · Lombardia · Italia'
     && PartnerBesuche::ort('IT', 'Sicily', 'it') === 'Sicilia · Italia' && PartnerBesuche::ort('AT', 'Vienna', 'de', 'Vienna') === 'Wien · Österreich'
     && str_contains((string) file_get_contents($wurzel . '/src/Spur.php'), "UPDATE spur_besuche SET stadt = ? WHERE id = ?"));
+/* Reihenfolge im Deploy (04.10.2026): Stile/Skripte/Bilder vor den Seiten, sonst cacht der Browser alte Stile unter neuer Adresse. */
+$dpWf = (string) @file_get_contents($wurzel . '/../.github/workflows/ftp-deploy.yml');
+$dpCss = strpos($dpWf, 'mirror --reverse --continue --verbose=1 assets/css $DIR/assets/css;');
+$dpAlles = strpos($dpWf, "mirror --reverse --continue --verbose=1 \\\n");
+pruefe('Deploy lädt Stile, Skripte und Bilder vor den Seiten hoch',
+    $dpCss !== false && $dpAlles !== false && $dpCss < $dpAlles
+    && str_contains($dpWf, 'mirror --reverse --continue --verbose=1 assets/js $DIR/assets/js;'), $dpWf === '' ? 'Workflow nicht gefunden' : '');
 /* Gütesiegel „Vecom Quality Standard“ (03.10.2026): freigestellt, an Preis und Angebot, in allen Sprachen beschrieben. */
 $sgBild = $wurzel . '/../assets/img/siegel/vecom-siegel-360.webp';
 $sgInfo = is_file($sgBild) ? @getimagesize($sgBild) : false;

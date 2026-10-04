@@ -140,6 +140,11 @@ jobs:
           # Sicherung — verlassen wird sich darauf nicht: am 30.08.2026 wurde
           # genau diese Zeile von einem parallelen Commit entfernt, und der
           # naechste Deploy hat den Passwortschutz still ueberschrieben.
+          # Stile, Skripte und Bilder VOR den Seiten (04.10.2026): Sonst gab es
+          # Minuten, in denen eine neue Seite schon auf app.css?v=NEU zeigte,
+          # auf dem Server aber noch die alte app.css lag -- der Browser hat
+          # den alten Inhalt unter der neuen Adresse lange zwischengespeichert
+          # (Uwe sah das Gütesiegel ohne Stil, links statt rechts oben).
           lftp -c "
             set ssl:verify-certificate no;
             set ftp:ssl-force true;
@@ -153,6 +158,9 @@ jobs:
             mirror --reverse --continue --verbose=1 app/src $DIR/app/src;
             mirror --reverse --continue --verbose=1 app/lib $DIR/app/lib;
             mirror --reverse --continue --verbose=1 app/migrations $DIR/app/migrations;
+            mirror --reverse --continue --verbose=1 assets/css $DIR/assets/css;
+            mirror --reverse --continue --verbose=1 assets/js $DIR/assets/js;
+            mirror --reverse --continue --verbose=1 assets/img $DIR/assets/img;
             mirror --reverse --continue --verbose=1 \
               --exclude '^\.git' \
               --exclude '^\.github/' \
