@@ -5003,9 +5003,8 @@ final class Texte
         'sprache'     => ['it' => 'Lingua', 'de' => 'Sprache', 'en' => 'Language'],
         'kontakt'     => ['it' => 'Contatto sul materiale', 'de' => 'Kontakt auf dem Werbemittel', 'en' => 'Contact on the material'],
         'foto_titel'  => ['it' => 'Così arriva da lei — foto della tipografia', 'de' => 'So kommt es bei Ihnen an — Foto der Druckerei', 'en' => 'How it arrives — photo from the printer'],
-        'd_foto'      => ['it' => 'Foto prodotto', 'de' => 'Produktfoto', 'en' => 'Product photo'],
-        'foto_laden'  => ['it' => 'Scarica foto {n}', 'de' => 'Foto {n} herunterladen', 'en' => 'Download photo {n}'],
-        'foto_nutzen' => ['it' => 'Foto della tipografia con il suo design: può usarle per i suoi post e la sua pagina.', 'de' => 'Fotos der Druckerei mit Ihrem Design: Sie dürfen sie für Ihre Beiträge und Ihre Seite verwenden.', 'en' => 'Photos from the printer with your design: you may use them for your posts and your page.'],
+        'pf_muster'   => ['it' => 'Foto della tipografia: il prodotto vero con questo design (dati di esempio)', 'de' => 'Foto der Druckerei: das echte Produkt mit dieser Gestaltung (Musterdaten)', 'en' => 'Photo from the printer: the real product with this design (sample data)'],
+        'pf_eigen'    => ['it' => 'Foto della tipografia: il suo prodotto con i suoi dati', 'de' => 'Foto der Druckerei: Ihr Produkt mit Ihren Daten', 'en' => 'Photo from the printer: your product with your details'],
         'foto_wartet' => ['it' => 'La tipografia sta preparando una foto del prodotto con il suo design. Compare qui tra pochi minuti.', 'de' => 'Die Druckerei erstellt gerade ein Foto des Produkts mit Ihrem Design. Es erscheint hier in wenigen Minuten.', 'en' => 'The printer is creating a photo of the product with your design. It will appear here in a few minutes.'],
         /* Digitale Visitenkarte (Schritt 5, 04.10.2026) */
         'dvk_titel'   => ['it' => 'Biglietto da visita digitale', 'de' => 'Digitale Visitenkarte', 'en' => 'Digital business card'],

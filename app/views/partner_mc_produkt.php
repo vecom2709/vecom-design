@@ -51,8 +51,6 @@ $mcFoto = static function (array $e) use ($h, $selbst, $mcT, $mcFotoDa, $p): voi
       <?php if ($e['mockup_status'] === 'fertig'): $mcNrn = Werbemittel::produktfotos((int) $e['id'], (int) $p['id']); ?>
         <img src="<?= $h($selbst(['wmfoto' => (int) $e['id']])) ?>" alt="" loading="lazy" width="1000" height="1000">
         <?php if (count($mcNrn) > 1): ?><span class="mc-fotos"><?php foreach (array_slice($mcNrn, 1) as $mcN): ?><a href="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN])) ?>" alt="" loading="lazy" width="160" height="160"></a><?php endforeach; ?></span><?php endif; ?>
-        <span class="mc-fotolinks"><?php foreach ($mcNrn as $mcN): ?><a class="knopf" href="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN, 'dl' => 1])) ?>" download><?= $h($mcT('foto_laden', ['{n}' => (string) ($mcN + 1)])) ?></a><?php endforeach; ?></span>
-        <span class="wm-meta" style="margin:0"><?= $h($mcT('foto_nutzen')) ?></span>
       <?php else: ?><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_wartet')) ?></span><?php endif; ?></div>
 <?php };
 $mcKachel = static function (string $s, string $linie, string $gruppe = '', string $linienName = '') use ($h, $wmJetzt, $mcMini, $mcStilName, $mcQuer, $wmNurLesen): void { ?>
@@ -90,6 +88,24 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
         ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, $wmVl, $wmJetzt['stil'], $sprache, 'email'))
         : $selbst(['wmv' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt'], 'tt' => (string) ($wmJetzt['titel'] ?? '')]); ?>
       <figure class="mc-vorschau">
+        <?php /* Produktfoto der Druckerei (04.10.2026, Uwe: „das Original-Mockup inklusive des Bedruckten, dass der Partner
+                 weiß, was er bestellt“): eigenes Foto, wenn der Entwurf zur Auswahl passt — sonst das Foto der Gestaltung
+                 mit Musterdaten. Nur, wo Printful das Produkt im Land des Partners herstellt. */
+          require_once dirname(__DIR__) . '/src/Printful.php';
+          $mcVfDa = $mcFotoDa && isset(Printful::ARTEN[$wmVl]) ? Werbemittel::vorlagenfotosDa($wmVl) : [];
+          $mcEigenE = $wmSt['entwurf'] ?? $wmSt['freigegeben'] ?? null;
+          $mcEigenKey = $mcFotoDa && $mcEigenE && ($mcEigenE['mockup_status'] ?? '') === 'fertig' ? ($mcEigenE['wahl']['stil'] ?? '') . '|' . ($mcEigenE['wahl']['sprache'] ?? '') : '';
+          $mcKeyJetzt = $wmJetzt['stil'] . '|' . $wmJetzt['sprache'];
+          if ($mcVfDa || $mcEigenKey !== ''):
+            $mcIstEigen = $mcEigenKey === $mcKeyJetzt;
+            $mcPfSrc = $mcIstEigen ? $selbst(['wmfoto' => (int) $mcEigenE['id']]) : (in_array($mcKeyJetzt, $mcVfDa, true) ? $selbst(['wmvf' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache']]) : ''); ?>
+          <div class="mc-pf"<?= $mcPfSrc === '' ? ' hidden' : '' ?> id="wm-pf-<?= (int) $wmP['id'] ?>" data-da="<?= $h(implode(' ', $mcVfDa)) ?>"
+               data-muster="<?= $h($selbst(['wmvf' => $wmVl, 'st' => '_S_', 'vks' => '_L_'])) ?>" data-eigen="<?= $h($mcEigenKey) ?>"
+               data-eigen-src="<?= $h($mcEigenKey !== '' ? $selbst(['wmfoto' => (int) $mcEigenE['id']]) : '') ?>">
+            <img src="<?= $h($mcPfSrc) ?>" alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>" width="1200" height="1200" loading="lazy" decoding="async">
+            <span class="mc-pf-text" data-t-eigen="<?= $h($mcT('pf_eigen')) ?>" data-t-muster="<?= $h($mcT('pf_muster')) ?>"><?= $h($mcT($mcIstEigen ? 'pf_eigen' : 'pf_muster')) ?></span>
+          </div>
+        <?php endif; ?>
         <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : (str_starts_with($wmVl, 'tasse') ? 'width="926" height="360"' : 'width="528" height="360"'))) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
              <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmVl, 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_', 'tt' => '_T_'])) ?>"<?php endif; ?>
              alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">

@@ -44,7 +44,6 @@ $mcSt = static fn(string $s): string => Texte::h(Texte::MARKETINGCENTER['d_statu
           </div>
           <div class="mc-tun">
             <a class="knopf" href="<?= $h($selbst(['wmpdf' => $mcD['id']])) ?>" target="_blank" rel="noopener"><?= $h($MC('d_pdf')) ?></a>
-            <?php if (!empty($mcD['foto'])): ?><a class="knopf" href="<?= $h($selbst(['wmfoto' => $mcD['id'], 'dl' => 1])) ?>" download><?= $h($MC('d_foto')) ?></a><?php endif; ?>
             <?php if (isset($mcProdukte[$mcD['produkt_id']])): ?><a class="knopf" href="#wm-p<?= $mcD['produkt_id'] ?>"><?= $h($MC('zum_produkt')) ?></a><?php endif; ?>
           </div>
         </div>

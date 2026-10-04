@@ -142,8 +142,20 @@ if ($mcEigen) {
   .mc-foto img{width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid var(--linie2)}
   .mc-fotos{display:flex;gap:8px;flex-wrap:wrap}
   .mc-fotos img{width:96px;height:96px;object-fit:cover}
-  .mc-fotolinks{display:flex;gap:8px;flex-wrap:wrap}
-  .mc-fotolinks .knopf{min-height:36px;padding:6px 12px;font-size:13.5px}
+  .mc-pf{display:grid;gap:4px;margin:0 0 10px}
+  .mc-pf[hidden]{display:none}
+  .mc-pf img{width:100%;height:auto;max-height:360px;object-fit:contain;border-radius:12px;background:#f3f2f0}
+  .mc-pf-text{font-size:12px;color:var(--leise);text-align:center}
+  .mc-vorschau:has(.mc-pf:not([hidden])) > img{max-width:70%;margin:0 auto;display:block}
+  /* Handy: Vorschau klebt oben — Foto und Datenansicht nebeneinander und niedrig, sonst verdecken sie die Auswahl. */
+  @media (max-width:699px){
+    .mc-vorschau:has(.mc-pf:not([hidden])){display:grid;grid-template-columns:1fr 1fr;gap:8px;align-items:center}
+    .mc-vorschau:has(.mc-pf:not([hidden])) .mc-pf{margin:0}
+    .mc-vorschau:has(.mc-pf:not([hidden])) .mc-pf img{max-height:150px}
+    .mc-vorschau:has(.mc-pf:not([hidden])) > img{max-width:100%}
+    .mc-vorschau:has(.mc-pf:not([hidden])) > figcaption{grid-column:1 / -1}
+    .mc-pf-text{font-size:10.5px}
+  }
   .mc-dvk{display:grid;gap:14px}
   .mc-dvk > img{width:100%;max-width:380px;height:auto;justify-self:center;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
   .mc-dvk-kacheln{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;margin-bottom:10px}
@@ -310,7 +322,18 @@ if ($mcEigen) {
         .replace('_T_', encodeURIComponent(wert('titel')));
       if (hinweis) { hinweis.hidden = false; }
       titelZeigen();
+      fotoZeigen();
     });
+    /* Produktfoto der Druckerei folgt der Auswahl: eigenes Foto, wenn es zu Stil und Sprache passt, sonst das
+       Foto der Gestaltung mit Musterdaten; gibt es keins, verschwindet der Platz. */
+    var pf = document.getElementById('wm-pf-' + f.dataset.bild.replace('wm-bild-', ''));
+    function fotoZeigen() {
+      if (!pf) { return; }
+      var key = wert('stil') + '|' + wert('sprache'), img = pf.querySelector('img'), t = pf.querySelector('.mc-pf-text');
+      if (key === pf.dataset.eigen && pf.dataset.eigenSrc) { img.src = pf.dataset.eigenSrc; t.textContent = t.dataset.tEigen; pf.hidden = false; }
+      else if ((' ' + pf.dataset.da + ' ').indexOf(' ' + key + ' ') >= 0) { img.src = pf.dataset.muster.replace('_S_', encodeURIComponent(wert('stil'))).replace('_L_', encodeURIComponent(wert('sprache'))); t.textContent = t.dataset.tMuster; pf.hidden = false; }
+      else { pf.hidden = true; }
+    }
     /* Überschrift (Schritt 4) nur, wenn die gewählte Gestaltung eine hat — Branchenmotive bringen ihre eigene mit. */
     var tf = f.querySelector('.mc-titel');
     function titelZeigen() { if (tf) { tf.hidden = (' ' + tf.dataset.titelStile + ' ').indexOf(' ' + wert('stil') + ' ') < 0; } }

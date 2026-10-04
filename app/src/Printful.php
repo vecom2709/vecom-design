@@ -362,6 +362,67 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         return $n;
     }
 
+    // ---- Produktfoto je Gestaltung (04.10.2026, Uwe: „das Original-Mockup inklusive des Bedruckten zeigen,
+    //      dass der Partner weiß, was er bestellt — bei allen Produkten, wo es geht“) ----------------------
+
+    /** Alle Kombinationen Vorlage × Stil × Sprache, für die es ein Vorlagenfoto geben soll. @return list<array{0:string,1:string,2:string}> */
+    public static function vorlagenKombis(): array
+    {
+        require_once __DIR__ . '/Designlinie.php';
+        require_once __DIR__ . '/Werbemittel.php';
+        $aus = [];
+        foreach (array_keys(self::ARTEN) as $vorlage) {
+            foreach (array_keys(Designlinie::STILE[$vorlage] ?? []) as $stil) {
+                if (!Werbemittel::stilDa($vorlage, (string) $stil)) { continue; }
+                foreach (Werbemittel::SPRACHEN as $l) { $aus[] = [$vorlage, (string) $stil, $l]; }
+            }
+        }
+        return $aus;
+    }
+
+    /**
+     * Cron: wartende Vorlagenfotos abholen, dann höchstens $neu neue bei Printful anstoßen (Grenze 2–10 je
+     * Minute). Fehlgeschlagene werden nach einem Tag erneut versucht. @return int abgeholt + angestoßen
+     */
+    public static function vorlagenfotosPflegen(int $neu = 2): int
+    {
+        if (!self::bereit()) { return 0; }
+        require_once __DIR__ . '/Druckerei.php';
+        $n = 0;
+        foreach (Db::all("SELECT id, task, am FROM wm_vorlagenfotos WHERE status = 'wartet' AND task IS NOT NULL ORDER BY id LIMIT 10") as $z) {
+            try { $r = self::rufen('GET', '/mockup-generator/task?task_key=' . rawurlencode((string) $z['task']), null); } catch (Throwable $e) { continue; }
+            $d = (array) (json_decode($r['body'], true)['result'] ?? []);
+            $st = (string) ($d['status'] ?? '');
+            if ($r['code'] === 200 && $st === 'completed') {
+                $bild = self::fotoLaden((string) ($d['mockups'][0]['mockup_url'] ?? ''));
+                Db::run("UPDATE wm_vorlagenfotos SET bild = ?, status = ?, am = NOW() WHERE id = ?", [$bild, $bild !== null ? 'fertig' : 'fehler', (int) $z['id']]);
+                $n++;
+            } elseif ($st === 'failed' || strtotime((string) $z['am']) < time() - 86400) {
+                Db::run("UPDATE wm_vorlagenfotos SET status = 'fehler', am = NOW() WHERE id = ?", [(int) $z['id']]);
+            }
+        }
+        Db::run("DELETE FROM wm_vorlagenfotos WHERE status = 'fehler' AND am < NOW() - INTERVAL 1 DAY");
+        $da = [];
+        foreach (Db::all('SELECT vorlage, stil, sprache FROM wm_vorlagenfotos') as $z) { $da[$z['vorlage'] . '|' . $z['stil'] . '|' . $z['sprache']] = true; }
+        foreach (self::vorlagenKombis() as [$vorlage, $stil, $l]) {
+            if ($neu <= 0) { break; }
+            if (isset($da[$vorlage . '|' . $stil . '|' . $l])) { continue; }
+            $art = self::ARTEN[$vorlage];
+            $files = [];
+            foreach ($art['dateien'] as $platz => $fassung) {
+                $files[] = ['placement' => $platz, 'image_url' => Druckerei::dateiLink(0, 'probe_vf_' . $vorlage . '_' . $stil . '_' . $l . '_' . ($fassung === 'pf_hinten' ? 'hinten' : 'vorn'), 3)];
+            }
+            try { $r = self::rufen('POST', '/mockup-generator/create-task/' . $art['produkt'], ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1200, 'files' => $files]); }
+            catch (Throwable $e) { self::$letzterGrund = $e->getMessage(); break; }
+            if ($r['code'] === 429) { self::$letzterGrund = self::grund($r); break; }      // Grenze erreicht: nächster Lauf
+            $k = (string) (json_decode($r['body'], true)['result']['task_key'] ?? '');
+            $ok = $r['code'] === 200 && preg_match('~^[A-Za-z0-9_.:-]{4,80}$~', $k) === 1;
+            Db::run('INSERT INTO wm_vorlagenfotos (vorlage, stil, sprache, task, status) VALUES (?, ?, ?, ?, ?)', [$vorlage, $stil, $l, $ok ? $k : null, $ok ? 'wartet' : 'fehler']);
+            $neu--; $n++;
+        }
+        return $n;
+    }
+
     /** Foto von Printfuls Server holen — nur https auf *.printful.com, nur JPEG/PNG, höchstens 8 MB. */
     private static function fotoLaden(string $url): ?string
     {

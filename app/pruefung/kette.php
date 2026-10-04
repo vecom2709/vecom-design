@@ -22656,9 +22656,8 @@ pruefe('Foto von fremder Adresse wird nicht geholt (nur https auf *.printful.com
 Printful::$netz = null;
 $pfPhp = (string) file_get_contents($oben . '/partner.php');
 $pfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
-pruefe('Herunterladen: als Anhang mit eigenem Dateinamen, protokolliert; Knöpfe je Foto in Schritt 2 und „Produktfoto“ in Meine Designs',
-    str_contains($pfPhp, 'Content-Disposition: attachment; filename="vecom-produktfoto-') && str_contains($pfPhp, "'download', null, 'produktfoto '")
-    && str_contains($pfV, "\$mcT('foto_laden'") && str_contains((string) file_get_contents($wurzel . '/views/partner_mc_listen.php'), "\$MC('d_foto')"));
+pruefe('Fotos der Druckerei werden gezeigt, nicht zum Herunterladen angeboten (Uwe: „nicht zum Download“): keine Knöpfe in Schritt 2 und in Meine Designs',
+    !str_contains($pfV, "foto_laden") && !str_contains((string) file_get_contents($wurzel . '/views/partner_mc_listen.php'), "d_foto") && str_contains($pfV, 'class="mc-fotos"'));
 pruefe('Partnerbereich: Foto nur für den eigenen Partner, Anstoß nach dem Erstellen, Anzeige nur wenn Printful das Produkt herstellt; Cron holt ab',
     str_contains($pfPhp, "Werbemittel::produktfoto((int) \$_GET['wmfoto'], (int) \$p['id'], max(0, min(3,") && str_contains($pfPhp, 'Printful::mockupAnstossen($wmNeuId)')
     && str_contains($pfV, "Werbemittel::hersteller(\$wmP, (string) \$wmP['land']) === 'Printful'")
@@ -22997,6 +22996,54 @@ $taV = @getimagesizefromstring(Werbemittel::vorschauBild($taA, 'tasse_11', 'a', 
 pruefe('Vorschau: das Rundum-Bild flach (nicht rund wie der Aufkleber)', is_array($taV) && $taV[0] > 2 * $taV[1]);
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $taA['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $taA['id']]);
+
+/* ============================================================================
+   Produktfoto der Druckerei je Gestaltung (04.10.2026, Uwe: „das Original-Mockup
+   inklusive des Bedruckten zeigen, dass der Partner weiß, was er bestellt“)
+   ============================================================================ */
+abschnitt('Marketingcenter: Produktfoto je Gestaltung');
+foreach (['Printful', 'Druckerei', 'Werbemittel'] as $vfKl) { require_once $wurzel . "/src/$vfKl.php"; }
+$vfT = Druckerei::musterDatei('probe_vf_tasse_11_d_de_vorn');
+$vfK = Druckerei::musterDatei('probe_vf_visitenkarte_e_it_hinten');
+$vfTg = @getimagesizefromstring($vfT); $vfKg = @getimagesizefromstring($vfK);
+pruefe('Musterbild je Gestaltung = genau das Bild, das Printful auch für den Partner bekommt (Größe aus Printful::ARTEN); nur gültige Namen',
+    is_array($vfTg) && [$vfTg[0], $vfTg[1]] === Printful::ARTEN['tasse_11']['px'] && is_array($vfKg) && [$vfKg[0], $vfKg[1]] === Printful::ARTEN['visitenkarte']['px']
+    && Druckerei::fassungGueltig('probe_vf_tasse_11_a_it_vorn') && !Druckerei::fassungGueltig('probe_vf_tasse_11_z_it_vorn') && !Druckerei::fassungGueltig('probe_vf_flyer_a5_a_it_vorn')
+    && Druckerei::musterDatei('probe_vf_tasse_11_a_it_hinten') === '');
+$vfK2 = Printful::vorlagenKombis();
+pruefe('Kombinationen: Visitenkarte a–g und Tasse a/d, je in IT/DE/EN', count($vfK2) === (7 + 2) * 3 && in_array(['tasse_11', 'd', 'en'], $vfK2, true));
+Db::run('DELETE FROM wm_vorlagenfotos');
+$vfNetz = []; $vfJpg = (static function (): string { $i = imagecreatetruecolor(60, 60); ob_start(); imagejpeg($i); return (string) ob_get_clean(); })();
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$vfNetz, $vfJpg): array {
+    $vfNetz[] = [$m, $u, $r];
+    if (str_contains($u, '/mockup-generator/create-task/')) { return ['code' => 200, 'body' => '{"result":{"task_key":"vf-' . count($vfNetz) . '"}}']; }
+    if (str_contains($u, '/mockup-generator/task?task_key=')) { return ['code' => 200, 'body' => json_encode(['result' => ['status' => 'completed', 'mockups' => [['mockup_url' => 'https://files.cdn.printful.com/vf.jpg']]]])]; }
+    if ($u === 'https://files.cdn.printful.com/vf.jpg') { return ['code' => 200, 'body' => $vfJpg]; }
+    return ['code' => 404, 'body' => ''];
+};
+$vfN1 = Printful::vorlagenfotosPflegen(2);
+$vfReq = json_decode((string) ($vfNetz[0][2] ?? ''), true);
+pruefe('Cron stößt höchstens 2 neue Fotos je Lauf an — mit signiertem Link auf das Musterbild, Printful-Produkt und Variante aus ARTEN',
+    $vfN1 === 2 && (int) Db::wert("SELECT COUNT(*) FROM wm_vorlagenfotos WHERE status = 'wartet'") === 2
+    && str_contains((string) $vfNetz[0][1], '/mockup-generator/create-task/724') && ($vfReq['variant_ids'] ?? null) === [18554]
+    && str_contains((string) ($vfReq['files'][0]['image_url'] ?? ''), 'f=probe_vf_visitenkarte_a_it_vorn'));
+Printful::vorlagenfotosPflegen(0);
+pruefe('Nächster Lauf holt die fertigen Fotos ab; der Partner bekommt sie über Werbemittel::vorlagenfoto',
+    (int) Db::wert("SELECT COUNT(*) FROM wm_vorlagenfotos WHERE status = 'fertig'") === 2
+    && Werbemittel::vorlagenfoto('visitenkarte', 'a', 'it') === $vfJpg && Werbemittel::vorlagenfoto('visitenkarte', 'a', 'de') === $vfJpg
+    && Werbemittel::vorlagenfoto('visitenkarte', 'a', 'en') === null && Werbemittel::vorlagenfotosDa('visitenkarte') === ['a|de', 'a|it']);
+Printful::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 429, 'body' => '{"error":{"message":"Too many"}}'];
+$vfVor = (int) Db::wert('SELECT COUNT(*) FROM wm_vorlagenfotos');
+Printful::vorlagenfotosPflegen(2);
+pruefe('Grenze bei Printful (429): nichts eingetragen, nächster Lauf versucht es wieder', (int) Db::wert('SELECT COUNT(*) FROM wm_vorlagenfotos') === $vfVor);
+Printful::$netz = null;
+$vfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+$vfP = (string) file_get_contents($oben . '/partner.php');
+pruefe('Partnerbereich: Produktfoto als Hauptbild über der Vorschau, eigenes Foto wenn es zur Auswahl passt, folgt Stil und Sprache; Cron eingetragen',
+    str_contains($vfV, 'class="mc-pf"') && str_contains($vfV, 'data-muster="') && str_contains($vfV, "\$mcT('pf_eigen')")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), 'function fotoZeigen()')
+    && str_contains($vfP, 'Werbemittel::vorlagenfoto((string) $_GET[\'wmvf\']') && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_vorlagenfotos'"));
+Db::run('DELETE FROM wm_vorlagenfotos');
 
 /* ============================================================================
    Aufräumen und Bilanz

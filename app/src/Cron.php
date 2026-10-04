@@ -142,6 +142,11 @@ final class Cron
                 require_once __DIR__ . '/Printful.php';
                 return Printful::mockupsHolen();
             },
+            /* Produktfoto je Gestaltung (Musterdaten), nach und nach — der Partner sieht beim Auswählen das echte Produkt. */
+            'wm_printful_vorlagenfotos' => static function () {
+                require_once __DIR__ . '/Printful.php';
+                return Printful::vorlagenfotosPflegen(2);
+            },
             /* Printful-Preise je Auflage und Land (estimate-costs, nur lesen), höchstens einmal je 7 Tage. */
             'wm_printful_preise' => static function () {
                 require_once __DIR__ . '/Printful.php';

@@ -158,6 +158,14 @@ final class Druckerei
     {
         // Dieselben Bausteine wie im Partnerbereich (Link, QR, Name) — druckdatei.php lädt sie sonst nicht.
         foreach (['Fmt', 'Partner', 'PartnerWerbung', 'PartnerKarten'] as $k) { require_once __DIR__ . '/' . $k . '.php'; }
+        // Vorlagenfoto: genau das Bild, das Printful später auch für den Partner bekommt — nur mit Musterdaten.
+        if (preg_match('~^probe_vf_(visitenkarte|tasse_11)_([a-g])_(it|de|en)_(vorn|hinten)$~', $fassung, $m)) {
+            require_once __DIR__ . '/Printful.php';
+            [$pw, $ph] = Printful::ARTEN[$m[1]]['px'];
+            if ($m[1] === 'visitenkarte') { return PartnerKarten::eingepasst(self::MUSTER, $m[2], $m[4], $m[3], 'email', $pw, $ph); }
+            require_once __DIR__ . '/WmDruck.php';
+            return $m[4] === 'vorn' ? WmDruck::bild(self::MUSTER, $m[1], $m[2], $m[3], 'email') : '';
+        }
         return match ($fassung) {
             'probe_druck' => PartnerKarten::druckPdf(self::MUSTER, 'a', 'it', 'email', 4.0, 300),
             'probe_pf_vorn', 'probe_pf_hinten' => (static function () use ($fassung): string {
@@ -206,9 +214,18 @@ final class Druckerei
      * oder 'pf_vorn'/'pf_hinten' (Printful: eingepasst 90 × 50 mm, JPEG je
      * Seite — vom Partner vor der Freigabe gesehen). Ohne app_geheim kein Link.
      */
+    /**
+     * Gültige Fassung: die festen oder ein Vorlagenfoto-Muster „probe_vf_<vorlage>_<stil>_<sprache>_<seite>“
+     * (Musterdaten für Printfuls Produktfoto je Gestaltung, 04.10.2026).
+     */
+    public static function fassungGueltig(string $f): bool
+    {
+        return in_array($f, self::FASSUNGEN, true) || preg_match('~^probe_vf_(visitenkarte|tasse_11)_[a-g]_(it|de|en)_(vorn|hinten)$~', $f) === 1;
+    }
+
     public static function dateiLink(int $entwurfId, string $fassung = 'frei', int $tage = 14): string
     {
-        $fassung = in_array($fassung, self::FASSUNGEN, true) ? $fassung : 'frei';
+        $fassung = self::fassungGueltig($fassung) ? $fassung : 'frei';
         $geheim = self::linkGeheim();
         if (strlen($geheim) < 16) { throw new RuntimeException('app_geheim (oder hosting_geheim) fehlt in config.local.php — ohne ihn kein Link für die Druckdatei.'); }
         $bis = time() + $tage * 86400;
@@ -220,7 +237,7 @@ final class Druckerei
     public static function linkPruefen(string $e, string $x, string $f, string $s): array
     {
         $geheim = self::linkGeheim();
-        if (!in_array($f, self::FASSUNGEN, true) || strlen($geheim) < 16 || !ctype_digit($e) || !ctype_digit($x) || (int) $x < time()) { return [0, '']; }
+        if (!self::fassungGueltig($f) || strlen($geheim) < 16 || !ctype_digit($e) || !ctype_digit($x) || (int) $x < time()) { return [0, '']; }
         return hash_equals(hash_hmac('sha256', 'wm-druck|' . $e . '|' . $x . '|' . $f, $geheim), $s) ? [(int) $e, $f] : [0, ''];
     }
 }

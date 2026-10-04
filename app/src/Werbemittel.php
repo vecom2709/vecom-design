@@ -465,6 +465,20 @@ final class Werbemittel
         return is_string($b) && $b !== '' ? $b : null;
     }
 
+    /** Produktfoto der Druckerei für eine Gestaltung (Musterdaten) — oder null. */
+    public static function vorlagenfoto(string $vorlage, string $stil, string $sprache): ?string
+    {
+        $b = Db::wert("SELECT bild FROM wm_vorlagenfotos WHERE vorlage = ? AND stil = ? AND sprache = ? AND status = 'fertig'", [$vorlage, $stil, $sprache], null);
+        return is_string($b) && $b !== '' ? $b : null;
+    }
+
+    /** Für welche „Stil|Sprache“ einer Vorlage es schon ein Produktfoto gibt. @return list<string> */
+    public static function vorlagenfotosDa(string $vorlage): array
+    {
+        return array_map(static fn($z) => $z['stil'] . '|' . $z['sprache'],
+            Db::all("SELECT stil, sprache FROM wm_vorlagenfotos WHERE vorlage = ? AND status = 'fertig' ORDER BY stil, sprache", [$vorlage]));
+    }
+
     /** Welche Fotos es zu einem eigenen Entwurf gibt: [0, 1, 2 …] (0 = Hauptfoto). */
     public static function produktfotos(int $entwurfId, int $partnerId): array
     {
