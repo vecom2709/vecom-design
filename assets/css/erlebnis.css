@@ -503,44 +503,166 @@
 .bd-stufen b { font-weight: 700; margin-right: 2px; opacity: 0.72; font-variant-numeric: tabular-nums; }
 .bd-stufen button[aria-pressed="true"] b { opacity: 1; }
 
-/* ---- Demo-Galerie (24.09.2026) ---------------------------------------------
-   Kacheln nebeneinander; die Bühne öffnet sich erst auf Klick direkt darunter.
-   Eine Kachel = ein gerechnetes Foto (800 px), Branche, Titel, Technik und
-   Ladegröße -- wer klickt, weiß, was kommt. Offen: cyan umrandet, wie der
-   aktive Eintrag der Kapitelleiste. Telefon: eine Reihe zum Wischen. */
+/* ---- Demo-Karten und Branchen-Karussell (04.10.2026) -----------------------
+   Uwe: "nur das 3D-Karussell selbst, kein Raum dahinter". Jede Demo ist eine
+   senkrechte Karte aus dunklem Glas mit feiner Goldkante: Foto oben, Zeichen
+   und Branche, Titel, Technik, "Demo öffnen". Ohne Skript stehen die Karten
+   als Raster (Rückfall); karussell.js setzt .ist-karussell und stellt sie
+   auf einen Ring (rotateY + translateZ je Karte). Der Bereich bleibt
+   durchsichtig -- der Seitenhintergrund ist der Hintergrund. */
 .erlebnis .demos{margin-top:clamp(1.6rem,4vh,2.6rem); scroll-margin-top:84px}
 .erlebnis .demos__hinweis{color:var(--c-dim); font-size:.95rem; margin:0 0 .9rem}
 .erlebnis .demos__reihe{
   list-style:none; margin:0; padding:0;
-  display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:clamp(.7rem,1.4vw,1rem);
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:clamp(.8rem,1.4vw,1.1rem);
 }
 .erlebnis .demo-kachel{
-  position:relative; display:block; width:100%; padding:0; text-align:left; cursor:pointer;
-  aspect-ratio:4/3; overflow:hidden; isolation:isolate;
-  border:1px solid var(--c-linie-hell); border-radius:var(--radius); background:var(--c-surface);
-  transition:border-color var(--t-ui), box-shadow var(--t-ui), transform var(--t-move) var(--e-standard);
+  --gold:241,211,139;
+  position:relative; display:flex; flex-direction:column; width:100%; height:100%; padding:.62em; gap:.5em;
+  text-align:left; cursor:pointer; isolation:isolate; overflow:hidden;
+  border:1px solid rgba(var(--gold),.42); border-radius:1em;
+  background:
+    linear-gradient(180deg, rgba(255,240,210,.07) 0%, rgba(255,240,210,0) 22%),
+    linear-gradient(170deg, rgba(34,29,24,.94) 0%, rgba(15,13,11,.97) 55%, rgba(9,8,7,.98) 100%);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,.18), inset 0 0 0 1px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.9);
+  transition:border-color var(--t-ui), box-shadow var(--t-ui);
 }
-.erlebnis .demo-kachel img{
-  position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2;
-  transition:transform 520ms var(--e-standard), filter var(--t-move);
+/* feine Lichtkante oben -- wie eine polierte Fase am Glas */
+.erlebnis .demo-kachel::before{
+  content:""; position:absolute; left:8%; right:8%; top:0; height:1px; z-index:2; pointer-events:none;
+  background:linear-gradient(90deg, transparent, rgba(var(--gold),.9), transparent); opacity:.55;
 }
-.erlebnis .demo-kachel::after{
-  content:""; position:absolute; inset:0; z-index:-1;
-  background:linear-gradient(to top, rgba(10,9,8,.94) 0%, rgba(10,9,8,.72) 38%, rgba(10,9,8,0) 70%);
+.erlebnis .demo-kachel__bild{position:relative; display:block; aspect-ratio:5/4; border-radius:.62em; overflow:hidden; flex:none;
+  box-shadow:inset 0 0 0 1px rgba(var(--gold),.16)}
+.erlebnis .demo-kachel__bild img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform 700ms var(--e-standard);
+  filter:contrast(1.06) saturate(1.04) brightness(.94) sepia(.07)} /* eine Lichtstimmung für alle Fotos: warm, etwas dichter */
+.erlebnis .demo-kachel__bild::after{content:""; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(8,7,6,.55) 100%), linear-gradient(115deg, rgba(255,240,210,.10) 0%, rgba(255,240,210,0) 38%)}
+.erlebnis .demo-kachel__text{display:flex; flex-direction:column; gap:.32em; padding:.35em .45em .2em; flex:1}
+.erlebnis .demo-kachel__kopf{display:flex; align-items:center; gap:.5em; color:var(--c-cyan)}
+.erlebnis .demo-kachel__icon{display:inline-flex; flex:none}
+.erlebnis .demo-kachel__icon svg{width:1.45em; height:1.45em}
+.erlebnis .demo-kachel__branche{font:600 .74em/1.2 var(--f-text); letter-spacing:.16em; text-transform:uppercase; color:var(--c-cyan)}
+.erlebnis .demo-kachel__titel{font:600 1.32em/1.15 var(--f-display); color:var(--c-text); letter-spacing:-.012em; margin-top:.15em; text-wrap:balance}
+.erlebnis .demo-kachel__technik{font:500 .84em/1.3 var(--f-text); color:var(--c-dim)}
+.erlebnis .demo-kachel__cta{
+  margin-top:auto; align-self:flex-start; display:inline-flex; align-items:center; gap:.7em;
+  padding:.62em .95em .62em 1.25em; border-radius:999px;
+  border:1px solid rgba(var(--gold),.7); color:var(--c-cyan);
+  background:linear-gradient(180deg, rgba(var(--gold),.08), rgba(var(--gold),0));
+  font:600 .78em/1 var(--f-text); letter-spacing:.12em; text-transform:uppercase;
+  box-shadow:inset 0 1px 0 rgba(255,236,200,.15);
+  transition:background var(--t-ui), color var(--t-ui);
 }
-.erlebnis .demo-kachel__text{position:absolute; left:0; right:0; bottom:0; display:grid; gap:.2rem; padding:.95rem 1rem}
-.erlebnis .demo-kachel__branche{font:600 .72rem/1.2 var(--f-text); letter-spacing:.14em; text-transform:uppercase; color:var(--c-cyan)}
-.erlebnis .demo-kachel__titel{font:600 1.08rem/1.2 var(--f-display); color:var(--c-text); letter-spacing:-.01em}
-.erlebnis .demo-kachel__technik{font:500 .82rem/1.3 var(--f-text); color:var(--c-dim)}
-.erlebnis .demo-kachel:hover{border-color:rgba(241,211,139,.45)}
-.erlebnis .demo-kachel:hover img{transform:scale(1.04)}
-.erlebnis .demo-kachel[aria-expanded="true"]{border-color:var(--c-cyan); box-shadow:0 0 0 1px var(--c-cyan), 0 10px 40px rgba(241,211,139,.12)}
-.erlebnis .demo-kachel[aria-expanded="true"] .demo-kachel__technik::before{content:"● "; color:var(--c-cyan)}
+.erlebnis .demo-kachel__cta svg{width:1.25em; height:1.25em}
+.erlebnis .demo-kachel:hover{border-color:rgba(var(--gold),.75)}
+.erlebnis .demo-kachel:hover .demo-kachel__bild img{transform:scale(1.04)}
+.erlebnis .demo-kachel:hover .demo-kachel__cta{background:rgba(var(--gold),.16)}
+.erlebnis .demo-kachel[aria-expanded="true"]{border-color:var(--c-cyan); box-shadow:0 0 0 1px var(--c-cyan), 0 10px 40px rgba(241,211,139,.14)}
+.erlebnis .demo-kachel[aria-expanded="true"] .demo-kachel__cta{background:var(--c-cyan); color:#17130c}
+/* Raster ohne Skript: Schriftgröße fest */
+.erlebnis .demos:not(.ist-karussell) .demo-kachel{font-size:15px}
+.erlebnis .demos:not(.ist-karussell) .karussell__pfeil,
+.erlebnis .demos:not(.ist-karussell) .karussell__sockel,
+.erlebnis .demos:not(.ist-karussell) .karussell__kategorien{display:none}
+
+/* ---- Karussell ----------------------------------------------------------------
+   Maße setzt karussell.js als Variablen: --kw/--kh Karte, --r Radius, --persp.
+   Die Welt kippt 7° nach vorn, damit man von leicht oben auf den Ring sieht. */
+.erlebnis .ist-karussell .karussell{
+  position:relative; height:calc(var(--kh,430px) * 1.82 + 1rem);
+  width:100vw; margin-left:calc(50% - 50vw); overflow:hidden; overflow:clip;
+  perspective:var(--persp,1600px); perspective-origin:50% 18%;
+  touch-action:pan-y; user-select:none; -webkit-user-select:none; cursor:grab; background:transparent;
+}
+.erlebnis .ist-karussell .karussell.ist-gezogen{cursor:grabbing}
+.erlebnis .ist-karussell .karussell__welt{
+  position:absolute; left:50%; top:calc(var(--kh,430px) * .3 + 1rem);
+  width:var(--kw,300px); height:var(--kh,430px); margin-left:calc(var(--kw,300px) / -2);
+  transform-style:preserve-3d;
+  transform:translateZ(calc(var(--r,500px) * -1)) rotateX(-8deg);
+  transform-origin:50% 50% 0;
+}
+.erlebnis .ist-karussell .demos__reihe{position:absolute; inset:0; display:block; transform-style:preserve-3d}
+.erlebnis .ist-karussell .demos__reihe > li{
+  position:absolute; inset:0; transform-style:preserve-3d; will-change:transform; transform-origin:50% 100%;
+  backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.erlebnis .ist-karussell .demo-kachel{font-size:calc(var(--kw,300px) * .052); height:100%}
+/* Tiefe: hintere Karten dunkler, nie unscharf */
+.erlebnis .ist-karussell .demos__reihe > li::after{
+  content:""; position:absolute; inset:0; border-radius:1em; pointer-events:none; z-index:3;
+  background:#060504; opacity:var(--dunkel,0);
+}
+/* warmer Schein unter der vorderen Karte -- wandert mit, blinkt nie */
+.erlebnis .ist-karussell .demos__reihe > li::before{
+  content:""; position:absolute; left:6%; right:6%; bottom:-14%; height:22%; z-index:-1; pointer-events:none;
+  background:radial-gradient(50% 50% at 50% 30%, rgba(241,211,139,.38), rgba(241,211,139,0) 70%);
+  opacity:var(--aktiv,0); transform:translateZ(-2px);
+}
+.erlebnis .ist-karussell .ist-vorne .demo-kachel{border-color:rgba(241,211,139,.82);
+  box-shadow: inset 0 1px 0 rgba(255,236,200,.22), 0 0 0 1px rgba(241,211,139,.12), 0 30px 60px -24px rgba(0,0,0,.95), 0 0 46px -14px rgba(241,211,139,.32)}
+.erlebnis .ist-karussell .ist-vorne .demo-kachel::before{opacity:.95}
+
+/* Sockel: flacher Ring aus dunklem Glas mit feinen Goldlinien, liegt unter den
+   Kartenfüßen (rotateX 90°: die Unterkante des Elements zeigt zum Betrachter).
+   Zwei Scheiben übereinander geben die Kante; der Schein vorn sitzt fest unter
+   der vorderen Karte. */
+.erlebnis .ist-karussell .karussell__sockel{
+  --d:calc(var(--r,500px) * 2 + var(--kw,300px) * .5);
+  position:absolute; left:50%; top:100%; width:var(--d); height:var(--d);
+  margin:calc(var(--d) / -2) 0 0 calc(var(--d) / -2);
+  transform:translateY(2px) rotateX(90deg); transform-style:preserve-3d; border-radius:50%; pointer-events:none;
+  background:
+    radial-gradient(closest-side, transparent 0 81.5%, rgba(241,211,139,.5) 81.8%, transparent 82.3% 95.6%, rgba(241,211,139,.85) 95.9%, rgba(241,211,139,.15) 97%, transparent 97.6%),
+    radial-gradient(42% 26% at 50% 96%, rgba(241,211,139,.42), rgba(241,211,139,0) 70%),
+    radial-gradient(closest-side, transparent 0 80%, rgba(22,19,15,.97) 80.4% 97.4%, transparent 97.8%);
+  -webkit-mask:radial-gradient(closest-side, transparent 0 79.6%, #000 80%); mask:radial-gradient(closest-side, transparent 0 79.6%, #000 80%);
+}
+.erlebnis .ist-karussell .karussell__kante{
+  position:absolute; inset:0; border-radius:50%; transform:translateZ(-14px);
+  background:radial-gradient(closest-side, transparent 0 96.6%, rgba(241,211,139,.55) 97%, rgba(120,90,40,.25) 98.4%, transparent 99%),
+             radial-gradient(40% 24% at 50% 98%, rgba(241,211,139,.3), rgba(241,211,139,0) 70%),
+             radial-gradient(closest-side, transparent 0 80%, rgba(8,7,6,.95) 80.4% 98.6%, transparent 99%);
+}
+/* Pfeile links und rechts, auf Kartenmitte */
+.erlebnis .ist-karussell .karussell__pfeil{
+  position:absolute; top:calc(var(--kh,430px) * .82 + 1rem); z-index:5; transform:translateY(-50%);
+  width:56px; height:56px; border-radius:50%; display:grid; place-items:center; cursor:pointer;
+  color:var(--c-cyan); background:radial-gradient(circle at 50% 30%, rgba(40,34,26,.92), rgba(10,9,8,.94));
+  border:1px solid rgba(241,211,139,.55); box-shadow:inset 0 1px 0 rgba(255,236,200,.18), 0 10px 30px -10px rgba(0,0,0,.9);
+  transition:border-color var(--t-ui), background var(--t-ui);
+}
+.erlebnis .ist-karussell .karussell__pfeil:hover{border-color:var(--c-cyan); background:rgba(40,34,26,.96)}
+.erlebnis .ist-karussell .karussell__pfeil svg{width:26px; height:26px}
+.erlebnis .ist-karussell .karussell__pfeil--zurueck{left:clamp(1rem, 2.5vw, 2.5rem)}
+.erlebnis .ist-karussell .karussell__pfeil--weiter{right:clamp(1rem, 2.5vw, 2.5rem)}
+/* Kategorien unter dem Ring */
+.erlebnis .karussell__kategorien{
+  display:flex; gap:.4rem; justify-content:safe center; flex-wrap:nowrap; margin:.4rem auto 0; width:max-content; max-width:100%;
+  padding:.45rem; border-radius:999px; overflow-x:auto; scrollbar-width:none;
+  background:linear-gradient(180deg, rgba(26,22,18,.72), rgba(10,9,8,.8)); border:1px solid rgba(241,211,139,.16);
+}
+.erlebnis .karussell__kategorien::-webkit-scrollbar{display:none}
+.erlebnis .karussell__kat{
+  flex:none; display:inline-flex; align-items:center; gap:.55rem; min-height:44px; padding:0 .85rem; border-radius:999px; cursor:pointer;
+  border:1px solid rgba(241,211,139,.28); background:rgba(10,9,8,.55); color:var(--c-text);
+  font:500 .86rem/1 var(--f-text); white-space:nowrap; transition:background var(--t-ui), border-color var(--t-ui), color var(--t-ui);
+}
+.erlebnis .karussell__kat svg{width:19px; height:19px; color:var(--c-cyan)}
+.erlebnis .karussell__kat:hover{border-color:rgba(241,211,139,.6)}
+.erlebnis .karussell__kat[aria-pressed="true"]{background:linear-gradient(180deg,#f6dc9c,#e2bd6c); border-color:#f6dc9c; color:#1a140a; font-weight:600}
+.erlebnis .karussell__kat[aria-pressed="true"] svg{color:#1a140a}
 @media (max-width:700px){
-  .erlebnis .demos__reihe{grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:72%;
+  .erlebnis .demos:not(.ist-karussell) .demos__reihe{grid-auto-flow:column; grid-template-columns:none; grid-auto-columns:72%;
     overflow-x:auto; scroll-snap-type:x mandatory; scrollbar-width:none; margin:0 calc(-1 * var(--page-x)); padding:0 var(--page-x)}
-  .erlebnis .demos__reihe::-webkit-scrollbar{display:none}
-  .erlebnis .demos__reihe > li{scroll-snap-align:start}
+  .erlebnis .demos:not(.ist-karussell) .demos__reihe > li{scroll-snap-align:start}
+  .erlebnis .ist-karussell .karussell__pfeil{width:44px; height:44px; top:auto; bottom:.2rem; transform:none}
+  .erlebnis .ist-karussell .karussell__pfeil--zurueck{left:calc(50% - 56px)}
+  .erlebnis .ist-karussell .karussell__pfeil--weiter{right:calc(50% - 56px)}
+  .erlebnis .ist-karussell .karussell{height:calc(var(--kh,400px) * 1.62 + 4.2rem); perspective-origin:50% 22%}
+  .erlebnis .ist-karussell .karussell__welt{top:calc(var(--kh,400px) * .2 + .5rem)}
+  .erlebnis .karussell__kategorien{justify-content:flex-start; width:auto; margin:.4rem calc(-1 * var(--page-x)) 0; border-radius:0; border-left:0; border-right:0}
 }
 /* Geöffnete Bühne: kurz einblenden, Platz für die Kapitelleiste beim Anspringen */
 .erlebnis .demo-buehne{position:relative; scroll-margin-top:84px}
@@ -558,7 +680,7 @@
 @media (pointer:coarse){ .erlebnis .demo-zu{min-height:44px} }
 @media (prefers-reduced-motion:reduce){
   .erlebnis .demo-buehne:not([hidden]){animation:none}
-  .erlebnis .demo-kachel, .erlebnis .demo-kachel img{transition:none}
+  .erlebnis .demo-kachel, .erlebnis .demo-kachel__bild img{transition:none}
 }
 /* hidden muss gegen display:grid/flex der Abschnitte gewinnen */
 .erlebnis .demo-buehne[hidden], .erlebnis .bd-reiter[hidden]{display:none}
