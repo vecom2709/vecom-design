@@ -455,10 +455,21 @@ final class Werbemittel
     }
 
     /** Produktfoto der Druckerei zu einem Entwurf — nur für den eigenen Partner, nur wenn fertig. */
-    public static function produktfoto(int $entwurfId, int $partnerId): ?string
+    public static function produktfoto(int $entwurfId, int $partnerId, int $nr = 0): ?string
     {
-        $b = Db::wert("SELECT mockup FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND mockup_status = 'fertig'", [$entwurfId, $partnerId], null);
+        // nr 0 = Hauptfoto, 1–3 = weitere Ansichten (wm_produktfotos) — immer nur vom eigenen Entwurf.
+        $b = $nr === 0
+            ? Db::wert("SELECT mockup FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND mockup_status = 'fertig'", [$entwurfId, $partnerId], null)
+            : Db::wert("SELECT f.bild FROM wm_produktfotos f JOIN wm_entwuerfe e ON e.id = f.entwurf_id
+                         WHERE f.entwurf_id = ? AND e.partner_id = ? AND f.nr = ? AND e.mockup_status = 'fertig'", [$entwurfId, $partnerId, $nr], null);
         return is_string($b) && $b !== '' ? $b : null;
+    }
+
+    /** Welche Fotos es zu einem eigenen Entwurf gibt: [0, 1, 2 …] (0 = Hauptfoto). */
+    public static function produktfotos(int $entwurfId, int $partnerId): array
+    {
+        if (!Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND mockup_status = 'fertig'", [$entwurfId, $partnerId])) { return []; }
+        return array_merge([0], array_map('intval', array_column(Db::all('SELECT nr FROM wm_produktfotos WHERE entwurf_id = ? ORDER BY nr', [$entwurfId]), 'nr')));
     }
 
     /** Wer stellt dieses Produkt im Land her? Die Druckerei des günstigsten geprüften Angebots (wie beim Bestellen). */

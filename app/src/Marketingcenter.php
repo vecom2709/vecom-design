@@ -90,7 +90,7 @@ final class Marketingcenter
     public static function designs(int $partnerId, string $sprache, int $max = 60): array
     {
         $sprache = in_array($sprache, Werbemittel::SPRACHEN, true) ? $sprache : 'it';
-        $zeilen = Db::all("SELECT e.id, e.produkt_id, e.status, e.created_at, e.freigegeben_am, e.wahl, w.vorlage,
+        $zeilen = Db::all("SELECT e.id, e.produkt_id, e.status, e.created_at, e.freigegeben_am, e.wahl, e.mockup_status, w.vorlage,
                                   COALESCE(NULLIF(w.name_$sprache, ''), w.name_it) AS produkt
                              FROM wm_entwuerfe e JOIN wm_produkte w ON w.id = e.produkt_id
                             WHERE e.partner_id = ? AND e.status IN ('entwurf','freigegeben','ersetzt')
@@ -101,6 +101,7 @@ final class Marketingcenter
             'freigegeben_am' => $r['freigegeben_am'] !== null ? (string) $r['freigegeben_am'] : null,
             'marketing_id' => Werbemittel::marketingId($r), 'wahl' => (array) json_decode((string) $r['wahl'], true),
             'erfolg' => Werbemittel::erfolg($partnerId, (int) $r['id']),
+            'foto' => $r['mockup_status'] === 'fertig',          // Produktfoto der Druckerei zum Herunterladen
         ], $zeilen);
     }
 

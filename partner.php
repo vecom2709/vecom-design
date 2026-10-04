@@ -631,12 +631,18 @@ if ($p && (isset($_GET['wmdvk']) || isset($_GET['wmvcf']))) {
 /* ---------- Marketing Center: Produktfoto der Druckerei (04.10.2026) ---------- */
 if ($p && isset($_GET['wmfoto'])) {
     require_once __DIR__ . '/app/src/Werbemittel.php';
-    $wmFoto = Werbemittel::produktfoto((int) $_GET['wmfoto'], (int) $p['id']);
+    $wmFoto = Werbemittel::produktfoto((int) $_GET['wmfoto'], (int) $p['id'], max(0, min(3, (int) ($_GET['n'] ?? 0))));
     if ($wmFoto === null) { http_response_code(404); exit('—'); }
+    $wmPng = (getimagesizefromstring($wmFoto)[2] ?? 0) === IMAGETYPE_PNG;
     header('X-Robots-Tag: noindex, nofollow');
     header('X-Content-Type-Options: nosniff');
-    header('Content-Type: ' . ((getimagesizefromstring($wmFoto)[2] ?? 0) === IMAGETYPE_PNG ? 'image/png' : 'image/jpeg'));
+    header('Content-Type: ' . ($wmPng ? 'image/png' : 'image/jpeg'));
     header('Cache-Control: private, max-age=86400');
+    if (!empty($_GET['dl'])) {
+        // Herunterladen (04.10.2026): Produktfoto der Druckerei für eigene Beiträge und die eigene Seite.
+        PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'produktfoto ' . (int) $_GET['wmfoto']);
+        header('Content-Disposition: attachment; filename="vecom-produktfoto-' . (int) $_GET['wmfoto'] . '-' . max(0, min(3, (int) ($_GET['n'] ?? 0))) . ($wmPng ? '.png' : '.jpg') . '"');
+    }
     echo $wmFoto;
     exit;
 }

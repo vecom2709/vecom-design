@@ -45,10 +45,14 @@ $mcNoch = $wmNoch && in_array($wmNochVar, array_column($wmP['varianten'], 'id'),
 /* Produktfoto der Druckerei — nur, wenn genau diese Druckerei das Produkt im Land des Partners herstellt
    (sonst wäre es ein anderes Produkt als das, was er kauft). */
 $mcFotoDa = !$wmNurLesen && Werbemittel::hersteller($wmP, (string) $wmP['land']) === 'Printful';
-$mcFoto = static function (array $e) use ($h, $selbst, $mcT, $mcFotoDa): void {
+$mcFoto = static function (array $e) use ($h, $selbst, $mcT, $mcFotoDa, $p): void {
     if (!$mcFotoDa || empty($e['mockup_status']) || $e['mockup_status'] === 'fehler') { return; } ?>
     <div class="mc-foto"><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_titel')) ?></span>
-      <?php if ($e['mockup_status'] === 'fertig'): ?><img src="<?= $h($selbst(['wmfoto' => (int) $e['id']])) ?>" alt="" loading="lazy" width="1000" height="1000">
+      <?php if ($e['mockup_status'] === 'fertig'): $mcNrn = Werbemittel::produktfotos((int) $e['id'], (int) $p['id']); ?>
+        <img src="<?= $h($selbst(['wmfoto' => (int) $e['id']])) ?>" alt="" loading="lazy" width="1000" height="1000">
+        <?php if (count($mcNrn) > 1): ?><span class="mc-fotos"><?php foreach (array_slice($mcNrn, 1) as $mcN): ?><a href="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN])) ?>" alt="" loading="lazy" width="160" height="160"></a><?php endforeach; ?></span><?php endif; ?>
+        <span class="mc-fotolinks"><?php foreach ($mcNrn as $mcN): ?><a class="knopf" href="<?= $h($selbst(['wmfoto' => (int) $e['id'], 'n' => $mcN, 'dl' => 1])) ?>" download><?= $h($mcT('foto_laden', ['{n}' => (string) ($mcN + 1)])) ?></a><?php endforeach; ?></span>
+        <span class="wm-meta" style="margin:0"><?= $h($mcT('foto_nutzen')) ?></span>
       <?php else: ?><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_wartet')) ?></span><?php endif; ?></div>
 <?php };
 $mcKachel = static function (string $s, string $linie, string $gruppe = '', string $linienName = '') use ($h, $wmJetzt, $mcMini, $mcStilName, $mcQuer, $wmNurLesen): void { ?>

@@ -140,6 +140,10 @@ if ($mcEigen) {
   .mc-ab{color:#f1d38b;font-weight:600}
   .mc-foto{display:grid;gap:6px}
   .mc-foto img{width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid var(--linie2)}
+  .mc-fotos{display:flex;gap:8px;flex-wrap:wrap}
+  .mc-fotos img{width:96px;height:96px;object-fit:cover}
+  .mc-fotolinks{display:flex;gap:8px;flex-wrap:wrap}
+  .mc-fotolinks .knopf{min-height:36px;padding:6px 12px;font-size:13.5px}
   .mc-dvk{display:grid;gap:14px}
   .mc-dvk > img{width:100%;max-width:380px;height:auto;justify-self:center;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
   .mc-dvk-kacheln{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;margin-bottom:10px}

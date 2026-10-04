@@ -22617,7 +22617,11 @@ $pfJpg = (static function (): string { $i = imagecreatetruecolor(40, 40); ob_sta
 Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$pfNetz, &$pfAntwort, $pfJpg): array {
     $pfNetz[] = [$m, $u, $r];
     if (str_contains($u, '/mockup-generator/create-task/')) { return $pfAntwort === 'grenze' ? ['code' => 429, 'body' => '{"error":{"message":"Too many"}}'] : ['code' => 200, 'body' => '{"result":{"task_key":"gt-4711"}}']; }
-    if (str_contains($u, '/mockup-generator/task?task_key=gt-4711')) { return ['code' => 200, 'body' => json_encode(['result' => ['status' => 'completed', 'mockups' => [['placement' => 'default', 'mockup_url' => $pfAntwort === 'fremd' ? 'https://boese.example/x.jpg' : 'https://files.cdn.printful.com/m.jpg']]]])]; }
+    if (str_contains($u, '/mockup-generator/task?task_key=gt-4711')) { return ['code' => 200, 'body' => json_encode(['result' => ['status' => 'completed', 'mockups' => [
+        ['placement' => 'default', 'mockup_url' => $pfAntwort === 'fremd' ? 'https://boese.example/x.jpg' : 'https://files.cdn.printful.com/m.jpg',
+         'extra' => [['title' => 'Left', 'url' => 'https://files.cdn.printful.com/l.jpg'], ['title' => 'Böse', 'url' => 'https://boese.example/y.jpg']]],
+        ['placement' => 'back', 'mockup_url' => 'https://files.cdn.printful.com/b.jpg']]]])]; }
+    if ($u === 'https://files.cdn.printful.com/l.jpg' || $u === 'https://files.cdn.printful.com/b.jpg') { return ['code' => 200, 'body' => $pfJpg]; }
     if ($u === 'https://files.cdn.printful.com/m.jpg') { return ['code' => 200, 'body' => $pfJpg]; }
     return ['code' => 404, 'body' => ''];
 };
@@ -22637,6 +22641,12 @@ $pfH = Printful::mockupsHolen();
 pruefe('Produktfoto abholen: fertig → Bild gespeichert; nur der eigene Partner bekommt es',
     $pfH === 1 && Db::wert('SELECT mockup_status FROM wm_entwuerfe WHERE id = ?', [$pfE]) === 'fertig'
     && Werbemittel::produktfoto($pfE, (int) $pfA['id']) === $pfJpg && Werbemittel::produktfoto($pfE, (int) $pfB['id']) === null);
+pruefe('Weitere Ansichten (Rückseite, andere Winkel) gespeichert — fremde Adressen übersprungen; nur der eigene Partner sieht sie',
+    Werbemittel::produktfotos($pfE, (int) $pfA['id']) === [0, 1, 2] && Werbemittel::produktfotos($pfE, (int) $pfB['id']) === []
+    && Werbemittel::produktfoto($pfE, (int) $pfA['id'], 2) === $pfJpg && Werbemittel::produktfoto($pfE, (int) $pfB['id'], 1) === null
+    && Db::all('SELECT nr, titel FROM wm_produktfotos WHERE entwurf_id = ? ORDER BY nr', [$pfE]) === [['nr' => 1, 'titel' => 'Left'], ['nr' => 2, 'titel' => 'back']]
+    && !in_array('https://boese.example/y.jpg', array_column($pfNetz, 1), true)
+    && ($pfReq['width'] ?? 0) === 1600);
 $pfE2 = Werbemittel::entwurfAnlegen($pfA, (int) $pfVk['id'], ['stil' => 'f', 'sprache' => 'it', 'kontakt' => 'email']);
 Printful::mockupAnstossen($pfE2); $pfAntwort = 'fremd';
 Printful::mockupsHolen();
@@ -22646,8 +22656,11 @@ pruefe('Foto von fremder Adresse wird nicht geholt (nur https auf *.printful.com
 Printful::$netz = null;
 $pfPhp = (string) file_get_contents($oben . '/partner.php');
 $pfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+pruefe('Herunterladen: als Anhang mit eigenem Dateinamen, protokolliert; Knöpfe je Foto in Schritt 2 und „Produktfoto“ in Meine Designs',
+    str_contains($pfPhp, 'Content-Disposition: attachment; filename="vecom-produktfoto-') && str_contains($pfPhp, "'download', null, 'produktfoto '")
+    && str_contains($pfV, "\$mcT('foto_laden'") && str_contains((string) file_get_contents($wurzel . '/views/partner_mc_listen.php'), "\$MC('d_foto')"));
 pruefe('Partnerbereich: Foto nur für den eigenen Partner, Anstoß nach dem Erstellen, Anzeige nur wenn Printful das Produkt herstellt; Cron holt ab',
-    str_contains($pfPhp, "Werbemittel::produktfoto((int) \$_GET['wmfoto'], (int) \$p['id'])") && str_contains($pfPhp, 'Printful::mockupAnstossen($wmNeuId)')
+    str_contains($pfPhp, "Werbemittel::produktfoto((int) \$_GET['wmfoto'], (int) \$p['id'], max(0, min(3,") && str_contains($pfPhp, 'Printful::mockupAnstossen($wmNeuId)')
     && str_contains($pfV, "Werbemittel::hersteller(\$wmP, (string) \$wmP['land']) === 'Printful'")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_fotos'"));
 Db::run("DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter IN ('Printful', 'Teuer')", [$pfVar]);

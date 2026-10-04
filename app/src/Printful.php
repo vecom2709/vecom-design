@@ -307,7 +307,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         if (!$art || !self::dateienDa($entwurfId, $art) || !Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND mockup_status IS NULL', [$entwurfId])) { return 'fehlt'; }
         $files = [];
         foreach ($art['dateien'] as $platz => $fassung) { $files[] = ['placement' => $platz, 'image_url' => Druckerei::dateiLink($entwurfId, $fassung, 3)]; }
-        $koerper = ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1000, 'files' => $files];
+        // 1600 px: groß genug zum Herunterladen für Beiträge und die eigene Seite (Printful erlaubt bis 2000).
+        $koerper = ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1600, 'files' => $files];
         try { $r = self::rufen('POST', '/mockup-generator/create-task/' . $art['produkt'], $koerper); }
         catch (Throwable $ex) { self::$letzterGrund = $ex->getMessage(); return 'fehler'; }
         if ($r['code'] === 429) { self::$letzterGrund = self::grund($r); return 'grenze'; }   // später wieder: Status bleibt leer
@@ -335,6 +336,21 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
                 $bild = self::fotoLaden((string) ($d['mockups'][0]['mockup_url'] ?? ''));
                 if ($bild !== null) {
                     Db::run("UPDATE wm_entwuerfe SET mockup = ?, mockup_status = 'fertig', mockup_am = NOW() WHERE id = ?", [$bild, (int) $e['id']]);
+                    // Weitere Ansichten (Rückseite, andere Winkel): bis zu drei, gleiche Herkunftsprüfung wie das Hauptfoto.
+                    $weitere = [];
+                    foreach ((array) ($d['mockups'] ?? []) as $i => $m) {
+                        if ($i > 0 && !empty($m['mockup_url'])) { $weitere[] = [(string) $m['mockup_url'], (string) ($m['placement'] ?? '')]; }
+                        foreach ((array) ($m['extra'] ?? []) as $x) { if (!empty($x['url'])) { $weitere[] = [(string) $x['url'], (string) ($x['title'] ?? $x['option'] ?? '')]; } }
+                    }
+                    $nr = 0;
+                    foreach ($weitere as [$url, $titel]) {
+                        if ($nr >= 3) { break; }
+                        $w = self::fotoLaden($url);
+                        if ($w === null) { continue; }
+                        $nr++;
+                        Db::run('INSERT INTO wm_produktfotos (entwurf_id, nr, titel, bild) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE titel = VALUES(titel), bild = VALUES(bild)',
+                            [(int) $e['id'], $nr, mb_substr(trim($titel), 0, 80), $w]);
+                    }
                     $n++;
                     continue;
                 }
