@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/DruckereiSchnittstelle.php';
+
+
 /* ==========================================================================
    Printful.php — dritte angebundene Druckerei des Marketing Centers
    (04.10.2026, Uwe: „bringe trotzdem Printful zusätzlich mit rein“).
@@ -36,7 +39,7 @@ declare(strict_types=1);
    SICHERHEIT WIE BEI DEN ANDEREN: Modus „entwurf“, bis in config.local.php
    'modus' => 'auftrag' steht. Senden genau einmal, Fehler bleiben stehen.
    ========================================================================== */
-final class Printful
+final class Printful implements DruckereiAnbieter, DruckereiPreise
 {
     public const NAME = 'Printful';
     public const BASIS = 'https://api.printful.com';

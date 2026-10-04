@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/PartnerSeite.php';
+require_once __DIR__ . '/PartnerWerbung.php';
+
 /**
  * Die Daten eines Partners, wie sie auf Werbemitteln erscheinen (04.10.2026,
  * Partner-Marketingcenter, Schritt 1 „Fundament“).

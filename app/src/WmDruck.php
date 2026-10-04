@@ -59,10 +59,11 @@ final class WmDruck
     /** @var array<string, array> */
     private static array $layouts = [];
 
-    /** Hinter dem QR-Code: der Partnerlink mit Kanal (Flyer zählen als „flyer“ in der Auswertung). */
+    /** Hinter dem QR-Code: der Partnerlink mit Kanal (Flyer zählen als „flyer“ in der Auswertung).
+        Ein Entwurf aus dem Marketing Center bringt seinen eigenen Kanal mit (wm-241, Werbemittel::mitKanal). */
     public static function qrLink(array $p, string $fmt): string
     {
-        return PartnerWerbung::link($p, str_starts_with($fmt, 'flyer') ? 'flyer' : 'qr');
+        return PartnerWerbung::link($p, (string) ($p['_wm_kanal'] ?? (str_starts_with($fmt, 'flyer') ? 'flyer' : 'qr')));
     }
 
     public static function layout(string $fmt): array

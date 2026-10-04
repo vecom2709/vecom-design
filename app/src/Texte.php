@@ -3735,6 +3735,7 @@ final class Texte
             'erfolg' => ['it' => 'Post «È online»', 'de' => 'Beitrag „Ist online“', 'en' => '“It’s live” post'],
             'weiter' => ['it' => 'Inoltrata da clienti', 'de' => 'Von Kunden weitergeleitet', 'en' => 'Forwarded by customers'],
             'kalender' => ['it' => 'Post del calendario', 'de' => 'Beitrag aus dem Kalender', 'en' => 'Calendar post'],
+            'wm' => ['it' => 'Materiali del Marketing Center', 'de' => 'Werbemittel aus dem Marketing Center', 'en' => 'Marketing Center materials'],
             'mappe' => ['it' => 'Cartella stampata', 'de' => 'Gedruckte Mappe', 'en' => 'Printed folder'],
             'kachel' => ['it' => 'Immagine recensione/sito', 'de' => 'Bild Kundenstimme/Seite', 'en' => 'Review/site image'],
             'anschreiben' => ['it' => 'Messaggio personale ad attività', 'de' => 'Persönliche Nachricht an Betrieb', 'en' => 'Personal message to business'],
@@ -4964,6 +4965,9 @@ final class Texte
         'pf_hinten' => ['it' => 'Retro 90 × 50', 'de' => 'Rückseite 90 × 50', 'en' => 'Back 90 × 50'],
         'pruef_haken_pf' => ['it' => 'Ho controllato il file e la versione 90 × 50 mm: nome, codice partner, link e QR sono giusti. Verrà stampato esattamente questo — in uno dei due formati.', 'de' => 'Ich habe die Druckdatei und die Fassung 90 × 50 mm geprüft: Name, Partner-ID, Link und QR-Code stimmen. Gedruckt wird genau das — in einem der beiden Formate.', 'en' => 'I have checked the print file and the 90 × 50 mm version: name, partner ID, link and QR code are correct. Exactly this will be printed — in one of the two formats.'],
         'frei_titel' => ['it' => 'Approvato il {datum}', 'de' => 'Freigegeben am {datum}', 'en' => 'Approved on {datum}'],
+        /* Marketing-ID und Wirkung je Werbemittel (04.10.2026, Marketingcenter Schritt 1b) */
+        'mid'       => ['it' => 'Marketing-ID {id} — il codice QR porta alla sua pagina e conta ogni scansione.', 'de' => 'Marketing-ID {id} — der QR-Code führt auf Ihre Seite und zählt jeden Scan.', 'en' => 'Marketing ID {id} — the QR code leads to your page and counts every scan.'],
+        'erfolg'    => ['it' => 'Finora: {scans} scansioni · {besucher} visitatori · {anfragen} richieste · {abschluesse} clienti', 'de' => 'Bisher: {scans} Scans · {besucher} Besucher · {anfragen} Anfragen · {abschluesse} Kunden', 'en' => 'So far: {scans} scans · {besucher} visitors · {anfragen} enquiries · {abschluesse} customers'],
         'frei_satz' => ['it' => 'Verrà stampato questo file quando ordinerà. Vuole cambiare? Crei e approvi un nuovo file.', 'de' => 'Diese Datei wird gedruckt, sobald Sie bestellen. Etwas ändern? Einfach eine neue Druckdatei erstellen und freigeben.', 'en' => 'This file will be printed when you order. Want a change? Just create and approve a new print file.'],
         'm_entwurf' => ['it' => 'File di stampa creato. Lo apra e, se va bene, lo approvi.', 'de' => 'Druckdatei erstellt. Bitte ansehen und, wenn alles stimmt, freigeben.', 'en' => 'Print file created. Please open it and approve it if everything is right.'],
         'm_frei' => ['it' => 'Approvato. Verrà stampato esattamente questo file.', 'de' => 'Freigegeben. Gedruckt wird genau diese Datei.', 'en' => 'Approved. Exactly this file will be printed.'],

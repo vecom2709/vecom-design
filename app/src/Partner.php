@@ -526,7 +526,8 @@ final class Partner
      * eine Kennung hinter dem Kanal (kalender-1003, beitrag-12, bild3d-45). Die Kanal-Zählung bleibt
      * beim Grundnamen — die Besucherliste liest die Kennung aus der Spur.
      */
-    public const BEITRAG_KANAELE = ['kalender', 'beitrag', 'bild3d', 'video3d'];
+    /* „wm“ (04.10.2026, Marketingcenter): ein Werbemittel aus dem Marketing Center, wm-241 = Entwurf 241. */
+    public const BEITRAG_KANAELE = ['kalender', 'beitrag', 'bild3d', 'video3d', 'wm'];
 
     public static function kanalBasis(?string $kanal): ?string
     {
@@ -536,6 +537,7 @@ final class Partner
 
     public static function klick(int $partnerId, ?string $kanal = null): void
     {
+        $roh = self::kanal((string) $kanal);
         self::still(static fn() => Db::run(
             'INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 1)
              ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId]), null);
@@ -544,6 +546,11 @@ final class Partner
             self::still(static fn() => Db::run(
                 'INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, ?, CURDATE(), 1)
                  ON DUPLICATE KEY UPDATE anzahl = anzahl + 1', [$partnerId, $kanal]), null);
+        }
+        /* Scan eines Werbemittels (04.10.2026, Marketingcenter): zählt beim Werbemittel nur, wenn
+           es diesem Partner gehört — eine fremde Nummer in der Adresse verändert keine fremde Zahl. */
+        if (preg_match('/^wm-(\d{1,8})$/', (string) $roh, $m)) {
+            self::still(static fn() => Db::run('UPDATE wm_entwuerfe SET scans = scans + 1 WHERE id = ? AND partner_id = ?', [(int) $m[1], $partnerId]), null);
         }
     }
 

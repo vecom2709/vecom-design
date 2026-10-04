@@ -21970,7 +21970,7 @@ WmBestellung::vonHandBezahlt($w7O3['id']);
 pruefe('Freigabe ohne 90 × 50-Fassung (älter als heute): nichts gesendet, Grund nennt die fehlende Fassung',
     !in_array('POST /orders', $w7Netz2, true) && str_contains(Printful::auftragSenden($w7O3['id'])['grund'], 'eingepasste Fassung'), json_encode($w7Netz2));
 pruefe('Preis-Knopf holt alle Druckereien mit Preis-Schnittstelle, Cron Printful höchstens wöchentlich, Konfig-Beispiel nennt Printful',
-    str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (['Gelato', 'Printful'] as \$wmK)")
+    str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (Druckerei::mitPreisen() as \$wmK)")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_preise'")
     && str_contains((string) file_get_contents($wurzel . '/config.local.example.php'), "'printful'"));
 // Ohne app_geheim (so auf dem Server, 04.10.2026): Schlüssel aus hosting_geheim abgeleitet — Links funktionieren, sind aber nicht erratbar
@@ -22265,6 +22265,126 @@ pruefe('Partnerbereich: Formular mit CSRF im Reiter Profil, Tat „kontakt“ sp
     && str_contains($mdPhp, "PartnerDaten::kontaktSpeichern((int) \$p['id'], \$_POST)")
     && str_contains((string) file_get_contents($wurzel . '/views/partner_werbung.php'), "require __DIR__ . '/partner_kontaktdaten.php'"));
 Db::run('DELETE FROM partner WHERE id = ?', [$mdId]);
+
+/* ============================================================================
+   Marketingcenter, Schritt 1b: Marketing-ID je Werbemittel (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Marketing-ID');
+foreach (['Werbemittel', 'PartnerKarten', 'WmDruck', 'PartnerWerbung'] as $miKl) { require_once $wurzel . "/src/$miKl.php"; }
+$miVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$miFl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
+$miAktiv = [(int) $miVk['aktiv'], (int) ($miFl['aktiv'] ?? 0)];
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id IN (?, ?)', [(int) $miVk['id'], (int) ($miFl['id'] ?? 0)]);
+$miA = Partner::laden(Partner::anlegen(['name' => 'Mia Kennung', 'email' => 'mia.k@partner.example', 'code' => 'MIAKENN', 'sprache' => 'it']));
+$miB = Partner::laden(Partner::anlegen(['name' => 'Ben Fremd', 'email' => 'ben.f@partner.example', 'code' => 'BENFREMD', 'sprache' => 'de']));
+pruefe('QR-Link: ohne Marketing-ID wie bisher (karte, flyer, qr), mit ID der eigene Kanal wm-NNN',
+    str_ends_with(PartnerKarten::link($miA), '/p/MIAKENN/karte') && str_ends_with(WmDruck::qrLink($miA, 'flyer_a6'), '/p/MIAKENN/flyer')
+    && str_ends_with(WmDruck::qrLink($miA, 'aufkleber_50'), '/p/MIAKENN/qr')
+    && str_ends_with(PartnerKarten::link(Werbemittel::mitKanal($miA, 241)), '/p/MIAKENN/wm-241')
+    && str_ends_with(WmDruck::qrLink(Werbemittel::mitKanal($miA, 241), 'flyer_a6'), '/p/MIAKENN/wm-241'));
+$miE = Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+$miR = Db::one('SELECT * FROM wm_entwuerfe WHERE id = ?', [$miE]);
+$miSoll = PartnerKarten::pdf(Werbemittel::mitKanal($miA, $miE), 'a', 'it', 'email', 'einzeln');
+$miAlt = PartnerKarten::pdf($miA, 'a', 'it', 'email', 'einzeln');
+pruefe('Entwurf: Status „entwurf“, Datei mit Hash — und ihr QR-Code trägt die eigene Nummer (gleiche Datei wie mit wm-ID gerechnet, andere als ohne)',
+    $miR && $miR['status'] === 'entwurf' && hash('sha256', (string) $miR['datei']) === $miR['datei_hash'] && (int) $miR['datei_bytes'] === strlen((string) $miR['datei'])
+    && (string) $miR['datei'] === $miSoll && $miSoll !== $miAlt && (string) $miR['datei_druck'] !== '' && (int) $miR['scans'] === 0);
+$miMid = Werbemittel::marketingId($miR);
+pruefe('Marketing-ID: VM-Jahr-sechsstellig, zurück nur mit passendem Jahr',
+    $miMid === sprintf('VM-%s-%06d', date('Y'), $miE) && Werbemittel::ausMarketingId($miMid) === $miE
+    && Werbemittel::ausMarketingId(strtolower($miMid)) === $miE && Werbemittel::ausMarketingId(sprintf('VM-1999-%06d', $miE)) === null
+    && Werbemittel::ausMarketingId('VM-2026-999999') === null && Werbemittel::ausMarketingId('kaputt') === null);
+$miE2 = Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'email']);
+pruefe('Neuer Entwurf bekommt eine neue Nummer und ersetzt den alten Entwurf; kein „entsteht“ bleibt liegen',
+    $miE2 > $miE && Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ?', [$miE]) == 0
+    && (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND status <> 'entwurf'", [(int) $miA['id']]) === 0);
+$miR2 = Db::one('SELECT * FROM wm_entwuerfe WHERE id = ?', [$miE2]);
+pruefe('„entsteht“ ist nie freigebbar (auch nicht mit dem Platzhalter-Hash)',
+    (Db::run("UPDATE wm_entwuerfe SET status = 'entsteht' WHERE id = ?", [$miE2]) !== null)
+    && Werbemittel::freigeben((int) $miA['id'], $miE2, (string) $miR2['datei_hash']) === false
+    && Werbemittel::freigeben((int) $miA['id'], $miE2, str_repeat('0', 64)) === false
+    && (Db::run("UPDATE wm_entwuerfe SET status = 'entwurf' WHERE id = ?", [$miE2]) !== null));
+// Scheitert die Datei, verschwindet die neue Zeile und der alte Entwurf bleibt.
+$miVorher = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ?', [(int) $miA['id']]);
+$miFehler = false;
+Db::run("UPDATE wm_produkte SET vorlage = 'gibt_es_nicht' WHERE id = ?", [(int) $miVk['id']]);
+try { Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']); } catch (RuntimeException $e) { $miFehler = true; }
+Db::run("UPDATE wm_produkte SET vorlage = 'visitenkarte' WHERE id = ?", [(int) $miVk['id']]);
+pruefe('Scheitert die Datei: Fehler, die neue Zeile verschwindet, der bisherige Entwurf bleibt',
+    $miFehler && (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ?', [(int) $miA['id']]) === $miVorher
+    && (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ? AND status = 'entwurf'", [$miE2]) === 1);
+Db::run("INSERT INTO wm_entwuerfe (partner_id, produkt_id, wahl, datei, datei_hash, status, created_at) VALUES (?, ?, '{}', '', ?, 'entsteht', NOW() - INTERVAL 2 HOUR)", [(int) $miA['id'], (int) $miVk['id'], str_repeat('0', 64)]);
+Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'email']);
+pruefe('Liegengebliebenes „entsteht“ (älter als 1 Stunde) wird beim nächsten Entwurf weggeräumt',
+    (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entsteht'", [(int) $miA['id']]) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entwurf'", [(int) $miA['id']]) === 1);
+$miE3 = (int) Db::wert("SELECT id FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entwurf'", [(int) $miA['id']]);
+if ($miFl) {
+    $miEf = Werbemittel::entwurfAnlegen($miA, (int) $miFl['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']);
+    $miRf = Db::one('SELECT datei, datei_druck FROM wm_entwuerfe WHERE id = ?', [$miEf]);
+    pruefe('Flyer: Vorschau-PDF und Flyeralarm-Datei tragen beide den QR-Code mit eigener Nummer',
+        (string) $miRf['datei'] === WmDruck::pdf(Werbemittel::mitKanal($miA, $miEf), 'flyer_a6', 'a', 'it', 'email')
+        && (string) $miRf['datei_druck'] === WmDruck::pdf(Werbemittel::mitKanal($miA, $miEf), 'flyer_a6', 'a', 'it', 'email', Werbemittel::FLYERALARM_BESCHNITT)
+        && (string) $miRf['datei'] !== WmDruck::pdf($miA, 'flyer_a6', 'a', 'it', 'email'));
+}
+// Scans: nur echte Aufrufe mit eigener Nummer zählen beim Werbemittel; Kanalzählung beim Grundnamen „wm“.
+Partner::klick((int) $miA['id'], 'wm-' . $miE3); Partner::klick((int) $miA['id'], 'wm-' . $miE3); Partner::klick((int) $miA['id'], 'WM-' . $miE3);
+Partner::klick((int) $miB['id'], 'wm-' . $miE3);
+Partner::klick((int) $miA['id'], 'wm-99999999');
+pruefe('Scan zählt beim eigenen Werbemittel (auch groß geschrieben), ein fremder Partner mit derselben Nummer zählt dort nicht',
+    (int) Db::wert('SELECT scans FROM wm_entwuerfe WHERE id = ?', [$miE3]) === 3
+    && (int) Db::wert("SELECT SUM(anzahl) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal = 'wm'", [(int) $miA['id']]) === 4
+    && (int) Db::wert("SELECT COUNT(*) FROM partner_kanal_klicks WHERE partner_id = ? AND kanal LIKE 'wm-%'", [(int) $miA['id']]) === 0);
+// Besucher und Anfragen aus der vorhandenen Spur und Zuordnung.
+foreach ([['VIS-MI000001', 0], ['VIS-MI000001', 0], ['VIS-MI000002', 0], ['VIS-MI000003', 1]] as $i => [$miV, $miVd]) {
+    Db::insert('spur_besuche', ['visitor_id' => $miV, 'session_id' => md5('mi' . $i), 'partner_id' => (int) $miA['id'], 'kanal' => 'wm-' . $miE3, 'verdacht' => $miVd]);
+}
+$miKunde = (int) Db::insert('customers', ['name' => 'Kunde Wm', 'email' => 'kunde.wm@example.test']);
+Db::insert('partner_zuordnungen', ['partner_id' => (int) $miA['id'], 'customer_id' => $miKunde, 'quelle' => 'link', 'kanal' => 'wm-' . $miE3]);
+$miEr = Werbemittel::erfolg((int) $miA['id'], $miE3);
+pruefe('Erfolg je Werbemittel: Scans, verschiedene echte Besucher (Verdacht zählt nicht), Anfragen, Quote',
+    $miEr['scans'] === 3 && $miEr['besucher'] === 2 && $miEr['anfragen'] === 1 && $miEr['abschluesse'] === 0 && $miEr['quote'] === 33.3, json_encode($miEr));
+pruefe('Erfolg nur für den eigenen Partner: Ben sieht für Mias Nummer nichts',
+    Werbemittel::erfolg((int) $miB['id'], $miE3) === ['scans' => 0, 'besucher' => 0, 'anfragen' => 0, 'abschluesse' => 0, 'quote' => null]);
+$miAus = PartnerWerbung::auswertung((int) $miA['id']);
+$miZ = array_values(array_filter($miAus['zeilen'], static fn($z) => $z['kanal'] === 'wm'));
+pruefe('Auswertung je Kanal: Klicks und Kunden des Werbemittels stehen gemeinsam in der Zeile „wm“',
+    count($miZ) === 1 && $miZ[0]['klicks'] === 4 && $miZ[0]['kunden'] === 1
+    && !array_filter($miAus['zeilen'], static fn($z) => str_starts_with($z['kanal'], 'wm-')) && Texte::h(Texte::PARTNER_WERBUNG['namen']['wm'] ?? [], 'de') !== '');
+$miV = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+pruefe('Partnerbereich zeigt Marketing-ID und Wirkung, Verwaltung die ID je Bestellung',
+    str_contains($miV, "Werbemittel::marketingId(\$wmF)") && str_contains($miV, "Werbemittel::erfolg((int) \$p['id'], (int) \$wmF['id'])")
+    && str_contains((string) file_get_contents($wurzel . '/views/werbemittel_bestellungen.php'), 'Werbemittel::marketingId($wmEnt)'));
+Db::run('DELETE FROM partner_zuordnungen WHERE partner_id = ?', [(int) $miA['id']]);
+Db::run('DELETE FROM customers WHERE id = ?', [$miKunde]);
+Db::run('DELETE FROM spur_besuche WHERE partner_id IN (?, ?)', [(int) $miA['id'], (int) $miB['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $miA['id'], (int) $miB['id']]);
+Db::run('DELETE FROM partner_klicks WHERE partner_id IN (?, ?)', [(int) $miA['id'], (int) $miB['id']]);
+Db::run('DELETE FROM partner_kanal_klicks WHERE partner_id IN (?, ?)', [(int) $miA['id'], (int) $miB['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $miA['id'], (int) $miB['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [$miAktiv[0], (int) $miVk['id']]);
+if ($miFl) { Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [$miAktiv[1], (int) $miFl['id']]); }
+
+/* ============================================================================
+   Marketingcenter, Schritt 1c: Vertrag der Druckereien (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Druckerei-Schnittstelle');
+require_once $wurzel . '/src/Druckerei.php';
+$dsAlle = array_values(Druckerei::ANGEBUNDEN);
+foreach ($dsAlle as $dsK) { require_once $wurzel . "/src/$dsK.php"; }
+pruefe('Jede Druckerei im Register erfüllt den Vertrag (bereit, auftragSenden, nachsehen)',
+    $dsAlle !== [] && !array_filter($dsAlle, static fn($k) => !is_subclass_of($k, DruckereiAnbieter::class)), implode(',', $dsAlle));
+pruefe('Preis-Schnittstelle genau bei den Druckereien, die Preise per API liefern (Gelato, Printful — HelloPrint nicht)',
+    is_subclass_of('Gelato', DruckereiPreise::class) && is_subclass_of('Printful', DruckereiPreise::class) && !is_subclass_of('HelloPrint', DruckereiPreise::class));
+$dsD = (string) file_get_contents($wurzel . '/src/Druckerei.php');
+pruefe('Senden ohne Sonderfall je Druckerei: Druckerei::senden ruft nur auftragSenden(), Gelato leitet auf seinen Auftragsweg',
+    str_contains($dsD, 'return $klasse::auftragSenden($bestellungId);') && !str_contains($dsD, "Gelato::entwurfSenden")
+    && str_contains((string) file_get_contents($wurzel . '/src/Gelato.php'), 'return self::entwurfSenden($bestellungId, true);'));
+pruefe('Preise holen: genau die bereiten Druckereien mit Preis-Schnittstelle (in der Kette Gelato und Printful, nie HelloPrint)',
+    Druckerei::mitPreisen() === ['Gelato', 'Printful'], json_encode(Druckerei::mitPreisen()));
+$dsV = (string) file_get_contents($wurzel . '/src/DruckereiSchnittstelle.php');
+pruefe('Versandarten bewusst nicht erfunden: die Schnittstelle sagt, warum es getShippingOptions noch nicht gibt',
+    str_contains($dsV, 'getShippingOptions') && str_contains($dsV, 'keine erfundenen Endpunkte') && !preg_match('~function\s+versand~i', $dsV));
 
 /* ============================================================================
    Aufräumen und Bilanz

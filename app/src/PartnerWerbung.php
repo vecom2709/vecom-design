@@ -99,13 +99,16 @@ final class PartnerWerbung
         }
         $alle = (int) Db::wert('SELECT COALESCE(SUM(anzahl), 0) FROM partner_klicks WHERE partner_id = ?', [$partnerId], 0);
         if ($alle - $mitKanal > 0) { $zeile(''); $z['']['klicks'] = $alle - $mitKanal; }
+        /* Kunden und Verkäufe beim Grundnamen wie die Klicks (04.10.2026): wm-241 und kalender-1003
+           gehören in die Zeile „wm“ bzw. „kalender“ — sonst stünden Kunden ohne Klicks in eigenen Zeilen. */
+        $basis = static fn(string $k): string => $k === '' ? '' : (string) (Partner::kanalBasis($k) ?? $k);
         foreach (Db::all("SELECT COALESCE(kanal, '') AS k, COUNT(*) AS n FROM partner_zuordnungen WHERE partner_id = ? GROUP BY k", [$partnerId]) as $r) {
-            $zeile((string) $r['k']); $z[(string) $r['k']]['kunden'] = (int) $r['n'];
+            $k = $basis((string) $r['k']); $zeile($k); $z[$k]['kunden'] += (int) $r['n'];
         }
         foreach (Db::all("SELECT COALESCE(z.kanal, '') AS k, COUNT(DISTINCT pp.customer_id) AS n, SUM(pp.provision_cents) AS c
                             FROM partner_provisionen pp LEFT JOIN partner_zuordnungen z ON z.customer_id = pp.customer_id
                            WHERE pp.partner_id = ? AND pp.status NOT IN ('storniert','abgelehnt') GROUP BY k", [$partnerId]) as $r) {
-            $zeile((string) $r['k']); $z[(string) $r['k']]['verkaeufe'] = (int) $r['n']; $z[(string) $r['k']]['provision'] = (int) $r['c'];
+            $k = $basis((string) $r['k']); $zeile($k); $z[$k]['verkaeufe'] += (int) $r['n']; $z[$k]['provision'] += (int) $r['c'];
         }
         $zeilen = array_values($z);
         usort($zeilen, static fn($a, $b) => [$b['verkaeufe'], $b['kunden'], $b['klicks']] <=> [$a['verkaeufe'], $a['kunden'], $a['klicks']]);

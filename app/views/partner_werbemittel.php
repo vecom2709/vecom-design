@@ -175,6 +175,9 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
               <span><?= $h($wmWahlText($wmF['wahl'])) ?></span>
               <a href="<?= $h($selbst(['wmpdf' => (int) $wmF['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
               <span class="wm-meta" style="margin:0"><?= $h($W('frei_satz')) ?></span>
+              <?php $wmEr = Werbemittel::erfolg((int) $p['id'], (int) $wmF['id']); ?>
+              <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmF)])) ?><br>
+                <?= $h(strtr($W('erfolg'), ['{scans}' => (string) $wmEr['scans'], '{besucher}' => (string) $wmEr['besucher'], '{anfragen}' => (string) $wmEr['anfragen'], '{abschluesse}' => (string) $wmEr['abschluesse']])) ?></span>
             </div>
           <?php endif; ?>
           <?php if ($wmSt['entwurf']): $wmE = $wmSt['entwurf']; ?>
@@ -184,6 +187,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
               <input type="hidden" name="hash" value="<?= $h((string) $wmE['datei_hash']) ?>">
               <b><?= $h($W('entwurf_titel')) ?></b>
               <span><?= $h($wmWahlText($wmE['wahl'])) ?></span>
+              <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmE)])) ?></span>
               <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
               <?php if (!empty($wmE['hat_pf'])): ?>
                 <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>

@@ -47,7 +47,9 @@ $S = [
       <div style="min-width:160px;font-size:14px;line-height:1.6;text-align:right">
         Partner zahlt <strong><?= Fmt::h(Werbemittel::euro((int) $b['summe_cent'])) ?></strong><br>
         <span style="color:var(--leise)">Einkauf <?= Fmt::h(Werbemittel::euro($ek)) ?> · Marge <?= Fmt::h(Werbemittel::euro((int) $b['summe_cent'] - $ek)) ?></span><br>
-        <?php if ($pos): ?><a class="knopf stumm" style="margin-top:6px" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $pos['entwurf_id'])) ?>" target="_blank" rel="noopener">Druckdatei (PDF)</a>
+        <?php if ($pos): $wmEnt = Db::one('SELECT id, created_at, scans FROM wm_entwuerfe WHERE id = ?', [(int) $pos['entwurf_id']]); ?>
+          <?php if ($wmEnt): ?><span style="color:var(--leise)"><?= Fmt::h(Werbemittel::marketingId($wmEnt)) ?> · <?= (int) $wmEnt['scans'] ?> Scans</span><br><?php endif; ?>
+          <a class="knopf stumm" style="margin-top:6px" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $pos['entwurf_id'])) ?>" target="_blank" rel="noopener">Druckdatei (PDF)</a>
           <?php /* Flyer: eigene Fassung für Flyeralarm (1 mm Beschnitt statt 3 mm), 04.10.2026 */ if ((int) Db::wert('SELECT datei_druck IS NOT NULL AND produkt_id IN (SELECT id FROM wm_produkte WHERE vorlage LIKE \'flyer%\') FROM wm_entwuerfe WHERE id = ?', [(int) $pos['entwurf_id']]) === 1): ?>
             <br><a class="knopf" style="margin-top:6px" href="<?= Fmt::h(url('werbemittel/pdf/' . (int) $pos['entwurf_id']) . '?f=druck') ?>" target="_blank" rel="noopener">Für Flyeralarm (1 mm Beschnitt)</a>
           <?php endif; ?>

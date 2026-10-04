@@ -466,47 +466,114 @@ final class Werbemittel
     /**
      * Erzeugt die Druckdatei für die Wahl des Partners und legt sie als Entwurf
      * ab. Ein noch nicht freigegebener Entwurf desselben Produkts wird ersetzt.
+     *
+     * Seit 04.10.2026 (Marketingcenter, Marketing-ID): Die Zeile entsteht ZUERST
+     * (Status „entsteht“), weil ihre Nummer in den QR-Code gehört (/p/CODE/wm-241).
+     * „entsteht“ kann niemand freigeben (freigeben() verlangt „entwurf“); scheitert
+     * die Datei, verschwindet die Zeile wieder, und der alte Entwurf bleibt stehen.
      */
     public static function entwurfAnlegen(array $p, int $produktId, array $eingabe): int
     {
         $pr = Db::one('SELECT * FROM wm_produkte WHERE id = ? AND aktiv = 1', [$produktId]);
         if (!$pr || $pr['vorlage'] === '') { throw new InvalidArgumentException('Produkt nicht verfügbar.'); }
         $w = self::wahl($eingabe, (string) $pr['vorlage']);
+        // Liegengebliebenes (Abbruch mitten im Erzeugen) zählt nicht und stört nicht.
+        Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entsteht' AND created_at < NOW() - INTERVAL 1 HOUR", [(int) $p['id']]);
         $heute = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND created_at >= CURDATE()', [(int) $p['id']]);
         if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
-        $pdf = match ((string) $pr['vorlage']) {
-            'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
-            'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
-            default => '',
-        };
-        if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }
-        // Dieselbe Karte für den Druckanbieter (Gelato: 4 mm Beschnitt, 300 dpi) — im selben Moment
-        // aus denselben Daten, damit nichts anderes gedruckt wird als freigegeben (Phase 4).
-        $druck = match ((string) $pr['vorlage']) {
-            'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
-            // Flyer gehen an Flyeralarm (von Hand): dort 1 mm Beschnitt je Seite statt unserer 3 mm.
-            'flyer_a6', 'flyer_a5', 'flyer_branche' => WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt'], self::FLYERALARM_BESCHNITT),
-            default => '',
-        };
-        // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
-        // Partner sieht sie vor der Freigabe als zweite Vorschau — ohne sie geht nichts an Printful.
-        $pf = ['', ''];
-        if ((string) $pr['vorlage'] === 'visitenkarte') {
-            require_once __DIR__ . '/Printful.php';
-            [$pw, $ph] = Printful::VORLAGE;
-            $pf = [PartnerKarten::eingepasst($p, $w['stil'], 'vorn', $w['sprache'], $w['kontakt'], $pw, $ph),
-                   PartnerKarten::eingepasst($p, $w['stil'], 'hinten', $w['sprache'], $w['kontakt'], $pw, $ph)];
+        $id = Db::insert('wm_entwuerfe', [
+            'partner_id' => (int) $p['id'], 'produkt_id' => $produktId, 'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
+            'datei' => '', 'datei_hash' => str_repeat('0', 64), 'datei_bytes' => 0, 'status' => 'entsteht',
+        ]);
+        try {
+            $p = self::mitKanal($p, $id);
+            $pdf = match ((string) $pr['vorlage']) {
+                'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
+                'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
+                default => '',
+            };
+            if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }
+            // Dieselbe Karte für den Druckanbieter (Gelato: 4 mm Beschnitt, 300 dpi) — im selben Moment
+            // aus denselben Daten, damit nichts anderes gedruckt wird als freigegeben (Phase 4).
+            $druck = match ((string) $pr['vorlage']) {
+                'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
+                // Flyer gehen an Flyeralarm (von Hand): dort 1 mm Beschnitt je Seite statt unserer 3 mm.
+                'flyer_a6', 'flyer_a5', 'flyer_branche' => WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt'], self::FLYERALARM_BESCHNITT),
+                default => '',
+            };
+            // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
+            // Partner sieht sie vor der Freigabe als zweite Vorschau — ohne sie geht nichts an Printful.
+            $pf = ['', ''];
+            if ((string) $pr['vorlage'] === 'visitenkarte') {
+                require_once __DIR__ . '/Printful.php';
+                [$pw, $ph] = Printful::VORLAGE;
+                $pf = [PartnerKarten::eingepasst($p, $w['stil'], 'vorn', $w['sprache'], $w['kontakt'], $pw, $ph),
+                       PartnerKarten::eingepasst($p, $w['stil'], 'hinten', $w['sprache'], $w['kontakt'], $pw, $ph)];
+            }
+        } catch (Throwable $e) {
+            Db::run("DELETE FROM wm_entwuerfe WHERE id = ? AND status = 'entsteht'", [$id]);
+            throw $e;
         }
-        return (int) Db::transaktion(static function () use ($p, $produktId, $w, $pdf, $druck, $pf): int {
-            Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf'", [(int) $p['id'], $produktId]);
-            return Db::insert('wm_entwuerfe', [
-                'partner_id' => (int) $p['id'], 'produkt_id' => $produktId,
-                'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
-                'datei' => $pdf, 'datei_hash' => hash('sha256', $pdf), 'datei_bytes' => strlen($pdf),
-                'datei_druck' => $druck !== '' ? $druck : null, 'datei_druck_hash' => $druck !== '' ? hash('sha256', $druck) : null,
-                'datei_pf_vorn' => $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, 'datei_pf_hinten' => $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null,
-            ]);
+        Db::transaktion(static function () use ($p, $produktId, $id, $pdf, $druck, $pf): void {
+            Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf' AND id <> ?", [(int) $p['id'], $produktId, $id]);
+            Db::run("UPDATE wm_entwuerfe SET datei = ?, datei_hash = ?, datei_bytes = ?, datei_druck = ?, datei_druck_hash = ?,
+                            datei_pf_vorn = ?, datei_pf_hinten = ?, status = 'entwurf' WHERE id = ? AND status = 'entsteht'", [
+                $pdf, hash('sha256', $pdf), strlen($pdf),
+                $druck !== '' ? $druck : null, $druck !== '' ? hash('sha256', $druck) : null,
+                $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null, $id]);
         }, 3);
+        return $id;
+    }
+
+    // ---- Marketing-ID je Werbemittel (04.10.2026, Marketingcenter Schritt 1b) -------------
+    /*  VM-2026-000241: Jahr und Nummer des Entwurfs. Nicht gespeichert, sondern gebildet —
+        so kann sie nie von der Zeile abweichen, zu der sie gehört. */
+
+    /** Kanal hinter dem QR-Code dieses Werbemittels (Partner::BEITRAG_KANAELE „wm“). */
+    public static function kanal(int $entwurfId): string
+    {
+        return 'wm-' . $entwurfId;
+    }
+
+    /** $p mit dem Kanal des Werbemittels — WmDruck::qrLink und PartnerKarten::link lesen ihn. */
+    public static function mitKanal(array $p, int $entwurfId): array
+    {
+        $p['_wm_kanal'] = self::kanal($entwurfId);
+        return $p;
+    }
+
+    /** @param array{id:int|string, created_at:string} $e */
+    public static function marketingId(array $e): string
+    {
+        return sprintf('VM-%s-%06d', substr((string) $e['created_at'], 0, 4), (int) $e['id']);
+    }
+
+    /** VM-2026-000241 → 241 (oder null). Das Jahr wird mitgeprüft, sonst passt jede Zahl. */
+    public static function ausMarketingId(string $mid): ?int
+    {
+        if (!preg_match('~^VM-(\d{4})-(\d{6,8})$~', strtoupper(trim($mid)), $m)) { return null; }
+        $jahr = Db::wert('SELECT YEAR(created_at) FROM wm_entwuerfe WHERE id = ?', [(int) $m[2]], null);
+        return $jahr !== null && (int) $jahr === (int) $m[1] ? (int) $m[2] : null;
+    }
+
+    /**
+     * Was ein Werbemittel gebracht hat — nur für den eigenen Partner.
+     * scans: jeder echte Aufruf über den QR-Code/Link (dauerhaft gezählt).
+     * besucher: verschiedene Besucher (aus der Spur, nur so weit die Rohdaten reichen).
+     * anfragen: Kunden, die über dieses Werbemittel zugeordnet wurden; abschluesse: davon bezahlt.
+     * @return array{scans:int, besucher:int, anfragen:int, abschluesse:int, quote:?float}
+     */
+    public static function erfolg(int $partnerId, int $entwurfId): array
+    {
+        $k = self::kanal($entwurfId);
+        $scans = (int) Db::wert('SELECT scans FROM wm_entwuerfe WHERE id = ? AND partner_id = ?', [$entwurfId, $partnerId], 0);
+        $besucher = (int) Db::wert('SELECT COUNT(DISTINCT visitor_id) FROM spur_besuche WHERE partner_id = ? AND kanal = ? AND verdacht = 0', [$partnerId, $k], 0);
+        $anfragen = (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ? AND kanal = ?', [$partnerId, $k], 0);
+        $abschluesse = (int) Db::wert("SELECT COUNT(DISTINCT pp.customer_id) FROM partner_provisionen pp
+                                         JOIN partner_zuordnungen z ON z.customer_id = pp.customer_id AND z.partner_id = pp.partner_id
+                                        WHERE pp.partner_id = ? AND z.kanal = ? AND pp.status NOT IN ('storniert','abgelehnt')", [$partnerId, $k], 0);
+        return ['scans' => $scans, 'besucher' => $besucher, 'anfragen' => $anfragen, 'abschluesse' => $abschluesse,
+                'quote' => $scans > 0 ? round(100 * $anfragen / $scans, 1) : null];
     }
 
     /**
@@ -542,7 +609,7 @@ final class Werbemittel
     /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
     public static function stand(int $partnerId, int $produktId): array
     {
-        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
+        $felder = 'id, wahl, datei_hash, datei_bytes, status, created_at, freigegeben_am, scans, (datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL) AS hat_pf';
         $hol = static function (string $status) use ($felder, $partnerId, $produktId): ?array {
             $r = Db::one("SELECT $felder FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = ? ORDER BY id DESC LIMIT 1",
                 [$partnerId, $produktId, $status]);

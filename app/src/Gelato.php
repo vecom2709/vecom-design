@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/DruckereiSchnittstelle.php';
+
+
 /* ==========================================================================
    Gelato.php — erster Druckanbieter des Marketing Centers (03.10.2026,
    Phase 4, Uwe: „mache alles automatisch soweit wie es geht“).
@@ -33,7 +36,7 @@ declare(strict_types=1);
    gibt sie wieder frei. Kein automatischer zweiter Versuch: Ein Zeitüberlauf
    kann heißen, dass Gelato den Entwurf doch angelegt hat.
    ========================================================================== */
-final class Gelato
+final class Gelato implements DruckereiAnbieter, DruckereiPreise
 {
     public const BASIS = 'https://order.gelatoapis.com';
     public const NAME = 'Gelato';
@@ -41,9 +44,16 @@ final class Gelato
     /** Prüfnaht für die Kette: fn(string $methode, string $url, array $kopf, ?string $rumpf): array{code:int, body:string} */
     public static $netz = null;
 
-    public static function bereit(): bool
+    /** Gelato liefert in alle Länder unserer Partner; $land spielt hier (noch) keine Rolle. */
+    public static function bereit(?string $land = null): bool
     {
         return self::schluessel() !== '';
+    }
+
+    /** Echter Auftrag (DruckereiAnbieter) — derselbe Weg wie der Entwurf, nur mit Freigabe an Gelato. */
+    public static function auftragSenden(int $bestellungId): array
+    {
+        return self::entwurfSenden($bestellungId, true);
     }
 
     private static function schluessel(): string

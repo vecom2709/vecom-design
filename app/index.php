@@ -1852,12 +1852,10 @@ if ($post) {
 
             case 'wm_gelato_preise':
                 // Alle Druckereien mit Preis-Schnittstelle (Gelato, Printful) — je eine Zeile, mit dem Grund, wenn eine absagt.
-                require_once __DIR__ . '/src/Gelato.php';
-                require_once __DIR__ . '/src/Printful.php';
+                require_once __DIR__ . '/src/Druckerei.php';
                 require_once __DIR__ . '/src/Werbemittel.php';
                 $wmZeilen = []; $wmGut = false;
-                foreach (['Gelato', 'Printful'] as $wmK) {
-                    if (!$wmK::bereit()) { continue; }
+                foreach (Druckerei::mitPreisen() as $wmK) {
                     $wmN = $wmK::preiseAktualisieren();
                     $wmGut = $wmGut || $wmN > 0;
                     $wmZeilen[] = $wmN > 0 ? $wmK . ': ' . $wmN . ' Preise geholt und eingetragen.' : $wmK . ': keine Preise — ' . ($wmK::$letzterGrund !== '' ? $wmK::$letzterGrund : 'nichts (kein Artikel zugeordnet?)');

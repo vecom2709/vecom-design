@@ -23,6 +23,23 @@ final class Druckerei
     private static function laden(string $klasse): void
     {
         require_once __DIR__ . '/' . $klasse . '.php';
+        // Jede Klasse im Register erfüllt den Vertrag (DruckereiSchnittstelle.php) — sonst lieber laut.
+        if (!is_subclass_of($klasse, DruckereiAnbieter::class)) { throw new LogicException($klasse . ' ist keine DruckereiAnbieter.'); }
+    }
+
+    /**
+     * Klassen mit Preis-Schnittstelle (DruckereiPreise), die gerade bereit sind — statt einer
+     * festen Liste an jeder Stelle, die Preise holt (04.10.2026, Marketingcenter Schritt 1c).
+     * @return list<class-string<DruckereiPreise>>
+     */
+    public static function mitPreisen(): array
+    {
+        $aus = [];
+        foreach (self::ANGEBUNDEN as $klasse) {
+            self::laden($klasse);
+            if (is_subclass_of($klasse, DruckereiPreise::class) && $klasse::bereit()) { $aus[] = $klasse; }
+        }
+        return $aus;
     }
 
     /** Namen der Druckereien, die für $land gerade per Schnittstelle beliefert werden können. */
@@ -59,7 +76,7 @@ final class Druckerei
                     return ['ok' => false, 'grund' => $n . ' ist teurer geworden: jetzt ' . Fmt::geld($jetzt, 'EUR') . ', beim Bestellen ' . Fmt::geld($ek, 'EUR') . ' — nichts gesendet, damit kein Verlust entsteht.'];
                 }
             }
-            return $klasse === 'Gelato' ? Gelato::entwurfSenden($bestellungId, true) : $klasse::auftragSenden($bestellungId);
+            return $klasse::auftragSenden($bestellungId);
         }
         return ['ok' => false, 'grund' => 'keine Anbindung'];
     }

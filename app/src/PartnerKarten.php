@@ -41,7 +41,7 @@ final class PartnerKarten
 
     public static function link(array $p): string
     {
-        return PartnerWerbung::link($p, 'karte');
+        return PartnerWerbung::link($p, (string) ($p['_wm_kanal'] ?? 'karte')); // wm-241: Entwurf aus dem Marketing Center
     }
 
     public static function kurz(array $p): string

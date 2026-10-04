@@ -1,6 +1,9 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/DruckereiSchnittstelle.php';
+
+
 /* ==========================================================================
    HelloPrint.php — zweite angebundene Druckerei des Marketing Centers
    (04.10.2026, Uwe: „finde alle anderen Anbieter … per API“).
@@ -34,7 +37,7 @@ declare(strict_types=1);
    'prod' steht. Senden genau einmal (Sperre), Fehler bleiben stehen, kein
    automatischer zweiter Versuch.
    ========================================================================== */
-final class HelloPrint
+final class HelloPrint implements DruckereiAnbieter
 {
     public const NAME = 'HelloPrint';
     public const BASIS = 'https://api.helloprint.com/rest/v1';
