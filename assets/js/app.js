@@ -555,11 +555,30 @@
            gedrückt    -> Ring zieht sich zusammen. */
   var fine = window.matchMedia('(pointer: fine)').matches;
   if (fine && !reduced) {
+    /* GOLDZEIGER (05.10.2026, Uwe: „Punkt weg, edler, wie ein Mauszeiger,
+       aber moderner, in Gold mit leichten Goldfunken"). Der alte Punkt
+       bleibt im HTML, ist aber dauerhaft ausgeblendet. */
     var ring = document.querySelector('.cursor');
-    var dot = document.querySelector('.cursor-dot');
     if (!ring) { ring = document.createElement('div'); ring.className = 'cursor'; ring.setAttribute('aria-hidden', 'true'); document.body.appendChild(ring); }
-    if (!dot) { dot = document.createElement('div'); dot.className = 'cursor-dot'; dot.setAttribute('aria-hidden', 'true'); document.body.appendChild(dot); }
+    /* Das V aus dem Vecom-Logo ist der Zeiger (Uwe 05.10.2026: „der Mauszeiger
+       soll das V von Vecom Design sein"). Aufrecht, damit es als Marke lesbar
+       bleibt; die Spitze des linken Schenkels oben links ist der Klickpunkt --
+       dort, wo man es vom Systempfeil gewohnt ist. Die Bilddatei kommt vom
+       Kopfzeilen-Logo (gleiche Adresse samt ?v=, schon im Cache). */
+    var logoBild = document.querySelector('img[src*="logo-mark"]');
+    var logoQuelle = logoBild ? logoBild.currentSrc || logoBild.src : 'assets/img/logo-mark.webp';
+    ring.innerHTML = '<span class="cursor__pfeil"><img src="' + logoQuelle + '" alt="" width="120" height="94" decoding="async" draggable="false"></span>';
     var wort = document.createElement('span'); wort.className = 'cursor__wort'; ring.appendChild(wort);
+    var pfeil = ring.querySelector('.cursor__pfeil');
+    var funkenFlaeche = document.createElement('canvas'); funkenFlaeche.className = 'cursor-funken'; funkenFlaeche.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(funkenFlaeche);
+    var fk = funkenFlaeche.getContext('2d');
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    function flaecheAnpassen() {
+      funkenFlaeche.width = Math.round(window.innerWidth * dpr); funkenFlaeche.height = Math.round(window.innerHeight * dpr);
+      fk.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+    flaecheAnpassen(); window.addEventListener('resize', flaecheAnpassen, { passive: true });
     var sprache = (document.documentElement.lang || 'it').slice(0, 2);
     var WOERTER = {
       ziehen:   { de: 'Ziehen', it: 'Trascina', en: 'Drag' },
@@ -569,10 +588,32 @@
     var SCHIEB = '.vergleich__regler, .studie__vergleich input[type="range"], [data-cursor="schieben"]';
     var TEXT = 'input:not([type="range"]):not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]), textarea, [contenteditable="true"]';
     var KNOPF = 'a, button, select, label, summary, [role="button"], .card';
-    var mxp = window.innerWidth / 2, myp = window.innerHeight / 2, rx = mxp, ry = myp, laeuft = false;
+    var mxp = -100, myp = -100, altX = 0, altY = 0, laeuft = false;
     var body = document.body;
+
+    /* Funken: feste Obergrenze, wiederverwendete Objekte (kein Müll pro Frame) */
+    var MAX_FUNKEN = 48, funken = [], aktiv = 0;
+    for (var fi = 0; fi < MAX_FUNKEN; fi++) funken.push({ x: 0, y: 0, vx: 0, vy: 0, t: 0, d: 1, r: 1, h: 0 });
+    var FARBEN = ['255,243,207', '246,224,160', '236,201,121', '214,168,73'];
+    function funke(x, y, vx, vy) {
+      if (aktiv >= MAX_FUNKEN) return;
+      var f = funken[aktiv++];
+      f.x = x; f.y = y; f.vx = vx; f.vy = vy; f.t = 0;
+      f.d = 380 + Math.random() * 420; f.r = 0.5 + Math.random() * 1.1; f.h = (Math.random() * FARBEN.length) | 0;
+    }
+    function streuen(n, kraft) {
+      for (var i = 0; i < n; i++) {
+        var w = Math.random() * Math.PI * 2, v = (0.3 + Math.random()) * kraft;
+        funke(mxp + 14, myp + 20, Math.cos(w) * v, Math.sin(w) * v - 0.25);
+      }
+      starten();
+    }
+
+    var neigung = 0, neigungZiel = 0, zs = 1, zsZiel = 1, zuletzt = 0;
     function zustand(el) {
+      var vorher = body.classList.contains('is-hovering');
       body.classList.remove('is-hovering', 'cursor--text', 'cursor--wort', 'cursor--gold');
+      zsZiel = druckt ? 0.88 : 1;
       if (!el || !el.closest) return;
       var z = el.closest(ZIEH), s = z ? null : el.closest(SCHIEB);
       if (z || s) {
@@ -580,43 +621,76 @@
         body.classList.add('cursor--wort'); return;
       }
       if (el.closest(TEXT)) { body.classList.add('cursor--text'); return; }
-      if (el.closest(KNOPF)) body.classList.add('is-hovering');
-      /* Gold auf Gold verschwindet: über den Goldknöpfen wird der Ring dunkel */
+      if (el.closest(KNOPF)) {
+        body.classList.add('is-hovering'); zsZiel = druckt ? 0.96 : 1.1;
+        if (!vorher) streuen(4, 0.9);        // leiser Funkengruß beim Betreten
+      }
+      /* Gold auf Gold verschwindet: über den Goldknöpfen wird der Pfeil dunkel */
       body.classList.toggle('cursor--gold', !!el.closest('.btn--primary, .knopf.haupt'));
     }
+    var druckt = false;
     document.addEventListener('pointermove', function (e) {
       if (e.pointerType && e.pointerType !== 'mouse') return;   // Stift/Touch: Systemzeiger
       body.classList.add('cursor-ready');
+      var dx = e.clientX - mxp, dy = e.clientY - myp;
       mxp = e.clientX; myp = e.clientY;
-      dot.style.transform = 'translate3d(' + mxp + 'px,' + myp + 'px,0)';
-      if (!laeuft) { laeuft = true; rx = mxp; ry = myp; requestAnimationFrame(ride); }
+      ring.style.transform = 'translate3d(' + mxp + 'px,' + myp + 'px,0)';
+      var weg = Math.abs(dx) + Math.abs(dy);
+      if (weg < 400) {
+        neigungZiel = Math.max(-9, Math.min(9, dx * 0.6));
+        /* je schneller, desto mehr Funken -- aber nie ein Schweif */
+        var n = Math.random() < Math.min(weg / 40, 0.9) ? (weg > 30 ? 2 : 1) : 0;
+        if (body.classList.contains('cursor--text') || body.classList.contains('cursor--wort')) n = 0;
+        for (var i = 0; i < n; i++) {
+          funke(mxp + 12 + Math.random() * 5, myp + 18 + Math.random() * 4,   // aus der Spitze des V
+                -dx * 0.04 + (Math.random() - 0.5) * 0.6, -dy * 0.04 + (Math.random() - 0.5) * 0.6 - 0.15);
+        }
+      }
+      starten();
     }, { passive: true });
     document.addEventListener('pointerover', function (e) { zustand(e.target); }, { passive: true });
-    document.addEventListener('pointerdown', function () { body.classList.add('cursor--druck'); }, { passive: true });
-    document.addEventListener('pointerup', function () { body.classList.remove('cursor--druck'); }, { passive: true });
+    document.addEventListener('pointerdown', function (e) {
+      if (e.pointerType && e.pointerType !== 'mouse') return;
+      druckt = true; body.classList.add('cursor--druck'); zsZiel *= 0.86; streuen(9, 1.6);
+    }, { passive: true });
+    document.addEventListener('pointerup', function () {
+      druckt = false; body.classList.remove('cursor--druck'); zsZiel = body.classList.contains('is-hovering') ? 1.1 : 1; starten();
+    }, { passive: true });
     document.documentElement.addEventListener('pointerleave', function () { body.classList.remove('cursor-ready'); });
-    /* Die Schleife läuft nur, solange der Ring noch nachzieht -- ein ruhender
-       Zeiger kostet keinen einzigen Frame. */
-    /* Eleganter (02.10.2026): weicher Nachzug, dazu dehnt sich der Ring
-       kaum merklich in Bewegungsrichtung und kommt als runder Kreis zur
-       Ruhe -- wie ein Tropfen, nicht wie ein Gummiband. Beim Drücken
-       zieht er sich gefedert zusammen. Über Wortscheibe und Schreibmarke
-       bleibt er gerade. */
-    var druck = 1, druckZiel = 1;
-    document.addEventListener('pointerdown', function () { druckZiel = 0.82; if (!laeuft) { laeuft = true; requestAnimationFrame(ride); } }, { passive: true });
-    document.addEventListener('pointerup', function () { druckZiel = 1; if (!laeuft) { laeuft = true; requestAnimationFrame(ride); } }, { passive: true });
-    function ride() {
-      var dx = mxp - rx, dy = myp - ry;
-      rx += dx * 0.2; ry += dy * 0.2;
-      druck += (druckZiel - druck) * 0.25;
-      var gerade = body.classList.contains('cursor--wort') || body.classList.contains('cursor--text');
-      var tempo = Math.min(Math.hypot(dx, dy) / 140, 0.22);
-      var dreh = gerade ? 0 : Math.atan2(dy, dx) * 57.2958;
-      var sx = gerade ? 1 : 1 + tempo, sy = gerade ? 1 : 1 - tempo * 0.55;
-      ring.style.transform = 'translate3d(' + rx.toFixed(2) + 'px,' + ry.toFixed(2) + 'px,0) rotate(' + dreh.toFixed(1) + 'deg) scale('
-        + (sx * druck).toFixed(3) + ',' + (sy * druck).toFixed(3) + ')';
-      if (Math.abs(dx) + Math.abs(dy) > 0.1 || Math.abs(druckZiel - druck) > 0.005) requestAnimationFrame(ride);
-      else laeuft = false;
+
+    function starten() { if (!laeuft) { laeuft = true; zuletzt = performance.now(); requestAnimationFrame(ride); } }
+    /* Die Schleife läuft nur, solange Funken glimmen oder der Pfeil sich
+       noch aufrichtet -- danach steht sie still. */
+    function ride(jetzt) {
+      var dt = Math.min(jetzt - zuletzt, 50); zuletzt = jetzt;
+      neigungZiel *= 0.82;                                     // richtet sich von selbst wieder auf
+      neigung += (neigungZiel - neigung) * 0.22;
+      zs += (zsZiel - zs) * 0.25;
+      pfeil.style.setProperty('--neigung', neigung.toFixed(2) + 'deg');
+      pfeil.style.setProperty('--zs', zs.toFixed(3));
+      fk.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      if (aktiv) {
+        fk.globalCompositeOperation = 'lighter';
+        for (var i = aktiv - 1; i >= 0; i--) {
+          var f = funken[i];
+          f.t += dt;
+          if (f.t >= f.d) {                                      // erloschen: letzten Funken hierher tauschen
+            var letzt = funken[--aktiv]; funken[aktiv] = f; funken[i] = letzt; continue;
+          }
+          var k = dt / 16.7;
+          f.vx *= 0.96; f.vy = f.vy * 0.96 + 0.018 * k;           // sinken sacht, wie Glut
+          f.x += f.vx * k; f.y += f.vy * k;
+          var rest = 1 - f.t / f.d, a = rest * rest;
+          var flacker = 0.75 + Math.random() * 0.25;
+          fk.fillStyle = 'rgba(' + FARBEN[f.h] + ',' + (a * 0.22 * flacker).toFixed(3) + ')';
+          fk.beginPath(); fk.arc(f.x, f.y, f.r * 3.2, 0, 6.2832); fk.fill();
+          fk.fillStyle = 'rgba(' + FARBEN[f.h] + ',' + (a * flacker).toFixed(3) + ')';
+          fk.beginPath(); fk.arc(f.x, f.y, f.r * rest + 0.3, 0, 6.2832); fk.fill();
+        }
+        fk.globalCompositeOperation = 'source-over';
+      }
+      if (aktiv || Math.abs(neigung) > 0.05 || Math.abs(zsZiel - zs) > 0.003) requestAnimationFrame(ride);
+      else { laeuft = false; fk.clearRect(0, 0, window.innerWidth, window.innerHeight); }
     }
 
     document.querySelectorAll('[data-magnetic]').forEach(function (el) {
