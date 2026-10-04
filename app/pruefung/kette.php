@@ -22139,6 +22139,12 @@ foreach (glob($oben . '/*.php') ?: [] as $w7Seite) {
     }
 }
 pruefe('jede öffentliche Seite mit Sprachweiche läuft durch — kein Abbruch, kein roher PHP-Text', $w7Kaputt === [], implode(' | ', $w7Kaputt));
+$w7Liste = [];
+foreach (['app/assets/admin.css', 'assets/css/app.css', 'assets/css/kunde.css', 'partner.php', 'termin.php', 'website-check.php'] as $w7Css) {
+    $w7T = (string) @file_get_contents($oben . '/' . $w7Css);
+    if (!str_contains($w7T, '@supports (appearance: base-select)') || !preg_match('~::picker\(select\)\{background:#141311~', $w7T)) { $w7Liste[] = $w7Css; }
+}
+pruefe('aufgeklappte Auswahllisten zeichnen wir selbst (dunkel, Gold für den gewählten Eintrag), wo der Browser es kann', $w7Liste === [], implode(', ', $w7Liste));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
 pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',
     (glob($wurzel . '/werbemittel/*') ?: []) === [] && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'RewriteRule ^ /app/index.php'));
