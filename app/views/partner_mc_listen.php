@@ -87,8 +87,8 @@ $mcSt = static fn(string $s): string => Texte::h(Texte::MARKETINGCENTER['d_statu
   <p class="klein" style="margin-top:0"><?= $h($MC('e_satz')) ?></p>
   <?php $mcS = $mcErfolge['summe']; ?>
   <div class="mc-zahlen">
-    <?php foreach (['scans' => 'e_scans', 'besucher' => 'e_besucher', 'anfragen' => 'e_anfragen', 'abschluesse' => 'e_kunden'] as $mcK => $mcT): ?>
-      <div><b><?= (int) $mcS[$mcK] ?></b><span><?= $h($MC($mcT)) ?></span></div>
+    <?php foreach (['scans' => 'e_scans', 'besucher' => 'e_besucher', 'anfragen' => 'e_anfragen', 'abschluesse' => 'e_kunden'] as $mcK => $mcTk): ?>
+      <div><b><?= (int) $mcS[$mcK] ?></b><span><?= $h($MC($mcTk)) ?></span></div>
     <?php endforeach; ?>
   </div>
   <?php if ($mcS['scans'] === 0 && $mcS['anfragen'] === 0): ?>

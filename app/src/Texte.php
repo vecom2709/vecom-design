@@ -3724,7 +3724,9 @@ final class Texte
     public const PARTNER_WERBUNG = [
         'namen' => [
             '_haupt' => ['it' => 'Link principale', 'de' => 'Hauptlink', 'en' => 'Main link'],
-            'whatsapp' => 'WhatsApp', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok',
+            'whatsapp' => 'WhatsApp', 'telegram' => 'Telegram', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok',
+            'dvk' => ['it' => 'Biglietto da visita digitale', 'de' => 'Digitale Visitenkarte', 'en' => 'Digital business card'],
+            'vcard' => ['it' => 'Contatto salvato (vCard)', 'de' => 'Gespeicherter Kontakt (vCard)', 'en' => 'Saved contact (vCard)'],
             'email' => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'], 'linkedin' => 'LinkedIn', 'sms' => 'SMS',
             'signatur' => ['it' => 'Firma e-mail', 'de' => 'E-Mail-Signatur', 'en' => 'Email signature'],
             'website' => ['it' => 'Pulsante sito', 'de' => 'Website-Knopf', 'en' => 'Website button'],
@@ -3743,6 +3745,7 @@ final class Texte
         ],
         'tipps' => [
             'whatsapp'  => ['it' => 'Il messaggio personale funziona meglio del testo generico: scriva a chi le ha detto di recente che gli serve un sito.', 'de' => 'Die persönliche Nachricht wirkt stärker als der allgemeine Text: Schreiben Sie denen, die kürzlich erwähnt haben, dass sie eine Website brauchen.', 'en' => 'The personal message works better than the general text: write to people who recently mentioned they need a website.'],
+            'telegram'  => ['it' => 'Funziona come WhatsApp: «Condividi» apre Telegram con testo e link già pronti. Anche nei gruppi locali, se le regole lo permettono.', 'de' => 'Wie WhatsApp: „Teilen“ öffnet Telegram mit fertigem Text und Link. Auch in lokalen Gruppen, wenn deren Regeln es erlauben.', 'en' => 'Like WhatsApp: “Share” opens Telegram with text and link ready. Also in local groups, if their rules allow it.'],
             'instagram' => ['it' => 'Metta questo link nella bio. Nelle storie usi lo sticker «Link» con lo stesso link.', 'de' => 'Diesen Link in die Bio setzen. In Stories den Sticker „Link“ mit demselben Link verwenden.', 'en' => 'Put this link in your bio. In stories, use the “Link” sticker with the same link.'],
             'facebook'  => ['it' => 'Nei gruppi locali legga prima le regole del gruppo: molti permettono consigli, non pubblicità continua.', 'de' => 'In lokalen Gruppen vorher die Gruppenregeln lesen: Viele erlauben Empfehlungen, aber keine Dauerwerbung.', 'en' => 'In local groups, read the group rules first: many allow recommendations, not constant advertising.'],
             'tiktok'    => ['it' => 'Non tutti gli account TikTok possono mettere un link nella bio (di solito solo gli account Business). In quel caso mostri il codice QR nel video.', 'de' => 'Nicht jedes TikTok-Konto darf einen Link in die Bio setzen (meist nur Business-Konten). Dann den QR-Code im Video zeigen.', 'en' => 'Not every TikTok account can put a link in the bio (usually only Business accounts). Then show the QR code in the video.'],
@@ -4980,6 +4983,13 @@ final class Texte
         'kontakt'     => ['it' => 'Contatto sul materiale', 'de' => 'Kontakt auf dem Werbemittel', 'en' => 'Contact on the material'],
         'foto_titel'  => ['it' => 'Così arriva da lei — foto della tipografia', 'de' => 'So kommt es bei Ihnen an — Foto der Druckerei', 'en' => 'How it arrives — photo from the printer'],
         'foto_wartet' => ['it' => 'La tipografia sta preparando una foto del prodotto con il suo design. Compare qui tra pochi minuti.', 'de' => 'Die Druckerei erstellt gerade ein Foto des Produkts mit Ihrem Design. Es erscheint hier in wenigen Minuten.', 'en' => 'The printer is creating a photo of the product with your design. It will appear here in a few minutes.'],
+        /* Digitale Visitenkarte (Schritt 5, 04.10.2026) */
+        'dvk_titel'   => ['it' => 'Biglietto da visita digitale', 'de' => 'Digitale Visitenkarte', 'en' => 'Digital business card'],
+        'dvk_satz'    => ['it' => 'Il suo biglietto da inviare: come immagine per WhatsApp, Telegram e Instagram, e come contatto da salvare in rubrica. Il codice QR conta a parte.', 'de' => 'Ihre Visitenkarte zum Verschicken: als Bild für WhatsApp, Telegram und Instagram und als Kontakt fürs Adressbuch. Der QR-Code zählt eigens.', 'en' => 'Your business card to send: as an image for WhatsApp, Telegram and Instagram, and as a contact for the address book. The QR code is counted separately.'],
+        'dvk_bild'    => ['it' => 'Scaricare l’immagine', 'de' => 'Bild laden', 'en' => 'Download image'],
+        'dvk_teilen'  => ['it' => 'Condividere', 'de' => 'Teilen', 'en' => 'Share'],
+        'dvk_vcf'     => ['it' => 'Contatto per la rubrica (vCard)', 'de' => 'Kontakt fürs Adressbuch (vCard)', 'en' => 'Contact for the address book (vCard)'],
+        'dvk_tipp'    => ['it' => 'Consiglio: inserisca telefono e WhatsApp nel profilo — così finiscono anche nel contatto.', 'de' => 'Tipp: Telefon und WhatsApp im Profil eintragen — dann stehen sie auch im Kontakt.', 'en' => 'Tip: add phone and WhatsApp in your profile — then they are in the contact too.'],
         'material'    => ['it' => 'Materiale', 'de' => 'Material', 'en' => 'Material'],
         'lieferung'   => ['it' => 'Consegna', 'de' => 'Lieferung', 'en' => 'Delivery'],
         'gruppe_alle' => ['it' => 'Tutti', 'de' => 'Alle', 'en' => 'All'],

@@ -21247,8 +21247,8 @@ $wmWerte = ['p' => $wmPa, 'sprache' => 'de', 'h' => static fn(?string $x): strin
 $wmPaHtml = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })($wmWerte);
 restore_error_handler();
 pruefe('Partner-Reiter „Marketing Center“ rendert ohne Warnung: Name, ID, QR auf /p/CODE/qr, Endpreis, Hinweis „erst freigeben“, Kit-Verweise',
-    // 8 Blöcke seit Schritt 2: Start, Daten, Katalog, Designs, Bestellungen (leer), Favoriten, Erfolge, Kit
-    $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 8 && str_contains($wmPaHtml, 'WANDAM')
+    // 9 Blöcke: Start, Daten, Katalog, Designs, Bestellungen (leer), Favoriten, Erfolge, digitale Visitenkarte (Schritt 5), Kit
+    $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 9 && str_contains($wmPaHtml, 'WANDAM')
     && str_contains($wmPaHtml, '/p/WANDAM/qr') && str_contains($wmPaHtml, "22,10\u{00A0}€") && str_contains($wmPaHtml, 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.')
     && str_contains($wmPaHtml, 'href="#medien"') && str_contains($wmPaHtml, 'wmqr=svg') && str_contains($wmPaHtml, 'wmqr=png'), (string) $wmFehler . ' Blöcke: ' . substr_count($wmPaHtml, 'data-reiter="werbemittel"'));
 pruefe('Im Partner-HTML steht kein Einkaufspreis und keine Marge (18,40 € / 3,70 €)',
@@ -22653,6 +22653,45 @@ Db::run("DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter IN ('
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $pfA['id'], (int) $pfB['id']]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $pfA['id'], (int) $pfB['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $pfVk['aktiv'], (int) $pfVk['id']]);
+
+/* ============================================================================
+   Marketingcenter, Schritt 5: digitale Visitenkarte, vCard, Telegram, Signatur (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Digital');
+foreach (['PartnerDaten', 'PartnerKarten', 'PartnerWerbung'] as $dgKl) { require_once $wurzel . "/src/$dgKl.php"; }
+$dgId = Partner::anlegen(['name' => 'Dario Rossi, jr.', 'email' => 'dario@partner.example', 'code' => 'DARIODG', 'sprache' => 'it', 'firma' => 'Rossi; Söhne']);
+PartnerDaten::kontaktSpeichern($dgId, ['telefon' => '+39 333 1112223', 'whatsapp' => '+39 333 4445556', 'telegram' => '@dario_rossi']);
+$dgP = Partner::laden($dgId);
+$dgV = PartnerDaten::vcard($dgP);
+$dgZeilen = explode("\r\n", rtrim($dgV, "\r\n"));
+pruefe('vCard 3.0: Name zerlegt, Komma und Semikolon maskiert, Telefon und WhatsApp, E-Mail, Link mit Kanal „vcard“, Zeilen ≤ 75 Byte mit CRLF',
+    $dgZeilen[0] === 'BEGIN:VCARD' && end($dgZeilen) === 'END:VCARD' && in_array('VERSION:3.0', $dgZeilen, true)
+    && in_array('FN:Dario Rossi\, jr.', $dgZeilen, true) && in_array('ORG:Rossi\; Söhne', $dgZeilen, true)
+    && in_array('TEL;TYPE=CELL,VOICE:+393331112223', $dgZeilen, true) && in_array('TEL;TYPE=CELL:+393334445556', $dgZeilen, true)
+    && in_array('EMAIL;TYPE=INTERNET:dario@partner.example', $dgZeilen, true) && (bool) preg_grep('~^URL:.*/p/DARIODG/vcard$~', $dgZeilen)
+    && (bool) preg_grep('~^X-SOCIALPROFILE;TYPE=telegram:https://t\.me/dario_rossi$~', $dgZeilen)
+    && !array_filter($dgZeilen, static fn($z) => strlen($z) > 75) && substr_count($dgV, "\r\n") === count($dgZeilen), $dgV);
+$dgD = PartnerKarten::digital($dgP, 'e', 'it');
+$dgG = @getimagesizefromstring($dgD);
+pruefe('Digitale Visitenkarte: 1080 × 1350 JPEG (Vorder- und Rückseite), jeder Stil', is_array($dgG) && $dgG[0] === 1080 && $dgG[1] === 1350 && $dgG[2] === IMAGETYPE_JPEG
+    && PartnerKarten::digital($dgP, 'zz', 'it') === '' && strlen(PartnerKarten::digital($dgP, 'g', 'de')) > 50000);
+$dgSig = PartnerWerbung::signatur($dgP, 'it');
+pruefe('Signatur trägt Telefon, WhatsApp und Telegram, wenn eingetragen — sonst nicht',
+    str_contains($dgSig, 'href="tel:+393331112223"') && str_contains($dgSig, 'https://wa.me/393334445556') && str_contains($dgSig, 'https://t.me/dario_rossi')
+    && !str_contains(PartnerWerbung::signatur(['name' => 'X', 'code' => 'XXXXX'], 'it'), 'tel:'));
+$dgW = PartnerWerbung::vorlagen($dgP, 'it');
+$dgT = (string) ($dgW['telegram'][0]['teilen'] ?? '');
+pruefe('Telegram als Kanal: offizieller Teilen-Link t.me/share/url mit Partnerlink /telegram, Text ohne doppelten Link, Name und Tipp dreisprachig',
+    in_array('telegram', PartnerWerbung::KANAELE, true) && str_starts_with($dgT, 'https://t.me/share/url?url=')
+    && str_contains(rawurldecode($dgT), '/p/DARIODG/telegram&text=') && substr_count(rawurldecode($dgT), '/p/DARIODG/telegram') === 1
+    && count($dgW['telegram'] ?? []) === count($dgW['whatsapp'] ?? [])
+    && !array_filter(['it', 'de', 'en'], static fn($l) => trim((string) (Texte::PARTNER_WERBUNG['tipps']['telegram'][$l] ?? '')) === '' || trim((string) (Texte::PARTNER_WERBUNG['namen']['dvk'][$l] ?? '')) === ''));
+$dgPhp = (string) file_get_contents($oben . '/partner.php');
+pruefe('Partnerbereich: vCard und digitale Karte nur für den eigenen Partner (über $p), Downloads protokolliert, Block im Bereich Digital',
+    str_contains($dgPhp, 'echo PartnerDaten::vcard($p);') && str_contains($dgPhp, 'PartnerKarten::digital($p, $wmDs')
+    && str_contains($dgPhp, "PartnerSchutz::protokoll((int) \$p['id'], 'download', null, 'vcard')")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_mc_digital.php'), 'data-mc-teil="uebersicht digital"'));
+Db::run('DELETE FROM partner WHERE id = ?', [$dgId]);
 
 /* ============================================================================
    Aufräumen und Bilanz

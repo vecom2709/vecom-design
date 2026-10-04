@@ -178,6 +178,30 @@ final class PartnerKarten
         return self::jpeg($im);
     }
 
+    /**
+     * Digitale Visitenkarte (04.10.2026, Marketingcenter Schritt 5): Vorder- und Rückseite
+     * untereinander auf dunklem Grund, 1080 × 1350 px (Hochformat für Instagram, WhatsApp, Telegram).
+     * Der Code zählt als eigener Kanal „dvk“ — so sieht der Partner, was die digitale Karte bringt.
+     */
+    public static function digital(array $p, string $stil, string $sprache, string $kontakt = 'email'): string
+    {
+        if (!self::gibt($stil)) { return ''; }
+        $p['_wm_kanal'] = 'dvk';
+        $aus = imagecreatetruecolor(1080, 1350);
+        imagefill($aus, 0, 0, imagecolorallocate($aus, 13, 12, 11));
+        $b = 940; $h = (int) round($b * (self::LH - 2 * self::BESCHNITT) / (self::LW - 2 * self::BESCHNITT));
+        $luft = (int) floor((1350 - 2 * $h) / 3); $x = intdiv(1080 - $b, 2); $y = $luft;
+        foreach (['vorn', 'hinten'] as $seite) {
+            $roh = @imagecreatefromstring(self::bild($p, $stil, $seite, $sprache, $kontakt));
+            if (!$roh) { return ''; }
+            imagefilledrectangle($aus, $x + 6, $y + 12, $x + $b + 6, $y + $h + 12, imagecolorallocatealpha($aus, 0, 0, 0, 60));   // Schatten
+            imagecopyresampled($aus, $roh, $x, $y, 0, 0, $b, $h, imagesx($roh), imagesy($roh));
+            imagedestroy($roh);
+            $y += $h + $luft;
+        }
+        return self::jpeg($aus, 92);
+    }
+
     /** Vorder- und Rückseite beschnitten nebeneinander (Dashboard). */
     public static function vorschau(array $p, string $stil, string $sprache, string $kontakt = 'email', int $breite = 720): string
     {

@@ -601,6 +601,31 @@ if ($p && isset($_GET['wmv'])) {
     echo $wmBild;
     exit;
 }
+/* ---------- Digitale Visitenkarte und vCard (04.10.2026, Marketingcenter Schritt 5) ----------
+   ?wmdvk=STIL[&vks=it|de|en][&dl=1] — Bild 1080 × 1350; ?wmvcf=1 — Kontakt als vCard. Nur der eigene Partner. */
+if ($p && (isset($_GET['wmdvk']) || isset($_GET['wmvcf']))) {
+    require_once __DIR__ . '/app/src/PartnerKarten.php';
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    if (isset($_GET['wmvcf'])) {
+        PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'vcard');
+        header('Content-Type: text/vcard; charset=utf-8');
+        header('Content-Disposition: attachment; filename="vecom-partner-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.vcf"');
+        echo PartnerDaten::vcard($p);
+        exit;
+    }
+    $wmDs = (string) $_GET['wmdvk'];
+    $wmDb = PartnerKarten::gibt($wmDs) ? PartnerKarten::digital($p, $wmDs, in_array($_GET['vks'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache) : '';
+    if ($wmDb === '') { http_response_code(404); exit('—'); }
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, max-age=600');
+    if (isset($_GET['dl'])) {
+        PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'digitale-visitenkarte ' . $wmDs);
+        header('Content-Disposition: attachment; filename="vecom-visitenkarte-digital-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.jpg"');
+    }
+    echo $wmDb;
+    exit;
+}
 /* ---------- Marketing Center: Produktfoto der Druckerei (04.10.2026) ---------- */
 if ($p && isset($_GET['wmfoto'])) {
     require_once __DIR__ . '/app/src/Werbemittel.php';

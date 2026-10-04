@@ -53,6 +53,44 @@ final class PartnerDaten
         ];
     }
 
+    /**
+     * Kontakt als vCard 3.0 (04.10.2026, Marketingcenter Schritt 5 „digitale Visitenkarte“):
+     * Wer sie öffnet, hat den Partner mit Telefon, E-Mail und Link im Adressbuch. Der Link trägt
+     * den Kanal „vcard“, damit der Partner sieht, was sie bringt. Foto nur, wenn er eins hat.
+     */
+    public static function vcard(array $p): string
+    {
+        $d = self::fuer($p);
+        $esc = static fn(string $t): string => str_replace(["\\", "\n", ',', ';'], ["\\\\", '\n', '\,', '\;'], $t);
+        $teile = preg_split('~\s+~u', $d['name']) ?: [$d['name']];
+        $nach = count($teile) > 1 ? (string) array_pop($teile) : '';
+        $z = ['BEGIN:VCARD', 'VERSION:3.0',
+              'N:' . $esc($nach) . ';' . $esc(implode(' ', $teile)) . ';;;',
+              'FN:' . $esc($d['name'])];
+        if ($d['firma'] !== '') { $z[] = 'ORG:' . $esc($d['firma']); }
+        $z[] = 'TITLE:' . $esc('Partner Vecom Design');
+        if ($d['telefon'] !== '') { $z[] = 'TEL;TYPE=CELL,VOICE:' . $d['telefon']; }
+        if ($d['whatsapp'] !== '' && $d['whatsapp'] !== $d['telefon']) { $z[] = 'TEL;TYPE=CELL:' . $d['whatsapp']; }
+        if ($d['email'] !== '') { $z[] = 'EMAIL;TYPE=INTERNET:' . $esc($d['email']); }
+        $z[] = 'URL:' . PartnerWerbung::link($p, 'vcard');
+        if ($d['whatsapp'] !== '') { $z[] = 'X-SOCIALPROFILE;TYPE=whatsapp:' . self::whatsappLink($d); }
+        if ($d['telegram'] !== '') { $z[] = 'X-SOCIALPROFILE;TYPE=telegram:' . self::telegramLink($d); }
+        if ($d['ort'] !== '' || $d['land'] !== '') { $z[] = 'ADR;TYPE=WORK:;;;' . $esc($d['ort']) . ';;;' . $esc($d['land']); }
+        $foto = (string) ($p['foto'] ?? '');
+        if ($foto !== '' && ($im = @imagecreatefromstring($foto))) {
+            ob_start(); imagejpeg($im, null, 85); $jpg = (string) ob_get_clean(); imagedestroy($im);
+            $z[] = 'PHOTO;ENCODING=b;TYPE=JPEG:' . base64_encode($jpg);
+        }
+        $z[] = 'END:VCARD';
+        // Zeilen über 75 Zeichen falten (RFC 2425/2426): Fortsetzung beginnt mit einem Leerzeichen.
+        $aus = [];
+        foreach ($z as $zeile) {
+            while (strlen($zeile) > 75) { $kopf = mb_strcut($zeile, 0, 75, 'UTF-8'); $aus[] = $kopf; $zeile = ' ' . substr($zeile, strlen($kopf)); }   // nie mitten in einem UTF-8-Zeichen
+            $aus[] = $zeile;
+        }
+        return implode("\r\n", $aus) . "\r\n";
+    }
+
     /** wa.me-Adresse oder '' (Ziffern ohne +, so will es WhatsApp). */
     public static function whatsappLink(array $d): string
     {

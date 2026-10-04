@@ -23,7 +23,7 @@ require_once __DIR__ . '/PartnerVorlagen.php';
 final class PartnerWerbung
 {
     /** Kanäle mit Vorlagen, in der Reihenfolge der Reiter. */
-    public const KANAELE = ['whatsapp', 'instagram', 'facebook', 'tiktok', 'email', 'linkedin', 'sms'];
+    public const KANAELE = ['whatsapp', 'telegram', 'instagram', 'facebook', 'tiktok', 'email', 'linkedin', 'sms'];
 
     /** Kanäle ohne Texte, aber mit eigenem Link (Werkzeuge, Druck, Bilder). */
     public const WERKZEUGE = ['signatur', 'website', 'karte', 'flyer', 'bild', 'video', 'check', 'erfolg', 'weiter', 'kalender', 'mappe', 'kachel', 'anschreiben', 'brief',
@@ -53,7 +53,8 @@ final class PartnerWerbung
         $aus = [];
         foreach (self::KANAELE as $k) {
             $link = self::link($p, $k);
-            foreach (Texte::PARTNER_WERBUNG['vorlagen'][$k] ?? [] as $id => $v) {
+            // Telegram (04.10.2026): dieselben Texte wie WhatsApp — ein Chat ist ein Chat.
+            foreach (Texte::PARTNER_WERBUNG['vorlagen'][$k] ?? ($k === 'telegram' ? Texte::PARTNER_WERBUNG['vorlagen']['whatsapp'] : []) as $id => $v) {
                 // Uwes eigene Fassung aus dem Admin geht vor (PartnerVorlagen, 27.09.2026).
                 $fuell = static fn(?array $t, string $teil): string => $t === null ? '' : strtr(
                     PartnerVorlagen::text("werbung.$k.$id.$teil", $sprache, Texte::h($t, $sprache)), ['{link}' => $link, '{name}' => $name]);
@@ -75,6 +76,8 @@ final class PartnerWerbung
         $u = static fn(string $s): string => rawurlencode($s);
         return match ($kanal) {
             'whatsapp' => 'https://wa.me/?text=' . $u($text),
+            // Offizieller Teilen-Link von Telegram (t.me/share/url): der Link steht dort schon, also nicht doppelt im Text.
+            'telegram' => 'https://t.me/share/url?url=' . $u($link) . '&text=' . $u(trim(str_replace($link, '', $text))),
             'facebook' => 'https://www.facebook.com/sharer/sharer.php?u=' . $u($link),
             'linkedin' => 'https://www.linkedin.com/sharing/share-offsite/?url=' . $u($link),
             'email'    => 'mailto:?subject=' . $u($betreff) . '&body=' . $u($text),
@@ -131,10 +134,23 @@ final class PartnerWerbung
         return '<table cellpadding="0" cellspacing="0" border="0" style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:1.45;color:#222">'
             . '<tr><td style="padding:0 0 4px 0;font-weight:bold">' . $h((string) $p['name']) . '</td></tr>'
             . ((string) ($p['firma'] ?? '') !== '' ? '<tr><td style="padding:0 0 8px 0;color:#555">' . $h((string) $p['firma']) . '</td></tr>' : '')
+            . self::signaturKontakte($p, $h)
             . '<tr><td style="padding:6px 0 0 0;color:#555;font-size:13px">' . $h($W('zeile')) . '</td></tr>'
             . '<tr><td style="padding:8px 0 0 0"><a href="' . $h(self::link($p, 'signatur')) . '" style="display:inline-block;background:#c9a24b;color:#16120b;'
             . 'text-decoration:none;font-weight:bold;padding:9px 16px;border-radius:6px;font-size:13px">' . $h($W('knopf')) . ' &rarr;</a></td></tr>'
             . '</table>';
+    }
+
+    /** Telefon, WhatsApp, Telegram in der Signatur (04.10.2026) — nur, was der Partner selbst eingetragen hat. */
+    private static function signaturKontakte(array $p, callable $h): string
+    {
+        require_once __DIR__ . '/PartnerDaten.php';
+        $d = PartnerDaten::fuer($p);
+        $teile = [];
+        if ($d['telefon'] !== '') { $teile[] = '<a href="tel:' . $h($d['telefon']) . '" style="color:#555;text-decoration:none">Tel. ' . $h($d['telefon']) . '</a>'; }
+        if ($d['whatsapp'] !== '') { $teile[] = '<a href="' . $h(PartnerDaten::whatsappLink($d)) . '" style="color:#555;text-decoration:none">WhatsApp</a>'; }
+        if ($d['telegram'] !== '') { $teile[] = '<a href="' . $h(PartnerDaten::telegramLink($d)) . '" style="color:#555;text-decoration:none">Telegram</a>'; }
+        return $teile ? '<tr><td style="padding:0 0 2px 0;color:#555;font-size:13px">' . implode(' &middot; ', $teile) . '</td></tr>' : '';
     }
 
     /**

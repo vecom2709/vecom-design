@@ -62,7 +62,7 @@ foreach (Marketingcenter::PRODUKT_BEREICHE as $mcX) {
     $mcZahl[$mcX] = $mcN === 0 ? $mcT('bald') : $mcT($mcN === 1 ? 'n_produkt' : 'n_produkte', ['{n}' => (string) $mcN]);
     $mcDa[$mcX] = $mcN > 0; $mcZiel[$mcX] = 'mc-' . $mcX;
 }
-$mcZahl['digital'] = $mcT('n_werkzeuge', ['{n}' => (string) count($mcKit)]); $mcDa['digital'] = true; $mcZiel['digital'] = 'werbemittel-kit';
+$mcZahl['digital'] = $mcT('n_werkzeuge', ['{n}' => (string) (count($mcKit) + ($mcEigen ? 1 : 0))]); $mcDa['digital'] = true; $mcZiel['digital'] = 'werbemittel-kit';   // +1: digitale Visitenkarte
 if ($mcEigen) {
     $mcZahl['designs'] = (string) count($mcDesigns); $mcDa['designs'] = (bool) $mcDesigns; $mcZiel['designs'] = 'mc-designs';
     $mcZahl['bestellungen'] = (string) count($wmBestellungen); $mcDa['bestellungen'] = (bool) $wmBestellungen; $mcZiel['bestellungen'] = $wmBestellungen ? 'wm-bestellungen' : 'mc-bestellungen';
@@ -140,6 +140,11 @@ if ($mcEigen) {
   .mc-ab{color:#f1d38b;font-weight:600}
   .mc-foto{display:grid;gap:6px}
   .mc-foto img{width:100%;max-width:520px;height:auto;border-radius:10px;border:1px solid var(--linie2)}
+  .mc-dvk{display:grid;gap:14px}
+  .mc-dvk > img{width:100%;max-width:380px;height:auto;justify-self:center;border-radius:12px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+  .mc-dvk-kacheln{grid-template-columns:repeat(auto-fill,minmax(120px,1fr))!important;margin-bottom:10px}
+  @container (min-width:640px){ .mc-dvk{grid-template-columns:minmax(0,4fr) minmax(0,6fr);align-items:start} }
+  #mc-dvk{container-type:inline-size}
   .mc-fakten{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:8px 0 0;font-size:13.5px}
   .mc-fakten dt{color:var(--leise)}
   .mc-fakten dd{margin:0;color:var(--text)}
@@ -262,6 +267,8 @@ if ($mcEigen) {
 <?php endif; ?>
 
 <?php if ($mcEigen) { require __DIR__ . '/partner_mc_listen.php'; } ?>
+
+<?php if ($mcEigen) { require_once dirname(__DIR__) . '/src/PartnerDaten.php'; require __DIR__ . '/partner_mc_digital.php'; } ?>
 
 <div class="block pt" id="werbemittel-kit" data-reiter="werbemittel" data-mc-teil="uebersicht digital">
   <h2><?= $h($W('kit')) ?></h2>
