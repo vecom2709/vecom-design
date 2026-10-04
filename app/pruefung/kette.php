@@ -23043,6 +23043,11 @@ pruefe('Partnerbereich: Produktfoto als Hauptbild über der Vorschau, eigenes Fo
     str_contains($vfV, 'class="mc-pf"') && str_contains($vfV, 'data-muster="') && str_contains($vfV, "\$mcT('pf_eigen')")
     && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), 'function fotoZeigen()')
     && str_contains($vfP, 'Werbemittel::vorlagenfoto((string) $_GET[\'wmvf\']') && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_vorlagenfotos'"));
+$vfAdm = (string) file_get_contents($wurzel . '/views/werbemittel.php');
+pruefe('Auch in der Verwaltung: je Printful-Produkt die Fotos der Gestaltungen („x von y da“) und in „Als Partner ansehen“ das Foto wie beim Partner (eingebettet, ohne Partner-Link)',
+    str_contains($vfAdm, 'Produktfotos von Printful (wie der Partner sie sieht)') && str_contains((string) file_get_contents($wurzel . '/index.php'), "=== 'vorlagenfoto'")
+    && str_contains($vfV, "\$wmNurLesen ? 'data:image/jpeg;base64,' . base64_encode((string) Werbemittel::vorlagenfoto(")
+    && str_contains($vfV, '$mcVfDa = $mcHerstPf && isset(Printful::ARTEN[$wmVl])'));
 Db::run('DELETE FROM wm_vorlagenfotos');
 
 /* ============================================================================

@@ -128,6 +128,19 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           <?php else: ?><span class="marke2 warnung">an, aber ohne Einkaufspreis — unsichtbar</span><?php endif; ?>
           <?php if ($p['vorlage'] === ''): ?><span class="marke2 schlecht">keine Vorlage</span><?php endif; ?>
         </span></h2>
+      <?php /* Produktfotos der Druckerei je Gestaltung (04.10.2026): genau das, was der Partner beim Auswählen sieht. */
+        if (isset(Printful::ARTEN[$p['vorlage']])):
+          $wmVfDa = Werbemittel::vorlagenfotosDa((string) $p['vorlage']);
+          $wmVfSoll = count(array_filter(Printful::vorlagenKombis(), static fn($k) => $k[0] === $p['vorlage'])); ?>
+        <details class="wm-vf"<?= $wmVfDa ? ' open' : '' ?>><summary style="font-size:13px;color:var(--leise);cursor:pointer">Produktfotos von Printful (wie der Partner sie sieht): <?= count($wmVfDa) ?> von <?= $wmVfSoll ?> da<?= count($wmVfDa) < $wmVfSoll ? ' — der Rest kommt von selbst, 2 je Cron-Lauf' : '' ?></summary>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
+            <?php foreach ($wmVfDa as $wmVfK): [$wmVfS, $wmVfL] = explode('|', $wmVfK); $wmVfU = url('werbemittel/vorlagenfoto') . '?' . http_build_query(['v' => $p['vorlage'], 'st' => $wmVfS, 'l' => $wmVfL]); ?>
+              <a href="<?= Fmt::h($wmVfU) ?>" target="_blank" rel="noopener" style="display:grid;gap:2px;text-align:center;font-size:11.5px;color:var(--leise)">
+                <img src="<?= Fmt::h($wmVfU) ?>" alt="" width="110" height="110" loading="lazy" style="width:110px;height:110px;object-fit:cover;border-radius:8px;background:#f3f2f0">
+                <?= Fmt::h(strtoupper($wmVfS) . ' · ' . strtoupper($wmVfL)) ?></a>
+            <?php endforeach; ?>
+          </div></details>
+      <?php endif; ?>
       <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">Regel: <?= (int) $p['regel']['marge_prozent'] ?> %, mindestens <?= Fmt::h(Werbemittel::euro((int) $p['regel']['mindestmarge_cent'])) ?>
         <?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? '(Standard)' : '(eigene Regel)' ?></p>
 

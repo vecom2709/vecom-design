@@ -44,7 +44,8 @@ $wmWahlText = static fn(array $w): string => $mcStilName((string) ($w['stil'] ??
 $mcNoch = $wmNoch && in_array($wmNochVar, array_column($wmP['varianten'], 'id'), true);
 /* Produktfoto der Druckerei — nur, wenn genau diese Druckerei das Produkt im Land des Partners herstellt
    (sonst wäre es ein anderes Produkt als das, was er kauft). */
-$mcFotoDa = !$wmNurLesen && Werbemittel::hersteller($wmP, (string) $wmP['land']) === 'Printful';
+$mcHerstPf = Werbemittel::hersteller($wmP, (string) $wmP['land']) === 'Printful';
+$mcFotoDa = !$wmNurLesen && $mcHerstPf;
 $mcFoto = static function (array $e) use ($h, $selbst, $mcT, $mcFotoDa, $p): void {
     if (!$mcFotoDa || empty($e['mockup_status']) || $e['mockup_status'] === 'fehler') { return; } ?>
     <div class="mc-foto"><span class="wm-meta" style="margin:0"><?= $h($mcT('foto_titel')) ?></span>
@@ -92,15 +93,19 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
                  weiß, was er bestellt“): eigenes Foto, wenn der Entwurf zur Auswahl passt — sonst das Foto der Gestaltung
                  mit Musterdaten. Nur, wo Printful das Produkt im Land des Partners herstellt. */
           require_once dirname(__DIR__) . '/src/Printful.php';
-          $mcVfDa = $mcFotoDa && isset(Printful::ARTEN[$wmVl]) ? Werbemittel::vorlagenfotosDa($wmVl) : [];
+          // Auch in der Verwaltungsvorschau („Als Partner ansehen“): das Foto der Gestaltung ist nicht partnerbezogen.
+          $mcVfDa = $mcHerstPf && isset(Printful::ARTEN[$wmVl]) ? Werbemittel::vorlagenfotosDa($wmVl) : [];
           $mcEigenE = $wmSt['entwurf'] ?? $wmSt['freigegeben'] ?? null;
           $mcEigenKey = $mcFotoDa && $mcEigenE && ($mcEigenE['mockup_status'] ?? '') === 'fertig' ? ($mcEigenE['wahl']['stil'] ?? '') . '|' . ($mcEigenE['wahl']['sprache'] ?? '') : '';
           $mcKeyJetzt = $wmJetzt['stil'] . '|' . $wmJetzt['sprache'];
           if ($mcVfDa || $mcEigenKey !== ''):
             $mcIstEigen = $mcEigenKey === $mcKeyJetzt;
-            $mcPfSrc = $mcIstEigen ? $selbst(['wmfoto' => (int) $mcEigenE['id']]) : (in_array($mcKeyJetzt, $mcVfDa, true) ? $selbst(['wmvf' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache']]) : ''); ?>
+            $mcPfSrc = $mcIstEigen ? $selbst(['wmfoto' => (int) $mcEigenE['id']])
+                : (!in_array($mcKeyJetzt, $mcVfDa, true) ? ''
+                : ($wmNurLesen ? 'data:image/jpeg;base64,' . base64_encode((string) Werbemittel::vorlagenfoto($wmVl, $wmJetzt['stil'], $wmJetzt['sprache']))
+                               : $selbst(['wmvf' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache']]))); ?>
           <div class="mc-pf"<?= $mcPfSrc === '' ? ' hidden' : '' ?> id="wm-pf-<?= (int) $wmP['id'] ?>" data-da="<?= $h(implode(' ', $mcVfDa)) ?>"
-               data-muster="<?= $h($selbst(['wmvf' => $wmVl, 'st' => '_S_', 'vks' => '_L_'])) ?>" data-eigen="<?= $h($mcEigenKey) ?>"
+               data-muster="<?= $h($wmNurLesen ? '' : $selbst(['wmvf' => $wmVl, 'st' => '_S_', 'vks' => '_L_'])) ?>" data-eigen="<?= $h($mcEigenKey) ?>"
                data-eigen-src="<?= $h($mcEigenKey !== '' ? $selbst(['wmfoto' => (int) $mcEigenE['id']]) : '') ?>">
             <img src="<?= $h($mcPfSrc) ?>" alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>" width="1200" height="1200" loading="lazy" decoding="async">
             <span class="mc-pf-text" data-t-eigen="<?= $h($mcT('pf_eigen')) ?>" data-t-muster="<?= $h($mcT('pf_muster')) ?>"><?= $h($mcT($mcIstEigen ? 'pf_eigen' : 'pf_muster')) ?></span>

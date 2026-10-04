@@ -4521,6 +4521,15 @@ switch ($route) {
             header('Content-Disposition: inline; filename="druckdatei-' . (int) $wmD['id'] . '-' . substr((string) $wmD['datei_hash'], 0, 8) . ($wmDruck ? '-druckerei' : '') . '.pdf"');
             echo $wmDruck ? $wmD['datei_druck'] : $wmD['datei']; exit;
         }
+        if (($teile[1] ?? '') === 'vorlagenfoto') {
+            /* Produktfoto der Druckerei je Gestaltung (Musterdaten), wie der Partner es sieht (04.10.2026). */
+            $wmVf = Werbemittel::vorlagenfoto((string) ($_GET['v'] ?? ''), (string) ($_GET['st'] ?? ''), (string) ($_GET['l'] ?? ''));
+            if ($wmVf === null) { http_response_code(404); exit('—'); }
+            header('Content-Type: image/jpeg');
+            header('X-Content-Type-Options: nosniff');
+            header('Cache-Control: private, max-age=3600');
+            echo $wmVf; exit;
+        }
         if (($teile[1] ?? '') === 'bestellungen') {
             require_once __DIR__ . '/src/WmBestellung.php';
             ansicht('werbemittel_bestellungen', ['liste' => WmBestellung::verwaltung(), 'zahlweg' => WmBestellung::zahlweg()]);
