@@ -60,6 +60,55 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
                            'material' => 'Keramiktasse weiß glänzend, 11 oz (325 ml), spülmaschinen- und mikrowellenfest'],
     ];
 
+    /**
+     * Printful-Produkte, deren Druckfläche wir kennen wollen — die gebauten (ARTEN) und die nächsten
+     * Geschenke (Uwe 04.10.2026: „ja“ zu allen Vorschlägen). [Katalogprodukt, Variante] aus GET /products/{id}
+     * (öffentlich, in der EU hergestellt, geprüft 04.10.2026). Die Druckfläche selbst liefert nur die
+     * Schnittstelle mit Schlüssel — darum fragt der Server, nicht wir.
+     */
+    public const KANDIDATEN = [
+        'visitenkarte' => [724, 18554], 'tasse_11' => [19, 1320], 'notizbuch' => [474, 12141],
+        'beutel' => [367, 10457], 'flasche' => [382, 10798], 'untersetzer' => [611, 15662],
+    ];
+
+    /**
+     * Druckflächen aller KANDIDATEN bei Printful abfragen und in settings ('pf_druckflaechen') ablegen:
+     * je Name und Druckstelle Breite, Höhe, dpi, fill_mode, can_rotate. Nur lesen. @return int Zahl der Produkte
+     */
+    public static function druckflaechenHolen(): int
+    {
+        if (!self::bereit()) { return 0; }
+        $aus = [];
+        foreach (self::KANDIDATEN as $name => [$produkt, $variante]) {
+            try { $r = self::rufen('GET', '/mockup-generator/printfiles/' . $produkt, null); } catch (Throwable $e) { self::$letzterGrund = $e->getMessage(); continue; }
+            $d = (array) (json_decode($r['body'], true)['result'] ?? []);
+            if ($r['code'] !== 200 || !$d) { self::$letzterGrund = self::grund($r); continue; }
+            $flaechen = [];
+            foreach ((array) ($d['printfiles'] ?? []) as $f) { $flaechen[(int) ($f['printfile_id'] ?? 0)] = $f; }
+            foreach ((array) ($d['variant_printfiles'] ?? []) as $vp) {
+                if ((int) ($vp['variant_id'] ?? 0) !== $variante) { continue; }
+                foreach ((array) ($vp['placements'] ?? []) as $platz => $fid) {
+                    $f = $flaechen[(int) $fid] ?? null;
+                    if (!$f) { continue; }
+                    $aus[$name][(string) $platz] = ['b' => (int) ($f['width'] ?? 0), 'h' => (int) ($f['height'] ?? 0), 'dpi' => (int) ($f['dpi'] ?? 0),
+                        'fill' => (string) ($f['fill_mode'] ?? ''), 'drehen' => !empty($f['can_rotate'])];
+                }
+            }
+        }
+        if ($aus) {
+            Db::run("INSERT INTO settings (skey, svalue) VALUES ('pf_druckflaechen', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                [json_encode(['am' => date('Y-m-d H:i'), 'flaechen' => $aus], JSON_UNESCAPED_UNICODE)]);
+        }
+        return count($aus);
+    }
+
+    /** Zuletzt abgefragte Druckflächen. @return array{am:string, flaechen:array} */
+    public static function druckflaechen(): array
+    {
+        $d = (array) json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'pf_druckflaechen'", [], ''), true);
+        return ['am' => (string) ($d['am'] ?? ''), 'flaechen' => (array) ($d['flaechen'] ?? [])];
+    }
+
     /** Vorlage eines Entwurfs (über sein Produkt). */
     private static function vorlageVon(int $entwurfId): string
     {

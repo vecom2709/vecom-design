@@ -23051,6 +23051,28 @@ pruefe('Auch in der Verwaltung: je Printful-Produkt die Fotos der Gestaltungen (
 Db::run('DELETE FROM wm_vorlagenfotos');
 
 /* ============================================================================
+   Printful-Druckflächen abfragen (04.10.2026): Grundlage für neue Gestaltungen
+   ============================================================================ */
+abschnitt('Marketingcenter: Printful-Druckflächen');
+require_once $wurzel . '/src/Printful.php';
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r): array {
+    if (str_contains($u, '/mockup-generator/printfiles/19')) {
+        return ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 7, 'width' => 2700, 'height' => 1050, 'dpi' => 300, 'fill_mode' => 'fit', 'can_rotate' => false]],
+            'variant_printfiles' => [['variant_id' => 1320, 'placements' => ['default' => 7]], ['variant_id' => 4830, 'placements' => ['default' => 7]]]]])];
+    }
+    return ['code' => 404, 'body' => '{"error":{"message":"nicht da"}}'];
+};
+$dfN = Printful::druckflaechenHolen();
+$dfD = Printful::druckflaechen();
+pruefe('Druckflächen: je Kandidat und Druckstelle Breite/Höhe/dpi gespeichert, nur für die gewählte Variante; Fehler einzelner Produkte stören nicht',
+    $dfN === 1 && ($dfD['flaechen']['tasse_11']['default'] ?? null) === ['b' => 2700, 'h' => 1050, 'dpi' => 300, 'fill' => 'fit', 'drehen' => false]
+    && $dfD['am'] !== '' && !isset($dfD['flaechen']['notizbuch']) && count(Printful::KANDIDATEN) === 6
+    && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'id="pf-druckflaechen"')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_flaechen'"));
+Printful::$netz = null;
+Db::run("DELETE FROM settings WHERE skey = 'pf_druckflaechen'");
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

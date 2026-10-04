@@ -1860,6 +1860,9 @@ if ($post) {
                     $wmGut = $wmGut || $wmN > 0;
                     $wmZeilen[] = $wmN > 0 ? $wmK . ': ' . $wmN . ' Preise geholt und eingetragen.' : $wmK . ': keine Preise — ' . ($wmK::$letzterGrund !== '' ? $wmK::$letzterGrund : 'nichts (kein Artikel zugeordnet?)');
                 }
+                // Dazu die Druckflächen bei Printful (nur lesen) — Grundlage für jede neue Printful-Gestaltung.
+                require_once __DIR__ . '/src/Printful.php';
+                if (Printful::bereit()) { $wmF = Printful::druckflaechenHolen(); $wmZeilen[] = 'Printful-Druckflächen: ' . $wmF . ' Produkte abgefragt.'; }
                 $_SESSION[$wmGut ? 'gut' : 'fehler'] = $wmZeilen ? implode(' · ', $wmZeilen) : 'Keine Druckerei mit Preis-Schnittstelle angebunden.';
                 zurueck('werbemittel');
 

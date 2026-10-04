@@ -142,6 +142,13 @@ final class Cron
                 require_once __DIR__ . '/Printful.php';
                 return Printful::mockupsHolen();
             },
+            /* Printful-Druckflächen (nur lesen), höchstens einmal am Tag — Grundlage für neue Gestaltungen. */
+            'wm_printful_flaechen' => static function () {
+                require_once __DIR__ . '/Printful.php';
+                $am = Printful::druckflaechen()['am'];
+                if (!Printful::bereit() || ($am !== '' && strtotime($am) > time() - 86400)) { return 0; }
+                return Printful::druckflaechenHolen();
+            },
             /* Produktfoto je Gestaltung (Musterdaten), nach und nach — der Partner sieht beim Auswählen das echte Produkt. */
             'wm_printful_vorlagenfotos' => static function () {
                 require_once __DIR__ . '/Printful.php';

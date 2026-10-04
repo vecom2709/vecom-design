@@ -71,6 +71,14 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 
   <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
     <?php else: ?><span class="marke2 warnung">Kein Schlüssel</span> In <code>app/config.local.php</code> eintragen: <code>'gelato' => ['api' => '…']</code>. Bis dahin beauftragst du den Druck von Hand.<?php endif; ?></p>
+  <?php $wmPfF = Printful::druckflaechen(); if ($wmPfF['flaechen']): ?>
+    <details style="margin:8px 0 0"><summary style="font-size:13px;color:var(--leise);cursor:pointer">Printful-Druckflächen (abgefragt <?= Fmt::h($wmPfF['am']) ?>)</summary>
+      <div class="tabellenrahmen"><table id="pf-druckflaechen"><thead><tr><th>Produkt</th><th>Druckstelle</th><th class="num">Breite px</th><th class="num">Höhe px</th><th class="num">dpi</th><th>Füllung</th><th>unser Bild</th></tr></thead><tbody>
+      <?php foreach ($wmPfF['flaechen'] as $wmFn => $wmFp): foreach ($wmFp as $wmPl => $wmFf): $wmSoll = Printful::ARTEN[$wmFn]['px'] ?? null; ?>
+        <tr><td><?= Fmt::h($wmFn) ?></td><td><?= Fmt::h($wmPl) ?></td><td class="num"><?= (int) $wmFf['b'] ?></td><td class="num"><?= (int) $wmFf['h'] ?></td><td class="num"><?= (int) $wmFf['dpi'] ?></td><td><?= Fmt::h($wmFf['fill']) ?><?= $wmFf['drehen'] ? ' · drehbar' : '' ?></td>
+          <td><?= $wmSoll === null ? '—' : ($wmSoll[1] > 0 && $wmFf['h'] > 0 && abs($wmSoll[0] / $wmSoll[1] - $wmFf['b'] / $wmFf['h']) / ($wmFf['b'] / $wmFf['h']) <= 0.01 ? '<span class="marke2 gut">' . $wmSoll[0] . ' × ' . $wmSoll[1] . ' passt</span>' : '<span class="marke2 schlecht">' . $wmSoll[0] . ' × ' . $wmSoll[1] . ' passt nicht</span>') ?></td></tr>
+      <?php endforeach; endforeach; ?></tbody></table></div></details>
+  <?php endif; ?>
   <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
   <?php $auto = WmBestellung::automatik(); ?>
   <p style="font-size:14px;margin:12px 0 6px"><strong>Automatik:</strong> <?= $auto ? '<span class="marke2 gut">an</span> Nach der Zahlung geht der Auftrag von selbst an die Druckerei der Bestellung (wenn angebunden); die Sendungsnummer kommt von dort, der Partner bekommt die Mail. Je Land gewinnt dann die günstigste <em>angebundene</em> Druckerei.' : '<span class="marke2">aus</span> Du gibst jeden Auftrag selbst frei.' ?></p>
