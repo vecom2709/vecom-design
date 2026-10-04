@@ -21,11 +21,13 @@ require_once __DIR__ . '/Werbemittel.php';
 final class Marketingcenter
 {
     /** Reihenfolge der Karten. */
-    public const BEREICHE = ['uebersicht', 'print', 'pos', 'textil', 'fahrzeug', 'event', 'digital', 'premium', 'starter',
+    /* 'geschenke' seit 04.10.2026 (Uwe: „auch Produkte für Betriebe, die Partner als Geschenk oder Mitbringsel
+       kaufen und nutzen können“) — die 14. Karte; die übrigen 13 sind die der Vorgabe. */
+    public const BEREICHE = ['uebersicht', 'print', 'pos', 'textil', 'fahrzeug', 'event', 'digital', 'premium', 'geschenke', 'starter',
                              'designs', 'bestellungen', 'favoriten', 'erfolge'];
 
     /** Bereiche, in denen Produkte stehen können (Auswahl in der Verwaltung). */
-    public const PRODUKT_BEREICHE = ['print', 'pos', 'textil', 'fahrzeug', 'event', 'premium', 'starter'];
+    public const PRODUKT_BEREICHE = ['print', 'pos', 'textil', 'fahrzeug', 'event', 'premium', 'geschenke', 'starter'];
 
     /** Ohne eigene Angabe steht ein Produkt im Bereich seiner Kategorie. */
     public const KATEGORIE_BEREICH = ['visitenkarten' => 'print', 'flyer' => 'print', 'aufkleber' => 'pos',

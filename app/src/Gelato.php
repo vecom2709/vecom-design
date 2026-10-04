@@ -117,19 +117,23 @@ final class Gelato implements DruckereiAnbieter, DruckereiPreise
         if (!self::bereit()) { return ['ok' => false, 'grund' => 'Gelato-Schlüssel fehlt in config.local.php.']; }
         $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ?', [$bestellungId]);
         if (!$b || $b['status'] !== 'bezahlt') { return ['ok' => false, 'grund' => 'Nur bezahlte Bestellungen gehen an den Drucker.']; }
-        $pos = Db::all('SELECT x.*, e.datei_druck_hash FROM wm_positionen x JOIN wm_entwuerfe e ON e.id = x.entwurf_id WHERE x.bestellung_id = ?', [$bestellungId]);
+        $pos = Db::all('SELECT x.*, e.datei_druck_hash, w.vorlage FROM wm_positionen x JOIN wm_entwuerfe e ON e.id = x.entwurf_id
+                         JOIN wm_produkte w ON w.id = e.produkt_id WHERE x.bestellung_id = ?', [$bestellungId]);
         $p = Db::one('SELECT email FROM partner WHERE id = ?', [(int) $b['partner_id']]);
         $items = [];
         foreach ($pos as $i => $x) {
             $a = self::artikel((int) $x['variante_id']);
             if (!$a) { return ['ok' => false, 'grund' => 'Für „' . $x['variante'] . '“ ist kein Gelato-Artikel eingetragen.']; }
             if (empty($x['datei_druck_hash'])) { return ['ok' => false, 'grund' => 'Zur Freigabe fehlt die Gelato-Druckdatei — der Partner muss die Datei neu erstellen und freigeben.']; }
-            $items[] = [
+            $item = [
                 'itemReferenceId' => $b['nummer'] . '-' . ($i + 1),
                 'productUid' => (string) $a['artikel'],
                 'quantity' => (int) $a['menge'] * (int) $x['menge'],
                 'files' => [['type' => 'default', 'url' => self::dateiLink((int) $x['entwurf_id'])]],
             ];
+            // Mehrseitige Produkte (Wandkalender): pageCount laut Doku „alle Seiten inklusive Vorder- und Rückseite“.
+            if ((string) $x['vorlage'] === 'kalender_a3') { require_once __DIR__ . '/WmKalender.php'; $item['pageCount'] = WmKalender::SEITEN; }
+            $items[] = $item;
         }
         if (!$items) { return ['ok' => false, 'grund' => 'Die Bestellung hat keine Position.']; }
         $ad = (array) json_decode((string) $b['adresse'], true);

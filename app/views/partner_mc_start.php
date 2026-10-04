@@ -24,6 +24,7 @@ $mcIcon = [
     'event'        => '<path d="M7 3h10v14H7z"/><path d="M5 21h14M12 17v4"/><path d="M9.5 7h5M9.5 10h3"/>',
     'digital'      => '<rect x="7" y="2.5" width="10" height="19" rx="2.2"/><path d="M11 18.5h2"/>',
     'premium'      => '<path d="M6 4h12l3 5-9 11L3 9z"/><path d="M3 9h18M9.5 4L12 20l2.5-16"/>',
+    'geschenke'    => '<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M5 12v8h14v-8M12 8v12M12 8c-1.5-3-5-3.5-5-1.2C7 8 12 8 12 8zM12 8c1.5-3 5-3.5 5-1.2C17 8 12 8 12 8z"/>',
     'starter'      => '<path d="M3.5 7.5L12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5L12 12l8.5-4.5M12 12v9"/>',
     'designs'      => '<path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/>',
     'bestellungen' => '<path d="M3 6h11v10H3z"/><path d="M14 9h4l3 3.5V16h-7"/><circle cx="7" cy="17.5" r="1.6"/><circle cx="17" cy="17.5" r="1.6"/>',

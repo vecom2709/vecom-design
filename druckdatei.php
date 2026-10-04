@@ -41,8 +41,10 @@ if (str_starts_with((string) $fassung, 'probe_') && $id === 0) {
 }
 $spalte = ['frei' => 'datei', 'druck' => 'datei_druck', 'pf_vorn' => 'datei_pf_vorn', 'pf_hinten' => 'datei_pf_hinten'][$fassung] ?? '';
 if ($spalte === '') { http_response_code(404); exit; }
-$d = $id > 0 ? Db::one("SELECT e.id, e.$spalte AS datei_druck FROM wm_entwuerfe e
-                         WHERE e.id = ? AND e.$spalte IS NOT NULL
+// Druckfassung = Ansicht (Wandkalender): nur einmal gespeichert, erkennbar am gleichen Hash.
+$wert = $spalte === 'datei_druck' ? 'COALESCE(e.datei_druck, IF(e.datei_druck_hash = e.datei_hash, e.datei, NULL))' : "e.$spalte";
+$d = $id > 0 ? Db::one("SELECT e.id, $wert AS datei_druck FROM wm_entwuerfe e
+                         WHERE e.id = ? AND $wert IS NOT NULL
                            AND (e.status IN ('freigegeben', 'ersetzt') OR EXISTS (SELECT 1 FROM wm_positionen x WHERE x.entwurf_id = e.id))", [$id]) : null;
 if (!$d) { http_response_code(404); exit; }
 

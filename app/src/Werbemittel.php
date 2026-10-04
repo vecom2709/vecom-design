@@ -31,7 +31,7 @@ final class Werbemittel
 {
     public const SPRACHEN = ['it', 'de', 'en'];
     /** Vorlagen, die heute eine Druckdatei erzeugen können. */
-    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)', 'rollup_85' => 'Roll-up 85 × 200 cm (WmDruck)'];
+    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)', 'rollup_85' => 'Roll-up 85 × 200 cm (WmDruck)', 'kalender_a3' => 'Wandkalender A3 2027 (WmKalender, Gelato)'];
 
     /** Hat die Vorlage eine Gestaltung mit Stil/Sprache/Kontakt, Vorschau und Freigabe? */
     public static function gestaltbar(string $vorlage): bool
@@ -50,7 +50,12 @@ final class Werbemittel
         require_once __DIR__ . '/WmDruck.php';
         if (!self::gestaltbar($vorlage) || !self::stilDa($vorlage, $stil)) { return ''; }
         $sprache = in_array($sprache, self::SPRACHEN, true) ? $sprache : 'it';
-        $quelle = $vorlage === 'visitenkarte' ? PartnerKarten::vornDatei($stil) : WmDruck::vornDatei($vorlage, $stil, $sprache);
+        if ($vorlage === 'kalender_a3') { require_once __DIR__ . '/WmKalender.php'; }
+        $quelle = match ($vorlage) {
+            'visitenkarte' => PartnerKarten::vornDatei($stil),
+            'kalender_a3' => WmKalender::datei($sprache, 0, true),
+            default => WmDruck::vornDatei($vorlage, $stil, $sprache),
+        };
         if ($quelle === '' || !is_file($quelle)) { return ''; }
         $ordner = dirname(__DIR__) . '/zwischenspeicher/mini';
         // v3: mit der ersten freigegebenen Überschrift (die Vorlagen haben seit Schritt 4 keine mehr im Bild).
@@ -60,7 +65,11 @@ final class Werbemittel
         if (!$im) { return ''; }
         if ($vorlage !== 'visitenkarte') { WmDruck::titelAuf($im, $vorlage, $stil, $sprache, ''); }
         // Beschnitt ab: Anteil aus dem Layout der Datei, die tatsächlich geladen wurde.
-        $l = $vorlage === 'visitenkarte' ? ['b' => 85, 'beschnitt' => 3] : WmDruck::layout(WmDruck::branche($vorlage, $stil) ? 'flyer_a5' : $vorlage);
+        $l = match ($vorlage) {
+            'visitenkarte' => ['b' => 85, 'beschnitt' => 3],
+            'kalender_a3' => WmKalender::layout(),
+            default => WmDruck::layout(WmDruck::branche($vorlage, $stil) ? 'flyer_a5' : $vorlage),
+        };
         $rand = (int) round(imagesx($im) * $l['beschnitt'] / ($l['b'] + 2 * $l['beschnitt']));
         $zu = imagecrop($im, ['x' => $rand, 'y' => $rand, 'width' => imagesx($im) - 2 * $rand, 'height' => imagesy($im) - 2 * $rand]) ?: $im;
         $klein = imagescale($zu, 420, -1, IMG_BICUBIC) ?: $zu;     // Kachel ~140–200 px breit: doppelt für scharfe Bildschirme
@@ -78,6 +87,7 @@ final class Werbemittel
         /* Doppelte Auflösung (04.10.2026, Uwe: „alles qualitativ hochwertig, auch von der Auflösung“):
            die Vorschau steht bis ~540 px breit da — auf hochauflösenden Handys braucht sie das Doppelte. */
         if ($vorlage === 'visitenkarte') { return PartnerKarten::vorschau($p, $stil, $sprache, $kontakt, 1440); }
+        if ($vorlage === 'kalender_a3') { require_once __DIR__ . '/WmKalender.php'; return WmKalender::vorschau($p, $stil, $sprache, $kontakt, 760); }
         require_once __DIR__ . '/WmDruck.php';
         return WmDruck::vorschau($p, $vorlage, $stil, $sprache, $kontakt, 760);
     }
@@ -87,6 +97,7 @@ final class Werbemittel
     {
         require_once __DIR__ . '/PartnerKarten.php';
         if ($vorlage === 'visitenkarte') { return PartnerKarten::gibt($stil); }
+        if ($vorlage === 'kalender_a3') { require_once __DIR__ . '/WmKalender.php'; return WmKalender::gibt($stil); }
         require_once __DIR__ . '/WmDruck.php';
         return WmDruck::gibt($vorlage, $stil);
     }
@@ -365,6 +376,7 @@ final class Werbemittel
     /** Legt ein Produkt an oder ändert es. Gibt die id zurück. */
     public static function produktSpeichern(array $e, int $id = 0): int
     {
+        require_once __DIR__ . '/Marketingcenter.php';
         $d = [
             'kategorie_id'  => (int) ($e['kategorie_id'] ?? 0),
             'breite_zmm'    => self::mmZuZmm($e['breite_mm'] ?? '0'),
@@ -372,7 +384,7 @@ final class Werbemittel
             'beschnitt_zmm' => self::mmZuZmm($e['beschnitt_mm'] ?? '3'),
             'vorlage'       => array_key_exists((string) ($e['vorlage'] ?? ''), self::VORLAGEN) ? (string) $e['vorlage'] : '',
             // Bereich im Marketing Center; leer = wie die Kategorie (04.10.2026)
-            'bereich'       => in_array((string) ($e['bereich'] ?? ''), ['print', 'pos', 'textil', 'fahrzeug', 'event', 'premium', 'starter'], true) ? (string) $e['bereich'] : null,
+            'bereich'       => in_array((string) ($e['bereich'] ?? ''), Marketingcenter::PRODUKT_BEREICHE, true) ? (string) $e['bereich'] : null,
             'marge_prozent' => self::leerOderZahl($e['marge_prozent'] ?? '', 0, 500),
             'mindestmarge_cent' => self::leerOderEuro($e['mindestmarge_eur'] ?? ''),
             'aktiv'         => !empty($e['aktiv']) ? 1 : 0,
@@ -569,6 +581,7 @@ final class Werbemittel
             $pdf = match ((string) $pr['vorlage']) {
                 'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
                 'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
+                'kalender_a3' => (static function () use ($p, $w): string { require_once __DIR__ . '/WmKalender.php'; return WmKalender::pdf($p, $w['stil'], $w['sprache'], $w['kontakt']); })(),
                 default => '',
             };
             if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }
@@ -578,6 +591,11 @@ final class Werbemittel
                 'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
                 // Flyer gehen an Flyeralarm (von Hand): dort 1 mm Beschnitt je Seite statt unserer 3 mm.
                 'flyer_a6', 'flyer_a5', 'flyer_branche' => WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt'], self::FLYERALARM_BESCHNITT),
+                // Kalender: schon im Gelato-Maß (4 mm Beschnitt, 300 dpi) — Druckfassung = Ansicht, Byte für Byte.
+                // Gespeichert wird sie nur EINMAL (11 MB): zweimal in einer Zeile überschreitet max_allowed_packet
+                // (16 MB, gemessen 04.10.2026: „MySQL server has gone away“). Erkennbar an datei_druck NULL bei
+                // datei_druck_hash = datei_hash; druckdatei.php liefert dann die Ansicht aus.
+                'kalender_a3' => $pdf,
                 default => '',
             };
             // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
@@ -593,12 +611,13 @@ final class Werbemittel
             Db::run("DELETE FROM wm_entwuerfe WHERE id = ? AND status = 'entsteht'", [$id]);
             throw $e;
         }
-        Db::transaktion(static function () use ($p, $produktId, $id, $pdf, $druck, $pf): void {
+        $druckGleich = $druck !== '' && $druck === $pdf;
+        Db::transaktion(static function () use ($p, $produktId, $id, $pdf, $druck, $pf, $druckGleich): void {
             Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf' AND id <> ?", [(int) $p['id'], $produktId, $id]);
             Db::run("UPDATE wm_entwuerfe SET datei = ?, datei_hash = ?, datei_bytes = ?, datei_druck = ?, datei_druck_hash = ?,
                             datei_pf_vorn = ?, datei_pf_hinten = ?, status = 'entwurf' WHERE id = ? AND status = 'entsteht'", [
                 $pdf, hash('sha256', $pdf), strlen($pdf),
-                $druck !== '' ? $druck : null, $druck !== '' ? hash('sha256', $druck) : null,
+                $druck !== '' && !$druckGleich ? $druck : null, $druck !== '' ? hash('sha256', $druck) : null,
                 $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null, $id]);
         }, 3);
         // QR-Prüfung vor der Produktion (Schritt 8): die fertigen Dateien zurücklesen. Fällt sie durch,

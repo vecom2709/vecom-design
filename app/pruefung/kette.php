@@ -22392,8 +22392,9 @@ pruefe('Versandarten bewusst nicht erfunden: die Schnittstelle sagt, warum es ge
    ============================================================================ */
 abschnitt('Marketingcenter: Grundstruktur');
 foreach (['Marketingcenter', 'Werbemittel', 'PartnerKarten', 'PartnerWerbung', 'QrBild', 'Fmt', 'WmBestellung'] as $gsKl) { require_once $wurzel . "/src/$gsKl.php"; }
-pruefe('13 Bereiche in Uwes Reihenfolge, 7 davon mit Produkten; jeder Bereich hat Namen und Satz in drei Sprachen',
-    Marketingcenter::BEREICHE === ['uebersicht', 'print', 'pos', 'textil', 'fahrzeug', 'event', 'digital', 'premium', 'starter', 'designs', 'bestellungen', 'favoriten', 'erfolge']
+pruefe('13 Bereiche in Uwes Reihenfolge + „Geschenke für Betriebe“ (seit 04.10.2026), 8 davon mit Produkten; jeder Bereich hat Namen und Satz in drei Sprachen',
+    Marketingcenter::BEREICHE === ['uebersicht', 'print', 'pos', 'textil', 'fahrzeug', 'event', 'digital', 'premium', 'geschenke', 'starter', 'designs', 'bestellungen', 'favoriten', 'erfolge']
+    && count(Marketingcenter::PRODUKT_BEREICHE) === 8
     && !array_diff(Marketingcenter::PRODUKT_BEREICHE, Marketingcenter::BEREICHE)
     && !array_filter(Marketingcenter::BEREICHE, static fn($b) => array_filter(['it', 'de', 'en'], static fn($l) => trim((string) (Texte::MARKETINGCENTER['b'][$b][$l] ?? '')) === '' || trim((string) (Texte::MARKETINGCENTER['bs'][$b][$l] ?? '')) === '')));
 $gsTexteOk = true;
@@ -22416,7 +22417,7 @@ foreach (array_merge(Marketingcenter::PRODUKT_BEREICHE, ['digital', 'quatsch', '
     $gsGespeichert[$gsB] = Db::wert('SELECT bereich FROM wm_produkte WHERE id = ?', [(int) $gsVk['id']], null);
 }
 pruefe('Verwaltung speichert genau die Produktbereiche (Digital, Unsinn und leer → „wie die Kategorie“)',
-    array_slice($gsGespeichert, 0, 7) === array_combine(Marketingcenter::PRODUKT_BEREICHE, Marketingcenter::PRODUKT_BEREICHE)
+    array_slice($gsGespeichert, 0, count(Marketingcenter::PRODUKT_BEREICHE)) === array_combine(Marketingcenter::PRODUKT_BEREICHE, Marketingcenter::PRODUKT_BEREICHE)
     && $gsGespeichert['digital'] === null && $gsGespeichert['quatsch'] === null && $gsGespeichert[''] === null
     && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'name="bereich"'));
 Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $gsVk['id']]);
@@ -22464,9 +22465,9 @@ $gsHtml = (static function (array $v) use ($wurzel): string { extract($v); $_SES
      'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)), 'wmKatalog' => $gsKat, 'wmNurLesen' => false]);
 restore_error_handler();
 preg_match('~<nav class="mc-karten".*?</nav>~s', $gsHtml, $gsNav);
-pruefe('Partneransicht: Leitsatz, echtes V-Logo, 13 Karten, Filterregel je Bereich, ohne Warnung',
+pruefe('Partneransicht: Leitsatz, echtes V-Logo, 14 Karten (13 der Vorgabe + Geschenke für Betriebe), Filterregel je Bereich, ohne Warnung',
     $gsFehler === null && str_contains($gsHtml, 'DEIN VECOM DESIGN.') && str_contains($gsHtml, '/assets/img/logo-mark.webp')
-    && substr_count($gsNav[0] ?? '', '<a class="mc-karte') === 13 && substr_count($gsHtml, 'html[data-mc="') >= 13,
+    && substr_count($gsNav[0] ?? '', '<a class="mc-karte') === count(Marketingcenter::BEREICHE) && count(Marketingcenter::BEREICHE) === 14 && substr_count($gsHtml, 'html[data-mc="') >= 14,
     (string) $gsFehler . ' Karten ' . substr_count($gsNav[0] ?? '', '<a class="mc-karte') . ' Regeln ' . substr_count($gsHtml, 'html[data-mc="') . ' Claim ' . (int) str_contains($gsHtml, 'DEIN VECOM DESIGN.'));
 pruefe('Leere Produktbereiche sagen ehrlich „In Vorbereitung“ (keine Platzhalter-Produkte), gefüllte zeigen ihre Produkte',
     preg_match('~<section class="mc-bereich" id="mc-fahrzeug" data-mc-teil="fahrzeug">.*?In Vorbereitung.*?</section>~s', $gsHtml) === 1
@@ -22864,6 +22865,59 @@ Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $qpA['id']
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $qpA['id'], (int) $qpB['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $qpVk['aktiv'], (int) $qpVk['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $qpA6['aktiv'], (int) $qpA6['id']]);
+
+/* ============================================================================
+   Geschenke für Betriebe: Wandkalender 2027 A3 (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Wandkalender');
+foreach (['WmKalender', 'Werbemittel', 'QrPruefung', 'Marketingcenter'] as $wkKl) { require_once $wurzel . "/src/$wkKl.php"; }
+$wkIt = WmKalender::feiertage(2027, 'IT');
+$wkDe = WmKalender::feiertage(2027, 'DE');
+$wkZahl = static fn(array $f): int => array_sum(array_map('count', $f));
+pruefe('Feiertage 2027: Italien 13 (Ostern 28.3., Pasquetta 29.3., San Francesco 4.10. seit 2026), Deutschland bundesweit 9 (Karfreitag 26.3., Himmelfahrt 6.5., Pfingstmontag 17.5.), sonst keine',
+    $wkZahl($wkIt) === 13 && isset($wkIt[3][28], $wkIt[3][29], $wkIt[10][4], $wkIt[8][15], $wkIt[12][26]) && $wkIt[3][29]['de'] === 'Ostermontag'
+    && $wkZahl($wkDe) === 9 && isset($wkDe[3][26], $wkDe[3][29], $wkDe[5][6], $wkDe[5][17], $wkDe[10][3]) && !isset($wkDe[1][6])
+    && WmKalender::feiertage(2027, 'FR') === [] && $wkZahl(WmKalender::feiertage(2028, 'IT')) === 13);
+$wkL = WmKalender::layout();
+$wkOk = $wkL !== [] && $wkL['jahr'] === 2027 && $wkL['b'] === 297 && $wkL['h'] === 420 && $wkL['beschnitt'] === 4 && count($wkL['monate']) === 12;
+foreach ($wkL['monate'] ?? [] as $wkM => $wkS) {
+    $wkOk = $wkOk && count($wkS['zellen']) === (int) date('t', mktime(12, 0, 0, (int) $wkM, 1, 2027)) && $wkS['qr'][2] >= 150
+        && $wkS['platte'][1] + $wkS['platte'][3] <= (420 + 4 - 4) * 10;            // Fußtext endet vor dem 4-mm-Sicherheitsrand
+}
+pruefe('Layout: A3 mit 4 mm Beschnitt, 12 Monate mit genau so vielen Tageszellen wie der Monat Tage hat, Code ≥ 15 mm, Fußtext im Sicherheitsbereich',
+    $wkOk && is_file(WmKalender::datei('it', 12)) && is_file(WmKalender::datei('en', 0, true)) && WmKalender::gibt('a') && !WmKalender::gibt('b'));
+$wkP = ['id' => 0, 'name' => 'Kalender Probe', 'code' => 'KALPRB', 'email' => 'kal@partner.example', 'land' => 'IT', '_wm_kanal' => 'wm-777'];
+$wkPdf = WmKalender::pdf($wkP, 'a', 'it');
+$wkQ = QrPruefung::pruefen($wkPdf, WmDruck::qrLink($wkP, 'kalender_a3'), 'kalender_a3');
+preg_match_all('~/Type /Page /Parent~', $wkPdf, $wkSeiten);
+pruefe('Druckdatei: 14 Seiten 305 × 428 mm mit TrimBox, 13 Codes (Titel + 12 Monate) auf den eigenen Link, unter 15 MB (passt in die Datenbank)',
+    str_starts_with($wkPdf, '%PDF') && count($wkSeiten[0]) === WmKalender::SEITEN && WmKalender::SEITEN === 14
+    && str_contains($wkPdf, sprintf('/MediaBox [0 0 %.3F %.3F]', 305 * 72 / 25.4, 428 * 72 / 25.4)) && str_contains($wkPdf, '/TrimBox')
+    && $wkQ['ok'] && $wkQ['codes'] === 13 && strlen($wkPdf) < 15 * 1024 * 1024, json_encode($wkQ) . ' Bytes ' . strlen($wkPdf));
+$wkBilder = static fn(string $pdf): int => substr_count($pdf, '/Subtype /Image');
+pruefe('Feiertage des Lieferlandes kommen als Zellen dazu: Italien 13, Deutschland 9 (andere Länder liefert Vecom nicht — sie gelten als Italien) — Fußplatte nur einmal eingebettet',
+    $wkBilder($wkPdf) === 13 + 1 + 13 && $wkBilder(WmKalender::pdf(['land' => 'DE'] + $wkP, 'a', 'de')) === 13 + 1 + 9
+    && Werbemittel::anzeigeLand(['land' => 'FR'] + $wkP) === 'IT');
+$wkV = @getimagesizefromstring(WmKalender::vorschau($wkP, 'a', 'de'));
+pruefe('Vorschau (Titel + Januar) und Kachel', is_array($wkV) && $wkV[1] === 760 && $wkV[0] > 1000
+    && is_array(@getimagesizefromstring(Werbemittel::miniBild('kalender_a3', 'a', 'it'))) && Werbemittel::miniBild('kalender_a3', 'b', 'it') === '');
+$wkPr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'kalender_a3'");
+pruefe('Produkt angelegt: im Bereich „Geschenke für Betriebe“, aus, 1/5/10 Stück, ohne erfundene Preise',
+    $wkPr && (int) $wkPr['aktiv'] === 0 && $wkPr['bereich'] === 'geschenke' && in_array('geschenke', Marketingcenter::PRODUKT_BEREICHE, true)
+    && Db::all('SELECT auflage FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $wkPr['id']]) === [['auflage' => 1], ['auflage' => 5], ['auflage' => 10]]
+    && (int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id WHERE v.produkt_id = ?', [(int) $wkPr['id']]) === 0);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $wkPr['id']]);
+$wkA = Partner::laden(Partner::anlegen(['name' => 'Kai Kalender', 'email' => 'kai@partner.example', 'code' => 'KAIKAL', 'sprache' => 'de']));
+$wkE = Werbemittel::entwurfAnlegen($wkA, (int) $wkPr['id'], ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'vecom']);
+$wkR = Db::one('SELECT datei, datei_hash, datei_druck, datei_druck_hash, qr_ok, wahl FROM wm_entwuerfe WHERE id = ?', [$wkE]);
+pruefe('Entwurf: Druckdatei für Gelato = Ansicht, nur einmal gespeichert (max_allowed_packet), Druck-Link liefert sie aus; QR-Prüfung bestanden; Gelato bekommt pageCount 14',
+    (string) $wkR['datei'] !== '' && $wkR['datei_druck'] === null && $wkR['datei_druck_hash'] === $wkR['datei_hash'] && (int) $wkR['qr_ok'] === 1
+    && str_contains((string) file_get_contents($oben . '/druckdatei.php'), 'COALESCE(e.datei_druck, IF(e.datei_druck_hash = e.datei_hash, e.datei, NULL))')
+    && !isset(json_decode((string) $wkR['wahl'], true)['titel'])
+    && str_contains((string) file_get_contents($wurzel . '/src/Gelato.php'), "\$item['pageCount'] = WmKalender::SEITEN"));
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $wkA['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $wkA['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $wkPr['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz
