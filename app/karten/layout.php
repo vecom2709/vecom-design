@@ -27,4 +27,23 @@ return [
         'kontakt' => ['x' => 195, 'y' => 426, 'size' => 21, 'font' => 500, 'farbe' => '#1f1a13', 'max' => 295],
         'qr' => [605.8, 135.8, 178.5],
     ],
+    /* E Tech, F Lifestyle, G Industrial (04.10.2026, Designlinien, tools/visitenkarten/gen.py STILE=EFG) */
+    'e' => [
+        'name' => ['x' => 88, 'y' => 302, 'size' => 30, 'font' => 700, 'farbe' => '#eef0f2', 'max' => 392],
+        'link' => ['x' => 133, 'y' => 360, 'size' => 22, 'font' => 500, 'farbe' => '#eef0f2', 'max' => 357],
+        'kontakt' => ['x' => 133, 'y' => 414, 'size' => 22, 'font' => 500, 'farbe' => '#eef0f2', 'max' => 357],
+        'qr' => [589.1, 122.1, 193.8],
+    ],
+    'f' => [
+        'name' => ['x' => 88, 'y' => 302, 'size' => 30, 'font' => 700, 'farbe' => '#f7ecdc', 'max' => 392],
+        'link' => ['x' => 133, 'y' => 360, 'size' => 22, 'font' => 500, 'farbe' => '#f7ecdc', 'max' => 357],
+        'kontakt' => ['x' => 133, 'y' => 414, 'size' => 22, 'font' => 500, 'farbe' => '#f7ecdc', 'max' => 357],
+        'qr' => [589.1, 122.1, 193.8],
+    ],
+    'g' => [
+        'name' => ['x' => 88, 'y' => 302, 'size' => 30, 'font' => 700, 'farbe' => '#ecebe8', 'max' => 392],
+        'link' => ['x' => 133, 'y' => 360, 'size' => 22, 'font' => 500, 'farbe' => '#ecebe8', 'max' => 357],
+        'kontakt' => ['x' => 133, 'y' => 414, 'size' => 22, 'font' => 500, 'farbe' => '#ecebe8', 'max' => 357],
+        'qr' => [589.1, 122.1, 193.8],
+    ],
 ];

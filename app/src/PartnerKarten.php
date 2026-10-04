@@ -25,6 +25,10 @@ final class PartnerKarten
         'b' => ['it' => 'Nero e oro, angoli', 'de' => 'Schwarz-Gold Ecken', 'en' => 'Black & gold, corners'],
         'c' => ['it' => 'Nero con bordo oro', 'de' => 'Schwarz mit Goldkante', 'en' => 'Black with gold edge'],
         'd' => ['it' => 'Bianco e oro', 'de' => 'Weiß-Gold', 'en' => 'White & gold'],
+        // Designlinien (04.10.2026): Tech, Lifestyle, Industrial — vorerst nur als Visitenkarte gezeichnet
+        'e' => ['it' => 'Circuito', 'de' => 'Platine', 'en' => 'Circuit'],
+        'f' => ['it' => 'Caldo', 'de' => 'Warm', 'en' => 'Warm'],
+        'g' => ['it' => 'Acciaio e cemento', 'de' => 'Stahl und Beton', 'en' => 'Steel & concrete'],
     ];
     public const KONTAKTE = ['email', 'vecom'];
     public const VECOM_MAIL = 'kontakt@vecom-design.it';

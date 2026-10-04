@@ -15122,8 +15122,8 @@ foreach ($vkLay as $vs => $L) {
     if ($qx < 30 || $qy < 30 || $qx + $qs > 880 || $qy + $qs > 580 || $qs < 150) { $vkFehler[] = "$vs-qr"; }
     foreach (['name', 'link', 'kontakt'] as $f) { if ($L[$f]['x'] < 30 || $L[$f]['x'] + $L[$f]['max'] > 880) { $vkFehler[] = "$vs-$f"; } }
 }
-pruefe('Visitenkarten: 4 Stile × Vorderseite und Rückseite in drei Sprachen, 91 × 61 mm; Texte und QR im Endformat (3 mm Beschnitt frei)',
-    count(PartnerKarten::STILE) === 4 && $vkFehler === [], implode(', ', $vkFehler));
+pruefe('Visitenkarten: 7 Stile (a–d, seit 04.10.2026 e–g für Tech, Lifestyle, Industrial) × Vorder-/Rückseite in drei Sprachen, 91 × 61 mm; Texte und QR im Endformat',
+    count(PartnerKarten::STILE) === 7 && array_keys($vkLay) === array_keys(PartnerKarten::STILE) && $vkFehler === [], implode(', ', $vkFehler));
 $vkB = PartnerKarten::bild($vkP, 'a', 'hinten', 'de', 'email', false);
 $vkV = PartnerKarten::vorschau($vkP, 'd', 'it');
 $vkPdf = PartnerKarten::pdf($vkP, 'b', 'de');
@@ -22504,8 +22504,9 @@ $dlB = array_filter(Designlinie::stileDa('flyer_branche'), static fn($x) => Desi
 pruefe('Branchen-Flyer: helle (dunkle Linkschrift) sind Business, die übrigen Premium — gemessen an der Helligkeit',
     Designlinie::hell('#13263f') < 0.5 && Designlinie::hell('#fbf7ef') > 0.5 && count($dlB) >= 1
     && count($dlB) < count(Designlinie::stileDa('flyer_branche')) && count(Designlinie::stileDa('flyer_branche')) === 51, (string) count($dlB));
-pruefe('Visitenkarte gruppiert nach Linie: Premium a, b, c — Business d; Linien ohne Vorlage fehlen (nichts erfunden)',
-    Designlinie::gruppiert('visitenkarte', Designlinie::stileDa('visitenkarte')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d']]
+pruefe('Visitenkarte gruppiert nach Linie: Premium a, b, c — Business d — Tech e, Lifestyle f, Industrial g; anderswo fehlen Linien ohne Vorlage (nichts erfunden)',
+    Designlinie::gruppiert('visitenkarte', Designlinie::stileDa('visitenkarte')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d'], 'tech' => ['e'], 'lifestyle' => ['f'], 'industrial' => ['g']]
+    && Designlinie::gruppiert('flyer_a5', Designlinie::stileDa('flyer_a5')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d']]
     && Designlinie::gruppiert('aufkleber_50', Designlinie::stileDa('aufkleber_50')) === ['premium' => ['a'], 'business' => ['d']]);
 $dlVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
 $dlFb = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_branche'");
@@ -22518,12 +22519,20 @@ $dlHtml = (static function (array $v) use ($wurzel): string { extract($v); $_SES
     ['p' => $dlP, 'sprache' => 'it', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
      'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)), 'wmKatalog' => Werbemittel::katalog('it'), 'wmNurLesen' => false]);
 restore_error_handler();
-pruefe('Partneransicht: Linien-Leiste mit „Tutte“ und fünf Linien; ohne Vorlage abgeschaltet mit „presto“',
+pruefe('Partneransicht: Linien-Leiste mit „Tutte“ und fünf Linien; mit der Visitenkarte haben alle fünf eine Vorlage (keine „presto“)',
     $dlFehler === null && str_contains($dlHtml, 'data-linie="" aria-pressed="true">Tutte')
-    && preg_match('~data-linie="tech" aria-pressed="false"[^>]*disabled>~', $dlHtml) === 1 && !preg_match('~data-linie="premium" aria-pressed="false"[^>]*disabled~', $dlHtml)
-    && substr_count($dlHtml, '(presto)') === 3, (string) $dlFehler);
+    && !preg_match('~data-linie="(premium|business|tech|lifestyle|industrial)" aria-pressed="false"[^>]*disabled~', $dlHtml)
+    && substr_count($dlHtml, '(presto)') === 0, (string) $dlFehler);
+// Ohne Visitenkarte (nur Branchen-Flyer): Tech, Lifestyle, Industrial abgeschaltet mit „presto“.
+Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $dlVk['id']]);
+$dlHtml2 = (static function (array $v) use ($wurzel): string { extract($v); $_SESSION['csrf'] = 'x'; ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })(
+    ['p' => $dlP, 'sprache' => 'it', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+     'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)), 'wmKatalog' => Werbemittel::katalog('it'), 'wmNurLesen' => false]);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $dlVk['id']]);
+pruefe('Linie ohne Vorlage im Katalog: abgeschaltet mit „presto“ (hier nur Branchen-Flyer → Tech, Lifestyle, Industrial)',
+    preg_match('~data-linie="tech" aria-pressed="false"[^>]*disabled>~', $dlHtml2) === 1 && substr_count($dlHtml2, '(presto)') === 3);
 pruefe('Produkte tragen ihre Linien, Stile stehen in ihrer Linie, Branchen-Optionen kennen ihre Linie, CSS blendet je Linie aus',
-    str_contains($dlHtml, 'id="wm-p' . (int) $dlVk['id'] . '" data-linien="premium business"') && str_contains($dlHtml, 'id="wm-p' . (int) $dlFb['id'] . '" data-linien="premium business"')
+    str_contains($dlHtml, 'id="wm-p' . (int) $dlVk['id'] . '" data-linien="premium business tech lifestyle industrial"') && str_contains($dlHtml, 'id="wm-p' . (int) $dlFb['id'] . '" data-linien="premium business"')
     && preg_match('~class="mc-stillinie" data-linie="business">.*?value="d"~s', $dlHtml) === 1 && str_contains($dlHtml, 'data-linie="business">')
     && substr_count($dlHtml, 'option value="') >= 51 && preg_match('~<option value="[^"]+" data-linie="(premium|business)"~', $dlHtml) === 1
     && substr_count($dlHtml, 'html[data-linie="') === 10);

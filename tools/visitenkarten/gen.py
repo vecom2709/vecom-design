@@ -134,7 +134,7 @@ def icon(art, x, y, c, s=1.0):
 
 def qr_box(x, y, s, stil):
     """Weiße QR-Fläche mit Goldrahmen. Gibt SVG und die Modul-Fläche (für PHP) zurück."""
-    r = {'A': 3, 'B': 5, 'C': 10, 'D': 2}[stil]
+    r = {'A': 3, 'B': 5, 'C': 10, 'D': 2, 'E': 2, 'F': 9, 'G': 0}[stil]
     rahmen = 4.5 if stil in 'AB' else 3.2
     out = f'<rect x="{x-rahmen}" y="{y-rahmen}" width="{s+2*rahmen}" height="{s+2*rahmen}" rx="{r+2}" fill="url(#gold)" filter="url(#praegung)"/>'
     if stil == 'A':
@@ -147,6 +147,76 @@ def qr_box(x, y, s, stil):
 def schwarz_grund(tief='#0a0908', mitte='#17130d'):
     return (f'<radialGradient id="grund" cx=".45" cy=".4" r=".8"><stop offset="0" stop-color="{mitte}"/><stop offset="1" stop-color="{tief}"/></radialGradient>'
             f'<rect width="{W}" height="{H}" fill="url(#grund)"/><rect width="{W}" height="{H}" filter="url(#korn)"/>')
+
+# ---------------------------------------------------------------------------
+# Neue Designlinien (04.10.2026, Marketingcenter Schritt 3): E Tech, F Lifestyle, G Industrial.
+# Marke unverändert: dasselbe V, dieselbe Schrift, Gold als Akzent — nur Grund und Stimmung.
+# ---------------------------------------------------------------------------
+def tech_grund(seite):
+    g = (f'<radialGradient id="tg" cx=".5" cy=".42" r=".85"><stop offset="0" stop-color="#1c2027"/><stop offset="1" stop-color="#0a0c0f"/></radialGradient>'
+         f'<rect width="{W}" height="{H}" fill="url(#tg)"/>')
+    # feines Raster wie auf einer Platine
+    g += ('<g stroke="#e3c27a" stroke-width=".6" opacity=".07">' + ''.join(f'<line x1="{x}" y1="0" x2="{x}" y2="{H}"/>' for x in range(15, W, 30))
+          + ''.join(f'<line x1="0" y1="{y}" x2="{W}" y2="{y}"/>' for y in range(15, H, 30)) + '</g>')
+    # Leiterbahnen mit 45-Grad-Knicken und Lötpunkten
+    if seite == 'vorn':
+        bahnen = [(0, 120, 150, 120, 200, 70, 330, 70), (0, 160, 120, 160, 170, 210, 250, 210), (0, 525, 90, 525, 130, 565, 290, 565),
+                  (W, 90, 760, 90, 720, 130, 640, 130), (W, 520, 820, 520, 785, 555, 690, 555)]
+    else:
+        # nur unten: oben rechts steht der QR-Code mit seinen Ecken
+        bahnen = [(W, 560, 840, 560, 800, 520, 720, 520), (0, 575, 160, 575, 200, 535, 260, 535), (W, 590, 620, 590)]
+    for b in bahnen:
+        pts = ' '.join(f'{b[i]},{b[i+1]}' for i in range(0, len(b), 2))
+        g += f'<polyline points="{pts}" fill="none" stroke="#ffcf6a" stroke-width="6" opacity=".18" filter="url(#glut)"/>'
+        g += f'<polyline points="{pts}" fill="none" stroke="url(#goldH)" stroke-width="1.6" stroke-linejoin="round"/>'
+        g += f'<circle cx="{b[-2]}" cy="{b[-1]}" r="4.2" fill="#0b0d10" stroke="url(#gold)" stroke-width="1.8"/>'
+    return g
+
+def tech_klammern(x0, y0, x1, y1, l=34):
+    # HUD-Ecken um eine Fläche
+    d = f'M{x0} {y0+l}V{y0}H{x0+l} M{x1-l} {y0}H{x1}V{y0+l} M{x1} {y1-l}V{y1}H{x1-l} M{x0+l} {y1}H{x0}V{y1-l}'
+    return f'<path d="{d}" fill="none" stroke="url(#gold)" stroke-width="2"/>'
+
+def lifestyle_grund(seite):
+    g = (f'<radialGradient id="lg" cx=".38" cy=".35" r=".95"><stop offset="0" stop-color="#3d2a1c"/><stop offset=".6" stop-color="#28190f"/><stop offset="1" stop-color="#170e08"/></radialGradient>'
+         f'<rect width="{W}" height="{H}" fill="url(#lg)"/>')
+    # weiche, warme Formen (wie Licht durch einen Vorhang)
+    if seite == 'vorn':
+        kreise = [(760, 120, 260, '#c88a52', .16), (120, 560, 230, '#b9784a', .14), (820, 610, 150, '#e2b47c', .12)]
+    else:
+        kreise = [(860, 80, 230, '#c88a52', .15), (60, 640, 210, '#b9784a', .12)]
+    for cx, cy, r, c, op in kreise:
+        g += f'<circle cx="{cx}" cy="{cy}" r="{r}" fill="{c}" opacity="{op}" filter="url(#glutweit)"/>'
+    # goldene Bögen
+    if seite == 'vorn':
+        g += f'<path d="M-40 505 Q 260 455 470 {H+30}" fill="none" stroke="url(#gold)" stroke-width="2.2" opacity=".85"/>'
+        g += f'<path d="M560 -30 Q 700 210 {W+40} 240" fill="none" stroke="url(#gold)" stroke-width="1.6" opacity=".7"/>'
+    else:
+        g += f'<path d="M660 {H+30} Q 790 480 {W+40} 450" fill="none" stroke="url(#gold)" stroke-width="2" opacity=".8"/>'
+    g += f'<rect width="{W}" height="{H}" filter="url(#papier)" opacity=".9"/>'
+    return g
+
+def industrie_grund(seite):
+    g = (f'<filter id="beton" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency=".018 .022" numOctaves="4" seed="5"/>'
+         f'<feColorMatrix type="matrix" values="0 0 0 0 .55  0 0 0 0 .55  0 0 0 0 .56  0 0 0 .55 0"/></filter>'
+         f'<radialGradient id="ig" cx=".5" cy=".45" r=".85"><stop offset="0" stop-color="#2f3134"/><stop offset="1" stop-color="#151617"/></radialGradient>'
+         f'<linearGradient id="stahl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5b5e62"/><stop offset=".45" stop-color="#3a3c3f"/><stop offset="1" stop-color="#232426"/></linearGradient>'
+         f'<rect width="{W}" height="{H}" fill="url(#ig)"/><rect width="{W}" height="{H}" filter="url(#beton)" opacity=".35"/>'
+         f'<rect width="{W}" height="{H}" filter="url(#korn)"/>')
+    # Stahlplatte unten mit Goldkante und Nieten
+    py = H - 120 if seite == 'vorn' else H - 92
+    g += f'<rect x="0" y="{py}" width="{W}" height="{H-py}" fill="url(#stahl)" filter="url(#gebuerstet)"/>'
+    g += f'<rect x="0" y="{py}" width="{W}" height="3" fill="url(#goldH)"/>'
+    for x in range(60, W, 130):
+        g += f'<circle cx="{x}" cy="{py+28}" r="6.5" fill="#6d7075"/><circle cx="{x-1.6}" cy="{py+26.4}" r="2.6" fill="#b9bcc1" opacity=".7"/>'
+    # schräge Goldstreifen oben rechts
+    for i, op in enumerate((.9, .55, .3)):
+        x = W - 210 + i*44
+        if seite == 'vorn':
+            g += f'<polygon points="{x},0 {x+22},0 {x+112},90 {x+90},90" fill="url(#gold)" opacity="{op}"/>'
+        else:
+            g += f'<polygon points="{x+40},0 {x+56},0 {x+116},60 {x+100},60" fill="url(#gold)" opacity="{op}"/>'
+    return g
 
 # ---------------------------------------------------------------------------
 # Die vier Stile
@@ -196,7 +266,13 @@ def front(stil):
         g += f'<polyline points="300,0 0,395" stroke="url(#gold)" stroke-width="1.2" fill="none" opacity=".8"/>'
         g += f'<polygon points="{W},{H} {W},{H-250} {W-190},{H}" fill="url(#gold)" filter="url(#folie)"/>'
         g += f'<polyline points="{W-215},{H} {W},{H-283}" stroke="url(#gold)" stroke-width="2.4" fill="none"/>'
-    l, unten = logo_gross(W/2, 118, 215, hell=hell)
+    elif stil == 'E':
+        g += tech_grund('vorn')   # HUD-Ecken nur hinten um den QR-Code: vorn kämen sie der Zeile zu nah
+    elif stil == 'F':
+        g += lifestyle_grund('vorn')
+    elif stil == 'G':
+        g += industrie_grund('vorn')
+    l, unten = logo_gross(W/2, 118 if stil != 'G' else 96, 215, hell=hell)
     g += l
     ly = unten + 20
     g += f'<rect x="{W/2-34}" y="{ly}" width="68" height="2.4" fill="url(#goldH)"/>'
@@ -204,6 +280,12 @@ def front(stil):
     if stil == 'A':
         g += (f'<text x="{W/2}" y="{ty}" text-anchor="middle" font-family="MS" font-size="25" font-weight="500" fill="#f5efe2" letter-spacing=".4">'
               f'Web Branding <tspan font-weight="700" fill="#e8b85a">3D</tspan> Digital Experiences.</text>')
+    elif stil in 'EG':
+        g += (f'<text x="{W/2}" y="{ty}" text-anchor="middle" font-family="MS" font-size="19" font-weight="600" fill="#eef0f2" letter-spacing="4.2">'
+              f'WEB · BRANDING · 3D · DIGITAL</text>')
+    elif stil == 'F':
+        g += (f'<text x="{W/2}" y="{ty}" text-anchor="middle" font-family="MS" font-size="24" font-weight="500" fill="#f7ecdc" letter-spacing=".6">'
+              f'Web Branding 3D Digital Experiences.</text>')
     else:
         farbe = '#8a6424' if hell else '#e2b660'
         ls = '3.2' if hell else '.6'
@@ -216,7 +298,7 @@ def back(stil, lang):
     g = ''
     hell = stil == 'D'
     lay = {}
-    textfarbe = '#1f1a13' if hell else '#f6f1e6'
+    textfarbe = '#1f1a13' if hell else {'E': '#eef0f2', 'F': '#f7ecdc', 'G': '#ecebe8'}.get(stil, '#f6f1e6')
     gold = '#a57a2c' if hell else '#e6b85c'
     X = 88                                   # linke Spalte
     teiler_x = 505
@@ -281,6 +363,29 @@ def back(stil, lang):
         cap = f'<text x="{qx+qs/2+10}" y="{qy+qs+80}" text-anchor="middle" font-family="KS" font-size="40" fill="{gold}" transform="rotate(-6 {qx+qs/2} {qy+qs+70})">{t["scanne"]}</text>'
         cap += f'<path d="M{qx+qs/2-70} {qy+qs+104} q70 -14 150 -38" fill="none" stroke="{gold}" stroke-width="2.4" stroke-linecap="round"/>'
         cap += f'<path d="M{qx+qs+8} {qy+qs+40} q18 -26 6 -58 m-9 8 l9 -8 l6 11" fill="none" stroke="{gold}" stroke-width="2.4" stroke-linecap="round"/>'
+    elif stil in 'EFG':
+        g += {'E': tech_grund, 'F': lifestyle_grund, 'G': industrie_grund}[stil]('hinten')
+        g += logo_quer(X, 66, 58)
+        y0 = 200
+        if stil == 'F':
+            g += f'<text x="{X}" y="{y0}" font-family="MS" font-size="25" font-weight="600" fill="{gold}">{t["partner"]}</text>'
+        else:
+            g += f'<text x="{X}" y="{y0}" font-family="MS" font-size="20" font-weight="700" fill="{gold}" letter-spacing="5">{t["partner"].upper()}</text>'
+        g += f'<text x="{X}" y="{y0+31}" font-family="MS" font-size="19" font-weight="500" fill="{textfarbe}" opacity=".88">{t["ansprech"]}</text>'
+        g += f'<rect x="{X}" y="{y0+49}" width="56" height="2.4" fill="url(#goldH)"/>'
+        lay['name'] = {'x': X, 'y': y0+102, 'size': 30, 'font': 700, 'farbe': textfarbe, 'max': teiler_x - X - 25}
+        rows = [(y0+160, 'globus', 'link'), (y0+214, 'brief', 'kontakt')]
+        for y, ic, key in rows:
+            g += icon(ic, X+12, y-8, gold, 1.25)
+            lay[key] = {'x': X+45, 'y': y, 'size': 22, 'font': 500, 'farbe': textfarbe, 'max': teiler_x - X - 60}
+        qx, qy = 572, 105
+        if stil == 'E':
+            g += tech_klammern(qx - 22, qy - 22, qx + qs + 22, qy + qs + 22, 26)
+        if stil == 'F':
+            cap = f'<text x="{qx+qs/2}" y="{qy+qs+68}" text-anchor="middle" font-family="KS" font-size="36" fill="{gold}">{t["scanne"]}</text>'
+        else:
+            cap = f'<text x="{qx+qs/2}" y="{qy+qs+66}" text-anchor="middle" font-family="MS" font-size="20" font-weight="700" fill="{gold}" letter-spacing="4.5">{t["jetzt"].upper()}</text>'
+        cap += f'<rect x="{qx+qs/2-30}" y="{qy+qs+86}" width="60" height="2.4" fill="url(#goldH)"/>'
     elif stil == 'D':
         g += f'<rect width="{W}" height="{H}" fill="#f4efe6"/><rect width="{W}" height="{H}" filter="url(#papier)"/>'
         g += f'<polygon points="0,0 170,0 0,210" fill="url(#gold)" filter="url(#folie)"/>'
@@ -333,7 +438,7 @@ if __name__ == '__main__':
     with sync_playwright() as p:
         b = p.chromium.launch()
         pg = b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=SCALE)
-        for stil in 'ABCD':
+        for stil in os.environ.get('STILE', 'ABCD'):
             jobs = [('vorn', 'de')] + [('hinten', l) for l in (['de'] if beispiel else ['de', 'it', 'en'])]
             for art, lang in jobs:
                 html, lay = seite(stil, art, lang, beispiel)

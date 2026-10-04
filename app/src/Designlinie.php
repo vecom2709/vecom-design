@@ -32,7 +32,7 @@ final class Designlinie
      * Buchstaben, sobald ihre Vorlagen gezeichnet und von Uwe freigegeben sind.
      */
     public const STILE = [
-        'visitenkarte' => ['a' => 'premium', 'b' => 'premium', 'c' => 'premium', 'd' => 'business'],
+        'visitenkarte' => ['a' => 'premium', 'b' => 'premium', 'c' => 'premium', 'd' => 'business', 'e' => 'tech', 'f' => 'lifestyle', 'g' => 'industrial'],
         'flyer_a6'     => ['a' => 'premium', 'b' => 'premium', 'c' => 'premium', 'd' => 'business'],
         'flyer_a5'     => ['a' => 'premium', 'b' => 'premium', 'c' => 'premium', 'd' => 'business'],
         'aufkleber_50' => ['a' => 'premium', 'd' => 'business'],
