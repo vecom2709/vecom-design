@@ -21931,6 +21931,13 @@ pruefe('Preis-Knopf holt alle Druckereien mit Preis-Schnittstelle, Cron Printful
     str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (['Gelato', 'Printful'] as \$wmK)")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_preise'")
     && str_contains((string) file_get_contents($wurzel . '/config.local.example.php'), "'printful'"));
+// Ohne app_geheim (so auf dem Server, 04.10.2026): Schlüssel aus hosting_geheim abgeleitet — Links funktionieren, sind aber nicht erratbar
+$w7Hg = str_repeat('ab', 32);
+$w7Abg = Druckerei::linkGeheim(['hosting_geheim' => $w7Hg]);
+pruefe('Druckdatei-Links ohne app_geheim: Schlüssel aus hosting_geheim abgeleitet (≠ hosting_geheim, stabil); mit app_geheim dieser; ohne beides leer (dann KEIN Link)',
+    strlen($w7Abg) === 64 && $w7Abg !== $w7Hg && $w7Abg === Druckerei::linkGeheim(['hosting_geheim' => $w7Hg])
+    && Druckerei::linkGeheim(['app_geheim' => str_repeat('x', 20), 'hosting_geheim' => $w7Hg]) === str_repeat('x', 20)
+    && Druckerei::linkGeheim([]) === '' && Druckerei::linkGeheim(['hosting_geheim' => 'zu-kurz']) === '');
 // Probe-Entwurf (Musterkarte, kein Partner, nie gedruckt)
 require_once $wurzel . '/src/Gelato.php';
 $w7Mp = Druckerei::musterDatei('probe_druck'); $w7Mj = @getimagesizefromstring(Druckerei::musterDatei('probe_pf_vorn'));

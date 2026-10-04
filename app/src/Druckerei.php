@@ -158,6 +158,21 @@ final class Druckerei
         return ['ok' => false, 'grund' => $name . ' ist nicht angebunden.'];
     }
 
+    /**
+     * Schlüssel für die Druckdatei-Links. Eigentlich `app_geheim` — fehlt der
+     * (so am 04.10.2026 auf dem Server: der Probe-Entwurf scheiterte daran),
+     * wird er aus `hosting_geheim` abgeleitet (HMAC mit eigenem Zweck, also
+     * ein anderer Schlüssel als der für die Hosting-Zugänge). Nie erratbar:
+     * ohne beides gibt es keinen Link.
+     */
+    public static function linkGeheim(?array $cfg = null): string
+    {
+        $g = (string) ($cfg !== null ? ($cfg['app_geheim'] ?? '') : Config::get('app_geheim', ''));
+        if (strlen($g) >= 16) { return $g; }
+        $h = (string) ($cfg !== null ? ($cfg['hosting_geheim'] ?? '') : Config::get('hosting_geheim', ''));
+        return strlen($h) >= 32 ? hash_hmac('sha256', 'vecom|druckdatei-links', $h) : '';
+    }
+
     /** Fassungen einer Druckdatei, die ein Link ausliefern darf. */
     public const FASSUNGEN = ['druck', 'frei', 'pf_vorn', 'pf_hinten', 'probe_druck', 'probe_pf_vorn', 'probe_pf_hinten'];
 
@@ -170,8 +185,8 @@ final class Druckerei
     public static function dateiLink(int $entwurfId, string $fassung = 'frei', int $tage = 14): string
     {
         $fassung = in_array($fassung, self::FASSUNGEN, true) ? $fassung : 'frei';
-        $geheim = (string) Config::get('app_geheim', '');
-        if (strlen($geheim) < 16) { throw new RuntimeException('app_geheim fehlt in config.local.php — ohne ihn kein Link für die Druckdatei.'); }
+        $geheim = self::linkGeheim();
+        if (strlen($geheim) < 16) { throw new RuntimeException('app_geheim (oder hosting_geheim) fehlt in config.local.php — ohne ihn kein Link für die Druckdatei.'); }
         $bis = time() + $tage * 86400;
         $sig = hash_hmac('sha256', 'wm-druck|' . $entwurfId . '|' . $bis . '|' . $fassung, $geheim);
         return rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/druckdatei.php?' . http_build_query(['e' => $entwurfId, 'x' => $bis, 'f' => $fassung, 's' => $sig]);
@@ -180,7 +195,7 @@ final class Druckerei
     /** Prüft einen Link aus dateiLink(). @return array{0:int,1:string} [Entwurfs-id oder 0, Fassung] */
     public static function linkPruefen(string $e, string $x, string $f, string $s): array
     {
-        $geheim = (string) Config::get('app_geheim', '');
+        $geheim = self::linkGeheim();
         if (!in_array($f, self::FASSUNGEN, true) || strlen($geheim) < 16 || !ctype_digit($e) || !ctype_digit($x) || (int) $x < time()) { return [0, '']; }
         return hash_equals(hash_hmac('sha256', 'wm-druck|' . $e . '|' . $x . '|' . $f, $geheim), $s) ? [(int) $e, $f] : [0, ''];
     }
