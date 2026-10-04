@@ -4936,6 +4936,21 @@ final class Texte
      * Partner-Marketingcenter, Schritt 2: Startseite und Bereiche (04.10.2026, Uwe: „ja“).
      * Der Leitsatz duzt (Markenclaim aus Uwes Vorgabe), alles andere bleibt beim Sie.
      */
+    /**
+     * Freigegebene Überschriften für Flyer A5/A6 (allgemeine Gestaltung) und Roll-up
+     * (04.10.2026, Marketingcenter Schritt 4: „Bearbeitbar: freigegebene Headlines“).
+     * Zwei Zeilen: die erste hell, die zweite gold. Der Partner wählt nur aus dieser
+     * Liste — nie freier Text auf dem Druck. Der erste Eintrag ist die bisherige
+     * Überschrift und gilt, wenn nichts gewählt ist.
+     */
+    public const WM_TITEL = [
+        'website'  => ['it' => ['Il sito web', 'che la sua attività merita.'], 'de' => ['Die Website,', 'die Ihr Betrieb verdient.'], 'en' => ['The website', 'your business deserves.']],
+        'mehr'     => ['it' => ['Più che', 'web design.'], 'de' => ['Mehr als', 'Webdesign.'], 'en' => ['More than', 'web design.']],
+        'bereit'   => ['it' => ['Pronti per una presenza', 'digitale migliore?'], 'de' => ['Bereit für einen besseren', 'digitalen Auftritt?'], 'en' => ['Ready for a better', 'online presence?']],
+        'gesehen'  => ['it' => ['Farsi notare.', 'Farsi scegliere.'], 'de' => ['Gesehen werden.', 'Gewählt werden.'], 'en' => ['Get noticed.', 'Get chosen.']],
+        'vertrauen' => ['it' => ['Un’immagine', 'che crea fiducia.'], 'de' => ['Ein Auftritt,', 'der Vertrauen schafft.'], 'en' => ['A presence', 'that builds trust.']],
+    ];
+
     public const MARKETINGCENTER = [
         'claim'    => ['it' => 'IL TUO MARKETING. LA TUA VISIBILITÀ. IL TUO VECOM DESIGN.', 'de' => 'DEIN MARKETING. DEINE REICHWEITE. DEIN VECOM DESIGN.', 'en' => 'YOUR MARKETING. YOUR REACH. YOUR VECOM DESIGN.'],
         'satz'     => ['it' => 'Tutto ciò con cui mostra Vecom Design: stampato, in negozio, sui vestiti, in giro e online — con il suo nome, il suo link e il suo codice QR.', 'de' => 'Alles, womit Sie Vecom Design zeigen: gedruckt, am Verkaufsort, auf Kleidung, unterwegs und digital — mit Ihrem Namen, Ihrem Link und Ihrem QR-Code.', 'en' => 'Everything you use to show Vecom Design: in print, at the point of sale, on clothing, on the road and online — with your name, your link and your QR code.'],
@@ -4979,6 +4994,8 @@ final class Texte
         's2_leer'     => ['it' => 'Quando l’aspetto le piace, tocchi «Creare il file di stampa». Qui poi controlla il file finito e lo approva.', 'de' => 'Wenn das Aussehen passt: „Druckdatei erstellen“ tippen. Hier prüfen Sie dann die fertige Datei und geben sie frei.', 'en' => 'When the look is right, tap “Create print file”. Then check the finished file here and approve it.'],
         'motiv_branche'   => ['it' => 'Con motivo per settore', 'de' => 'Mit Branchenmotiv', 'en' => 'With industry design'],
         'motiv_allgemein' => ['it' => 'Design generale', 'de' => 'Allgemeine Gestaltung', 'en' => 'General design'],
+        'titel'       => ['it' => 'Titolo', 'de' => 'Überschrift', 'en' => 'Headline'],
+        'titel_satz'  => ['it' => 'Solo titoli approvati da Vecom. Logo, colori e caratteri restano invariati.', 'de' => 'Nur von Vecom freigegebene Überschriften. Logo, Farben und Schrift bleiben unverändert.', 'en' => 'Only headlines approved by Vecom. Logo, colours and fonts stay unchanged.'],
         'sprache'     => ['it' => 'Lingua', 'de' => 'Sprache', 'en' => 'Language'],
         'kontakt'     => ['it' => 'Contatto sul materiale', 'de' => 'Kontakt auf dem Werbemittel', 'en' => 'Contact on the material'],
         'foto_titel'  => ['it' => 'Così arriva da lei — foto della tipografia', 'de' => 'So kommt es bei Ihnen an — Foto der Druckerei', 'en' => 'How it arrives — photo from the printer'],

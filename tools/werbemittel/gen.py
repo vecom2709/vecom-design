@@ -88,10 +88,13 @@ def flyer_vorn(stil, lang, W, H):
     y = unten + W*0.05
     g += f'<rect x="{W/2-W*0.06}" y="{y}" width="{W*0.12}" height="3" fill="url(#goldH)"/>'
     gr = W * 0.062
+    # Überschrift (04.10.2026, Marketingcenter Schritt 4): nicht mehr im Bild. Der Partner wählt eine der
+    # freigegebenen Überschriften (Texte::WM_TITEL), PHP (WmDruck::titelMalen) setzt sie genau hierhin —
+    # Schrift, Größe, Farben und Lage stehen fest, nur der Wortlaut wechselt.
     y += gr * 1.9
-    g += text(W/2, y, T['titel1'][lang], gr, 700, hellt)
+    titel = {'x': round(W/2), 'y1': round(y), 'y2': round(y + gr*1.2), 'size': round(gr), 'font': 700,
+             'farbe1': hellt, 'farbe2': gold, 'max': round(W*0.84)}
     y += gr * 1.2
-    g += text(W/2, y, T['titel2'][lang], gr, 700, gold)
     y += gr * 1.3
     g += text(W/2, y, T['unter'][lang], gr*0.42, 500, hellt, extra='letter-spacing="1.5" opacity=".9"')
     # drei Punkte
@@ -103,7 +106,7 @@ def flyer_vorn(stil, lang, W, H):
         y += gr * 0.95
     # Fuß: Adresse
     g += text(W/2, H - K.B - W*0.07, 'vecom-design.it', gr*0.5, 600, gold, extra='letter-spacing="2"')
-    return g, {}
+    return g, {'titel': titel}
 
 def flyer_hinten(stil, lang, W, H):
     hell = stil == 'D'
@@ -174,9 +177,12 @@ def rollup(stil, lang, W, H):
     l, unten = K.logo_gross(W/2, B + 1000, 3400, hell=hell)
     g += l
     y = unten + 1500
-    g += text(W/2, y, T['titel1'][lang], 560, 700, hellt)
+    # Überschrift wie beim Flyer: setzt PHP. Das große Bild lädt PHP nie (GD) — darum gibt es den Grund
+    # hinter der Überschrift als eigenen Streifen (Datei {stil}-titelgrund.jpg, Lage 'grund'): PHP schreibt
+    # die Überschrift auf den Streifen und legt ihn im PDF deckungsgleich über die Vorlage.
+    titel = {'x': round(W/2), 'y1': round(y), 'y2': round(y + 680), 'size': 560, 'font': 700,
+             'farbe1': hellt, 'farbe2': gold, 'max': round(W - 2*B - 1000), 'grund': [0, round(y - 640), W, 640 + 680 + 260]}
     y += 680
-    g += text(W/2, y, T['titel2'][lang], 560, 700, gold)
     y += 520
     g += text(W/2, y, T['unter'][lang], 240, 500, hellt, extra='letter-spacing="8" opacity=".9"')
     y += 900
@@ -194,7 +200,7 @@ def rollup(stil, lang, W, H):
     py = y + 350; ph = 1050; px = B + 700
     platte = '#ffffff' if hell else '#0b0a08'
     g += f'<rect x="{px}" y="{py}" width="{W - 2*px}" height="{ph}" rx="140" fill="{platte}" stroke="url(#gold)" stroke-width="40"/>'
-    lay = {'qr': modul, 'einseitig': True, 'gross': True,
+    lay = {'qr': modul, 'einseitig': True, 'gross': True, 'titel': titel,
            'link': {'x': round(W/2), 'y': round(py + ph*0.66), 'size': 430, 'max': round(W - 2*px - 600), 'farbe': hellt,
                     'grund': platte, 'platte': [round(px + 60), round(py + 60), round(W - 2*px - 120), round(ph - 120)]}}
     g += text(W/2, sicht - 900, 'vecom-design.it', 360, 700, gold, extra='letter-spacing="6"')
@@ -264,8 +270,18 @@ if __name__ == '__main__':
                             pg.set_content(html); pg.wait_for_timeout(200)
                             pg.screenshot(path=ziel, clip={'x': 0, 'y': 0, 'width': W, 'height': H}, timeout=300000)
                         pg.close()
-                        if lang == 'de' and (art == 'hinten' or FORMATE[fmt].get('einseitig')):
-                            layout[stil.lower()] = lay
+                        if lang == 'de':
+                            # Vorderseite bringt die Überschrift, Rückseite Name/Link/Kontakt/Code: beides ins Layout.
+                            layout.setdefault(stil.lower(), {}).update(lay)
+                            if FORMATE[fmt].get('gross') and 'titel' in lay:
+                                from PIL import Image
+                                Image.MAX_IMAGE_PIXELS = None
+                                gx, gy, gw, gh = lay['titel']['grund']
+                                k = dpi / 254
+                                y0 = round(gy * k); h0 = round(gh * k)
+                                Image.open(ziel).convert('RGB').crop((0, y0, round(gw * k), y0 + h0)).save(f'{out}/{fmt}/{stil.lower()}-titelgrund.png')
+                                # Lage auf ganze Pixel gerundet zurückrechnen, damit der Streifen bündig sitzt
+                                lay['titel']['grund'] = [0, y0 / k, gw, h0 / k]
                         print(fmt, stil, art, lang, flush=True)
             json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'gross': bool(FORMATE[fmt].get('gross')), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
         b.close()

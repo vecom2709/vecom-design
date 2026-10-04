@@ -34,7 +34,11 @@ $mcGrpJetzt = isset($wmBranchen[$wmJetzt['stil']]) ? (string) (PartnerFlyer::lis
 $mcQuer = $wmVl === 'visitenkarte';
 $mcMini = static fn(string $s): string => $wmNurLesen ? '' : $selbst(['wmmini' => $wmVl, 'st' => $s, 'vks' => $sprache]);
 $mcStilName = static fn(string $s): string => $wmBranchen[$s] ?? (PartnerKarten::STILE[$s][$sprache] ?? PartnerKarten::STILE[$s]['de'] ?? $s);
+/* Überschrift (Schritt 4): nur bei Gestaltungen, die eine haben — Branchenmotive bringen ihre eigene mit. */
+$mcTitelDa = $wmGest && $wmVl !== 'visitenkarte' && array_filter($mcSt, static fn($s) => WmDruck::hatTitel($wmVl, $s));
+$mcTitelText = static fn(string $t, string $l): string => implode(' ', WmDruck::titelZeilen($t, $l));
 $wmWahlText = static fn(array $w): string => $mcStilName((string) ($w['stil'] ?? ''))
+    . (isset($w['titel']) ? ' · „' . $mcTitelText((string) $w['titel'], (string) ($w['sprache'] ?? $sprache)) . '“' : '')
     . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
     . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email'));
 $mcNoch = $wmNoch && in_array($wmNochVar, array_column($wmP['varianten'], 'id'), true);
@@ -80,10 +84,10 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
     <?php if ($wmGest):
       $wmBild = $wmNurLesen
         ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, $wmVl, $wmJetzt['stil'], $sprache, 'email'))
-        : $selbst(['wmv' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
+        : $selbst(['wmv' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt'], 'tt' => (string) ($wmJetzt['titel'] ?? '')]); ?>
       <figure class="mc-vorschau">
         <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : 'width="528" height="360"')) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
-             <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmVl, 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
+             <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmVl, 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_', 'tt' => '_T_'])) ?>"<?php endif; ?>
              alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <figcaption><?= $h($mcT('vorschau')) ?></figcaption>
       </figure>
@@ -122,6 +126,18 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
               <?php /* Ein Raster für alle Stile, in der Reihenfolge der Linien; die Linie steht klein in der Kachel. */ ?>
               <div class="mc-kacheln mc-stilraster">
                 <?php foreach (Designlinie::gruppiert($wmVl, $mcSt) as $mcLi => $mcLs) { foreach ($mcLs as $mcS) { $mcKachel($mcS, $mcLi, '', Texte::h(Texte::MARKETINGCENTER['linien'][$mcLi], $sprache)); } } ?>
+              </div>
+            </fieldset>
+          <?php endif; ?>
+          <?php if ($mcTitelDa): $mcTJetzt = WmDruck::titel((string) ($wmJetzt['titel'] ?? '')); ?>
+            <fieldset class="mc-titel"<?= WmDruck::hatTitel($wmVl, $wmJetzt['stil']) ? '' : ' hidden' ?> data-titel-stile="<?= $h(implode(' ', array_filter($mcSt, static fn($s) => WmDruck::hatTitel($wmVl, $s)))) ?>">
+              <legend><?= $h($mcT('titel')) ?></legend>
+              <p class="wm-meta" style="margin:0 0 8px"><?= $h($mcT('titel_satz')) ?></p>
+              <div class="mc-titelliste">
+                <?php foreach (array_keys(Texte::WM_TITEL) as $mcTk): [$mcT1, $mcT2] = WmDruck::titelZeilen($mcTk, $sprache); ?>
+                  <label><input type="radio" name="titel" value="<?= $h($mcTk) ?>"<?= $mcTk === $mcTJetzt ? ' checked' : '' ?>>
+                    <span><?= $h($mcT1) ?> <b><?= $h($mcT2) ?></b></span></label>
+                <?php endforeach; ?>
               </div>
             </fieldset>
           <?php endif; ?>

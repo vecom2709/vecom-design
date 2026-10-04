@@ -22694,6 +22694,75 @@ pruefe('Partnerbereich: vCard und digitale Karte nur für den eigenen Partner (�
 Db::run('DELETE FROM partner WHERE id = ?', [$dgId]);
 
 /* ============================================================================
+   Marketingcenter, Schritt 4: freigegebene Überschriften (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Überschriften');
+require_once $wurzel . '/src/WmDruck.php';
+require_once $wurzel . '/src/Werbemittel.php';
+pruefe('Freigegebene Überschriften: je zwei nicht leere Zeilen in IT/DE/EN, die bisherige zuerst (gilt ohne Wahl)',
+    array_key_first(Texte::WM_TITEL) === 'website' && count(Texte::WM_TITEL) >= 3
+    && !array_filter(Texte::WM_TITEL, static fn($t) => array_keys($t) !== ['it', 'de', 'en']
+        || array_filter($t, static fn($z) => !is_array($z) || count($z) !== 2 || trim((string) $z[0]) === '' || trim((string) $z[1]) === ''))
+    && WmDruck::titel('') === 'website' && WmDruck::titel('gibtsnicht') === 'website' && WmDruck::titel('mehr') === 'mehr');
+pruefe('Überschrift wählbar: Flyer A5/A6 allgemein und Roll-up — nicht Aufkleber, nicht Branchenmotiv',
+    WmDruck::hatTitel('flyer_a5', 'a') && WmDruck::hatTitel('flyer_a6', 'd') && WmDruck::hatTitel('rollup_85', 'a') && WmDruck::hatTitel('rollup_85', 'd')
+    && !WmDruck::hatTitel('aufkleber_50', 'a') && !WmDruck::hatTitel('flyer_branche', 'pro-restaurant')
+    && !WmDruck::hatTitel('flyer_a5', (string) (array_values(array_filter(Designlinie::stileDa('flyer_a5'), static fn($x) => strlen((string) $x) > 1))[0] ?? 'zz')));
+$ueOk = true;
+foreach (['flyer_a5', 'flyer_a6', 'rollup_85'] as $ueF) {
+    $ueL = WmDruck::layout($ueF);
+    foreach ($ueL['stile'] as $ueS => $ueX) {
+        $ueT = $ueX['titel'] ?? null;
+        $ueOk = $ueOk && $ueT && $ueT['y1'] < $ueT['y2'] && $ueT['max'] <= ($ueL['b'] + 2 * $ueL['beschnitt']) * 10 * 0.9 && $ueT['font'] === 700
+            && (!WmDruck::gross($ueF) || (isset($ueT['grund']) && is_file($wurzel . "/druckvorlagen/$ueF/$ueS-titelgrund.jpg")
+                && $ueT['grund'][1] < $ueT['y1'] - $ueT['size'] && $ueT['grund'][1] + $ueT['grund'][3] > $ueT['y2']));
+    }
+}
+pruefe('Layout: Lage, Schrift und Größe der Überschrift stehen fest; Roll-up mit Hintergrundstreifen, der beide Zeilen deckt', $ueOk);
+$ueW = Werbemittel::wahl(['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email'], 'flyer_a5');
+$ueW2 = Werbemittel::wahl(['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'titel' => 'bereit'], 'rollup_85');
+pruefe('Wahl: ohne Überschrift die bisherige, gewählte bleibt; Aufkleber und Visitenkarte ohne Überschrift',
+    ($ueW['titel'] ?? '') === 'website' && ($ueW2['titel'] ?? '') === 'bereit'
+    && !isset(Werbemittel::wahl(['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'titel' => 'mehr'], 'aufkleber_50')['titel'])
+    && !isset(Werbemittel::wahl(['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'titel' => 'mehr'], 'visitenkarte')['titel']));
+gesperrt('Freier Text als Überschrift wird abgelehnt', fn() => Werbemittel::wahl(['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'titel' => 'Billig! 50 % Rabatt'], 'flyer_a5'));
+// Die Vorlage selbst trägt keine Überschrift mehr: in der Titelzone (Mitte) nur dunkler Grund — erst PHP schreibt hell hinein.
+$ueIm = imagecreatefromjpeg($wurzel . '/druckvorlagen/flyer_a5/a-vorn-de.jpg');
+$ueLa = WmDruck::layout('flyer_a5'); $ueTa = $ueLa['stile']['a']['titel'];
+$ueK = imagesx($ueIm) / (($ueLa['b'] + 2 * $ueLa['beschnitt']) * 10);
+$ueHell = static function (\GdImage $im) use ($ueTa, $ueK): int {
+    $n = 0;
+    for ($y = (int) (($ueTa['y1'] - $ueTa['size'] * 0.7) * $ueK); $y < (int) ($ueTa['y2'] * $ueK); $y += 3) {
+        for ($x = (int) (($ueTa['x'] - 300) * $ueK); $x < (int) (($ueTa['x'] + 300) * $ueK); $x += 3) {
+            $c = imagecolorat($im, $x, $y); if ((($c >> 16) & 255) > 150) { $n++; }
+        }
+    }
+    return $n;
+};
+$ueVor = $ueHell($ueIm);
+WmDruck::titelAuf($ueIm, 'flyer_a5', 'a', 'de', '');
+pruefe('Vorlage ohne Überschrift im Bild; PHP setzt sie an die feste Stelle', $ueVor === 0 && $ueHell($ueIm) > 500, "vorher $ueVor");
+$ueP = ['id' => 0, 'name' => 'Probe Titel', 'code' => 'TITELPRB', 'email' => 'titel@partner.example'];
+$ueV1 = WmDruck::vorschau($ueP + ['_wm_titel' => 'website'], 'flyer_a5', 'b', 'it');
+$ueV2 = WmDruck::vorschau($ueP + ['_wm_titel' => 'gesehen'], 'flyer_a5', 'b', 'it');
+$ueV0 = WmDruck::vorschau($ueP, 'flyer_a5', 'b', 'it');
+$ueR1 = WmDruck::vorschau($ueP + ['_wm_titel' => 'mehr'], 'rollup_85', 'd', 'de', 'email', 420);
+$ueR2 = WmDruck::vorschau($ueP + ['_wm_titel' => 'bereit'], 'rollup_85', 'd', 'de', 'email', 420);
+pruefe('Vorschau folgt der Überschrift (Flyer und Roll-up); ohne Wahl = bisherige',
+    $ueV1 !== '' && $ueV1 === $ueV0 && $ueV2 !== '' && $ueV2 !== $ueV1 && $ueR1 !== '' && $ueR2 !== '' && $ueR1 !== $ueR2);
+$uePdf1 = WmDruck::pdf($ueP + ['_wm_titel' => 'mehr'], 'rollup_85', 'a', 'it');
+$uePdf2 = WmDruck::pdf($ueP + ['_wm_titel' => 'vertrauen'], 'rollup_85', 'a', 'it');
+pruefe('Roll-up-Druckdatei: Vorlage, Überschriftstreifen und Link-Platte als Bilder, Code als Vektor; je Überschrift eine andere Datei',
+    str_starts_with($uePdf1, '%PDF') && substr_count($uePdf1, '/Subtype /Image') + substr_count($uePdf1, '/Subtype/Image') === 3
+    && $uePdf1 !== $uePdf2 && WmDruck::pdf($ueP + ['_wm_titel' => 'mehr'], 'flyer_a6', 'c', 'en') !== WmDruck::pdf($ueP, 'flyer_a6', 'c', 'en'));
+$ueSrc = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php') . (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+$uePhp = (string) file_get_contents($oben . '/partner.php');
+pruefe('Partnerbereich: Auswahl als Liste (name="titel"), Vorschau mit tt=, nur freigegebene Schlüssel; Entwurf trägt die Wahl in die Datei',
+    str_contains($ueSrc, 'name="titel"') && str_contains($ueSrc, "'tt' => '_T_'") && str_contains($ueSrc, ".replace('_T_'")
+    && str_contains($uePhp, "isset(Texte::WM_TITEL[\$_GET['tt'] ?? ''])")
+    && str_contains((string) file_get_contents($wurzel . '/src/Werbemittel.php'), "\$p['_wm_titel'] = (string) (\$w['titel'] ?? '');"));
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

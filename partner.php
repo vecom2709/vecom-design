@@ -591,7 +591,8 @@ if ($p && isset($_GET['wmv'])) {
     $wmSt = (string) ($_GET['st'] ?? 'a');
     $wmBild = Werbemittel::gestaltbar($wmVl) && Werbemittel::stilDa($wmVl, $wmSt)
         ? Werbemittel::vorschauBild($p, $wmVl, $wmSt, in_array($_GET['vks'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache,
-            in_array($_GET['ks'] ?? '', ['email', 'vecom'], true) ? (string) $_GET['ks'] : 'email')
+            in_array($_GET['ks'] ?? '', ['email', 'vecom'], true) ? (string) $_GET['ks'] : 'email',
+            isset(Texte::WM_TITEL[$_GET['tt'] ?? '']) ? (string) $_GET['tt'] : '')
         : '';
     if ($wmBild === '') { http_response_code(404); exit('—'); }
     header('X-Robots-Tag: noindex, nofollow');

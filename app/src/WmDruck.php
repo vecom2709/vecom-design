@@ -18,6 +18,7 @@ require_once __DIR__ . '/Partner.php';
 require_once __DIR__ . '/PartnerWerbung.php';
 require_once __DIR__ . '/PartnerKarten.php';
 require_once __DIR__ . '/PartnerFlyer.php';
+require_once __DIR__ . '/Texte.php';
 
 final class WmDruck
 {
@@ -88,6 +89,62 @@ final class WmDruck
     /** @var array<string, array> */
     private static array $layouts = [];
 
+    // ---- Überschrift (04.10.2026, Marketingcenter Schritt 4) ------------------------------
+    /*  Flyer A5/A6 in allgemeiner Gestaltung und Roll-up: Die Vorlage hat keine Überschrift mehr.
+        Der Partner wählt eine aus Texte::WM_TITEL; hier wird sie gesetzt — Lage, Schrift, Größe
+        und Farben aus layout.php (gen.py), also gesperrt. Ein Entwurf bringt seine Wahl als
+        $p['_wm_titel'] mit (wie den Kanal, Werbemittel::mitKanal). Branchenmotive haben ihre
+        eigene Überschrift im Bild; dort gibt es keine Wahl. */
+
+    /** Hat diese Gestaltung eine wählbare Überschrift? */
+    public static function hatTitel(string $fmt, string $stil): bool
+    {
+        return !isset(self::RUECKSEITE[$fmt]) && !self::branche($fmt, $stil) && isset(self::layout($fmt)['stile'][$stil]['titel']);
+    }
+
+    /** Schlüssel der Überschrift: der gewählte, wenn freigegeben — sonst der erste (die bisherige). */
+    public static function titel(string $schluessel): string
+    {
+        return isset(Texte::WM_TITEL[$schluessel]) ? $schluessel : (string) array_key_first(Texte::WM_TITEL);
+    }
+
+    /** Die zwei Zeilen der Überschrift in der Sprache des Werbemittels. @return array{string,string} */
+    public static function titelZeilen(string $schluessel, string $sprache): array
+    {
+        $t = Texte::WM_TITEL[self::titel($schluessel)];
+        return $t[$sprache] ?? $t['it'];
+    }
+
+    /**
+     * Überschrift auf ein Bild der Vorderseite (volle Vorlage oder kleine Fassung — $k sagt, wie
+     * viele Pixel eine Layout-Einheit hat). Beide Zeilen gleich groß: Ist eine zu breit, werden
+     * beide kleiner, nie abgeschnitten. $oy: Versatz in Layout-Einheiten (Streifen des Roll-ups).
+     */
+    private static function titelMalen(\GdImage $im, array $T, array $zeilen, float $k, float $oy = 0.0): void
+    {
+        $datei = PartnerKarten::schrift((int) $T['font']);
+        if (!is_file($datei)) { return; }
+        $pt = $T['size'] * $k * 72 / 96;
+        $max = $T['max'] * $k;
+        $breite = static function (string $z, float $pt) use ($datei): float { $bb = imagettfbbox($pt, 0, $datei, $z); return (float) abs($bb[2] - $bb[0]); };
+        for ($i = 0; $i < 20 && max($breite($zeilen[0], $pt), $breite($zeilen[1], $pt)) > $max; $i++) { $pt *= 0.95; }
+        imagealphablending($im, true);
+        foreach ([[$zeilen[0], $T['y1'], $T['farbe1']], [$zeilen[1], $T['y2'], $T['farbe2']]] as [$z, $y, $farbe]) {
+            [$r, $g, $b] = sscanf((string) $farbe, '#%02x%02x%02x');
+            $bb = imagettfbbox($pt, 0, $datei, $z);
+            $x = $T['x'] * $k - ($bb[2] + $bb[0]) / 2;               // mittig wie text-anchor="middle"
+            imagettftext($im, $pt, 0, (int) round($x), (int) round(($y - $oy) * $k), imagecolorallocate($im, $r, $g, $b), $datei, $z);
+        }
+    }
+
+    /** Überschrift auf ein Vorderseitenbild dieses Formats (Kachel, Vorschau): Maßstab aus der Bildbreite. */
+    public static function titelAuf(\GdImage $im, string $fmt, string $stil, string $sprache, string $schluessel): void
+    {
+        if (!self::hatTitel($fmt, $stil)) { return; }
+        $lay = self::layout($fmt);
+        self::titelMalen($im, $lay['stile'][$stil]['titel'], self::titelZeilen($schluessel, $sprache), imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10));
+    }
+
     /** Hinter dem QR-Code: der Partnerlink mit Kanal (Flyer zählen als „flyer“ in der Auswertung).
         Ein Entwurf aus dem Marketing Center bringt seinen eigenen Kanal mit (wm-241, Werbemittel::mitKanal). */
     public static function qrLink(array $p, string $fmt): string
@@ -153,6 +210,7 @@ final class WmDruck
         $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
         if (!$im) { return null; }
         $lay = self::layout($fmt);
+        if ($seite === 'vorn') { self::titelAuf($im, $fmt, $stil, $sprache, (string) ($p['_wm_titel'] ?? '')); }
         if ($seite !== (empty($lay['einseitig']) ? 'hinten' : 'vorn')) { return $im; }
         $L = $lay['stile'][$stil];
         $k = imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10);          // Pixel je 1/10 mm
@@ -304,8 +362,17 @@ final class WmDruck
         $il = $pdf->bild(self::jpeg($link, 95), imagesx($link), imagesy($link));
         [$x, $y, $b, $h] = $L['link']['platte'];
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
-        $inhalt = sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv)
-            . sprintf("q %.3F 0 0 %.3F %.3F %.3F cm /%s Do Q\n", $b / 10 * $mm, $h / 10 * $mm, $x / 10 * $mm, ($bh - ($y + $h) / 10) * $mm, $il)
+        $inhalt = sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv);
+        if (isset($L['titel']['grund'])) {
+            // Überschrift: Streifen des Hintergrunds (aus derselben Darstellung geschnitten), darauf die Wahl.
+            $streifen = @imagecreatefromjpeg(dirname(self::datei($fmt, $stil, 'vorn', $sprache)) . '/' . $stil . '-titelgrund.jpg');
+            if (!$streifen) { return ''; }
+            [$gx, $gy, $gb, $gh] = $L['titel']['grund'];
+            self::titelMalen($streifen, $L['titel'], self::titelZeilen((string) ($p['_wm_titel'] ?? ''), $sprache), imagesx($streifen) / $gb, (float) $gy);
+            $it = $pdf->bild(self::jpeg($streifen, 92), imagesx($streifen), imagesy($streifen));
+            $inhalt .= sprintf("q %.3F 0 0 %.3F %.3F %.3F cm /%s Do Q\n", $gb / 10 * $mm, $gh / 10 * $mm, $gx / 10 * $mm, ($bh - ($gy + $gh) / 10) * $mm, $it);
+        }
+        $inhalt .= sprintf("q %.3F 0 0 %.3F %.3F %.3F cm /%s Do Q\n", $b / 10 * $mm, $h / 10 * $mm, $x / 10 * $mm, ($bh - ($y + $h) / 10) * $mm, $il)
             . PartnerKarten::qrVektor($L, $n, $raster, 0.0, (float) $bh);
         $pdf->seite($bw * $mm, $bh * $mm, $inhalt, $lay['beschnitt'] * $mm);
         return $pdf->fertig();
@@ -321,6 +388,7 @@ final class WmDruck
         if (!$im) { return ''; }
         $bw = $lay['b'] + 2 * $lay['beschnitt'];
         $k = imagesx($im) / ($bw * 10);
+        self::titelAuf($im, $fmt, $stil, $sprache, (string) ($p['_wm_titel'] ?? ''));
         self::qrMalen($im, ['qr' => $L['qr'], 'k' => $k], $p, $fmt);
         $link = self::linkBild($p, $L, $k);
         [$x, $y] = $L['link']['platte'];

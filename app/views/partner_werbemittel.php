@@ -179,6 +179,12 @@ if ($mcEigen) {
   .mc-kacheln:has(.mc-quer){grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
   .mc-kachel .mc-linienname{display:block;min-width:0;margin-top:2px;font-size:10px}
   .mc-zeile2{display:grid;gap:8px}
+  .mc-titel[hidden]{display:none}
+  .mc-titelliste{display:grid;gap:6px}
+  .mc-titelliste label{display:flex;gap:10px;align-items:center;padding:10px 12px;border:1px solid var(--linie);border-radius:10px;cursor:pointer;font-size:14.5px;line-height:1.3}
+  .mc-titelliste label:has(input:checked){border-color:rgba(227,194,122,.7);background:rgba(227,194,122,.07)}
+  .mc-titelliste b{color:#e3c27a;font-weight:600}
+  .mc-titelliste input{flex:none}
   .mc-gesperrt{margin:6px 0 0;padding:10px 12px;border-radius:10px;border:1px dashed rgba(227,194,122,.35)}
   @media (min-width:700px){ .mc-vorschau{top:70px} }   /* oben steht dort die Reiterleiste */
   /* Nur wenn die Spalte wirklich breit ist: Vorschau links, Schritte rechts. */
@@ -294,9 +300,15 @@ if ($mcEigen) {
     var wert = function (n) { var r = f.querySelector('input[name="' + n + '"]:checked') || f.querySelector('select[name="' + n + '"]'); return r ? r.value : ''; };
     f.addEventListener('change', function () {
       bild.src = bild.dataset.muster.replace('_S_', encodeURIComponent(wert('stil')))
-        .replace('_L_', encodeURIComponent(wert('sprache'))).replace('_K_', encodeURIComponent(wert('kontakt')));
+        .replace('_L_', encodeURIComponent(wert('sprache'))).replace('_K_', encodeURIComponent(wert('kontakt')))
+        .replace('_T_', encodeURIComponent(wert('titel')));
       if (hinweis) { hinweis.hidden = false; }
+      titelZeigen();
     });
+    /* Überschrift (Schritt 4) nur, wenn die gewählte Gestaltung eine hat — Branchenmotive bringen ihre eigene mit. */
+    var tf = f.querySelector('.mc-titel');
+    function titelZeigen() { if (tf) { tf.hidden = (' ' + tf.dataset.titelStile + ' ').indexOf(' ' + wert('stil') + ' ') < 0; } }
+    titelZeigen();
   });
   /* Branchen-Gruppen (04.10.2026): ein Tipp zeigt nur die Motive dieser Gruppe; die gewählte Kachel bleibt im Blick. */
   document.querySelectorAll('.mc-motive .mc-gruppen').forEach(function (g) {

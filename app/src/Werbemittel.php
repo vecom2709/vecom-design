@@ -53,10 +53,12 @@ final class Werbemittel
         $quelle = $vorlage === 'visitenkarte' ? PartnerKarten::vornDatei($stil) : WmDruck::vornDatei($vorlage, $stil, $sprache);
         if ($quelle === '' || !is_file($quelle)) { return ''; }
         $ordner = dirname(__DIR__) . '/zwischenspeicher/mini';
-        $ziel = $ordner . '/' . substr(hash('sha256', $quelle . '|' . filemtime($quelle) . '|v2'), 0, 24) . '.jpg';
+        // v3: mit der ersten freigegebenen Überschrift (die Vorlagen haben seit Schritt 4 keine mehr im Bild).
+        $ziel = $ordner . '/' . substr(hash('sha256', $quelle . '|' . filemtime($quelle) . '|v3|' . json_encode(Texte::WM_TITEL[WmDruck::titel('')] ?? [])), 0, 24) . '.jpg';
         if (is_file($ziel)) { return (string) file_get_contents($ziel); }
         $im = @imagecreatefromjpeg($quelle);
         if (!$im) { return ''; }
+        if ($vorlage !== 'visitenkarte') { WmDruck::titelAuf($im, $vorlage, $stil, $sprache, ''); }
         // Beschnitt ab: Anteil aus dem Layout der Datei, die tatsächlich geladen wurde.
         $l = $vorlage === 'visitenkarte' ? ['b' => 85, 'beschnitt' => 3] : WmDruck::layout(WmDruck::branche($vorlage, $stil) ? 'flyer_a5' : $vorlage);
         $rand = (int) round(imagesx($im) * $l['beschnitt'] / ($l['b'] + 2 * $l['beschnitt']));
@@ -69,8 +71,9 @@ final class Werbemittel
     }
 
     /** Vorschau der Wahl (JPEG) — für jede Vorlage dieselbe Frage. */
-    public static function vorschauBild(array $p, string $vorlage, string $stil, string $sprache, string $kontakt): string
+    public static function vorschauBild(array $p, string $vorlage, string $stil, string $sprache, string $kontakt, string $titel = ''): string
     {
+        $p['_wm_titel'] = $titel;
         require_once __DIR__ . '/PartnerKarten.php';
         /* Doppelte Auflösung (04.10.2026, Uwe: „alles qualitativ hochwertig, auch von der Auflösung“):
            die Vorschau steht bis ~540 px breit da — auf hochauflösenden Handys braucht sie das Doppelte. */
@@ -522,6 +525,15 @@ final class Werbemittel
         if (!($vorlage !== '' ? self::stilDa($vorlage, $w['stil']) : PartnerKarten::gibt($w['stil']))) { throw new InvalidArgumentException('Stil unbekannt.'); }
         if (!in_array($w['sprache'], self::SPRACHEN, true)) { throw new InvalidArgumentException('Sprache unbekannt.'); }
         if (!in_array($w['kontakt'], PartnerKarten::KONTAKTE, true)) { throw new InvalidArgumentException('Kontakt unbekannt.'); }
+        // Überschrift (Schritt 4): nur aus der freigegebenen Liste; ohne Angabe die erste. Freier Text kommt nie auf den Druck.
+        if ($vorlage !== '' && $vorlage !== 'visitenkarte') {
+            require_once __DIR__ . '/WmDruck.php';
+            if (WmDruck::hatTitel($vorlage, $w['stil'])) {
+                $t = (string) ($e['titel'] ?? '');
+                if ($t !== '' && !isset(Texte::WM_TITEL[$t])) { throw new InvalidArgumentException('Überschrift nicht freigegeben.'); }
+                $w['titel'] = WmDruck::titel($t);
+            }
+        }
         return $w;
     }
 
@@ -553,6 +565,7 @@ final class Werbemittel
         try {
             if (self::$vorDatei) { (self::$vorDatei)(); }
             $p = self::mitKanal($p, $id);
+            $p['_wm_titel'] = (string) ($w['titel'] ?? '');
             $pdf = match ((string) $pr['vorlage']) {
                 'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
                 'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),

@@ -11,7 +11,7 @@ for fmt in sorted(os.listdir(quelle)):
         if f.endswith('.png'):
             im = Image.open(os.path.join(q, f)).convert('RGB')
             im.save(os.path.join(z, f[:-4] + '.jpg'), quality=88, optimize=True, progressive=False)
-            if lay.get('gross'):   # Großformat: kleine Fassung für die Vorschau (PHP lädt das große Bild nie)
+            if lay.get('gross') and not f.endswith('-titelgrund.png'):   # Großformat: kleine Fassung für die Vorschau (PHP lädt das große Bild nie)
                 im.resize((round(im.width * 1100 / im.height), 1100), Image.LANCZOS).save(os.path.join(z, f[:-4] + '-klein.jpg'), quality=85)
     def php(v, ein=''):
         if isinstance(v, dict):
