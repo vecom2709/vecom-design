@@ -16791,18 +16791,31 @@ pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisbloc
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), '<img src="/assets/img/siegel/vecom-siegel-240.webp"')
     /* Hinweis beim Darüberfahren (04.10.2026): internes Siegel, keine Zertifizierung — überall, in drei Sprachen */
     && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'data-i18n="siegel.hinweis"')
-    /* Gleich beim Aufruf sichtbar (04.10.2026): im Startbild, ohne Einblendung (kein data-reveal) */
-    && preg_match('~<figure class="siegel siegel--held" tabindex="0"[^>]*>~', (string) file_get_contents($wurzel . '/../index.html'))
+    /* Gleich beim Aufruf sichtbar (04.10.2026): im Startbild, ohne Einblendung (kein data-reveal).
+       Ohne Karte und ohne Hinweis daneben (Uwe, 04.10.2026: „lass den Text zu dem Siegel weg“) —
+       der Hinweis „keine Zertifizierung“ bleibt am Preisblock, auf der Preisseite und im Angebot. */
+    && str_contains((string) file_get_contents($wurzel . '/../index.html'), '<figure class="siegel siegel--held">')
     && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel--held" data-reveal')
-    /* Was das Siegel bedeutet (04.10.2026): Karte „VQ – Vecom Quality Standard“ mit neun Haken, dreisprachig */
-    && substr_count((string) file_get_contents($wurzel . '/../index.html'), '<li data-i18n="siegel.h') === 9
-    && count(array_filter($sgI18n, static fn($t) => str_contains($t, 'titel: "VQ – Vecom Quality Standard"') && str_contains($t, 'h9: "'))) === 3
+    && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel__karte')
+    && count(array_filter($sgI18n, static fn($t) => !str_contains($t, 'titel: "VQ'))) === 3
     && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'data-i18n="siegel.hinweis"')
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), "\$T('siegel_hinweis')")
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, ', hinweis: "') && preg_match('~(Zertifizierung|certificazione|certification)~', $t))) === 3
     && str_contains(Texte::ANGEBOT['siegel_hinweis']['de'], 'keine Zertifizierung durch eine unabhängige Prüforganisation')
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, 'siegel: { alt: "'))) === 3
     && count(array_filter(['it', 'de', 'en'], static fn($l) => (Texte::ANGEBOT['siegel'][$l] ?? '') !== '')) === 3);
+/* Partnerseite (04.10.2026, Uwe): Siegel liegt klein auf der oberen rechten Ecke des Titelbilds, ohne Text.
+   Das Bild schneidet nicht mehr ab (sonst wäre die überstehende Hälfte weg), und der Film-Halteknopf
+   weicht nach links aus, damit er nicht unter dem Siegel liegt. */
+$sgP = (string) file_get_contents($wurzel . '/../p.php');
+pruefe('Gütesiegel auf der Partnerseite: klein über der oberen rechten Ecke des Titelbilds, ohne Text, Bild ohne Abschneiden, Halteknopf links',
+    str_contains($sgP, '<span class="lp-siegel"><img src="/assets/img/siegel/vecom-siegel-240.webp"')
+    && str_contains($sgP, "alt=\"<?= \$h(\$S(Texte::ANGEBOT['siegel'])) ?>\"")
+    && !str_contains($sgP, 'lp-siegel-hinweis') && str_contains($sgP, '--siegel:clamp(58px,15vw,76px)')
+    && preg_match('~\.lp-held\{[^}]*\}~', $sgP, $sgM) === 1 && !str_contains($sgM[0], 'overflow:hidden')
+    && str_contains($sgP, '.lp-held > img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}')
+    && str_contains($sgP, '.lp-kino-halt{position:absolute;top:10px;left:10px;')
+    && strpos($sgP, 'class="lp-siegel"') > strpos($sgP, '<div class="lp-held') && strpos($sgP, 'class="lp-siegel"') < strpos($sgP, '<div class="lp-inhalt">'));
 $dsTexte = array_map(static fn($l) => (string) file_get_contents($wurzel . '/../assets/js/legal-' . $l . '.js'), ['de' => 'de', 'it' => 'it', 'en' => 'en']);
 $dsHtml = (string) file_get_contents($wurzel . '/../legal.html');
 pruefe('Datenschutz sagt, was gespeichert und gezeigt wird: Stadt, Besucherliste des Partners, Kontakt nur mit Häkchen, Kundenstimmen mit Foto — in allen drei Sprachen',

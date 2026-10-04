@@ -364,13 +364,19 @@ $wegIcon = [
   .block{background:var(--flaeche);border-color:var(--linie);box-shadow:0 18px 50px -34px rgba(40,30,15,.35)}
   .ld input[type=email],.ld .zusatz input,.lp-rr input[type=text],.lp-rr input[type=tel],.lp-rr select,.lp-kc-form input{background:#fff;color:var(--text);border-color:var(--linie2)}
   <?php endif; ?>
-  .lp-held{position:relative;margin:0 0 18px;border-radius:18px;overflow:hidden;aspect-ratio:16/9;background:var(--flaeche2)}
-  .lp-held img{width:100%;height:100%;object-fit:cover;display:block}
-  .lp-held::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.28))}
+  .lp-held{position:relative;margin:0 0 18px;border-radius:18px;aspect-ratio:16/9;background:var(--flaeche2)}
+  /* Kein overflow:hidden mehr (04.10.2026): Das Gütesiegel ragt über die Ecke hinaus. Die Rundung tragen Bild, Film und Verlauf selbst. */
+  .lp-held > img{width:100%;height:100%;object-fit:cover;display:block;border-radius:inherit}
+  .lp-held::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(0,0,0,0) 55%,rgba(0,0,0,.28))}
+  /* Gütesiegel „Vecom Quality Standard“ (04.10.2026, Uwe): liegt auf der oberen rechten Ecke des Titelbilds, leicht gedreht, mit Kontakt- und Weitschatten.
+     Klein gehalten („nicht so erdrückt“) und ohne Text daneben oder darunter (Uwe): nur das Siegel mit Alternativtext. */
+  .lp-siegel{position:absolute;z-index:4;--siegel:clamp(58px,15vw,76px);width:var(--siegel);top:calc(var(--siegel) * -.34);right:calc(var(--siegel) * -.14);margin:0;pointer-events:none}
+  .lp-siegel img{display:block;width:100%;height:auto;rotate:-9deg;filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)) drop-shadow(0 8px 12px rgba(0,0,0,.45))}
+  @media (min-width:980px){.lp-siegel{--siegel:clamp(78px,7vw,92px)}}
   /* Kino-Kopf (B1/B3): der Film liegt über dem gleichen Standbild und blendet erst ein, wenn er läuft. */
-  .lp-kino{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .9s cubic-bezier(.16,1,.3,1);pointer-events:none}
+  .lp-kino{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:inherit;opacity:0;transition:opacity .9s cubic-bezier(.16,1,.3,1);pointer-events:none}
   .lp-kino.an{opacity:1}
-  .lp-kino-halt{position:absolute;top:10px;right:10px;z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.38);color:#fff;font-size:12px;letter-spacing:-1px;cursor:pointer;display:grid;place-items:center}
+  .lp-kino-halt{position:absolute;top:10px;left:10px;z-index:2;width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.35);background:rgba(0,0,0,.38);color:#fff;font-size:12px;letter-spacing:-1px;cursor:pointer;display:grid;place-items:center}
   .lp-kino-halt:focus-visible{outline:2px solid var(--akzent);outline-offset:2px}
   @media (prefers-reduced-motion: reduce){.lp-kino{display:none}}
   .lp h2{font-family:var(--f-titel,var(--f-display));font-weight:var(--f-titel-w2,700);font-size:calc(20px * var(--f-titel-s,1));margin:0 0 14px}
@@ -571,6 +577,7 @@ $wegIcon = [
         <video class="lp-kino" data-kino muted playsinline preload="none"<?= $kino['schleife'] ? ' loop' : '' ?> aria-hidden="true" tabindex="-1"><source src="<?= $h($kino['film']) ?>" type="video/mp4"></video>
         <button type="button" class="lp-kino-halt" hidden data-halt="<?= $h($S($PS['kino_halt'])) ?>" data-weiter="<?= $h($S($PS['kino_weiter'])) ?>" aria-label="<?= $h($S($PS['kino_halt'])) ?>"><span aria-hidden="true">❚❚</span></button>
       <?php endif; ?>
+      <span class="lp-siegel"><img src="/assets/img/siegel/vecom-siegel-240.webp" width="240" height="240" alt="<?= $h($S(Texte::ANGEBOT['siegel'])) ?>" decoding="async"></span>
       <?php if ($buehne): ?><div class="lp-buehne-text"><h1><?= $h($L('titel')) ?></h1><p class="lead"><?= $h($L('lead')) ?></p></div><?php endif; ?></div><?php endif; ?>
     <div class="lp-inhalt"><div class="lp-a">
     <div class="lp-kopf">

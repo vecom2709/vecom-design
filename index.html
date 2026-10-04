@@ -57,7 +57,7 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=4420c56f">
+<link rel="stylesheet" href="assets/css/app.css?v=3883c2be">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
 <link rel="stylesheet" href="assets/css/edel.css?v=4ec9ebb0">
 <link rel="stylesheet" href="assets/css/story.css?v=ea4cb1a8">
@@ -450,31 +450,11 @@
   </div>
 
   <!-- Gütesiegel im Startbild (04.10.2026, Uwe: „gleich ersichtlich, wenn der
-       Kunde auf die Webseite geht“). Steht ohne Einblendung da — kein
-       Warten auf Scrollen oder Klicken; der Hinweis „interner Standard“
-       erscheint beim Darüberfahren/Antippen wie am Preisblock. -->
-  <figure class="siegel siegel--held" tabindex="0" aria-labelledby="siegel-titel-held" aria-describedby="siegel-karte-held">
+       Kunde auf die Webseite geht“). Steht ohne Einblendung da. Ohne Karte und
+       ohne Hinweistext (Uwe, 04.10.2026: „lass den Text zu dem Siegel weg“). -->
+  <figure class="siegel siegel--held">
     <img src="assets/img/siegel/vecom-siegel-360.webp?v=587aac4c" width="240" height="240" decoding="async" fetchpriority="low"
          data-i18n-attr="alt:siegel.alt" alt="Sigillo «Vecom Quality Standard» di Vecom Design: ogni sito nasce secondo il nostro standard di qualità">
-    <!-- Was das Siegel bedeutet (04.10.2026, Uwe: Text „VQ – Vecom Quality Standard“ mit neun Punkten,
-         dauerhaft neben dem Siegel). Am Rechner immer sichtbar, das Siegel liegt auf ihrer oberen rechten Ecke; wo der Platz
-         fehlt (unter 1200 px), öffnet sich dieselbe Karte beim Antippen. Der Hinweis „keine
-         Zertifizierung“ gehört dazu: am Rechner beim Darüberfahren, sonst unten in der Karte. -->
-    <figcaption class="siegel__karte" id="siegel-karte-held">
-      <p class="siegel__titel" id="siegel-titel-held" data-i18n="siegel.titel">VQ – Vecom Quality Standard</p>
-      <ul class="siegel__haken">
-        <li data-i18n="siegel.h1">Design responsive</li>
-        <li data-i18n="siegel.h2">Ottimizzazione delle prestazioni</li>
-        <li data-i18n="siegel.h3">Ottimizzazione SEO di base</li>
-        <li data-i18n="siegel.h4">Realizzazione tecnica pulita</li>
-        <li data-i18n="siegel.h5">Sicurezza di base</li>
-        <li data-i18n="siegel.h6">Accessibilità senza barriere inutili</li>
-        <li data-i18n="siegel.h7">Design su misura</li>
-        <li data-i18n="siegel.h8">Visualizzazione testata su smartphone, tablet e desktop</li>
-        <li data-i18n="siegel.h9">Consegna ordinata al cliente</li>
-      </ul>
-      <p class="siegel__hinweis" role="note" data-i18n="siegel.hinweis">Il Vecom Quality Standard è uno standard di qualità interno, definito da Vecom Design per i progetti digitali sviluppati da Vecom Design. Non costituisce una certificazione rilasciata da un organismo di verifica indipendente.</p>
-    </figcaption>
   </figure>
 
   <div class="scrollcue" aria-hidden="true">
@@ -1781,7 +1761,7 @@
   <span data-i18n="edel.wa">Mi scriva</span><i aria-hidden="true"></i>
 </a>
 
-<script src="assets/js/i18n-it.js?v=3f90bd66" defer></script>
+<script src="assets/js/i18n-it.js?v=a2db19e2" defer></script>
 <script src="assets/js/app.js?v=3919e61e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=5448b330" defer></script>
 <script src="assets/vendor/gsap.min.js?v=9396f256" defer></script>
