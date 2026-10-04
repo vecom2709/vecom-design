@@ -189,8 +189,24 @@ if (sek) {
   fetch(`${BASIS}farben.json?s=${STAND}`).then((r) => r.json()).then((j) => {
     if (j && SCHNITTE.some((sn) => Array.isArray(j[sn]))) { verfuegbar = j; chipsAbgleichen(); }
   }).catch(() => {});
-  wahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-farbe]'); if (k && k.dataset.farbe !== farbe) zeigen(schnitt, k.dataset.farbe, true); });
-  schnittWahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-schnitt]'); if (k && k.dataset.schnitt !== schnitt) zeigen(k.dataset.schnitt, farbe, true); });
+  /* Seite bleibt stehen (Uwe 04.10.2026: "beim Klick auf Bob hüpft die Seite runter").
+     Am PC mit weichem Scrollen (Lenis) liess sich der Sprung nicht nachstellen -- darum
+     sichert der Klick die Lage: 1,2 s lang wird jede Verschiebung ohne Rad, Wischen oder
+     Taste zurückgenommen. Fokus per Maus setzt der Browser nicht mehr (kein Ins-Bild-Rollen). */
+  function lageHalten() {
+    const y = scrollY, bis = performance.now() + 1200; let selbst = false;
+    const mensch = () => { selbst = true; };
+    for (const t of ['wheel', 'touchmove', 'keydown']) addEventListener(t, mensch, { once: true, passive: true });
+    const pruefen = () => {
+      if (selbst) return;
+      if (Math.abs(scrollY - y) > 24) { const l = window.__vecomLenis; if (l) l.scrollTo(y, { immediate: true, force: true }); else scrollTo({ top: y, behavior: 'instant' }); }
+      if (performance.now() < bis) requestAnimationFrame(pruefen);
+    };
+    requestAnimationFrame(pruefen);
+  }
+  for (const reihe of [wahl, schnittWahl]) reihe.addEventListener('mousedown', (e) => { if (e.target.closest('button')) e.preventDefault(); });
+  wahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-farbe]'); if (k && k.dataset.farbe !== farbe) { lageHalten(); zeigen(schnitt, k.dataset.farbe, true); } });
+  schnittWahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-schnitt]'); if (k && k.dataset.schnitt !== schnitt) { lageHalten(); zeigen(k.dataset.schnitt, farbe, true); } });
   // Die übrigen Farben des Schnitts leise vorladen, sobald jemand wählt -- klein zuerst
   wahl.addEventListener('pointerenter', () => { for (const [f] of FARBEN) if (hat(schnitt, f) && !saetze.has(`${schnitt}/${f}`)) satzHolen(schnitt, f); }, { once: true });
   schnittWahl.addEventListener('pointerenter', () => { for (const sn of SCHNITTE) if (hat(sn, farbe) && !saetze.has(`${sn}/${farbe}`)) satzHolen(sn, farbe); }, { once: true });
