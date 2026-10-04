@@ -1,5 +1,10 @@
 <?php
 declare(strict_types=1);
+/* Die Sprachweiche (Sprache::marken/skript) steht im Kopf JEDER Ausgabe dieser
+   Seite — auch der Fehlerseite. Geladen wurde die Klasse aber nur im Zweig mit
+   gueltigem Schluessel, und auch dort nicht immer: Seit 27.09.2026 brach die
+   Seite deshalb mitten im <html> ab (04.10.2026 gefunden). Darum hier, vor allem. */
+require_once __DIR__ . '/app/src/Sprache.php';
 /* ==========================================================================
    widerspruch.php — "Keine weiteren Nachrichten".
 
@@ -35,7 +40,8 @@ if (!$ungueltig && is_file(__DIR__ . '/app/config.local.php')) {
     }
     date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
     try {
-        $s = Db::wert('SELECT t.sprache FROM akq_versand v LEFT JOIN akq_vorlagen t ON t.id = v.vorlage_id WHERE v.abmelde_token = ?', [$token], null);
+        // Ohne Vorlage (z. B. von Hand vermerkt) ist die Sprache leer — der Link gilt trotzdem.
+        $s = Db::wert("SELECT COALESCE(t.sprache, '') FROM akq_versand v LEFT JOIN akq_vorlagen t ON t.id = v.vorlage_id WHERE v.abmelde_token = ?", [$token], null);
         if ($s === null) {
             $ungueltig = true;
         } else {

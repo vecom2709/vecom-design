@@ -22108,6 +22108,33 @@ foreach (['app/assets/admin.css', 'assets/css/app.css', 'assets/css/kunde.css', 
         || !preg_match('~option:checked\{[^}]*color:#0a0908~', $w7T)) { $w7Ohne[] = $w7Css; }
 }
 pruefe('Ausgewähltes bleibt lesbar: jede dunkle Seite setzt Markierung und gewählte Listeneinträge (Gold, dunkle Schrift)', $w7Ohne === [], implode(', ', $w7Ohne));
+/* 04.10.2026: widerspruch.php und analyse.php brachen seit dem 27.09. mitten im
+   <html> ab — Sprache::marken() stand im Kopf, die Klasse wurde nur im Zweig mit
+   gültigem Schlüssel geladen. check.php zeigte „<?= Sprache::skript() ?>“ als
+   Text, weil es in einer Zeichenkette stand. Beides sieht man nur, wenn die
+   Seite wirklich läuft. Deshalb hier: jede öffentliche Seite mit Sprachweiche
+   einmal ausführen (eigener Prozess, Testdatenbank, ohne Parameter und mit
+   ungültigem Schlüssel) und auf Abbruch und rohen PHP-Text prüfen. */
+$w7Cfg = json_encode(['db' => ['host' => $db['host'], 'name' => $db['name'], 'user' => $db['user'], 'pass' => $db['pass'], 'socket' => $db['sock']],
+    'website' => 'https://pruefung.example', 'basis' => '/app', 'zeitzone' => 'Europe/Rome', 'firma' => 'Vecom Design Pruefung']);
+$w7Kaputt = [];
+foreach (glob($oben . '/*.php') ?: [] as $w7Seite) {
+    $w7Q = (string) file_get_contents($w7Seite);
+    if (!str_contains($w7Q, 'Sprache::')) { continue; }
+    foreach (['', 't=0123456789abcdef0123456789abcdef01234567'] as $w7Anfrage) {
+        $w7Code = 'require ' . var_export($wurzel . '/src/Config.php', true) . '; Config::setzenFuerTest(json_decode(getenv("KETTE_CFG"), true));'
+            . ' parse_str(' . var_export($w7Anfrage, true) . ', $_GET); $_SERVER += ["REQUEST_METHOD" => "GET", "REQUEST_URI" => "/' . basename($w7Seite) . '",'
+            . ' "HTTP_HOST" => "localhost", "REMOTE_ADDR" => "127.0.0.1", "HTTP_USER_AGENT" => "Kette"]; chdir(' . var_export($oben, true) . ');'
+            . ' include ' . var_export($w7Seite, true) . ';';
+        $w7Aus = (string) shell_exec('KETTE_CFG=' . escapeshellarg($w7Cfg) . ' ' . escapeshellarg(PHP_BINARY)
+            . ' -d display_errors=1 -d error_reporting=' . (E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING) . ' -r ' . escapeshellarg($w7Code) . ' 2>&1');
+        if (preg_match('~Fatal error|Uncaught~', $w7Aus) || str_contains($w7Aus, '<?=') || preg_match('~[^:\w]Sprache::~', $w7Aus)) {
+            $w7Kaputt[] = basename($w7Seite) . ($w7Anfrage !== '' ? '?' . substr($w7Anfrage, 0, 6) . '…' : '') . ': '
+                . mb_substr(trim((string) preg_replace('~\s+~', ' ', (string) (preg_match('~(Fatal error|Uncaught)[^\n]{0,140}~', $w7Aus, $w7M) ? $w7M[0] : 'roher PHP-Text'))), 0, 160);
+        }
+    }
+}
+pruefe('jede öffentliche Seite mit Sprachweiche läuft durch — kein Abbruch, kein roher PHP-Text', $w7Kaputt === [], implode(' | ', $w7Kaputt));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
 pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',
     (glob($wurzel . '/werbemittel/*') ?: []) === [] && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'RewriteRule ^ /app/index.php'));

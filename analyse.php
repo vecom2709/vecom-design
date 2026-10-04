@@ -1,5 +1,10 @@
 <?php
 declare(strict_types=1);
+/* Die Sprachweiche (Sprache::marken/skript) steht im Kopf JEDER Ausgabe dieser
+   Seite — auch der Fehlerseite. Geladen wurde die Klasse aber nur im Zweig mit
+   gueltigem Schluessel, und auch dort nicht immer: Seit 27.09.2026 brach die
+   Seite deshalb mitten im <html> ab (04.10.2026 gefunden). Darum hier, vor allem. */
+require_once __DIR__ . '/app/src/Sprache.php';
 /* ==========================================================================
    analyse.php — die persoenliche Website-Analyse fuer eine Firma.
 

@@ -41,7 +41,7 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
 if ($z === null) {
     http_response_code(404);
     echo '<!doctype html><meta charset="utf-8">
-<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vecom Design</title>'
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>Vecom Design</title>'
        . '<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#b4ada2;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center">'
        . '<p>Questo rapporto non è più disponibile. · Dieser Bericht ist nicht mehr verfügbar.<br><a style="color:#f1d38b" href="https://vecom-design.it">vecom-design.it</a></p>';
     exit;
@@ -56,7 +56,8 @@ $foto = $p ? PartnerWerbung::fotoAdresse($p) : null;
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta charset="utf-8">
+<?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex, nofollow"><meta name="referrer" content="no-referrer">
 <title><?= $h(strtr($C('titel'), ['{host}' => (string) $z['host']])) ?></title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
