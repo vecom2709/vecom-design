@@ -4589,9 +4589,15 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
   font-weight: 700; color: #f1d38b;
 }
 @media (min-width: 1200px) {
-  .siegel--held .siegel__karte { right: calc(100% + 18px); bottom: 2px; }
-  /* Der Hinweis klappt über der Karte auf (.hero hat overflow: hidden, unten wäre er abgeschnitten). */
-  .siegel--held .siegel__hinweis { top: auto; bottom: calc(100% + 10px); right: 0; width: 100%; translate: 0 -6px; }
+  /* Uwe (04.10.2026): „setze das Logo über die obere rechte Ecke“ — die Karte ist
+     der Grund, das Siegel liegt schräg auf ihrer oberen rechten Ecke wie am
+     Preisblock. Der Halter (figure) nimmt dafür die Breite der Karte an. */
+  .siegel--held { --siegel: clamp(110px, 8.5vw, 140px); width: 330px; bottom: clamp(4.5rem, 12vh, 7rem); }
+  .siegel--held img { position: absolute; z-index: 5; width: var(--siegel); top: calc(var(--siegel) * -0.44); right: calc(var(--siegel) * -0.16); }
+  .siegel--held .siegel__karte { position: relative; right: auto; bottom: auto; width: auto; }
+  .siegel--held .siegel__titel { padding-right: calc(var(--siegel) * .74); }
+  /* Der Hinweis klappt über dem Siegel auf (.hero hat overflow: hidden, unten wäre er abgeschnitten). */
+  .siegel--held .siegel__hinweis { top: auto; bottom: calc(100% + var(--siegel) * .62); right: 0; width: 100%; translate: 0 -6px; }
   .siegel--held:hover .siegel__hinweis, .siegel--held:focus .siegel__hinweis, .siegel--held:focus-visible .siegel__hinweis { translate: 0 0; }
 }
 @media (max-width: 1199px) {
