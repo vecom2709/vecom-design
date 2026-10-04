@@ -519,16 +519,17 @@ if ($p && isset($_GET['fl'])) {
     if (!PartnerFlyer::gibt($flSlug) || !in_array($flArt, ['jpg', 'pdf', 'vorschau'], true)) { http_response_code(404); exit('—'); }
     header('X-Robots-Tag: noindex, nofollow');
     header('X-Content-Type-Options: nosniff');
+    $flSp = PartnerFlyer::sprache($flSlug, (string) ($_GET['fsp'] ?? '')); // DE/IT/EN-Flyer seit 04.10.2026; '' bei den alten
     if ($flArt === 'pdf') {
-        $flDaten = PartnerFlyer::pdf($p, $flSlug);
+        $flDaten = PartnerFlyer::pdf($p, $flSlug, $flSp);
         header('Content-Type: application/pdf');
-        header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'pdf') . '"');
+        header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'pdf', $flSp) . '"');
     } else {
-        $flDaten = $flArt === 'vorschau' ? PartnerFlyer::jpg($p, $flSlug, 0.34, 78) : PartnerFlyer::jpg($p, $flSlug);
+        $flDaten = $flArt === 'vorschau' ? PartnerFlyer::jpg($p, $flSlug, PartnerFlyer::vorschauFaktor($flSlug), 78, $flSp) : PartnerFlyer::jpg($p, $flSlug, PartnerFlyer::FAKTOR, 90, $flSp);
         if ($flDaten === '') { http_response_code(503); exit('—'); }
         header('Content-Type: image/jpeg');
         header('Cache-Control: private, max-age=86400');
-        if ($flArt === 'jpg') { header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'jpg') . '"'); }
+        if ($flArt === 'jpg') { header('Content-Disposition: attachment; filename="' . PartnerFlyer::dateiname($p, $flSlug, 'jpg', $flSp) . '"'); }
     }
     header('Content-Length: ' . strlen($flDaten));
     echo $flDaten;

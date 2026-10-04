@@ -3458,7 +3458,9 @@ final class Texte
         'fl_alt'      => ['it' => 'Volantino {name} con il suo codice QR', 'de' => 'Flyer {name} mit Ihrem QR-Code', 'en' => '{name} flyer with your QR code'],
         'fl_jpg'      => ['it' => 'Immagine', 'de' => 'Bild', 'en' => 'Image'],
         'fl_pdf'      => ['it' => 'PDF', 'de' => 'PDF', 'en' => 'PDF'],
-        'fl_hinweis'  => ['it' => 'I volantini sono in tedesco. «Immagine» per WhatsApp e social; «PDF» per la tipografia (larghezza A5, codice QR nitido a ogni dimensione). Prima di stampare in grande quantità: scansioni una volta il codice con il telefono.', 'de' => 'Die Flyer sind auf Deutsch. „Bild“ für WhatsApp und soziale Netzwerke, „PDF“ für die Druckerei (A5-Breite, QR-Code in jeder Größe scharf). Vor einer großen Auflage: den Code einmal mit dem Handy scannen.', 'en' => 'The flyers are in German. “Image” for WhatsApp and social media, “PDF” for the print shop (A5 width, QR code sharp at any size). Before a large print run: scan the code once with your phone.'],
+        'fl_neu'      => ['it' => 'Nuovo · IT · DE · EN', 'de' => 'Neu · DE · IT · EN', 'en' => 'New · EN · DE · IT'],
+        'fl_sprache'  => ['it' => 'Lingua del volantino', 'de' => 'Sprache des Flyers', 'en' => 'Flyer language'],
+        'fl_hinweis'  => ['it' => 'I volantini segnati «Nuovo» esistono in italiano, tedesco e inglese; gli altri sono in tedesco. «Immagine» per WhatsApp e social; «PDF» per la tipografia (larghezza A5, codice QR nitido a ogni dimensione). Prima di stampare in grande quantità: scansioni una volta il codice con il telefono.', 'de' => 'Die mit „Neu“ markierten Flyer gibt es auf Deutsch, Italienisch und Englisch, die übrigen auf Deutsch. „Bild“ für WhatsApp und soziale Netzwerke, „PDF“ für die Druckerei (A5-Breite, QR-Code in jeder Größe scharf). Vor einer großen Auflage: den Code einmal mit dem Handy scannen.', 'en' => 'Flyers marked “New” come in English, German and Italian; the others are in German. “Image” for WhatsApp and social media, “PDF” for the print shop (A5 width, QR code sharp at any size). Before a large print run: scan the code once with your phone.'],
         'dr_hell'     => ['it' => 'Versione chiara (risparmia inchiostro)', 'de' => 'Helle Fassung (spart Tinte)', 'en' => 'Light version (saves ink)'],
         'dr_drucken'  => ['it' => 'Stampa', 'de' => 'Drucken', 'en' => 'Print'],
         'dr_falz'     => ['it' => 'piegare qui', 'de' => 'hier falten', 'en' => 'fold here'],
@@ -4936,6 +4938,7 @@ final class Texte
         /* Phase 2: Druckdatei und Freigabe (03.10.2026) */
         'gestalten' => ['it' => 'Personalizzare e approvare', 'de' => 'Gestalten und freigeben', 'en' => 'Customise and approve'],
         'stil' => ['it' => 'Stile', 'de' => 'Stil', 'en' => 'Style'],
+        'branche' => ['it' => 'Settore del cliente', 'de' => 'Branche des Kunden', 'en' => 'Customer’s industry'],
         'erzeugen' => ['it' => 'Crea il file di stampa', 'de' => 'Druckdatei erstellen', 'en' => 'Create print file'],
         'entwurf_titel' => ['it' => 'Il suo file di stampa — lo controlli', 'de' => 'Ihre Druckdatei — bitte prüfen', 'en' => 'Your print file — please check it'],
         'pdf_ansehen' => ['it' => 'Apri il file di stampa (PDF)', 'de' => 'Druckdatei ansehen (PDF)', 'en' => 'Open print file (PDF)'],

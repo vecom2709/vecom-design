@@ -12,7 +12,11 @@ declare(strict_types=1);
  *   jpg()  Bild in doppelter Auflösung (Handy, WhatsApp, Druckerei)
  *   pdf()  eine Seite, 148 mm breit; der QR-Code als Vektor, gestochen scharf
  *
- * Die Flyer selbst sind deutsch. Die Gruppen heißen in allen drei Sprachen.
+ * Die alten Flyer sind deutsch. Seit dem 04.10.2026 kommen Branchen-Flyer in
+ * DE/IT/EN dazu (Eintrag mit 'sp'): eine Datei je Sprache, slug.de.jpg usw.,
+ * 300 dpi mit 3 mm Beschnitt ('beschnitt' in Pixeln) — dieselben Dateien
+ * druckt das Marketing Center. Hier wird der Beschnitt abgeschnitten, damit
+ * Bild und PDF genau A5 sind.
  */
 final class PartnerFlyer
 {
@@ -53,6 +57,38 @@ final class PartnerFlyer
             && is_file(self::datei($slug));
     }
 
+    /** Sprachen eines Flyers; leer heißt: eine Fassung, deutsch (die alten). @return list<string> */
+    public static function sprachen(string $slug): array
+    {
+        return array_values((array) (self::liste()[$slug]['sp'] ?? []));
+    }
+
+    /** Die Sprache, die wirklich geliefert wird: die gewünschte, sonst die erste vorhandene. '' bei den alten. */
+    public static function sprache(string $slug, ?string $sp): string
+    {
+        $alle = self::sprachen($slug);
+        if (!$alle) { return ''; }
+        return in_array($sp, $alle, true) ? (string) $sp : $alle[0];
+    }
+
+    /**
+     * Maße ohne Beschnitt: so, wie der Partner das Blatt sieht.
+     * @return array{b:int,h:int,q:array{int,int,int,int},r:int}
+     */
+    public static function mass(string $slug): array
+    {
+        $f = self::liste()[$slug];
+        $r = (int) ($f['beschnitt'] ?? 0);
+        [$x, $y, $b, $h] = $f['q'];
+        return ['b' => $f['b'] - 2 * $r, 'h' => $f['h'] - 2 * $r, 'q' => [$x - $r, $y - $r, $b, $h], 'r' => $r, 'ag' => $f['ag'] ?? null];
+    }
+
+    /** Vorschau im Dashboard: etwa 340 px breit, egal wie groß die Vorlage ist. */
+    public static function vorschauFaktor(string $slug): float
+    {
+        return min(0.34, 340 / max(1, self::mass($slug)['b']));
+    }
+
     public static function name(string $slug, string $sprache): string
     {
         $n = self::liste()[$slug]['n'] ?? [];
@@ -88,14 +124,31 @@ final class PartnerFlyer
         return (string) preg_replace('~^https?://~', '', Partner::link($p));
     }
 
-    public static function dateiname(array $p, string $slug, string $endung): string
+    public static function dateiname(array $p, string $slug, string $endung, ?string $sp = null): string
     {
-        return 'vecom-flyer-' . $slug . '-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $endung;
+        $s = self::sprache($slug, $sp);
+        return 'vecom-flyer-' . $slug . ($s !== '' ? '-' . $s : '') . '-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $endung;
     }
 
-    private static function datei(string $slug): string
+    /** Pfad der Vorlage (ohne QR). Öffentlich nur für die Prüfung. */
+    public static function datei(string $slug, ?string $sp = null): string
     {
-        return dirname(__DIR__) . '/flyer/' . $slug . '.jpg';
+        $s = self::sprache($slug, $sp);
+        return dirname(__DIR__) . '/flyer/' . $slug . ($s !== '' ? '.' . $s : '') . '.jpg';
+    }
+
+    /** Vorlage laden, Beschnitt weg. */
+    private static function bild(string $slug, ?string $sp): ?\GdImage
+    {
+        $roh = @imagecreatefromjpeg(self::datei($slug, $sp));
+        if (!$roh) { return null; }
+        $m = self::mass($slug);
+        if ($m['r'] > 0) {
+            $z = imagecrop($roh, ['x' => $m['r'], 'y' => $m['r'], 'width' => $m['b'], 'height' => $m['h']]);
+            imagedestroy($roh);
+            return $z ?: null;
+        }
+        return $roh;
     }
 
     /** @return array{0:int,1:list<list<bool>>} Modulzahl und Raster */
@@ -140,16 +193,18 @@ final class PartnerFlyer
     {
         [$x, $y, $b, $h] = $f['q'];
         $platz = $f['h'] - ($y + $h) - 4;
-        $gr = max(8.0, min(13.0, $b * 0.14, $platz * 0.55));
+        $gr = isset($f['ag']) ? (float) $f['ag'] : max(8.0, min(13.0, $b * 0.14, $platz * 0.55));
         return ['rechts' => (float) ($x + $b), 'grund' => (float) ($y + $h) + $gr * 1.45, 'gr' => $gr, 'passt' => $platz >= 14];
     }
 
     /** Der Flyer als JPEG mit dem Code des Partners. $k: Maßstab (2 = Download, klein = Vorschau im Dashboard). */
-    public static function jpg(array $p, string $slug, float $k = self::FAKTOR, int $qualitaet = 90): string
+    public static function jpg(array $p, string $slug, float $k = self::FAKTOR, int $qualitaet = 90, ?string $sp = null): string
     {
         if (!self::gibt($slug) || !function_exists('imagecreatefromjpeg')) { return ''; }
-        $f = self::liste()[$slug];
-        $roh = @imagecreatefromjpeg(self::datei($slug));
+        $f = self::mass($slug);
+        // Die neuen Vorlagen haben schon 300 dpi — verdoppeln hieße nur: größere Datei, kein schärferes Bild.
+        if ($f['b'] > 1500) { $k = min($k, 1.0); }
+        $roh = self::bild($slug, $sp);
         if (!$roh) { return ''; }
         $hell = self::hellUnten($roh, $f);
         $im = imagescale($roh, (int) round($f['b'] * $k), (int) round($f['h'] * $k), $k >= 1 ? IMG_BICUBIC : IMG_BILINEAR_FIXED) ?: $roh;
@@ -191,18 +246,24 @@ final class PartnerFlyer
     }
 
     /** Der Flyer als PDF: Bild als Seite, Code als Vektor, 148 mm breit. */
-    public static function pdf(array $p, string $slug): string
+    public static function pdf(array $p, string $slug, ?string $sp = null): string
     {
         if (!self::gibt($slug)) { return ''; }
         require_once __DIR__ . '/Pdf.php';
-        $f = self::liste()[$slug];
+        $f = self::mass($slug);
+        $jpeg = (string) @file_get_contents(self::datei($slug, $sp));
+        $roh = null;
+        if ($f['r'] > 0) {
+            if (!function_exists('imagecreatefromjpeg') || !($roh = self::bild($slug, $sp))) { return ''; }
+            ob_start(); imagejpeg($roh, null, 92); $jpeg = (string) ob_get_clean();
+        }
         $breite = 148 / 25.4 * 72;
         $k = $breite / $f['b'];
         $hoehe = $f['h'] * $k;
         $pdf = new Pdf($breite, $hoehe);
         /* Unsichtbare Kennung des Partners (PartnerSchutz, 30.09.2026): Taucht ein Flyer irgendwo auf, sagt sie, aus wessen Bereich er stammt. */
         if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->info(['Title' => 'Vecom Design', 'Author' => 'Vecom Design', 'Keywords' => PartnerSchutz::kennung($p)]); }
-        $pdf->bild((string) file_get_contents(self::datei($slug)), 0, 0, $breite, $hoehe);
+        $pdf->bild($jpeg, 0, 0, $breite, $hoehe);
 
         [$qx, $qy, $qb, $qh] = $f['q'];
         $pdf->flaeche($qx * $k, $qy * $k, $qb * $k, $qh * $k, [1, 1, 1]);
@@ -223,10 +284,11 @@ final class PartnerFlyer
         $a = self::adressLage($f);
         if ($a['passt']) {
             $hell = 0.0;
-            if (function_exists('imagecreatefromjpeg') && ($roh = @imagecreatefromjpeg(self::datei($slug)))) { $hell = self::hellUnten($roh, $f); imagedestroy($roh); }
+            if ($roh || (function_exists('imagecreatefromjpeg') && ($roh = @imagecreatefromjpeg(self::datei($slug, $sp))))) { $hell = self::hellUnten($roh, $f); }
             $farbe = $hell > 0.55 ? [0.15, 0.12, 0.07] : [0.97, 0.9, 0.68];
             $pdf->text($a['rechts'] * $k, $a['grund'] * $k, self::kurz($p), $a['gr'] * $k * 0.95, true, 'rechts', $farbe);
         }
+        if ($roh) { imagedestroy($roh); }
         return $pdf->fertig();
     }
 }

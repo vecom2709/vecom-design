@@ -31,7 +31,7 @@ final class Werbemittel
 {
     public const SPRACHEN = ['it', 'de', 'en'];
     /** Vorlagen, die heute eine Druckdatei erzeugen können. */
-    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)'];
+    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)'];
 
     /** Hat die Vorlage eine Gestaltung mit Stil/Sprache/Kontakt, Vorschau und Freigabe? */
     public static function gestaltbar(string $vorlage): bool
@@ -441,9 +441,17 @@ final class Werbemittel
     public const ENTWUERFE_JE_TAG = 30;
 
     /** Wahl prüfen und normalisieren. Wirft bei allem, was es nicht gibt. */
-    public static function wahl(array $e): array
+    public static function wahl(array $e, string $vorlage = ''): array
     {
         require_once __DIR__ . '/PartnerKarten.php';
+        if ($vorlage === 'flyer_branche') { // „Stil“ ist hier die Branche (04.10.2026)
+            require_once __DIR__ . '/WmDruck.php';
+            $w = ['stil' => (string) ($e['stil'] ?? ''), 'sprache' => (string) ($e['sprache'] ?? ''), 'kontakt' => (string) ($e['kontakt'] ?? '')];
+            if (!WmDruck::gibt('flyer_branche', $w['stil'])) { throw new InvalidArgumentException('Branche unbekannt.'); }
+            if (!in_array($w['sprache'], self::SPRACHEN, true)) { throw new InvalidArgumentException('Sprache unbekannt.'); }
+            if (!in_array($w['kontakt'], PartnerKarten::KONTAKTE, true)) { throw new InvalidArgumentException('Kontakt unbekannt.'); }
+            return $w;
+        }
         $w = [
             'stil'    => (string) ($e['stil'] ?? ''),
             'sprache' => (string) ($e['sprache'] ?? ''),
@@ -463,12 +471,12 @@ final class Werbemittel
     {
         $pr = Db::one('SELECT * FROM wm_produkte WHERE id = ? AND aktiv = 1', [$produktId]);
         if (!$pr || $pr['vorlage'] === '') { throw new InvalidArgumentException('Produkt nicht verfügbar.'); }
-        $w = self::wahl($eingabe);
+        $w = self::wahl($eingabe, (string) $pr['vorlage']);
         $heute = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND created_at >= CURDATE()', [(int) $p['id']]);
         if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
         $pdf = match ((string) $pr['vorlage']) {
             'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
-            'flyer_a6', 'flyer_a5' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
+            'flyer_a6', 'flyer_a5', 'flyer_branche' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
             default => '',
         };
         if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }

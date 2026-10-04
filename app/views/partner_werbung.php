@@ -68,6 +68,11 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .fl-chips button[aria-pressed=true]{border-color:rgba(241,211,139,.7);color:var(--text);background:rgba(241,211,139,.09)}
   .fl-chips button:focus-visible,.fl-karte .knopf:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
   .fl-gruppe[hidden]{display:none}
+  .fl-sp{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+  .fl-sp button{min-height:32px;min-width:38px;padding:3px 8px;border-radius:8px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:12.5px;font-weight:600;cursor:pointer}
+  .fl-sp button[aria-pressed=true]{border-color:rgba(241,211,139,.7);color:var(--text);background:rgba(241,211,139,.12)}
+  .fl-sp button:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
+  .fl-neu{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#f1d38b;font-weight:600}
   .fl-raster{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .fl-karte{display:flex;flex-direction:column;gap:7px;border:1px solid var(--linie);border-radius:12px;padding:8px;min-width:0}
   .fl-karte img{width:100%;height:auto;aspect-ratio:5/8;object-fit:contain;border-radius:7px;background:#0d0b08;display:block}
@@ -402,14 +407,28 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
       <div class="fl-gruppe" data-flgruppe="<?= $h($gk) ?>">
         <p class="md-l"><?= $h(PartnerFlyer::GRUPPEN[$gk][$sprache] ?? $gk) ?></p>
         <ul class="fl-raster">
-          <?php foreach ($gl as $fs => $ff): $fn = PartnerFlyer::name($fs, $sprache); ?>
-            <li class="fl-karte">
-              <img src="<?= $h($selbst(['fl' => $fs, 'f' => 'vorschau'])) ?>" alt="<?= $h(strtr($T('fl_alt'), ['{name}' => $fn])) ?>"
-                   width="<?= (int) round($ff['b'] * 0.34) ?>" height="<?= (int) round($ff['h'] * 0.34) ?>" loading="lazy" decoding="async">
+          <?php foreach ($gl as $fs => $ff):
+              $fn = PartnerFlyer::name($fs, $sprache); $fm = PartnerFlyer::mass($fs); $fk = PartnerFlyer::vorschauFaktor($fs);
+              $fSps = PartnerFlyer::sprachen($fs); $fSp = PartnerFlyer::sprache($fs, $sprache);
+              $fA = $fSp !== '' ? ['fsp' => $fSp] : []; ?>
+            <li class="fl-karte"<?= $fSps ? ' data-flsp' : '' ?>>
+              <img src="<?= $h($selbst(['fl' => $fs, 'f' => 'vorschau'] + $fA)) ?>" alt="<?= $h(strtr($T('fl_alt'), ['{name}' => $fn])) ?>"
+                   width="<?= (int) round($fm['b'] * $fk) ?>" height="<?= (int) round($fm['h'] * $fk) ?>" loading="lazy" decoding="async">
+              <?php if ($fSps): ?><span class="fl-neu"><?= $h($T('fl_neu')) ?></span><?php endif; ?>
               <b><?= $h($fn) ?></b>
+              <?php if ($fSps): ?>
+              <span class="fl-sp" role="group" aria-label="<?= $h($T('fl_sprache')) ?>">
+                <?php foreach ($fSps as $fx): ?>
+                  <button type="button" data-sp="<?= $h($fx) ?>" aria-pressed="<?= $fx === $fSp ? 'true' : 'false' ?>"
+                          data-v="<?= $h($selbst(['fl' => $fs, 'f' => 'vorschau', 'fsp' => $fx])) ?>"
+                          data-j="<?= $h($selbst(['fl' => $fs, 'f' => 'jpg', 'fsp' => $fx])) ?>"
+                          data-p="<?= $h($selbst(['fl' => $fs, 'f' => 'pdf', 'fsp' => $fx])) ?>"><?= $h(strtoupper($fx)) ?></button>
+                <?php endforeach; ?>
+              </span>
+              <?php endif; ?>
               <span class="fl-knoepfe">
-                <a class="knopf" href="<?= $h($selbst(['fl' => $fs, 'f' => 'jpg'])) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_jpg')) ?>"><?= $h($T('fl_jpg')) ?></a>
-                <a class="knopf" href="<?= $h($selbst(['fl' => $fs, 'f' => 'pdf'])) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_pdf')) ?>"><?= $h($T('fl_pdf')) ?></a>
+                <a class="knopf" data-fla="j" href="<?= $h($selbst(['fl' => $fs, 'f' => 'jpg'] + $fA)) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_jpg')) ?>"><?= $h($T('fl_jpg')) ?></a>
+                <a class="knopf" data-fla="p" href="<?= $h($selbst(['fl' => $fs, 'f' => 'pdf'] + $fA)) ?>" download aria-label="<?= $h($fn . ': ' . $T('fl_pdf')) ?>"><?= $h($T('fl_pdf')) ?></a>
               </span>
             </li>
           <?php endforeach; ?>
@@ -428,6 +447,18 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
         var w = b.getAttribute('data-flg');
         k.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
         g.forEach(function (x) { x.hidden = w !== '' && x.getAttribute('data-flgruppe') !== w; });
+      });
+    });
+    // Sprache je Flyer: Vorschau und beide Downloads wechseln mit (04.10.2026).
+    s.querySelectorAll('[data-flsp]').forEach(function (karte) {
+      var bs = karte.querySelectorAll('.fl-sp button');
+      bs.forEach(function (b) {
+        b.addEventListener('click', function () {
+          bs.forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+          karte.querySelector('img').src = b.getAttribute('data-v');
+          karte.querySelector('[data-fla=j]').href = b.getAttribute('data-j');
+          karte.querySelector('[data-fla=p]').href = b.getAttribute('data-p');
+        });
       });
     });
   })();

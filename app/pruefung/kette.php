@@ -15017,6 +15017,10 @@ $flFehler = [];
 foreach ($flL as $flS => $flF) {
     [$fx, $fy, $fb, $fh] = $flF['q'];
     $flGr = @getimagesize($wurzel . '/flyer/' . $flS . '.jpg');
+    foreach (PartnerFlyer::sprachen($flS) as $flSx) { // DE/IT/EN-Flyer: jede Sprache gleich groß (04.10.2026)
+        $flGx = @getimagesize(PartnerFlyer::datei($flS, $flSx));
+        $flGr = ($flGx && (!$flGr || $flGr === $flGx || ($flGr[0] === $flGx[0] && $flGr[1] === $flGx[1]))) ? $flGx : [0, 0];
+    }
     if (!$flGr || $flGr[0] !== $flF['b'] || $flGr[1] !== $flF['h'] || $fx < 0 || $fy < 0 || $fx + $fb > $flF['b'] || $fy + $fh > $flF['h']
         || abs($fb - $fh) > 0.15 * max($fb, $fh) || !isset(PartnerFlyer::GRUPPEN[$flF['g']]) || !isset($flF['n']['it'], $flF['n']['de'], $flF['n']['en'])) { $flFehler[] = $flS; }
 }
@@ -15034,8 +15038,23 @@ pruefe('Flyer: Bild in doppelter Größe, Vorschau klein, Druck-PDF 148 mm breit
     && str_starts_with($flPd, '%PDF') && str_contains($flPd, '419.53') && str_contains($flPd, '/p/FLYER123'));
 pruefe('Flyer: der Code führt auf den eigenen Kanal-Link /p/CODE/flyer', str_ends_with(PartnerFlyer::link($flP), '/p/FLYER123/flyer')
     && in_array('flyer', PartnerWerbung::WERKZEUGE, true) && PartnerFlyer::dateiname($flP, 'handwerk', 'pdf') === 'vecom-flyer-handwerk-flyer123.pdf');
+/* DE/IT/EN-Branchen-Flyer (04.10.2026): eigene Datei je Sprache, Beschnitt weg, 300 dpi bleibt 300 dpi. */
+$flPro = array_keys(array_filter($flL, fn ($f) => !empty($f['sp'])));
+$flA = $flPro[0] ?? '';
+$flBild = $flA !== '' ? [PartnerFlyer::jpg($flP, $flA, PartnerFlyer::FAKTOR, 90, 'it'), PartnerFlyer::jpg($flP, $flA, PartnerFlyer::FAKTOR, 90, 'en')] : ['', ''];
+$flM = $flA !== '' ? PartnerFlyer::mass($flA) : ['b' => 0, 'h' => 0];
+$flGi = $flBild[0] !== '' ? getimagesizefromstring($flBild[0]) : false;
+$flPp = $flA !== '' ? PartnerFlyer::pdf($flP, $flA, 'de') : '';
+pruefe('Flyer DE/IT/EN: jede Branche dreisprachig, Bild ohne Beschnitt in Originalgröße, Sprachen verschieden, PDF A5',
+    count($flPro) >= 2 && $flGi && $flGi[0] === $flM['b'] && $flGi[1] === $flM['h'] && $flM['b'] === $flL[$flA]['b'] - 2 * $flL[$flA]['beschnitt']
+    && $flBild[0] !== $flBild[1] && PartnerFlyer::sprache($flA, 'xx') === 'it' && PartnerFlyer::sprache('handwerk', 'it') === ''
+    && PartnerFlyer::dateiname($flP, $flA, 'pdf', 'en') === 'vecom-flyer-' . $flA . '-en-flyer123.pdf'
+    && str_starts_with($flPp, '%PDF') && str_contains($flPp, '419.53') && str_contains($flPp, '/p/FLYER123')
+    && !PartnerFlyer::gibt($flA . '.it') && abs(PartnerFlyer::vorschauFaktor($flA) * $flM['b'] - 340) < 1, $flA);
 $flSeite = (string) file_get_contents($wurzel . '/../partner.php');
 $flView = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
+pruefe('Flyer DE/IT/EN: Dashboard wählt die Sprache je Flyer, Server nimmt nur bekannte Sprachen',
+    str_contains($flView, 'data-flsp') && str_contains($flView, "'fsp' => \$fx") && str_contains($flSeite, "PartnerFlyer::sprache(\$flSlug, (string) (\$_GET['fsp'] ?? ''))"));
 pruefe('Flyer: nur mit eigenem Schlüssel abrufbar, Werbe-Paket zeigt sie nach Branche mit Bild und PDF',
     str_contains($flSeite, "if (\$p && isset(\$_GET['fl']))") && str_contains($flView, "PartnerFlyer::gruppiert()") && str_contains($flView, "'f' => 'pdf'")
     && str_contains($flView, 'data-flgruppe'));
@@ -22047,7 +22066,7 @@ Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w7Fremd['id']])
 // Flyer A6/A5 (04.10.2026): Vorlagen im Vecom-Stil, Partnerdaten automatisch, QR nie kleiner als 2 cm
 require_once $wurzel . '/src/WmDruck.php';
 $w7Qmin = 9999; $w7Fehlt = [];
-foreach (array_keys(WmDruck::FORMATE) as $w7F) {
+foreach (array_diff(array_keys(WmDruck::FORMATE), array_keys(WmDruck::RUECKSEITE)) as $w7F) {
     foreach (['a', 'b', 'c', 'd'] as $w7S) {
         if (!WmDruck::gibt($w7F, $w7S)) { $w7Fehlt[] = "$w7F/$w7S"; continue; }
         $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0));
@@ -22069,6 +22088,31 @@ $w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
 pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
     $w7Fl !== null && (int) $w7Fl['aktiv'] === 0 && is_array($w7Fv) && $w7Fv[1] === 360 && $w7Fv[0] > 360
     && Werbemittel::gestaltbar('flyer_a5') && !Werbemittel::gestaltbar('quatsch'));
+// Branchen-Flyer A5 DE/IT/EN (04.10.2026): Branche statt Stil, vorn Foto + Code, hinten Name/Kontakt
+require_once $wurzel . '/src/PartnerFlyer.php';
+$w7Br = array_keys(array_filter(PartnerFlyer::liste(), fn ($f) => !empty($f['sp'])));
+$w7B1 = $w7Br[0] ?? 'gibtsnicht';
+$w7Bp = WmDruck::pdf($w7P, 'flyer_branche', $w7B1, 'it', 'email');
+$w7Bq = WmDruck::qrVorn($w7B1)['qr'];
+$w7Bv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_branche', $w7B1, 'en', 'vecom'));
+pruefe('Branchen-Flyer im Marketing Center: jede Branche × 3 Sprachen druckbar, Druck-PDF A5 mit Beschnitt, Code vorn ≥ 2 cm, alte Stile gelten hier nicht',
+    count($w7Br) >= 2 && !array_filter($w7Br, fn ($s) => !WmDruck::gibt('flyer_branche', $s)) && !WmDruck::gibt('flyer_branche', 'a') && !WmDruck::gibt('flyer_branche', '../x')
+    && str_starts_with($w7Bp, '%PDF') && preg_match('~/TrimBox \[\s*8\.50\d* 8\.50\d* 428\.0\d* 603\.7\d*~', $w7Bp) === 1
+    && $w7Bq[2] >= 200 && is_array($w7Bv) && $w7Bv[1] === 360,
+    json_encode(['br' => count($w7Br), 'qr' => $w7Bq, 'trim' => preg_match('~/TrimBox \[[^\]]*\]~', $w7Bp, $w7Tm) ? $w7Tm[0] : '']));
+$w7Bpr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_branche'");
+$w7Bw = null; $w7Bfalsch = false;
+if ($w7Bpr) {
+    Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $w7Bpr['id']]);
+    try { Werbemittel::entwurfAnlegen($w7P, (int) $w7Bpr['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']); } catch (InvalidArgumentException $e) { $w7Bfalsch = true; }
+    $w7Bw = Werbemittel::stand((int) $w7P['id'], (int) $w7Bpr['id'])['entwurf'] ?? null;
+    if (!$w7Bw) { Werbemittel::entwurfAnlegen($w7P, (int) $w7Bpr['id'], ['stil' => $w7B1, 'sprache' => 'de', 'kontakt' => 'email']); $w7Bw = Werbemittel::stand((int) $w7P['id'], (int) $w7Bpr['id'])['entwurf'] ?? null; }
+    Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w7Bpr['id']]);
+}
+pruefe('Branchen-Flyer: Produkt angelegt (aus), 250/500/1000 Stück, Entwurf nur mit echter Branche, Wahl merkt sich die Branche',
+    $w7Bpr !== null && (int) $w7Bpr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Bpr['id']]) === 3
+    && $w7Bfalsch && $w7Bw !== null && ($w7Bw['wahl']['stil'] ?? '') === $w7B1 && str_starts_with((string) Db::wert('SELECT datei FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), "select[name=\"' + n + '\"]"));
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);

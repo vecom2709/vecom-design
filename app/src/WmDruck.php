@@ -17,6 +17,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Partner.php';
 require_once __DIR__ . '/PartnerWerbung.php';
 require_once __DIR__ . '/PartnerKarten.php';
+require_once __DIR__ . '/PartnerFlyer.php';
 
 final class WmDruck
 {
@@ -24,7 +25,17 @@ final class WmDruck
     public const FORMATE = [
         'flyer_a6' => 'Flyer A6 (Vorlage)',
         'flyer_a5' => 'Flyer A5 (Vorlage)',
+        'flyer_branche' => 'Branchen-Flyer A5 (Vorlage)',
     ];
+
+    /**
+     * Branchen-Flyer (04.10.2026, Uwe: „die Flyer einzeln in DE/IT/EN … zusätzlich ins
+     * Marketing Center“): Vorderseite = der Branchen-Flyer aus app/flyer (PartnerFlyer,
+     * gleiche Datei wie im Dashboard, 300 dpi mit 3 mm Beschnitt), Rückseite = die
+     * Rückseite des Flyers A5 im schwarz-goldenen Stil — sie trägt Name, Link, Kontakt.
+     * Der „Stil“ ist hier die Branche (z. B. pro-restaurant).
+     */
+    public const RUECKSEITE = ['flyer_branche' => ['flyer_a5', 'a']];
 
     /** @var array<string, array> */
     private static array $layouts = [];
@@ -38,11 +49,16 @@ final class WmDruck
     public static function layout(string $fmt): array
     {
         if (!isset(self::FORMATE[$fmt])) { return []; }
+        if (isset(self::RUECKSEITE[$fmt])) { return self::layout(self::RUECKSEITE[$fmt][0]); }
         return self::$layouts[$fmt] ??= (array) require dirname(__DIR__) . '/werbemittel/' . $fmt . '/layout.php';
     }
 
     public static function gibt(string $fmt, string $stil): bool
     {
+        if (isset(self::RUECKSEITE[$fmt])) {
+            [$rf, $rs] = self::RUECKSEITE[$fmt];
+            return PartnerFlyer::gibt($stil) && PartnerFlyer::sprachen($stil) !== [] && self::gibt($rf, $rs);
+        }
         return isset(self::FORMATE[$fmt], self::layout($fmt)['stile'][$stil]) && is_file(self::datei($fmt, $stil, 'vorn', 'de'));
     }
 
@@ -55,6 +71,12 @@ final class WmDruck
     /** Eine Seite als GD-Bild in voller Größe (mit Beschnitt). $mitQr: false, wenn der Code im PDF als Vektor kommt. */
     private static function leinwand(array $p, string $fmt, string $stil, string $seite, string $sprache, string $kontakt, bool $mitQr = true): ?\GdImage
     {
+        if (isset(self::RUECKSEITE[$fmt])) {
+            if ($seite === 'hinten') { [$rf, $rs] = self::RUECKSEITE[$fmt]; return self::leinwand($p, $rf, $rs, 'hinten', $sprache, $kontakt, $mitQr); }
+            $im = @imagecreatefromjpeg(PartnerFlyer::datei($stil, $sprache));
+            if ($im && $mitQr) { self::qrMalen($im, self::qrVorn($stil, $im), $p, $fmt); }
+            return $im ?: null;
+        }
         $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
         if (!$im) { return null; }
         if ($seite !== 'hinten') { return $im; }
@@ -76,21 +98,41 @@ final class WmDruck
             [$r, $g, $b] = sscanf((string) $f['farbe'], '#%02x%02x%02x');
             imagettftext($im, $pt, 0, (int) round($f['x'] * $k), (int) round($f['y'] * $k), imagecolorallocate($im, $r, $g, $b), $datei, $text);
         }
-        if ($mitQr) {
-            [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
-            [$qx, $qy, $qs] = $L['qr'];
-            $m = $qs * $k / $n; $x0 = $qx * $k; $y0 = $qy * $k;
-            $weiss = imagecolorallocate($im, 255, 255, 255); $schwarz = imagecolorallocate($im, 0, 0, 0);
-            imagefilledrectangle($im, (int) floor($x0), (int) floor($y0), (int) ceil($x0 + $qs * $k), (int) ceil($y0 + $qs * $k), $weiss);
-            for ($y = 0; $y < $n; $y++) {
-                for ($x = 0; $x < $n; $x++) {
-                    if ($raster[$y][$x]) {
-                        imagefilledrectangle($im, (int) round($x0 + $x * $m), (int) round($y0 + $y * $m), (int) round($x0 + ($x + 1) * $m) - 1, (int) round($y0 + ($y + 1) * $m) - 1, $schwarz);
-                    }
+        if ($mitQr) { self::qrMalen($im, ['qr' => $L['qr'], 'k' => $k], $p, $fmt); }
+        return $im;
+    }
+
+    /**
+     * QR-Fläche der Branchen-Vorderseite in 1/10 mm (wie layout.php): mittig in der weißen
+     * Fläche, 84 % ihrer Breite — dasselbe Maß wie im Dashboard (PartnerFlyer::platz).
+     * @return array{qr:array{float,float,float},k:float}
+     */
+    public static function qrVorn(string $slug, ?\GdImage $im = null): array
+    {
+        $f = PartnerFlyer::liste()[$slug];
+        $lay = self::layout('flyer_a5');
+        $k = $f['b'] / (($lay['b'] + 2 * $lay['beschnitt']) * 10);          // Pixel je 1/10 mm
+        [$x, $y, $b, $h] = $f['q'];
+        $s = min($b, $h) * 0.84;
+        return ['qr' => [($x + ($b - $s) / 2) / $k, ($y + ($h - $s) / 2) / $k, $s / $k], 'k' => $im ? imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10) : $k];
+    }
+
+    /** Den echten Code ins Bild (Vorschau, Fassungen ohne Vektor). $L: ['qr' => [x, y, s] in 1/10 mm, 'k' => Pixel je 1/10 mm]. */
+    private static function qrMalen(\GdImage $im, array $L, array $p, string $fmt): void
+    {
+        $k = $L['k'];
+        [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
+        [$qx, $qy, $qs] = $L['qr'];
+        $m = $qs * $k / $n; $x0 = $qx * $k; $y0 = $qy * $k;
+        $weiss = imagecolorallocate($im, 255, 255, 255); $schwarz = imagecolorallocate($im, 0, 0, 0);
+        imagefilledrectangle($im, (int) floor($x0), (int) floor($y0), (int) ceil($x0 + $qs * $k), (int) ceil($y0 + $qs * $k), $weiss);
+        for ($y = 0; $y < $n; $y++) {
+            for ($x = 0; $x < $n; $x++) {
+                if ($raster[$y][$x]) {
+                    imagefilledrectangle($im, (int) round($x0 + $x * $m), (int) round($y0 + $y * $m), (int) round($x0 + ($x + 1) * $m) - 1, (int) round($y0 + ($y + 1) * $m) - 1, $schwarz);
                 }
             }
         }
-        return $im;
     }
 
     private static function jpeg(\GdImage $im, int $q = 90): string
@@ -103,7 +145,7 @@ final class WmDruck
     {
         if (!self::gibt($fmt, $stil)) { return ''; }
         $lay = self::layout($fmt);
-        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt);
+        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !isset(self::RUECKSEITE[$fmt]));
         $h = self::leinwand($p, $fmt, $stil, 'hinten', $sprache, $kontakt, false);
         if (!$v || !$h) { return ''; }
         $bw = $lay['b'] + 2 * $lay['beschnitt']; $bh = $lay['h'] + 2 * $lay['beschnitt'];
@@ -113,9 +155,11 @@ final class WmDruck
         $iv = $pdf->bild(self::jpeg($v, 92), imagesx($v), imagesy($v));
         $ih = $pdf->bild(self::jpeg($h, 92), imagesx($h), imagesy($h));
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
-        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv), $lay['beschnitt'] * $mm);
+        // Branchen-Flyer: Code auch vorn — dort im PDF als Vektor, nicht als Pixel.
+        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, 0.0, (float) $bh) : '';
+        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv) . $vornQr, $lay['beschnitt'] * $mm);
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $ih)
-            . PartnerKarten::qrVektor($lay['stile'][$stil], $n, $raster, 0.0, (float) $bh), $lay['beschnitt'] * $mm);
+            . PartnerKarten::qrVektor($lay['stile'][self::RUECKSEITE[$fmt][1] ?? $stil], $n, $raster, 0.0, (float) $bh), $lay['beschnitt'] * $mm);
         return $pdf->fertig();
     }
 

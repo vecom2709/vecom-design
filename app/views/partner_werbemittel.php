@@ -132,12 +132,19 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
       <?php /* Phase 2: Stand der Druckdatei dieses Partners (Entwurf/Freigabe). Die
                Vorschau zeigt die zuletzt gewählte Fassung, sonst Stil a. */
         $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
-        $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => 'a', 'sprache' => $sprache, 'kontakt' => 'email']; ?>
+        $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => 'a', 'sprache' => $sprache, 'kontakt' => 'email'];
+        /* Branchen-Flyer (04.10.2026): Der „Stil“ ist die Branche. Ohne Wahl: die erste. */
+        $wmBranchen = [];
+        if ($wmP['vorlage'] === 'flyer_branche') {
+            require_once dirname(__DIR__) . '/src/PartnerFlyer.php';
+            foreach (PartnerFlyer::liste() as $wmFs => $wmFf) { if (!empty($wmFf['sp']) && Werbemittel::stilDa('flyer_branche', $wmFs)) { $wmBranchen[$wmFs] = PartnerFlyer::name($wmFs, $sprache); } }
+            if (!isset($wmBranchen[$wmJetzt['stil']])) { $wmJetzt['stil'] = (string) array_key_first($wmBranchen); }
+        } ?>
       <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>">
         <?php if (Werbemittel::gestaltbar((string) $wmP['vorlage'])):
           /* 04.10.2026: jede Vorlage (Visitenkarte, Flyer …) über denselben Vorschau-Weg ?wmv=. */
           $wmBild = $wmNurLesen
-            ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, (string) $wmP['vorlage'], 'a', $sprache, 'email'))
+            ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, (string) $wmP['vorlage'], $wmJetzt['stil'], $sprache, 'email'))
             : $selbst(['wmv' => $wmP['vorlage'], 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
           <img src="<?= $h($wmBild) ?>" <?= $wmP['vorlage'] === 'visitenkarte' ? 'width="720" height="231"' : 'width="528" height="360"' ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
                <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmP['vorlage'], 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
@@ -156,7 +163,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
         </table>
         <?php if (!$wmNurLesen && Werbemittel::gestaltbar((string) $wmP['vorlage'])):
           $wmMeldung = (string) ($_GET['wm'] ?? '');
-          $wmWahlText = static fn(array $w): string => (PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
+          $wmWahlText = static fn(array $w): string => ($wmBranchen[$w['stil'] ?? ''] ?? PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
               . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
               . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email')); ?>
           <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler', 'verworfen'], true)): ?>
@@ -197,11 +204,19 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
               <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_entwurf">
               <p class="wm-meta wm-wahl-hinweis" hidden style="margin:0"><?= $h($W('vorschau_wahl')) ?> ↑</p>
               <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
+              <?php if ($wmBranchen): ?>
+              <fieldset><legend><?= $h($W('branche')) ?></legend>
+                <select name="stil" aria-label="<?= $h($W('branche')) ?>">
+                  <?php foreach ($wmBranchen as $wmS => $wmSn): ?><option value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' selected' : '' ?>><?= $h($wmSn) ?></option><?php endforeach; ?>
+                </select>
+              </fieldset>
+              <?php else: ?>
               <fieldset><legend><?= $h($W('stil')) ?></legend>
                 <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!Werbemittel::stilDa((string) $wmP['vorlage'], $wmS)) { continue; } ?>
                   <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
                 <?php endforeach; ?>
               </fieldset>
+              <?php endif; ?>
               <fieldset><legend><?= $h(Texte::h(Texte::PARTNER['vk_sprache'] ?? [], $sprache)) ?></legend>
                 <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $wmL => $wmLn): ?>
                   <label><input type="radio" name="sprache" value="<?= $wmL ?>"<?= $wmL === $wmJetzt['sprache'] ? ' checked' : '' ?>> <?= $wmLn ?></label>
@@ -321,7 +336,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
     var bild = document.getElementById(f.dataset.bild);
     if (!bild || !bild.dataset.muster) { return; }
     var hinweis = f.querySelector('.wm-wahl-hinweis');
-    var wert = function (n) { var r = f.querySelector('input[name="' + n + '"]:checked'); return r ? r.value : ''; };
+    var wert = function (n) { var r = f.querySelector('input[name="' + n + '"]:checked') || f.querySelector('select[name="' + n + '"]'); return r ? r.value : ''; };
     f.addEventListener('change', function () {
       bild.src = bild.dataset.muster.replace('_S_', encodeURIComponent(wert('stil')))
         .replace('_L_', encodeURIComponent(wert('sprache'))).replace('_K_', encodeURIComponent(wert('kontakt')));
