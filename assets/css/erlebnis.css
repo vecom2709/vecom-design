@@ -542,6 +542,65 @@
   .erlebnis .demos__reihe::-webkit-scrollbar{display:none}
   .erlebnis .demos__reihe > li{scroll-snap-align:start}
 }
+/* ---- Karussell auf der Glasscheibe (04.10.2026, Uwe) -------------------------
+   Nur wenn erlebnis.js es einschaltet (.demos--karussell); sonst gilt das Raster
+   oben. Die Kacheln stehen auf einem Kreis, darunter eine gläserne Scheibe:
+   fast durchsichtig, goldener Rand, ein Lichtschimmer läuft im Kreis, vorn ein
+   warmer Lichtfleck. Gerechnet wird nur transform und opacity. */
+.erlebnis .demos--karussell .karussell{
+  --k-b:clamp(230px, 24vw, 330px);
+  position:relative; perspective:1500px; perspective-origin:50% 18%;
+  padding:clamp(1.4rem,4vh,2.4rem) 0 0;
+  height:calc(var(--k-b) * .75 + clamp(1.4rem,4vh,2.4rem) + clamp(110px, 11vw, 160px));
+  overflow-x:clip; overflow-y:visible;
+}
+.erlebnis .demos--karussell .demos__reihe{
+  display:block; position:relative; width:var(--k-b); aspect-ratio:4/3; margin:0 auto;
+  transform-style:preserve-3d; touch-action:pan-y; cursor:grab;
+  grid-auto-flow:unset; overflow:visible; padding:0;
+}
+.erlebnis .demos--karussell .demos__reihe:active{cursor:grabbing}
+.erlebnis .demos--karussell .demos__reihe > li{
+  position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+}
+.erlebnis .demos--karussell .demo-kachel{
+  height:100%; aspect-ratio:auto;
+  border-color:rgba(241,211,139,.28);
+  box-shadow:0 18px 40px -18px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,240,210,.12);
+  /* Spiegelung in der Glasscheibe (Chrome, Safari; Firefox lässt sie weg) */
+  -webkit-box-reflect:below 8px linear-gradient(to bottom, transparent 62%, rgba(255,255,255,.16));
+}
+.erlebnis .demos--karussell .demo-kachel img{-webkit-user-drag:none; user-select:none}
+.erlebnis .karussell__boden{
+  position:absolute; left:50%; top:calc(clamp(1.4rem,4vh,2.4rem) + var(--k-b) * .375);
+  width:calc(var(--k-radius, 500px) * 2 + var(--k-b) * .7); aspect-ratio:1; translate:-50% -50%;
+  border-radius:50%; pointer-events:none; overflow:hidden;
+  background:
+    radial-gradient(closest-side at 50% 82%, rgba(255,226,160,.22), rgba(255,226,160,0) 46%),
+    radial-gradient(closest-side, rgba(255,244,222,.05) 0%, rgba(241,211,139,.04) 70%, rgba(241,211,139,.14) 93%, rgba(241,211,139,0) 100%),
+    repeating-radial-gradient(circle, rgba(255,240,210,0) 0 38px, rgba(255,240,210,.035) 39px 40px);
+  border:1px solid rgba(241,211,139,.55);
+  box-shadow:0 0 0 6px rgba(241,211,139,.05), 0 0 0 7px rgba(241,211,139,.28), 0 0 90px rgba(241,211,139,.14), inset 0 0 60px rgba(241,211,139,.10);
+}
+/* Goldener Schimmer, der über die Scheibe wandert */
+.erlebnis .karussell__boden::before{
+  content:""; position:absolute; inset:-1px; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(255,226,160,0) 0deg 300deg, rgba(255,226,160,.30) 330deg, rgba(255,248,230,.55) 342deg, rgba(255,226,160,0) 360deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 58%, #000 86%, #000 100%); mask:radial-gradient(closest-side, transparent 58%, #000 86%, #000 100%);
+  animation:karussell-schimmer 9s linear infinite;
+}
+/* Glanzkante innen, wie eine dicke Glasplatte */
+.erlebnis .karussell__boden::after{
+  content:""; position:absolute; inset:7%; border-radius:50%;
+  border:1px solid rgba(255,236,190,.16);
+  background:radial-gradient(closest-side at 40% 30%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%);
+}
+@keyframes karussell-schimmer{to{rotate:360deg}}
+@media (max-width:700px){
+  .erlebnis .demos--karussell .karussell{--k-b:min(70vw, 280px); margin:0 calc(-1 * var(--page-x)); height:calc(var(--k-b) * .75 + 1.4rem + 120px)}
+  .erlebnis .demos--karussell .demos__reihe{scroll-snap-type:none}
+}
+
 /* Geöffnete Bühne: kurz einblenden, Platz für die Kapitelleiste beim Anspringen */
 .erlebnis .demo-buehne{position:relative; scroll-margin-top:84px}
 .erlebnis .demo-buehne:not([hidden]){animation:demo-auf 420ms var(--e-standard)}
