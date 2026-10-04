@@ -1047,7 +1047,10 @@ if (demos && !BEWEGUNG_AUS && 'IntersectionObserver' in window && CSS.supports('
   buehne.className = 'karussell';
   const boden = document.createElement('div');
   boden.className = 'karussell__boden'; boden.setAttribute('aria-hidden', 'true');
-  reihe.before(buehne); buehne.append(boden, reihe);
+  // Die Kante der dünnen Glasplatte: eine zweite Scheibe, 3 px tiefer -- vorn bleibt ein goldener Lichtstreif sichtbar.
+  const kante = document.createElement('div');
+  kante.className = 'karussell__kante'; kante.setAttribute('aria-hidden', 'true');
+  reihe.before(buehne); buehne.append(kante, boden, reihe);
   demos.classList.add('demos--karussell');
 
   const TEMPO = -7;            // Grad je Sekunde; negativ = vorn von rechts nach links
@@ -1060,17 +1063,26 @@ if (demos && !BEWEGUNG_AUS && 'IntersectionObserver' in window && CSS.supports('
     const b = plaetze[0].offsetWidth; hoehe = plaetze[0].offsetHeight;
     radius = Math.round(b / 2 / Math.tan(Math.PI / n) + b * 0.12);
     buehne.style.setProperty('--k-radius', radius + 'px');
-    plaetze.forEach((li, i) => { li.style.transform = `rotateY(${i * schritt}deg) translateZ(${radius}px)`; });
     boden.style.transform = `translateZ(${-radius}px) rotateX(${NEIGUNG}deg) translateY(${hoehe / 2 + 4}px) rotateX(90deg)`;
+    kante.style.transform = `translateZ(${-radius}px) rotateX(${NEIGUNG}deg) translateY(${hoehe / 2 + 7}px) rotateX(90deg)`;
     zeichnen();
   }
   function zeichnen() {
     reihe.style.transform = `translateZ(${-radius}px) rotateX(${NEIGUNG}deg) rotateY(${winkel}deg)`;
     // Tiefe: hinten blasser; was abgewandt ist, nimmt keine Klicks an.
+    // Hineinfallen (04.10.2026, Uwe: Parallaxe „als würde man hineinfallen“): Das Bild liegt
+    // hinter dem Rahmen wie hinter einem Fenster und wandert gegen die Drehung (--px), der
+    // Text ein Stück mit ihr -- zwei Ebenen, die sich gegeneinander verschieben. Je näher eine
+    // Kachel nach vorn kommt (--nah), desto weiter zoomt das Bild auf und desto weiter tritt
+    // die Kachel aus dem Kreis heraus: der Blick fällt in die Szene.
     for (let i = 0; i < n; i++) {
-      const c = Math.cos((i * schritt + winkel) * Math.PI / 180);
-      plaetze[i].style.opacity = (0.3 + 0.7 * Math.max(0, c) ** 1.4).toFixed(3);
-      plaetze[i].style.pointerEvents = c > 0.2 ? '' : 'none';
+      const r = (i * schritt + winkel) * Math.PI / 180, c = Math.cos(r), nah = Math.max(0, c) ** 3;
+      const li = plaetze[i];
+      li.style.transform = `rotateY(${i * schritt}deg) translateZ(${(radius + nah * 46).toFixed(1)}px)`;
+      li.style.setProperty('--px', Math.sin(r).toFixed(3));
+      li.style.setProperty('--nah', nah.toFixed(3));
+      li.style.opacity = (0.3 + 0.7 * Math.max(0, c) ** 1.4).toFixed(3);
+      li.style.pointerEvents = c > 0.2 ? '' : 'none';
     }
   }
   const nachVorn = (i) => -i * schritt + 360 * Math.round((winkel + i * schritt) / 360);

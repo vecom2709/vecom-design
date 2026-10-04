@@ -568,32 +568,48 @@
   border-color:rgba(241,211,139,.28);
   box-shadow:0 18px 40px -18px rgba(0,0,0,.9), inset 0 1px 0 rgba(255,240,210,.12);
   /* Spiegelung in der Glasscheibe (Chrome, Safari; Firefox lässt sie weg) */
-  -webkit-box-reflect:below 8px linear-gradient(to bottom, transparent 62%, rgba(255,255,255,.16));
+  -webkit-box-reflect:below 8px linear-gradient(to bottom, transparent 66%, rgba(255,236,190,.13));
 }
 .erlebnis .demos--karussell .demo-kachel img{-webkit-user-drag:none; user-select:none}
-.erlebnis .karussell__boden{
+/* Parallaxe beim Drehen (04.10.2026, Uwe: „als würde man hineinfallen“). Die Werte setzt
+   erlebnis.js je Bild: --px (−1 links … 1 rechts), --nah (0 seitlich … 1 vorn).
+   Das Bild ist größer als der Rahmen, damit beim Wandern kein Rand sichtbar wird. */
+.erlebnis .demos--karussell .demo-kachel img{
+  transition:none; will-change:transform;
+  transform:translate3d(calc(var(--px, 0) * -11%), 0, 0) scale(calc(1.2 + var(--nah, 0) * .16));
+}
+.erlebnis .demos--karussell .demo-kachel__text{transform:translate3d(calc(var(--px, 0) * 9px), 0, 0)}
+/* Dünne Glasplatte aus goldenem Licht (04.10.2026, Uwe: „eher wie eine dünne Glasplatte,
+   die mehr wie goldenes Licht aussieht“): fast durchsichtig, die Fläche nur ein warmer
+   Lichtschleier, der Rand eine leuchtende Goldlinie. Die Kante (3 px tiefer) gibt die Dicke. */
+.erlebnis .karussell__boden, .erlebnis .karussell__kante{
   position:absolute; left:50%; top:calc(clamp(1.4rem,4vh,2.4rem) + var(--k-b) * .375);
   width:calc(var(--k-radius, 500px) * 2 + var(--k-b) * .7); aspect-ratio:1; translate:-50% -50%;
-  border-radius:50%; pointer-events:none; overflow:hidden;
-  background:
-    radial-gradient(closest-side at 50% 82%, rgba(255,226,160,.22), rgba(255,226,160,0) 46%),
-    radial-gradient(closest-side, rgba(255,244,222,.05) 0%, rgba(241,211,139,.04) 70%, rgba(241,211,139,.14) 93%, rgba(241,211,139,0) 100%),
-    repeating-radial-gradient(circle, rgba(255,240,210,0) 0 38px, rgba(255,240,210,.035) 39px 40px);
-  border:1px solid rgba(241,211,139,.55);
-  box-shadow:0 0 0 6px rgba(241,211,139,.05), 0 0 0 7px rgba(241,211,139,.28), 0 0 90px rgba(241,211,139,.14), inset 0 0 60px rgba(241,211,139,.10);
+  border-radius:50%; pointer-events:none;
 }
-/* Goldener Schimmer, der über die Scheibe wandert */
+.erlebnis .karussell__kante{
+  border:2px solid rgba(255,196,96,.75);
+  box-shadow:0 0 14px rgba(255,190,90,.55), 0 0 46px rgba(255,180,70,.22);
+}
+.erlebnis .karussell__boden{
+  overflow:hidden;
+  background:
+    radial-gradient(closest-side at 50% 80%, rgba(255,222,150,.34), rgba(255,222,150,0) 52%),
+    radial-gradient(closest-side, rgba(255,214,140,.05) 0%, rgba(255,205,120,.09) 62%, rgba(255,214,140,.30) 94%, rgba(255,214,140,0) 100%);
+  border:1px solid rgba(255,238,196,.95);
+  box-shadow:0 0 10px rgba(255,226,160,.8), 0 0 34px rgba(255,200,110,.45), 0 0 110px rgba(241,190,100,.22), inset 0 0 26px rgba(255,214,140,.30);
+}
+/* Goldener Lichtschimmer, der über die Platte wandert */
 .erlebnis .karussell__boden::before{
   content:""; position:absolute; inset:-1px; border-radius:50%;
-  background:conic-gradient(from 0deg, rgba(255,226,160,0) 0deg 300deg, rgba(255,226,160,.30) 330deg, rgba(255,248,230,.55) 342deg, rgba(255,226,160,0) 360deg);
-  -webkit-mask:radial-gradient(closest-side, transparent 58%, #000 86%, #000 100%); mask:radial-gradient(closest-side, transparent 58%, #000 86%, #000 100%);
+  background:conic-gradient(from 0deg, rgba(255,226,160,0) 0deg 290deg, rgba(255,214,140,.38) 325deg, rgba(255,250,232,.75) 342deg, rgba(255,226,160,0) 360deg);
+  -webkit-mask:radial-gradient(closest-side, transparent 40%, #000 92%, #000 100%); mask:radial-gradient(closest-side, transparent 40%, #000 92%, #000 100%);
   animation:karussell-schimmer 9s linear infinite;
 }
-/* Glanzkante innen, wie eine dicke Glasplatte */
+/* Ein schwacher Glanz quer über das Glas, wie bei Licht auf einer dünnen Scheibe */
 .erlebnis .karussell__boden::after{
-  content:""; position:absolute; inset:7%; border-radius:50%;
-  border:1px solid rgba(255,236,190,.16);
-  background:radial-gradient(closest-side at 40% 30%, rgba(255,255,255,.06), rgba(255,255,255,0) 60%);
+  content:""; position:absolute; inset:0; border-radius:50%;
+  background:linear-gradient(115deg, rgba(255,255,255,0) 30%, rgba(255,246,222,.10) 46%, rgba(255,255,255,0) 58%);
 }
 @keyframes karussell-schimmer{to{rotate:360deg}}
 @media (max-width:700px){

@@ -16830,7 +16830,7 @@ pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisbloc
    Es ordnet nur dieselben Knöpfe anders an: ohne Skript und bei „Bewegung reduzieren“ bleibt das Raster, wer zieht, öffnet nichts. */
 $krJs = (string) file_get_contents($wurzel . '/../assets/js/erlebnis/erlebnis.js');
 $krCss = (string) file_get_contents($wurzel . '/../assets/css/erlebnis.css');
-pruefe('Demo-Karussell: läuft nach links, hält bei Maus/Fokus/offener Demo, nur ohne „Bewegung reduzieren“, Ziehen öffnet nichts, Glasscheibe mit Schimmer',
+pruefe('Demo-Karussell: läuft nach links, hält bei Maus/Fokus/offener Demo, nur ohne „Bewegung reduzieren“, Ziehen öffnet nichts, Parallaxe zum Hineinfallen, dünne Glasplatte aus goldenem Licht',
     str_contains($krJs, "if (demos && !BEWEGUNG_AUS && 'IntersectionObserver' in window")
     && preg_match('~const TEMPO = -\d~', $krJs) === 1
     && str_contains($krJs, 'const soll = ueber || fokus || stehtOffen ? 0 : TEMPO;')
@@ -16838,6 +16838,9 @@ pruefe('Demo-Karussell: läuft nach links, hält bei Maus/Fokus/offener Demo, nu
     && str_contains($krJs, "attributeFilter: ['aria-expanded']")
     && str_contains($krCss, '.erlebnis .demos--karussell .demos__reihe{') && str_contains($krCss, 'backface-visibility:hidden')
     && str_contains($krCss, '.erlebnis .karussell__boden::before{') && str_contains($krCss, '@keyframes karussell-schimmer')
+    /* Hineinfallen und dünne Lichtplatte (04.10.2026): Bild wandert gegen die Drehung, zoomt vorn auf, Kachel tritt vor; Kante als zweite Scheibe */
+    && str_contains($krJs, "li.style.setProperty('--px', Math.sin(r).toFixed(3));") && str_contains($krJs, 'translateZ(${(radius + nah * 46).toFixed(1)}px)')
+    && str_contains($krCss, 'scale(calc(1.2 + var(--nah, 0) * .16))') && str_contains($krCss, '.erlebnis .karussell__kante{')
     && substr_count((string) file_get_contents($wurzel . '/../index.html'), 'class="demo-kachel" data-demo=') === 10);
 $sgP = (string) file_get_contents($wurzel . '/../p.php');
 pruefe('Gütesiegel auf der Partnerseite: klein über der oberen rechten Ecke des Titelbilds, ohne Text, Bild ohne Abschneiden, Halteknopf links',
