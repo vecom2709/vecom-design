@@ -16784,6 +16784,9 @@ pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisbloc
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), '<img src="/assets/img/siegel/vecom-siegel-240.webp"')
     /* Hinweis beim Darüberfahren (04.10.2026): internes Siegel, keine Zertifizierung — überall, in drei Sprachen */
     && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'data-i18n="siegel.hinweis"')
+    /* Gleich beim Aufruf sichtbar (04.10.2026): im Startbild, ohne Einblendung (kein data-reveal) */
+    && preg_match('~<figure class="siegel siegel--held" tabindex="0"[^>]*>~', (string) file_get_contents($wurzel . '/../index.html'))
+    && !str_contains((string) file_get_contents($wurzel . '/../index.html'), 'siegel--held" data-reveal')
     && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'data-i18n="siegel.hinweis"')
     && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), "\$T('siegel_hinweis')")
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, ', hinweis: "') && preg_match('~(Zertifizierung|certificazione|certification)~', $t))) === 3

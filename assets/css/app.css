@@ -4561,6 +4561,18 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
   .siegel:hover img, .siegel:focus img { translate: 0 0; }
 }
 
+/* Im Startbild (04.10.2026): unten rechts über dem Scroll-Hinweis, neben der
+   Bühne mit dem V — gleich beim Aufruf zu sehen. Der Hinweis klappt nach
+   OBEN auf, weil .hero overflow: hidden hat. Auf dem Handy oben rechts neben
+   der Überschrift, der Hinweis dann nach unten. */
+.siegel--held { --siegel: clamp(118px, 10vw, 168px); right: var(--page-x, 24px); bottom: clamp(5.5rem, 15vh, 8.5rem); }
+.siegel--held .siegel__hinweis { top: auto; bottom: calc(100% + 12px); translate: 0 -6px; }
+.siegel--held:hover .siegel__hinweis, .siegel--held:focus .siegel__hinweis, .siegel--held:focus-visible .siegel__hinweis { translate: 0 0; }
+@media (max-width: 640px) {
+  .siegel--held { --siegel: 74px; bottom: auto; top: 98px; right: 10px; }
+  .siegel--held .siegel__hinweis { top: calc(100% + 10px); bottom: auto; translate: 0 6px; }
+}
+
 /* Neben dem Siegel läuft kein Text darunter durch. */
 @media (min-width: 641px) { .siegel-halter--antwort .antwort__text { padding-right: calc(var(--siegel) * .55); } }
 /* Auf dem Handy nicht über den Rand hinaus — sonst schiebt es die Seite seitlich. */

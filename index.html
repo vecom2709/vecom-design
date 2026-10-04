@@ -57,7 +57,7 @@
 } catch (e) {} })();
 </script>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=e10da92c">
+<link rel="stylesheet" href="assets/css/app.css?v=e96ef888">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=612a46c6">
 <link rel="stylesheet" href="assets/css/edel.css?v=4ec9ebb0">
 <link rel="stylesheet" href="assets/css/story.css?v=ea4cb1a8">
@@ -448,6 +448,16 @@
       </div>
     </div>
   </div>
+
+  <!-- Gütesiegel im Startbild (04.10.2026, Uwe: „gleich ersichtlich, wenn der
+       Kunde auf die Webseite geht“). Steht ohne Einblendung da — kein
+       Warten auf Scrollen oder Klicken; der Hinweis „interner Standard“
+       erscheint beim Darüberfahren/Antippen wie am Preisblock. -->
+  <figure class="siegel siegel--held" tabindex="0" aria-describedby="siegel-hinweis-held">
+    <img src="assets/img/siegel/vecom-siegel-360.webp?v=587aac4c" width="240" height="240" decoding="async" fetchpriority="low"
+         data-i18n-attr="alt:siegel.alt" alt="Sigillo «Vecom Quality Standard» di Vecom Design: ogni sito nasce secondo il nostro standard di qualità">
+    <figcaption class="siegel__hinweis" id="siegel-hinweis-held" role="tooltip" data-i18n="siegel.hinweis">Il Vecom Quality Standard è uno standard di qualità interno, definito da Vecom Design per i progetti digitali sviluppati da Vecom Design. Non costituisce una certificazione rilasciata da un organismo di verifica indipendente.</figcaption>
+  </figure>
 
   <div class="scrollcue" aria-hidden="true">
     <span data-i18n="hero.scroll">Scorra</span>
