@@ -21247,9 +21247,10 @@ $wmWerte = ['p' => $wmPa, 'sprache' => 'de', 'h' => static fn(?string $x): strin
 $wmPaHtml = (static function (array $v) use ($wurzel): string { extract($v); ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })($wmWerte);
 restore_error_handler();
 pruefe('Partner-Reiter „Marketing Center“ rendert ohne Warnung: Name, ID, QR auf /p/CODE/qr, Endpreis, Hinweis „erst freigeben“, Kit-Verweise',
-    $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 3 && str_contains($wmPaHtml, 'WANDAM')
+    // 8 Blöcke seit Schritt 2: Start, Daten, Katalog, Designs, Bestellungen (leer), Favoriten, Erfolge, Kit
+    $wmFehler === null && substr_count($wmPaHtml, 'data-reiter="werbemittel"') === 8 && str_contains($wmPaHtml, 'WANDAM')
     && str_contains($wmPaHtml, '/p/WANDAM/qr') && str_contains($wmPaHtml, "22,10\u{00A0}€") && str_contains($wmPaHtml, 'Zum Bestellen zuerst oben eine Druckdatei erstellen und freigeben.')
-    && str_contains($wmPaHtml, 'href="#medien"') && str_contains($wmPaHtml, 'wmqr=svg') && str_contains($wmPaHtml, 'wmqr=png'), (string) $wmFehler);
+    && str_contains($wmPaHtml, 'href="#medien"') && str_contains($wmPaHtml, 'wmqr=svg') && str_contains($wmPaHtml, 'wmqr=png'), (string) $wmFehler . ' Blöcke: ' . substr_count($wmPaHtml, 'data-reiter="werbemittel"'));
 pruefe('Im Partner-HTML steht kein Einkaufspreis und keine Marge (18,40 € / 3,70 €)',
     !str_contains($wmPaHtml, '18,40') && !str_contains($wmPaHtml, '3,70') && !str_contains(mb_strtolower($wmPaHtml), 'einkauf') && !str_contains(mb_strtolower($wmPaHtml), 'marge'));
 $wmPng = QrBild::png(PartnerWerbung::link($wmPa, 'qr'));
@@ -22385,6 +22386,106 @@ pruefe('Preise holen: genau die bereiten Druckereien mit Preis-Schnittstelle (in
 $dsV = (string) file_get_contents($wurzel . '/src/DruckereiSchnittstelle.php');
 pruefe('Versandarten bewusst nicht erfunden: die Schnittstelle sagt, warum es getShippingOptions noch nicht gibt',
     str_contains($dsV, 'getShippingOptions') && str_contains($dsV, 'keine erfundenen Endpunkte') && !preg_match('~function\s+versand~i', $dsV));
+
+/* ============================================================================
+   Marketingcenter, Schritt 2: Startseite, 13 Bereiche, Favoriten, Designs (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Grundstruktur');
+foreach (['Marketingcenter', 'Werbemittel', 'PartnerKarten', 'PartnerWerbung', 'QrBild', 'Fmt', 'WmBestellung'] as $gsKl) { require_once $wurzel . "/src/$gsKl.php"; }
+pruefe('13 Bereiche in Uwes Reihenfolge, 7 davon mit Produkten; jeder Bereich hat Namen und Satz in drei Sprachen',
+    Marketingcenter::BEREICHE === ['uebersicht', 'print', 'pos', 'textil', 'fahrzeug', 'event', 'digital', 'premium', 'starter', 'designs', 'bestellungen', 'favoriten', 'erfolge']
+    && !array_diff(Marketingcenter::PRODUKT_BEREICHE, Marketingcenter::BEREICHE)
+    && !array_filter(Marketingcenter::BEREICHE, static fn($b) => array_filter(['it', 'de', 'en'], static fn($l) => trim((string) (Texte::MARKETINGCENTER['b'][$b][$l] ?? '')) === '' || trim((string) (Texte::MARKETINGCENTER['bs'][$b][$l] ?? '')) === '')));
+$gsTexteOk = true;
+foreach (Texte::MARKETINGCENTER as $gsK => $gsV) {
+    $gsListe = in_array($gsK, ['b', 'bs', 'dig', 'd_status'], true) ? $gsV : [$gsV];
+    foreach ($gsListe as $gsT) { foreach (['it', 'de', 'en'] as $gsL) { $gsTexteOk = $gsTexteOk && trim((string) ($gsT[$gsL] ?? '')) !== ''; } }
+}
+pruefe('Alle Texte des Marketingcenters dreisprachig, Leitsatz duzt (Markenclaim), der Rest siezt',
+    $gsTexteOk && Texte::MARKETINGCENTER['claim']['de'] === 'DEIN MARKETING. DEINE REICHWEITE. DEIN VECOM DESIGN.'
+    && !preg_match('~\b(du|dein|deine|dich|dir)\b~iu', Texte::MARKETINGCENTER['satz']['de'] . Texte::MARKETINGCENTER['bald_satz']['de'] . Texte::MARKETINGCENTER['e_satz']['de']));
+pruefe('Bereich je Produkt: eigene Angabe vor Kategorie, Unbekanntes fällt auf die Kategorie bzw. Print; Roll-up per Migration bei Events',
+    Marketingcenter::bereich(null, 'visitenkarten') === 'print' && Marketingcenter::bereich(null, 'aufkleber') === 'pos'
+    && Marketingcenter::bereich('event', 'aufsteller') === 'event' && Marketingcenter::bereich('quatsch', 'textil') === 'textil'
+    && Marketingcenter::bereich(null, 'gibtsnicht') === 'print' && Marketingcenter::bereich('digital', 'flyer') === 'print'
+    && Db::wert("SELECT bereich FROM wm_produkte WHERE vorlage = 'rollup_85'", [], null) === 'event');
+$gsVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$gsGespeichert = [];
+foreach (array_merge(Marketingcenter::PRODUKT_BEREICHE, ['digital', 'quatsch', '']) as $gsB) {
+    Werbemittel::produktSpeichern(['kategorie_id' => (int) $gsVk['kategorie_id'], 'name_it' => (string) $gsVk['name_it'], 'vorlage' => 'visitenkarte', 'bereich' => $gsB, 'aktiv' => (int) $gsVk['aktiv']], (int) $gsVk['id']);
+    $gsGespeichert[$gsB] = Db::wert('SELECT bereich FROM wm_produkte WHERE id = ?', [(int) $gsVk['id']], null);
+}
+pruefe('Verwaltung speichert genau die Produktbereiche (Digital, Unsinn und leer → „wie die Kategorie“)',
+    array_slice($gsGespeichert, 0, 7) === array_combine(Marketingcenter::PRODUKT_BEREICHE, Marketingcenter::PRODUKT_BEREICHE)
+    && $gsGespeichert['digital'] === null && $gsGespeichert['quatsch'] === null && $gsGespeichert[''] === null
+    && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'name="bereich"'));
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $gsVk['id']]);
+// Ein geprüftes Angebot, sonst ist nichts bestellbar und der Katalog leer (frühere Abschnitte räumen die Preise ab).
+$gsVar = (int) Db::wert('SELECT id FROM wm_varianten WHERE produkt_id = ? AND aktiv = 1 ORDER BY id LIMIT 1', [(int) $gsVk['id']], 0);
+Db::run("INSERT INTO wm_anbieter_preise (variante_id, anbieter, land, preis_cent, netto_cent, papier, lieferung, link, geprueft_am)
+         VALUES (?, 'Kette', 'IT', 2000, 1639, '', '', '', CURDATE())", [$gsVar]);
+$gsKat = Werbemittel::katalog('de');
+$gsNach = Marketingcenter::nachBereich($gsKat);
+pruefe('Katalog nach Bereichen: alle Produktbereiche als Schlüssel, die Visitenkarte unter Print mit Kategorie',
+    array_keys($gsNach) === Marketingcenter::PRODUKT_BEREICHE && (int) ($gsNach['print'][0]['id'] ?? 0) === (int) $gsVk['id']
+    && ($gsNach['print'][0]['kategorie'] ?? '') !== '' && $gsNach['fahrzeug'] === []);
+$gsA = Partner::laden(Partner::anlegen(['name' => 'Gina Struktur', 'email' => 'gina.s@partner.example', 'code' => 'GINASTR', 'sprache' => 'de']));
+$gsB2 = Partner::laden(Partner::anlegen(['name' => 'Gero Fremd', 'email' => 'gero.f@partner.example', 'code' => 'GEROFR', 'sprache' => 'de']));
+$gsAus = (int) Db::wert('SELECT id FROM wm_produkte WHERE aktiv = 0 ORDER BY id LIMIT 1', [], 0);
+pruefe('Favoriten: an, aus, wieder an; ausgeschaltetes oder unbekanntes Produkt geht nicht; jeder sieht nur seine eigenen',
+    Marketingcenter::favoritUmschalten((int) $gsA['id'], (int) $gsVk['id']) === true
+    && Marketingcenter::favoritUmschalten((int) $gsA['id'], (int) $gsVk['id']) === false
+    && Marketingcenter::favoritUmschalten((int) $gsA['id'], (int) $gsVk['id']) === true
+    && ($gsAus === 0 || Marketingcenter::favoritUmschalten((int) $gsA['id'], $gsAus) === null)
+    && Marketingcenter::favoritUmschalten((int) $gsA['id'], 99999999) === null
+    && Marketingcenter::favoriten((int) $gsA['id']) === [(int) $gsVk['id']] && Marketingcenter::favoriten((int) $gsB2['id']) === []);
+$gsE1 = Werbemittel::entwurfAnlegen($gsA, (int) $gsVk['id'], ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email']);
+$gsH1 = (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$gsE1]);
+Werbemittel::freigeben((int) $gsA['id'], $gsE1, $gsH1);
+$gsE2 = Werbemittel::entwurfAnlegen($gsA, (int) $gsVk['id'], ['stil' => 'b', 'sprache' => 'de', 'kontakt' => 'email']);
+Werbemittel::freigeben((int) $gsA['id'], $gsE2, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$gsE2]));
+$gsE3 = Werbemittel::entwurfAnlegen($gsA, (int) $gsVk['id'], ['stil' => 'c', 'sprache' => 'de', 'kontakt' => 'email']);
+Db::insert('wm_entwuerfe', ['partner_id' => (int) $gsA['id'], 'produkt_id' => (int) $gsVk['id'], 'wahl' => '{}', 'datei' => '', 'datei_hash' => str_repeat('0', 64), 'status' => 'entsteht']);
+Werbemittel::entwurfAnlegen($gsB2, (int) $gsVk['id'], ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email']);
+for ($gsI = 0; $gsI < 5; $gsI++) { Partner::klick((int) $gsA['id'], 'wm-' . $gsE1); }
+Partner::klick((int) $gsA['id'], 'wm-' . $gsE2);
+$gsD = Marketingcenter::designs((int) $gsA['id'], 'de');
+pruefe('Meine Designs: nur eigene, neueste zuerst, ersetzte bleiben (ihr QR zählt weiter), „entsteht“ nie, mit Marketing-ID und Zahlen',
+    array_column($gsD, 'id') === [$gsE3, $gsE2, $gsE1] && array_column($gsD, 'status') === ['entwurf', 'freigegeben', 'ersetzt']
+    && $gsD[2]['marketing_id'] === Werbemittel::marketingId(['id' => $gsE1, 'created_at' => date('Y-m-d')]) && $gsD[2]['erfolg']['scans'] === 5
+    && $gsD[0]['produkt'] !== '' && !isset($gsD[0]['datei']), json_encode(array_column($gsD, 'status')));
+$gsEr = Marketingcenter::erfolge($gsD);
+pruefe('Marketing-Erfolge: Summe über alle Designs, die besten zuerst, nur Designs mit Wirkung',
+    $gsEr['summe']['scans'] === 6 && array_column($gsEr['beste'], 'id') === [$gsE1, $gsE2] && $gsEr['quote'] === 0.0
+    && Marketingcenter::erfolge([])['quote'] === null && Marketingcenter::erfolge([])['summe'] === ['scans' => 0, 'besucher' => 0, 'anfragen' => 0, 'abschluesse' => 0]);
+$gsFehler = null; set_error_handler(static function (int $n, string $m) use (&$gsFehler): bool { $gsFehler = $m; return true; });
+$gsHtml = (static function (array $v) use ($wurzel): string { extract($v); $_SESSION['csrf'] = 'gscsrf'; ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })(
+    ['p' => $gsA, 'sprache' => 'de', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+     'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)), 'wmKatalog' => $gsKat, 'wmNurLesen' => false]);
+restore_error_handler();
+preg_match('~<nav class="mc-karten".*?</nav>~s', $gsHtml, $gsNav);
+pruefe('Partneransicht: Leitsatz, echtes V-Logo, 13 Karten, Filterregel je Bereich, ohne Warnung',
+    $gsFehler === null && str_contains($gsHtml, 'DEIN VECOM DESIGN.') && str_contains($gsHtml, '/assets/img/logo-mark.webp')
+    && substr_count($gsNav[0] ?? '', '<a class="mc-karte') === 13 && substr_count($gsHtml, 'html[data-mc="') >= 13,
+    (string) $gsFehler . ' Karten ' . substr_count($gsNav[0] ?? '', '<a class="mc-karte') . ' Regeln ' . substr_count($gsHtml, 'html[data-mc="') . ' Claim ' . (int) str_contains($gsHtml, 'DEIN VECOM DESIGN.'));
+pruefe('Leere Produktbereiche sagen ehrlich „In Vorbereitung“ (keine Platzhalter-Produkte), gefüllte zeigen ihre Produkte',
+    preg_match('~<section class="mc-bereich" id="mc-fahrzeug" data-mc-teil="fahrzeug">.*?In Vorbereitung.*?</section>~s', $gsHtml) === 1
+    && !preg_match('~id="mc-fahrzeug".*?class="wm-produkt".*?</section>~s', $gsHtml)
+    && preg_match('~id="mc-print" data-mc-teil="print uebersicht">.*?id="wm-p' . (int) $gsVk['id'] . '"~s', $gsHtml) === 1);
+pruefe('Merken-Knopf je Produkt mit CSRF (gemerkt = aria-pressed true), Favoritenliste, Meine Designs mit IDs, Erfolge mit 6 Scans',
+    str_contains($gsHtml, 'name="tat" value="wm_favorit"') && str_contains($gsHtml, 'value="gscsrf"') && str_contains($gsHtml, 'aria-pressed="true"')
+    && str_contains($gsHtml, 'id="mc-favoriten" data-reiter="werbemittel" data-mc-teil="favoriten uebersicht"')
+    && str_contains($gsHtml, Werbemittel::marketingId(['id' => $gsE3, 'created_at' => date('Y-m-d')])) && preg_match('~id="mc-erfolge".*?<b>6</b>~s', $gsHtml) === 1);
+$gsPhp = (string) file_get_contents($oben . '/partner.php');
+pruefe('partner.php: Merken nur für den eigenen Partner, Rücksprung zum Produkt oder zur Liste',
+    str_contains($gsPhp, "Marketingcenter::favoritUmschalten((int) \$p['id'], \$wmPid)") && str_contains($gsPhp, "#mc-favoriten"));
+Db::run('DELETE FROM wm_favoriten WHERE partner_id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
+Db::run('DELETE FROM partner_klicks WHERE partner_id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
+Db::run('DELETE FROM partner_kanal_klicks WHERE partner_id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ?, bereich = NULL WHERE id = ?', [(int) $gsVk['aktiv'], (int) $gsVk['id']]);
+Db::run("DELETE FROM wm_anbieter_preise WHERE anbieter = 'Kette'");
 
 /* ============================================================================
    Aufräumen und Bilanz

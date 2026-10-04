@@ -270,6 +270,7 @@ final class Werbemittel
                     'text'      => self::feld($p, 'text', $sprache),
                     'format'    => self::format($p),
                     'vorlage'   => (string) $p['vorlage'],
+                    'bereich'   => $p['bereich'] ?? null,   // Bereich im Marketing Center (Marketingcenter::bereich)
                     'land'      => $land,
                     'ab_cent'   => $imLand ? min($imLand) : min(array_map(static fn($v) => min($v['preise']), $varianten)),
                     'varianten' => $varianten,
@@ -330,6 +331,8 @@ final class Werbemittel
             'hoehe_zmm'     => self::mmZuZmm($e['hoehe_mm'] ?? '0'),
             'beschnitt_zmm' => self::mmZuZmm($e['beschnitt_mm'] ?? '3'),
             'vorlage'       => array_key_exists((string) ($e['vorlage'] ?? ''), self::VORLAGEN) ? (string) $e['vorlage'] : '',
+            // Bereich im Marketing Center; leer = wie die Kategorie (04.10.2026)
+            'bereich'       => in_array((string) ($e['bereich'] ?? ''), ['print', 'pos', 'textil', 'fahrzeug', 'event', 'premium', 'starter'], true) ? (string) $e['bereich'] : null,
             'marge_prozent' => self::leerOderZahl($e['marge_prozent'] ?? '', 0, 500),
             'mindestmarge_cent' => self::leerOderEuro($e['mindestmarge_eur'] ?? ''),
             'aktiv'         => !empty($e['aktiv']) ? 1 : 0,

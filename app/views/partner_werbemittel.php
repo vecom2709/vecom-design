@@ -35,6 +35,33 @@ if (!$wmNurLesen && isset($_GET['wmnochmal'])) {
     }
 }
 $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.2026)
+/* Marketingcenter Schritt 2 (04.10.2026): Bereiche statt Kategorien, Favoriten, Designs, Erfolge. */
+require_once dirname(__DIR__) . '/src/Marketingcenter.php';
+$mcB = Marketingcenter::nachBereich($wmKatalog);
+$mcProdukte = [];
+foreach ($mcB as $mcX => $mcL) { foreach ($mcL as $mcPr) { $mcProdukte[(int) $mcPr['id']] = $mcPr + ['mc_bereich' => $mcX]; } }
+$mcEigen = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0;
+$mcFav = $mcEigen ? Marketingcenter::favoriten((int) $p['id']) : [];
+$mcDesigns = $mcEigen ? Marketingcenter::designs((int) $p['id'], $sprache) : [];
+$mcErfolge = Marketingcenter::erfolge($mcDesigns);
+$mcKit = ['werbung', 'beitraege', 'medien', 'branchen', 'gutschein', 'seite'];
+$mcT = static fn(string $k, array $r = []): string => strtr(Texte::h(Texte::MARKETINGCENTER[$k] ?? [], $sprache), $r);
+$mcZahl = ['uebersicht' => $mcT(count($mcProdukte) === 1 ? 'n_produkt' : 'n_produkte', ['{n}' => (string) count($mcProdukte)])];
+$mcDa = ['uebersicht' => true];
+$mcZiel = ['uebersicht' => 'mc-start'];
+foreach (Marketingcenter::PRODUKT_BEREICHE as $mcX) {
+    $mcN = count($mcB[$mcX]);
+    $mcZahl[$mcX] = $mcN === 0 ? $mcT('bald') : $mcT($mcN === 1 ? 'n_produkt' : 'n_produkte', ['{n}' => (string) $mcN]);
+    $mcDa[$mcX] = $mcN > 0; $mcZiel[$mcX] = 'mc-' . $mcX;
+}
+$mcZahl['digital'] = $mcT('n_werkzeuge', ['{n}' => (string) count($mcKit)]); $mcDa['digital'] = true; $mcZiel['digital'] = 'werbemittel-kit';
+if ($mcEigen) {
+    $mcZahl['designs'] = (string) count($mcDesigns); $mcDa['designs'] = (bool) $mcDesigns; $mcZiel['designs'] = 'mc-designs';
+    $mcZahl['bestellungen'] = (string) count($wmBestellungen); $mcDa['bestellungen'] = (bool) $wmBestellungen; $mcZiel['bestellungen'] = $wmBestellungen ? 'wm-bestellungen' : 'mc-bestellungen';
+    $mcFavN = count(array_filter($mcFav, static fn($i) => isset($mcProdukte[$i])));
+    $mcZahl['favoriten'] = (string) $mcFavN; $mcDa['favoriten'] = $mcFavN > 0; $mcZiel['favoriten'] = 'mc-favoriten';
+    $mcZahl['erfolge'] = $mcT('n_scans', ['{n}' => (string) $mcErfolge['summe']['scans']]); $mcDa['erfolge'] = $mcErfolge['summe']['scans'] > 0; $mcZiel['erfolge'] = 'mc-erfolge';
+}
 ?>
 <style>
   .wm-kopf{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center}
@@ -100,7 +127,9 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
   @media (max-width:520px){ .wm-kopf{grid-template-columns:1fr} .wm-qr{margin:0 auto} }
 </style>
 
-<div class="block pt" id="werbemittel" data-reiter="werbemittel">
+<?php require __DIR__ . '/partner_mc_start.php'; ?>
+
+<div class="block pt" id="werbemittel" data-reiter="werbemittel" data-mc-teil="uebersicht digital">
   <h2>Marketing Center</h2>
   <p class="lead"><?= $h($W('lead')) ?></p>
 
@@ -124,11 +153,16 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
   </div>
 </div>
 
-<div class="block pt" id="werbemittel-katalog" data-reiter="werbemittel">
+<div class="block pt" id="werbemittel-katalog" data-reiter="werbemittel" data-mc-teil="uebersicht <?= implode(' ', Marketingcenter::PRODUKT_BEREICHE) ?>">
   <h2><?= $h($W('katalog')) ?></h2>
-  <?php foreach ($wmKatalog as $wmK): ?>
-    <p class="wm-kat"><?= $h($wmK['name']) ?></p>
-    <?php foreach ($wmK['produkte'] as $wmP): ?>
+  <?php foreach (Marketingcenter::PRODUKT_BEREICHE as $mcX): $mcL = $mcB[$mcX]; ?>
+  <section class="mc-bereich" id="mc-<?= $mcX ?>" data-mc-teil="<?= $mcX . ($mcL ? ' uebersicht' : '') ?>">
+    <h3><svg viewBox="0 0 24 24" aria-hidden="true"><?= $mcIcon[$mcX] ?></svg><?= $h(Texte::h(Texte::MARKETINGCENTER['b'][$mcX], $sprache)) ?></h3>
+    <?php if (!$mcL): /* Nichts erfinden: ohne freigeschaltetes Produkt nur ein ehrliches „in Vorbereitung“. */ ?>
+      <div class="mc-bald"><b><?= $h($mcT('bald')) ?></b><span><?= $h($mcT('bald_satz')) ?></span>
+        <?php if (!$wmNurLesen): ?><a class="knopf" style="justify-self:start" href="#nachrichten"><?= $h($mcT('bald_knopf')) ?></a><?php endif; ?></div>
+    <?php endif; ?>
+    <?php foreach ($mcL as $wmP): ?>
       <?php /* Phase 2: Stand der Druckdatei dieses Partners (Entwurf/Freigabe). Die
                Vorschau zeigt die zuletzt gewählte Fassung, sonst Stil a. */
         $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
@@ -151,7 +185,15 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
                alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <?php endif; ?>
         <div>
+          <div class="mc-kopfzeile">
           <h3><?= $h($wmP['name']) ?><?php if (isset($wmP['sichtbar']) && !$wmP['sichtbar']): ?> <span class="marke2 warnung" style="font-size:12px">für Partner noch aus</span><?php endif; ?></h3>
+          <?php if ($mcEigen): $mcIst = in_array((int) $wmP['id'], $mcFav, true); ?>
+            <form method="post" action="<?= $h($selbst()) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>">
+              <input type="hidden" name="tat" value="wm_favorit"><input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
+              <button class="mc-stern" aria-pressed="<?= $mcIst ? 'true' : 'false' ?>" aria-label="<?= $h($mcT($mcIst ? 'fav_aria_aus' : 'fav_aria_an', ['{name}' => $wmP['name']])) ?>"><svg viewBox="0 0 24 24" aria-hidden="true"><?= $mcIcon['favoriten'] ?></svg><?= $h($mcT($mcIst ? 'fav_gemerkt' : 'fav_merken')) ?></button>
+            </form>
+          <?php endif; ?>
+          </div>
           <?php if ($wmP['text'] !== ''): ?><p class="wm-text"><?= $h($wmP['text']) ?></p><?php endif; ?>
           <p class="wm-meta"><?= $wmP['format'] !== '' ? $h($W('format') . ' ' . $wmP['format']) . ' · ' : '' ?><?= $h($wmP['nummer']) ?> · <?= $h(strtr($W('ab'), ['{preis}' => Werbemittel::euro((int) $wmP['ab_cent'])])) ?></p>
         </div>
@@ -283,11 +325,12 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
         </div>
       </article>
     <?php endforeach; ?>
+  </section>
   <?php endforeach; ?>
 </div>
 
 <?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => Werbemittel::gestaltbar((string) $x['vorlage']))); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true))): ?>
-<div class="block pt" id="wm-bestellungen" data-reiter="werbemittel">
+<div class="block pt" id="wm-bestellungen" data-reiter="werbemittel" data-mc-teil="uebersicht bestellungen">
   <h2><?= $h($W('meine')) ?></h2>
   <?php if (in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true)): ?>
     <p class="wm-meldung<?= in_array($wmM, ['angefragt', 'danke', 'storniert'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmM)) ?></p>
@@ -320,13 +363,16 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
 </div>
 <?php endif; ?>
 
-<div class="block pt" id="werbemittel-kit" data-reiter="werbemittel">
+<?php if ($mcEigen) { require __DIR__ . '/partner_mc_listen.php'; } ?>
+
+<div class="block pt" id="werbemittel-kit" data-reiter="werbemittel" data-mc-teil="uebersicht digital">
   <h2><?= $h($W('kit')) ?></h2>
   <p class="lead"><?= $h($W('kit_satz')) ?></p>
   <div class="wm-kit">
-    <?php foreach (['werbung', 'medien', 'branchen', 'gutschein'] as $wmZiel): ?>
-      <?php if ($wmNurLesen): /* In der Verwaltung gibt es die Ziele nicht. */ ?><span class="knopf stumm"><?= $h($W('kit_' . $wmZiel)) ?></span>
-      <?php else: ?><a class="knopf" href="#<?= $wmZiel ?>"><?= $h($W('kit_' . $wmZiel)) ?></a><?php endif; ?>
+    <?php foreach ($mcKit as $wmZiel): /* Digital Marketing = dieses Kit, ergänzt um Beiträge und eigene Seite (04.10.2026) */
+      $mcKt = isset(Texte::PARTNER_WERBEMITTEL['kit_' . $wmZiel]) ? $W('kit_' . $wmZiel) : Texte::h(Texte::MARKETINGCENTER['dig'][$wmZiel], $sprache); ?>
+      <?php if ($wmNurLesen): /* In der Verwaltung gibt es die Ziele nicht. */ ?><span class="knopf stumm"><?= $h($mcKt) ?></span>
+      <?php else: ?><a class="knopf" href="#<?= $wmZiel ?>"><?= $h($mcKt) ?></a><?php endif; ?>
     <?php endforeach; ?>
   </div>
 </div>

@@ -16,6 +16,10 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     <div class="feld"><label>Kategorie</label><select name="kategorie_id">
       <?php foreach ($kats as $k): ?><option value="<?= (int) $k['id'] ?>" <?= (int) ($p['kategorie_id'] ?? 0) === (int) $k['id'] ? 'selected' : '' ?>><?= Fmt::h($k['name_de'] ?: $k['name_it']) ?></option><?php endforeach; ?>
     </select></div>
+    <div class="feld"><label>Bereich im Marketing Center</label><select name="bereich">
+      <option value="">— wie die Kategorie</option>
+      <?php foreach (['print' => 'Print', 'pos' => 'Point of Sale', 'textil' => 'Textilien', 'fahrzeug' => 'Fahrzeugwerbung', 'event' => 'Events & Messe', 'premium' => 'Premium', 'starter' => 'Starterpakete'] as $b => $bn): ?><option value="<?= $b ?>" <?= ($p['bereich'] ?? '') === $b ? 'selected' : '' ?>><?= $bn ?></option><?php endforeach; ?>
+    </select></div>
     <div class="feld"><label>Vorlage für die Druckdatei</label><select name="vorlage">
       <option value="">— noch keine (nicht bestellbar)</option>
       <?php foreach (Werbemittel::VORLAGEN as $v => $n): ?><option value="<?= Fmt::h($v) ?>" <?= ($p['vorlage'] ?? '') === $v ? 'selected' : '' ?>><?= Fmt::h($n) ?></option><?php endforeach; ?>

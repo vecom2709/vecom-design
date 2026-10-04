@@ -396,6 +396,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-p' . $wmPid, true, 303); exit;
+            } elseif ($tat === 'wm_favorit' && $p) {
+                /* Marketingcenter Schritt 2 (04.10.2026): Produkt merken/vergessen — nur für sich selbst.
+                   Zurück dorthin, wo geklickt wurde (Produkt oder Favoritenliste). */
+                require_once __DIR__ . '/app/src/Marketingcenter.php';
+                $wmPid = (int) ($_POST['produkt'] ?? 0);
+                Marketingcenter::favoritUmschalten((int) $p['id'], $wmPid);
+                header('Location: ' . $selbst() . (($_POST['zurueck'] ?? '') === 'favoriten' ? '#mc-favoriten' : '#wm-p' . $wmPid), true, 303); exit;
             } elseif ($tat === 'wm_verwerfen' && $p) {
                 /* 04.10.2026: Entwurf vor der Freigabe verwerfen (nur eigener, nur Entwurf). */
                 require_once __DIR__ . '/app/src/Werbemittel.php';
