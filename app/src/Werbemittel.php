@@ -428,6 +428,17 @@ final class Werbemittel
         }, 3);
     }
 
+    /**
+     * Der Partner verwirft seinen Entwurf vor der Freigabe (04.10.2026). Nur
+     * eigener, nur im Status „entwurf“, nie einer, auf den eine Bestellung
+     * zeigt. Eine bestehende Freigabe bleibt unberührt.
+     */
+    public static function entwurfVerwerfen(int $partnerId, int $entwurfId): bool
+    {
+        return Db::run("DELETE FROM wm_entwuerfe WHERE id = ? AND partner_id = ? AND status = 'entwurf'
+                         AND NOT EXISTS (SELECT 1 FROM wm_positionen x WHERE x.entwurf_id = ?)", [$entwurfId, $partnerId, $entwurfId])->rowCount() === 1;
+    }
+
     /** Der aktuelle Entwurf und die aktuelle Freigabe, ohne Datei. */
     public static function stand(int $partnerId, int $produktId): array
     {

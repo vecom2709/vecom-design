@@ -138,7 +138,8 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
           $wmBild = $wmNurLesen
             ? 'data:image/jpeg;base64,' . base64_encode(PartnerKarten::vorschau($p, 'a', $sprache))
             : $selbst(['vk' => $wmJetzt['stil'], 'f' => 'vorschau', 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
-          <img src="<?= $h($wmBild) ?>" width="720" height="231" loading="lazy" decoding="async"
+          <img src="<?= $h($wmBild) ?>" width="720" height="231" loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
+               <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['vk' => '_S_', 'f' => 'vorschau', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
                alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <?php endif; ?>
         <div>
@@ -157,8 +158,8 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
           $wmWahlText = static fn(array $w): string => (PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
               . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
               . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email')); ?>
-          <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler'], true)): ?>
-            <p class="wm-meldung<?= in_array($wmMeldung, ['entwurf', 'frei'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmMeldung)) ?></p>
+          <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler', 'verworfen'], true)): ?>
+            <p class="wm-meldung<?= in_array($wmMeldung, ['entwurf', 'frei', 'verworfen'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmMeldung)) ?></p>
           <?php endif; ?>
           <?php if ($wmSt['freigegeben']): $wmF = $wmSt['freigegeben']; ?>
             <div class="wm-frei">
@@ -181,13 +182,19 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
                 <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="180" height="108" loading="lazy"></a><?php endforeach; ?></span>
               <?php endif; ?>
               <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W(!empty($wmE['hat_pf']) ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
-              <button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
+              <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
+                <button class="knopf" form="wm-weg-<?= (int) $wmE['id'] ?>"><?= $h($W('verwerfen')) ?></button></span>
+            </form>
+            <form id="wm-weg-<?= (int) $wmE['id'] ?>" method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" data-frage="<?= $h($W('verwerfen_frage')) ?>" class="wm-frage" hidden>
+              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_verwerfen">
+              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>"><input type="hidden" name="entwurf" value="<?= (int) $wmE['id'] ?>">
             </form>
           <?php endif; ?>
           <details class="wm-gestalten"<?= !$wmSt['entwurf'] && !$wmSt['freigegeben'] ? ' open' : '' ?>>
             <summary><?= $h($W('gestalten')) ?></summary>
-            <form method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>">
+            <form method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" class="wm-gestalter" data-bild="wm-bild-<?= (int) $wmP['id'] ?>">
               <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_entwurf">
+              <p class="wm-meta wm-wahl-hinweis" hidden style="margin:0"><?= $h($W('vorschau_wahl')) ?> ↑</p>
               <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
               <fieldset><legend><?= $h($W('stil')) ?></legend>
                 <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!PartnerKarten::gibt($wmS)) { continue; } ?>
@@ -259,11 +266,11 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
   <?php endforeach; ?>
 </div>
 
-<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => $x['vorlage'] === 'visitenkarte')); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe'], true))): ?>
+<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => $x['vorlage'] === 'visitenkarte')); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true))): ?>
 <div class="block pt" id="wm-bestellungen" data-reiter="werbemittel">
   <h2><?= $h($W('meine')) ?></h2>
-  <?php if (in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe'], true)): ?>
-    <p class="wm-meldung<?= in_array($wmM, ['angefragt', 'danke'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmM)) ?></p>
+  <?php if (in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true)): ?>
+    <p class="wm-meldung<?= in_array($wmM, ['angefragt', 'danke', 'storniert'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmM)) ?></p>
   <?php endif; ?>
   <?php foreach ($wmBestellungen as $wmB): $wmPos = $wmB['positionen'][0] ?? null; ?>
     <div class="wm-best">
@@ -282,6 +289,11 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
             <input type="hidden" name="tat" value="wm_bezahlen"><input type="hidden" name="bestellung" value="<?= (int) $wmB['id'] ?>">
             <button class="knopf haupt"><?= $h($W('jetzt_bezahlen')) ?></button></form>
         <?php endif; ?>
+        <?php if (in_array($wmB['status'], ['angefragt', 'offen'], true) && empty($wmB['bezahlt_am'])): ?>
+          <form method="post" action="<?= $h($selbst()) ?>" style="margin:0" class="wm-frage" data-frage="<?= $h($W('b_abbrechen_frage')) ?>"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>">
+            <input type="hidden" name="tat" value="wm_abbrechen"><input type="hidden" name="bestellung" value="<?= (int) $wmB['id'] ?>">
+            <button class="knopf"><?= $h($W('b_abbrechen')) ?></button></form>
+        <?php endif; ?>
       </div>
     </div>
   <?php endforeach; ?>
@@ -298,3 +310,26 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
     <?php endforeach; ?>
   </div>
 </div>
+<?php if (!$wmNurLesen): ?>
+<script>
+/* 04.10.2026 (Uwe: „bei der Visitenkarte wird immer dieselbe in der Vorschau angezeigt“):
+   Die Vorschau folgt jetzt der Auswahl — Stil, Sprache und Kontakt — sofort,
+   nicht erst nach „Druckdatei erstellen“. Und: Verwerfen/Abbrechen fragen vorher. */
+(function () {
+  document.querySelectorAll('form.wm-gestalter').forEach(function (f) {
+    var bild = document.getElementById(f.dataset.bild);
+    if (!bild || !bild.dataset.muster) { return; }
+    var hinweis = f.querySelector('.wm-wahl-hinweis');
+    var wert = function (n) { var r = f.querySelector('input[name="' + n + '"]:checked'); return r ? r.value : ''; };
+    f.addEventListener('change', function () {
+      bild.src = bild.dataset.muster.replace('_S_', encodeURIComponent(wert('stil')))
+        .replace('_L_', encodeURIComponent(wert('sprache'))).replace('_K_', encodeURIComponent(wert('kontakt')));
+      if (hinweis) { hinweis.hidden = false; }
+    });
+  });
+  document.querySelectorAll('form.wm-frage').forEach(function (f) {
+    f.addEventListener('submit', function (e) { if (!window.confirm(f.dataset.frage || '?')) { e.preventDefault(); } });
+  });
+})();
+</script>
+<?php endif; ?>

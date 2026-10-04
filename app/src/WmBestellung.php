@@ -299,6 +299,36 @@ final class WmBestellung
         return $ok;
     }
 
+    /**
+     * Der Partner bricht eine UNBEZAHLTE Bestellung ab (04.10.2026). Gibt es
+     * eine Stripe-Bezahlseite, wird sie zuerst bei Stripe beendet
+     * (POST /v1/checkout/sessions/{id}/expire, Doku gelesen 04.10.2026) —
+     * sonst könnte der Partner im alten Tab noch bezahlen. Lässt Stripe sie
+     * nicht beenden, wird nachgesehen: bezahlt → NICHT abbrechen; schon
+     * abgelaufen → abbrechen; sonst lieber nichts tun.
+     * @return string 'ok' | 'nicht'
+     */
+    public static function partnerAbbrechen(int $id, int $partnerId, ?object $stripe): string
+    {
+        $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ? AND partner_id = ?', [$id, $partnerId]);
+        if (!$b || !in_array($b['status'], self::OFFEN, true) || $b['bezahlt_am'] !== null) { return 'nicht'; }
+        $sitzung = (string) ($b['stripe_sitzung'] ?? '');
+        if ($sitzung !== '') {
+            if ($stripe === null) { return 'nicht'; }
+            try {
+                $a = $stripe->aufrufen('POST', '/v1/checkout/sessions/' . rawurlencode($sitzung) . '/expire', [], 'wm-abbruch-' . $id);
+                if (isset($a['error'])) {
+                    $st = $stripe->sitzungLesen($sitzung);
+                    if ($st['bezahlt'] || !$st['abgelaufen']) { return 'nicht'; }
+                }
+            } catch (Throwable $e) { error_log('WmBestellung::partnerAbbrechen ' . $id . ': ' . $e->getMessage()); return 'nicht'; }
+        }
+        $ok = Db::run("UPDATE wm_bestellungen SET status = 'storniert', storniert_am = NOW() WHERE id = ? AND partner_id = ? AND status IN ('angefragt', 'offen') AND bezahlt_am IS NULL",
+            [$id, $partnerId])->rowCount() === 1;
+        if ($ok) { Events::protokoll('wm_partner_storno', 'Werbemittel ' . $b['nummer'] . ' vom Partner abgebrochen (unbezahlt)', null, null, null, ['wm_bestellung' => $id]); }
+        return $ok ? 'ok' : 'nicht';
+    }
+
     /** Nur bis „bezahlt“. Bereits bezahlt: Erstattung macht Uwe bei Stripe selbst — hier wird nichts zurückgebucht. */
     public static function stornieren(int $id): bool
     {

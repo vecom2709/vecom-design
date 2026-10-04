@@ -21938,6 +21938,38 @@ pruefe('Probe-Entwurf an Printful: erst Druckfläche, dann EIN Entwurf ohne conf
     $w7Pr['ok'] && ($w7Pb[1] ?? '') === 'https://api.printful.com/orders' && ($w7Pj['items'][0]['quantity'] ?? 0) === 1
     && str_contains((string) ($w7Pj['items'][0]['files'][1]['url'] ?? ''), 'f=probe_pf_hinten') && str_starts_with((string) ($w7Pj['external_id'] ?? ''), 'PROBE-')
     && (Ablauf::TRAGWEITE['wm_probe'][0] ?? '') === Ablauf::RAUS && Druckerei::probeSenden('HelloPrint')['ok'] === false, json_encode($w7Pj));
+// Partner bricht ab (04.10.2026): Entwurf verwerfen, unbezahlte Bestellung abbrechen
+WmBestellung::automatikSetzen(false);
+$w7E2 = Werbemittel::entwurfAnlegen($w7P, (int) $w7Vk['id'], ['stil' => 'c', 'sprache' => 'de', 'kontakt' => 'email']);
+$w7Fremd = Partner::laden(Partner::anlegen(['name' => 'Fritz Fremd', 'email' => 'fritz.fremd@partner.example', 'code' => 'FRITZF', 'sprache' => 'de']));
+pruefe('Entwurf verwerfen: nur der eigene, nur im Status „entwurf“; Freigaben und bestellte Entwürfe bleiben',
+    !Werbemittel::entwurfVerwerfen((int) $w7Fremd['id'], $w7E2) && Werbemittel::entwurfVerwerfen((int) $w7P['id'], $w7E2)
+    && !Db::wert('SELECT id FROM wm_entwuerfe WHERE id = ?', [$w7E2])
+    && !Werbemittel::entwurfVerwerfen((int) $w7P['id'], $w7E) && (bool) Db::wert('SELECT id FROM wm_entwuerfe WHERE id = ?', [$w7E]));
+$w7Sx = new class {
+    public array $rufe = []; public bool $bezahlt = false; public bool $fehler = false;
+    public function aufrufen(string $m, string $w, array $f = [], string $e = ''): array { $this->rufe[] = $m . ' ' . $w; return $this->fehler ? ['error' => ['message' => 'not open']] : ['id' => 'cs_x', 'status' => 'expired']; }
+    public function sitzungLesen(string $id): array { return ['bezahlt' => $this->bezahlt, 'abgelaufen' => !$this->bezahlt, 'status' => $this->bezahlt ? 'complete' : 'expired']; }
+};
+$w7Oa = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+Db::run("UPDATE wm_bestellungen SET status = 'offen', stripe_sitzung = 'cs_test_abbruch' WHERE id = ?", [$w7Oa['id']]);
+pruefe('Unbezahlte Bestellung abbrechen: fremder Partner nicht; eigener → erst Stripe-Bezahlseite beenden (POST …/expire), dann „storniert“',
+    WmBestellung::partnerAbbrechen($w7Oa['id'], (int) $w7Fremd['id'], $w7Sx) === 'nicht' && $w7Sx->rufe === []
+    && WmBestellung::partnerAbbrechen($w7Oa['id'], (int) $w7P['id'], $w7Sx) === 'ok'
+    && $w7Sx->rufe === ['POST /v1/checkout/sessions/cs_test_abbruch/expire']
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7Oa['id']]) === 'storniert', json_encode($w7Sx->rufe));
+$w7Ob = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+Db::run("UPDATE wm_bestellungen SET status = 'offen', stripe_sitzung = 'cs_test_bezahlt' WHERE id = ?", [$w7Ob['id']]);
+$w7Sx->fehler = true; $w7Sx->bezahlt = true;
+pruefe('Stripe lässt die Seite nicht beenden, weil schon bezahlt: NICHT abbrechen; ohne Stripe-Zugang mit offener Seite ebenfalls nicht; bezahlte nie',
+    WmBestellung::partnerAbbrechen($w7Ob['id'], (int) $w7P['id'], $w7Sx) === 'nicht' && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7Ob['id']]) === 'offen'
+    && WmBestellung::partnerAbbrechen($w7Ob['id'], (int) $w7P['id'], null) === 'nicht'
+    && WmBestellung::partnerAbbrechen($w7O['id'], (int) $w7P['id'], null) === 'nicht');
+$w7Pv = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+pruefe('Partneransicht: Vorschau folgt der Auswahl (data-muster mit Stil/Sprache/Kontakt), Verwerfen und Abbrechen fragen vorher, Handler in partner.php',
+    str_contains($w7Pv, "'vk' => '_S_'") && str_contains($w7Pv, "bild.dataset.muster.replace('_S_'") && str_contains($w7Pv, 'wm_verwerfen') && str_contains($w7Pv, 'wm_abbrechen')
+    && str_contains($w7Pv, 'window.confirm') && str_contains((string) file_get_contents($oben . '/partner.php'), "WmBestellung::partnerAbbrechen((int) (\$_POST['bestellung'] ?? 0), (int) \$p['id']"));
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w7Fremd['id']]); Db::run('DELETE FROM partner WHERE id = ?', [(int) $w7Fremd['id']]);
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);

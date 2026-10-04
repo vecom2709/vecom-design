@@ -391,6 +391,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     }
                 }
                 header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-p' . $wmPid, true, 303); exit;
+            } elseif ($tat === 'wm_verwerfen' && $p) {
+                /* 04.10.2026: Entwurf vor der Freigabe verwerfen (nur eigener, nur Entwurf). */
+                require_once __DIR__ . '/app/src/Werbemittel.php';
+                $wmPid = (int) ($_POST['produkt'] ?? 0);
+                $wmM = Werbemittel::entwurfVerwerfen((int) $p['id'], (int) ($_POST['entwurf'] ?? 0)) ? 'verworfen' : 'veraltet';
+                header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-p' . $wmPid, true, 303); exit;
+            } elseif ($tat === 'wm_abbrechen' && $p) {
+                /* 04.10.2026: unbezahlte Bestellung abbrechen — Stripe-Bezahlseite wird vorher beendet. */
+                require_once __DIR__ . '/app/src/WmBestellung.php';
+                require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+                require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+                $wmS = new StripeAnbieter();
+                $wmM = WmBestellung::partnerAbbrechen((int) ($_POST['bestellung'] ?? 0), (int) $p['id'], $wmS->bereit() ? $wmS : null) === 'ok' ? 'storniert' : 'storno_nicht';
+                header('Location: ' . $selbst(['wm' => $wmM]) . '#wm-bestellungen', true, 303); exit;
             } elseif (($tat === 'wm_bestellen' || $tat === 'wm_bezahlen') && $p) {
                 /* Marketing Center, Phase 3 (03.10.2026): Partner bestellt. Der
                    Preis kommt vom Server; bezahlt wird nur, was Stripe meldet
