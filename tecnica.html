@@ -38,7 +38,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=7ac99029">
+<link rel="stylesheet" href="assets/css/app.css?v=bb917227">
 <link rel="stylesheet" href="assets/css/erlebnis.css?v=e5accb06">
 <link rel="stylesheet" href="assets/css/edel.css?v=4ec9ebb0">
 
@@ -475,14 +475,25 @@
 <script>
 (function () {
   var w = document.documentElement;
-  setTimeout(function () {
+  /* Die zwoelf Sekunden zaehlen nur, solange der Tab sichtbar ist
+     (05.10.2026): In einem Hintergrund-Tab laeuft kein requestAnimationFrame,
+     die Buehne setzt ihr "on" also erst beim Hinsehen -- vorher hat diese
+     Uhr sie dort jedes Mal als kaputt abgeschaltet. */
+  var uhr = null;
+  function pruefen() {
     if (!w.getAttribute('data-world')) {
       w.setAttribute('data-world', 'init-error');
       var c = document.querySelector('canvas.stage');
       if (c) { c.hidden = true; }
       if (window.__auftaktFrei) { window.__auftaktFrei(); }
     }
-  }, 12000);
+  }
+  function stellen() {
+    clearTimeout(uhr);
+    if (!document.hidden && !w.getAttribute('data-world')) { uhr = setTimeout(pruefen, 12000); }
+  }
+  document.addEventListener('visibilitychange', stellen);
+  stellen();
 })();
 </script>
 
