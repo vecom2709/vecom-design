@@ -22398,7 +22398,7 @@ pruefe('13 Bereiche in Uwes Reihenfolge, 7 davon mit Produkten; jeder Bereich ha
     && !array_filter(Marketingcenter::BEREICHE, static fn($b) => array_filter(['it', 'de', 'en'], static fn($l) => trim((string) (Texte::MARKETINGCENTER['b'][$b][$l] ?? '')) === '' || trim((string) (Texte::MARKETINGCENTER['bs'][$b][$l] ?? '')) === '')));
 $gsTexteOk = true;
 foreach (Texte::MARKETINGCENTER as $gsK => $gsV) {
-    $gsListe = in_array($gsK, ['b', 'bs', 'dig', 'd_status'], true) ? $gsV : [$gsV];
+    $gsListe = in_array($gsK, ['b', 'bs', 'dig', 'd_status', 'linien', 'linien_s'], true) ? $gsV : [$gsV];
     foreach ($gsListe as $gsT) { foreach (['it', 'de', 'en'] as $gsL) { $gsTexteOk = $gsTexteOk && trim((string) ($gsT[$gsL] ?? '')) !== ''; } }
 }
 pruefe('Alle Texte des Marketingcenters dreisprachig, Leitsatz duzt (Markenclaim), der Rest siezt',
@@ -22486,6 +22486,51 @@ Db::run('DELETE FROM partner_kanal_klicks WHERE partner_id IN (?, ?)', [(int) $g
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $gsA['id'], (int) $gsB2['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = ?, bereich = NULL WHERE id = ?', [(int) $gsVk['aktiv'], (int) $gsVk['id']]);
 Db::run("DELETE FROM wm_anbieter_preise WHERE anbieter = 'Kette'");
+
+/* ============================================================================
+   Marketingcenter, Schritt 3: Designlinien (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Designlinien');
+foreach (['Designlinie', 'Marketingcenter', 'Werbemittel', 'PartnerKarten', 'PartnerFlyer', 'WmDruck'] as $dlKl) { require_once $wurzel . "/src/$dlKl.php"; }
+pruefe('Fünf Linien in Uwes Reihenfolge, jede mit Farbwelt (Grund, Fläche, Text, Akzent) und Name/Satz dreisprachig',
+    Designlinie::LINIEN === ['premium', 'business', 'tech', 'lifestyle', 'industrial']
+    && !array_filter(Designlinie::LINIEN, static fn($l) => count(array_filter(Designlinie::FARBEN[$l] ?? [], static fn($c) => preg_match('~^#[0-9a-f]{6}$~', $c))) !== 4)
+    && !array_filter(Designlinie::LINIEN, static fn($l) => array_filter(['it', 'de', 'en'], static fn($s) => trim((string) (Texte::MARKETINGCENTER['linien'][$l][$s] ?? '')) === '' || trim((string) (Texte::MARKETINGCENTER['linien_s'][$l][$s] ?? '')) === '')));
+pruefe('Zuordnung: Visitenkarte/Flyer a–c Premium, d Business; Aufkleber und Roll-up a/d; nur Stile, die es gibt',
+    Designlinie::von('visitenkarte', 'a') === 'premium' && Designlinie::von('visitenkarte', 'd') === 'business'
+    && Designlinie::von('flyer_a5', 'c') === 'premium' && Designlinie::von('rollup_85', 'd') === 'business'
+    && !array_filter(Designlinie::STILE, static fn($m) => array_diff(array_keys($m), array_keys(PartnerKarten::STILE)) || array_diff($m, Designlinie::LINIEN)));
+$dlB = array_filter(Designlinie::stileDa('flyer_branche'), static fn($x) => Designlinie::von('flyer_branche', $x) === 'business');
+pruefe('Branchen-Flyer: helle (dunkle Linkschrift) sind Business, die übrigen Premium — gemessen an der Helligkeit',
+    Designlinie::hell('#13263f') < 0.5 && Designlinie::hell('#fbf7ef') > 0.5 && count($dlB) >= 1
+    && count($dlB) < count(Designlinie::stileDa('flyer_branche')) && count(Designlinie::stileDa('flyer_branche')) === 51, (string) count($dlB));
+pruefe('Visitenkarte gruppiert nach Linie: Premium a, b, c — Business d; Linien ohne Vorlage fehlen (nichts erfunden)',
+    Designlinie::gruppiert('visitenkarte', Designlinie::stileDa('visitenkarte')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d']]
+    && Designlinie::gruppiert('aufkleber_50', Designlinie::stileDa('aufkleber_50')) === ['premium' => ['a'], 'business' => ['d']]);
+$dlVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
+$dlFb = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_branche'");
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id IN (?, ?)', [(int) $dlVk['id'], (int) $dlFb['id']]);
+$dlVars = array_map('intval', array_column(Db::all('SELECT id FROM wm_varianten WHERE produkt_id IN (?, ?) AND aktiv = 1', [(int) $dlVk['id'], (int) $dlFb['id']]), 'id'));
+foreach ($dlVars as $dlV) { Db::run("INSERT INTO wm_anbieter_preise (variante_id, anbieter, land, preis_cent, netto_cent, papier, lieferung, link, geprueft_am) VALUES (?, 'Kette', 'IT', 2000, 1639, '', '', '', CURDATE())", [$dlV]); }
+$dlP = Partner::laden(Partner::anlegen(['name' => 'Dora Linie', 'email' => 'dora.l@partner.example', 'code' => 'DORALIN', 'sprache' => 'it']));
+$dlFehler = null; set_error_handler(static function (int $n, string $m) use (&$dlFehler): bool { $dlFehler = $m; return true; });
+$dlHtml = (static function (array $v) use ($wurzel): string { extract($v); $_SESSION['csrf'] = 'x'; ob_start(); require $wurzel . '/views/partner_werbemittel.php'; return (string) ob_get_clean(); })(
+    ['p' => $dlP, 'sprache' => 'it', 'h' => static fn(?string $x): string => htmlspecialchars((string) $x, ENT_QUOTES, 'UTF-8'),
+     'selbst' => static fn(array $e = []): string => '/partner.php?' . http_build_query(array_merge(['t' => 'X'], $e)), 'wmKatalog' => Werbemittel::katalog('it'), 'wmNurLesen' => false]);
+restore_error_handler();
+pruefe('Partneransicht: Linien-Leiste mit „Tutte“ und fünf Linien; ohne Vorlage abgeschaltet mit „presto“',
+    $dlFehler === null && str_contains($dlHtml, 'data-linie="" aria-pressed="true">Tutte')
+    && preg_match('~data-linie="tech" aria-pressed="false"[^>]*disabled>~', $dlHtml) === 1 && !preg_match('~data-linie="premium" aria-pressed="false"[^>]*disabled~', $dlHtml)
+    && substr_count($dlHtml, '(presto)') === 3, (string) $dlFehler);
+pruefe('Produkte tragen ihre Linien, Stile stehen in ihrer Linie, Branchen-Optionen kennen ihre Linie, CSS blendet je Linie aus',
+    str_contains($dlHtml, 'id="wm-p' . (int) $dlVk['id'] . '" data-linien="premium business"') && str_contains($dlHtml, 'id="wm-p' . (int) $dlFb['id'] . '" data-linien="premium business"')
+    && preg_match('~class="mc-stillinie" data-linie="business">.*?value="d"~s', $dlHtml) === 1 && str_contains($dlHtml, 'data-linie="business">')
+    && substr_count($dlHtml, 'option value="') >= 51 && preg_match('~<option value="[^"]+" data-linie="(premium|business)"~', $dlHtml) === 1
+    && substr_count($dlHtml, 'html[data-linie="') === 10);
+foreach ($dlVars as $dlV) { Db::run("DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Kette'", [$dlV]); }
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $dlVk['aktiv'], (int) $dlVk['id']]);
+Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $dlFb['aktiv'], (int) $dlFb['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $dlP['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -37,7 +37,15 @@ if (!$wmNurLesen && isset($_GET['wmnochmal'])) {
 $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.2026)
 /* Marketingcenter Schritt 2 (04.10.2026): Bereiche statt Kategorien, Favoriten, Designs, Erfolge. */
 require_once dirname(__DIR__) . '/src/Marketingcenter.php';
+require_once dirname(__DIR__) . '/src/Designlinie.php';
 $mcB = Marketingcenter::nachBereich($wmKatalog);
+/* Schritt 3 (04.10.2026): Designlinien je Produkt — welche Linien es mit echten Vorlagen gibt. */
+$mcLinienJe = []; $mcLinienDa = [];
+foreach ($mcB as $mcL) { foreach ($mcL as $mcPr) {
+    if (!Werbemittel::gestaltbar((string) $mcPr['vorlage'])) { continue; }
+    $mcLinienJe[(int) $mcPr['id']] = Designlinie::gruppiert((string) $mcPr['vorlage'], Designlinie::stileDa((string) $mcPr['vorlage']));
+    foreach (array_keys($mcLinienJe[(int) $mcPr['id']]) as $mcLi) { $mcLinienDa[$mcLi] = true; }
+} }
 $mcProdukte = [];
 foreach ($mcB as $mcX => $mcL) { foreach ($mcL as $mcPr) { $mcProdukte[(int) $mcPr['id']] = $mcPr + ['mc_bereich' => $mcX]; } }
 $mcEigen = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0;
@@ -174,7 +182,7 @@ if ($mcEigen) {
             foreach (PartnerFlyer::liste() as $wmFs => $wmFf) { if (!empty($wmFf['sp']) && Werbemittel::stilDa('flyer_branche', $wmFs)) { $wmBranchen[$wmFs] = PartnerFlyer::name($wmFs, $sprache); } }
             if (!isset($wmBranchen[$wmJetzt['stil']])) { $wmJetzt['stil'] = (string) array_key_first($wmBranchen); }
         } ?>
-      <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>">
+      <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>"<?= isset($mcLinienJe[(int) $wmP['id']]) ? ' data-linien="' . $h(implode(' ', array_keys($mcLinienJe[(int) $wmP['id']]))) . '"' : '' ?>>
         <?php if (Werbemittel::gestaltbar((string) $wmP['vorlage'])):
           /* 04.10.2026: jede Vorlage (Visitenkarte, Flyer …) über denselben Vorschau-Weg ?wmv=. */
           $wmBild = $wmNurLesen
@@ -253,13 +261,17 @@ if ($mcEigen) {
               <?php if ($wmBranchen): ?>
               <fieldset><legend><?= $h($W('branche')) ?></legend>
                 <select name="stil" aria-label="<?= $h($W('branche')) ?>">
-                  <?php foreach ($wmBranchen as $wmS => $wmSn): ?><option value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' selected' : '' ?>><?= $h($wmSn) ?></option><?php endforeach; ?>
+                  <?php foreach ($wmBranchen as $wmS => $wmSn): ?><option value="<?= $h($wmS) ?>" data-linie="<?= Designlinie::von('flyer_branche', (string) $wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' selected' : '' ?>><?= $h($wmSn) ?></option><?php endforeach; ?>
                 </select>
               </fieldset>
               <?php else: ?>
-              <fieldset><legend><?= $h($W('stil')) ?></legend>
-                <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!Werbemittel::stilDa((string) $wmP['vorlage'], $wmS)) { continue; } ?>
-                  <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
+              <fieldset class="mc-stile"><legend><?= $h($W('stil')) ?></legend>
+                <?php /* Nach Designlinie gruppiert (Schritt 3): je Linie ihr Name, darunter ihre Stile. */
+                  foreach ($mcLinienJe[(int) $wmP['id']] ?? [] as $mcLi => $mcSt): ?>
+                  <div class="mc-stillinie" data-linie="<?= $mcLi ?>"><span class="mc-linienname"><?= $h(Texte::h(Texte::MARKETINGCENTER['linien'][$mcLi], $sprache)) ?></span>
+                  <?php foreach ($mcSt as $wmS): $wmSn = PartnerKarten::STILE[$wmS]; ?>
+                    <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
+                  <?php endforeach; ?></div>
                 <?php endforeach; ?>
               </fieldset>
               <?php endif; ?>

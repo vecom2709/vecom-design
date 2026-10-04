@@ -74,6 +74,22 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
   .mc-stern[aria-pressed="true"]{color:#f1d38b;border-color:rgba(227,194,122,.6)}
   .mc-stern[aria-pressed="true"] svg{fill:#e3c27a;stroke:#e3c27a}
   .mc-kopfzeile{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+  /* Designlinien (Schritt 3): Chips und Filter. */
+  .mc-linien{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:16px}
+  .mc-linien > span{font-size:12.5px;color:var(--leise);margin-right:2px}
+  .mc-linien button{display:inline-flex;gap:8px;align-items:center;min-height:38px;padding:6px 14px;border-radius:999px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:13.5px;cursor:pointer}
+  .mc-linien button i{display:inline-block;width:16px;height:16px;border-radius:4px;flex:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}   /* Farbmuster, kein Radioknopf */
+  .mc-linien button[aria-pressed="true"]{border-color:rgba(227,194,122,.8);color:var(--text);background:rgba(227,194,122,.08)}
+  .mc-linien button:disabled{opacity:.45;cursor:default}
+  .mc-linien button small{font-size:11px;color:var(--leise)}
+  .mc-stile{display:grid!important;gap:8px!important}
+  .mc-stillinie{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .mc-linienname{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:#cdb07a;min-width:160px}
+  .mc-linie-leer{font-size:13.5px;color:var(--leise);margin:0 0 8px}
+<?php foreach (Designlinie::LINIEN as $mcLi): ?>
+  html[data-linie="<?= $mcLi ?>"] .wm-produkt[data-linien]:not([data-linien~="<?= $mcLi ?>"]){display:none}
+  html[data-linie="<?= $mcLi ?>"] .mc-stillinie:not([data-linie="<?= $mcLi ?>"]){display:none}
+<?php endforeach; ?>
 <?php foreach (Marketingcenter::BEREICHE as $mcX): if ($mcX === 'uebersicht') { continue; } ?>
   html[data-mc="<?= $mcX ?>"] [data-mc-teil]:not([data-mc-teil~="<?= $mcX ?>"]){display:none!important}
 <?php endforeach; ?>
@@ -101,6 +117,14 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
       </a>
     <?php endforeach; ?>
   </nav>
+  <div class="mc-linien" role="group" aria-label="<?= $h($MC('linie')) ?>">
+    <span><?= $h($MC('linie')) ?>:</span>
+    <button type="button" data-linie="" aria-pressed="true"><?= $h($MC('linie_alle')) ?></button>
+    <?php foreach (Designlinie::LINIEN as $mcLi): $mcF = Designlinie::FARBEN[$mcLi]; $mcIst = !empty($mcLinienDa[$mcLi]); ?>
+      <button type="button" data-linie="<?= $mcLi ?>" aria-pressed="false" title="<?= $h(Texte::h(Texte::MARKETINGCENTER['linien_s'][$mcLi], $sprache)) ?>"<?= $mcIst ? '' : ' disabled' ?>>
+        <i style="background:linear-gradient(135deg,<?= $mcF['grund'] ?> 55%,<?= $mcF['akzent'] ?> 55%)"></i><?= $h(Texte::h(Texte::MARKETINGCENTER['linien'][$mcLi], $sprache)) ?><?php if (!$mcIst): ?> <small>(<?= $h($MC('linie_bald')) ?>)</small><?php endif; ?></button>
+    <?php endforeach; ?>
+  </div>
 </div>
 <script>
 /* Bereichsfilter: Karte → <html data-mc>. Die Karten sind Links — ohne Skript Sprungmarken. */
@@ -136,6 +160,55 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
   setzen(b, false);
   }
   setzen('uebersicht', false);   // sofort, damit nichts springt; der Rest steht erst nach dem Laden da
+  if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', anfang); } else { anfang(); }
+})();
+/* Designlinie (Schritt 3): blendet Produkte und Stile anderer Linien aus und wählt in jedem
+   Gestalter den ersten Stil der Linie — die Vorschau folgt sofort (change-Ereignis). */
+(function () {
+  var leiste = document.querySelector('#mc-start .mc-linien');
+  if (!leiste) { return; }
+  var knoepfe = [].slice.call(leiste.querySelectorAll('button[data-linie]'));
+  var LEER = <?= json_encode($MC('linie_leer'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
+  function setzen(l, merken) {
+    if (l) { document.documentElement.setAttribute('data-linie', l); } else { document.documentElement.removeAttribute('data-linie'); }
+    knoepfe.forEach(function (b) { b.setAttribute('aria-pressed', b.dataset.linie === l ? 'true' : 'false'); });
+    if (merken) { try { sessionStorage.setItem('vd_mc_linie', l); } catch (x) { } }
+    if (!l) { [].forEach.call(document.querySelectorAll('.mc-linie-leer'), function (e) { e.remove(); }); return; }
+    [].forEach.call(document.querySelectorAll('form.wm-gestalter'), function (f) {
+      var r = f.querySelector('input[name="stil"]:checked');
+      if (r && r.closest('.mc-stillinie') && r.closest('.mc-stillinie').dataset.linie !== l) {
+        var neu = f.querySelector('.mc-stillinie[data-linie="' + l + '"] input[name="stil"]');
+        if (neu) { neu.checked = true; f.dispatchEvent(new Event('change', { bubbles: true })); }
+      }
+      var sel = f.querySelector('select[name="stil"]');
+      if (sel) {
+        [].forEach.call(sel.options, function (o) { var weg = o.dataset.linie !== l; o.hidden = weg; o.disabled = weg; });
+        if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
+          var erste = [].filter.call(sel.options, function (o) { return !o.disabled; })[0];
+          if (erste) { sel.value = erste.value; f.dispatchEvent(new Event('change', { bubbles: true })); }
+        }
+      }
+    });
+    [].forEach.call(document.querySelectorAll('.mc-linie-leer'), function (e) { e.remove(); });
+    [].forEach.call(document.querySelectorAll('.mc-bereich'), function (sec) {
+      var alle = sec.querySelectorAll('.wm-produkt[data-linien]');
+      if (alle.length && !sec.querySelector('.wm-produkt[data-linien~="' + l + '"]')) {
+        var p = document.createElement('p'); p.className = 'mc-linie-leer'; p.textContent = LEER;
+        sec.querySelector('h3').insertAdjacentElement('afterend', p);
+      }
+    });
+  }
+  leiste.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-linie]');
+    if (!b || b.disabled) { return; }
+    setzen(b.dataset.linie, true);
+  });
+  /* Ohne Linienwahl zeigen die Branchen-Flyer alle Branchen; nach dem Laden die gemerkte Linie. */
+  function anfang() {
+    var l = ''; try { l = sessionStorage.getItem('vd_mc_linie') || ''; } catch (x) { }
+    var b = knoepfe.filter(function (k) { return k.dataset.linie === l && !k.disabled; })[0];
+    if (b && l) { setzen(l, false); }
+  }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', anfang); } else { anfang(); }
 })();
 </script>
