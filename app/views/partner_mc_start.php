@@ -89,6 +89,7 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
 <?php foreach (Designlinie::LINIEN as $mcLi): ?>
   html[data-linie="<?= $mcLi ?>"] .wm-produkt[data-linien]:not([data-linien~="<?= $mcLi ?>"]){display:none}
   html[data-linie="<?= $mcLi ?>"] .mc-stillinie:not([data-linie="<?= $mcLi ?>"]){display:none}
+  html[data-linie="<?= $mcLi ?>"] .mc-kachel[data-linie]:not([data-linie="<?= $mcLi ?>"]){display:none}
 <?php endforeach; ?>
 <?php foreach (Marketingcenter::BEREICHE as $mcX): if ($mcX === 'uebersicht') { continue; } ?>
   html[data-mc="<?= $mcX ?>"] [data-mc-teil]:not([data-mc-teil~="<?= $mcX ?>"]){display:none!important}
@@ -175,18 +176,10 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
     if (merken) { try { sessionStorage.setItem('vd_mc_linie', l); } catch (x) { } }
     if (!l) { [].forEach.call(document.querySelectorAll('.mc-linie-leer'), function (e) { e.remove(); }); return; }
     [].forEach.call(document.querySelectorAll('form.wm-gestalter'), function (f) {
-      var r = f.querySelector('input[name="stil"]:checked');
-      if (r && r.closest('.mc-stillinie') && r.closest('.mc-stillinie').dataset.linie !== l) {
-        var neu = f.querySelector('.mc-stillinie[data-linie="' + l + '"] input[name="stil"]');
+      var r = f.querySelector('input[name="stil"]:checked'), k = r && r.closest('[data-linie]');
+      if (k && k.dataset.linie !== l) {
+        var neu = f.querySelector('.mc-kachel[data-linie="' + l + '"]:not([hidden]) input[name="stil"]') || f.querySelector('.mc-kachel[data-linie="' + l + '"] input[name="stil"]');
         if (neu) { neu.checked = true; f.dispatchEvent(new Event('change', { bubbles: true })); }
-      }
-      var sel = f.querySelector('select[name="stil"]');
-      if (sel) {
-        [].forEach.call(sel.options, function (o) { var weg = o.dataset.linie !== l; o.hidden = weg; o.disabled = weg; });
-        if (sel.selectedOptions[0] && sel.selectedOptions[0].disabled) {
-          var erste = [].filter.call(sel.options, function (o) { return !o.disabled; })[0];
-          if (erste) { sel.value = erste.value; f.dispatchEvent(new Event('change', { bubbles: true })); }
-        }
       }
     });
     [].forEach.call(document.querySelectorAll('.mc-linie-leer'), function (e) { e.remove(); });

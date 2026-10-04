@@ -70,6 +70,12 @@ final class PartnerKarten
         return 'vecom-visitenkarte-' . $stil . '-' . $was . '-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $endung;
     }
 
+    /** Vorderseite eines Stils (für das Kachelbild der Auswahl). */
+    public static function vornDatei(string $stil): string
+    {
+        return self::gibt($stil) ? self::datei($stil, 'vorn', 'de') : '';
+    }
+
     private static function datei(string $stil, string $seite, string $sprache): string
     {
         $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'de';

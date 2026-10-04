@@ -39,6 +39,35 @@ final class Werbemittel
         return isset(self::VORLAGEN[$vorlage]) && $vorlage !== '';
     }
 
+    /**
+     * Kachelbild eines Stils oder Branchenmotivs für die Auswahl (04.10.2026, Uwe: „direkt
+     * auswählen, ohne viel zu suchen“): nur die Vorderseite, ohne Partnerdaten, 260 px breit.
+     * Einmal gerechnet, dann aus app/zwischenspeicher (die Vorlagen sind bis 18 MB groß).
+     */
+    public static function miniBild(string $vorlage, string $stil, string $sprache): string
+    {
+        require_once __DIR__ . '/PartnerKarten.php';
+        require_once __DIR__ . '/WmDruck.php';
+        if (!self::gestaltbar($vorlage) || !self::stilDa($vorlage, $stil)) { return ''; }
+        $sprache = in_array($sprache, self::SPRACHEN, true) ? $sprache : 'it';
+        $quelle = $vorlage === 'visitenkarte' ? PartnerKarten::vornDatei($stil) : WmDruck::vornDatei($vorlage, $stil, $sprache);
+        if ($quelle === '' || !is_file($quelle)) { return ''; }
+        $ordner = dirname(__DIR__) . '/zwischenspeicher/mini';
+        $ziel = $ordner . '/' . substr(hash('sha256', $quelle . '|' . filemtime($quelle) . '|v1'), 0, 24) . '.jpg';
+        if (is_file($ziel)) { return (string) file_get_contents($ziel); }
+        $im = @imagecreatefromjpeg($quelle);
+        if (!$im) { return ''; }
+        // Beschnitt ab: Anteil aus dem Layout der Datei, die tatsächlich geladen wurde.
+        $l = $vorlage === 'visitenkarte' ? ['b' => 85, 'beschnitt' => 3] : WmDruck::layout(WmDruck::branche($vorlage, $stil) ? 'flyer_a5' : $vorlage);
+        $rand = (int) round(imagesx($im) * $l['beschnitt'] / ($l['b'] + 2 * $l['beschnitt']));
+        $zu = imagecrop($im, ['x' => $rand, 'y' => $rand, 'width' => imagesx($im) - 2 * $rand, 'height' => imagesy($im) - 2 * $rand]) ?: $im;
+        $klein = imagescale($zu, 260, -1, IMG_BICUBIC) ?: $zu;
+        ob_start(); imagejpeg($klein, null, 82); $jpg = (string) ob_get_clean();
+        if (!is_dir($ordner)) { @mkdir($ordner, 0775, true); }
+        @file_put_contents($ziel, $jpg, LOCK_EX);
+        return $jpg;
+    }
+
     /** Vorschau der Wahl (JPEG) — für jede Vorlage dieselbe Frage. */
     public static function vorschauBild(array $p, string $vorlage, string $stil, string $sprache, string $kontakt): string
     {
@@ -460,7 +489,8 @@ final class Werbemittel
             'sprache' => (string) ($e['sprache'] ?? ''),
             'kontakt' => (string) ($e['kontakt'] ?? ''),
         ];
-        if (!PartnerKarten::gibt($w['stil'])) { throw new InvalidArgumentException('Stil unbekannt.'); }
+        // Je Vorlage ihre eigenen Stile — bei Flyern seit 04.10.2026 auch ein Branchenmotiv (WmDruck::branche).
+        if (!($vorlage !== '' ? self::stilDa($vorlage, $w['stil']) : PartnerKarten::gibt($w['stil']))) { throw new InvalidArgumentException('Stil unbekannt.'); }
         if (!in_array($w['sprache'], self::SPRACHEN, true)) { throw new InvalidArgumentException('Sprache unbekannt.'); }
         if (!in_array($w['kontakt'], PartnerKarten::KONTAKTE, true)) { throw new InvalidArgumentException('Kontakt unbekannt.'); }
         return $w;
@@ -475,6 +505,9 @@ final class Werbemittel
      * „entsteht“ kann niemand freigeben (freigeben() verlangt „entwurf“); scheitert
      * die Datei, verschwindet die Zeile wieder, und der alte Entwurf bleibt stehen.
      */
+    /** Prüfnaht für die Kette: läuft, nachdem die Zeile „entsteht“ angelegt ist, und kann scheitern. */
+    public static ?\Closure $vorDatei = null;
+
     public static function entwurfAnlegen(array $p, int $produktId, array $eingabe): int
     {
         $pr = Db::one('SELECT * FROM wm_produkte WHERE id = ? AND aktiv = 1', [$produktId]);
@@ -489,6 +522,7 @@ final class Werbemittel
             'datei' => '', 'datei_hash' => str_repeat('0', 64), 'datei_bytes' => 0, 'status' => 'entsteht',
         ]);
         try {
+            if (self::$vorDatei) { (self::$vorDatei)(); }
             $p = self::mitKanal($p, $id);
             $pdf = match ((string) $pr['vorlage']) {
                 'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),

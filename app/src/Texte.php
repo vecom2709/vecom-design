@@ -4968,6 +4968,18 @@ final class Texte
             'favoriten'    => ['it' => 'La sua lista', 'de' => 'Ihre Merkliste', 'en' => 'Your shortlist'],
             'erfolge'      => ['it' => 'Scansioni, visitatori, richieste', 'de' => 'Scans, Besucher, Anfragen', 'en' => 'Scans, visitors, enquiries'],
         ],
+        /* Produktkarte in drei Schritten (04.10.2026, Uwe: „direkt auswählen, ohne viel zu suchen … leicht verständlicher und schöner“) */
+        'schritt1'    => ['it' => 'Scegliere l’aspetto', 'de' => 'Aussehen wählen', 'en' => 'Choose the look'],
+        'schritt2'    => ['it' => 'Controllare e approvare', 'de' => 'Prüfen und freigeben', 'en' => 'Check and approve'],
+        'schritt3'    => ['it' => 'Ordinare', 'de' => 'Bestellen', 'en' => 'Order'],
+        's1_satz'     => ['it' => 'Tocchi un motivo: l’anteprima lo mostra subito con i suoi dati.', 'de' => 'Tippen Sie auf ein Motiv — die Vorschau zeigt es sofort mit Ihren Daten.', 'en' => 'Tap a design — the preview shows it right away with your details.'],
+        's2_leer'     => ['it' => 'Quando l’aspetto le piace, tocchi «Creare il file di stampa». Qui poi controlla il file finito e lo approva.', 'de' => 'Wenn das Aussehen passt: „Druckdatei erstellen“ tippen. Hier prüfen Sie dann die fertige Datei und geben sie frei.', 'en' => 'When the look is right, tap “Create print file”. Then check the finished file here and approve it.'],
+        'motiv_branche'   => ['it' => 'Con motivo per settore', 'de' => 'Mit Branchenmotiv', 'en' => 'With industry design'],
+        'motiv_allgemein' => ['it' => 'Design generale', 'de' => 'Allgemeine Gestaltung', 'en' => 'General design'],
+        'sprache'     => ['it' => 'Lingua', 'de' => 'Sprache', 'en' => 'Language'],
+        'kontakt'     => ['it' => 'Contatto sul materiale', 'de' => 'Kontakt auf dem Werbemittel', 'en' => 'Contact on the material'],
+        'gruppe_alle' => ['it' => 'Tutti', 'de' => 'Alle', 'en' => 'All'],
+        'vorschau'    => ['it' => 'Anteprima con i suoi dati', 'de' => 'Vorschau mit Ihren Daten', 'en' => 'Preview with your details'],
         /* Designlinien (Schritt 3, 04.10.2026) */
         'linie'       => ['it' => 'Linea di design', 'de' => 'Designlinie', 'en' => 'Design line'],
         'linie_alle'  => ['it' => 'Tutte', 'de' => 'Alle', 'en' => 'All'],

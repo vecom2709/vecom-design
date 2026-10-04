@@ -133,6 +133,51 @@ if ($mcEigen) {
   .wm-s-storniert{opacity:.7}
   @media (max-width:520px){ .wm-neu{grid-template-columns:1fr} }
   @media (max-width:520px){ .wm-kopf{grid-template-columns:1fr} .wm-qr{margin:0 auto} }
+  /* Produkt in drei Schritten (04.10.2026) */
+  .mc-produkt{gap:14px;padding:16px;background:linear-gradient(170deg,#181512,#100f0d);border-color:rgba(227,194,122,.16)}
+  .mc-produktkopf{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
+  .mc-produktkopf h3{font-size:19px}
+  .mc-ab{color:#f1d38b;font-weight:600}
+  .mc-raster{display:grid;gap:16px}
+  /* Die Vorschau bleibt beim Scrollen durch die Schritte oben stehen — man sieht sofort, was ein Tipp ändert. */
+  .mc-produkt{container-type:inline-size}
+  .mc-vorschau{margin:0 -6px;padding:6px 6px 6px;display:grid;gap:4px;align-content:start;position:sticky;top:8px;z-index:3;
+    background:#100f0d;box-shadow:0 14px 14px -8px #100f0d;border-radius:12px}
+  .mc-vorschau img{width:100%;height:auto;max-height:38vh;object-fit:contain;border-radius:10px;background:#15130f;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+  .mc-vorschau figcaption{font-size:12px;color:var(--leise);text-align:center}
+  .mc-schritte{display:grid;gap:12px;min-width:0}
+  .mc-schritt{border:1px solid var(--linie);border-radius:14px;padding:14px;display:grid;gap:8px;background:rgba(255,255,255,.015)}
+  .mc-schritt h4{display:flex;gap:10px;align-items:center;margin:0;font-size:16px;color:var(--text)}
+  .mc-schritt h4 span{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;flex:none;font-size:14px;font-weight:800;color:#1a140b;background:linear-gradient(135deg,#f3dfa6,#d9b468 55%,#b8913f)}
+  .mc-schritt.wm-bestellen{border-top:1px solid var(--linie);padding-top:14px}
+  .mc-motive{border:0;padding:0;margin:0 0 6px;display:grid!important;gap:8px;min-width:0}
+  .mc-motive legend{font-size:13px;color:var(--text);font-weight:600;margin-bottom:6px;padding:0}
+  .mc-gruppen{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+  .mc-gruppen button{flex:none;min-height:34px;padding:4px 12px;border-radius:999px;border:1px solid var(--linie2);background:transparent;color:var(--dim);font:inherit;font-size:13px;cursor:pointer;white-space:nowrap}
+  .mc-gruppen button[aria-pressed="true"]{border-color:rgba(227,194,122,.8);color:var(--text);background:rgba(227,194,122,.1)}
+  .mc-kacheln{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
+  .mc-branchen{max-height:430px;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}
+  .wm-gestalten label.mc-kachel{display:grid;gap:6px;align-content:start;min-height:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);font-size:12px;line-height:1.3;color:var(--dim);position:relative;background:#141210}
+  .wm-gestalten label.mc-kachel input{position:absolute;opacity:0;pointer-events:none}
+  .wm-gestalten label.mc-kachel img{width:100%;height:auto;aspect-ratio:260/368;object-fit:cover;border-radius:7px;display:block;background:#1d1a15}
+  .wm-gestalten label.mc-kachel.mc-quer img{aspect-ratio:260/168}
+  .wm-gestalten label.mc-kachel:has(input:checked){border-color:#e3c27a;background:rgba(227,194,122,.1);color:var(--text);box-shadow:0 0 0 1px rgba(227,194,122,.5)}
+  .wm-gestalten label.mc-kachel:has(input:checked)::after{content:"✓";position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e3c27a;color:#1a140b;font-weight:800;font-size:13px}
+  .wm-gestalten label.mc-kachel:has(input:focus-visible){outline:2px solid #e3c27a;outline-offset:2px}
+  .mc-kachel[hidden]{display:none!important}
+  .mc-stillinie{display:grid!important;gap:6px}
+  .mc-kacheln:has(.mc-quer){grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .mc-kachel .mc-linienname{display:block;min-width:0;margin-top:2px;font-size:10px}
+  .mc-zeile2{display:grid;gap:8px}
+  .mc-gesperrt{margin:6px 0 0;padding:10px 12px;border-radius:10px;border:1px dashed rgba(227,194,122,.35)}
+  @media (min-width:700px){ .mc-vorschau{top:70px} }   /* oben steht dort die Reiterleiste */
+  /* Nur wenn die Spalte wirklich breit ist: Vorschau links, Schritte rechts. */
+  @container (min-width:820px){
+    .mc-raster{grid-template-columns:minmax(0,5fr) minmax(0,6fr);gap:22px;align-items:start}
+    .mc-vorschau{background:none;margin:0;padding:0}
+    .mc-vorschau img{max-height:none}
+  }
+  @media (max-width:520px){ .mc-kacheln{grid-template-columns:repeat(3,minmax(0,1fr))} .mc-kacheln:has(.mc-quer){grid-template-columns:repeat(2,minmax(0,1fr))} .mc-produkt{padding:12px} }
 </style>
 
 <?php require __DIR__ . '/partner_mc_start.php'; ?>
@@ -171,171 +216,7 @@ if ($mcEigen) {
         <?php if (!$wmNurLesen): ?><a class="knopf" style="justify-self:start" href="#nachrichten"><?= $h($mcT('bald_knopf')) ?></a><?php endif; ?></div>
     <?php endif; ?>
     <?php foreach ($mcL as $wmP): ?>
-      <?php /* Phase 2: Stand der Druckdatei dieses Partners (Entwurf/Freigabe). Die
-               Vorschau zeigt die zuletzt gewählte Fassung, sonst Stil a. */
-        $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
-        $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => 'a', 'sprache' => $sprache, 'kontakt' => 'email'];
-        /* Branchen-Flyer (04.10.2026): Der „Stil“ ist die Branche. Ohne Wahl: die erste. */
-        $wmBranchen = [];
-        if ($wmP['vorlage'] === 'flyer_branche') {
-            require_once dirname(__DIR__) . '/src/PartnerFlyer.php';
-            foreach (PartnerFlyer::liste() as $wmFs => $wmFf) { if (!empty($wmFf['sp']) && Werbemittel::stilDa('flyer_branche', $wmFs)) { $wmBranchen[$wmFs] = PartnerFlyer::name($wmFs, $sprache); } }
-            if (!isset($wmBranchen[$wmJetzt['stil']])) { $wmJetzt['stil'] = (string) array_key_first($wmBranchen); }
-        } ?>
-      <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>"<?= isset($mcLinienJe[(int) $wmP['id']]) ? ' data-linien="' . $h(implode(' ', array_keys($mcLinienJe[(int) $wmP['id']]))) . '"' : '' ?>>
-        <?php if (Werbemittel::gestaltbar((string) $wmP['vorlage'])):
-          /* 04.10.2026: jede Vorlage (Visitenkarte, Flyer …) über denselben Vorschau-Weg ?wmv=. */
-          $wmBild = $wmNurLesen
-            ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, (string) $wmP['vorlage'], $wmJetzt['stil'], $sprache, 'email'))
-            : $selbst(['wmv' => $wmP['vorlage'], 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
-          <img src="<?= $h($wmBild) ?>" <?= $wmP['vorlage'] === 'visitenkarte' ? 'width="720" height="231"' : (str_starts_with((string) $wmP['vorlage'], 'aufkleber') ? 'width="360" height="360"' : (str_starts_with((string) $wmP['vorlage'], 'rollup') ? 'width="176" height="420"' : 'width="528" height="360"')) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
-               <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmP['vorlage'], 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
-               alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
-        <?php endif; ?>
-        <div>
-          <div class="mc-kopfzeile">
-          <h3><?= $h($wmP['name']) ?><?php if (isset($wmP['sichtbar']) && !$wmP['sichtbar']): ?> <span class="marke2 warnung" style="font-size:12px">für Partner noch aus</span><?php endif; ?></h3>
-          <?php if ($mcEigen): $mcIst = in_array((int) $wmP['id'], $mcFav, true); ?>
-            <form method="post" action="<?= $h($selbst()) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>">
-              <input type="hidden" name="tat" value="wm_favorit"><input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
-              <button class="mc-stern" aria-pressed="<?= $mcIst ? 'true' : 'false' ?>" aria-label="<?= $h($mcT($mcIst ? 'fav_aria_aus' : 'fav_aria_an', ['{name}' => $wmP['name']])) ?>"><svg viewBox="0 0 24 24" aria-hidden="true"><?= $mcIcon['favoriten'] ?></svg><?= $h($mcT($mcIst ? 'fav_gemerkt' : 'fav_merken')) ?></button>
-            </form>
-          <?php endif; ?>
-          </div>
-          <?php if ($wmP['text'] !== ''): ?><p class="wm-text"><?= $h($wmP['text']) ?></p><?php endif; ?>
-          <p class="wm-meta"><?= $wmP['format'] !== '' ? $h($W('format') . ' ' . $wmP['format']) . ' · ' : '' ?><?= $h($wmP['nummer']) ?> · <?= $h(strtr($W('ab'), ['{preis}' => Werbemittel::euro((int) $wmP['ab_cent'])])) ?></p>
-        </div>
-        <p class="wm-meta" style="margin:-4px 0 0"><?= $h($W('preis_land')) ?></p>
-        <table class="wm-varianten" aria-label="<?= $h($W('je_auflage')) ?>">
-          <?php foreach ($wmP['varianten'] as $wmV): ?>
-            <tr><td><?= $h($wmV['name']) ?></td><td><?php foreach ($wmV['preise'] as $wmPl => $wmPc): ?><span class="wm-landpreis<?= $wmPl === $wmP['land'] ? '' : ' wm-anderes' ?>"><?= $h(Partner::flagge($wmPl)) ?> <?= $h(Werbemittel::euro((int) $wmPc)) ?></span><?php endforeach; ?></td></tr>
-          <?php endforeach; ?>
-        </table>
-        <?php if (!$wmNurLesen && Werbemittel::gestaltbar((string) $wmP['vorlage'])):
-          $wmMeldung = (string) ($_GET['wm'] ?? '');
-          $wmWahlText = static fn(array $w): string => ($wmBranchen[$w['stil'] ?? ''] ?? PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
-              . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
-              . ' · ' . PartnerKarten::kontakt($p, (string) ($w['kontakt'] ?? 'email')); ?>
-          <?php if (in_array($wmMeldung, ['entwurf', 'frei', 'veraltet', 'zuviel', 'fehler', 'verworfen'], true)): ?>
-            <p class="wm-meldung<?= in_array($wmMeldung, ['entwurf', 'frei', 'verworfen'], true) ? ' gut' : '' ?>" role="status"><?= $h($W('m_' . $wmMeldung)) ?></p>
-          <?php endif; ?>
-          <?php if ($wmSt['freigegeben']): $wmF = $wmSt['freigegeben']; ?>
-            <div class="wm-frei">
-              <b>✓ <?= $h(strtr($W('frei_titel'), ['{datum}' => Fmt::datum((string) $wmF['freigegeben_am'])])) ?></b>
-              <span><?= $h($wmWahlText($wmF['wahl'])) ?></span>
-              <a href="<?= $h($selbst(['wmpdf' => (int) $wmF['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
-              <span class="wm-meta" style="margin:0"><?= $h($W('frei_satz')) ?></span>
-              <?php $wmEr = Werbemittel::erfolg((int) $p['id'], (int) $wmF['id']); ?>
-              <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmF)])) ?><br>
-                <?= $h(strtr($W('erfolg'), ['{scans}' => (string) $wmEr['scans'], '{besucher}' => (string) $wmEr['besucher'], '{anfragen}' => (string) $wmEr['anfragen'], '{abschluesse}' => (string) $wmEr['abschluesse']])) ?></span>
-            </div>
-          <?php endif; ?>
-          <?php if ($wmSt['entwurf']): $wmE = $wmSt['entwurf']; ?>
-            <form class="wm-entwurf" method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>">
-              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_freigeben">
-              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>"><input type="hidden" name="entwurf" value="<?= (int) $wmE['id'] ?>">
-              <input type="hidden" name="hash" value="<?= $h((string) $wmE['datei_hash']) ?>">
-              <b><?= $h($W('entwurf_titel')) ?></b>
-              <span><?= $h($wmWahlText($wmE['wahl'])) ?></span>
-              <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmE)])) ?></span>
-              <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
-              <?php if (!empty($wmE['hat_pf'])): ?>
-                <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>
-                <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="180" height="108" loading="lazy"></a><?php endforeach; ?></span>
-              <?php endif; ?>
-              <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W(!empty($wmE['hat_pf']) ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
-              <span style="display:flex;gap:8px;flex-wrap:wrap"><button class="knopf haupt"><?= $h($W('freigeben')) ?></button>
-                <button class="knopf" form="wm-weg-<?= (int) $wmE['id'] ?>"><?= $h($W('verwerfen')) ?></button></span>
-            </form>
-            <form id="wm-weg-<?= (int) $wmE['id'] ?>" method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" data-frage="<?= $h($W('verwerfen_frage')) ?>" class="wm-frage" hidden>
-              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_verwerfen">
-              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>"><input type="hidden" name="entwurf" value="<?= (int) $wmE['id'] ?>">
-            </form>
-          <?php endif; ?>
-          <details class="wm-gestalten"<?= !$wmSt['entwurf'] && !$wmSt['freigegeben'] ? ' open' : '' ?>>
-            <summary><?= $h($W('gestalten')) ?></summary>
-            <form method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" class="wm-gestalter" data-bild="wm-bild-<?= (int) $wmP['id'] ?>">
-              <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_entwurf">
-              <p class="wm-meta wm-wahl-hinweis" hidden style="margin:0"><?= $h($W('vorschau_wahl')) ?> ↑</p>
-              <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
-              <?php if ($wmBranchen): ?>
-              <fieldset><legend><?= $h($W('branche')) ?></legend>
-                <select name="stil" aria-label="<?= $h($W('branche')) ?>">
-                  <?php foreach ($wmBranchen as $wmS => $wmSn): ?><option value="<?= $h($wmS) ?>" data-linie="<?= Designlinie::von('flyer_branche', (string) $wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' selected' : '' ?>><?= $h($wmSn) ?></option><?php endforeach; ?>
-                </select>
-              </fieldset>
-              <?php else: ?>
-              <fieldset class="mc-stile"><legend><?= $h($W('stil')) ?></legend>
-                <?php /* Nach Designlinie gruppiert (Schritt 3): je Linie ihr Name, darunter ihre Stile. */
-                  foreach ($mcLinienJe[(int) $wmP['id']] ?? [] as $mcLi => $mcSt): ?>
-                  <div class="mc-stillinie" data-linie="<?= $mcLi ?>"><span class="mc-linienname"><?= $h(Texte::h(Texte::MARKETINGCENTER['linien'][$mcLi], $sprache)) ?></span>
-                  <?php foreach ($mcSt as $wmS): $wmSn = PartnerKarten::STILE[$wmS]; ?>
-                    <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
-                  <?php endforeach; ?></div>
-                <?php endforeach; ?>
-              </fieldset>
-              <?php endif; ?>
-              <fieldset><legend><?= $h(Texte::h(Texte::PARTNER['vk_sprache'] ?? [], $sprache)) ?></legend>
-                <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $wmL => $wmLn): ?>
-                  <label><input type="radio" name="sprache" value="<?= $wmL ?>"<?= $wmL === $wmJetzt['sprache'] ? ' checked' : '' ?>> <?= $wmLn ?></label>
-                <?php endforeach; ?>
-              </fieldset>
-              <fieldset><legend><?= $h(Texte::h(Texte::PARTNER['vk_kontakt'] ?? [], $sprache)) ?></legend>
-                <?php foreach (PartnerKarten::KONTAKTE as $wmKo): ?>
-                  <label><input type="radio" name="kontakt" value="<?= $wmKo ?>"<?= $wmKo === $wmJetzt['kontakt'] ? ' checked' : '' ?>> <?= $h(PartnerKarten::kontakt($p, $wmKo)) ?></label>
-                <?php endforeach; ?>
-              </fieldset>
-              <button class="knopf<?= $wmSt['entwurf'] || $wmSt['freigegeben'] ? '' : ' haupt' ?>"><?= $h($W('erzeugen')) ?></button>
-            </form>
-          </details>
-        <?php endif; ?>
-        <?php /* Phase 3: bestellen — nur mit freigegebener Druckdatei. In der
-                 Verwaltungsvorschau steht das Formular gesperrt da. */
-          $wmDarf = $wmNurLesen || !empty($wmSt['freigegeben']);
-          $wmM = (string) ($_GET['wm'] ?? ''); ?>
-        <div class="wm-bestellen" id="wm-bestellen">
-          <h4><?= $h($W('bestellen')) ?></h4>
-          <?php if ($wmNoch): ?><p class="wm-meldung" role="status"><?= $h($W('nochmal_satz')) ?></p><?php endif; ?>
-          <?php if (!$wmNurLesen && in_array($wmM, ['adresse', 'freigabe_fehlt', 'zuviel_offen', 'nicht_verfuegbar', 'nicht_lieferbar'], true)): ?>
-            <p class="wm-meldung" role="alert"><?= $h($W('m_' . $wmM)) ?></p>
-          <?php endif; ?>
-          <?php if (!$wmDarf): ?>
-            <p class="wm-meta" style="margin:0"><?= $h($W('erst_freigeben')) ?></p>
-          <?php else: ?>
-          <form<?= $wmNurLesen ? '' : ' method="post" action="' . $h($selbst()) . '"' ?>>
-            <fieldset class="wm-bfeld"<?= $wmNurLesen ? ' disabled' : '' ?>>
-              <?php if (!$wmNurLesen): ?><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_bestellen"><?php endif; ?>
-              <div class="wm-wahl" role="radiogroup" aria-label="<?= $h($W('auflage')) ?>">
-                <?php foreach ($wmP['varianten'] as $wmI => $wmV): ?>
-                  <label><input type="radio" name="variante" value="<?= (int) $wmV['id'] ?>"<?= ($wmNochVar > 0 ? (int) $wmV['id'] === $wmNochVar : $wmI === 0) ? ' checked' : '' ?> required>
-                    <span><?= $h($wmV['name']) ?></span><b><?php foreach ($wmV['preise'] as $wmPl => $wmPc): ?><span class="wm-landpreis<?= $wmPl === $wmP['land'] ? '' : ' wm-anderes' ?>"><?= $h(Partner::flagge($wmPl)) ?> <?= $h(Werbemittel::euro((int) $wmPc)) ?></span><?php endforeach; ?></b></label>
-                <?php endforeach; ?>
-              </div>
-              <p class="wm-unter"><?= $h($W('lieferadresse')) ?></p>
-              <?php foreach ($wmAdressen as $wmAi => $wmA): ?>
-                <label class="wm-adr"><input type="radio" name="adresse" value="<?= (int) $wmA['id'] ?>"<?= ($wmNoch ? (int) $wmA['id'] === $wmNochAdr : $wmAi === 0) ? ' checked' : '' ?>>
-                  <span><?= $h($wmA['name'] . ($wmA['firma'] !== '' ? ' · ' . $wmA['firma'] : '') . ', ' . $wmA['strasse'] . ', ' . $wmA['plz'] . ' ' . $wmA['ort'] . ' (' . $wmA['land'] . ')') ?></span></label>
-              <?php endforeach; ?>
-              <?php if ($wmAdressen): ?><label class="wm-adr"><input type="radio" name="adresse" value="neu"<?= $wmNoch && $wmNochAdr === 0 ? ' checked' : '' ?>> <span><?= $h($W('neue_adresse')) ?></span></label><?php else: ?><input type="hidden" name="adresse" value="neu"><?php endif; ?>
-              <div class="wm-neu"<?= $wmAdressen ? ' data-nur-neu="1"' : '' ?>>
-                <label><?= $h($W('a_name')) ?><input name="name" autocomplete="name" value="<?= $h((string) ($wmNochNeu['name'] ?? ($wmAdressen ? '' : (string) ($p['name'] ?? '')))) ?>"></label>
-                <label><?= $h($W('a_firma')) ?><input name="firma" autocomplete="organization" value="<?= $h((string) ($wmNochNeu['firma'] ?? '')) ?>"></label>
-                <label class="wm-breit"><?= $h($W('a_strasse')) ?><input name="strasse" autocomplete="street-address" value="<?= $h((string) ($wmNochNeu['strasse'] ?? '')) ?>"></label>
-                <label><?= $h($W('a_plz')) ?><input name="plz" autocomplete="postal-code" inputmode="numeric" value="<?= $h((string) ($wmNochNeu['plz'] ?? '')) ?>"></label>
-                <label><?= $h($W('a_ort')) ?><input name="ort" autocomplete="address-level2" value="<?= $h((string) ($wmNochNeu['ort'] ?? '')) ?>"></label>
-                <label><?= $h($W('a_land')) ?><select name="land" autocomplete="country">
-                  <?php foreach ($wmLaender as $wmLc => $wmLn): ?><option value="<?= $wmLc ?>"<?= $wmLc === (string) ($wmNochNeu['land'] ?? $wmP['land']) ? ' selected' : '' ?>><?= $h($wmLn) ?></option><?php endforeach; ?>
-                </select></label>
-                <label><?= $h($W('a_telefon')) ?><input name="telefon" type="tel" autocomplete="tel" value="<?= $h((string) ($wmNochNeu['telefon'] ?? '')) ?>"></label>
-              </div>
-              <label class="wm-haken"><input type="checkbox" name="verbindlich" value="1" required> <span><?= $h($W('verbindlich')) ?></span></label>
-              <button class="knopf haupt"><?= $h($W($wmZahlweg === 'stripe' ? 'knopf_stripe' : 'knopf_anfrage')) ?></button>
-              <p class="wm-meta" style="margin:0"><?= $h($W($wmZahlweg === 'stripe' ? 'stripe_satz' : 'anfrage_satz')) ?></p>
-            </fieldset>
-          </form>
-          <?php endif; ?>
-        </div>
-      </article>
+      <?php require __DIR__ . '/partner_mc_produkt.php'; /* drei Schritte, 04.10.2026 */ ?>
     <?php endforeach; ?>
   </section>
   <?php endforeach; ?>
@@ -404,6 +285,19 @@ if ($mcEigen) {
         .replace('_L_', encodeURIComponent(wert('sprache'))).replace('_K_', encodeURIComponent(wert('kontakt')));
       if (hinweis) { hinweis.hidden = false; }
     });
+  });
+  /* Branchen-Gruppen (04.10.2026): ein Tipp zeigt nur die Motive dieser Gruppe; die gewählte Kachel bleibt im Blick. */
+  document.querySelectorAll('.mc-motive .mc-gruppen').forEach(function (g) {
+    var box = g.parentNode.querySelector('.mc-branchen');
+    if (!box) { return; }
+    function zeig(flg) {
+      [].forEach.call(g.querySelectorAll('button[data-flg]'), function (b) { b.setAttribute('aria-pressed', b.dataset.flg === flg ? 'true' : 'false'); });
+      [].forEach.call(box.querySelectorAll('.mc-kachel'), function (k) { k.hidden = flg !== '' && k.dataset.flg !== flg; });
+    }
+    g.addEventListener('click', function (e) { var b = e.target.closest('button[data-flg]'); if (b) { zeig(b.dataset.flg); box.scrollTop = 0; } });
+    var an = g.querySelector('button[aria-pressed="true"]'); zeig(an ? an.dataset.flg : '');
+    var c = box.querySelector('input:checked');
+    if (c) { var k = c.closest('.mc-kachel'); box.scrollTop = Math.max(0, k.offsetTop - box.offsetTop - 8); }
   });
   document.querySelectorAll('form.wm-frage').forEach(function (f) {
     f.addEventListener('submit', function (e) { if (!window.confirm(f.dataset.frage || '?')) { e.preventDefault(); } });

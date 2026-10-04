@@ -21884,7 +21884,7 @@ $w7St = Werbemittel::stand((int) $w7P['id'], (int) $w7Vk['id']);
 pruefe('Der Partner sieht die 90 × 50-Fassung vor der Freigabe — nur seine eigene; der Haken nennt beide Formate',
     !empty($w7St['entwurf']['hat_pf']) && Werbemittel::eingepasstBild($w7E, (int) $w7P['id'], 'vorn') !== null
     && Werbemittel::eingepasstBild($w7E, (int) $w7P['id'] + 999, 'vorn') === null
-    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), "'pruef_haken_pf'")
+    && str_contains((string) (file_get_contents($wurzel . '/views/partner_werbemittel.php') . file_get_contents($wurzel . '/views/partner_mc_produkt.php')), "'pruef_haken_pf'")
     && str_contains((string) file_get_contents($oben . '/partner.php'), "Werbemittel::eingepasstBild((int) \$_GET['wmpf'], (int) \$p['id']"));
 Werbemittel::freigeben((int) $w7P['id'], $w7E, (string) Db::wert('SELECT datei_hash FROM wm_entwuerfe WHERE id = ?', [$w7E]));
 $w7L = Druckerei::dateiLink($w7E, 'pf_vorn'); parse_str((string) parse_url($w7L, PHP_URL_QUERY), $w7Q);
@@ -22069,7 +22069,7 @@ pruefe('Stripe lässt die Seite nicht beenden, weil schon bezahlt: NICHT abbrech
     WmBestellung::partnerAbbrechen($w7Ob['id'], (int) $w7P['id'], $w7Sx) === 'nicht' && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7Ob['id']]) === 'offen'
     && WmBestellung::partnerAbbrechen($w7Ob['id'], (int) $w7P['id'], null) === 'nicht'
     && WmBestellung::partnerAbbrechen($w7O['id'], (int) $w7P['id'], null) === 'nicht');
-$w7Pv = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+$w7Pv = (string) (file_get_contents($wurzel . '/views/partner_werbemittel.php') . file_get_contents($wurzel . '/views/partner_mc_produkt.php'));
 pruefe('Partneransicht: Vorschau folgt der Auswahl (data-muster mit Stil/Sprache/Kontakt), Verwerfen und Abbrechen fragen vorher, Handler in partner.php',
     str_contains($w7Pv, "'st' => '_S_'") && str_contains($w7Pv, "bild.dataset.muster.replace('_S_'") && str_contains($w7Pv, 'wm_verwerfen') && str_contains($w7Pv, 'wm_abbrechen')
     && str_contains($w7Pv, 'window.confirm') && str_contains((string) file_get_contents($oben . '/partner.php'), "WmBestellung::partnerAbbrechen((int) (\$_POST['bestellung'] ?? 0), (int) \$p['id']"));
@@ -22214,7 +22214,7 @@ if ($w7Bpr) {
 pruefe('Branchen-Flyer: Produkt angelegt (aus), 250/500/1000 Stück, Entwurf nur mit echter Branche, Wahl merkt sich die Branche',
     $w7Bpr !== null && (int) $w7Bpr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Bpr['id']]) === 3
     && $w7Bfalsch && $w7Bw !== null && ($w7Bw['wahl']['stil'] ?? '') === $w7B1 && str_starts_with((string) Db::wert('SELECT datei_druck FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF') && str_starts_with((string) Db::wert('SELECT datei FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF')
-    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), "select[name=\"' + n + '\"]"));
+    && str_contains((string) (file_get_contents($wurzel . '/views/partner_werbemittel.php') . file_get_contents($wurzel . '/views/partner_mc_produkt.php')), "select[name=\"' + n + '\"]"));
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);
@@ -22308,9 +22308,9 @@ pruefe('„entsteht“ ist nie freigebbar (auch nicht mit dem Platzhalter-Hash)'
 // Scheitert die Datei, verschwindet die neue Zeile und der alte Entwurf bleibt.
 $miVorher = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ?', [(int) $miA['id']]);
 $miFehler = false;
-Db::run("UPDATE wm_produkte SET vorlage = 'gibt_es_nicht' WHERE id = ?", [(int) $miVk['id']]);
-try { Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']); } catch (RuntimeException $e) { $miFehler = true; }
-Db::run("UPDATE wm_produkte SET vorlage = 'visitenkarte' WHERE id = ?", [(int) $miVk['id']]);
+Werbemittel::$vorDatei = static function (): void { throw new RuntimeException('Probe: Datei scheitert'); };
+try { Werbemittel::entwurfAnlegen($miA, (int) $miVk['id'], ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email']); } catch (RuntimeException $e) { $miFehler = $e->getMessage() === 'Probe: Datei scheitert'; }
+Werbemittel::$vorDatei = null;
 pruefe('Scheitert die Datei: Fehler, die neue Zeile verschwindet, der bisherige Entwurf bleibt',
     $miFehler && (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ?', [(int) $miA['id']]) === $miVorher
     && (int) Db::wert("SELECT COUNT(*) FROM wm_entwuerfe WHERE id = ? AND status = 'entwurf'", [$miE2]) === 1);
@@ -22352,7 +22352,7 @@ $miZ = array_values(array_filter($miAus['zeilen'], static fn($z) => $z['kanal'] 
 pruefe('Auswertung je Kanal: Klicks und Kunden des Werbemittels stehen gemeinsam in der Zeile „wm“',
     count($miZ) === 1 && $miZ[0]['klicks'] === 4 && $miZ[0]['kunden'] === 1
     && !array_filter($miAus['zeilen'], static fn($z) => str_starts_with($z['kanal'], 'wm-')) && Texte::h(Texte::PARTNER_WERBUNG['namen']['wm'] ?? [], 'de') !== '');
-$miV = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+$miV = (string) (file_get_contents($wurzel . '/views/partner_werbemittel.php') . file_get_contents($wurzel . '/views/partner_mc_produkt.php'));
 pruefe('Partnerbereich zeigt Marketing-ID und Wirkung, Verwaltung die ID je Bestellung',
     str_contains($miV, "Werbemittel::marketingId(\$wmF)") && str_contains($miV, "Werbemittel::erfolg((int) \$p['id'], (int) \$wmF['id'])")
     && str_contains((string) file_get_contents($wurzel . '/views/werbemittel_bestellungen.php'), 'Werbemittel::marketingId($wmEnt)'));
@@ -22506,7 +22506,9 @@ pruefe('Branchen-Flyer: helle (dunkle Linkschrift) sind Business, die übrigen P
     && count($dlB) < count(Designlinie::stileDa('flyer_branche')) && count(Designlinie::stileDa('flyer_branche')) === 51, (string) count($dlB));
 pruefe('Visitenkarte gruppiert nach Linie: Premium a, b, c — Business d — Tech e, Lifestyle f, Industrial g; anderswo fehlen Linien ohne Vorlage (nichts erfunden)',
     Designlinie::gruppiert('visitenkarte', Designlinie::stileDa('visitenkarte')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d'], 'tech' => ['e'], 'lifestyle' => ['f'], 'industrial' => ['g']]
-    && Designlinie::gruppiert('flyer_a5', Designlinie::stileDa('flyer_a5')) === ['premium' => ['a', 'b', 'c'], 'business' => ['d']]
+    && array_slice(Designlinie::gruppiert('flyer_a5', Designlinie::stileDa('flyer_a5'))['premium'], 0, 3) === ['a', 'b', 'c']
+    && Designlinie::gruppiert('flyer_a5', Designlinie::stileDa('flyer_a5'))['business'][0] === 'd'
+    && count(Designlinie::stileDa('flyer_a6')) === 4 + 51 && !isset(Designlinie::gruppiert('flyer_a6', Designlinie::stileDa('flyer_a6'))['tech'])
     && Designlinie::gruppiert('aufkleber_50', Designlinie::stileDa('aufkleber_50')) === ['premium' => ['a'], 'business' => ['d']]);
 $dlVk = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'visitenkarte'");
 $dlFb = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_branche'");
@@ -22533,13 +22535,56 @@ pruefe('Linie ohne Vorlage im Katalog: abgeschaltet mit „presto“ (hier nur B
     preg_match('~data-linie="tech" aria-pressed="false"[^>]*disabled>~', $dlHtml2) === 1 && substr_count($dlHtml2, '(presto)') === 3);
 pruefe('Produkte tragen ihre Linien, Stile stehen in ihrer Linie, Branchen-Optionen kennen ihre Linie, CSS blendet je Linie aus',
     str_contains($dlHtml, 'id="wm-p' . (int) $dlVk['id'] . '" data-linien="premium business tech lifestyle industrial"') && str_contains($dlHtml, 'id="wm-p' . (int) $dlFb['id'] . '" data-linien="premium business"')
-    && preg_match('~class="mc-stillinie" data-linie="business">.*?value="d"~s', $dlHtml) === 1 && str_contains($dlHtml, 'data-linie="business">')
-    && substr_count($dlHtml, 'option value="') >= 51 && preg_match('~<option value="[^"]+" data-linie="(premium|business)"~', $dlHtml) === 1
-    && substr_count($dlHtml, 'html[data-linie="') === 10);
+    && preg_match('~<label class="mc-kachel mc-quer" data-linie="business">\s*<input type="radio" name="stil" value="d"~', $dlHtml) === 1 && str_contains($dlHtml, 'data-linie="business">')
+    && substr_count($dlHtml, 'class="mc-kachel') >= 51 && preg_match('~<label class="mc-kachel" data-linie="(premium|business)" data-flg="[a-z]+">~', $dlHtml) === 1
+    && substr_count($dlHtml, 'html[data-linie="') === 15);
 foreach ($dlVars as $dlV) { Db::run("DELETE FROM wm_anbieter_preise WHERE variante_id = ? AND anbieter = 'Kette'", [$dlV]); }
 Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $dlVk['aktiv'], (int) $dlVk['id']]);
 Db::run('UPDATE wm_produkte SET aktiv = ? WHERE id = ?', [(int) $dlFb['aktiv'], (int) $dlFb['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $dlP['id']]);
+
+/* ============================================================================
+   Marketingcenter: Branchenmotiv für alle Flyer, Auswahl in Kacheln (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Branchen für alle Flyer');
+foreach (['WmDruck', 'Werbemittel', 'PartnerFlyer', 'PartnerKarten', 'Designlinie'] as $bfKl) { require_once $wurzel . "/src/$bfKl.php"; }
+$bfS = (string) (Designlinie::stileDa('flyer_branche')[0] ?? '');
+$bfP = ['id' => 0, 'code' => 'BRANCHE6', 'token' => 'x', 'name' => 'Bea Branche', 'email' => 'bea@partner.example', 'firma' => ''];
+pruefe('Flyer A5 und A6 nehmen auch ein Branchenmotiv, Buchstaben bleiben Stile; Unsinn nirgends',
+    $bfS !== '' && WmDruck::branche('flyer_a6', $bfS) && WmDruck::branche('flyer_a5', $bfS) && !WmDruck::branche('flyer_a6', 'a')
+    && WmDruck::gibt('flyer_a6', $bfS) && WmDruck::gibt('flyer_a6', 'a') && !WmDruck::gibt('flyer_a6', 'gibts-nicht') && !WmDruck::branche('aufkleber_50', $bfS)
+    && !WmDruck::gibt('flyer_branche', 'a'));
+$bfPdf6 = WmDruck::pdf(Werbemittel::mitKanal($bfP, 77), 'flyer_a6', $bfS, 'de');
+$bfMb = preg_match('~/MediaBox \[0 0 ([\d.]+) ([\d.]+)\]~', $bfPdf6, $bfM) ? [(float) $bfM[1], (float) $bfM[2]] : [0, 0];
+pruefe('Branchen-Flyer A6: zwei Seiten im A6-Maß mit 3 mm Beschnitt (111 × 154 mm), Code vorn und hinten als Vektor',
+    str_starts_with($bfPdf6, '%PDF') && abs($bfMb[0] - 314.65) < 0.2 && abs($bfMb[1] - 436.54) < 0.2 && substr_count($bfPdf6, '/TrimBox') === 2
+    && substr_count($bfPdf6, ' re f') > 200, json_encode($bfMb));
+$bfA = WmDruck::pdf($bfP, 'flyer_branche', $bfS, 'it'); $bfB = WmDruck::pdf($bfP, 'flyer_a5', $bfS, 'it');
+$bfOhne = static fn(string $x): string => (string) preg_replace('~/(CreationDate|ID) [^\n]*~', '', $x);
+pruefe('Flyer A5 mit Branche ist genau der Branchen-Flyer A5 (gleiche Datei, kein zweiter Weg)', $bfA !== '' && $bfOhne($bfA) === $bfOhne($bfB));
+$bfV6 = WmDruck::vorschau($bfP, 'flyer_a6', $bfS, 'de');
+$bfG = @getimagesizefromstring($bfV6);
+pruefe('A6-Vorschau: Vorder- und Rückseite nebeneinander, 360 px hoch', is_array($bfG) && $bfG[1] === 360 && $bfG[0] > 450);
+$bfW = Werbemittel::wahl(['stil' => $bfS, 'sprache' => 'de', 'kontakt' => 'email'], 'flyer_a6');
+gesperrt('Wahl für A6 lehnt Unsinn ab', fn() => Werbemittel::wahl(['stil' => '../x', 'sprache' => 'de', 'kontakt' => 'email'], 'flyer_a6'));
+pruefe('Wahl für A6 nimmt das Branchenmotiv an', $bfW['stil'] === $bfS);
+$bfOrdner = $wurzel . '/zwischenspeicher/mini';
+$bfMini = Werbemittel::miniBild('flyer_a6', $bfS, 'it');
+$bfMg = @getimagesizefromstring($bfMini);
+pruefe('Kachelbild: Vorderseite ohne Partnerdaten, 260 px breit, Hochformat; danach aus dem Zwischenspeicher; Unbekanntes leer',
+    is_array($bfMg) && $bfMg[0] === 260 && $bfMg[1] > 300 && glob($bfOrdner . '/*.jpg') !== []
+    && Werbemittel::miniBild('flyer_a6', $bfS, 'it') === $bfMini && Werbemittel::miniBild('flyer_a6', 'zz', 'it') === ''
+    && is_array(@getimagesizefromstring(Werbemittel::miniBild('visitenkarte', 'e', 'de'))) && Werbemittel::miniBild('gibtsnicht', 'a', 'de') === '');
+$bfV = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+$bfPhp = (string) file_get_contents($oben . '/partner.php');
+pruefe('Produktkarte: drei nummerierte Schritte, Auswahl immer offen (kein zugeklapptes Gestalten), Kacheln mit Bild, Branchen-Gruppen',
+    substr_count($bfV, '<section class="mc-schritt') === 3 && !str_contains($bfV, '<details class="wm-gestalten"')
+    && str_contains($bfV, "'wmmini' => \$wmVl") && str_contains($bfV, 'class="mc-gruppen"') && str_contains($bfV, 'data-flg=')
+    && str_contains($bfPhp, "Werbemittel::miniBild((string) \$_GET['wmmini']"));
+foreach (glob($bfOrdner . '/*.jpg') ?: [] as $bfX) { @unlink($bfX); }
+$bfMig = (string) file_get_contents($wurzel . '/migrations/162_branchen_flyer_aus.sql');
+pruefe('Migration 162: Branchen-Flyer A5 nur aus, wenn Flyer A5 an ist; nichts gelöscht',
+    str_contains($bfMig, "a.vorlage = 'flyer_a5' AND a.aktiv = 1") && str_contains($bfMig, "b.vorlage = 'flyer_branche'") && !preg_match('~\bDELETE\b~i', $bfMig));
 
 /* ============================================================================
    Aufräumen und Bilanz

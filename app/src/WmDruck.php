@@ -56,6 +56,35 @@ final class WmDruck
      */
     public const RUECKSEITE = ['flyer_branche' => ['flyer_a5', 'a']];
 
+    /**
+     * Branchenmotiv für jeden Flyer (04.10.2026, Uwe: „bei den A5-Flyern sind viele Branchen
+     * zur Auswahl, so soll es auch bei den anderen Flyern sein“): Flyer A5 und A6 nehmen als
+     * „Stil“ auch eine Branche. Vorderseite = das Branchenmotiv (für A6 verkleinert), Rückseite
+     * = die eigene des Formats im Stil a — mit Name, Link, Kontakt und Code.
+     */
+    public const BRANCHE_MOEGLICH = ['flyer_a5', 'flyer_a6'];
+
+    /** Ist $stil hier ein Branchenmotiv (und nicht a, b, c …)? */
+    public static function branche(string $fmt, string $stil): bool
+    {
+        return (isset(self::RUECKSEITE[$fmt]) || in_array($fmt, self::BRANCHE_MOEGLICH, true))
+            && PartnerFlyer::gibt($stil) && PartnerFlyer::sprachen($stil) !== [];
+    }
+
+    /** Rückseite zu einem Branchenmotiv: [Format, Stil]. */
+    private static function rueckseite(string $fmt): array
+    {
+        return self::RUECKSEITE[$fmt] ?? [$fmt, 'a'];
+    }
+
+    /** Skalierung „füllen“ von Quelle auf Ziel (Pixel): [Faktor, Versatz x, Versatz y]. Gleich groß: genau 1. */
+    private static function deckung(float $sw, float $sh, float $tw, float $th): array
+    {
+        $f = max($tw / $sw, $th / $sh);
+        if (abs($f - 1) < 0.002) { return [1.0, 0.0, 0.0]; }
+        return [$f, ($sw * $f - $tw) / 2, ($sh * $f - $th) / 2];
+    }
+
     /** @var array<string, array> */
     private static array $layouts = [];
 
@@ -75,11 +104,20 @@ final class WmDruck
 
     public static function gibt(string $fmt, string $stil): bool
     {
-        if (isset(self::RUECKSEITE[$fmt])) {
-            [$rf, $rs] = self::RUECKSEITE[$fmt];
-            return PartnerFlyer::gibt($stil) && PartnerFlyer::sprachen($stil) !== [] && self::gibt($rf, $rs);
+        if (isset(self::RUECKSEITE[$fmt]) || self::branche($fmt, $stil)) {
+            [$rf, $rs] = self::rueckseite($fmt);
+            return self::branche($fmt, $stil) && self::gibt($rf, $rs);
         }
         return isset(self::FORMATE[$fmt], self::layout($fmt)['stile'][$stil]) && is_file(self::datei($fmt, $stil, 'vorn', 'de'));
+    }
+
+    /** Vorderseite als Datei (Kachelbild der Auswahl): Branchenmotiv oder Vorlage; Großformat in der kleinen Fassung. */
+    public static function vornDatei(string $fmt, string $stil, string $sprache): string
+    {
+        if (!self::gibt($fmt, $stil)) { return ''; }
+        if (self::branche($fmt, $stil)) { return PartnerFlyer::datei($stil, $sprache); }
+        $d = self::datei($fmt, $stil, 'vorn', $sprache);
+        return self::gross($fmt) ? (string) preg_replace('~\.jpg$~', '-klein.jpg', $d) : $d;
     }
 
     private static function datei(string $fmt, string $stil, string $seite, string $sprache): string
@@ -91,15 +129,26 @@ final class WmDruck
     /** Eine Seite als GD-Bild in voller Größe (mit Beschnitt). $mitQr: false, wenn der Code im PDF als Vektor kommt. */
     private static function leinwand(array $p, string $fmt, string $stil, string $seite, string $sprache, string $kontakt, bool $mitQr = true): ?\GdImage
     {
-        if (isset(self::RUECKSEITE[$fmt])) {
-            if ($seite === 'hinten') { [$rf, $rs] = self::RUECKSEITE[$fmt]; return self::leinwand($p, $rf, $rs, 'hinten', $sprache, $kontakt, $mitQr); }
+        if (self::branche($fmt, $stil)) {
+            if ($seite === 'hinten') { [$rf, $rs] = self::rueckseite($fmt); return self::leinwand($p, $rf, $rs, 'hinten', $sprache, $kontakt, $mitQr); }
             $im = @imagecreatefromjpeg(PartnerFlyer::datei($stil, $sprache));
-            if ($im && $mitQr) { self::qrMalen($im, self::qrVorn($stil, $im), $p, $fmt); }
+            if (!$im) { return null; }
             // Flyer im Originalstil: der Link des Partners steht dort, wo im Original www.vecom-design.it stand.
             $fu = PartnerFlyer::liste()[$stil]['u'] ?? null;
             $schrift = dirname(__DIR__) . '/schrift/archivo-semibold.ttf';
-            if ($im && $fu && is_file($schrift)) { PartnerFlyer::linkMalen($im, $fu, PartnerFlyer::kurz($p), imagesx($im) / PartnerFlyer::liste()[$stil]['b'], $schrift); }
-            return $im ?: null;
+            if ($fu && is_file($schrift)) { PartnerFlyer::linkMalen($im, $fu, PartnerFlyer::kurz($p), imagesx($im) / PartnerFlyer::liste()[$stil]['b'], $schrift); }
+            // Anderes Format (A6): auf dessen Fläche mit Beschnitt füllen — gleiche Pixeldichte, Mitte bleibt Mitte.
+            $lay = self::layout($fmt); $a5 = self::layout('flyer_a5');
+            $k = imagesx($im) / (($a5['b'] + 2 * $a5['beschnitt']) * 10);
+            $tw = (int) round(($lay['b'] + 2 * $lay['beschnitt']) * 10 * $k); $th = (int) round(($lay['h'] + 2 * $lay['beschnitt']) * 10 * $k);
+            [$f, $ox, $oy] = self::deckung(imagesx($im), imagesy($im), $tw, $th);
+            if ($f !== 1.0) {
+                $neu = imagecreatetruecolor($tw, $th);
+                imagecopyresampled($neu, $im, 0, 0, (int) round($ox / $f), (int) round($oy / $f), $tw, $th, (int) round($tw / $f), (int) round($th / $f));
+                imagedestroy($im); $im = $neu;
+            }
+            if ($mitQr) { self::qrMalen($im, self::qrVorn($stil, $im, $fmt), $p, $fmt); }
+            return $im;
         }
         $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
         if (!$im) { return null; }
@@ -131,14 +180,18 @@ final class WmDruck
      * Fläche, 84 % ihrer Breite — dasselbe Maß wie im Dashboard (PartnerFlyer::platz).
      * @return array{qr:array{float,float,float},k:float}
      */
-    public static function qrVorn(string $slug, ?\GdImage $im = null): array
+    public static function qrVorn(string $slug, ?\GdImage $im = null, string $fmt = 'flyer_a5'): array
     {
         $f = PartnerFlyer::liste()[$slug];
-        $lay = self::layout('flyer_a5');
-        $k = $f['b'] / (($lay['b'] + 2 * $lay['beschnitt']) * 10);          // Pixel je 1/10 mm
+        $a5 = self::layout('flyer_a5');
+        $lay = self::layout($fmt) ?: $a5;
+        $k = $f['b'] / (($a5['b'] + 2 * $a5['beschnitt']) * 10);          // Pixel je 1/10 mm (Branchenbild)
+        $tw = ($lay['b'] + 2 * $lay['beschnitt']) * 10 * $k; $th = ($lay['h'] + 2 * $lay['beschnitt']) * 10 * $k;
+        [$sk, $ox, $oy] = self::deckung((float) $f['b'], (float) $f['h'], $tw, $th);   // A6: dieselbe Verkleinerung wie das Bild
         [$x, $y, $b, $h] = $f['q'];
         $s = min($b, $h) * 0.84;
-        return ['qr' => [($x + ($b - $s) / 2) / $k, ($y + ($h - $s) / 2) / $k, $s / $k], 'k' => $im ? imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10) : $k];
+        return ['qr' => [(($x + ($b - $s) / 2) * $sk - $ox) / $k, (($y + ($h - $s) / 2) * $sk - $oy) / $k, $s * $sk / $k],
+                'k' => $im ? imagesx($im) / (($lay['b'] + 2 * $lay['beschnitt']) * 10) : $k];
     }
 
     /** Den echten Code ins Bild (Vorschau, Fassungen ohne Vektor). $L: ['qr' => [x, y, s] in 1/10 mm, 'k' => Pixel je 1/10 mm]. */
@@ -177,7 +230,8 @@ final class WmDruck
         $lay = self::layout($fmt);
         $weg = $beschnitt === null ? 0.0 : max(0.0, (float) $lay['beschnitt'] - $beschnitt);   // mm je Seite
         $ein = self::einseitig($fmt);
-        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !isset(self::RUECKSEITE[$fmt]) && !$ein);
+        $br = self::branche($fmt, $stil);
+        $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !$br && !$ein);
         $h = $ein ? $v : self::leinwand($p, $fmt, $stil, 'hinten', $sprache, $kontakt, false);
         if (!$v || !$h) { return ''; }
         $bw = $lay['b'] + 2 * $lay['beschnitt']; $bh = $lay['h'] + 2 * $lay['beschnitt'];
@@ -199,12 +253,12 @@ final class WmDruck
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
         // Branchen-Flyer: Code auch vorn — dort im PDF als Vektor, nicht als Pixel.
         // Lage der Codes: in Koordinaten der Vorlage, um den abgeschnittenen Rand verschoben.
-        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, -$weg, (float) $bh0 - $weg)
+        $vornQr = $br ? PartnerKarten::qrVektor(self::qrVorn($stil, null, $fmt), $n, $raster, -$weg, (float) $bh0 - $weg)
             : ($ein ? PartnerKarten::qrVektor($lay['stile'][$stil], $n, $raster, -$weg, (float) $bh0 - $weg) : '');
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv) . $vornQr, $sb * $mm);
         if ($ein) { return $pdf->fertig(); }
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $ih)
-            . PartnerKarten::qrVektor($lay['stile'][self::RUECKSEITE[$fmt][1] ?? $stil], $n, $raster, -$weg, (float) $bh0 - $weg), $sb * $mm);
+            . PartnerKarten::qrVektor($lay['stile'][$br ? self::rueckseite($fmt)[1] : $stil], $n, $raster, -$weg, (float) $bh0 - $weg), $sb * $mm);
         return $pdf->fertig();
     }
 

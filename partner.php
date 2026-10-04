@@ -598,6 +598,19 @@ if ($p && isset($_GET['wmv'])) {
     echo $wmBild;
     exit;
 }
+/* ---------- Marketing Center: Kachelbild für die Auswahl (04.10.2026) ----------
+   ?wmmini=VORLAGE&st=STIL&vks=it|de|en — nur die Vorderseite der Vorlage, ohne Partnerdaten. */
+if ($p && isset($_GET['wmmini'])) {
+    require_once __DIR__ . '/app/src/Werbemittel.php';
+    $wmMini = Werbemittel::miniBild((string) $_GET['wmmini'], (string) ($_GET['st'] ?? ''), (string) ($_GET['vks'] ?? $sprache));
+    if ($wmMini === '') { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, max-age=86400');
+    echo $wmMini;
+    exit;
+}
 /* ---------- Marketing Center: Fassung 90 × 50 mm (04.10.2026, Printful) ----------
    ?wmpf=ID&s=vorn|hinten — nur Entwürfe dieses Partners; genau das gespeicherte Bild. */
 if ($p && isset($_GET['wmpf'])) {

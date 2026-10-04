@@ -42,7 +42,7 @@ final class Designlinie
     /** Linie eines Stils. Branchen-Flyer: hell (dunkle Schrift am Link) = Business, sonst Premium. */
     public static function von(string $vorlage, string $stil): string
     {
-        if ($vorlage === 'flyer_branche') {
+        if ($vorlage === 'flyer_branche' || (in_array($vorlage, ['flyer_a5', 'flyer_a6'], true) && strlen($stil) > 1)) {
             require_once __DIR__ . '/PartnerFlyer.php';
             $farbe = (string) (PartnerFlyer::liste()[$stil]['u']['farbe'] ?? '');
             return $farbe !== '' && self::hell($farbe) < 0.5 ? 'business' : 'premium';
@@ -66,12 +66,15 @@ final class Designlinie
     {
         require_once __DIR__ . '/Werbemittel.php';
         require_once __DIR__ . '/PartnerKarten.php';
-        if ($vorlage === 'flyer_branche') {
+        $branchen = [];
+        if (in_array($vorlage, ['flyer_branche', 'flyer_a5', 'flyer_a6'], true)) {
             require_once __DIR__ . '/PartnerFlyer.php';
-            return array_values(array_filter(array_keys(PartnerFlyer::liste()),
-                static fn($s) => !empty(PartnerFlyer::liste()[$s]['sp']) && Werbemittel::stilDa('flyer_branche', (string) $s)));
+            $branchen = array_values(array_filter(array_keys(PartnerFlyer::liste()),
+                static fn($s) => !empty(PartnerFlyer::liste()[$s]['sp']) && Werbemittel::stilDa($vorlage, (string) $s)));
+            if ($vorlage === 'flyer_branche') { return $branchen; }
         }
-        return array_values(array_filter(array_keys(PartnerKarten::STILE), static fn($s) => Werbemittel::stilDa($vorlage, (string) $s)));
+        // Erst die Gestaltungen a, b, c …, dann (bei Flyern) die Branchenmotive.
+        return array_merge(array_values(array_filter(array_keys(PartnerKarten::STILE), static fn($s) => Werbemittel::stilDa($vorlage, (string) $s))), $branchen);
     }
 
     /**
