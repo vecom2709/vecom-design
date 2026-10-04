@@ -495,6 +495,8 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   <?php endif; ?>
 </div>
 
+<?php require __DIR__ . '/partner_kontaktdaten.php'; ?>
+
 <script>
 /* Reiter, Kopieren, Teilen. Ohne Skript bleiben alle Tafeln sichtbar. */
 (function () {

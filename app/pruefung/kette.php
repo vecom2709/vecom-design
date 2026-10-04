@@ -22225,6 +22225,48 @@ Db::run("DELETE FROM notifications WHERE type LIKE 'wm\\_%'");
 Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $w7Vk['id']]);
 
 /* ============================================================================
+   Marketingcenter, Schritt 1: Partnerdaten an einer Stelle (04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Partnerdaten');
+require_once $wurzel . '/src/PartnerDaten.php';
+$mdId = Partner::anlegen(['name' => 'Marta  Daten', 'email' => 'marta.d@partner.example', 'code' => 'MARTADT', 'sprache' => 'it']);
+$mdP = static fn() => Partner::laden($mdId);
+$mdD0 = PartnerDaten::fuer($mdP());
+pruefe('Partnerdaten: Name, Code, E-Mail, Link aus der Partnerzeile; ohne Angaben alles leer statt null',
+    $mdD0['name'] === 'Marta Daten' && $mdD0['code'] === 'MARTADT' && $mdD0['email'] === 'marta.d@partner.example'
+    && str_ends_with($mdD0['link'], '/p/MARTADT') && $mdD0['telefon'] === '' && $mdD0['whatsapp'] === '' && $mdD0['telegram'] === '' && $mdD0['foto'] === '');
+pruefe('Partnerdaten: ohne Nummern bleibt die Seite unberührt (kein seite_json, nicht „eigen gestaltet“)',
+    PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '', 'whatsapp' => '', 'telegram' => '']) === 'ok' && !PartnerSeite::eigen($mdP()));
+$mdR = PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '0039 333 123 4567', 'whatsapp' => '+39 (333) 765-4321', 'telegram' => 'https://t.me/marta_vecom']);
+$mdD = PartnerDaten::fuer($mdP());
+pruefe('Kontaktdaten: 00 wird +, Leerzeichen und Klammern fallen weg, Telegram ohne t.me und @',
+    $mdR === 'ok' && $mdD['telefon'] === '+393331234567' && $mdD['whatsapp'] === '+393337654321' && $mdD['telegram'] === 'marta_vecom'
+    && PartnerDaten::whatsappLink($mdD) === 'https://wa.me/393337654321' && PartnerDaten::telegramLink($mdD) === 'https://t.me/marta_vecom');
+pruefe('WhatsApp steht nur einmal: dieselbe Nummer auf der Partnerseite (seite_json), keine eigene Spalte',
+    PartnerSeite::gestaltung($mdP())['whatsapp'] === '+393337654321' && !array_key_exists('whatsapp', (array) $mdP()));
+PartnerSeite::speichern($mdId, ['vorlage' => 'gold', 'whatsapp' => '+393337654321', 'texte' => ['it' => ['titel' => 'Ciao Marta']]]);
+PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '+393331234567', 'whatsapp' => '+491701234567', 'telegram' => '@marta_vecom']);
+pruefe('Neue WhatsApp-Nummer ändert nur die Nummer, die übrige Gestaltung der Seite bleibt',
+    PartnerSeite::gestaltung($mdP())['whatsapp'] === '+491701234567' && (PartnerSeite::gestaltung($mdP())['texte']['it']['titel'] ?? '') === 'Ciao Marta');
+$mdVorher = Db::one('SELECT telefon, telegram, seite_json FROM partner WHERE id = ?', [$mdId]);
+$mdF = [PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '333 123', 'whatsapp' => '+39111', 'telegram' => 'x']),
+        PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '', 'whatsapp' => '12345', 'telegram' => '']),
+        PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '', 'whatsapp' => '', 'telegram' => '@ab']),
+        PartnerDaten::kontaktSpeichern($mdId, ['telefon' => '', 'whatsapp' => '', 'telegram' => '1abcde'])];
+pruefe('Ungültige Angaben → eigener Fehler je Feld, und es wird gar nichts geschrieben (auch nicht das gültige erste Feld)',
+    $mdF === ['kd_f_telefon', 'kd_f_whatsapp', 'kd_f_telegram', 'kd_f_telegram'] && Db::one('SELECT telefon, telegram, seite_json FROM partner WHERE id = ?', [$mdId]) == $mdVorher);
+foreach (['kd_titel', 'kd_text', 'kd_telefon', 'kd_whatsapp', 'kd_telegram', 'kd_hilfe', 'kd_speichern', 'kd_gut', 'kd_f_telefon', 'kd_f_whatsapp', 'kd_f_telegram'] as $mdK) {
+    foreach (['it', 'de', 'en'] as $mdL) { if (trim((string) (Texte::PARTNER[$mdK][$mdL] ?? '')) === '') { pruefe("Text $mdK/$mdL fehlt", false); } }
+}
+$mdPhp = (string) file_get_contents($wurzel . '/../partner.php');
+$mdV = (string) file_get_contents($wurzel . '/views/partner_kontaktdaten.php');
+pruefe('Partnerbereich: Formular mit CSRF im Reiter Profil, Tat „kontakt“ speichert nur für den eigenen Partner',
+    str_contains($mdV, 'name="_csrf"') && str_contains($mdV, 'value="kontakt"') && str_contains($mdV, 'data-reiter="profil"')
+    && str_contains($mdPhp, "PartnerDaten::kontaktSpeichern((int) \$p['id'], \$_POST)")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_werbung.php'), "require __DIR__ . '/partner_kontaktdaten.php'"));
+Db::run('DELETE FROM partner WHERE id = ?', [$mdId]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

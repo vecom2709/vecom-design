@@ -19,7 +19,7 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing', 'PartnerVorab'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing', 'PartnerVorab', 'PartnerDaten'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -356,6 +356,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             } elseif ($tat === 'kurs_ok' && $p) {
                 PartnerMarketing::kursAbhaken($p, (int) ($_POST['nr'] ?? 0));
                 header('Location: ' . $selbst() . '#kurs', true, 303); exit;
+            } elseif ($tat === 'kontakt' && $p) {
+                /* Kontaktdaten für Werbemittel (04.10.2026, Marketingcenter-Fundament). Sie erscheinen
+                   nur auf Werbemitteln, die der Partner selbst ansieht und freigibt. */
+                $meldung = PartnerDaten::kontaktSpeichern((int) $p['id'], $_POST);
+                if ($meldung === 'ok') { header('Location: ' . $selbst(['m' => 'kd_gut']) . '#kontaktdaten', true, 303); exit; }
             } elseif ($tat === 'foto_weg' && $p) {
                 PartnerWerbung::fotoLoeschen((int) $p['id']);
                 header('Location: ' . $selbst(['m' => 'pf_gut']) . '#profil', true, 303); exit;

@@ -304,6 +304,34 @@ final class PartnerSeite
     }
 
     /**
+     * Nur die WhatsApp-Nummer ändern (04.10.2026, Marketingcenter-Fundament): Sie gilt für die
+     * Partnerseite UND die Werbemittel und steht deshalb an genau einer Stelle, in seite_json.
+     * Alles andere in der Gestaltung bleibt Byte für Byte, wie es war; ohne Gestaltung und ohne
+     * Nummer wird gar nichts geschrieben (sonst hielte die Seite sich für „eigen gestaltet“).
+     * @return string ok|wa_nummer
+     */
+    public static function whatsappSetzen(int $partnerId, string $nummer): string
+    {
+        $wa = self::nummer($nummer);
+        if ($wa === null) { return 'wa_nummer'; }
+        $zeile = (array) Db::one('SELECT seite_json FROM partner WHERE id = ?', [$partnerId]);
+        $roh = json_decode((string) ($zeile['seite_json'] ?? ''), true);
+        $roh = is_array($roh) ? $roh : [];
+        if ((string) ($roh['whatsapp'] ?? '') === $wa || ($roh === [] && $wa === '')) { return 'ok'; }
+        $roh['whatsapp'] = $wa;
+        Db::run('UPDATE partner SET seite_json = ? WHERE id = ?', [json_encode($roh, JSON_UNESCAPED_UNICODE), $partnerId]);
+        return 'ok';
+    }
+
+    /** Telefonnummer in internationaler Form (+39…), '' für leer, null wenn ungültig. 00 wird zu +. */
+    public static function nummer(string $roh): ?string
+    {
+        $n = preg_replace('~[^\d+]~', '', $roh) ?? '';
+        if (str_starts_with($n, '00')) { $n = '+' . substr($n, 2); }
+        return $n === '' || preg_match('~^\+[1-9]\d{7,14}$~', $n) ? $n : null;
+    }
+
+    /**
      * Live-Vorschau (03.10.2026, Uwe: Ja zu E3): dieselbe Prüfung wie beim Speichern, nur nichts
      * gespeichert — p.php zeigt damit, wie die Seite mit den ungespeicherten Wahlen aussähe.
      * Nur im eigenen Browser des Partners (Keks), siehe p.php.
