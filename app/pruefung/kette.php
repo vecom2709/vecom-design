@@ -16777,11 +16777,17 @@ $sgInfo = is_file($sgBild) ? @getimagesize($sgBild) : false;
 $sgAlpha = false;
 if ($sgInfo && function_exists('imagecreatefromwebp')) { $sgIm = @imagecreatefromwebp($sgBild); if ($sgIm) { $sgAlpha = ((imagecolorat($sgIm, 2, 2) >> 24) & 0x7F) > 100; imagedestroy($sgIm); } }
 $sgI18n = array_map(static fn($l) => (string) file_get_contents($wurzel . '/../assets/js/i18n-' . $l . '.js'), ['it', 'de', 'en']);
-pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisblock), Preisseite und Angebot, Alternativtext in drei Sprachen',
+pruefe('Gütesiegel: freigestellt (Ecke durchsichtig), auf Startseite (Preisblock), Preisseite und Angebot, Alternativtext und Hinweis „keine Zertifizierung“ in drei Sprachen',
     $sgInfo !== false && $sgInfo[0] === 360 && $sgInfo[1] === 360 && $sgAlpha
     && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'class="siegel siegel--ecke"')
     && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'class="siegel siegel--ecke"')
-    && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), '<img class="siegel" src="/assets/img/siegel/vecom-siegel-240.webp"')
+    && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), '<img src="/assets/img/siegel/vecom-siegel-240.webp"')
+    /* Hinweis beim Darüberfahren (04.10.2026): internes Siegel, keine Zertifizierung — überall, in drei Sprachen */
+    && str_contains((string) file_get_contents($wurzel . '/../index.html'), 'data-i18n="siegel.hinweis"')
+    && str_contains((string) file_get_contents($wurzel . '/../prezzi.html'), 'data-i18n="siegel.hinweis"')
+    && str_contains((string) file_get_contents($wurzel . '/../angebot.php'), "\$T('siegel_hinweis')")
+    && count(array_filter($sgI18n, static fn($t) => str_contains($t, ', hinweis: "') && preg_match('~(Zertifizierung|certificazione|certification)~', $t))) === 3
+    && str_contains(Texte::ANGEBOT['siegel_hinweis']['de'], 'keine Zertifizierung durch eine unabhängige Prüforganisation')
     && count(array_filter($sgI18n, static fn($t) => str_contains($t, 'siegel: { alt: "'))) === 3
     && count(array_filter(['it', 'de', 'en'], static fn($l) => (Texte::ANGEBOT['siegel'][$l] ?? '') !== '')) === 3);
 $dsTexte = array_map(static fn($l) => (string) file_get_contents($wurzel . '/../assets/js/legal-' . $l . '.js'), ['de' => 'de', 'it' => 'it', 'en' => 'en']);

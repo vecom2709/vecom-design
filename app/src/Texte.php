@@ -2628,6 +2628,9 @@ final class Texte
         'siegel'  => ['it' => 'Sigillo «Vecom Quality Standard» di Vecom Design: ogni sito nasce secondo il nostro standard di qualità',
                       'de' => 'Gütesiegel „Vecom Quality Standard“ von Vecom Design: Jede Website entsteht nach unserem eigenen Qualitätsstandard',
                       'en' => '“Vecom Quality Standard” seal by Vecom Design: every website is built to our own quality standard'],
+        'siegel_hinweis' => ['it' => 'Il Vecom Quality Standard è uno standard di qualità interno, definito da Vecom Design per i progetti digitali sviluppati da Vecom Design. Non costituisce una certificazione rilasciata da un organismo di verifica indipendente.',
+                             'de' => 'Der Vecom Quality Standard ist ein von Vecom Design definierter interner Qualitätsstandard für von Vecom Design entwickelte digitale Projekte. Er stellt keine Zertifizierung durch eine unabhängige Prüforganisation dar.',
+                             'en' => 'The Vecom Quality Standard is an internal quality standard defined by Vecom Design for digital projects developed by Vecom Design. It is not a certification by an independent testing organisation.'],
         'lead'    => [
             'it' => 'Ecco che cosa costa quello che ci siamo detti. Nessuna sorpresa dopo: quello che legge qui è il prezzo.',
             'de' => 'Das kostet, worüber wir gesprochen haben. Keine Überraschungen danach — was hier steht, ist der Preis.',

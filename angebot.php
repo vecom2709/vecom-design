@@ -184,9 +184,20 @@ $datum = static function (?string $d): string {
 <style>
   .lead{color:var(--dim);font-size:15px;line-height:1.65}
   .akopf{margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid var(--linie);position:relative;padding-right:clamp(84px,22vw,118px)}
-  /* Gütesiegel (03.10.2026): liegt rechts oben auf dem Blatt, leicht gedreht, mit Kontakt- und Weitschatten. */
-  .akopf .siegel{position:absolute;top:-6px;right:-4px;width:clamp(78px,20vw,108px);height:auto;rotate:-9deg;pointer-events:none;
+  /* Gütesiegel (03.10.2026): liegt rechts oben auf dem Blatt, leicht gedreht, mit Kontakt- und Weitschatten.
+     Rollover (04.10.2026): hebt sich an, darunter der Hinweis „interner Standard, keine Zertifizierung“ — auch per Fokus/Tippen. */
+  .akopf .siegel{position:absolute;top:-6px;right:-4px;width:clamp(78px,20vw,108px);cursor:help;outline:none;z-index:3}
+  .akopf .siegel img{display:block;width:100%;height:auto;rotate:-9deg;transition:rotate .18s cubic-bezier(.16,1,.3,1),translate .18s cubic-bezier(.16,1,.3,1),filter .18s linear;
     filter:drop-shadow(0 1px 1px rgba(0,0,0,.6)) drop-shadow(0 5px 8px rgba(0,0,0,.45)) drop-shadow(0 14px 22px rgba(0,0,0,.35))}
+  .akopf .siegel:hover img,.akopf .siegel:focus img{rotate:-5deg;translate:0 -3px;
+    filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 10px 12px rgba(0,0,0,.45)) drop-shadow(0 24px 30px rgba(0,0,0,.4))}
+  .akopf .siegel:focus-visible img{outline:2px solid #f1d38b;outline-offset:4px;border-radius:50%}
+  .siegel__hinweis{position:absolute;top:calc(100% + 8px);right:0;width:min(300px,calc(100vw - 40px));padding:11px 13px;border-radius:12px;
+    background:#14110d;border:1px solid rgba(241,211,139,.38);box-shadow:0 18px 40px -16px rgba(0,0,0,.8);
+    font-size:12.5px;line-height:1.55;color:var(--dim);opacity:0;visibility:hidden;translate:0 6px;pointer-events:none;
+    transition:opacity .18s linear,translate .18s cubic-bezier(.16,1,.3,1),visibility 0s linear .18s}
+  .akopf .siegel:hover .siegel__hinweis,.akopf .siegel:focus .siegel__hinweis{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
+  @media (prefers-reduced-motion: reduce){.akopf .siegel img,.siegel__hinweis{transition:none}.akopf .siegel:hover img,.akopf .siegel:focus img{translate:0 0}}
   .eck{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--leise);margin-top:10px}
   .eck b{color:var(--dim);font-weight:600}
   .pos{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--linie);align-items:flex-start}
@@ -280,7 +291,10 @@ $datum = static function (?string $d): string {
   <?php if ($m === 'zustimmung'): ?><div class="hinweis warnung"><?= $h($T('fehlerZust')) ?></div><?php endif; ?>
 
   <div class="akopf">
-    <img class="siegel" src="/assets/img/siegel/vecom-siegel-240.webp" width="240" height="240" alt="<?= $h($T('siegel')) ?>" decoding="async">
+    <span class="siegel" tabindex="0" aria-describedby="siegel-hinweis">
+      <img src="/assets/img/siegel/vecom-siegel-240.webp" width="240" height="240" alt="<?= $h($T('siegel')) ?>" decoding="async">
+      <span class="siegel__hinweis" id="siegel-hinweis" role="tooltip"><?= $h($T('siegel_hinweis')) ?></span>
+    </span>
     <h1 style="font-size:21px;margin:0 0 6px"><?= $h($T('titel')) ?></h1>
     <p class="lead" style="margin:0"><?= $h($T('lead')) ?></p>
     <div class="eck">

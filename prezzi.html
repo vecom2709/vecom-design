@@ -34,7 +34,7 @@
 <link rel="preload" href="assets/fonts/archivo-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="assets/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/css/fonts.css?v=660e3c04">
-<link rel="stylesheet" href="assets/css/app.css?v=36fc1ba2">
+<link rel="stylesheet" href="assets/css/app.css?v=e10da92c">
 <link rel="stylesheet" href="assets/css/edel.css?v=4ec9ebb0">
 <script type="application/ld+json">
 {
@@ -141,9 +141,10 @@
 
       <!-- Gütesiegel (03.10.2026): liegt auf der Ecke der Kurzantwort — direkt an der Zahl. -->
       <div class="siegel-halter siegel-halter--antwort">
-      <figure class="siegel siegel--ecke">
+      <figure class="siegel siegel--ecke" tabindex="0" aria-describedby="siegel-hinweis">
         <img src="assets/img/siegel/vecom-siegel-360.webp?v=587aac4c" width="240" height="240" decoding="async"
              data-i18n-attr="alt:siegel.alt" alt="Sigillo «Vecom Quality Standard» di Vecom Design: ogni sito nasce secondo il nostro standard di qualità">
+        <figcaption class="siegel__hinweis" id="siegel-hinweis" role="tooltip" data-i18n="siegel.hinweis">Il Vecom Quality Standard è uno standard di qualità interno, definito da Vecom Design per i progetti digitali sviluppati da Vecom Design. Non costituisce una certificazione rilasciata da un organismo di verifica indipendente.</figcaption>
       </figure>
       <div class="antwort framed">
         <p class="antwort__titel" data-i18n="preise.kurzTitel">La risposta in due righe</p>
@@ -360,7 +361,7 @@
   </div>
 </footer>
 
-<script src="assets/js/i18n-it.js?v=7ca0033c" defer></script>
+<script src="assets/js/i18n-it.js?v=a2db19e2" defer></script>
 <script src="assets/js/app.js?v=3919e61e" defer></script>
 <script src="assets/js/sprachhinweis.js?v=5448b330" defer></script>
 <script src="assets/js/preise-live.js?v=5e394185" defer></script>
