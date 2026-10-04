@@ -1,0 +1,118 @@
+<?php
+declare(strict_types=1);
+/* Automatisch erzeugt (tools/werbemittel/gen.py). Einheit 1/10 mm auf der Leinwand mit Beschnitt; Felder wie bei den Visitenkarten. */
+return [
+    'b' => 105,
+    'h' => 148,
+    'beschnitt' => 3,
+    'stile' => [
+        'a' => [
+            'qr' => [366.3, 360.0, 377.4],
+            'name' => [
+                'x' => 178,
+                'y' => 1029,
+                'size' => 43,
+                'font' => 700,
+                'farbe' => '#f6f1e6',
+                'max' => 755,
+            ],
+            'link' => [
+                'x' => 231,
+                'y' => 1094,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+            'kontakt' => [
+                'x' => 231,
+                'y' => 1160,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+        ],
+        'b' => [
+            'qr' => [366.3, 360.0, 377.4],
+            'name' => [
+                'x' => 178,
+                'y' => 1029,
+                'size' => 43,
+                'font' => 700,
+                'farbe' => '#f6f1e6',
+                'max' => 755,
+            ],
+            'link' => [
+                'x' => 231,
+                'y' => 1094,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+            'kontakt' => [
+                'x' => 231,
+                'y' => 1160,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+        ],
+        'c' => [
+            'qr' => [366.3, 360.0, 377.4],
+            'name' => [
+                'x' => 178,
+                'y' => 1029,
+                'size' => 43,
+                'font' => 700,
+                'farbe' => '#f6f1e6',
+                'max' => 755,
+            ],
+            'link' => [
+                'x' => 231,
+                'y' => 1094,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+            'kontakt' => [
+                'x' => 231,
+                'y' => 1160,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 701,
+            ],
+        ],
+        'd' => [
+            'qr' => [366.3, 360.0, 377.4],
+            'name' => [
+                'x' => 178,
+                'y' => 1029,
+                'size' => 43,
+                'font' => 700,
+                'farbe' => '#1f1a13',
+                'max' => 755,
+            ],
+            'link' => [
+                'x' => 231,
+                'y' => 1094,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#1f1a13',
+                'max' => 701,
+            ],
+            'kontakt' => [
+                'x' => 231,
+                'y' => 1160,
+                'size' => 29,
+                'font' => 500,
+                'farbe' => '#1f1a13',
+                'max' => 701,
+            ],
+        ],
+    ],
+];

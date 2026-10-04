@@ -78,14 +78,14 @@ final class PartnerKarten
         return self::$layout[$stil];
     }
 
-    private static function schrift(int $gewicht): string
+    public static function schrift(int $gewicht): string
     {
         $g = $gewicht >= 700 ? 700 : ($gewicht >= 600 ? 600 : 500);
         return dirname(__DIR__) . '/schrift/montserrat-' . $g . '.ttf';
     }
 
     /** @return array{0:int,1:list<list<bool>>} */
-    private static function raster(string $inhalt): array
+    public static function raster(string $inhalt): array
     {
         require_once dirname(__DIR__) . '/lib/qrcode.php';
         $qr = QRCode::getMinimumQRCode($inhalt, QR_ERROR_CORRECT_LEVEL_M);
@@ -96,7 +96,7 @@ final class PartnerKarten
     }
 
     /** Die drei Zeilen der Rückseite. */
-    private static function zeilen(array $p, string $kontakt): array
+    public static function zeilen(array $p, string $kontakt): array
     {
         return ['name' => self::name($p), 'link' => self::kurz($p), 'kontakt' => self::kontakt($p, $kontakt)];
     }
@@ -244,7 +244,7 @@ final class PartnerKarten
     }
 
     /** QR-Code als Vektorflächen im PDF; $ox/$oy = linke obere Ecke der Leinwand in mm (PDF-Koordinaten). */
-    private static function qrVektor(array $L, int $n, array $raster, float $ox, float $oy): string
+    public static function qrVektor(array $L, int $n, array $raster, float $ox, float $oy): string
     {
         $mm = 72 / 25.4;
         [$qx, $qy, $qs] = $L['qr'];

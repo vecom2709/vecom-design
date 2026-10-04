@@ -31,7 +31,31 @@ final class Werbemittel
 {
     public const SPRACHEN = ['it', 'de', 'en'];
     /** Vorlagen, die heute eine Druckdatei erzeugen können. */
-    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)'];
+    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)'];
+
+    /** Hat die Vorlage eine Gestaltung mit Stil/Sprache/Kontakt, Vorschau und Freigabe? */
+    public static function gestaltbar(string $vorlage): bool
+    {
+        return isset(self::VORLAGEN[$vorlage]) && $vorlage !== '';
+    }
+
+    /** Vorschau der Wahl (JPEG) — für jede Vorlage dieselbe Frage. */
+    public static function vorschauBild(array $p, string $vorlage, string $stil, string $sprache, string $kontakt): string
+    {
+        require_once __DIR__ . '/PartnerKarten.php';
+        if ($vorlage === 'visitenkarte') { return PartnerKarten::vorschau($p, $stil, $sprache, $kontakt); }
+        require_once __DIR__ . '/WmDruck.php';
+        return WmDruck::vorschau($p, $vorlage, $stil, $sprache, $kontakt);
+    }
+
+    /** Gibt es den Stil für diese Vorlage? */
+    public static function stilDa(string $vorlage, string $stil): bool
+    {
+        require_once __DIR__ . '/PartnerKarten.php';
+        if ($vorlage === 'visitenkarte') { return PartnerKarten::gibt($stil); }
+        require_once __DIR__ . '/WmDruck.php';
+        return WmDruck::gibt($vorlage, $stil);
+    }
 
     // ---- Margenregel --------------------------------------------------------
 
@@ -444,6 +468,7 @@ final class Werbemittel
         if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
         $pdf = match ((string) $pr['vorlage']) {
             'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
+            'flyer_a6', 'flyer_a5' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
             default => '',
         };
         if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }

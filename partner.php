@@ -567,6 +567,24 @@ if ($p && isset($_GET['wmpdf'])) {
     echo $wmD['datei'];
     exit;
 }
+/* ---------- Marketing Center: Vorschau jeder Vorlage (04.10.2026) ----------
+   ?wmv=VORLAGE&st=a|b|c|d&vks=it|de|en&ks=email|vecom — Vorder- und Rückseite mit den Daten DIESES Partners. */
+if ($p && isset($_GET['wmv'])) {
+    require_once __DIR__ . '/app/src/Werbemittel.php';
+    $wmVl = (string) $_GET['wmv'];
+    $wmSt = (string) ($_GET['st'] ?? 'a');
+    $wmBild = Werbemittel::gestaltbar($wmVl) && Werbemittel::stilDa($wmVl, $wmSt)
+        ? Werbemittel::vorschauBild($p, $wmVl, $wmSt, in_array($_GET['vks'] ?? '', ['it', 'de', 'en'], true) ? (string) $_GET['vks'] : $sprache,
+            in_array($_GET['ks'] ?? '', ['email', 'vecom'], true) ? (string) $_GET['ks'] : 'email')
+        : '';
+    if ($wmBild === '') { http_response_code(404); exit('—'); }
+    header('X-Robots-Tag: noindex, nofollow');
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Type: image/jpeg');
+    header('Cache-Control: private, max-age=600');
+    echo $wmBild;
+    exit;
+}
 /* ---------- Marketing Center: Fassung 90 × 50 mm (04.10.2026, Printful) ----------
    ?wmpf=ID&s=vorn|hinten — nur Entwürfe dieses Partners; genau das gespeicherte Bild. */
 if ($p && isset($_GET['wmpf'])) {

@@ -134,12 +134,13 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
         $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
         $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => 'a', 'sprache' => $sprache, 'kontakt' => 'email']; ?>
       <article class="wm-produkt" id="wm-p<?= (int) $wmP['id'] ?>">
-        <?php if ($wmP['vorlage'] === 'visitenkarte'):
+        <?php if (Werbemittel::gestaltbar((string) $wmP['vorlage'])):
+          /* 04.10.2026: jede Vorlage (Visitenkarte, Flyer …) über denselben Vorschau-Weg ?wmv=. */
           $wmBild = $wmNurLesen
-            ? 'data:image/jpeg;base64,' . base64_encode(PartnerKarten::vorschau($p, 'a', $sprache))
-            : $selbst(['vk' => $wmJetzt['stil'], 'f' => 'vorschau', 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
-          <img src="<?= $h($wmBild) ?>" width="720" height="231" loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
-               <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['vk' => '_S_', 'f' => 'vorschau', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
+            ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, (string) $wmP['vorlage'], 'a', $sprache, 'email'))
+            : $selbst(['wmv' => $wmP['vorlage'], 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
+          <img src="<?= $h($wmBild) ?>" <?= $wmP['vorlage'] === 'visitenkarte' ? 'width="720" height="231"' : 'width="528" height="360"' ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
+               <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmP['vorlage'], 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
                alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <?php endif; ?>
         <div>
@@ -153,7 +154,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
             <tr><td><?= $h($wmV['name']) ?></td><td><?php foreach ($wmV['preise'] as $wmPl => $wmPc): ?><span class="wm-landpreis<?= $wmPl === $wmP['land'] ? '' : ' wm-anderes' ?>"><?= $h(Partner::flagge($wmPl)) ?> <?= $h(Werbemittel::euro((int) $wmPc)) ?></span><?php endforeach; ?></td></tr>
           <?php endforeach; ?>
         </table>
-        <?php if (!$wmNurLesen && $wmP['vorlage'] === 'visitenkarte'):
+        <?php if (!$wmNurLesen && Werbemittel::gestaltbar((string) $wmP['vorlage'])):
           $wmMeldung = (string) ($_GET['wm'] ?? '');
           $wmWahlText = static fn(array $w): string => (PartnerKarten::STILE[$w['stil'] ?? ''][$sprache] ?? ($w['stil'] ?? ''))
               . ' · ' . (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'][$w['sprache'] ?? ''] ?? '')
@@ -197,7 +198,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
               <p class="wm-meta wm-wahl-hinweis" hidden style="margin:0"><?= $h($W('vorschau_wahl')) ?> ↑</p>
               <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
               <fieldset><legend><?= $h($W('stil')) ?></legend>
-                <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!PartnerKarten::gibt($wmS)) { continue; } ?>
+                <?php foreach (PartnerKarten::STILE as $wmS => $wmSn): if (!Werbemittel::stilDa((string) $wmP['vorlage'], $wmS)) { continue; } ?>
                   <label><input type="radio" name="stil" value="<?= $h($wmS) ?>"<?= $wmS === $wmJetzt['stil'] ? ' checked' : '' ?>> <?= $h($wmSn[$sprache] ?? $wmSn['de']) ?></label>
                 <?php endforeach; ?>
               </fieldset>
@@ -266,7 +267,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
   <?php endforeach; ?>
 </div>
 
-<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => $x['vorlage'] === 'visitenkarte')); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true))): ?>
+<?php /* Phase 3: Meine Bestellungen */ $wmM = (string) ($_GET['wm'] ?? ''); $wmDarfNoch = (bool) array_filter($wmKatalog, static fn($k) => (bool) array_filter($k['produkte'], static fn($x) => Werbemittel::gestaltbar((string) $x['vorlage']))); if (!$wmNurLesen && ($wmBestellungen || in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true))): ?>
 <div class="block pt" id="wm-bestellungen" data-reiter="werbemittel">
   <h2><?= $h($W('meine')) ?></h2>
   <?php if (in_array($wmM, ['angefragt', 'danke', 'abgebrochen', 'stripe', 'storniert', 'storno_nicht'], true)): ?>

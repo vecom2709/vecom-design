@@ -21098,7 +21098,7 @@ $wm151 = Db::all("SELECT v.auflage, v.einkauf_cent, v.anbieter_guenstig FROM wm_
 pruefe('Migration 151: HelloPrint-Angebote eingetragen, Einkauf = Bruttopreis inkl. 22 % IVA (23,53 / 25,61 / 28,05 €)',
     array_map(static fn($r) => [(int) $r['auflage'], (int) $r['einkauf_cent'], $r['anbieter_guenstig']], $wm151)
     === [[250, 2353, 'HelloPrint'], [500, 2561, 'HelloPrint'], [1000, 2805, 'HelloPrint']], json_encode($wm151));
-$wm152 = array_map(static fn($r) => [(int) $r['auflage'], (string) $r['anbieter'], (int) $r['preis_cent']], Db::all("SELECT v.auflage, a.anbieter, a.preis_cent FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id WHERE a.land = 'DE' ORDER BY v.auflage"));
+$wm152 = array_map(static fn($r) => [(int) $r['auflage'], (string) $r['anbieter'], (int) $r['preis_cent']], Db::all("SELECT v.auflage, a.anbieter, a.preis_cent FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id JOIN wm_produkte p ON p.id = v.produkt_id WHERE a.land = 'DE' AND p.vorlage = 'visitenkarte' ORDER BY v.auflage"));
 pruefe('Migration 152: Deutschland-Angebote WIRmachenDRUCK brutto inkl. 19 % (15,49 / 19,55 / 21,71 €), Italien bleibt HelloPrint',
     $wm152 === [[250, 'WIRmachenDRUCK', 1549], [500, 'WIRmachenDRUCK', 1955], [1000, 'WIRmachenDRUCK', 2171]]
     && (int) Db::wert("SELECT COUNT(*) FROM wm_anbieter_preise WHERE land = 'IT' AND anbieter = 'HelloPrint'") === 3, json_encode($wm152));
@@ -22028,9 +22028,34 @@ pruefe('Stripe lässt die Seite nicht beenden, weil schon bezahlt: NICHT abbrech
     && WmBestellung::partnerAbbrechen($w7O['id'], (int) $w7P['id'], null) === 'nicht');
 $w7Pv = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
 pruefe('Partneransicht: Vorschau folgt der Auswahl (data-muster mit Stil/Sprache/Kontakt), Verwerfen und Abbrechen fragen vorher, Handler in partner.php',
-    str_contains($w7Pv, "'vk' => '_S_'") && str_contains($w7Pv, "bild.dataset.muster.replace('_S_'") && str_contains($w7Pv, 'wm_verwerfen') && str_contains($w7Pv, 'wm_abbrechen')
+    str_contains($w7Pv, "'st' => '_S_'") && str_contains($w7Pv, "bild.dataset.muster.replace('_S_'") && str_contains($w7Pv, 'wm_verwerfen') && str_contains($w7Pv, 'wm_abbrechen')
     && str_contains($w7Pv, 'window.confirm') && str_contains((string) file_get_contents($oben . '/partner.php'), "WmBestellung::partnerAbbrechen((int) (\$_POST['bestellung'] ?? 0), (int) \$p['id']"));
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $w7Fremd['id']]); Db::run('DELETE FROM partner WHERE id = ?', [(int) $w7Fremd['id']]);
+// Flyer A6/A5 (04.10.2026): Vorlagen im Vecom-Stil, Partnerdaten automatisch, QR nie kleiner als 2 cm
+require_once $wurzel . '/src/WmDruck.php';
+$w7Qmin = 9999; $w7Fehlt = [];
+foreach (array_keys(WmDruck::FORMATE) as $w7F) {
+    foreach (['a', 'b', 'c', 'd'] as $w7S) {
+        if (!WmDruck::gibt($w7F, $w7S)) { $w7Fehlt[] = "$w7F/$w7S"; continue; }
+        $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0));
+        foreach (['de', 'it', 'en'] as $w7L) { foreach (['vorn', 'hinten'] as $w7Se) {
+            if (!is_file($wurzel . "/werbemittel/$w7F/$w7S-$w7Se-$w7L.jpg")) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
+        } }
+    }
+}
+pruefe('Flyer-Vorlagen: alle Formate × 4 Stile × Vorder-/Rückseite × 3 Sprachen da, QR-Fläche überall ≥ 2 cm, Ordner gesperrt',
+    $w7Fehlt === [] && $w7Qmin >= 200 && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'Require all denied'),
+    json_encode(['fehlt' => $w7Fehlt, 'qr_min_zehntelmm' => $w7Qmin]));
+$w7Fp = WmDruck::pdf($w7P, 'flyer_a6', 'c', 'it', 'vecom');
+pruefe('Flyer-PDF: zwei Seiten mit Beschnitt (TrimBox 105 × 148 mm), QR-Code als Vektor, Link mit Kanal „flyer“',
+    str_starts_with($w7Fp, '%PDF') && substr_count($w7Fp, '/Type /Page ') + substr_count($w7Fp, '/Type /Page>') + substr_count($w7Fp, "/Type /Page\n") >= 2
+    && preg_match('~/TrimBox \[\s*8\.50\d* 8\.50\d* 306\.1\d* 428\.0\d*~', $w7Fp) === 1
+    && str_ends_with(WmDruck::qrLink($w7P, 'flyer_a6'), '/flyer'), (string) (preg_match('~/TrimBox \[[^\]]*\]~', $w7Fp, $w7Tm) ? $w7Tm[0] : 'keine TrimBox'));
+$w7Fv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_a5', 'd', 'de', 'email'));
+$w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
+pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
+    $w7Fl !== null && (int) $w7Fl['aktiv'] === 0 && is_array($w7Fv) && $w7Fv[1] === 360 && $w7Fv[0] > 360
+    && Werbemittel::gestaltbar('flyer_a5') && !Werbemittel::gestaltbar('quatsch'));
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [(int) $w7P['id']]);
