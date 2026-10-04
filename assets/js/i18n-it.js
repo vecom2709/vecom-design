@@ -247,7 +247,7 @@ window.VECOM_I18N.it = {
       s_h: "Lo stesso vale per il suo prodotto.",
       s_lead: "Mobili, macchine, imballaggi, arredo su misura — ovunque ci siano varianti e una foto per ognuna costi troppo. Costruisco il modello, allestisco lo studio e consegno il configuratore pronto per il suo sito.",
       s_b1: "Avvii il progetto",
-      s_b2: "Allo showroom 3D"
+      s_b2: "Alla pagina iniziale"
     },
     services: {
       head: "Cosa realizzo per Lei",
@@ -312,34 +312,6 @@ window.VECOM_I18N.it = {
       w4r: "Un libro che si legge già prima di aprirlo",
       w5r: "Una clientela, tre lingue",
       w6r: "Un mondo in cui il libro si può attraversare",
-    },
-    showroom: {
-      metaTitle: "3D Experience — Vecom Design",
-      metaDesc: "Una sala espositiva da attraversare nel browser: siti, e-commerce, marchi ed esperienze 3D di Vecom Design — sviluppati, non assemblati.",
-      b0k: "Vecom Design — Sicilia",
-      b0h1: "Idee digitali.", b0h2: "Senza confini.",
-      b0lead: "Siti, e-commerce, marchi ed esperienze tridimensionali — sviluppati, non assemblati.",
-      b0a: "Avvii il progetto", b0b: "Scopra i lavori",
-      b1k: "Digital Studio",
-      b1h1: "Uno spazio,", b1h2: "cinque vie per entrare.",
-      b1lead: "Ogni ambito ha il suo posto nello studio. Ci cammina dentro invece di leggere un elenco.",
-      f1a: "Webdesign", f1b: "su misura, nessun template",
-      f2a: "E-commerce", f2b: "dal prodotto al pagamento",
-      f3a: "Branding", f3b: "logo, colori, regole",
-      f4a: "3D Experiences", f4b: "novità in programma",
-      f5a: "Manutenzione e assistenza", f5b: "un unico referente",
-      b2k: "Il marchio",
-      b2h1: "Costruito dai", b2h2: "contorni veri.",
-      b2lead: "Non una V ridisegnata: l’oggetto nasce dagli stessi contorni del marchio — per questo ogni spigolo sta dove sta nel logo.",
-      b3k: "3D Experience Website",
-      b3h1: "Siti che non si", b3h2: "visitano soltanto.",
-      b3lead: "Webdesign moderno unito a mondi 3D interattivi, animazioni di livello ed esperienze immersive — per aziende che vogliono distinguersi davvero.",
-      b3a: "Richieda un progetto 3D",
-      b4k: "La strada avanti",
-      b4h1: "Pronto a creare", b4h2: "qualcosa di straordinario?", b4h3: "",
-      b4a: "Avvii ora il progetto", b4b: "WhatsApp",
-      fussort: "© Vecom Design · Aragona (AG), Sicilia",
-      fuss1: "Note legali", fuss2: "Privacy", fuss3: "Condizioni", fuss4: "Recesso", fuss5: "Prezzi"
     },
     process: {
       head: "Come lavoriamo",

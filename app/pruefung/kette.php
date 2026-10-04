@@ -10650,7 +10650,7 @@ $veZj = (string) file_get_contents($oben . '/assets/js/zaehlen.js');
 pruefe('Zählpixel: die Seite schickt Herkunft, Seite und utm_source mit',
     str_contains($veZj, 'document.referrer') && str_contains($veZj, 'utm_source') && str_contains($veZj, 'location.pathname'));
 $veOhne = [];
-foreach (['index.html', 'prezzi.html', 'assistenza.html', 'showroom.html', 'tecnica.html', 'tavolo.html'] as $veS) {
+foreach (['index.html', 'prezzi.html', 'assistenza.html', 'tecnica.html', 'tavolo.html'] as $veS) {
     $veH = (string) file_get_contents($oben . '/' . $veS);
     if (!str_contains($veH, 'assets/js/zaehlen.js') || preg_match('~<img src="/z\.php"(?![^<]*</noscript>)~', str_replace("\n", ' ', $veH)) && !str_contains($veH, '<noscript><img src="/z.php"')) { $veOhne[] = $veS; }
 }
@@ -13975,10 +13975,10 @@ if (is_file($jsKarte)) {
 
 /* ---------- Jede gebaute Seite laedt die Weiche ------------------------- */
 $jsOhne = [];
-foreach (['index.html', 'prezzi.html', 'assistenza.html', 'showroom.html', 'tecnica.html', 'tavolo.html',
+foreach (['index.html', 'prezzi.html', 'assistenza.html', 'tecnica.html', 'tavolo.html',
           'siti-web-ristoranti.html', 'sito-o-booking.html',
-          'de/index.html', 'de/preise.html', 'de/showroom.html', 'de/tisch.html', 'de/websites-restaurants.html',
-          'en/index.html', 'en/showroom.html', 'en/table.html'] as $jsDatei) {
+          'de/index.html', 'de/preise.html', 'de/tisch.html', 'de/websites-restaurants.html',
+          'en/index.html', 'en/table.html'] as $jsDatei) {
     $jsPfad = $jsWurzel . '/' . $jsDatei;
     if (!is_file($jsPfad)) { continue; }   // /de/ und /en/ entstehen erst beim Bauen
     $jsInhalt = (string) file_get_contents($jsPfad);

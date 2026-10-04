@@ -246,7 +246,7 @@ window.VECOM_I18N.en = {
       s_h: "The same works for your product.",
       s_lead: "Furniture, machines, packaging, fitted interiors — anywhere there are variants and a photograph of each would cost too much. I build the model, set up the studio and hand over the configurator ready for your site.",
       s_b1: "Start a project",
-      s_b2: "To the 3D showroom"
+      s_b2: "To the homepage"
     },
     services: {
       head: "What I build for you",
@@ -311,34 +311,6 @@ window.VECOM_I18N.en = {
       w4r: "A book you read before you open it",
       w5r: "One clientele, three languages",
       w6r: "A book world you can walk through",
-    },
-    showroom: {
-      metaTitle: "3D Experience — Vecom Design",
-      metaDesc: "A showroom you walk through in the browser: websites, online shops, branding and 3D experiences by Vecom Design — built, not assembled.",
-      b0k: "Vecom Design — Sicily",
-      b0h1: "Digital ideas.", b0h2: "No limits.",
-      b0lead: "Websites, online shops, brands and three-dimensional experiences — built, not assembled.",
-      b0a: "Start a project", b0b: "See the work",
-      b1k: "Digital Studio",
-      b1h1: "One space,", b1h2: "five ways in.",
-      b1lead: "Every field has its place in the studio. You walk through it instead of reading a list.",
-      f1a: "Web design", f1b: "bespoke, no template",
-      f2a: "Online shops", f2b: "from product to payment",
-      f3a: "Branding", f3b: "logo, colours, rules",
-      f4a: "3D experiences", f4b: "new in the range",
-      f5a: "Maintenance & support", f5b: "one person to call",
-      b2k: "The brand",
-      b2h1: "Built from the real", b2h2: "outlines.",
-      b2lead: "Not a redrawn V: the object grows from the same outlines as the logo mark — which is why every edge sits where it sits in the logo.",
-      b3k: "3D Experience Website",
-      b3h1: "Sites you don’t", b3h2: "just visit.",
-      b3lead: "Modern web design joined with interactive 3D worlds, high-grade animation and immersive experiences — for companies that want to stand out visibly.",
-      b3a: "Ask about a 3D project",
-      b4k: "The way forward",
-      b4h1: "Ready to create", b4h2: "something extraordinary?", b4h3: "",
-      b4a: "Start your project now", b4b: "WhatsApp",
-      fussort: "© Vecom Design · Aragona (AG), Sicily",
-      fuss1: "Legal notice", fuss2: "Privacy", fuss3: "Terms", fuss4: "Right of withdrawal", fuss5: "Pricing"
     },
     process: {
       head: "How we work",

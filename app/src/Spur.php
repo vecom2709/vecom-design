@@ -218,7 +218,7 @@ final class Spur
         'kunde' => 'ist Kunde geworden', 'abgeschlossen' => 'hat bezahlt — fertig',
     ];
     public const SEITEN = ['/' => 'Startseite (Italienisch)', '/de/' => 'Startseite (Deutsch)', '/en/' => 'Startseite (Englisch)', '/index.html' => 'Startseite (Italienisch)',
-        '/prezzi.html' => 'Preise (Italienisch)', '/de/preise.html' => 'Preise (Deutsch)', '/showroom.html' => 'Showroom (Italienisch)', '/de/showroom.html' => 'Showroom (Deutsch)',
+        '/prezzi.html' => 'Preise (Italienisch)', '/de/preise.html' => 'Preise (Deutsch)',
         '/analisi.php' => 'Kostenloser Website-Check', '/bedarf.php' => 'Preisrechner', '/kunde.php' => 'Persönlicher Bereich', '/zugang.php' => 'Persönlichen Bereich anfordern'];
 
     public static function seiteName(string $pfad): string

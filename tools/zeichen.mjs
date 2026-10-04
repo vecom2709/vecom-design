@@ -31,7 +31,7 @@ const WURZEL = join(dirname(fileURLToPath(import.meta.url)), '..');
    Seitenquellen stehen zusätzlich drin: Sie sind Quelle für /de/ und /en/,
    ein Zeichen darin wandert also in alle drei Fassungen. */
 const DATEIEN = [
-  'index.html', 'showroom.html', 'tavolo.html', 'prezzi.html', 'assistenza.html',
+  'index.html', 'tavolo.html', 'prezzi.html', 'assistenza.html',
   'assets/js/i18n-it.js', 'assets/js/i18n-de.js', 'assets/js/i18n-en.js',
   'assets/js/legal-it.js', 'assets/js/legal-de.js', 'assets/js/legal-en.js',
 ];

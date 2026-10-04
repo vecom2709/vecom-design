@@ -110,9 +110,9 @@ async function start() {
      Abschnitt hinter den Inhalt -- das ist die Bewegung, die Uwe gemeint
      hat, und sie lief auf seinem eigenen Rechner, bevor der Raum kam.
 
-     Der Tausch haengt weiter an diesen beiden Zeilen. raum.js, raum-beats.js
-     und das Modell bleiben liegen: showroom.html benutzt den Raum weiter,
-     und wer ihn zurueckholen will, tauscht die zwei Zeilen zurueck.
+     Der Showroom (raum.js, raum-beats.js, showroom.glb, showroom.html) ist
+     seit dem 05.10.2026 ganz entfernt -- Uwe: "loesche ueberall den
+     Showroom". Die Buehne ist das drehende goldene V, sonst nichts.
 
      Gemessen am 17.09.2026 auf SwiftShader, Aufbau als eine Blockade:
      Raum 20,6 s -- Marke 16,1 s. Beide zu viel fuer einen Rasterizer auf

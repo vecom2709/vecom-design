@@ -34,7 +34,7 @@
    einer halben Minute Stillstand auf einer HD 4400.
 
    Die Schnittstelle nach außen ist Zeile für Zeile dieselbe. site-world.js,
-   raum.js und raum-beats.js wurden NICHT angefasst. */
+   (raum.js und raum-beats.js sind seit dem 05.10.2026 entfernt.) */
 
 import {
   AdaptiveExperienceManager,

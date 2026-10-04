@@ -1335,13 +1335,13 @@ body.js .in .line-mask > span, body.js .line-mask.in > span {
 /* ---------- Die Bühne für Rechner, die keine bauen können ----------------
    Bis zum 14.09.2026 bekamen sie gar nichts: off() hat die Leinwand versteckt
    und damit stand die Seite auf ihrem eigenen Dunkelblau. Wer kein WebGL hat,
-   im Datensparmodus surft oder mit einem schwachen Telefon kommt, hat den
-   Showroom nie gesehen — und das sind nicht wenige.
+   im Datensparmodus surft oder mit einem schwachen Telefon kommt, hat die
+   Buehne nie gesehen — und das sind nicht wenige.
 
-   Jetzt sehen sie denselben Saal, nur gerechnet statt in Echtzeit: ein Bild
-   aus dem Cycles-Durchgang. Es kostet keine Rechenzeit, keinen Akku und
-   keine Bibliothek, und es sieht besser aus als die Echtzeitfassung, weil
-   ein gerechnetes Bild indirektes Licht kennt.
+   Jetzt sehen sie das goldene V als Standbild (05.10.2026 neu: vorher lag
+   hier noch ein Bild des alten Showrooms, Uwe: "es ist der alte Showroom,
+   sollte nicht sein"). Es ist ein Bild aus derselben Echtzeitbuehne,
+   1920 x 1080, und kostet keine Rechenzeit, keinen Akku, keine Bibliothek.
 
    Geladen wird es nur, wenn es gebraucht wird: Ein Hintergrundbild auf einem
    Element mit display:none holt kein Browser. Wer die Echtzeitwelt bekommt,

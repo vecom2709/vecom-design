@@ -140,6 +140,13 @@ jobs:
           # Sicherung — verlassen wird sich darauf nicht: am 30.08.2026 wurde
           # genau diese Zeile von einem parallelen Commit entfernt, und der
           # naechste Deploy hat den Passwortschutz still ueberschrieben.
+          # ERST UNTER EINEM ZWISCHENNAMEN, DANN UMBENENNEN (05.10.2026):
+          # mirror schrieb jede Datei an Ort und Stelle. Wer waehrend des
+          # Uploads kam, bekam eine halb oder gar nicht geschriebene Datei --
+          # gemessen: OutputShader.js mit 0 Byte, eine Stunde im Browser
+          # zwischengespeichert, die 3D-Buehne fiel aus und Uwe sah das alte
+          # Standbild. xfer:use-temp-file laedt nach .in-transfer-NAME und
+          # benennt erst am Ende um; ein Besucher sieht alt oder neu, nie halb.
           # Stile, Skripte und Bilder VOR den Seiten (04.10.2026): Sonst gab es
           # Minuten, in denen eine neue Seite schon auf app.css?v=NEU zeigte,
           # auf dem Server aber noch die alte app.css lag -- der Browser hat
@@ -153,6 +160,8 @@ jobs:
             set net:timeout 20;
             set net:max-retries 3;
             set mirror:parallel-transfer-count 3;
+            set xfer:use-temp-file yes;
+            set xfer:temp-file-name .in-transfer-*;
             open -u '$U,$PW' $H;
             rm -rf $DIR.git;
             mirror --reverse --continue --verbose=1 app/src $DIR/app/src;
@@ -212,6 +221,13 @@ jobs:
             rm -rf $DIR/richtungen;
             rm -rf $DIR/app/werbemittel/flyer_a5;
             rm -rf $DIR/app/werbemittel/flyer_a6;
+            rm -f $DIR/showroom.html;
+            rm -f $DIR/de/showroom.html;
+            rm -f $DIR/en/showroom.html;
+            rm -f $DIR/assets/3d/showroom.glb;
+            rm -f $DIR/assets/js/world/raum.js;
+            rm -f $DIR/assets/js/world/raum-beats.js;
+            rm -f $DIR/assets/img/work/showroom-3d.webp;
             bye"
 
       - name: Cockpit-Schutz nachsehen

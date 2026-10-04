@@ -58,7 +58,7 @@ jobs:
           rm -rf _vorschau
           mkdir -p _vorschau
           # Nur das Schaufenster: Seiten, Gestalt, Bilder, Filme.
-          for p in index.html showroom.html explainer.html explainer-ablauf.html \
+          for p in index.html explainer.html explainer-ablauf.html \
                    legal.html tiktok.html world.html 404.html prezzi.html \
                    assistenza.html de en assets video richtungen .nojekyll; do
             [ -e "$p" ] && cp -r "$p" _vorschau/

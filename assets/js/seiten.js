@@ -15,11 +15,6 @@ window.VECOM_SEITEN = {
     "de": "/de/betreuung.html",
     "en": "/en/care.html"
   },
-  "showroom": {
-    "it": "/showroom.html",
-    "de": "/de/showroom.html",
-    "en": "/en/showroom.html"
-  },
   "tecnica": {
     "it": "/tecnica.html",
     "de": "/de/technik.html",
