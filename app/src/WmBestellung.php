@@ -171,6 +171,8 @@ final class WmBestellung
         if (!$ek) { throw new InvalidArgumentException('nicht_lieferbar'); }
         $r = Werbemittel::regel(['marge_prozent' => $v['marge_prozent'], 'mindestmarge_cent' => $v['mindestmarge_cent']]);
         $preis = Werbemittel::preis($ek['cent'], $r['marge_prozent'], $r['mindestmarge_cent']);
+        // Gewinnsperre (04.10.2026): bleibt nach Einkauf und Zahlungskosten zu wenig, wird nicht bestellt.
+        if (Werbemittel::gewinn($preis, $ek['cent']) < Werbemittel::MIN_GEWINN_CENT) { throw new InvalidArgumentException('nicht_lieferbar'); }
         $adresse = json_encode(array_intersect_key($a, array_flip(['name', 'firma', 'strasse', 'plz', 'ort', 'land', 'telefon'])), JSON_UNESCAPED_UNICODE);
         $sprache = in_array($sprache, Werbemittel::SPRACHEN, true) ? $sprache : 'it';
         $feld = static fn(string $f) => trim((string) ($v[$f . '_' . $sprache] ?? '')) !== '' ? (string) $v[$f . '_' . $sprache] : (string) $v[$f . '_it'];

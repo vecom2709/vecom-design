@@ -21114,6 +21114,7 @@ pruefe('Migration legt sechs Kategorien und die Visitenkarte an — mit VEC-Numm
     && preg_match('~^VEC-\d{4}$~', (string) $wmVk['nummer']) === 1 && Werbemittel::format($wmVk) === '85 × 55 mm'
     && (int) $wmVk['beschnitt_zmm'] === 30 && (int) $wmVk['aktiv'] === 0
     && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ? AND einkauf_cent = 0', [(int) $wmVk['id']]) === 3);
+Werbemittel::zahlkostenSetzen(0, 0);   // die Grundformel ohne Stripe; Zahlungskosten haben ihre eigene Prüfung gleich danach
 pruefe('Preis: Einkauf + Marge, nie unter Einkauf + Mindestmarge, auf 10 Cent aufgerundet; ohne Einkauf 0',
     Werbemittel::preis(1000, 35, 500) === 1500 && Werbemittel::preis(10000, 35, 500) === 13500
     && Werbemittel::preis(1001, 35, 0) === 1360 && Werbemittel::preis(0, 35, 500) === 0 && Werbemittel::preis(999, 0, 0) === 1000);
@@ -21124,6 +21125,25 @@ for ($i = 0; $i < 2000; $i++) {
     if ($v < $e + $m || $v * 100 < $e * (100 + $p) || $v % 10 !== 0) { $wmUnter++; }
 }
 pruefe('Preis: in 2.000 Zufallsfällen fällt die Marge nie unter die Regel', $wmUnter === 0, "$wmUnter Fälle");
+// Zahlungskosten (04.10.2026, Uwe: „nicht dass man draufzahlt“)
+$wmZk = ['zehntel' => 30, 'fix_cent' => 25];
+pruefe('Zahlungskosten: Stripe-Gebühr (3 % + 0,25 €) kommt VOR die Marge — 23,53 € Einkauf, 5 %/5 € → 29,70 €, nach Gebühr bleiben mindestens 5 € Gewinn',
+    Werbemittel::preis(2353, 5, 500, $wmZk) === 2970 && Werbemittel::gewinn(2970, 2353, $wmZk) >= 500
+    && Werbemittel::nachZahlkosten(2970, $wmZk) === 2970 - 90 - 25 && Werbemittel::preis(0, 5, 500, $wmZk) === 0,
+    (string) Werbemittel::preis(2353, 5, 500, $wmZk));
+$wmUnter = 0;
+mt_srand(204);
+for ($i = 0; $i < 3000; $i++) {
+    $e = mt_rand(1, 500000); $pz = mt_rand(0, 200); $m = mt_rand(0, 5000); $z = ['zehntel' => mt_rand(0, 60), 'fix_cent' => mt_rand(0, 100)];
+    $v = Werbemittel::preis($e, $pz, $m, $z);
+    $soll = max(intdiv($e * (100 + $pz) + 99, 100), $e + $m);
+    if (Werbemittel::nachZahlkosten($v, $z) < $soll || $v % 10 !== 0) { $wmUnter++; }
+}
+pruefe('Zahlungskosten: in 3.000 Zufallsfällen bleibt nach der Gebühr nie weniger als Einkauf + Marge', $wmUnter === 0, "$wmUnter Fälle");
+Werbemittel::zahlkostenSetzen(30, 25);
+pruefe('Zahlungskosten sind einstellbar und gespeichert (Voreinstellung 3,0 % + 0,25 €)', Werbemittel::zahlkosten() === $wmZk);
+gesperrt('Unsinnige Zahlungskosten werden abgelehnt', fn() => Werbemittel::zahlkostenSetzen(500, 0));
+Werbemittel::zahlkostenSetzen(0, 0);
 pruefe('Beträge werden ohne Fließkomma gelesen: „12,5“ = 1250, „12,05“ = 1205, „0,07“ = 7, leer = keiner',
     Werbemittel::leerOderEuro('12,5') === 1250 && Werbemittel::leerOderEuro('12,05') === 1205
     && Werbemittel::leerOderEuro('0,07') === 7
@@ -21720,12 +21740,13 @@ $w6O = WmBestellung::anlegen($w6P, $w6V, WmBestellung::adresseSpeichern((int) $w
 $w6Vor = count($w6Netz);
 pruefe('Vor der Zahlung geht nichts an die Druckerei', count($w6Netz) === $w6Vor && Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ?', [$w6O['id']]) === 'Gelato');
 WmBestellung::bezahltVonStripe($w6O['id'], 'pi_auto', (int) $w6O['summe_cent'], 'eur');
-$w6Post = json_decode((string) ($w6Netz[$w6Vor][2] ?? ''), true);
+$w6Post = json_decode((string) ($w6Netz[$w6Vor + 1][2] ?? ''), true);
 pruefe('Nach der Zahlung (Stripe): Auftrag automatisch an Gelato als ECHTER Auftrag (orderType „order“), genau einmal; Status „beim Drucker“',
-    count($w6Netz) === $w6Vor + 1 && ($w6Netz[$w6Vor][1] ?? '') === 'https://order.gelatoapis.com/v4/orders' && ($w6Post['orderType'] ?? '') === 'order'
+    count($w6Netz) === $w6Vor + 2 && ($w6Netz[$w6Vor][1] ?? '') === 'https://order.gelatoapis.com/v4/orders:quote'
+    && ($w6Netz[$w6Vor + 1][1] ?? '') === 'https://order.gelatoapis.com/v4/orders' && ($w6Post['orderType'] ?? '') === 'order'
     && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'beim_drucker'
     && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'auftrag'
-    && Gelato::entwurfSenden($w6O['id'], true)['ok'] === false && count($w6Netz) === $w6Vor + 1);
+    && Gelato::entwurfSenden($w6O['id'], true)['ok'] === false && count($w6Netz) === $w6Vor + 2);
 pruefe('Sendungsnummer von Gelato: automatisch „versendet“, Partner bekommt „Unterwegs“ — ohne Klick',
     Gelato::nachsehen() >= 1 && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'versendet'
     && Db::wert('SELECT tracking FROM wm_bestellungen WHERE id = ?', [$w6O['id']]) === 'AUTO-1' && in_array('wm_versendet', $w6Mails, true), json_encode($w6Mails));
@@ -21869,8 +21890,9 @@ WmBestellung::bezahltVonStripe($w7O['id'], 'pi_pf', (int) $w7O['summe_cent'], 'e
 $w7Post = null;
 foreach (array_slice($w7Netz, $w7Vor) as $w7Z) { if ($w7Z[0] === 'POST') { $w7Post = $w7Z; } }
 $w7Rumpf = json_decode((string) ($w7Post[3] ?? ''), true);
-pruefe('Nach der Zahlung: erst Druckfläche geprüft, dann EIN Entwurf an Printful (ohne confirm), Variante × Packs, Vorder- und Rückseite als signierte Links',
-    ($w7Netz[$w7Vor][1] ?? '') === 'https://api.printful.com/mockup-generator/printfiles/724'
+pruefe('Nach der Zahlung: erst Preis neu geholt (estimate-costs), dann Druckfläche geprüft, dann EIN Entwurf an Printful (ohne confirm), Variante × Packs, Vorder- und Rückseite als signierte Links',
+    ($w7Netz[$w7Vor][1] ?? '') === 'https://api.printful.com/orders/estimate-costs'
+    && ($w7Netz[$w7Vor + 1][1] ?? '') === 'https://api.printful.com/mockup-generator/printfiles/724'
     && ($w7Post[1] ?? '') === 'https://api.printful.com/orders' && ($w7Rumpf['external_id'] ?? '') === $w7O['nummer']
     && ($w7Rumpf['items'][0]['variant_id'] ?? 0) === 18554 && ($w7Rumpf['items'][0]['quantity'] ?? 0) === 5
     && array_column($w7Rumpf['items'][0]['files'] ?? [], 'type') === ['default', 'back']
@@ -21888,13 +21910,14 @@ pruefe('Printful versendet (Stand lesen über GET /orders/@Nummer): automatisch 
 // Druckfläche passt nicht → nichts senden, Meldung
 $w7Netz2 = [];
 Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Netz2): array {
-    $w7Netz2[] = $m;
+    $w7Netz2[] = $m . ' ' . substr($u, 24);
+    if (str_ends_with($u, '/orders/estimate-costs')) { return ['code' => 200, 'body' => json_encode(['result' => ['costs' => ['currency' => 'EUR', 'total' => 67.52]]])]; }
     return ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 3, 'width' => 1000, 'height' => 1000]], 'variant_printfiles' => [['variant_id' => 18554, 'placements' => ['default' => 3, 'back' => 3]]]]])];
 };
 $w7O2 = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
 WmBestellung::vonHandBezahlt($w7O2['id']);
 pruefe('Druckfläche passt nicht zum Bild: KEIN Auftrag (nur gelesen), Bestellung bleibt „bezahlt“, Meldung an Uwe',
-    $w7Netz2 === ['GET'] && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']]) === 'bezahlt'
+    $w7Netz2 === ['POST /orders/estimate-costs', 'GET /mockup-generator/printfiles/724'] && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']]) === 'bezahlt'
     && Db::wert('SELECT anbieter_status FROM wm_bestellungen WHERE id = ?', [$w7O2['id']], 'leer') === 'leer'
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_druckerei_fehler'") >= 1);
 // Ältere Freigabe ohne eingepasste Fassung → nichts an Printful
@@ -21903,7 +21926,7 @@ $w7Netz2 = [];
 $w7O3 = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
 WmBestellung::vonHandBezahlt($w7O3['id']);
 pruefe('Freigabe ohne 90 × 50-Fassung (älter als heute): nichts gesendet, Grund nennt die fehlende Fassung',
-    $w7Netz2 === [] && str_contains(Printful::auftragSenden($w7O3['id'])['grund'], 'eingepasste Fassung'));
+    !in_array('POST /orders', $w7Netz2, true) && str_contains(Printful::auftragSenden($w7O3['id'])['grund'], 'eingepasste Fassung'), json_encode($w7Netz2));
 pruefe('Preis-Knopf holt alle Druckereien mit Preis-Schnittstelle, Cron Printful höchstens wöchentlich, Konfig-Beispiel nennt Printful',
     str_contains((string) file_get_contents($wurzel . '/index.php'), "foreach (['Gelato', 'Printful'] as \$wmK)")
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_preise'")
@@ -21938,6 +21961,37 @@ pruefe('Probe-Entwurf an Printful: erst Druckfläche, dann EIN Entwurf ohne conf
     $w7Pr['ok'] && ($w7Pb[1] ?? '') === 'https://api.printful.com/orders' && ($w7Pj['items'][0]['quantity'] ?? 0) === 1
     && str_contains((string) ($w7Pj['items'][0]['files'][1]['url'] ?? ''), 'f=probe_pf_hinten') && str_starts_with((string) ($w7Pj['external_id'] ?? ''), 'PROBE-')
     && (Ablauf::TRAGWEITE['wm_probe'][0] ?? '') === Ablauf::RAUS && Druckerei::probeSenden('HelloPrint')['ok'] === false, json_encode($w7Pj));
+// Preis-Sicherheit (04.10.2026): Gewinnsperre, alte Preise, Preis vor dem Auftrag neu holen
+$w7Regel = Werbemittel::regel($w7Vk);
+Werbemittel::standardSetzen(0, 0);
+pruefe('Gewinnsperre: bleibt nach Einkauf und Zahlungskosten weniger als 1 €, ist die Auflage nicht bestellbar (Katalog und Bestellung)',
+    Werbemittel::preisFuer($w7V, 'DE', Werbemittel::regel($w7Vk)) === 0
+    && (function () use ($w7P, $w7V): bool { try { WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de'); return false; } catch (InvalidArgumentException $e) { return $e->getMessage() === 'nicht_lieferbar'; } })());
+Werbemittel::standardSetzen(35, 500);
+Db::run("UPDATE wm_anbieter_preise SET geprueft_am = CURDATE() - INTERVAL 31 DAY WHERE variante_id = ? AND land = 'DE'", [$w7V]);
+$w7Alt = Werbemittel::einkauf($w7V, 'DE');
+pruefe('Preise älter als 30 Tage sperren die Auflage (kein geratener Preis), die Verwaltung zeigt „Preis alt · gesperrt“; Cron meldet ab Tag 25',
+    $w7Alt === null && Werbemittel::preisFuer($w7V, 'DE', Werbemittel::regel($w7Vk)) === 0
+    && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'Preis alt · gesperrt')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_preise_alt'"), json_encode($w7Alt));
+Db::run("UPDATE wm_anbieter_preise SET geprueft_am = CURDATE() WHERE variante_id = ? AND land = 'DE'", [$w7V]);
+WmBestellung::automatikSetzen(true);
+$w7Teurer = [];
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$w7Teurer, $w7Antwort): array {
+    $w7Teurer[] = [$m, $u];
+    if (str_ends_with($u, '/orders/estimate-costs')) { return ['code' => 200, 'body' => json_encode(['result' => ['costs' => ['currency' => 'EUR', 'total' => 99.99]]])]; }
+    return $w7Antwort($m, $u, $r);
+};
+$w7Oc = WmBestellung::anlegen($w7P, $w7V, (int) Db::wert("SELECT id FROM wm_adressen WHERE partner_id = ? AND land = 'DE'", [(int) $w7P['id']]), 'de');
+Db::run('UPDATE wm_entwuerfe SET datei_pf_vorn = datei_pf_hinten WHERE id = ?', [$w7E]);
+WmBestellung::vonHandBezahlt($w7Oc['id']);
+pruefe('Vor dem automatischen Auftrag holt die Seite den Preis neu: Printful jetzt teurer (99,99 € statt 67,52 €) → KEIN Auftrag, Meldung an Uwe, Bestellung bleibt „bezahlt“',
+    !in_array('POST https://api.printful.com/orders', array_map(static fn($z) => $z[0] . ' ' . $z[1], $w7Teurer), true)
+    && Db::wert('SELECT status FROM wm_bestellungen WHERE id = ?', [$w7Oc['id']]) === 'bezahlt'
+    && str_contains((string) Db::wert("SELECT body FROM notifications WHERE type = 'wm_druckerei_fehler' ORDER BY id DESC LIMIT 1", [], ''), 'teurer geworden'),
+    json_encode($w7Teurer));
+WmBestellung::automatikSetzen(false);
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use ($w7Antwort): array { return $w7Antwort($m, $u, $r); };
 // Partner bricht ab (04.10.2026): Entwurf verwerfen, unbezahlte Bestellung abbrechen
 WmBestellung::automatikSetzen(false);
 $w7E2 = Werbemittel::entwurfAnlegen($w7P, (int) $w7Vk['id'], ['stil' => 'c', 'sprache' => 'de', 'kontakt' => 'email']);

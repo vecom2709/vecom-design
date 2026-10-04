@@ -115,6 +115,27 @@ final class Printful
         return ['ok' => true, 'grund' => '', 'id' => (string) $d['result']['id']];
     }
 
+    /** Was die Bestellung bei Printful JETZT kostet (estimate-costs, Gesamtpreis in EUR) — null, wenn nicht abrufbar. */
+    public static function preisJetzt(int $bestellungId): ?int
+    {
+        $b = Db::one('SELECT adresse FROM wm_bestellungen WHERE id = ?', [$bestellungId]);
+        $ad = (array) json_decode((string) ($b['adresse'] ?? ''), true);
+        $land = strtoupper((string) ($ad['land'] ?? ''));
+        if (!in_array($land, self::LAENDER, true)) { return null; }
+        $items = [];
+        foreach (Db::all('SELECT variante_id, menge FROM wm_positionen WHERE bestellung_id = ?', [$bestellungId]) as $x) {
+            $a = Db::one("SELECT artikel, menge FROM wm_anbieter_produkte WHERE variante_id = ? AND anbieter = 'printful'", [(int) $x['variante_id']]);
+            if (!$a || !ctype_digit((string) $a['artikel'])) { return null; }
+            $items[] = ['variant_id' => (int) $a['artikel'], 'quantity' => (int) $a['menge'] * (int) $x['menge']];
+        }
+        if (!$items) { return null; }
+        try { $r = self::rufen('POST', '/orders/estimate-costs', ['recipient' => self::musterEmpfaenger($land), 'items' => $items]); } catch (Throwable $e) { return null; }
+        $c = (array) (json_decode($r['body'], true)['result']['costs'] ?? []);
+        if ($r['code'] !== 200 || !isset($c['total']) || strtoupper((string) ($c['currency'] ?? '')) !== 'EUR') { return null; }
+        $t = (int) round((float) $c['total'] * 100);
+        return $t > 0 ? $t : null;
+    }
+
     /** Probe-Entwurf mit der Musterkarte (siehe Druckerei::probeSenden) — ein Pack, nie mit confirm. */
     public static function probeSenden(): array
     {

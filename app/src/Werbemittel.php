@@ -63,16 +63,69 @@ final class Werbemittel
         ];
     }
 
-    /** Verkaufspreis in Cent. 0 heißt: nicht bestellbar (kein Einkauf). */
-    public static function preis(int $einkaufCent, int $margeProzent, int $mindestCent): int
+    /**
+     * ZAHLUNGSKOSTEN (04.10.2026, Uwe: „nicht dass man draufzahlt“). Stripe
+     * behält von jeder Zahlung einen Anteil plus festen Betrag ein. Damit die
+     * Marge danach noch ganz bleibt, wird die Gebühr VOR der Marge in den
+     * Preis gerechnet — sicherheitshalber mit 3 % + 0,25 € (EWR-Standardkarten
+     * kosten 1,5 % + 0,25 €, Premium- und Nicht-EWR-Karten mehr).
+     * Gespeichert als Zehntelprozent und Cent in settings.
+     * @return array{zehntel:int, fix_cent:int}
+     */
+    public static function zahlkosten(): array
+    {
+        return [
+            'zehntel'  => max(0, min(200, (int) self::einstellung('wm_zahlkosten_zehntel', '30'))),
+            'fix_cent' => max(0, min(1000, (int) self::einstellung('wm_zahlkosten_fix_cent', '25'))),
+        ];
+    }
+
+    public static function zahlkostenSetzen(int $zehntel, int $fixCent): void
+    {
+        if ($zehntel < 0 || $zehntel > 200 || $fixCent < 0 || $fixCent > 1000) { throw new InvalidArgumentException('Zahlungskosten ungültig.'); }
+        foreach (['wm_zahlkosten_zehntel' => $zehntel, 'wm_zahlkosten_fix_cent' => $fixCent] as $k => $v) {
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, (string) $v]);
+        }
+    }
+
+    /** Was von einem Partnerpreis nach Zahlungskosten bleibt (Gebühr aufgerundet). */
+    public static function nachZahlkosten(int $preisCent, ?array $zk = null): int
+    {
+        $zk ??= self::zahlkosten();
+        return $preisCent - intdiv($preisCent * $zk['zehntel'] + 999, 1000) - $zk['fix_cent'];
+    }
+
+    /** Gewinn je Bestellung: Preis − Zahlungskosten − Einkauf (inkl. Versand und MwSt). */
+    public static function gewinn(int $preisCent, int $einkaufCent, ?array $zk = null): int
+    {
+        return $preisCent > 0 ? self::nachZahlkosten($preisCent, $zk) - $einkaufCent : 0;
+    }
+
+    /** Darunter ist eine Auflage nicht bestellbar (Uwe: „ich sage ja“ zur Gewinnsperre, 04.10.2026). */
+    public const MIN_GEWINN_CENT = 100;
+
+    /**
+     * Verkaufspreis in Cent. 0 heißt: nicht bestellbar (kein Einkauf).
+     * Einkauf + Marge (nie unter Einkauf + Mindestmarge), dann so viel
+     * darauf, dass nach den Zahlungskosten genau das übrig bleibt, auf
+     * 10 Cent aufgerundet.
+     */
+    public static function preis(int $einkaufCent, int $margeProzent, int $mindestCent, ?array $zk = null): int
     {
         if ($einkaufCent <= 0) { return 0; }
+        $zk ??= self::zahlkosten();
         $nachProzent = intdiv($einkaufCent * (100 + $margeProzent) + 99, 100);   // aufrunden
         $roh = max($nachProzent, $einkaufCent + $mindestCent);
-        return intdiv($roh + 9, 10) * 10;
+        $p = intdiv(($roh + $zk['fix_cent']) * 1000 + (1000 - $zk['zehntel']) - 1, 1000 - $zk['zehntel']);
+        $p = intdiv($p + 9, 10) * 10;
+        while (self::nachZahlkosten($p, $zk) < $roh) { $p += 10; }   // Rundung der Gebühr nachziehen
+        return $p;
     }
 
     // ---- Partnerbereich ------------------------------------------------------
+
+    /** So lange gilt ein geprüfter Druckereipreis; danach ist die Auflage gesperrt, bis er neu geprüft ist. */
+    public const FRISCH_TAGE = 30;
 
     /** Länder, in die geliefert wird (Uwe, 04.10.2026: Italien und Deutschland). */
     public const LIEFERLAENDER = ['IT' => 'Italia', 'DE' => 'Deutschland'];
@@ -99,10 +152,15 @@ final class Werbemittel
         $auto = self::automatischeAnbieter($land);
         if ($auto) {
             $ph = implode(',', array_fill(0, count($auto), '?'));
-            $g = Db::one("SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? AND anbieter IN ($ph) ORDER BY preis_cent, id LIMIT 1",
+            $g = Db::one("SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? AND anbieter IN ($ph)
+                           AND geprueft_am >= CURDATE() - INTERVAL " . self::FRISCH_TAGE . " DAY ORDER BY preis_cent, id LIMIT 1",
                 array_merge([$varianteId, $land], $auto)) ?: null;
         }
-        $g ??= Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ? ORDER BY preis_cent, id LIMIT 1', [$varianteId, $land]);
+        /* Nur geprüfte Preise der letzten 30 Tage (Uwe, 04.10.2026: „ja“ zur
+           Sperre): ein alter Preis kann inzwischen zu niedrig sein — dann
+           lieber nicht bestellbar als draufzahlen. */
+        $g ??= Db::one('SELECT anbieter, preis_cent FROM wm_anbieter_preise WHERE variante_id = ? AND land = ?
+                         AND geprueft_am >= CURDATE() - INTERVAL ' . self::FRISCH_TAGE . ' DAY ORDER BY preis_cent, id LIMIT 1', [$varianteId, $land]);
         if ($g) { return ['cent' => (int) $g['preis_cent'], 'anbieter' => (string) $g['anbieter']]; }
         if ((int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ?', [$varianteId]) > 0) { return null; }
         $h = (int) Db::wert('SELECT einkauf_cent FROM wm_varianten WHERE id = ?', [$varianteId], 0);
@@ -121,7 +179,9 @@ final class Werbemittel
     public static function preisFuer(int $varianteId, string $land, array $regel): int
     {
         $e = self::einkauf($varianteId, $land);
-        return $e ? self::preis($e['cent'], $regel['marge_prozent'], $regel['mindestmarge_cent']) : 0;
+        if (!$e) { return 0; }
+        $p = self::preis($e['cent'], $regel['marge_prozent'], $regel['mindestmarge_cent']);
+        return self::gewinn($p, $e['cent']) >= self::MIN_GEWINN_CENT ? $p : 0;   // Gewinnsperre
     }
 
     /**
@@ -218,7 +278,12 @@ final class Werbemittel
                 foreach (array_keys(self::LIEFERLAENDER) as $l) {
                     $e = self::einkauf((int) $v['id'], $l);
                     $preis = $e ? self::preis($e['cent'], $r['marge_prozent'], $r['mindestmarge_cent']) : 0;
-                    $v['laender'][$l] = ['einkauf_cent' => $e['cent'] ?? 0, 'anbieter' => $e['anbieter'] ?? null, 'preis_cent' => $preis, 'marge_cent' => $preis > 0 ? $preis - (int) $e['cent'] : 0];
+                    $gewinn = $e ? self::gewinn($preis, (int) $e['cent']) : 0;
+                    $v['laender'][$l] = ['einkauf_cent' => $e['cent'] ?? 0, 'anbieter' => $e['anbieter'] ?? null, 'preis_cent' => $preis,
+                        'marge_cent' => $preis > 0 ? $preis - (int) $e['cent'] : 0, 'gewinn_cent' => $gewinn,
+                        'gesperrt' => $e && $gewinn < self::MIN_GEWINN_CENT,
+                        'mindest_greift' => $e && (int) $e['cent'] * $r['marge_prozent'] < $r['mindestmarge_cent'] * 100,
+                        'veraltet' => !$e && (int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise WHERE variante_id = ? AND land = ?', [(int) $v['id'], $l]) > 0];
                 }
                 // Italien als Hauptspalte (wie bisher), Deutschland daneben.
                 $v['preis_cent'] = $v['laender']['IT']['preis_cent'];
@@ -229,7 +294,7 @@ final class Werbemittel
             $p['bestellbar'] = (bool) array_filter($p['varianten'], fn($v) => (int) $v['aktiv'] === 1 && array_filter(array_column($v['laender'], 'preis_cent')));
         }
         unset($p);
-        return ['kategorien' => $kats, 'produkte' => $prods, 'standard' => self::standard()];
+        return ['kategorien' => $kats, 'produkte' => $prods, 'standard' => self::standard(), 'zahlkosten' => self::zahlkosten()];
     }
 
     /** Legt ein Produkt an oder ändert es. Gibt die id zurück. */

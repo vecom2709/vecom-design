@@ -115,6 +115,23 @@ final class Cron
                 require_once __DIR__ . '/HelloPrint.php';
                 return HelloPrint::nachsehen();
             },
+            /* Preis-Sicherheit (04.10.2026): Druckereipreise gelten 30 Tage, dann ist die
+               Auflage gesperrt. Ab Tag 25 einmal am Tag eine Meldung, welche Preise Uwe
+               neu prüfen sollte (Gelato und Printful holen sich wöchentlich selbst). */
+            'wm_preise_alt' => static function () {
+                $heute = date('Y-m-d');
+                if ((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'wm_preise_alt_am'", [], '') === $heute) { return 0; }
+                Db::run("INSERT INTO settings (skey, svalue) VALUES ('wm_preise_alt_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$heute]);
+                $alt = Db::all("SELECT w.nummer, v.name_de, a.land, MAX(a.geprueft_am) AS zuletzt
+                                  FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id JOIN wm_produkte w ON w.id = v.produkt_id
+                                 WHERE w.aktiv = 1 AND v.aktiv = 1
+                                 GROUP BY a.variante_id, a.land HAVING MAX(a.geprueft_am) < CURDATE() - INTERVAL 25 DAY");
+                if (!$alt) { return 0; }
+                $text = implode(', ', array_map(static fn($r) => $r['nummer'] . ' ' . $r['name_de'] . ' ' . $r['land'] . ' (' . Fmt::datum((string) $r['zuletzt']) . ')', array_slice($alt, 0, 12)));
+                Events::melden('wm_preise_veraltet', 'Druckereipreise neu prüfen (' . count($alt) . ')', 'warnung',
+                    'Nach 30 Tagen ist die Auflage gesperrt, damit nicht mit altem Preis verkauft wird: ' . $text, '/werbemittel');
+                return count($alt);
+            },
             /* Printful (04.10.2026): Stand der Aufträge nachlesen, Sendung → Mail an den Partner. Nur lesen. */
             'wm_printful' => static function () {
                 require_once __DIR__ . '/Printful.php';

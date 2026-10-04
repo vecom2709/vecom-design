@@ -1790,7 +1790,11 @@ if ($post) {
                 Werbemittel::standardSetzen(
                     (int) trim((string) ($_POST['marge_prozent'] ?? '')),
                     (int) (Werbemittel::leerOderEuro($_POST['mindestmarge_eur'] ?? '') ?? 0));
-                $_SESSION['gut'] = 'Standardmarge gespeichert — sie gilt ab sofort für alle Produkte ohne eigene Regel.';
+                if (isset($_POST['zahlkosten_prozent'])) {
+                    Werbemittel::zahlkostenSetzen((int) round(((float) str_replace(',', '.', (string) $_POST['zahlkosten_prozent'])) * 10),
+                        (int) (Werbemittel::leerOderEuro($_POST['zahlkosten_fix_eur'] ?? '') ?? 0));
+                }
+                $_SESSION['gut'] = 'Marge und Zahlungskosten gespeichert — sie gelten ab sofort für alle Produkte ohne eigene Regel.';
                 zurueck('werbemittel');
 
             case 'wm_produkt':

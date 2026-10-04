@@ -5,6 +5,7 @@
    Ein Formular je Variante über das form-Attribut, weil ein <form> keine
    Tabellenzeile umschließen darf. */
 $st = $wm['standard'];
+$zk = $wm['zahlkosten'] ?? Werbemittel::zahlkosten();
 $kats = array_column($wm['kategorien'], null, 'id');
 $jeKat = [];
 foreach ($wm['produkte'] as $p) { $jeKat[(int) $p['kategorie_id']][] = $p; }
@@ -86,7 +87,12 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
       <div class="feld"><label>Marge auf den Einkauf (%)</label><input name="marge_prozent" inputmode="numeric" value="<?= (int) $st['marge_prozent'] ?>"></div>
       <div class="feld"><label>Mindestens je Position (€)</label><input name="mindestmarge_eur" inputmode="decimal" value="<?= $eur((int) $st['mindestmarge_cent']) ?>"></div>
     </div>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Preis = Einkauf + Marge, aber nie weniger als Einkauf + Mindestmarge; aufgerundet auf 10 Cent. Gilt für jedes Produkt ohne eigene Regel, sofort.</p>
+    <div class="reihe">
+      <div class="feld"><label>Zahlungskosten Stripe (%)</label><input name="zahlkosten_prozent" inputmode="decimal" value="<?= number_format($zk['zehntel'] / 10, 1, ',', '') ?>"></div>
+      <div class="feld"><label>+ fest je Zahlung (€)</label><input name="zahlkosten_fix_eur" inputmode="decimal" value="<?= $eur((int) $zk['fix_cent']) ?>"></div>
+    </div>
+    <p style="color:var(--leise);font-size:12.5px;margin:0 0 6px">Preis = Einkauf (inkl. Versand und MwSt) + Marge — nie weniger als die Mindestmarge — und darauf die Stripe-Gebühr, damit dir die Marge ganz bleibt; aufgerundet auf 10 Cent. Bleibt nach allem weniger als <?= Werbemittel::euro(Werbemittel::MIN_GEWINN_CENT) ?> Gewinn, ist die Auflage gesperrt. Preise der Druckereien gelten <?= Werbemittel::FRISCH_TAGE ?> Tage.</p>
+    <p id="wm-beispiel" style="font-size:13px;margin:0 0 10px"></p>
     <button class="knopf haupt">Speichern</button>
   </form>
 </div>
@@ -122,7 +128,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
         <?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? '(Standard)' : '(eigene Regel)' ?></p>
 
       <div class="tabellenrahmen"><table>
-        <thead><tr><th>Variante (IT / DE / EN)</th><th class="num">Auflage</th><th class="num">Einkauf €</th><th class="num">Partnerpreis</th><th class="num">Marge</th><th title="Gelato productUid und Menge je Auflage">Gelato-Artikel · Menge</th><th>an</th><th></th></tr></thead>
+        <thead><tr><th>Variante (IT / DE / EN)</th><th class="num">Auflage</th><th class="num">Einkauf €</th><th class="num">Partnerpreis</th><th class="num" title="Was nach Einkauf (inkl. Versand, MwSt) und Stripe-Gebühr übrig bleibt">Gewinn nach Stripe</th><th title="Gelato productUid und Menge je Auflage">Gelato-Artikel · Menge</th><th>an</th><th></th></tr></thead>
         <tbody>
         <?php foreach (array_merge($p['varianten'], [null]) as $v): $fid = 'wmv-' . $pid . '-' . (int) ($v['id'] ?? 0); ?>
           <tr>
@@ -148,8 +154,16 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
               }; ?>
             <td class="num"><?php if ($v && $v['hat_angebote']): ?><?= $zelle($v, 'einkauf_cent') ?>
             <?php else: ?><input form="<?= $fid ?>" name="einkauf_eur" inputmode="decimal" value="<?= $v ? $eur((int) $v['einkauf_cent']) : '' ?>" style="width:90px" placeholder="0,00"><?php endif; ?></td>
-            <td class="num" style="white-space:nowrap"><?= $v ? $zelle($v, 'preis_cent') : '<span style="color:var(--leise)">—</span>' ?></td>
-            <td class="num" style="white-space:nowrap"><?= $v ? $zelle($v, 'marge_cent') : '' ?></td>
+            <td class="num" style="white-space:nowrap"><?php if ($v): foreach ($v['laender'] as $l => $x): ?>
+              <div class="wm-live" data-ek="<?= (int) $x['einkauf_cent'] ?>" data-standard="<?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? 1 : 0 ?>"><?= Partner::flagge($l) ?> <span class="wm-p"><?= $x['preis_cent'] > 0 ? Fmt::h(Werbemittel::euro((int) $x['preis_cent'])) : '—' ?></span></div>
+            <?php endforeach; else: ?><span style="color:var(--leise)">—</span><?php endif; ?></td>
+            <td class="num" style="white-space:nowrap"><?php if ($v): foreach ($v['laender'] as $l => $x): ?>
+              <div class="wm-live-g" data-ek="<?= (int) $x['einkauf_cent'] ?>" data-standard="<?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? 1 : 0 ?>"><?= Partner::flagge($l) ?>
+                <?php if (!empty($x['veraltet'])): ?><span class="marke2 warnung" title="Preis älter als <?= Werbemittel::FRISCH_TAGE ?> Tage">Preis alt · gesperrt</span>
+                <?php elseif ((int) $x['einkauf_cent'] <= 0): ?><span style="color:var(--leise)">—</span>
+                <?php else: ?><span class="wm-g"<?= !empty($x['gesperrt']) ? ' style="color:var(--rot,#e5484d)"' : '' ?>><?= Fmt::h(Werbemittel::euro((int) $x['gewinn_cent'])) ?></span>
+                  <span class="wm-h" style="font-size:11px;color:var(--leise)"><?= !empty($x['gesperrt']) ? 'gesperrt' : (!empty($x['mindest_greift']) ? 'Mindestmarge greift' : '') ?></span><?php endif; ?></div>
+            <?php endforeach; endif; ?></td>
             <?php $ga = $v ? Gelato::artikel((int) $v['id']) : null; ?>
             <td><div style="display:flex;gap:4px"><input form="<?= $fid ?>" name="gelato_artikel" value="<?= Fmt::h((string) ($ga['artikel'] ?? '')) ?>" placeholder="productUid" style="min-width:150px">
               <input form="<?= $fid ?>" name="gelato_menge" type="number" min="1" value="<?= (int) ($ga['menge'] ?? ($v['auflage'] ?? 1)) ?>" style="width:80px"></div></td>
@@ -248,3 +262,38 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
     <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Die VEC-Nummer wird beim Anlegen vergeben. Danach Varianten mit Einkaufspreis eintragen.</p>
     <button class="knopf haupt">Anlegen</button>
   </form></details></div>
+
+<script>
+/* 04.10.2026 (Uwe: „egal wie die Marge eingestellt ist, wird immer derselbe Betrag angezeigt“):
+   Beim Tippen rechnet die Tabelle mit — gleiche Formel wie Werbemittel::preis()
+   — und sagt, wann die Mindestmarge greift. Gespeichert wird erst mit „Speichern“. */
+(function () {
+  var f = document.querySelector('input[name="marge_prozent"]'); if (!f) { return; }
+  var form = f.form, zahl = function (n) { var x = form.querySelector('[name="' + n + '"]'); return x ? parseFloat(String(x.value).replace(',', '.')) || 0 : 0; };
+  var euro = function (c) { return (c / 100).toFixed(2).replace('.', ',') + '\u00a0€'; };
+  var preis = function (ek, pz, min, zt, fix) {
+    if (ek <= 0) { return 0; }
+    var roh = Math.max(Math.ceil(ek * (100 + pz) / 100), ek + min);
+    var p = Math.ceil((roh + fix) * 1000 / (1000 - zt)); p = Math.ceil(p / 10) * 10;
+    while (p - Math.ceil(p * zt / 1000) - fix < roh) { p += 10; }
+    return p;
+  };
+  var rechne = function () {
+    var pz = Math.round(zahl('marge_prozent')), min = Math.round(zahl('mindestmarge_eur') * 100), zt = Math.round(zahl('zahlkosten_prozent') * 10), fix = Math.round(zahl('zahlkosten_fix_eur') * 100);
+    document.querySelectorAll('.wm-live[data-standard="1"]').forEach(function (d) {
+      var ek = +d.dataset.ek, p = preis(ek, pz, min, zt, fix), s = d.querySelector('.wm-p'); if (s && ek > 0) { s.textContent = euro(p); }
+    });
+    document.querySelectorAll('.wm-live-g[data-standard="1"]').forEach(function (d) {
+      var ek = +d.dataset.ek; if (ek <= 0) { return; }
+      var p = preis(ek, pz, min, zt, fix), g = p - Math.ceil(p * zt / 1000) - fix - ek, s = d.querySelector('.wm-g'), h = d.querySelector('.wm-h');
+      if (s) { s.textContent = euro(g); s.style.color = g < 100 ? '#e5484d' : ''; }
+      if (h) { h.textContent = g < 100 ? 'gesperrt' : (ek * pz < min * 100 ? 'Mindestmarge greift' : ''); }
+    });
+    var b = document.getElementById('wm-beispiel');
+    if (b) { var ek = 2353, p = preis(ek, pz, min, zt, fix), g = p - Math.ceil(p * zt / 1000) - fix - ek;
+      b.textContent = 'Beispiel: Einkauf 23,53 € → Partnerpreis ' + euro(p) + ', davon Stripe ' + euro(Math.ceil(p * zt / 1000) + fix) + ', dein Gewinn ' + euro(g)
+        + (ek * pz < min * 100 ? ' — die Mindestmarge greift (der Prozentwert wäre nur ' + euro(Math.ceil(ek * pz / 100)) + ').' : '.'); }
+  };
+  form.addEventListener('input', rechne); rechne();
+})();
+</script>

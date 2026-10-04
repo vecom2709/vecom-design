@@ -43,6 +43,22 @@ final class Druckerei
             if (strcasecmp($n, $name) !== 0) { continue; }
             self::laden($klasse);
             if (!$klasse::bereit()) { break; }
+            /* Vor dem Auftrag den Preis neu holen (Uwe, 04.10.2026: „nicht dass man
+               draufzahlt“): Ist es bei der Druckerei inzwischen teurer als beim
+               Bestellen eingefroren, geht NICHTS raus — Uwe entscheidet. */
+            // Schon gesendet oder nicht bezahlt: gar nicht erst nachfragen (die Klasse lehnt es ohnehin ab).
+            if (!Db::wert("SELECT id FROM wm_bestellungen WHERE id = ? AND status = 'bezahlt' AND anbieter_status IS NULL", [$bestellungId])) {
+                return ['ok' => false, 'grund' => 'Diese Bestellung wurde schon gesendet (oder ist nicht bezahlt).'];
+            }
+            if (method_exists($klasse, 'preisJetzt')) {
+                require_once __DIR__ . '/Fmt.php';
+                $ek = (int) Db::wert('SELECT COALESCE(SUM(einkauf_cent * menge), 0) FROM wm_positionen WHERE bestellung_id = ?', [$bestellungId], 0);
+                $jetzt = $klasse::preisJetzt($bestellungId);
+                if ($jetzt === null) { return ['ok' => false, 'grund' => 'Aktueller Preis bei ' . $n . ' nicht abrufbar — nichts gesendet. Bitte prüfen und von Hand beauftragen.']; }
+                if ($jetzt > $ek) {
+                    return ['ok' => false, 'grund' => $n . ' ist teurer geworden: jetzt ' . Fmt::geld($jetzt, 'EUR') . ', beim Bestellen ' . Fmt::geld($ek, 'EUR') . ' — nichts gesendet, damit kein Verlust entsteht.'];
+                }
+            }
             return $klasse === 'Gelato' ? Gelato::entwurfSenden($bestellungId, true) : $klasse::auftragSenden($bestellungId);
         }
         return ['ok' => false, 'grund' => 'keine Anbindung'];

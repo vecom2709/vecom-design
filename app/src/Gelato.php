@@ -296,6 +296,25 @@ final class Gelato
         Events::melden('wm_gelato_fehler', 'Gelato: Entwurf nicht angelegt', 'schlecht', mb_substr($text, 0, 480), '/werbemittel/bestellungen');
     }
 
+    /** Was die Bestellung bei Gelato JETZT kostet (brutto mit MwSt des Lieferlands, wie die Angebote) — null, wenn nicht abrufbar. */
+    public static function preisJetzt(int $bestellungId): ?int
+    {
+        require_once __DIR__ . '/Werbemittel.php';
+        $b = Db::one('SELECT adresse FROM wm_bestellungen WHERE id = ?', [$bestellungId]);
+        $ad = (array) json_decode((string) ($b['adresse'] ?? ''), true);
+        $land = strtoupper((string) ($ad['land'] ?? ''));
+        if (!isset(Werbemittel::MWST[$land])) { return null; }
+        $summe = 0;
+        foreach (Db::all('SELECT variante_id, menge FROM wm_positionen WHERE bestellung_id = ?', [$bestellungId]) as $x) {
+            $a = self::artikel((int) $x['variante_id']);
+            if (!$a) { return null; }
+            try { $q = self::angebotHolen((string) $a['artikel'], (int) $a['menge'] * (int) $x['menge'], $land); } catch (Throwable $e) { return null; }
+            if (!$q) { return null; }
+            $summe += (int) round($q['netto'] * (100 + Werbemittel::MWST[$land]) / 100);
+        }
+        return $summe > 0 ? $summe : null;
+    }
+
     /** Probe-Entwurf mit der Musterkarte (siehe Druckerei::probeSenden) — kleinste zugeordnete Auflage, immer „draft“. */
     public static function probeSenden(): array
     {
