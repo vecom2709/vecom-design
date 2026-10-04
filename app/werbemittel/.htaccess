@@ -1,2 +1,14 @@
-# Hintergründe ohne Namen und QR — nur für partner.php und die Druckdateien.
-Require all denied
+# NUR WEITERLEITUNG — hier liegen keine Dateien.
+#
+# /app/werbemittel ist eine Seite der Verwaltung (Marketing Center). Bis zum
+# 04.10.2026 lagen hier die Flyer-Vorlagen mit „Require all denied“. Weil
+# app/.htaccess echte Ordner nicht an index.php gibt (!-d), lieferte Apache
+# den Ordner aus — und die Sperre ergab 403 Forbidden auf jeder Seite des
+# Marketing Centers. Die Vorlagen liegen jetzt in app/druckvorlagen/.
+#
+# Der Deploy löscht nie: Der alte Ordner bleibt auf dem Webspace stehen. Diese
+# Datei überschreibt seine Sperre und schickt jede Anfrage an den Verteiler —
+# so funktioniert die Seite auch mit den Altresten, und keine alte Datei ist
+# von außen lesbar. (Aufräumen im KAS ist möglich, aber nicht nötig.)
+RewriteEngine On
+RewriteRule ^ /app/index.php [L]

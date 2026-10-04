@@ -1,0 +1,5 @@
+# Hintergründe ohne Namen und QR — nur für partner.php und die Druckdateien.
+# Der Ordner hieß bis 04.10.2026 „werbemittel“ und lag damit genau auf der
+# Adresse /app/werbemittel: Apache lieferte den Ordner statt der Seite aus,
+# und diese Sperre machte daraus „Forbidden“ für das ganze Marketing Center.
+Require all denied

@@ -210,6 +210,8 @@ jobs:
             rm -f $DIR/video/clip3-ablauf.mp4;
             rm -f $DIR/tiktok.html;
             rm -rf $DIR/richtungen;
+            rm -rf $DIR/app/werbemittel/flyer_a5;
+            rm -rf $DIR/app/werbemittel/flyer_a6;
             bye"
 
       - name: Cockpit-Schutz nachsehen
@@ -222,3 +224,11 @@ jobs:
           else
             echo "::warning::Cockpit antwortet $C statt 401 — der Passwortschutz ist NICHT aktiv. Im KAS unter Verzeichnisschutz fuer /cockpit/ einschalten."
           fi
+          # Ein Ordner unter app/ mit dem Namen einer Seite verdeckt die Seite
+          # (04.10.2026: app/werbemittel/ → 403 auf dem ganzen Marketing Center).
+          # Nicht angemeldet muss jede Seite zur Anmeldung weiterleiten (302).
+          for S in werbemittel werbemittel/bestellungen akquise marketing; do
+            C=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 25 "https://vecom-design.it/app/$S" || echo 000)
+            # 301 ist in Ordnung: /app/werbemittel ist (wegen des Altordners) erst ein Schraegstrich-Umweg.
+            if [ "$C" != "302" ] && [ "$C" != "301" ]; then echo "::warning::/app/$S antwortet $C statt 302 — liegt ein gleichnamiger Ordner unter app/?"; fi
+          done

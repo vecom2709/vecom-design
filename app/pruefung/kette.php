@@ -22071,12 +22071,30 @@ foreach (array_diff(array_keys(WmDruck::FORMATE), array_keys(WmDruck::RUECKSEITE
         if (!WmDruck::gibt($w7F, $w7S)) { $w7Fehlt[] = "$w7F/$w7S"; continue; }
         $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0));
         foreach (['de', 'it', 'en'] as $w7L) { foreach (['vorn', 'hinten'] as $w7Se) {
-            if (!is_file($wurzel . "/werbemittel/$w7F/$w7S-$w7Se-$w7L.jpg")) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
+            if (!is_file($wurzel . "/druckvorlagen/$w7F/$w7S-$w7Se-$w7L.jpg")) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
         } }
     }
 }
+/* 04.10.2026: Der Ordner app/werbemittel/ (Flyer-Vorlagen, gesperrt) lag auf der
+   Adresse der Seite /app/werbemittel. app/.htaccess reicht echte Ordner nicht an
+   index.php weiter — Apache lieferte den Ordner, die Sperre machte „Forbidden“
+   aus dem ganzen Marketing Center. Kein Ordner unter app/ darf heißen wie eine
+   Seite, außer er leitet ausdrücklich an den Verteiler weiter. */
+$w7Routen = [];
+preg_match_all("~case '([a-z0-9_-]+)'\s*:~", (string) file_get_contents($wurzel . '/index.php'), $w7M);
+foreach ($w7M[1] as $w7R) { $w7Routen[$w7R] = true; }
+$w7Verdeckt = [];
+foreach (glob($wurzel . '/*', GLOB_ONLYDIR) ?: [] as $w7D) {
+    $w7N = basename($w7D);
+    if (!isset($w7Routen[$w7N])) { continue; }
+    $w7H = (string) @file_get_contents($w7D . '/.htaccess');
+    if (!preg_match('~RewriteRule\s+\^\s+/app/index\.php~', $w7H)) { $w7Verdeckt[] = $w7N; }
+}
+pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
+pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',
+    (glob($wurzel . '/werbemittel/*') ?: []) === [] && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'RewriteRule ^ /app/index.php'));
 pruefe('Flyer-Vorlagen: alle Formate × 4 Stile × Vorder-/Rückseite × 3 Sprachen da, QR-Fläche überall ≥ 2 cm, Ordner gesperrt',
-    $w7Fehlt === [] && $w7Qmin >= 200 && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'Require all denied'),
+    $w7Fehlt === [] && $w7Qmin >= 200 && str_contains((string) @file_get_contents($wurzel . '/druckvorlagen/.htaccess'), 'Require all denied'),
     json_encode(['fehlt' => $w7Fehlt, 'qr_min_zehntelmm' => $w7Qmin]));
 $w7Fp = WmDruck::pdf($w7P, 'flyer_a6', 'c', 'it', 'vecom');
 pruefe('Flyer-PDF: zwei Seiten mit Beschnitt (TrimBox 105 × 148 mm), QR-Code als Vektor, Link mit Kanal „flyer“',

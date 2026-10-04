@@ -1,4 +1,4 @@
-"""PNG aus gen.py → JPEG (q88) nach app/werbemittel/<format>/ und layout.json → layout.php."""
+"""PNG aus gen.py → JPEG (q88) nach app/druckvorlagen/<format>/ und layout.json → layout.php."""
 import json, os, sys
 from PIL import Image
 quelle, ziel = sys.argv[1], sys.argv[2]

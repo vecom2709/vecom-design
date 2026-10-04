@@ -50,7 +50,7 @@ final class WmDruck
     {
         if (!isset(self::FORMATE[$fmt])) { return []; }
         if (isset(self::RUECKSEITE[$fmt])) { return self::layout(self::RUECKSEITE[$fmt][0]); }
-        return self::$layouts[$fmt] ??= (array) require dirname(__DIR__) . '/werbemittel/' . $fmt . '/layout.php';
+        return self::$layouts[$fmt] ??= (array) require dirname(__DIR__) . '/druckvorlagen/' . $fmt . '/layout.php';
     }
 
     public static function gibt(string $fmt, string $stil): bool
@@ -65,7 +65,7 @@ final class WmDruck
     private static function datei(string $fmt, string $stil, string $seite, string $sprache): string
     {
         $sprache = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
-        return dirname(__DIR__) . '/werbemittel/' . $fmt . '/' . $stil . '-' . ($seite === 'hinten' ? 'hinten' : 'vorn') . '-' . $sprache . '.jpg';
+        return dirname(__DIR__) . '/druckvorlagen/' . $fmt . '/' . $stil . '-' . ($seite === 'hinten' ? 'hinten' : 'vorn') . '-' . $sprache . '.jpg';
     }
 
     /** Eine Seite als GD-Bild in voller Größe (mit Beschnitt). $mitQr: false, wenn der Code im PDF als Vektor kommt. */
