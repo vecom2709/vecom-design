@@ -80,6 +80,8 @@ if ($ungueltig) { http_response_code(404); }
   button { font: inherit; font-weight: 600; background: #2f6bff; color: #fff; border: 0; border-radius: 10px; padding: 14px 20px;
            width: 100%; cursor: pointer; min-height: 48px; }
   button:focus-visible { outline: 3px solid #9fbcff; outline-offset: 2px; }
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

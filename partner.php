@@ -663,6 +663,8 @@ if ($p && isset($_GET['karte'])) {
   .druck{display:block;margin:0 auto 10mm;padding:12px 22px;font-size:15px;border-radius:10px;border:0;cursor:pointer;
          background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);color:#16120b;font-weight:700}
   @media print{body{background:#0a0908}.druck{display:none}.karte{margin:0;border-radius:0}}
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style></head><body>
 <div class="karte">
   <img class="logo" src="/assets/img/logo-mark.webp?v=gold2609" alt="">
@@ -1057,6 +1059,8 @@ if ($p && isset($_GET['karte'])) {
     body.mit-reitern{padding-bottom:calc(78px + env(safe-area-inset-bottom))}
   }
   @media (prefers-reduced-motion:reduce){.app-reiter a{transition:none}}
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

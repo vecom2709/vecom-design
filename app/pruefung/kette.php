@@ -22090,6 +22090,18 @@ foreach (glob($wurzel . '/*', GLOB_ONLYDIR) ?: [] as $w7D) {
     $w7H = (string) @file_get_contents($w7D . '/.htaccess');
     if (!preg_match('~RewriteRule\s+\^\s+/app/index\.php~', $w7H)) { $w7Verdeckt[] = $w7N; }
 }
+/* 04.10.2026, Uwe: „Wenn etwas ausgewählt wird, sieht man die Schrift nicht.“
+   Gemessen: gewählte Listeneinträge malt Chrome ohne Angabe hellgrau, unsere
+   Schrift ist hell. Jede dunkle Seite meldet sich deshalb als dunkel und legt
+   Markierung und gewählte Einträge fest (Gold, dunkle Schrift). */
+$w7Ohne = [];
+foreach (['app/assets/admin.css', 'assets/css/app.css', 'assets/css/kunde.css', 'partner.php', 'analyse.php', 'analisi.php', 'termin.php',
+          'tipp.php', 'stimme.php', 'website-check.php', 'einwilligung.php', 'widerspruch.php', 'telegram-menue.php'] as $w7Css) {
+    $w7T = (string) @file_get_contents($oben . '/' . $w7Css);
+    if (!str_contains($w7T, 'color-scheme:dark') || !preg_match('~::selection\s*\{[^}]*color:\s*#0a0908~', $w7T)
+        || !preg_match('~option:checked\{[^}]*color:#0a0908~', $w7T)) { $w7Ohne[] = $w7Css; }
+}
+pruefe('Ausgewähltes bleibt lesbar: jede dunkle Seite setzt Markierung und gewählte Listeneinträge (Gold, dunkle Schrift)', $w7Ohne === [], implode(', ', $w7Ohne));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
 pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',
     (glob($wurzel . '/werbemittel/*') ?: []) === [] && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'RewriteRule ^ /app/index.php'));

@@ -63,6 +63,8 @@ $hier = '/stimme.php?' . http_build_query(['c' => $p['code'], 's' => (string) $_
   button{min-height:50px;padding:12px 22px;border:0;border-radius:11px;font:700 16px/1 'Inter',sans-serif;color:#16120b;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);cursor:pointer;justify-self:start}
   .gut{border:1px solid rgba(52,211,155,.5);border-radius:12px;padding:14px;color:#34d39b}
   .schlecht{border:1px solid rgba(239,107,91,.5);border-radius:12px;padding:12px 14px;color:#ef6b5b}
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

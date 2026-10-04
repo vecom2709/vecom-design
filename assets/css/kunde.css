@@ -332,3 +332,12 @@ tr.fragezeile .frage{margin:0 0 8px}
    beim Tippen nichts, und Uwe dachte, die App ließe sich nicht installieren. */
 [hidden] { display: none !important; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+/* Ausgewählt muss lesbar bleiben (04.10.2026): dunkle Seite dem Browser
+   melden, Markierung und gewählte Listeneinträge Gold mit dunkler Schrift.
+   Ohne das malt Chrome gewählte Einträge hellgrau — mit heller Schrift
+   darauf unlesbar. Begründung ausführlich in app/assets/admin.css. */
+:root{color-scheme:dark}
+::selection{background:#f1d38b;color:#0a0908}
+select option,select optgroup{background-color:#141311;color:#f7f3ea}
+select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}

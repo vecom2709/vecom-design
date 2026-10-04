@@ -45,7 +45,9 @@ if ($daten === null) {
     ?><!doctype html><html lang="it"><head><meta charset="utf-8">
 <?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow"><title>Vecom Design</title>
-    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center}</style></head>
+    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center}  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+</style></head>
     <body><p>Questa pagina non è (più) disponibile. · Diese Seite ist nicht (mehr) verfügbar.<br><a style="color:#f1d38b" href="https://vecom-design.it">vecom-design.it</a></p></body></html><?php
     exit;
 }
@@ -124,6 +126,8 @@ $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' 
   .einw button:hover { background: rgba(241,211,139,.08); }
   .einw .wabe { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   @media (max-width: 760px) { .raster { grid-template-columns: 1fr; } .foto { max-width: 300px; margin: 0 auto; } }
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

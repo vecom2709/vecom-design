@@ -202,6 +202,8 @@ $knopf = static function (string $text, string $href, bool $haupt = false, bool 
   .sprachen{display:flex;justify-content:flex-end;gap:6px;margin:0 0 8px}
   .sprachen a{padding:5px 10px;border-radius:999px;border:1px solid var(--linie);color:var(--leise);text-decoration:none;font-size:13px;font-weight:600}
   .sprachen a.an{color:#16120b;background:var(--gold);border-color:transparent}
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

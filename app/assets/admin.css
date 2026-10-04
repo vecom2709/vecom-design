@@ -726,3 +726,17 @@ dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}
 .saeulen__achse{display:flex;justify-content:space-between;color:var(--leise);font-size:11.5px;margin:-16px 0 8px}
 .saeulen div:hover{filter:brightness(1.2)}
 @media(max-width:700px){.bl__zeile{grid-template-columns:minmax(0,8rem) 1fr 2.5rem}}
+
+/* AUSGEWAEHLT MUSS LESBAR BLEIBEN (04.10.2026, Uwe: „wenn etwas ausgewählt
+   wird, sieht man die Schrift nicht“). Gemessen: Ohne Angabe malt Chrome
+   gewählte Einträge einer Auswahlliste hellgrau — mit unserer hellen Schrift
+   darauf unlesbar; unter Windows ist auch die aufgeklappte Liste hell.
+   color-scheme sagt dem Browser, dass die Seite dunkel ist (Listen,
+   Kalender, Bildlaufleisten); die Regeln darunter legen Gold mit dunkler
+   Schrift fest. Der Verlauf ist kein Schmuck: Nur ein background-image
+   schlägt Chromes eigene Auswahlfarbe auf <option>. */
+:root{color-scheme:dark}
+::selection{background:#f1d38b;color:#0a0908}
+select option,select optgroup{background-color:#141311;color:#f7f3ea}
+select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+select option:disabled{color:#9e978b}

@@ -155,6 +155,8 @@ $sprachLinks = array_map(static fn($l) => ['l' => $l, 'href' => 'website-check.p
   .weiter p{color:var(--d);margin:0 0 14px}
   .leise{display:inline-flex;align-items:center;min-height:44px;margin-top:16px;color:var(--d);text-decoration:underline;text-underline-offset:3px}
   @media (max-width:520px){ .zwei{grid-template-columns:1fr} form{padding:18px 14px} }
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

@@ -145,6 +145,8 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
   .wabe { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   a { color: #e6c47e; } .klein { font-size: 13px; color: #8f887c; margin-top: 16px; }
   button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid #f1d38b; outline-offset: 2px; }
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

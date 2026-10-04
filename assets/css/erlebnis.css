@@ -709,7 +709,7 @@
 .erlebnis .ka-eingang ul{margin:0; padding-left:1.1rem; font-size:.92rem; line-height:1.5}
 .erlebnis .ka-eingang__knoepfe{display:flex; gap:.5rem; margin-top:.3rem}
 .erlebnis .ka-eingang__knoepfe span{flex:1; text-align:center; padding:.5rem; border-radius:10px; background:#edeae3; font-size:.84rem; font-weight:600}
-.erlebnis .ka-eingang__knoepfe span:first-child{background:#c8963e; color:#fff}
+.erlebnis .ka-eingang__knoepfe span:first-child{background:#c8963e; color:#16120b}
 .erlebnis .kunde-knopf{align-self:flex-start; display:inline-flex; align-items:center; gap:.5rem}
 .erlebnis .kunde-knopf::before{content:""; width:8px; height:8px; border-radius:50%; background:var(--c-warm); box-shadow:0 0 0 3px rgba(255,217,168,.18)}
 .erlebnis .pd-ladung{width:100%; max-width:26rem; accent-color:var(--c-cyan); min-height:36px}

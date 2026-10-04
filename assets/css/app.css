@@ -171,7 +171,7 @@ h2, h3, h4 { text-shadow: var(--ink-drop-s); }
    wenn doch einmal ein Glanzlicht dahinter durchwandert. */
 .hero__lead { text-shadow: 0 2px 8px rgba(0, 0, 0, .5), 0 0 3px rgba(0, 0, 0, .85); }
 .eyebrow, .brand__name { text-shadow: 0 1px 6px rgba(0, 0, 0, .6); }
-::selection { background: var(--c-blue); color: #fff; }
+::selection { background: var(--c-cyan); color: #0a0908; }   /* Weiss auf Gold war kaum lesbar (04.10.2026) */
 
 /* Goldfassung: eine Zeile am <body>, der Rest des Systems bleibt unberührt. */
 body[data-frame="gold"] {
@@ -3352,8 +3352,8 @@ html.hat-sprachhinweis{scroll-padding-top:calc(clamp(4.5rem, 8vw, 6rem) + var(--
 .sprachhinweis__text{flex:1 1 auto; min-width:12ch}
 .sprachhinweis__ja{
   flex:0 0 auto; padding:7px 16px; border-radius:999px; text-decoration:none;
-  background:linear-gradient(92deg,var(--blau,#8a6322),var(--cyan,#f1d38b));
-  color:#fff; font-weight:600; font-size:13.5px; white-space:nowrap;
+  background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);   /* vorher Weiss auf Hellgold: rechts unlesbar (04.10.2026) */
+  color:#16120b; font-weight:600; font-size:13.5px; white-space:nowrap;
 }
 .sprachhinweis__ja:hover{filter:brightness(1.08)}
 .sprachhinweis__nein{
@@ -4576,3 +4576,12 @@ html.intro-weg .intro { opacity: 0; pointer-events: none; }
 @media (max-width: 640px) {
   .siegel--ecke { right: 6px; top: calc(var(--siegel) * -0.5); }
 }
+
+/* Ausgewählt muss lesbar bleiben (04.10.2026): dunkle Seite dem Browser
+   melden, Markierung und gewählte Listeneinträge Gold mit dunkler Schrift.
+   Ohne das malt Chrome gewählte Einträge hellgrau — mit heller Schrift
+   darauf unlesbar. Begründung ausführlich in app/assets/admin.css. */
+:root{color-scheme:dark}
+::selection{background:#f1d38b;color:#0a0908}
+select option,select optgroup{background-color:#141311;color:#f7f3ea}
+select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}

@@ -137,6 +137,8 @@ $wortWa = AkquiseEinwilligung::wortlaut($sprache, ['it' => 'indicato sopra', 'de
   .hinweis.schlecht{border:1px solid var(--rot);color:#ffb3aa}
   .wa{display:inline-block;margin-top:18px;color:var(--a)}
   .fuss{margin-top:34px;font-size:12.5px;color:var(--l)}
+  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>
