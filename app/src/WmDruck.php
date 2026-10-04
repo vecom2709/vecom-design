@@ -27,7 +27,19 @@ final class WmDruck
         'flyer_a5' => 'Flyer A5 (Vorlage)',
         'flyer_branche' => 'Branchen-Flyer A5 (Vorlage)',
         'aufkleber_50' => 'Aufkleber rund Ø 5 cm (Vorlage)',
+        'rollup_85' => 'Roll-up 85 × 200 cm (Vorlage)',
     ];
+
+    /**
+     * Großformat (Roll-up, 04.10.2026): Die Vorlage hat 3425 × 8937 Pixel — in GD wären das über
+     * 120 MB Speicher je Bild. Darum wird sie nie geladen: Das JPEG geht unverändert ins PDF, der Code
+     * als Vektor darüber, der Link des Partners als kleines eigenes Bild auf seiner Platte. Die
+     * Vorschau nimmt eine kleine Fassung derselben Vorlage (-klein.jpg).
+     */
+    public static function gross(string $fmt): bool
+    {
+        return !empty(self::layout($fmt)['gross']);
+    }
 
     /** Nur eine Seite (Aufkleber): der Code steht vorn, die Druckdatei hat eine Seite. */
     public static function einseitig(string $fmt): bool
@@ -160,6 +172,7 @@ final class WmDruck
     public static function pdf(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email', ?float $beschnitt = null): string
     {
         if (!self::gibt($fmt, $stil)) { return ''; }
+        if (self::gross($fmt)) { return self::grossPdf($p, $fmt, $stil, $sprache); }
         $lay = self::layout($fmt);
         $weg = $beschnitt === null ? 0.0 : max(0.0, (float) $lay['beschnitt'] - $beschnitt);   // mm je Seite
         $ein = self::einseitig($fmt);
@@ -194,10 +207,82 @@ final class WmDruck
         return $pdf->fertig();
     }
 
+    /** Link des Partners als kleines Bild in der Größe seiner Platte (Pixel der Vorlage × $k). */
+    private static function linkBild(array $p, array $L, float $k): ?\GdImage
+    {
+        $schrift = PartnerKarten::schrift(700);
+        [$x, $y, $b, $h] = $L['link']['platte'];
+        $w = max(1, (int) round($b * $k)); $hh = max(1, (int) round($h * $k));
+        $im = imagecreatetruecolor($w, $hh);
+        [$r, $g, $bl] = sscanf((string) $L['link']['grund'], '#%02x%02x%02x');
+        imagefill($im, 0, 0, imagecolorallocate($im, $r, $g, $bl));
+        if (!is_file($schrift)) { return $im; }
+        $text = PartnerFlyer::kurz($p);
+        $pt = $L['link']['size'] * $k * 0.75;
+        for ($i = 0; $i < 16; $i++) {
+            $bb = imagettfbbox($pt, 0, $schrift, $text);
+            if (abs($bb[2] - $bb[0]) <= $L['link']['max'] * $k) { break; }
+            $pt *= 0.93;
+        }
+        $bb = imagettfbbox($pt, 0, $schrift, $text);
+        [$r, $g, $bl] = sscanf((string) $L['link']['farbe'], '#%02x%02x%02x');
+        imagettftext($im, $pt, 0, (int) round(($w - abs($bb[2] - $bb[0])) / 2), (int) round($hh / 2 + abs($bb[7] - $bb[1]) / 2), imagecolorallocate($im, $r, $g, $bl), $schrift, $text);
+        return $im;
+    }
+
+    /** Druck-PDF Großformat: Vorlage unverändert, Code als Vektor, Link-Platte als kleines Bild. */
+    private static function grossPdf(array $p, string $fmt, string $stil, string $sprache): string
+    {
+        $lay = self::layout($fmt);
+        $L = $lay['stile'][$stil];
+        $jpeg = (string) @file_get_contents(self::datei($fmt, $stil, 'vorn', $sprache));
+        $mass = $jpeg !== '' ? @getimagesizefromstring($jpeg) : false;
+        if (!$mass) { return ''; }
+        $bw = $lay['b'] + 2 * $lay['beschnitt']; $bh = $lay['h'] + 2 * $lay['beschnitt'];
+        $mm = 72 / 25.4;
+        $k = $mass[0] / ($bw * 10);                                  // Pixel je 1/10 mm
+        $link = self::linkBild($p, $L, $k);
+        if (!$link) { return ''; }
+        $pdf = new KartenPdf();
+        if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }
+        $iv = $pdf->bild($jpeg, $mass[0], $mass[1]);
+        $il = $pdf->bild(self::jpeg($link, 95), imagesx($link), imagesy($link));
+        [$x, $y, $b, $h] = $L['link']['platte'];
+        [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
+        $inhalt = sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv)
+            . sprintf("q %.3F 0 0 %.3F %.3F %.3F cm /%s Do Q\n", $b / 10 * $mm, $h / 10 * $mm, $x / 10 * $mm, ($bh - ($y + $h) / 10) * $mm, $il)
+            . PartnerKarten::qrVektor($L, $n, $raster, 0.0, (float) $bh);
+        $pdf->seite($bw * $mm, $bh * $mm, $inhalt, $lay['beschnitt'] * $mm);
+        return $pdf->fertig();
+    }
+
+    /** Vorschau Großformat: kleine Vorlage, Code und Link darauf, nur der sichtbare Teil (ohne Kassette). */
+    private static function grossVorschau(array $p, string $fmt, string $stil, string $sprache, int $hoehe): string
+    {
+        $lay = self::layout($fmt);
+        $L = $lay['stile'][$stil];
+        $klein = preg_replace('~\.jpg$~', '-klein.jpg', self::datei($fmt, $stil, 'vorn', $sprache));
+        $im = @imagecreatefromjpeg((string) $klein);
+        if (!$im) { return ''; }
+        $bw = $lay['b'] + 2 * $lay['beschnitt'];
+        $k = imagesx($im) / ($bw * 10);
+        self::qrMalen($im, ['qr' => $L['qr'], 'k' => $k], $p, $fmt);
+        $link = self::linkBild($p, $L, $k);
+        [$x, $y] = $L['link']['platte'];
+        if ($link) { imagecopy($im, $link, (int) round($x * $k), (int) round($y * $k), 0, 0, imagesx($link), imagesy($link)); }
+        // sichtbar: unter dem Beschnitt oben bis 200 cm darunter
+        $r = (int) round($lay['beschnitt'] * 10 * $k);
+        $sh = (int) round(($lay['sichtbar'] ?? 2000) * 10 * $k);
+        $zu = imagecrop($im, ['x' => $r, 'y' => $r, 'width' => imagesx($im) - 2 * $r, 'height' => min($sh, imagesy($im) - $r)]) ?: $im;
+        $aus = imagescale($zu, (int) round(imagesx($zu) * $hoehe / imagesy($zu)), $hoehe, IMG_BICUBIC) ?: $zu;
+        return self::jpeg($aus, 86);
+    }
+
     /** Vorder- und Rückseite beschnitten nebeneinander, klein (Partnerbereich). */
     public static function vorschau(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email', int $hoehe = 360): string
     {
         if (!self::gibt($fmt, $stil)) { return ''; }
+        if (self::gross($fmt)) { return self::grossVorschau($p, $fmt, $stil, $sprache, max($hoehe, 420)); }
         $lay = self::layout($fmt);
         $teile = [];
         foreach (self::einseitig($fmt) ? ['vorn'] : ['vorn', 'hinten'] as $s) {

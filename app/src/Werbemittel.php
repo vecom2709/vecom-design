@@ -31,7 +31,7 @@ final class Werbemittel
 {
     public const SPRACHEN = ['it', 'de', 'en'];
     /** Vorlagen, die heute eine Druckdatei erzeugen können. */
-    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)'];
+    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)', 'rollup_85' => 'Roll-up 85 × 200 cm (WmDruck)'];
 
     /** Hat die Vorlage eine Gestaltung mit Stil/Sprache/Kontakt, Vorschau und Freigabe? */
     public static function gestaltbar(string $vorlage): bool
@@ -476,7 +476,7 @@ final class Werbemittel
         if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
         $pdf = match ((string) $pr['vorlage']) {
             'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
-            'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
+            'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
             default => '',
         };
         if ($pdf === '') { throw new RuntimeException('Druckdatei ließ sich nicht erzeugen.'); }

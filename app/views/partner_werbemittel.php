@@ -146,7 +146,7 @@ $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.202
           $wmBild = $wmNurLesen
             ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, (string) $wmP['vorlage'], $wmJetzt['stil'], $sprache, 'email'))
             : $selbst(['wmv' => $wmP['vorlage'], 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt']]); ?>
-          <img src="<?= $h($wmBild) ?>" <?= $wmP['vorlage'] === 'visitenkarte' ? 'width="720" height="231"' : (str_starts_with((string) $wmP['vorlage'], 'aufkleber') ? 'width="360" height="360"' : 'width="528" height="360"') ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
+          <img src="<?= $h($wmBild) ?>" <?= $wmP['vorlage'] === 'visitenkarte' ? 'width="720" height="231"' : (str_starts_with((string) $wmP['vorlage'], 'aufkleber') ? 'width="360" height="360"' : (str_starts_with((string) $wmP['vorlage'], 'rollup') ? 'width="176" height="420"' : 'width="528" height="360"')) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
                <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmP['vorlage'], 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_'])) ?>"<?php endif; ?>
                alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <?php endif; ?>

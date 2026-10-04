@@ -20,6 +20,10 @@ FORMATE = {
     # Aufkleber rund Ø 5 cm, Flyeralarm-Datenblatt aufkl_mini_rund_5,0: Datenformat 5,4 × 5,4 cm,
     # Sicherheitsabstand 4 mm — also 2 mm Beschnitt, alles Wichtige im Kreis Ø 42 mm (04.10.2026).
     'aufkleber_50': {'b': 50, 'h': 50, 'beschnitt': 2, 'dpi': 300, 'einseitig': True, 'stile': 'AD'},
+    # Roll-up 85 × 200 cm, Flyeralarm-Datenblätter der 85×200-Roll-ups (rollupba/rollupbl_85x200_sydr):
+    # Datenformat 87 × 227 cm, unten 25 cm in der Kassette (unsichtbar). 100 dpi reichen für Lesen
+    # aus 1–3 m; PHP lädt das Bild nie in GD (zu groß), sondern bettet es so ins PDF (04.10.2026).
+    'rollup_85': {'b': 850, 'h': 2250, 'beschnitt': 10, 'dpi': 100, 'einseitig': True, 'stile': 'AD', 'gross': True},
 }
 
 T = {
@@ -155,13 +159,56 @@ def aufkleber(stil, lang, W, H):
     g += text(cx, cy + 178, T['jetzt'][lang], 23, 700, hellt, extra='letter-spacing="2"')   # Ecken der Zeile im Sicherkreis (4 mm)
     return g, {'qr': modul, 'einseitig': True}
 
+def rollup(stil, lang, W, H):
+    """Roll-up: oben Logo, Botschaft, drei Leistungen; Mitte der große Code des Partners; darunter eine
+    Platte für seinen Link (setzt PHP). Die unteren 25 cm verschwinden in der Kassette — dort nur Grund."""
+    hell = stil == 'D'
+    hellt, gold = ('#1f1a13', '#9a6f25') if hell else ('#f6f1e6', '#e6b85c')
+    g = (f'<rect width="{W}" height="{H}" fill="#f4efe6"/><rect width="{W}" height="{H}" filter="url(#papier)"/>' if hell
+         else K.schwarz_grund())
+    B = K.B
+    sicht = B + 20000                       # Unterkante des Sichtbaren (Rest steckt in der Kassette)
+    # Goldbänder oben und am Sichtende
+    g += f'<rect x="0" y="0" width="{W}" height="{B + 260}" fill="url(#goldH)" opacity=".95"/>'
+    g += f'<rect x="0" y="{sicht - 420}" width="{W}" height="420" fill="url(#goldH)" opacity=".95"/>'
+    l, unten = K.logo_gross(W/2, B + 1000, 3400, hell=hell)
+    g += l
+    y = unten + 1500
+    g += text(W/2, y, T['titel1'][lang], 560, 700, hellt)
+    y += 680
+    g += text(W/2, y, T['titel2'][lang], 560, 700, gold)
+    y += 520
+    g += text(W/2, y, T['unter'][lang], 240, 500, hellt, extra='letter-spacing="8" opacity=".9"')
+    y += 900
+    for k in ('p1', 'p2', 'p3'):
+        g += f'<rect x="{B + 900}" y="{y - 190}" width="130" height="130" transform="rotate(45 {B + 965} {y - 125})" fill="url(#gold)"/>'
+        g += text(B + 1250, y, T[k][lang], 250, 500, hellt, anker='start')
+        y += 520
+    qs = 3700
+    qx, qy = W/2 - qs/2, y + 400
+    box, modul = K.qr_box(qx, qy, qs, 'B' if not hell else 'D')
+    g += box
+    y = qy + qs + 750
+    g += text(W/2, y, T['jetzt'][lang], 320, 700, gold, extra='letter-spacing="20"')
+    # Platte für den Link des Partners (PHP schreibt ihn hinein, mittig, Grundfarbe = Platte)
+    py = y + 350; ph = 1050; px = B + 700
+    platte = '#ffffff' if hell else '#0b0a08'
+    g += f'<rect x="{px}" y="{py}" width="{W - 2*px}" height="{ph}" rx="140" fill="{platte}" stroke="url(#gold)" stroke-width="40"/>'
+    lay = {'qr': modul, 'einseitig': True, 'gross': True,
+           'link': {'x': round(W/2), 'y': round(py + ph*0.66), 'size': 430, 'max': round(W - 2*px - 600), 'farbe': hellt,
+                    'grund': platte, 'platte': [round(px + 60), round(py + 60), round(W - 2*px - 120), round(ph - 120)]}}
+    g += text(W/2, sicht - 900, 'vecom-design.it', 360, 700, gold, extra='letter-spacing="6"')
+    return g, lay
+
 def seite(fmt, stil, art, lang):
     f = FORMATE[fmt]
     K.B = f['beschnitt'] * 10
     W = (f['b'] + 2*f['beschnitt']) * 10
     H = (f['h'] + 2*f['beschnitt']) * 10
     K.W, K.H = W, H
-    if f.get('einseitig'):
+    if f.get('gross'):
+        inhalt, lay = rollup(stil, lang, W, H)
+    elif f.get('einseitig'):
         inhalt, lay = aufkleber(stil, lang, W, H)
     else:
         inhalt, lay = (flyer_vorn if art == 'vorn' else flyer_hinten)(stil, lang, W, H)
@@ -189,5 +236,5 @@ if __name__ == '__main__':
                         if lang == 'de' and (art == 'hinten' or FORMATE[fmt].get('einseitig')):
                             layout[stil.lower()] = lay
                         print(fmt, stil, art, lang, flush=True)
-            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
+            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'gross': bool(FORMATE[fmt].get('gross')), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
         b.close()

@@ -6,10 +6,13 @@ for fmt in sorted(os.listdir(quelle)):
     q = os.path.join(quelle, fmt)
     if not os.path.isfile(os.path.join(q, 'layout.json')): continue
     z = os.path.join(ziel, fmt); os.makedirs(z, exist_ok=True)
+    lay = json.load(open(os.path.join(q, 'layout.json')))
     for f in sorted(os.listdir(q)):
         if f.endswith('.png'):
-            Image.open(os.path.join(q, f)).convert('RGB').save(os.path.join(z, f[:-4] + '.jpg'), quality=88, optimize=True, progressive=False)
-    lay = json.load(open(os.path.join(q, 'layout.json')))
+            im = Image.open(os.path.join(q, f)).convert('RGB')
+            im.save(os.path.join(z, f[:-4] + '.jpg'), quality=88, optimize=True, progressive=False)
+            if lay.get('gross'):   # Großformat: kleine Fassung für die Vorschau (PHP lädt das große Bild nie)
+                im.resize((round(im.width * 1100 / im.height), 1100), Image.LANCZOS).save(os.path.join(z, f[:-4] + '-klein.jpg'), quality=85)
     def php(v, ein=''):
         if isinstance(v, dict):
             return '[\n' + ''.join(f"{ein}    '{k}' => {php(x, ein + '    ')},\n" for k, x in v.items()) + ein + ']'

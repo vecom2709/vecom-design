@@ -22172,6 +22172,18 @@ pruefe('Aufkleber Ø 5 cm: eine Seite 54 × 54 mm (2 mm Beschnitt wie Flyeralarm
     && $w7Apr !== null && (int) $w7Apr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Apr['id']]) === 3
     && Werbemittel::gestaltbar('aufkleber_50') && !WmDruck::gibt('aufkleber_50', 'b'),
     (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Ap, $w7Tm) ? $w7Tm[0] : '') . ' ' . json_encode($w7Av));
+/* Roll-up 85 × 200 cm (04.10.2026): Großformat — Vorlage nie in GD, Code als Vektor, Link-Platte als Bild */
+$w7Rm = memory_get_peak_usage();
+$w7Rp = WmDruck::pdf($w7P, 'rollup_85', 'd', 'en', 'email');
+$w7Rv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'rollup_85', 'a', 'it', 'email'));
+$w7Rpr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'rollup_85'");
+pruefe('Roll-up 85 × 200 cm: Datenformat 87 × 227 cm (1 cm Beschnitt), eine Seite, Code ≥ 30 cm, wenig Speicher, Vorschau hochkant, Produkt aus mit Flyeralarm IT/DE',
+    str_starts_with($w7Rp, '%PDF') && preg_match('~/MediaBox \[0 0 2466\.1\d* 6434\.6\d*\]~', $w7Rp) === 1 && preg_match('~/TrimBox \[\s*28\.34\d*~', $w7Rp) === 1
+    && substr_count($w7Rp, '/MediaBox') === 1 && WmDruck::gross('rollup_85') && !WmDruck::gross('aufkleber_50')
+    && (float) WmDruck::layout('rollup_85')['stile']['a']['qr'][2] >= 3000 && memory_get_peak_usage() - $w7Rm < 64 * 1024 * 1024
+    && is_array($w7Rv) && $w7Rv[1] === 420 && $w7Rv[0] < $w7Rv[1]
+    && $w7Rpr !== null && (int) $w7Rpr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Rpr['id']]) === 1,
+    (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Rp, $w7Tm) ? $w7Tm[0] : '') . ' ' . json_encode($w7Rv));
 $w7Fv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_a5', 'd', 'de', 'email'));
 $w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
 pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
