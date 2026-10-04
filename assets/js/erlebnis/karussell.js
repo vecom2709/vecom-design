@@ -15,7 +15,8 @@
    Ziehen und Wischen geben Schwung, der ausläuft und auf der nächsten Karte
    einrastet. Von selbst rückt der Ring alle 5 s einen Platz weiter (20 Plätze
    = eine Umdrehung in 100 s) und hält an, sobald jemand eingreift, eine Demo
-   offen ist, der Bereich nicht sichtbar ist oder der Tab im Hintergrund liegt.
+   offen ist, die Maus über dem Ring steht, der Bereich nicht sichtbar ist oder
+   der Tab im Hintergrund liegt.
    prefers-reduced-motion: keine Eigenbewegung, Wechsel ohne Fahrt. */
 
 const demos = document.getElementById('demos');
@@ -53,6 +54,7 @@ if (demos && reihe && huelle && CSS.supports('transform-style', 'preserve-3d')) 
   let ruheBis = 0, naechsterSchritt = performance.now() + VERWEILEN;
   let sichtbar = false, laeuft = false, letzte = 0;
   let selbstlauf = true; // "Alle Branchen" aktiv
+  let schwebt = false;   // Maus über dem Ring: Selbstlauf wartet (wer liest, will keine Bewegung)
 
   demos.classList.add('ist-karussell');
   reihe.setAttribute('aria-roledescription', 'Karussell');
@@ -103,7 +105,7 @@ if (demos && reihe && huelle && CSS.supports('transform-style', 'preserve-3d')) 
     if (!laeuft) return;
     const dt = Math.min(0.05, (t - letzte) / 1000 || 0.016); letzte = t;
     if (!ziehen) {
-      if (selbstlauf && !RUHIG.matches && t > ruheBis && t > naechsterSchritt && !demoOffen()) {
+      if (selbstlauf && !RUHIG.matches && !schwebt && t > ruheBis && t > naechsterSchritt && !demoOffen()) {
         ziel = Math.round(ziel) + 1; federHart = 2.4; naechsterSchritt = t + VERWEILEN;
       }
       // kritisch gedämpfte Feder: kein Überschwingen, weiches Ankommen
@@ -161,6 +163,8 @@ if (demos && reihe && huelle && CSS.supports('transform-style', 'preserve-3d')) 
     tempo = v; ziel = Math.round(lage + v * 0.32); federHart = 5;
     eingriff(); starten();
   }
+  huelle.addEventListener('pointerenter', (e) => { if (e.pointerType === 'mouse') schwebt = true; });
+  huelle.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse') { schwebt = false; naechsterSchritt = performance.now() + VERWEILEN * 0.5; } });
   huelle.addEventListener('pointerup', loslassen);
   // Bilder nicht als Datei ziehen lassen -- sonst bricht der Browser das Ziehen ab (pointercancel)
   huelle.addEventListener('dragstart', (e) => e.preventDefault());

@@ -8,8 +8,10 @@
    das zeigt diese Bühne -- und führt direkt zum Termin mit Wunschfarbe.
 
    WIE
-   Je Farbe 16 Bilder aus Blender Cycles (echte Haarkurven, physikalischer
-   Haarshader), gerechnet auf Uwes Rechner. Gezeichnet wird auf ein Canvas
+   Je Schnitt und Farbe 25 Bilder aus Blender Cycles (echter Übungskopf mit
+   Brauen und Wimpern, bis 160.000 Haarkurven, physikalischer Haarshader; seit 04.10.2026 MetaHuman aus Unreal),
+   gerechnet auf Uwes Rechner. Seit 03.10.2026 zwei Schnitte (langer
+   Stufenschnitt, Bob), die Mitte der Drehung zeigt das Gesicht. Gezeichnet wird auf ein Canvas
    mit Überblendung zwischen Nachbarbildern, wie beim Tisch. Beim Farbwechsel
    blendet dieselbe Ansicht in der neuen Farbe über -- man sieht die Farbe
    wechseln, nicht das Bild. Kein WebGL nötig; läuft auf jedem Telefon.
@@ -19,10 +21,11 @@ const SPRACHE = ['it', 'de', 'en'].includes(L) ? L : 'it';
 const $ = (s, r = document) => r.querySelector(s);
 const BEWEGUNG_AUS = matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-const N = 16;
-const STAND = '1';   // Bildstand: wer neu rechnet, zählt hoch
+const N = 25;
+const STAND = '2';   // Bildstand: wer neu rechnet, zählt hoch
 const BASIS = new URL('../../img/erlebnis/haar/', import.meta.url).href;
-const adresse = (farbe, g, i) => `${BASIS}${farbe}/${g}/dreh-${String(i).padStart(2, '0')}.webp?s=${STAND}`;
+const adresse = (schnitt, farbe, g, i) => `${BASIS}${schnitt}/${farbe}/${g}/dreh-${String(i).padStart(2, '0')}.webp?s=${STAND}`;
+const SCHNITTE = ['stufen', 'bob'];
 
 const FARBEN = [
   ['kastanie', '#4a2a1a'], ['schwarz', '#161210'], ['kupfer', '#8f3f1c'],
@@ -30,6 +33,7 @@ const FARBEN = [
 ];
 const TEXTE = {
   de: {
+    schnitte: { stufen: 'Langer Stufenschnitt', bob: 'Bob' },
     namen: { schwarz: 'Naturschwarz', kastanie: 'Kastanie', kupfer: 'Kupfer', balayage: 'Karamell-Balayage', aschblond: 'Aschblond', rosegold: 'Rosé-Gold' },
     info: {
       schwarz: 'Tiefes Schwarz mit Glanz — wirkt edel und macht jede Frisur klar.',
@@ -39,10 +43,11 @@ const TEXTE = {
       aschblond: 'Kühles Blond ohne Gelbstich — wird mit einem Glossing gepflegt.',
       rosegold: 'Blond mit rosé Schimmer — der Hingucker, am schönsten mit Farbpflege.',
     },
-    ziehen: 'Ziehen dreht den Kopf', kennung: 'Gerechnet · Blender Cycles · echte Haarsträhnen',
-    laedt: 'Lade die Ansichten …', kTitel: 'Termin mit Wunschfarbe', kLeistung: 'Färben, Pflege, Föhnen', kFarbe: (f) => `Wunschfarbe: ${f}`,
+    ziehen: 'Ziehen dreht den Kopf', kennung: 'Gerechnet · Unreal Engine 5 · Path Tracer',
+    laedt: 'Lade die Ansichten …', kTitel: 'Termin mit Wunschfarbe', kLeistung: 'Färben, Pflege, Föhnen', kFarbe: (f) => `Wunschfarbe: ${f}`, kSchnitt: (f) => `Schnitt: ${f}`,
   },
   it: {
+    schnitte: { stufen: 'Scalato lungo', bob: 'Caschetto' },
     namen: { schwarz: 'Nero naturale', kastanie: 'Castano', kupfer: 'Ramato', balayage: 'Balayage caramello', aschblond: 'Biondo cenere', rosegold: 'Oro rosa' },
     info: {
       schwarz: 'Nero profondo e lucido — elegante, rende netta ogni acconciatura.',
@@ -52,10 +57,11 @@ const TEXTE = {
       aschblond: 'Biondo freddo senza giallo — si mantiene con un gloss.',
       rosegold: 'Biondo con riflesso rosa — il colpo d’occhio, più bello con la cura del colore.',
     },
-    ziehen: 'Trascina per girare la testa', kennung: 'Calcolato · Blender Cycles · ciocche vere',
-    laedt: 'Carico le viste …', kTitel: 'Appuntamento con il colore desiderato', kLeistung: 'Colore, trattamento, piega', kFarbe: (f) => `Colore desiderato: ${f}`,
+    ziehen: 'Trascina per girare la testa', kennung: 'Calcolato · Unreal Engine 5 · path tracer',
+    laedt: 'Carico le viste …', kTitel: 'Appuntamento con il colore desiderato', kLeistung: 'Colore, trattamento, piega', kFarbe: (f) => `Colore desiderato: ${f}`, kSchnitt: (f) => `Taglio: ${f}`,
   },
   en: {
+    schnitte: { stufen: 'Long layers', bob: 'Bob' },
     namen: { schwarz: 'Natural black', kastanie: 'Chestnut', kupfer: 'Copper', balayage: 'Caramel balayage', aschblond: 'Ash blonde', rosegold: 'Rose gold' },
     info: {
       schwarz: 'Deep, glossy black — elegant, makes every cut look crisp.',
@@ -65,36 +71,46 @@ const TEXTE = {
       aschblond: 'Cool blonde without brassiness — kept fresh with a gloss.',
       rosegold: 'Blonde with a rosy shimmer — the eye-catcher, best with colour care.',
     },
-    ziehen: 'Drag to turn the head', kennung: 'Rendered · Blender Cycles · real hair strands',
-    laedt: 'Loading the views …', kTitel: 'Appointment with your chosen colour', kLeistung: 'Colour, treatment, blow-dry', kFarbe: (f) => `Chosen colour: ${f}`,
+    ziehen: 'Drag to turn the head', kennung: 'Rendered · Unreal Engine 5 · path tracer',
+    laedt: 'Loading the views …', kTitel: 'Appointment with your chosen colour', kLeistung: 'Colour, treatment, blow-dry', kFarbe: (f) => `Chosen colour: ${f}`, kSchnitt: (f) => `Cut: ${f}`,
   },
 }[SPRACHE];
 
 const sek = document.getElementById('haarfarben');
 if (sek) {
-  const buehne = $('.hf-buehne', sek), bild = $('.hf-bild', sek), wahl = $('.hf-farben', sek);
+  const buehne = $('.hf-buehne', sek), bild = $('.hf-bild', sek), wahl = $('.hf-farben', sek), schnittWahl = $('.hf-schnitte', sek);
   const info = $('.hf-info', sek), cta = $('.hf-cta', sek), kennung = $('.kennung__text', sek);
   const leinwand = document.createElement('canvas'); leinwand.className = 'hf-leinwand'; leinwand.setAttribute('aria-hidden', 'true');
   const bildHuelle = bild.closest('picture') || bild; buehne.insertBefore(leinwand, bildHuelle.nextSibling);
   const ctx = leinwand.getContext('2d');
-  const saetze = new Map();          // farbe -> { klein: [..], gross: [..] }
-  let farbe = 'kastanie', satz = null, alt = null, altAlpha = 0;
+  const saetze = new Map();          // 'schnitt/farbe' -> { klein: [..], gross: [..] }
+  let verfuegbar = null;             // aus farben.json: { stufen: [..], bob: [..] }
+  let schnitt = 'stufen', farbe = 'kastanie', satz = null, alt = null, altAlpha = 0;
   let pos = (N - 1) / 2, ziel = pos, ziehen = null, raf = 0, letzt = 0, gestartet = false;
 
-  async function laden(f, g) {
+  async function laden(sn, f, g) {
     const liste = await Promise.all(Array.from({ length: N }, async (_, i) => {
-      const b = new Image(); b.decoding = 'async'; b.src = adresse(f, g, i);
+      const b = new Image(); b.decoding = 'async'; b.src = adresse(sn, f, g, i);
       try { await b.decode(); return b; } catch { return null; }
     }));
     return liste.every(Boolean) ? liste : null;
   }
-  async function satzHolen(f) {
-    if (!saetze.has(f)) saetze.set(f, {});
-    const s = saetze.get(f);
-    if (!s.klein) s.klein = await laden(f, 'klein');
+  async function satzHolen(sn, f) {
+    const key = `${sn}/${f}`;
+    if (!saetze.has(key)) saetze.set(key, {});
+    const s = saetze.get(key);
+    if (!s.klein) s.klein = await laden(sn, f, 'klein');
     // Groß nachladen, aber nie gemischt übernehmen (wie beim Tisch)
-    if (!s.grossLaeuft) { s.grossLaeuft = true; laden(f, 'gross').then((g) => { if (g) { s.gross = g; if (f === farbe) { satz = g; anstossen(true); } } }); }
+    if (!s.grossLaeuft) { s.grossLaeuft = true; laden(sn, f, 'gross').then((g) => { if (g) { s.gross = g; if (f === farbe && sn === schnitt) { satz = g; anstossen(true); } } }); }
     return s.gross || s.klein;
+  }
+  const hat = (sn, f) => !verfuegbar || (verfuegbar[sn] || []).includes(f);
+  function chipsAbgleichen() {
+    for (const k of wahl.querySelectorAll('button')) k.hidden = !hat(schnitt, k.dataset.farbe);
+    for (const k of schnittWahl.querySelectorAll('button')) {
+      k.hidden = !!verfuegbar && !(verfuegbar[k.dataset.schnitt] || []).length;
+      k.setAttribute('aria-pressed', String(k.dataset.schnitt === schnitt));
+    }
   }
 
   function groesse() {
@@ -132,17 +148,19 @@ if (sek) {
   }
   function anstossen(sofort) { if (sofort && !raf) zeichnen(); if (!raf && satz) raf = requestAnimationFrame(schleife); }
 
-  async function farbeWaehlen(f, nutzer) {
-    if (nutzer) zaehlen(`haar-${f}`);
-    const vorher = satz; farbe = f;
+  async function zeigen(sn, f, nutzer) {
+    if (!hat(sn, f)) f = (verfuegbar[sn] || [])[0] || f;   // Farbe fehlt bei diesem Schnitt
+    if (nutzer) zaehlen(`haar-${sn}-${f}`);
+    const vorher = satz; farbe = f; schnitt = sn;
     for (const k of wahl.querySelectorAll('button')) k.setAttribute('aria-pressed', String(k.dataset.farbe === f));
+    chipsAbgleichen();
     info.textContent = TEXTE.info[f];
     const u = new URL(sek.dataset.anfrage || '/zugang.php', location.href);
-    u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', `haar-${f}`);
+    u.searchParams.set('lang', SPRACHE); u.searchParams.set('demo', `haar-${sn}-${f}`);
     cta.href = u.pathname + u.search;
     buehne.classList.add('ist-laedt'); kennung.textContent = TEXTE.laedt;
-    const s = await satzHolen(f);
-    if (farbe !== f) return;              // inzwischen andere Farbe gewählt
+    const s = await satzHolen(sn, f);
+    if (farbe !== f || schnitt !== sn) return;   // inzwischen anders gewählt
     buehne.classList.remove('ist-laedt'); kennung.textContent = TEXTE.kennung;
     if (!s) return;
     if (vorher && vorher !== s) { alt = vorher; altAlpha = 1; }
@@ -153,7 +171,7 @@ if (sek) {
   $('.hf-kunde', sek)?.addEventListener('click', () => {
     zaehlen('haar-kunde');
     document.dispatchEvent(new CustomEvent('vecom:kunde', { detail: {
-      titel: TEXTE.kTitel, zeilen: [TEXTE.kFarbe(TEXTE.namen[farbe]), TEXTE.kLeistung],
+      titel: TEXTE.kTitel, zeilen: [TEXTE.kFarbe(TEXTE.namen[farbe]), TEXTE.kSchnitt(TEXTE.schnitte[schnitt]), TEXTE.kLeistung],
       termin: { zeiten: ['09:00', '10:30', '14:00', '16:30'] }, ziel: cta.getAttribute('href'),
     } }));
   });
@@ -162,15 +180,20 @@ if (sek) {
     const p = document.createElement('i'); p.className = 'farbpunkt'; p.setAttribute('aria-hidden', 'true'); p.style.setProperty('--f', c);
     k.append(p, TEXTE.namen[f]); return k;
   }));
+  schnittWahl.replaceChildren(...SCHNITTE.map((sn) => {
+    const k = document.createElement('button'); k.type = 'button'; k.dataset.schnitt = sn; k.setAttribute('aria-pressed', String(sn === schnitt));
+    k.textContent = TEXTE.schnitte[sn]; return k;
+  }));
   // Nur Farben anbieten, deren Bilder schon gerechnet sind (farben.json
   // schreibt tools/haar-web.py) -- ein Chip ohne Bilder lädt ins Leere.
   fetch(`${BASIS}farben.json?s=${STAND}`).then((r) => r.json()).then((j) => {
-    const da = new Set(j.farben || []);
-    if (da.size) for (const k of wahl.querySelectorAll('button')) k.hidden = !da.has(k.dataset.farbe);
+    if (j && SCHNITTE.some((sn) => Array.isArray(j[sn]))) { verfuegbar = j; chipsAbgleichen(); }
   }).catch(() => {});
-  wahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-farbe]'); if (k && k.dataset.farbe !== farbe) farbeWaehlen(k.dataset.farbe, true); });
-  // Die übrigen Farben leise vorladen, sobald jemand wählt -- klein zuerst
-  wahl.addEventListener('pointerenter', () => { for (const [f] of FARBEN) if (!saetze.has(f)) satzHolen(f); }, { once: true });
+  wahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-farbe]'); if (k && k.dataset.farbe !== farbe) zeigen(schnitt, k.dataset.farbe, true); });
+  schnittWahl.addEventListener('click', (e) => { const k = e.target.closest('button[data-schnitt]'); if (k && k.dataset.schnitt !== schnitt) zeigen(k.dataset.schnitt, farbe, true); });
+  // Die übrigen Farben des Schnitts leise vorladen, sobald jemand wählt -- klein zuerst
+  wahl.addEventListener('pointerenter', () => { for (const [f] of FARBEN) if (hat(schnitt, f) && !saetze.has(`${schnitt}/${f}`)) satzHolen(schnitt, f); }, { once: true });
+  schnittWahl.addEventListener('pointerenter', () => { for (const sn of SCHNITTE) if (hat(sn, farbe) && !saetze.has(`${sn}/${farbe}`)) satzHolen(sn, farbe); }, { once: true });
 
   buehne.addEventListener('pointerdown', (e) => {
     if (!satz) return;
@@ -191,7 +214,7 @@ if (sek) {
   });
   new ResizeObserver(() => zeichnen()).observe(buehne);
 
-  const starten = () => { if (gestartet) return; gestartet = true; farbeWaehlen(farbe, false); };
+  const starten = () => { if (gestartet) return; gestartet = true; zeigen(schnitt, farbe, false); };
   sek.addEventListener('demo:auf', starten);
   if (!sek.hidden) starten();
   info.textContent = TEXTE.info[farbe];

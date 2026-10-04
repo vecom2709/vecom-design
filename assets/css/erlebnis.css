@@ -534,8 +534,8 @@
 }
 .erlebnis .demo-kachel__bild{position:relative; display:block; aspect-ratio:5/4; border-radius:.62em; overflow:hidden; flex:none;
   box-shadow:inset 0 0 0 1px rgba(var(--gold),.16)}
-.erlebnis .demo-kachel__bild img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform 700ms var(--e-standard);
-  filter:contrast(1.06) saturate(1.04) brightness(.94) sepia(.07)} /* eine Lichtstimmung für alle Fotos: warm, etwas dichter */
+.erlebnis .demo-kachel__bild img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform 700ms var(--e-standard)}
+/* Die Kartenfotos sind bereits im selben Abendlicht gerechnet (assets/img/erlebnis/karten, tools/karten-web.py) -- kein CSS-Filter darüber. */
 .erlebnis .demo-kachel__bild::after{content:""; position:absolute; inset:0; pointer-events:none;
   background:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(8,7,6,.55) 100%), linear-gradient(115deg, rgba(255,240,210,.10) 0%, rgba(255,240,210,0) 38%)}
 .erlebnis .demo-kachel__text{display:flex; flex-direction:column; gap:.32em; padding:.35em .45em .2em; flex:1}
