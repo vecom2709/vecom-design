@@ -159,15 +159,18 @@ final class QrPruefung
                 $mm = $mm > 0 ? min($mm, $r['mm']) : $r['mm'];
             }
             // Printful druckt die Visitenkarte aus diesen Bildern, nicht aus dem PDF — also auch sie.
-            // Tasse: Printful druckt das Rundum-Bild — Code an seiner Stelle im Bild abtasten.
-            if ($vorlage === 'tasse_11' && $e['datei_pf_vorn'] !== null) {
-                require_once __DIR__ . '/WmDruck.php';
+            // Tasse und Geschenke (WmDruck-Vorlagen bei Printful): Printful druckt das Bild — Code an seiner Stelle
+            // abtasten. Einseitig: im vorderen Bild; Notizbuch: Code auf der Rückseite.
+            require_once __DIR__ . '/WmDruck.php';
+            $spalte = in_array($vorlage, ['tasse_11', 'notizbuch', 'flasche', 'untersetzer', 'beutel'], true)
+                ? (WmDruck::einseitig($vorlage) ? 'datei_pf_vorn' : 'datei_pf_hinten') : '';
+            if ($spalte !== '' && $e[$spalte] !== null) {
                 $w = (array) json_decode((string) $e['wahl'], true);
-                $lay = WmDruck::layout('tasse_11');
+                $lay = WmDruck::layout($vorlage);
                 [$qx, $qy, $qs] = $lay['stile'][(string) ($w['stil'] ?? '')]['qr'] ?? [0, 0, 0];
-                $gr = @getimagesizefromstring((string) $e['datei_pf_vorn']);
+                $gr = @getimagesizefromstring((string) $e[$spalte]);
                 $k = $gr ? $gr[0] / (($lay['b'] + 2 * $lay['beschnitt']) * 10) : 0;
-                if (!$k || !self::imBild((string) $e['datei_pf_vorn'], [$qx * $k, $qy * $k, $qs * $k], $link)) { $fehler[] = 'printful_bild'; }
+                if (!$k || !self::imBild((string) $e[$spalte], [$qx * $k, $qy * $k, $qs * $k], $link)) { $fehler[] = 'printful_bild'; }
             }
             if ($vorlage === 'visitenkarte' && $e['datei_pf_hinten'] !== null) {
                 require_once __DIR__ . '/Printful.php';

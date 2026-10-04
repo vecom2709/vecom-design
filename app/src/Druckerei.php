@@ -159,12 +159,12 @@ final class Druckerei
         // Dieselben Bausteine wie im Partnerbereich (Link, QR, Name) — druckdatei.php lädt sie sonst nicht.
         foreach (['Fmt', 'Partner', 'PartnerWerbung', 'PartnerKarten'] as $k) { require_once __DIR__ . '/' . $k . '.php'; }
         // Vorlagenfoto: genau das Bild, das Printful später auch für den Partner bekommt — nur mit Musterdaten.
-        if (preg_match('~^probe_vf_(visitenkarte|tasse_11)_([a-g])_(it|de|en)_(vorn|hinten)$~', $fassung, $m)) {
+        if (preg_match('~^probe_vf_(visitenkarte|tasse_11|notizbuch|flasche|untersetzer|beutel)_([a-g])_(it|de|en)_(vorn|hinten)$~', $fassung, $m)) {
             require_once __DIR__ . '/Printful.php';
             [$pw, $ph] = Printful::ARTEN[$m[1]]['px'];
             if ($m[1] === 'visitenkarte') { return PartnerKarten::eingepasst(self::MUSTER, $m[2], $m[4], $m[3], 'email', $pw, $ph, Printful::RAND); }
             require_once __DIR__ . '/WmDruck.php';
-            return $m[4] === 'vorn' ? WmDruck::bild(self::MUSTER, $m[1], $m[2], $m[3], 'email') : '';
+            return WmDruck::bild(self::MUSTER, $m[1], $m[2], $m[3], 'email', $m[4]);
         }
         return match ($fassung) {
             'probe_druck' => PartnerKarten::druckPdf(self::MUSTER, 'a', 'it', 'email', 4.0, 300),
@@ -220,7 +220,7 @@ final class Druckerei
      */
     public static function fassungGueltig(string $f): bool
     {
-        return in_array($f, self::FASSUNGEN, true) || preg_match('~^probe_vf_(visitenkarte|tasse_11)_[a-g]_(it|de|en)_(vorn|hinten)$~', $f) === 1;
+        return in_array($f, self::FASSUNGEN, true) || preg_match('~^probe_vf_(visitenkarte|tasse_11|notizbuch|flasche|untersetzer|beutel)_[a-g]_(it|de|en)_(vorn|hinten)$~', $f) === 1;
     }
 
     public static function dateiLink(int $entwurfId, string $fassung = 'frei', int $tage = 14): string

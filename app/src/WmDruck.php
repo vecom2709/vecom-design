@@ -30,6 +30,11 @@ final class WmDruck
         'aufkleber_50' => 'Aufkleber rund Ø 5 cm (Vorlage)',
         'rollup_85' => 'Roll-up 85 × 200 cm (Vorlage)',
         'tasse_11' => 'Tasse 11 oz rundum (Vorlage)',
+        // Printful-Geschenke (05.10.2026): Bildgröße = Printfuls Druckfläche (layout 'px'), siehe tools/werbemittel/gen.py.
+        'notizbuch' => 'Notizbuch A5 Umschlag vorn/hinten (Vorlage)',
+        'flasche' => 'Edelstahlflasche 500 ml rundum (Vorlage)',
+        'untersetzer' => 'Kork-Untersetzer 95 × 95 mm (Vorlage)',
+        'beutel' => 'Stoffbeutel schwarz, Druck 25 × 25 cm (Vorlage)',
     ];
 
     /**
@@ -181,7 +186,7 @@ final class WmDruck
     private static function datei(string $fmt, string $stil, string $seite, string $sprache): string
     {
         $sprache = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
-        return dirname(__DIR__) . '/druckvorlagen/' . $fmt . '/' . $stil . '-' . ($seite === 'hinten' ? 'hinten' : 'vorn') . '-' . $sprache . '.jpg';
+        return dirname(__DIR__) . '/druckvorlagen/' . $fmt . '/' . $stil . '-' . ($seite === 'hinten' ? 'hinten' : 'vorn') . '-' . $sprache . (self::durchsichtig($fmt) ? '.png' : '.jpg');
     }
 
     /** Eine Seite als GD-Bild in voller Größe (mit Beschnitt). $mitQr: false, wenn der Code im PDF als Vektor kommt. */
@@ -208,8 +213,9 @@ final class WmDruck
             if ($mitQr) { self::qrMalen($im, self::qrVorn($stil, $im, $fmt), $p, $fmt); }
             return $im;
         }
-        $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
+        $im = self::durchsichtig($fmt) ? @imagecreatefrompng(self::datei($fmt, $stil, $seite, $sprache)) : @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));
         if (!$im) { return null; }
+        if (self::durchsichtig($fmt)) { imagesavealpha($im, true); }
         $lay = self::layout($fmt);
         if ($seite === 'vorn') { self::titelAuf($im, $fmt, $stil, $sprache, (string) ($p['_wm_titel'] ?? '')); }
         if ($seite !== (empty($lay['einseitig']) ? 'hinten' : 'vorn')) { return $im; }
@@ -228,7 +234,10 @@ final class WmDruck
                 $pt *= 0.93;
             }
             [$r, $g, $b] = sscanf((string) $f['farbe'], '#%02x%02x%02x');
-            imagettftext($im, $pt, 0, (int) round($f['x'] * $k), (int) round($f['y'] * $k), imagecolorallocate($im, $r, $g, $b), $datei, $text);
+            // 'mitte' (Geschenke, 05.10.2026): mittig in der Breite des Felds statt linksbündig.
+            $x = $f['x'] * $k;
+            if (!empty($f['mitte'])) { $bb = imagettfbbox($pt, 0, $datei, $text); $x += ($max - abs($bb[2] - $bb[0])) / 2; }
+            imagettftext($im, $pt, 0, (int) round($x), (int) round($f['y'] * $k), imagecolorallocate($im, $r, $g, $b), $datei, $text);
         }
         if ($mitQr) { self::qrMalen($im, ['qr' => $L['qr'], 'k' => $k], $p, $fmt); }
         return $im;
@@ -307,6 +316,7 @@ final class WmDruck
         $mm = 72 / 25.4;
         $pdf = new KartenPdf();
         if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }
+        if (self::durchsichtig($fmt)) { $v = self::aufStoff($v); $h = $ein ? $v : self::aufStoff($h); }
         $iv = $pdf->bild(self::jpeg($v, 92), imagesx($v), imagesy($v));
         $ih = $ein ? $iv : $pdf->bild(self::jpeg($h, 92), imagesx($h), imagesy($h));
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
@@ -406,11 +416,37 @@ final class WmDruck
      * Das ganze Bild einer einseitigen Vorlage mit Partnerdaten und Code (Raster) als JPEG — die Datei, die eine
      * Druckerei ohne PDF bekommt (Printful-Tasse: genau die Druckfläche, kein Beschnitt).
      */
-    public static function bild(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email'): string
+    public static function bild(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email', string $seite = 'vorn'): string
     {
-        if (!self::gibt($fmt, $stil) || !self::einseitig($fmt) || self::gross($fmt)) { return ''; }
-        $im = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt);
-        return $im ? self::jpeg($im, 95) : '';
+        if (!self::gibt($fmt, $stil) || self::gross($fmt) || ($seite === 'hinten' && self::einseitig($fmt))) { return ''; }
+        $im = self::leinwand($p, $fmt, $stil, $seite === 'hinten' ? 'hinten' : 'vorn', $sprache, $kontakt);
+        if (!$im) { return ''; }
+        // Genau Printfuls Pixel (layout 'px'): die Vorlage hat sie schon; zur Sicherheit hier noch einmal erzwungen.
+        $px = self::layout($fmt)['px'] ?? null;
+        if (is_array($px) && (imagesx($im) !== (int) $px[0] || imagesy($im) !== (int) $px[1])) {
+            $neu = imagecreatetruecolor((int) $px[0], (int) $px[1]);
+            if (self::durchsichtig($fmt)) { imagealphablending($neu, false); imagesavealpha($neu, true); }
+            imagecopyresampled($neu, $im, 0, 0, 0, 0, (int) $px[0], (int) $px[1], imagesx($im), imagesy($im));
+            $im = $neu;
+        }
+        if (self::durchsichtig($fmt)) { ob_start(); imagepng($im, null, 6); return (string) ob_get_clean(); }   // Stoff: Durchsicht bleibt
+        return self::jpeg($im, 95);
+    }
+
+    /** Grund durchsichtig (Stoffbeutel: der Stoff ist der Grund) — Vorlage und Printful-Bild als PNG. */
+    public static function durchsichtig(string $fmt): bool
+    {
+        return !empty(self::layout($fmt)['durchsichtig']);
+    }
+
+    /** Für Ansicht und PDF: das durchsichtige Bild auf schwarzen Stoff gelegt (JPEG kennt keine Durchsicht). */
+    private static function aufStoff(\GdImage $im): \GdImage
+    {
+        $aus = imagecreatetruecolor(imagesx($im), imagesy($im));
+        imagefill($aus, 0, 0, imagecolorallocate($aus, 20, 20, 20));
+        imagealphablending($aus, true);
+        imagecopy($aus, $im, 0, 0, 0, 0, imagesx($im), imagesy($im));
+        return $aus;
     }
 
     /** Vorder- und Rückseite beschnitten nebeneinander, klein (Partnerbereich). */
@@ -423,6 +459,7 @@ final class WmDruck
         foreach (self::einseitig($fmt) ? ['vorn'] : ['vorn', 'hinten'] as $s) {
             $im = self::leinwand($p, $fmt, $stil, $s, $sprache, $kontakt);
             if (!$im) { return ''; }
+            if (self::durchsichtig($fmt)) { $im = self::aufStoff($im); }
             $b = (int) round(imagesx($im) * $lay['beschnitt'] / ($lay['b'] + 2 * $lay['beschnitt']));
             $zu = imagecrop($im, ['x' => $b, 'y' => $b, 'width' => imagesx($im) - 2 * $b, 'height' => imagesy($im) - 2 * $b]) ?: $im;
             $teile[] = imagescale($zu, (int) round(imagesx($zu) * $hoehe / imagesy($zu)), $hoehe, IMG_BICUBIC) ?: $zu;

@@ -28,6 +28,17 @@ FORMATE = {
     # (2700 × 1050 px). Ohne Beschnitt — das Bild IST die Druckfläche; Printful::flaechePruefen vergleicht vor jedem
     # Auftrag das Seitenverhältnis mit dem, was Printful selbst meldet, und sendet bei Abweichung nichts.
     'tasse_11': {'b': 228.6, 'h': 88.9, 'beschnitt': 0, 'dpi': 300, 'einseitig': True, 'stile': 'AD', 'tasse': True},
+    # Printful-Geschenke (05.10.2026). Maße: Printfuls Druckflächen, vom Server abgefragt (Printful::druckflaechenHolen,
+    # Verwaltung „Printful-Druckflächen“, 05.10.2026 00:30). 'px' = genau diese Pixel; die Bildschirmaufnahme wird darauf
+    # gerechnet, weil 1 mm = 10 Einheiten nicht immer auf ganze Pixel aufgeht.
+    # Notizbuch (474/12141, 5,5 × 8,5 Zoll): 1725 × 2625 px = Endformat + 1/8 Zoll Beschnitt, Füllung „cover“.
+    'notizbuch': {'b': 139.7, 'h': 215.9, 'beschnitt': 3.175, 'dpi': 300, 'px': [1725, 2625], 'stile': 'AD', 'geschenk': 'hoch'},
+    # Edelstahlflasche 500 ml (382/10798, weiß): Rundum 2557 × 1582 px.
+    'flasche': {'b': 216.5, 'h': 133.9, 'beschnitt': 0, 'dpi': 300, 'px': [2557, 1582], 'einseitig': True, 'stile': 'AD', 'geschenk': 'rund'},
+    # Kork-Untersetzer 95 × 95 mm, runde Ecken (611/15662): 1181 × 1181 px = 100 mm → 2,5 mm Beschnitt.
+    'untersetzer': {'b': 95, 'h': 95, 'beschnitt': 2.5, 'dpi': 300, 'px': [1181, 1181], 'einseitig': True, 'stile': 'AD', 'geschenk': 'quadrat'},
+    # Bio-Baumwollbeutel schwarz (367/10457, DTG): 1500 × 1500 px bei 150 dpi = 25,4 cm. Grund durchsichtig (PNG).
+    'beutel': {'b': 254, 'h': 254, 'beschnitt': 0, 'dpi': 150, 'px': [1500, 1500], 'einseitig': True, 'stile': 'A', 'geschenk': 'beutel', 'durchsichtig': True},
 }
 
 T = {
@@ -243,6 +254,99 @@ def tasse(stil, lang, W, H):
            'kontakt': {'x': round(tx), 'y': round(H / 2 + 118), 'size': 32, 'font': 500, 'farbe': hellt, 'max': round(rest)}}
     return g, lay
 
+def geschenk(stil, lang, W, H, art, form):
+    """Printful-Geschenke (05.10.2026). Maße = Printfuls eigene Druckflächen (vom Server abgefragt, siehe FORMATE).
+    form: 'hoch' (Notizbuch, vorn Marke, hinten Ansprechpartner), 'rund' (Flasche rundum), 'quadrat'
+    (Untersetzer), 'beutel' (schwarzer Stoffbeutel, Grund durchsichtig — der Stoff ist der Grund)."""
+    hell = stil == 'D'
+    hellt, gold = ('#1f1a13', '#9a6f25') if hell else ('#f6f1e6', '#e6b85c')
+    if form == 'beutel':
+        g = ''
+    else:
+        g = (f'<rect width="{W}" height="{H}" fill="#f4efe6"/><rect width="{W}" height="{H}" filter="url(#papier)"/>' if hell else K.schwarz_grund())
+    B = K.B
+    lay = {'einseitig': form != 'hoch'}
+    qstil = 'D' if hell else 'B'
+
+    def stapel(cx, top, breite, qs):
+        """Code oben, darunter „Jetzt scannen“, Ansprechpartner, Name, Link, Kontakt — mittig."""
+        out = ''
+        box, modul = K.qr_box(cx - qs / 2, top, qs, qstil)
+        out += box
+        y = top + qs + qs * 0.26
+        out += text(cx, y, T['jetzt'][lang].upper(), qs * 0.085, 700, gold, extra=f'letter-spacing="{qs*0.018}"')
+        y += qs * 0.32
+        out += text(cx, y, T['ansprech'][lang], qs * 0.1, 500, hellt, extra='opacity=".85"')
+        f = {'name': (y + qs * 0.2, qs * 0.17, 700, hellt), 'link': (y + qs * 0.39, qs * 0.115, 600, gold), 'kontakt': (y + qs * 0.55, qs * 0.1, 500, hellt)}
+        felder = {k: {'x': round(cx - breite / 2), 'y': round(v[0]), 'size': round(v[1]), 'font': v[2], 'farbe': v[3], 'max': round(breite), 'mitte': True} for k, v in f.items()}
+        return out, modul, felder
+
+    def seitlich(qx, mitte_y, qs, rechts_bis):
+        """Code links, Ansprechpartner rechts daneben (wie die Tasse)."""
+        out = ''
+        qy = mitte_y - qs / 2
+        box, modul = K.qr_box(qx, qy, qs, qstil)
+        out += box
+        out += text(qx + qs / 2, qy + qs + qs * 0.22, T['jetzt'][lang].upper(), qs * 0.087, 700, gold, extra=f'letter-spacing="{qs*0.017}"')
+        tx = qx + qs + qs * 0.23
+        e = qs / 300                        # Tasse: Code 300, Schrift 58/36/32
+        out += text(tx, mitte_y - 100 * e, T['ansprech'][lang], 32 * e, 500, hellt, anker='start', extra='opacity=".85"')
+        out += f'<rect x="{tx}" y="{mitte_y - 76 * e}" width="{70 * e}" height="{4 * e}" fill="url(#goldH)"/>'
+        rest = rechts_bis - tx
+        felder = {'name': {'x': round(tx), 'y': round(mitte_y + 10 * e), 'size': round(58 * e), 'font': 700, 'farbe': hellt, 'max': round(rest)},
+                  'link': {'x': round(tx), 'y': round(mitte_y + 80 * e), 'size': round(36 * e), 'font': 600, 'farbe': gold, 'max': round(rest)},
+                  'kontakt': {'x': round(tx), 'y': round(mitte_y + 138 * e), 'size': round(32 * e), 'font': 500, 'farbe': hellt, 'max': round(rest)}}
+        return out, modul, felder
+
+    if form == 'hoch' and art == 'vorn':     # Notizbuch vorn: Spiralbindung links → Inhalt etwas nach rechts
+        cx = W / 2 + W * 0.03
+        l, unten = K.logo_gross(cx, H * 0.26, W * 0.46, hell=hell)
+        g += l
+        g += f'<rect x="{cx - W*0.07}" y="{unten + H*0.045}" width="{W*0.14}" height="{max(3, W*0.004)}" fill="url(#goldH)"/>'
+        g += text(cx, unten + H * 0.095, T['leistungen'][lang], W * 0.03, 600, hellt, extra=f'letter-spacing="{W*0.006}" opacity=".9"')
+        for y in (B + H * 0.04, H - B - H * 0.04):
+            g += f'<rect x="0" y="{y}" width="{W}" height="{max(3, H*0.0025)}" fill="url(#goldH)"/>'
+        return g, {}
+    if form == 'hoch':                         # Notizbuch hinten
+        cx = W / 2 - W * 0.03                  # Rückseite: Bindung rechts
+        qs = W * 0.34
+        b, modul, felder = stapel(cx, H * 0.24, W * 0.72, qs)
+        g += b
+        lh = W * 0.055
+        g += K.logo_quer(cx - lh * 2.6, H - B - H * 0.1, lh)
+        for y in (B + H * 0.04, H - B - H * 0.04):
+            g += f'<rect x="0" y="{y}" width="{W}" height="{max(3, H*0.0025)}" fill="url(#goldH)"/>'
+        lay.update({'qr': modul, **felder})
+        return g, lay
+    if form == 'rund':                         # Flasche rundum: links die Marke, rechts Code und Ansprechpartner
+        for y in (H * 0.1, H * 0.9):
+            g += f'<rect x="0" y="{y}" width="{W}" height="{H*0.006}" fill="url(#goldH)"/>'
+        l, unten = K.logo_gross(W * 0.25, H * 0.2, H * 0.36, hell=hell)
+        g += l
+        g += text(W * 0.25, unten + H * 0.08, T['leistungen'][lang], H * 0.026, 600, hellt, extra=f'letter-spacing="{H*0.005}" opacity=".9"')
+        g += f'<rect x="{W / 2 - 2}" y="{H * 0.3}" width="4" height="{H * 0.4}" fill="url(#gold)" opacity=".7"/>'
+        b, modul, felder = seitlich(W / 2 + W * 0.05, H * 0.47, 300, W - W * 0.04)    # Code 30 mm — Flasche Ø 7 cm, wenig Wölbung
+        g += b
+        lay.update({'qr': modul, **felder})
+        return g, lay
+    if form == 'beutel':                       # 25,4 × 25,4 cm auf schwarzem Stoff: Marke groß, darunter Code + Ansprechpartner
+        l, unten = K.logo_gross(W / 2, H * 0.06, W * 0.3, hell=False)
+        g += l
+        g += text(W / 2, unten + H * 0.06, T['leistungen'][lang], W * 0.022, 600, hellt, extra=f'letter-spacing="{W*0.005}"')
+        qs = W * 0.21                          # 53 mm
+        b, modul, felder = seitlich(W * 0.12, unten + H * 0.1 + qs / 2 + H * 0.04, qs, W * 0.95)
+        g += b
+        lay.update({'qr': modul, **felder})
+        return g, lay
+    # Untersetzer 95 × 95 mm, runde Ecken: Marke oben, Code und Ansprechpartner darunter
+    l, unten = K.logo_gross(W / 2, B + H * 0.07, W * 0.15, hell=hell)
+    g += l
+    qs = W * 0.2                               # 20 mm — Code ≥ 15 mm (QrPruefung)
+    b, modul, felder = stapel(W / 2, unten + H * 0.035, W * 0.78, qs)
+    g += b
+    lay.update({'qr': modul, **felder})
+    return g, lay
+
 def seite(fmt, stil, art, lang):
     f = FORMATE[fmt]
     K.B = f['beschnitt'] * 10
@@ -253,12 +357,14 @@ def seite(fmt, stil, art, lang):
         inhalt, lay = rollup(stil, lang, W, H)
     elif f.get('tasse'):
         inhalt, lay = tasse(stil, lang, W, H)
+    elif f.get('geschenk'):
+        inhalt, lay = geschenk(stil, lang, W, H, art, f['geschenk'])
     elif f.get('einseitig'):
         inhalt, lay = aufkleber(stil, lang, W, H)
     else:
         inhalt, lay = (flyer_vorn if art == 'vorn' else flyer_hinten)(stil, lang, W, H)
     html = f"""<!doctype html><html><head><meta charset="utf-8"><style>{K.FONTFACE}
-html,body{{margin:0;padding:0;background:#000}} svg{{display:block}}</style></head><body>
+html,body{{margin:0;padding:0;background:{'transparent' if f.get('durchsichtig') else '#000'}}} svg{{display:block}}</style></head><body>
 <svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewBox="0 0 {W} {H}">{K.defs()}{inhalt}</svg></body></html>"""
     return html, lay, W, H, f['dpi']
 
@@ -307,8 +413,14 @@ if __name__ == '__main__':
                         else:
                             pg = b.new_page(viewport={'width': W, 'height': H}, device_scale_factor=dpi / 25.4 / 10)
                             pg.set_content(html); pg.wait_for_timeout(200)
-                            pg.screenshot(path=ziel, clip={'x': 0, 'y': 0, 'width': W, 'height': H}, timeout=300000)
+                            pg.screenshot(path=ziel, clip={'x': 0, 'y': 0, 'width': W, 'height': H}, timeout=300000,
+                                          omit_background=bool(FORMATE[fmt].get('durchsichtig')))
                         pg.close()
+                        if FORMATE[fmt].get('px'):
+                            from PIL import Image
+                            bild = Image.open(ziel)
+                            if bild.size != tuple(FORMATE[fmt]['px']):
+                                bild.resize(tuple(FORMATE[fmt]['px']), Image.LANCZOS).save(ziel)
                         if lang == 'de':
                             # Vorderseite bringt die Überschrift, Rückseite Name/Link/Kontakt/Code: beides ins Layout.
                             layout.setdefault(stil.lower(), {}).update(lay)
@@ -322,5 +434,5 @@ if __name__ == '__main__':
                                 # Lage auf ganze Pixel gerundet zurückrechnen, damit der Streifen bündig sitzt
                                 lay['titel']['grund'] = [0, y0 / k, gw, h0 / k]
                         print(fmt, stil, art, lang, flush=True)
-            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'gross': bool(FORMATE[fmt].get('gross')), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
+            json.dump({'b': FORMATE[fmt]['b'], 'h': FORMATE[fmt]['h'], 'beschnitt': FORMATE[fmt]['beschnitt'], 'einseitig': bool(FORMATE[fmt].get('einseitig')), 'gross': bool(FORMATE[fmt].get('gross')), **({'durchsichtig': True} if FORMATE[fmt].get('durchsichtig') else {}), **({'px': FORMATE[fmt]['px']} if FORMATE[fmt].get('px') else {}), 'stile': layout}, open(f'{out}/{fmt}/layout.json', 'w'), indent=1)
         b.close()

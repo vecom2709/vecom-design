@@ -1,4 +1,4 @@
-"""PNG aus gen.py → JPEG (q88) nach app/druckvorlagen/<format>/ und layout.json → layout.php."""
+"""PNG aus gen.py → JPEG (q88; mit durchsichtigem Grund: PNG) nach app/druckvorlagen/<format>/ und layout.json → layout.php."""
 import json, os, sys
 from PIL import Image
 quelle, ziel = sys.argv[1], sys.argv[2]
@@ -8,7 +8,10 @@ for fmt in sorted(os.listdir(quelle)):
     z = os.path.join(ziel, fmt); os.makedirs(z, exist_ok=True)
     lay = json.load(open(os.path.join(q, 'layout.json')))
     for f in sorted(os.listdir(q)):
-        if f.endswith('.png'):
+        if f.endswith('.png') and lay.get('durchsichtig'):
+            # Durchsichtiger Grund (Stoffbeutel, 05.10.2026): PNG bleibt PNG — JPEG kennt keine Durchsicht.
+            Image.open(os.path.join(q, f)).convert('RGBA').save(os.path.join(z, f), optimize=True)
+        elif f.endswith('.png'):
             im = Image.open(os.path.join(q, f)).convert('RGB')
             im.save(os.path.join(z, f[:-4] + '.jpg'), quality=88, optimize=True, progressive=False)
             if lay.get('gross') and not f.endswith('-titelgrund.png'):   # Großformat: kleine Fassung für die Vorschau (PHP lädt das große Bild nie)

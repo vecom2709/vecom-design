@@ -1,0 +1,75 @@
+<?php
+declare(strict_types=1);
+/* Automatisch erzeugt (tools/werbemittel/gen.py). Einheit 1/10 mm auf der Leinwand mit Beschnitt; Felder wie bei den Visitenkarten. */
+return [
+    'b' => 139.7,
+    'h' => 215.9,
+    'beschnitt' => 3.2,
+    'einseitig' => false,
+    'gross' => false,
+    'stile' => [
+        'a' => [
+            'einseitig' => false,
+            'qr' => [475.2, 570.5, 421.9],
+            'name' => [
+                'x' => 161,
+                'y' => 1417,
+                'size' => 84,
+                'font' => 700,
+                'farbe' => '#f6f1e6',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+            'link' => [
+                'x' => 161,
+                'y' => 1511,
+                'size' => 57,
+                'font' => 600,
+                'farbe' => '#e6b85c',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+            'kontakt' => [
+                'x' => 161,
+                'y' => 1591,
+                'size' => 50,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+        ],
+        'd' => [
+            'einseitig' => false,
+            'qr' => [475.2, 570.5, 421.9],
+            'name' => [
+                'x' => 161,
+                'y' => 1417,
+                'size' => 84,
+                'font' => 700,
+                'farbe' => '#1f1a13',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+            'link' => [
+                'x' => 161,
+                'y' => 1511,
+                'size' => 57,
+                'font' => 600,
+                'farbe' => '#9a6f25',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+            'kontakt' => [
+                'x' => 161,
+                'y' => 1591,
+                'size' => 50,
+                'font' => 500,
+                'farbe' => '#1f1a13',
+                'max' => 1051,
+                'mitte' => true,
+            ],
+        ],
+    ],
+    'px' => [1725, 2625],
+];

@@ -1,0 +1,75 @@
+<?php
+declare(strict_types=1);
+/* Automatisch erzeugt (tools/werbemittel/gen.py). Einheit 1/10 mm auf der Leinwand mit Beschnitt; Felder wie bei den Visitenkarten. */
+return [
+    'b' => 95,
+    'h' => 95,
+    'beschnitt' => 2.5,
+    'einseitig' => true,
+    'gross' => false,
+    'stile' => [
+        'a' => [
+            'einseitig' => true,
+            'qr' => [415.0, 348.1, 170.0],
+            'name' => [
+                'x' => 110,
+                'y' => 689,
+                'size' => 34,
+                'font' => 700,
+                'farbe' => '#f6f1e6',
+                'max' => 780,
+                'mitte' => true,
+            ],
+            'link' => [
+                'x' => 110,
+                'y' => 727,
+                'size' => 23,
+                'font' => 600,
+                'farbe' => '#e6b85c',
+                'max' => 780,
+                'mitte' => true,
+            ],
+            'kontakt' => [
+                'x' => 110,
+                'y' => 759,
+                'size' => 20,
+                'font' => 500,
+                'farbe' => '#f6f1e6',
+                'max' => 780,
+                'mitte' => true,
+            ],
+        ],
+        'd' => [
+            'einseitig' => true,
+            'qr' => [415.0, 348.1, 170.0],
+            'name' => [
+                'x' => 110,
+                'y' => 689,
+                'size' => 34,
+                'font' => 700,
+                'farbe' => '#1f1a13',
+                'max' => 780,
+                'mitte' => true,
+            ],
+            'link' => [
+                'x' => 110,
+                'y' => 727,
+                'size' => 23,
+                'font' => 600,
+                'farbe' => '#9a6f25',
+                'max' => 780,
+                'mitte' => true,
+            ],
+            'kontakt' => [
+                'x' => 110,
+                'y' => 759,
+                'size' => 20,
+                'font' => 500,
+                'farbe' => '#1f1a13',
+                'max' => 780,
+                'mitte' => true,
+            ],
+        ],
+    ],
+    'px' => [1181, 1181],
+];

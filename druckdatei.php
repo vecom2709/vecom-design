@@ -33,8 +33,9 @@ if (str_starts_with((string) $fassung, 'probe_') && $id === 0) {
     $muster = Druckerei::musterDatei((string) $fassung);
     if ($muster === '') { http_response_code(404); exit; }
     $istPdf = $fassung === 'probe_druck';
-    header('Content-Type: ' . ($istPdf ? 'application/pdf' : 'image/jpeg'));
-    header('Content-Disposition: inline; filename="vecom-probe-' . substr((string) $fassung, 6) . ($istPdf ? '.pdf' : '.jpg') . '"');
+    $png = str_starts_with($muster, "\x89PNG");                 // Stoffbeutel: durchsichtiger Grund (05.10.2026)
+    header('Content-Type: ' . ($istPdf ? 'application/pdf' : ($png ? 'image/png' : 'image/jpeg')));
+    header('Content-Disposition: inline; filename="vecom-probe-' . substr((string) $fassung, 6) . ($istPdf ? '.pdf' : ($png ? '.png' : '.jpg')) . '"');
     header('Content-Length: ' . strlen($muster));
     echo $muster;
     exit;
@@ -48,9 +49,10 @@ $d = $id > 0 ? Db::one("SELECT e.id, $wert AS datei_druck FROM wm_entwuerfe e
                            AND (e.status IN ('freigegeben', 'ersetzt') OR EXISTS (SELECT 1 FROM wm_positionen x WHERE x.entwurf_id = e.id))", [$id]) : null;
 if (!$d) { http_response_code(404); exit; }
 
-// Printful bekommt je Seite ein JPEG (eingepasst 90 × 50 mm), alle anderen das PDF.
+// Printful bekommt je Seite ein Bild (JPEG, beim Stoffbeutel PNG), alle anderen das PDF.
 $bild = str_starts_with($fassung, 'pf_');
-header('Content-Type: ' . ($bild ? 'image/jpeg' : 'application/pdf'));
-header('Content-Disposition: inline; filename="vecom-druck-' . (int) $d['id'] . ($bild ? '-' . substr($fassung, 3) . '.jpg' : '.pdf') . '"');
+$png = $bild && str_starts_with((string) $d['datei_druck'], "\x89PNG");   // Stoffbeutel: PNG mit Durchsicht
+header('Content-Type: ' . ($bild ? ($png ? 'image/png' : 'image/jpeg') : 'application/pdf'));
+header('Content-Disposition: inline; filename="vecom-druck-' . (int) $d['id'] . ($bild ? '-' . substr($fassung, 3) . ($png ? '.png' : '.jpg') : '.pdf') . '"');
 header('Content-Length: ' . strlen((string) $d['datei_druck']));
 echo $d['datei_druck'];

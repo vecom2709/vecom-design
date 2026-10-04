@@ -58,11 +58,42 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
      * Material der Tasse aus Printfuls Katalogtext (GET /products/19): Keramik, spülmaschinen- und mikrowellenfest.
      */
     public const ARTEN = [
-        'visitenkarte' => ['produkt' => 724, 'px' => [1200, 750], 'rand' => 75, 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 18554,
+        'visitenkarte' => ['produkt' => 724, 'px' => [1200, 750], 'rand' => 75, 'plaetze' => ['default' => 'front', 'back' => 'back'], 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 18554,
                            'material' => 'Munken Lynx 300 g, 90 × 50 mm (eingepasst)'],
         'tasse_11'     => ['produkt' => 19, 'px' => [2700, 1050], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 1320,
                            'material' => 'Keramiktasse weiß glänzend, 11 oz (325 ml), spülmaschinen- und mikrowellenfest'],
+        // Geschenke (05.10.2026, Uwe: „ja“ zu den Vorschlägen). Bildgröße = Printfuls Druckfläche, vom Server abgefragt
+        // (druckflaechenHolen); Material aus Printfuls Katalogtext (GET /products/{id}, öffentlich, 05.10.2026).
+        'notizbuch'    => ['produkt' => 474, 'px' => [1725, 2625], 'plaetze' => ['default' => 'front', 'back' => 'back'], 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 12141,
+                           'material' => 'Spiralnotizbuch 14,5 × 21 cm, 140 Seiten gepunktet, Umschlag 352 g/m² soft-touch, Metallspirale'],
+        'flasche'      => ['produkt' => 382, 'px' => [2557, 1582], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 10798,
+                           'material' => 'Edelstahl-Thermosflasche 500 ml, doppelwandig, weiß glänzend, auslaufsicher, Handwäsche'],
+        'untersetzer'  => ['produkt' => 611, 'px' => [1181, 1181], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 15662,
+                           'material' => 'Untersetzer 95 × 95 mm, MDF mit Kork-Rücken, Hochglanz, runde Ecken, hitzebeständig'],
+        'beutel'       => ['produkt' => 367, 'px' => [1500, 1500], 'plaetze' => ['default' => 'front'], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 10457,
+                           'material' => 'Tragetasche schwarz, 100 % Bio-Baumwolle 272 g/m², 40,6 × 35,6 × 12,7 cm, Druck vorn'],
     ];
+
+    /**
+     * Name der Druckstelle im Mockup-Generator und in den Druckflächen. Aufträge nennen die Datei nach Printfuls
+     * Produktdateien (GET /products/{id} → files: default, back), der Mockup-Generator nach den Druckflächen
+     * (variant_printfiles → placements). Bei Karte, Notizbuch und Beutel heißt dieselbe Stelle dort „front“
+     * statt „default“ — so in der Server-Abfrage vom 05.10.2026 gelesen. Darum: erst den eigenen Namen, sonst „front“.
+     */
+    public static function platzImGenerator(string $platz, array $placements): string
+    {
+        if (isset($placements[$platz])) { return $platz; }
+        return $platz === 'default' && isset($placements['front']) ? 'front' : $platz;
+    }
+
+    /** Druckstellen-Namen des Mockup-Generators für eine Art: 'plaetze' (in der Abfrage vom 05.10.2026 gelesen), sonst die eigenen. */
+    private static function generatorPlaetze(string $vorlage): array
+    {
+        $art = self::ARTEN[$vorlage];
+        $aus = [];
+        foreach (array_keys($art['dateien']) as $platz) { $aus[$platz] = (string) ($art['plaetze'][$platz] ?? $platz); }
+        return $aus;
+    }
 
     /**
      * Printful-Produkte, deren Druckfläche wir kennen wollen — die gebauten (ARTEN) und die nächsten
@@ -335,7 +366,7 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         foreach ((array) ($d['variant_printfiles'] ?? []) as $vp) {
             if (!in_array((int) ($vp['variant_id'] ?? 0), $variantenIds, true)) { continue; }
             foreach (array_keys($art['dateien']) as $platz) {
-                $f = $flaechen[(int) ($vp['placements'][$platz] ?? 0)] ?? null;
+                $f = $flaechen[(int) ($vp['placements'][self::platzImGenerator($platz, (array) ($vp['placements'] ?? []))] ?? 0)] ?? null;
                 if (!$f || (int) ($f['height'] ?? 0) <= 0) { return 'Printful meldet für Variante ' . $vp['variant_id'] . ' keine Druckfläche „' . $platz . '“.'; }
                 $ist = (int) $f['width'] / (int) $f['height'];
                 $istHoch = (int) $f['height'] / (int) $f['width'];
@@ -367,7 +398,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         $art = self::ARTEN[self::vorlageVon($entwurfId)] ?? null;
         if (!$art || !self::dateienDa($entwurfId, $art) || !Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND mockup_status IS NULL', [$entwurfId])) { return 'fehlt'; }
         $files = [];
-        foreach ($art['dateien'] as $platz => $fassung) { $files[] = ['placement' => $platz, 'image_url' => Druckerei::dateiLink($entwurfId, $fassung, 3)]; }
+        $gp = self::generatorPlaetze(self::vorlageVon($entwurfId));
+        foreach ($art['dateien'] as $platz => $fassung) { $files[] = ['placement' => $gp[$platz], 'image_url' => Druckerei::dateiLink($entwurfId, $fassung, 3)]; }
         // 1600 px: groß genug zum Herunterladen für Beiträge und die eigene Seite (Printful erlaubt bis 2000).
         $koerper = ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1600, 'files' => $files];
         try { $r = self::rufen('POST', '/mockup-generator/create-task/' . $art['produkt'], $koerper); }
@@ -470,8 +502,9 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
             if (isset($da[$vorlage . '|' . $stil . '|' . $l])) { continue; }
             $art = self::ARTEN[$vorlage];
             $files = [];
+            $gp = self::generatorPlaetze($vorlage);
             foreach ($art['dateien'] as $platz => $fassung) {
-                $files[] = ['placement' => $platz, 'image_url' => Druckerei::dateiLink(0, 'probe_vf_' . $vorlage . '_' . $stil . '_' . $l . '_' . ($fassung === 'pf_hinten' ? 'hinten' : 'vorn'), 3)];
+                $files[] = ['placement' => $gp[$platz], 'image_url' => Druckerei::dateiLink(0, 'probe_vf_' . $vorlage . '_' . $stil . '_' . $l . '_' . ($fassung === 'pf_hinten' ? 'hinten' : 'vorn'), 3)];
             }
             try { $r = self::rufen('POST', '/mockup-generator/create-task/' . $art['produkt'], ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1200, 'files' => $files]); }
             catch (Throwable $e) { self::$letzterGrund = $e->getMessage(); break; }

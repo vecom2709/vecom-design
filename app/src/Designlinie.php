@@ -39,6 +39,10 @@ final class Designlinie
         'rollup_85'    => ['a' => 'premium', 'd' => 'business'],
         'kalender_a3'  => ['a' => 'premium'],
         'tasse_11'     => ['a' => 'premium', 'd' => 'business'],
+        'notizbuch'    => ['a' => 'premium', 'd' => 'business'],
+        'flasche'      => ['a' => 'premium', 'd' => 'business'],
+        'untersetzer'  => ['a' => 'premium', 'd' => 'business'],
+        'beutel'       => ['a' => 'premium'],          // schwarzer Stoff: nur die dunkle Linie
     ];
 
     /** Linie eines Stils. Branchen-Flyer: hell (dunkle Schrift am Link) = Business, sonst Premium. */

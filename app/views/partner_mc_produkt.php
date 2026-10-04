@@ -111,7 +111,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
             <span class="mc-pf-text" data-t-eigen="<?= $h($mcT('pf_eigen')) ?>" data-t-muster="<?= $h($mcT('pf_muster')) ?>"><?= $h($mcT($mcIstEigen ? 'pf_eigen' : 'pf_muster')) ?></span>
           </div>
         <?php endif; ?>
-        <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : (str_starts_with($wmVl, 'tasse') ? 'width="926" height="360"' : 'width="528" height="360"'))) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
+        <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : (str_starts_with($wmVl, 'tasse') ? 'width="926" height="360"' : (['flasche' => 'width="582" height="360"', 'untersetzer' => 'width="360" height="360"', 'beutel' => 'width="360" height="360"', 'notizbuch' => 'width="484" height="360"'][$wmVl] ?? 'width="528" height="360"')))) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
              <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmVl, 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_', 'tt' => '_T_'])) ?>"<?php endif; ?>
              alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <figcaption><?= $h($mcT('vorschau')) ?></figcaption>
@@ -195,7 +195,8 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
             <?php $mcFoto($wmE); ?>
             <span class="wm-meta" style="margin:0"><?= $h(strtr($W('mid'), ['{id}' => Werbemittel::marketingId($wmE)])) ?></span>
             <a class="knopf" href="<?= $h($selbst(['wmpdf' => (int) $wmE['id']])) ?>" target="_blank" rel="noopener"><?= $h($W('pdf_ansehen')) ?></a>
-            <?php if (!empty($wmE['hat_pf'])): ?>
+            <?php $mcPf90 = !empty($wmE['hat_pf']) && (string) $wmP['vorlage'] === 'visitenkarte';   /* Notizbuch hat auch zwei Printful-Bilder — die 90 × 50-Fassung gibt es nur bei der Karte */ ?>
+            <?php if ($mcPf90): ?>
               <span class="wm-meta" style="margin:0"><?= $h($W('pf_titel')) ?></span>
               <span class="wm-pf"><?php foreach (['vorn', 'hinten'] as $wmS): ?><a href="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" target="_blank" rel="noopener"><img src="<?= $h($selbst(['wmpf' => (int) $wmE['id'], 's' => $wmS])) ?>" alt="<?= $h($W('pf_' . $wmS)) ?>" width="206" height="129" loading="lazy"></a><?php endforeach; ?></span>
             <?php endif; ?>
@@ -208,7 +209,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
               <span class="mc-qr-fehler" role="alert"><?= $h($mcT('qr_fehler')) ?></span>
             <?php endif; ?>
             <?php if ($mcQrOk): ?>
-            <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W(!empty($wmE['hat_pf']) ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
+            <label class="wm-haken"><input type="checkbox" name="geprueft" value="1" required> <span><?= $h($W($mcPf90 ? 'pruef_haken_pf' : 'pruef_haken')) ?></span></label>
             <?php endif; ?>
             <span style="display:flex;gap:8px;flex-wrap:wrap"><?php if ($mcQrOk): ?><button class="knopf haupt"><?= $h($W('freigeben')) ?></button><?php endif; ?>
               <button class="knopf" form="wm-weg-<?= (int) $wmE['id'] ?>"><?= $h($W('verwerfen')) ?></button></span>

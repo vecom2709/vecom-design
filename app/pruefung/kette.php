@@ -22096,9 +22096,10 @@ foreach (array_diff(array_keys(WmDruck::FORMATE), array_keys(WmDruck::RUECKSEITE
     // Flyer: vier Stile, zwei Seiten. Aufkleber (04.10.2026): Stile laut layout.php, eine Seite.
     foreach (str_starts_with($w7F, 'flyer') ? ['a', 'b', 'c', 'd'] : array_keys(WmDruck::layout($w7F)['stile'] ?? []) as $w7S) {
         if (!WmDruck::gibt($w7F, $w7S)) { $w7Fehlt[] = "$w7F/$w7S"; continue; }
-        $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0));
+        // Geschenke (Printful, 05.10.2026) haben eigene Prüfung mit 15 mm (QrPruefung::MIN_MM, Untersetzer 95 mm) — hier die Werbemittel.
+        if (!isset(Printful::ARTEN[$w7F])) { $w7Qmin = min($w7Qmin, (float) (WmDruck::layout($w7F)['stile'][$w7S]['qr'][2] ?? 0)); }
         foreach (['de', 'it', 'en'] as $w7L) { foreach (WmDruck::einseitig($w7F) ? ['vorn'] : ['vorn', 'hinten'] as $w7Se) {
-            if (!is_file($wurzel . "/druckvorlagen/$w7F/$w7S-$w7Se-$w7L.jpg")) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
+            if (!is_file($wurzel . "/druckvorlagen/$w7F/$w7S-$w7Se-$w7L." . (WmDruck::durchsichtig($w7F) ? 'png' : 'jpg'))) { $w7Fehlt[] = "$w7F/$w7S-$w7Se-$w7L"; }
         } }
     }
 }
@@ -22649,7 +22650,7 @@ $pfO = Printful::mockupAnstossen($pfE);
 $pfReq = json_decode((string) ($pfNetz[count($pfNetz) - 1][2] ?? ''), true);
 pruefe('Produktfoto anstoßen: offizieller Weg create-task/724, Variante 18554, Vorder- und Rückseite als signierte Links, Auftrag gemerkt, nur einmal',
     $pfO === 'ok' && str_ends_with((string) $pfNetz[count($pfNetz) - 1][1], '/mockup-generator/create-task/724')
-    && ($pfReq['variant_ids'] ?? null) === [18554] && array_column($pfReq['files'] ?? [], 'placement') === ['default', 'back']
+    && ($pfReq['variant_ids'] ?? null) === [18554] && array_column($pfReq['files'] ?? [], 'placement') === ['front', 'back']
     && str_contains((string) ($pfReq['files'][0]['image_url'] ?? ''), 'druckdatei.php?') && str_contains((string) ($pfReq['files'][0]['image_url'] ?? ''), 'f=pf_vorn')
     && Db::wert('SELECT mockup_status FROM wm_entwuerfe WHERE id = ?', [$pfE]) === 'wartet' && Printful::mockupAnstossen($pfE) === 'fehlt');
 $pfH = Printful::mockupsHolen();
@@ -23026,7 +23027,7 @@ pruefe('Musterbild je Gestaltung = genau das Bild, das Printful auch für den Pa
     && Druckerei::fassungGueltig('probe_vf_tasse_11_a_it_vorn') && !Druckerei::fassungGueltig('probe_vf_tasse_11_z_it_vorn') && !Druckerei::fassungGueltig('probe_vf_flyer_a5_a_it_vorn')
     && Druckerei::musterDatei('probe_vf_tasse_11_a_it_hinten') === '');
 $vfK2 = Printful::vorlagenKombis();
-pruefe('Kombinationen: Visitenkarte a–g und Tasse a/d, je in IT/DE/EN', count($vfK2) === (7 + 2) * 3 && in_array(['tasse_11', 'd', 'en'], $vfK2, true));
+pruefe('Kombinationen: Visitenkarte a–g, Tasse/Notizbuch/Flasche/Untersetzer a/d, Beutel a — je in IT/DE/EN', count($vfK2) === (7 + 2 * 4 + 1) * 3 && in_array(['tasse_11', 'd', 'en'], $vfK2, true) && in_array(['beutel', 'a', 'it'], $vfK2, true) && !in_array(['beutel', 'd', 'it'], $vfK2, true));
 Db::run('DELETE FROM wm_vorlagenfotos');
 $vfNetz = []; $vfJpg = (static function (): string { $i = imagecreatetruecolor(60, 60); ob_start(); imagejpeg($i); return (string) ob_get_clean(); })();
 Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$vfNetz, $vfJpg): array {
@@ -23064,6 +23065,97 @@ pruefe('Auch in der Verwaltung: je Printful-Produkt die Fotos der Gestaltungen (
     && str_contains($vfV, "\$wmNurLesen ? 'data:image/jpeg;base64,' . base64_encode((string) Werbemittel::vorlagenfoto(")
     && str_contains($vfV, '$mcVfDa = $mcHerstPf && isset(Printful::ARTEN[$wmVl])'));
 Db::run('DELETE FROM wm_vorlagenfotos');
+
+/* ============================================================================
+   Geschenke über Printful (05.10.2026): Notizbuch, Flasche, Untersetzer, Beutel
+   ============================================================================ */
+abschnitt('Marketingcenter: Geschenke über Printful');
+foreach (['WmDruck', 'Werbemittel', 'QrPruefung', 'Printful', 'Druckerei'] as $gsKl) { require_once $wurzel . "/src/$gsKl.php"; }
+$gsArten = ['notizbuch' => [474, 12141, ['a', 'd']], 'flasche' => [382, 10798, ['a', 'd']], 'untersetzer' => [611, 15662, ['a', 'd']], 'beutel' => [367, 10457, ['a']]];
+$gsVorl = [];
+foreach ($gsArten as $gsV => [$gsProd, $gsVar, $gsSt]) {
+    $gsL = WmDruck::layout($gsV);
+    $gsG = @getimagesize($wurzel . '/druckvorlagen/' . $gsV . '/a-vorn-de.' . ($gsV === 'beutel' ? 'png' : 'jpg'));
+    $gsQr = $gsL['stile']['a']['qr'] ?? $gsL['stile']['a']['qr'] ?? null;
+    $gsVorl[$gsV] = is_array($gsG) && [$gsG[0], $gsG[1]] === Printful::ARTEN[$gsV]['px'] && ($gsL['px'] ?? null) === Printful::ARTEN[$gsV]['px']
+        && array_keys($gsL['stile']) === $gsSt && Printful::ARTEN[$gsV]['produkt'] === $gsProd && Printful::ARTEN[$gsV]['mockup'] === $gsVar
+        && Printful::KANDIDATEN[$gsV] === [$gsProd, $gsVar] && is_array($gsQr) && $gsQr[2] >= 150;
+}
+pruefe('Vorlagen in genau Printfuls Druckfläche (Notizbuch 1725 × 2625, Flasche 2557 × 1582, Untersetzer 1181 × 1181, Beutel 1500 × 1500), Code ≥ 15 mm; Beutel nur dunkel, durchsichtig als PNG',
+    !in_array(false, $gsVorl, true) && WmDruck::durchsichtig('beutel') && !WmDruck::durchsichtig('flasche')
+    && !WmDruck::einseitig('notizbuch') && WmDruck::einseitig('flasche') && isset(Printful::ARTEN['notizbuch']['dateien']['back']) && !isset(Printful::ARTEN['flasche']['dateien']['back'])
+    && @getimagesize($wurzel . '/druckvorlagen/beutel/a-vorn-de.png')['mime'] === 'image/png', json_encode($gsVorl));
+// Frühere Abschnitte leeren wm_anbieter_produkte — die Zuordnung aus Migration 171 hier noch einmal ausführen, wie sie dort steht.
+$gsSql = (string) file_get_contents($wurzel . '/migrations/171_geschenke_printful.sql');
+Db::run(substr($gsSql, (int) strrpos($gsSql, 'INSERT INTO wm_anbieter_produkte')));
+$gsPr = [];
+foreach (array_keys($gsArten) as $gsV) { $gsPr[$gsV] = Db::one('SELECT * FROM wm_produkte WHERE vorlage = ?', [$gsV]); }
+$gsZu = Db::all("SELECT p.vorlage, v.auflage, a.artikel, a.menge FROM wm_produkte p JOIN wm_varianten v ON v.produkt_id = p.id
+                  JOIN wm_anbieter_produkte a ON a.variante_id = v.id AND a.anbieter = 'printful' WHERE p.vorlage IN ('notizbuch', 'flasche', 'untersetzer', 'beutel') ORDER BY p.sortierung, v.auflage");
+pruefe('Produkte: Bereich „Geschenke“, AUS bis Uwe einschaltet, je drei Auflagen mit Printful-Variante × Stückzahl, keine geschätzten Preise',
+    !in_array(null, $gsPr, true) && array_unique(array_column($gsPr, 'bereich')) === ['geschenke'] && array_sum(array_column($gsPr, 'aktiv')) === 0
+    && count($gsZu) === 12 && $gsZu[0] == ['vorlage' => 'notizbuch', 'auflage' => 1, 'artikel' => '12141', 'menge' => 1]
+    && in_array(['vorlage' => 'untersetzer', 'auflage' => 12, 'artikel' => '15662', 'menge' => 12], $gsZu, false)
+    && in_array(['vorlage' => 'beutel', 'auflage' => 10, 'artikel' => '10457', 'menge' => 10], $gsZu, false)
+    && (int) Db::wert("SELECT COUNT(*) FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id JOIN wm_produkte p ON p.id = v.produkt_id WHERE p.vorlage IN ('notizbuch', 'flasche', 'untersetzer', 'beutel')") === 0,
+    json_encode($gsZu));
+Db::run("UPDATE wm_produkte SET aktiv = 1 WHERE vorlage IN ('notizbuch', 'flasche', 'untersetzer', 'beutel')");
+$gsA = Partner::laden(Partner::anlegen(['name' => 'Gina Geschenk', 'email' => 'gina@partner.example', 'code' => 'GINAGES', 'sprache' => 'de']));
+$gsErg = [];
+foreach ($gsArten as $gsV => $gsX) {
+    $gsE = Werbemittel::entwurfAnlegen($gsA, (int) $gsPr[$gsV]['id'], ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email']);
+    $gsR = Db::one('SELECT datei, datei_pf_vorn, datei_pf_hinten, qr_ok, qr_pruefung FROM wm_entwuerfe WHERE id = ?', [$gsE]);
+    $gsB = @getimagesizefromstring((string) $gsR['datei_pf_vorn']);
+    $gsH = $gsR['datei_pf_hinten'] === null ? null : @getimagesizefromstring((string) $gsR['datei_pf_hinten']);
+    $gsErg[$gsV] = ['e' => $gsE, 'vorn' => $gsB ? [$gsB[0], $gsB[1], $gsB['mime']] : null, 'hinten' => $gsH ? [$gsH[0], $gsH[1]] : null,
+                    'qr' => (int) $gsR['qr_ok'], 'pdf' => str_starts_with((string) $gsR['datei'], '%PDF'), 'grund' => (string) $gsR['qr_pruefung']];
+}
+pruefe('Entwurf je Geschenk: Printful-Bild in genau dessen Pixeln (Beutel PNG, sonst JPEG), Notizbuch vorn UND hinten, sonst nur vorn; Ansicht-PDF; QR-Prüfung im Bild bestanden',
+    $gsErg['notizbuch']['vorn'] === [1725, 2625, 'image/jpeg'] && $gsErg['notizbuch']['hinten'] === [1725, 2625]
+    && $gsErg['flasche']['vorn'] === [2557, 1582, 'image/jpeg'] && $gsErg['flasche']['hinten'] === null
+    && $gsErg['untersetzer']['vorn'] === [1181, 1181, 'image/jpeg'] && $gsErg['beutel']['vorn'] === [1500, 1500, 'image/png'] && $gsErg['beutel']['hinten'] === null
+    && array_sum(array_column($gsErg, 'qr')) === 4 && !in_array(false, array_column($gsErg, 'pdf'), true), json_encode($gsErg));
+$gsBeutel = imagecreatefromstring((string) Db::wert('SELECT datei_pf_vorn FROM wm_entwuerfe WHERE id = ?', [$gsErg['beutel']['e']]));
+pruefe('Beutel: Grund bleibt durchsichtig (Stoff ist der Grund), der Code steht auf weißer Fläche',
+    $gsBeutel !== false && ((imagecolorat($gsBeutel, 5, 5) >> 24) & 127) === 127
+    && (static function () use ($gsBeutel): bool { $l = WmDruck::layout('beutel')['stile']['a']['qr']; $k = 1500 / 2540; $c = imagecolorat($gsBeutel, (int) (($l[0] - 10) * $k), (int) (($l[1] - 10) * $k)); return (($c >> 24) & 127) === 0 && (($c >> 16) & 255) > 200; })());
+// Gegenprobe der QR-Prüfung: fremdes Bild an die Stelle → durchgefallen
+$gsFalsch = (string) Db::wert('SELECT datei_pf_vorn FROM wm_entwuerfe WHERE id = ?', [$gsErg['untersetzer']['e']]);
+Db::run('UPDATE wm_entwuerfe SET datei_pf_vorn = ? WHERE id = ?', [(string) Db::wert('SELECT datei_pf_vorn FROM wm_entwuerfe WHERE id = ?', [$gsErg['flasche']['e']]), $gsErg['untersetzer']['e']]);
+$gsQf = QrPruefung::fuerEntwurf($gsErg['untersetzer']['e']);
+pruefe('QR-Prüfung tastet das Printful-Bild ab: falsches Bild → „printful_bild“, keine Freigabe', in_array('printful_bild', $gsQf['fehler'] ?? [], true) && !QrPruefung::ok($gsErg['untersetzer']['e']), json_encode($gsQf));
+Db::run('UPDATE wm_entwuerfe SET datei_pf_vorn = ? WHERE id = ?', [$gsFalsch, $gsErg['untersetzer']['e']]);
+$gsNetz = [];
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$gsNetz): array {
+    $gsNetz[] = [$m, $u, $r];
+    if (str_contains($u, '/mockup-generator/create-task/')) { return ['code' => 200, 'body' => '{"result":{"task_key":"gs-' . count($gsNetz) . '"}}']; }
+    if (str_contains($u, '/mockup-generator/printfiles/474')) {
+        return ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 3, 'width' => 1725, 'height' => 2625]], 'variant_printfiles' => [['variant_id' => 12141, 'placements' => ['front' => 3, 'back' => 3]]]]])];
+    }
+    return ['code' => 404, 'body' => ''];
+};
+$gsM = Printful::mockupAnstossen($gsErg['notizbuch']['e']);
+$gsMu1 = (string) (end($gsNetz)[1] ?? '');
+$gsMr = json_decode((string) (end($gsNetz)[2] ?? ''), true);
+$gsF = Printful::flaechePruefen([12141], 'notizbuch');
+pruefe('Produktfoto Notizbuch: Mockup-Generator bekommt „front“ und „back“ (so heißen die Druckstellen dort), Aufträge weiter „default“/„back“; Flächenprüfung findet „front“',
+    $gsM === 'ok' && str_contains($gsMu1, '/mockup-generator/create-task/474') && ($gsMr['variant_ids'] ?? null) === [12141]
+    && array_column($gsMr['files'] ?? [], 'placement') === ['front', 'back'] && array_keys(Printful::ARTEN['notizbuch']['dateien']) === ['default', 'back']
+    && $gsF === '' && Printful::platzImGenerator('default', ['front' => 1]) === 'front' && Printful::platzImGenerator('default', ['default' => 1]) === 'default'
+    && Printful::ARTEN['visitenkarte']['plaetze'] === ['default' => 'front', 'back' => 'back'], json_encode([$gsMr['files'] ?? null, $gsF]));
+Printful::$netz = null;
+$gsMu = Druckerei::musterDatei('probe_vf_beutel_a_de_vorn'); $gsMn = Druckerei::musterDatei('probe_vf_notizbuch_d_it_hinten');
+pruefe('Musterbilder für die Vorlagenfotos: Beutel als PNG, Notizbuch auch hinten; Druckdatei-Link liefert PNG als image/png',
+    str_starts_with($gsMu, "\x89PNG") && @getimagesizefromstring($gsMn)[1] === 2625 && Druckerei::fassungGueltig('probe_vf_flasche_a_en_vorn')
+    && str_contains((string) file_get_contents($oben . '/druckdatei.php'), "'image/png'"));
+$gsV1 = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+pruefe('Partnerbereich: die 90 × 50-Fassung nur bei der Visitenkarte (das Notizbuch hat auch zwei Printful-Bilder)',
+    str_contains($gsV1, "\$mcPf90 = !empty(\$wmE['hat_pf']) && (string) \$wmP['vorlage'] === 'visitenkarte'") && !str_contains($gsV1, "<?php if (!empty(\$wmE['hat_pf'])): ?>"));
+$gsVs = @getimagesizefromstring(Werbemittel::vorschauBild($gsA, 'beutel', 'a', 'de', 'email'));
+pruefe('Vorschau Beutel: auf dunklem Stoff (JPEG, quadratisch)', is_array($gsVs) && $gsVs['mime'] === 'image/jpeg' && $gsVs[0] === $gsVs[1]);
+Db::run("UPDATE wm_produkte SET aktiv = 0 WHERE vorlage IN ('notizbuch', 'flasche', 'untersetzer', 'beutel')");
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $gsA['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $gsA['id']]);
 
 /* ============================================================================
    Printful-Druckflächen abfragen (04.10.2026): Grundlage für neue Gestaltungen
