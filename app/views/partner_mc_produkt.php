@@ -86,7 +86,7 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
         ? 'data:image/jpeg;base64,' . base64_encode(Werbemittel::vorschauBild($p, $wmVl, $wmJetzt['stil'], $sprache, 'email'))
         : $selbst(['wmv' => $wmVl, 'st' => $wmJetzt['stil'], 'vks' => $wmJetzt['sprache'], 'ks' => $wmJetzt['kontakt'], 'tt' => (string) ($wmJetzt['titel'] ?? '')]); ?>
       <figure class="mc-vorschau">
-        <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : 'width="528" height="360"')) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
+        <img src="<?= $h($wmBild) ?>" <?= $mcQuer ? 'width="720" height="231"' : (str_starts_with($wmVl, 'aufkleber') ? 'width="360" height="360"' : (str_starts_with($wmVl, 'rollup') ? 'width="176" height="420"' : (str_starts_with($wmVl, 'tasse') ? 'width="926" height="360"' : 'width="528" height="360"'))) ?> loading="lazy" decoding="async" id="wm-bild-<?= (int) $wmP['id'] ?>"
              <?php if (!$wmNurLesen): ?>data-muster="<?= $h($selbst(['wmv' => $wmVl, 'st' => '_S_', 'vks' => '_L_', 'ks' => '_K_', 'tt' => '_T_'])) ?>"<?php endif; ?>
              alt="<?= $h(strtr($W('vorschau_alt'), ['{name}' => $wmP['name']])) ?>">
         <figcaption><?= $h($mcT('vorschau')) ?></figcaption>

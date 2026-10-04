@@ -31,7 +31,7 @@ final class Werbemittel
 {
     public const SPRACHEN = ['it', 'de', 'en'];
     /** Vorlagen, die heute eine Druckdatei erzeugen können. */
-    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)', 'rollup_85' => 'Roll-up 85 × 200 cm (WmDruck)', 'kalender_a3' => 'Wandkalender A3 2027 (WmKalender, Gelato)'];
+    public const VORLAGEN = ['visitenkarte' => 'Visitenkarte (PartnerKarten)', 'flyer_a6' => 'Flyer A6 (WmDruck)', 'flyer_a5' => 'Flyer A5 (WmDruck)', 'flyer_branche' => 'Branchen-Flyer A5 DE/IT/EN (WmDruck)', 'aufkleber_50' => 'Aufkleber rund Ø 5 cm (WmDruck)', 'rollup_85' => 'Roll-up 85 × 200 cm (WmDruck)', 'kalender_a3' => 'Wandkalender A3 2027 (WmKalender, Gelato)', 'tasse_11' => 'Tasse 11 oz (WmDruck, Printful)'];
 
     /** Hat die Vorlage eine Gestaltung mit Stil/Sprache/Kontakt, Vorschau und Freigabe? */
     public static function gestaltbar(string $vorlage): bool
@@ -580,7 +580,7 @@ final class Werbemittel
             $p['_wm_titel'] = (string) ($w['titel'] ?? '');
             $pdf = match ((string) $pr['vorlage']) {
                 'visitenkarte' => PartnerKarten::pdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 'einzeln'),
-                'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
+                'flyer_a6', 'flyer_a5', 'flyer_branche', 'aufkleber_50', 'rollup_85', 'tasse_11' => (static function () use ($p, $pr, $w): string { require_once __DIR__ . '/WmDruck.php'; return WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt']); })(),
                 'kalender_a3' => (static function () use ($p, $w): string { require_once __DIR__ . '/WmKalender.php'; return WmKalender::pdf($p, $w['stil'], $w['sprache'], $w['kontakt']); })(),
                 default => '',
             };
@@ -601,6 +601,11 @@ final class Werbemittel
             // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
             // Partner sieht sie vor der Freigabe als zweite Vorschau — ohne sie geht nichts an Printful.
             $pf = ['', ''];
+            if ((string) $pr['vorlage'] === 'tasse_11') {
+                // Printful druckt die Tasse aus genau diesem Bild (2700 × 1050 px, Code als Raster) — der Partner sieht es als Vorschau.
+                $pf = [WmDruck::bild($p, 'tasse_11', $w['stil'], $w['sprache'], $w['kontakt']), ''];
+                if ($pf[0] === '') { throw new RuntimeException('Tassenbild ließ sich nicht erzeugen.'); }
+            }
             if ((string) $pr['vorlage'] === 'visitenkarte') {
                 require_once __DIR__ . '/Printful.php';
                 [$pw, $ph] = Printful::VORLAGE;
@@ -612,13 +617,15 @@ final class Werbemittel
             throw $e;
         }
         $druckGleich = $druck !== '' && $druck === $pdf;
-        Db::transaktion(static function () use ($p, $produktId, $id, $pdf, $druck, $pf, $druckGleich): void {
+        $tasse = (string) $pr['vorlage'] === 'tasse_11';
+        Db::transaktion(static function () use ($p, $produktId, $id, $pdf, $druck, $pf, $druckGleich, $tasse): void {
             Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ? AND status = 'entwurf' AND id <> ?", [(int) $p['id'], $produktId, $id]);
             Db::run("UPDATE wm_entwuerfe SET datei = ?, datei_hash = ?, datei_bytes = ?, datei_druck = ?, datei_druck_hash = ?,
                             datei_pf_vorn = ?, datei_pf_hinten = ?, status = 'entwurf' WHERE id = ? AND status = 'entsteht'", [
                 $pdf, hash('sha256', $pdf), strlen($pdf),
                 $druck !== '' && !$druckGleich ? $druck : null, $druck !== '' ? hash('sha256', $druck) : null,
-                $pf[0] !== '' && $pf[1] !== '' ? $pf[0] : null, $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null, $id]);
+                // Karte: beide Seiten oder keine; Tasse: nur vorn (eine Druckstelle).
+                $pf[0] !== '' && ($pf[1] !== '' || $tasse) ? $pf[0] : null, $pf[0] !== '' && $pf[1] !== '' ? $pf[1] : null, $id]);
         }, 3);
         // QR-Prüfung vor der Produktion (Schritt 8): die fertigen Dateien zurücklesen. Fällt sie durch,
         // bleibt der Entwurf sichtbar, ist aber nicht freigebbar (freigeben) und geht nie in den Druck.

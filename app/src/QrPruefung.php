@@ -159,6 +159,16 @@ final class QrPruefung
                 $mm = $mm > 0 ? min($mm, $r['mm']) : $r['mm'];
             }
             // Printful druckt die Visitenkarte aus diesen Bildern, nicht aus dem PDF — also auch sie.
+            // Tasse: Printful druckt das Rundum-Bild — Code an seiner Stelle im Bild abtasten.
+            if ($vorlage === 'tasse_11' && $e['datei_pf_vorn'] !== null) {
+                require_once __DIR__ . '/WmDruck.php';
+                $w = (array) json_decode((string) $e['wahl'], true);
+                $lay = WmDruck::layout('tasse_11');
+                [$qx, $qy, $qs] = $lay['stile'][(string) ($w['stil'] ?? '')]['qr'] ?? [0, 0, 0];
+                $gr = @getimagesizefromstring((string) $e['datei_pf_vorn']);
+                $k = $gr ? $gr[0] / (($lay['b'] + 2 * $lay['beschnitt']) * 10) : 0;
+                if (!$k || !self::imBild((string) $e['datei_pf_vorn'], [$qx * $k, $qy * $k, $qs * $k], $link)) { $fehler[] = 'printful_bild'; }
+            }
             if ($vorlage === 'visitenkarte' && $e['datei_pf_hinten'] !== null) {
                 require_once __DIR__ . '/Printful.php';
                 $w = (array) json_decode((string) $e['wahl'], true);

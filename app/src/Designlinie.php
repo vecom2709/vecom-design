@@ -38,6 +38,7 @@ final class Designlinie
         'aufkleber_50' => ['a' => 'premium', 'd' => 'business'],
         'rollup_85'    => ['a' => 'premium', 'd' => 'business'],
         'kalender_a3'  => ['a' => 'premium'],
+        'tasse_11'     => ['a' => 'premium', 'd' => 'business'],
     ];
 
     /** Linie eines Stils. Branchen-Flyer: hell (dunkle Schrift am Link) = Business, sonst Premium. */

@@ -47,6 +47,32 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     public const VORLAGE = [1125, 675];          // px, siehe Kopf
     public const LAENDER = ['IT', 'DE'];
 
+    /**
+     * Was wir bei Printful drucken, je Vorlage (04.10.2026, Tasse dazu): Katalogprodukt, unsere Bildgröße
+     * (Seitenverhältnis wird vor jedem Auftrag gegen Printfuls eigene Druckfläche geprüft), welche Datei an
+     * welche Druckstelle geht, die Variante fürs Produktfoto und was beim Angebot als Material steht.
+     * Material der Tasse aus Printfuls Katalogtext (GET /products/19): Keramik, spülmaschinen- und mikrowellenfest.
+     */
+    public const ARTEN = [
+        'visitenkarte' => ['produkt' => 724, 'px' => [1125, 675], 'dateien' => ['default' => 'pf_vorn', 'back' => 'pf_hinten'], 'mockup' => 18554,
+                           'material' => 'Munken Lynx 300 g, 90 × 50 mm (eingepasst)'],
+        'tasse_11'     => ['produkt' => 19, 'px' => [2700, 1050], 'dateien' => ['default' => 'pf_vorn'], 'mockup' => 1320,
+                           'material' => 'Keramiktasse weiß glänzend, 11 oz (325 ml), spülmaschinen- und mikrowellenfest'],
+    ];
+
+    /** Vorlage eines Entwurfs (über sein Produkt). */
+    private static function vorlageVon(int $entwurfId): string
+    {
+        return (string) Db::wert('SELECT w.vorlage FROM wm_entwuerfe e JOIN wm_produkte w ON w.id = e.produkt_id WHERE e.id = ?', [$entwurfId], '');
+    }
+
+    /** Liegen alle Printful-Dateien dieses Entwurfs vor? */
+    private static function dateienDa(int $entwurfId, array $art): bool
+    {
+        $spalten = array_map(static fn(string $f): string => 'datei_' . $f . ' IS NOT NULL', array_values($art['dateien']));
+        return (bool) Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND ' . implode(' AND ', $spalten), [$entwurfId]);
+    }
+
     /** Prüfnaht für die Kette: fn(string $methode, string $url, array $kopf, ?string $rumpf): array{code:int, body:string} */
     public static $netz = null;
 
@@ -80,26 +106,28 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         $ad = (array) json_decode((string) $b['adresse'], true);
         $land = strtoupper((string) ($ad['land'] ?? ''));
         if (!in_array($land, self::LAENDER, true)) { return ['ok' => false, 'grund' => 'Printful wird nur für Italien und Deutschland benutzt.']; }
-        $items = [];
+        $items = []; $jeVorlage = [];
         foreach (Db::all('SELECT * FROM wm_positionen WHERE bestellung_id = ? ORDER BY id', [$bestellungId]) as $i => $x) {
             $a = Db::one("SELECT artikel, menge FROM wm_anbieter_produkte WHERE variante_id = ? AND anbieter = 'printful'", [(int) $x['variante_id']]);
             if (!$a || !ctype_digit((string) $a['artikel'])) { return ['ok' => false, 'grund' => 'Für „' . $x['variante'] . '“ ist keine Printful-Variante eingetragen.']; }
-            $e = Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL', [(int) $x['entwurf_id']]);
-            if (!$e) { return ['ok' => false, 'grund' => 'Zu „' . $x['variante'] . '“ fehlt die eingepasste Fassung (90 × 50 mm), die der Partner gesehen hat. Ältere Freigaben haben sie nicht — der Partner muss neu freigeben.']; }
-            $items[] = [
-                'external_id' => $b['nummer'] . '-' . ($i + 1),
-                'variant_id' => (int) $a['artikel'],
-                'quantity' => (int) $a['menge'] * (int) $x['menge'],
-                'files' => [
-                    ['type' => 'default', 'url' => Druckerei::dateiLink((int) $x['entwurf_id'], 'pf_vorn')],
-                    ['type' => 'back', 'url' => Druckerei::dateiLink((int) $x['entwurf_id'], 'pf_hinten')],
-                ],
-            ];
+            $vorlage = self::vorlageVon((int) $x['entwurf_id']);
+            $art = self::ARTEN[$vorlage] ?? null;
+            if (!$art) { return ['ok' => false, 'grund' => 'Printful druckt „' . $x['variante'] . '“ nicht (keine Printful-Art für diese Vorlage).']; }
+            if (!self::dateienDa((int) $x['entwurf_id'], $art)) {
+                return ['ok' => false, 'grund' => 'Zu „' . $x['variante'] . '“ fehlt ' . ($vorlage === 'visitenkarte' ? 'die eingepasste Fassung (90 × 50 mm)' : 'das Printful-Bild')
+                    . ', die der Partner gesehen hat. Ältere Freigaben haben sie nicht — der Partner muss neu freigeben.'];
+            }
+            $files = [];
+            foreach ($art['dateien'] as $platz => $fassung) { $files[] = ['type' => $platz, 'url' => Druckerei::dateiLink((int) $x['entwurf_id'], $fassung)]; }
+            $items[] = ['external_id' => $b['nummer'] . '-' . ($i + 1), 'variant_id' => (int) $a['artikel'], 'quantity' => (int) $a['menge'] * (int) $x['menge'], 'files' => $files];
+            $jeVorlage[$vorlage][] = (int) $a['artikel'];
         }
         if (!$items) { return ['ok' => false, 'grund' => 'Die Bestellung hat keine Position.']; }
         // Vor dem Senden: passt unser Bild zur Druckfläche, die Printful selbst meldet? Sonst nichts senden.
-        $passt = self::flaechePruefen(array_column($items, 'variant_id'));
-        if ($passt !== '') { return ['ok' => false, 'grund' => $passt]; }
+        foreach ($jeVorlage as $vorlage => $ids) {
+            $passt = self::flaechePruefen($ids, $vorlage);
+            if ($passt !== '') { return ['ok' => false, 'grund' => $passt]; }
+        }
         $koerper = ['external_id' => (string) $b['nummer'], 'shipping' => 'STANDARD', 'recipient' => self::empfaenger($ad), 'items' => $items];
         if (!Druckerei::sperren($bestellungId, self::NAME)) { return ['ok' => false, 'grund' => 'Diese Bestellung wurde schon gesendet (oder es läuft gerade).']; }
         try {
@@ -143,7 +171,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     public static function probeSenden(): array
     {
         require_once __DIR__ . '/Druckerei.php';
-        $a = Db::one("SELECT artikel FROM wm_anbieter_produkte WHERE anbieter = 'printful' ORDER BY menge, id LIMIT 1");
+        $a = Db::one("SELECT a.artikel FROM wm_anbieter_produkte a JOIN wm_varianten v ON v.id = a.variante_id JOIN wm_produkte w ON w.id = v.produkt_id
+                       WHERE a.anbieter = 'printful' AND w.vorlage = 'visitenkarte' ORDER BY a.menge, a.id LIMIT 1");   // Probe = Musterkarte
         if (!$a || !ctype_digit((string) $a['artikel'])) { return ['ok' => false, 'grund' => 'Keine Printful-Variante zugeordnet.']; }
         $passt = self::flaechePruefen([(int) $a['artikel']]);
         if ($passt !== '') { return ['ok' => false, 'grund' => $passt]; }
@@ -201,7 +230,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         require_once __DIR__ . '/Werbemittel.php';
         self::$letzterGrund = '';
         $n = 0;
-        foreach (Db::all("SELECT variante_id, artikel, menge FROM wm_anbieter_produkte WHERE anbieter = 'printful'") as $z) {
+        foreach (Db::all("SELECT a.variante_id, a.artikel, a.menge, w.vorlage FROM wm_anbieter_produkte a JOIN wm_varianten v ON v.id = a.variante_id
+                           JOIN wm_produkte w ON w.id = v.produkt_id WHERE a.anbieter = 'printful'") as $z) {
             foreach (self::LAENDER as $land) {
                 try {
                     $r = self::rufen('POST', '/orders/estimate-costs', ['recipient' => self::musterEmpfaenger($land),
@@ -215,7 +245,7 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
                     Werbemittel::angebotSpeichern((int) $z['variante_id'], [
                         'anbieter' => self::NAME, 'land' => $land, 'preis_eur' => number_format($total / 100, 2, ',', ''),
                         'netto_eur' => $netto > 0 ? number_format($netto / 100, 2, ',', '') : '',
-                        'papier' => 'Munken Lynx 300 g, 90 × 50 mm (eingepasst), Variante ' . $z['artikel'] . ' × ' . $z['menge'],
+                        'papier' => (self::ARTEN[$z['vorlage']]['material'] ?? 'Printful') . ', Variante ' . $z['artikel'] . ' × ' . $z['menge'],
                         'lieferung' => 'Standardversand · automatisch', 'link' => 'https://www.printful.com/dashboard', 'geprueft_am' => date('Y-m-d'),
                     ]);
                     $n++;
@@ -229,25 +259,27 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
      * Fragt die Druckfläche bei Printful ab und vergleicht das Seitenverhältnis
      * mit VORLAGE (1 % Spielraum). Leer = passt, sonst der Grund.
      */
-    public static function flaechePruefen(array $variantenIds): string
+    public static function flaechePruefen(array $variantenIds, string $vorlage = 'visitenkarte'): string
     {
+        $art = self::ARTEN[$vorlage] ?? null;
+        if (!$art) { return 'Printful druckt diese Vorlage nicht.'; }
         try {
-            $r = self::rufen('GET', '/mockup-generator/printfiles/' . self::PRODUKT, null);
+            $r = self::rufen('GET', '/mockup-generator/printfiles/' . $art['produkt'], null);
         } catch (Throwable $e) { return 'Druckfläche bei Printful nicht abrufbar: ' . $e->getMessage(); }
         $d = (array) (json_decode($r['body'], true)['result'] ?? []);
         if ($r['code'] !== 200 || !$d) { return 'Druckfläche bei Printful nicht abrufbar (' . self::grund($r) . ').'; }
         $flaechen = [];
         foreach ((array) ($d['printfiles'] ?? []) as $f) { $flaechen[(int) ($f['printfile_id'] ?? 0)] = $f; }
-        $soll = self::VORLAGE[0] / self::VORLAGE[1];
+        $soll = $art['px'][0] / $art['px'][1];
         foreach ((array) ($d['variant_printfiles'] ?? []) as $vp) {
             if (!in_array((int) ($vp['variant_id'] ?? 0), $variantenIds, true)) { continue; }
-            foreach (['default', 'back'] as $platz) {
+            foreach (array_keys($art['dateien']) as $platz) {
                 $f = $flaechen[(int) ($vp['placements'][$platz] ?? 0)] ?? null;
                 if (!$f || (int) ($f['height'] ?? 0) <= 0) { return 'Printful meldet für Variante ' . $vp['variant_id'] . ' keine Druckfläche „' . $platz . '“.'; }
                 $ist = (int) $f['width'] / (int) $f['height'];
                 $istHoch = (int) $f['height'] / (int) $f['width'];
                 if (abs($ist - $soll) / $soll > 0.01 && !(!empty($f['can_rotate']) && abs($istHoch - $soll) / $soll <= 0.01)) {
-                    return 'Printful-Druckfläche ' . $f['width'] . ' × ' . $f['height'] . ' px passt nicht zu unserem Bild ' . self::VORLAGE[0] . ' × ' . self::VORLAGE[1] . ' px — nichts gesendet.';
+                    return 'Printful-Druckfläche ' . $f['width'] . ' × ' . $f['height'] . ' px passt nicht zu unserem Bild ' . $art['px'][0] . ' × ' . $art['px'][1] . ' px — nichts gesendet.';
                 }
             }
         }
@@ -271,13 +303,12 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     {
         if (!self::bereit()) { return 'aus'; }
         require_once __DIR__ . '/Druckerei.php';
-        $e = Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND datei_pf_vorn IS NOT NULL AND datei_pf_hinten IS NOT NULL AND mockup_status IS NULL', [$entwurfId]);
-        if (!$e) { return 'fehlt'; }
-        $koerper = ['variant_ids' => [self::MOCKUP_VARIANTE], 'format' => 'jpg', 'width' => 1000, 'files' => [
-            ['placement' => 'default', 'image_url' => Druckerei::dateiLink($entwurfId, 'pf_vorn', 3)],
-            ['placement' => 'back', 'image_url' => Druckerei::dateiLink($entwurfId, 'pf_hinten', 3)],
-        ]];
-        try { $r = self::rufen('POST', '/mockup-generator/create-task/' . self::PRODUKT, $koerper); }
+        $art = self::ARTEN[self::vorlageVon($entwurfId)] ?? null;
+        if (!$art || !self::dateienDa($entwurfId, $art) || !Db::one('SELECT id FROM wm_entwuerfe WHERE id = ? AND mockup_status IS NULL', [$entwurfId])) { return 'fehlt'; }
+        $files = [];
+        foreach ($art['dateien'] as $platz => $fassung) { $files[] = ['placement' => $platz, 'image_url' => Druckerei::dateiLink($entwurfId, $fassung, 3)]; }
+        $koerper = ['variant_ids' => [$art['mockup']], 'format' => 'jpg', 'width' => 1000, 'files' => $files];
+        try { $r = self::rufen('POST', '/mockup-generator/create-task/' . $art['produkt'], $koerper); }
         catch (Throwable $ex) { self::$letzterGrund = $ex->getMessage(); return 'fehler'; }
         if ($r['code'] === 429) { self::$letzterGrund = self::grund($r); return 'grenze'; }   // später wieder: Status bleibt leer
         $k = (string) (json_decode($r['body'], true)['result']['task_key'] ?? '');

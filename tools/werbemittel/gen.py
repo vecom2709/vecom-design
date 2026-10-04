@@ -24,6 +24,10 @@ FORMATE = {
     # Datenformat 87 × 227 cm, unten 25 cm in der Kassette (unsichtbar). 100 dpi reichen für Lesen
     # aus 1–3 m; PHP lädt das Bild nie in GD (zu groß), sondern bettet es so ins PDF (04.10.2026).
     'rollup_85': {'b': 850, 'h': 2250, 'beschnitt': 10, 'dpi': 150, 'einseitig': True, 'stile': 'AD', 'gross': True},
+    # Tasse 11 oz, Printful „White Glossy Mug“ (Variante 1320, Sublimation): Rundum-Bild 9 × 3,5 Zoll bei 300 dpi
+    # (2700 × 1050 px). Ohne Beschnitt — das Bild IST die Druckfläche; Printful::flaechePruefen vergleicht vor jedem
+    # Auftrag das Seitenverhältnis mit dem, was Printful selbst meldet, und sendet bei Abweichung nichts.
+    'tasse_11': {'b': 228.6, 'h': 88.9, 'beschnitt': 0, 'dpi': 300, 'einseitig': True, 'stile': 'AD', 'tasse': True},
 }
 
 T = {
@@ -38,6 +42,7 @@ T = {
     'ansprech': {'de': 'Ihr Ansprechpartner', 'it': 'Il suo referente', 'en': 'Your contact'},
     'jetzt': {'de': 'Jetzt scannen', 'it': 'Scansiona ora', 'en': 'Scan now'},
     'website': {'de': 'Ihre neue Website', 'it': 'Il suo nuovo sito', 'en': 'Your new website'},
+    'leistungen': {'de': 'WEB · BRANDING · 3D · DIGITAL', 'it': 'WEB · BRANDING · 3D · DIGITAL', 'en': 'WEB · BRANDING · 3D · DIGITAL'},
 }
 
 def grund(stil, W, H, hinten=False):
@@ -206,14 +211,48 @@ def rollup(stil, lang, W, H):
     g += text(W/2, sicht - 900, 'vecom-design.it', 360, 700, gold, extra='letter-spacing="6"')
     return g, lay
 
+def tasse(stil, lang, W, H):
+    """Tasse rundum: links (für Rechtshänder zum Gegenüber gewandt) die Marke, rechts Ansprechpartner und Code.
+    Die beiden Enden treffen sich am Henkel — dort 12 mm frei."""
+    hell = stil == 'D'
+    hellt, gold = ('#1f1a13', '#9a6f25') if hell else ('#f6f1e6', '#e6b85c')
+    g = (f'<rect width="{W}" height="{H}" fill="#f4efe6"/><rect width="{W}" height="{H}" filter="url(#papier)"/>' if hell
+         else K.schwarz_grund())
+    # feine Goldlinien oben und unten über die ganze Breite
+    for y in (70, H - 76):
+        g += f'<rect x="0" y="{y}" width="{W}" height="6" fill="url(#goldH)"/>'
+    # Marke links
+    l, unten = K.logo_gross(W * 0.25, 150, 360, hell=hell)
+    g += l
+    g += text(W * 0.25, unten + 120, T['leistungen'][lang], 30, 600, hellt, extra='letter-spacing="6" opacity=".9"')
+    # Trenner in der Mitte (gegenüber dem Henkel)
+    g += f'<rect x="{W / 2 - 2}" y="{H * 0.25}" width="4" height="{H * 0.5}" fill="url(#gold)" opacity=".7"/>'
+    # Ansprechpartner rechts: Code links, Text rechts daneben
+    qs = 300
+    qx, qy = W / 2 + 120, H / 2 - qs / 2 - 20
+    box, modul = K.qr_box(qx, qy, qs, 'B' if not hell else 'D')
+    g += box
+    g += text(qx + qs / 2, qy + qs + 66, T['jetzt'][lang].upper(), 26, 700, gold, extra='letter-spacing="5"')
+    tx = qx + qs + 70
+    g += text(tx, H / 2 - 120, T['ansprech'][lang], 32, 500, hellt, anker='start', extra='opacity=".85"')
+    g += f'<rect x="{tx}" y="{H / 2 - 96}" width="70" height="4" fill="url(#goldH)"/>'
+    rest = W - 120 - tx
+    lay = {'qr': modul, 'einseitig': True,
+           'name': {'x': round(tx), 'y': round(H / 2 - 10), 'size': 58, 'font': 700, 'farbe': hellt, 'max': round(rest)},
+           'link': {'x': round(tx), 'y': round(H / 2 + 60), 'size': 36, 'font': 600, 'farbe': gold, 'max': round(rest)},
+           'kontakt': {'x': round(tx), 'y': round(H / 2 + 118), 'size': 32, 'font': 500, 'farbe': hellt, 'max': round(rest)}}
+    return g, lay
+
 def seite(fmt, stil, art, lang):
     f = FORMATE[fmt]
     K.B = f['beschnitt'] * 10
-    W = (f['b'] + 2*f['beschnitt']) * 10
-    H = (f['h'] + 2*f['beschnitt']) * 10
+    W = round((f['b'] + 2*f['beschnitt']) * 10)
+    H = round((f['h'] + 2*f['beschnitt']) * 10)
     K.W, K.H = W, H
     if f.get('gross'):
         inhalt, lay = rollup(stil, lang, W, H)
+    elif f.get('tasse'):
+        inhalt, lay = tasse(stil, lang, W, H)
     elif f.get('einseitig'):
         inhalt, lay = aufkleber(stil, lang, W, H)
     else:

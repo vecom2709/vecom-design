@@ -22902,10 +22902,21 @@ $wkV = @getimagesizefromstring(WmKalender::vorschau($wkP, 'a', 'de'));
 pruefe('Vorschau (Titel + Januar) und Kachel', is_array($wkV) && $wkV[1] === 760 && $wkV[0] > 1000
     && is_array(@getimagesizefromstring(Werbemittel::miniBild('kalender_a3', 'a', 'it'))) && Werbemittel::miniBild('kalender_a3', 'b', 'it') === '');
 $wkPr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'kalender_a3'");
-pruefe('Produkt angelegt: im Bereich „Geschenke für Betriebe“, aus, 1/5/10 Stück, ohne erfundene Preise',
-    $wkPr && (int) $wkPr['aktiv'] === 0 && $wkPr['bereich'] === 'geschenke' && in_array('geschenke', Marketingcenter::PRODUKT_BEREICHE, true)
+// Frühere Abschnitte leeren Zuordnungen und Angebote — Migration 167 hier noch einmal ausführen, wie sie dort steht.
+foreach (array_filter(array_map('trim', explode(';', (string) preg_replace('~^--.*$~m', '', (string) file_get_contents($wurzel . '/migrations/167_wandkalender_gelato.sql'))))) as $wkSql) { Db::run($wkSql); }
+$wkPr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'kalender_a3'");
+$wkPreise = Db::all("SELECT v.auflage, a.land, a.preis_cent, a.netto_cent FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id WHERE v.produkt_id = ? AND a.anbieter = 'Gelato' ORDER BY a.land, v.auflage", [(int) $wkPr['id']]);
+$wkRechnung = true;   // netto = Stück × Preis + 5,74 + (Stück − 1) × 2,21; brutto mit 19 % / 22 % (Gelato-Dashboard 04.10.2026)
+foreach ($wkPreise as $wkZ) {
+    $wkN = (int) $wkZ['auflage'] * ($wkZ['land'] === 'DE' ? 901 : 1209) + 574 + ((int) $wkZ['auflage'] - 1) * 221;
+    $wkRechnung = $wkRechnung && (int) $wkZ['netto_cent'] === $wkN && (int) $wkZ['preis_cent'] === (int) round($wkN * ($wkZ['land'] === 'DE' ? 1.19 : 1.22));
+}
+pruefe('Produkt: „Geschenke für Betriebe“, 1/5/10 Stück, eingeschaltet (Uwe), Gelato-Artikel A3 hoch mit Aufhänger, Preise aus dem Dashboard richtig gerechnet',
+    $wkPr && (int) $wkPr['aktiv'] === 1 && $wkPr['bereich'] === 'geschenke' && in_array('geschenke', Marketingcenter::PRODUKT_BEREICHE, true)
     && Db::all('SELECT auflage FROM wm_varianten WHERE produkt_id = ? ORDER BY auflage', [(int) $wkPr['id']]) === [['auflage' => 1], ['auflage' => 5], ['auflage' => 10]]
-    && (int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id WHERE v.produkt_id = ?', [(int) $wkPr['id']]) === 0);
+    && count($wkPreise) === 6 && $wkRechnung
+    && Db::wert("SELECT artikel FROM wm_anbieter_produkte a JOIN wm_varianten v ON v.id = a.variante_id WHERE v.produkt_id = ? AND a.anbieter = 'gelato' AND v.auflage = 5", [(int) $wkPr['id']])
+       === 'wall-calendars_pf_a3_pt_250-gsm-coated-silk_cl_4-4_bt_wire-with-hook-top_ver', json_encode($wkPreise));
 Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $wkPr['id']]);
 $wkA = Partner::laden(Partner::anlegen(['name' => 'Kai Kalender', 'email' => 'kai@partner.example', 'code' => 'KAIKAL', 'sprache' => 'de']));
 $wkE = Werbemittel::entwurfAnlegen($wkA, (int) $wkPr['id'], ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'vecom']);
@@ -22917,7 +22928,62 @@ pruefe('Entwurf: Druckdatei für Gelato = Ansicht, nur einmal gespeichert (max_a
     && str_contains((string) file_get_contents($wurzel . '/src/Gelato.php'), "\$item['pageCount'] = WmKalender::SEITEN"));
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $wkA['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $wkA['id']]);
-Db::run('UPDATE wm_produkte SET aktiv = 0 WHERE id = ?', [(int) $wkPr['id']]);
+
+/* ============================================================================
+   Geschenke für Betriebe: Tasse 11 oz (Printful, 04.10.2026)
+   ============================================================================ */
+abschnitt('Marketingcenter: Tasse');
+foreach (['WmDruck', 'Werbemittel', 'QrPruefung', 'Printful'] as $taKl) { require_once $wurzel . "/src/$taKl.php"; }
+$taL = WmDruck::layout('tasse_11');
+$taG = @getimagesize($wurzel . '/druckvorlagen/tasse_11/a-vorn-de.jpg');
+pruefe('Vorlage: Rundum-Bild 2700 × 1050 px (9 × 3,5 Zoll bei 300 dpi) wie in Printful::ARTEN, ohne Beschnitt, Stile a und d, Code ≥ 15 mm',
+    is_array($taG) && $taG[0] === 2700 && $taG[1] === 1050 && Printful::ARTEN['tasse_11']['px'] === [2700, 1050]
+    && (float) $taL['beschnitt'] === 0.0 && array_keys($taL['stile']) === ['a', 'd'] && $taL['stile']['a']['qr'][2] >= 150
+    && Printful::ARTEN['tasse_11']['dateien'] === ['default' => 'pf_vorn'] && WmDruck::einseitig('tasse_11'));
+$taPr = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'tasse_11'");
+// Frühere Abschnitte leeren wm_anbieter_produkte — die Zuordnung aus Migration 166 hier noch einmal ausführen, wie sie dort steht.
+$taSql = (string) file_get_contents($wurzel . '/migrations/166_tasse.sql');
+Db::run(substr($taSql, (int) strrpos($taSql, 'INSERT INTO wm_anbieter_produkte')));
+pruefe('Produkt: „Geschenke für Betriebe“, an (sichtbar erst mit Printful-Preis), 1/6/12 Tassen, Printful-Variante 1320 × Stückzahl, keine geschätzten Preise',
+    $taPr && (int) $taPr['aktiv'] === 1 && $taPr['bereich'] === 'geschenke'
+    && !array_filter(Werbemittel::katalog('de', false, 'IT'), static fn($k) => in_array('tasse_11', array_column($k['produkte'], 'vorlage'), true))
+    && Db::all("SELECT v.auflage, a.artikel, a.menge FROM wm_varianten v JOIN wm_anbieter_produkte a ON a.variante_id = v.id AND a.anbieter = 'printful' WHERE v.produkt_id = ? ORDER BY v.auflage", [(int) $taPr['id']])
+       === [['auflage' => 1, 'artikel' => '1320', 'menge' => 1], ['auflage' => 6, 'artikel' => '1320', 'menge' => 6], ['auflage' => 12, 'artikel' => '1320', 'menge' => 12]]
+    && (int) Db::wert('SELECT COUNT(*) FROM wm_anbieter_preise a JOIN wm_varianten v ON v.id = a.variante_id WHERE v.produkt_id = ?', [(int) $taPr['id']]) === 0);
+Db::run('UPDATE wm_produkte SET aktiv = 1 WHERE id = ?', [(int) $taPr['id']]);
+$taA = Partner::laden(Partner::anlegen(['name' => 'Tina Tasse', 'email' => 'tina@partner.example', 'code' => 'TINATAS', 'sprache' => 'it']));
+$taNetz = [];
+Printful::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$taNetz): array {
+    $taNetz[] = [$m, $u, $r];
+    if (str_contains($u, '/mockup-generator/printfiles/19')) {
+        return ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 7, 'width' => 2700, 'height' => 1050]], 'variant_printfiles' => [['variant_id' => 1320, 'placements' => ['default' => 7]]]]])];
+    }
+    if (str_contains($u, '/mockup-generator/create-task/19')) { return ['code' => 200, 'body' => '{"result":{"task_key":"gt-tasse"}}']; }
+    return ['code' => 404, 'body' => ''];
+};
+$taE = Werbemittel::entwurfAnlegen($taA, (int) $taPr['id'], ['stil' => 'd', 'sprache' => 'it', 'kontakt' => 'email']);
+$taR = Db::one('SELECT datei, datei_pf_vorn, datei_pf_hinten, qr_ok, qr_pruefung FROM wm_entwuerfe WHERE id = ?', [$taE]);
+$taB = @getimagesizefromstring((string) $taR['datei_pf_vorn']);
+preg_match_all('~/Type /Page /Parent~', (string) $taR['datei'], $taS);
+pruefe('Entwurf: Ansicht-PDF eine Seite mit Code als Vektor, Printful-Bild 2700 × 1050 JPEG (nur vorn), QR-Prüfung auch im Bild bestanden',
+    count($taS[0]) === 1 && is_array($taB) && $taB[0] === 2700 && $taB[1] === 1050 && $taR['datei_pf_hinten'] === null
+    && (int) $taR['qr_ok'] === 1 && QrPruefung::pruefen((string) $taR['datei'], QrPruefung::erwartet($taA, 'tasse_11', $taE), 'tasse_11')['ok'], (string) $taR['qr_pruefung']);
+$taOk = Printful::mockupAnstossen($taE);
+$taAuftrag = json_decode((string) (end($taNetz)[2] ?? ''), true);
+pruefe('Produktfoto: Printful-Mockup der Tasse (Produkt 19, Variante 1320, nur Druckstelle „default“)',
+    $taOk === 'ok' && str_contains((string) end($taNetz)[1], '/mockup-generator/create-task/19') && ($taAuftrag['variant_ids'] ?? null) === [1320]
+    && array_column($taAuftrag['files'] ?? [], 'placement') === ['default']);
+$taPasst = Printful::flaechePruefen([1320], 'tasse_11');
+Printful::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 200, 'body' => json_encode(['result' => ['printfiles' => [['printfile_id' => 7, 'width' => 2475, 'height' => 1155]], 'variant_printfiles' => [['variant_id' => 1320, 'placements' => ['default' => 7]]]]])];
+$taPasstNicht = Printful::flaechePruefen([1320], 'tasse_11');
+pruefe('Vor jedem Auftrag: Druckfläche, die Printful meldet, muss zum Bild passen — sonst wird nichts gesendet',
+    $taPasst === '' && str_contains($taPasstNicht, 'passt nicht') && str_contains($taPasstNicht, 'nichts gesendet')
+    && Printful::flaechePruefen([1320], 'gibtsnicht') !== '');
+Printful::$netz = null;
+$taV = @getimagesizefromstring(Werbemittel::vorschauBild($taA, 'tasse_11', 'a', 'de', 'email'));
+pruefe('Vorschau: das Rundum-Bild flach (nicht rund wie der Aufkleber)', is_array($taV) && $taV[0] > 2 * $taV[1]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $taA['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $taA['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

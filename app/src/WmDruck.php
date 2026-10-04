@@ -29,6 +29,7 @@ final class WmDruck
         'flyer_branche' => 'Branchen-Flyer A5 (Vorlage)',
         'aufkleber_50' => 'Aufkleber rund Ø 5 cm (Vorlage)',
         'rollup_85' => 'Roll-up 85 × 200 cm (Vorlage)',
+        'tasse_11' => 'Tasse 11 oz rundum (Vorlage)',
     ];
 
     /**
@@ -401,6 +402,17 @@ final class WmDruck
         return self::jpeg($aus, 86);
     }
 
+    /**
+     * Das ganze Bild einer einseitigen Vorlage mit Partnerdaten und Code (Raster) als JPEG — die Datei, die eine
+     * Druckerei ohne PDF bekommt (Printful-Tasse: genau die Druckfläche, kein Beschnitt).
+     */
+    public static function bild(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email'): string
+    {
+        if (!self::gibt($fmt, $stil) || !self::einseitig($fmt) || self::gross($fmt)) { return ''; }
+        $im = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt);
+        return $im ? self::jpeg($im, 95) : '';
+    }
+
     /** Vorder- und Rückseite beschnitten nebeneinander, klein (Partnerbereich). */
     public static function vorschau(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email', int $hoehe = 360): string
     {
@@ -415,6 +427,7 @@ final class WmDruck
             $zu = imagecrop($im, ['x' => $b, 'y' => $b, 'width' => imagesx($im) - 2 * $b, 'height' => imagesy($im) - 2 * $b]) ?: $im;
             $teile[] = imagescale($zu, (int) round(imagesx($zu) * $hoehe / imagesy($zu)), $hoehe, IMG_BICUBIC) ?: $zu;
         }
+        if (count($teile) === 1 && !str_starts_with($fmt, 'aufkleber')) { return self::jpeg($teile[0], 86); }   // Tasse: das Rundum-Bild flach
         if (count($teile) === 1) {
             // Aufkleber: rund zeigen, wie er geschnitten wird — außerhalb des Kreises weiß.
             $t = $teile[0]; $d = imagesx($t);
