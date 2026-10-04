@@ -484,6 +484,8 @@ final class Werbemittel
         // aus denselben Daten, damit nichts anderes gedruckt wird als freigegeben (Phase 4).
         $druck = match ((string) $pr['vorlage']) {
             'visitenkarte' => PartnerKarten::druckPdf($p, $w['stil'], $w['sprache'], $w['kontakt'], 4.0, 300),
+            // Flyer gehen an Flyeralarm (von Hand): dort 1 mm Beschnitt je Seite statt unserer 3 mm.
+            'flyer_a6', 'flyer_a5', 'flyer_branche' => WmDruck::pdf($p, (string) $pr['vorlage'], $w['stil'], $w['sprache'], $w['kontakt'], self::FLYERALARM_BESCHNITT),
             default => '',
         };
         // Und die eingepasste Fassung für Printful (90 × 50 mm, Uwes Entscheidung 04.10.2026): der
@@ -551,10 +553,13 @@ final class Werbemittel
     }
 
     /** Die Datei eines Entwurfs — für den Partner nur seine eigene ($partnerId), für den Admin jede (null). */
+    /** Beschnitt (mm je Seite), den Flyeralarm für Flyer verlangt — Datenblatt, geprüft 04.10.2026. */
+    public const FLYERALARM_BESCHNITT = 1.0;
+
     public static function datei(int $entwurfId, ?int $partnerId): ?array
     {
         $r = $partnerId === null
-            ? Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ?', [$entwurfId])
+            ? Db::one('SELECT id, datei, datei_hash, datei_druck, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ?', [$entwurfId])
             : Db::one('SELECT id, datei, datei_hash, partner_id, produkt_id FROM wm_entwuerfe WHERE id = ? AND partner_id = ?', [$entwurfId, $partnerId]);
         return $r ?: null;
     }

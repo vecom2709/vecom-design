@@ -145,14 +145,30 @@ final class WmDruck
     }
 
     /** Druckdatei: Vorder- und Rückseite mit Beschnitt (TrimBox/BleedBox), QR-Code als Vektor. */
-    public static function pdf(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email'): string
+    /**
+     * $beschnitt (mm): null = wie die Vorlage (3 mm). Kleiner = Fassung für eine Druckerei, die weniger
+     * verlangt (Flyeralarm: 1 mm je Seite, Datenblatt flyer_a6_mass_uvl.pdf, geprüft 04.10.2026) — der
+     * Überschuss wird abgeschnitten, nicht gestaucht; Code und Text bleiben, wo sie waren.
+     */
+    public static function pdf(array $p, string $fmt, string $stil, string $sprache, string $kontakt = 'email', ?float $beschnitt = null): string
     {
         if (!self::gibt($fmt, $stil)) { return ''; }
         $lay = self::layout($fmt);
+        $weg = $beschnitt === null ? 0.0 : max(0.0, (float) $lay['beschnitt'] - $beschnitt);   // mm je Seite
         $v = self::leinwand($p, $fmt, $stil, 'vorn', $sprache, $kontakt, !isset(self::RUECKSEITE[$fmt]));
         $h = self::leinwand($p, $fmt, $stil, 'hinten', $sprache, $kontakt, false);
         if (!$v || !$h) { return ''; }
         $bw = $lay['b'] + 2 * $lay['beschnitt']; $bh = $lay['h'] + 2 * $lay['beschnitt'];
+        if ($weg > 0) {
+            foreach ([&$v, &$h] as &$bild) {
+                $px = (int) round(imagesx($bild) * $weg / $bw);
+                $bild = imagecrop($bild, ['x' => $px, 'y' => $px, 'width' => imagesx($bild) - 2 * $px, 'height' => imagesy($bild) - 2 * $px]) ?: $bild;
+            }
+            unset($bild);
+        }
+        $sb = (float) $lay['beschnitt'] - $weg;          // Beschnitt dieser Fassung
+        $bw0 = $bw; $bh0 = $bh;                           // Maße der Vorlage (für die Code-Lage)
+        $bw -= 2 * $weg; $bh -= 2 * $weg;
         $mm = 72 / 25.4;
         $pdf = new KartenPdf();
         if (!empty($p['id'])) { require_once __DIR__ . '/PartnerSchutz.php'; $pdf->kennung = PartnerSchutz::kennung($p); }
@@ -160,10 +176,11 @@ final class WmDruck
         $ih = $pdf->bild(self::jpeg($h, 92), imagesx($h), imagesy($h));
         [$n, $raster] = PartnerKarten::raster(self::qrLink($p, $fmt));
         // Branchen-Flyer: Code auch vorn — dort im PDF als Vektor, nicht als Pixel.
-        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, 0.0, (float) $bh) : '';
-        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv) . $vornQr, $lay['beschnitt'] * $mm);
+        // Lage der Codes: in Koordinaten der Vorlage, um den abgeschnittenen Rand verschoben.
+        $vornQr = isset(self::RUECKSEITE[$fmt]) ? PartnerKarten::qrVektor(self::qrVorn($stil), $n, $raster, -$weg, (float) $bh0 - $weg) : '';
+        $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $iv) . $vornQr, $sb * $mm);
         $pdf->seite($bw * $mm, $bh * $mm, sprintf("q %.3F 0 0 %.3F 0 0 cm /%s Do Q\n", $bw * $mm, $bh * $mm, $ih)
-            . PartnerKarten::qrVektor($lay['stile'][self::RUECKSEITE[$fmt][1] ?? $stil], $n, $raster, 0.0, (float) $bh), $lay['beschnitt'] * $mm);
+            . PartnerKarten::qrVektor($lay['stile'][self::RUECKSEITE[$fmt][1] ?? $stil], $n, $raster, -$weg, (float) $bh0 - $weg), $sb * $mm);
         return $pdf->fertig();
     }
 

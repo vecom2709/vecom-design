@@ -22156,6 +22156,10 @@ pruefe('Flyer-PDF: zwei Seiten mit Beschnitt (TrimBox 105 × 148 mm), QR-Code al
     str_starts_with($w7Fp, '%PDF') && substr_count($w7Fp, '/Type /Page ') + substr_count($w7Fp, '/Type /Page>') + substr_count($w7Fp, "/Type /Page\n") >= 2
     && preg_match('~/TrimBox \[\s*8\.50\d* 8\.50\d* 306\.1\d* 428\.0\d*~', $w7Fp) === 1
     && str_ends_with(WmDruck::qrLink($w7P, 'flyer_a6'), '/flyer'), (string) (preg_match('~/TrimBox \[[^\]]*\]~', $w7Fp, $w7Tm) ? $w7Tm[0] : 'keine TrimBox'));
+$w7Fa = WmDruck::pdf($w7P, 'flyer_a6', 'c', 'it', 'vecom', Werbemittel::FLYERALARM_BESCHNITT);
+pruefe('Flyer für Flyeralarm: 1 mm Beschnitt (Datenformat 107 × 150 mm laut Datenblatt), Code bleibt Vektor',
+    preg_match('~/MediaBox \[0 0 303\.3\d* 425\.19\d*\]~', $w7Fa) === 1 && preg_match('~/TrimBox \[\s*2\.83\d* 2\.83\d* 300\.4\d* 422\.3\d*~', $w7Fa) === 1
+    && Werbemittel::FLYERALARM_BESCHNITT === 1.0, (string) (preg_match('~/MediaBox \[[^\]]*\]~', $w7Fa, $w7Tm) ? $w7Tm[0] : ''));
 $w7Fv = @getimagesizefromstring(Werbemittel::vorschauBild($w7P, 'flyer_a5', 'd', 'de', 'email'));
 $w7Fl = Db::one("SELECT * FROM wm_produkte WHERE vorlage = 'flyer_a6'");
 pruefe('Flyer: Produkte A6/A5 angelegt (aus, bis Uwe sie einschaltet), Vorschau Vorder-/Rückseite, Entwurf mit Druckdatei; Preise Flyeralarm je Land',
@@ -22184,7 +22188,7 @@ if ($w7Bpr) {
 }
 pruefe('Branchen-Flyer: Produkt angelegt (aus), 250/500/1000 Stück, Entwurf nur mit echter Branche, Wahl merkt sich die Branche',
     $w7Bpr !== null && (int) $w7Bpr['aktiv'] === 0 && (int) Db::wert('SELECT COUNT(*) FROM wm_varianten WHERE produkt_id = ?', [(int) $w7Bpr['id']]) === 3
-    && $w7Bfalsch && $w7Bw !== null && ($w7Bw['wahl']['stil'] ?? '') === $w7B1 && str_starts_with((string) Db::wert('SELECT datei FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF')
+    && $w7Bfalsch && $w7Bw !== null && ($w7Bw['wahl']['stil'] ?? '') === $w7B1 && str_starts_with((string) Db::wert('SELECT datei_druck FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF') && str_starts_with((string) Db::wert('SELECT datei FROM wm_entwuerfe WHERE id = ?', [(int) $w7Bw['id']]), '%PDF')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_werbemittel.php'), "select[name=\"' + n + '\"]"));
 // Zurück
 Printful::$netz = null; WmBestellung::$senden = null; WmBestellung::automatikSetzen(false);

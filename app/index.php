@@ -4516,10 +4516,12 @@ switch ($route) {
             /* Freigegebene Druckdatei eines Partners (Phase 2): genau die gespeicherte Datei. */
             $wmD = Werbemittel::datei((int) $teile[2], null);
             if (!$wmD) { http_response_code(404); exit('Druckdatei nicht gefunden.'); }
+            /* ?f=druck: dieselbe Gestaltung im Beschnitt der Druckerei (Flyer: 1 mm für Flyeralarm). */
+            $wmDruck = ($_GET['f'] ?? '') === 'druck' && !empty($wmD['datei_druck']);
             header('Content-Type: application/pdf');
             header('X-Content-Type-Options: nosniff');
-            header('Content-Disposition: inline; filename="druckdatei-' . (int) $wmD['id'] . '-' . substr((string) $wmD['datei_hash'], 0, 8) . '.pdf"');
-            echo $wmD['datei']; exit;
+            header('Content-Disposition: inline; filename="druckdatei-' . (int) $wmD['id'] . '-' . substr((string) $wmD['datei_hash'], 0, 8) . ($wmDruck ? '-druckerei' : '') . '.pdf"');
+            echo $wmDruck ? $wmD['datei_druck'] : $wmD['datei']; exit;
         }
         if (($teile[1] ?? '') === 'bestellungen') {
             require_once __DIR__ . '/src/WmBestellung.php';
