@@ -1,5 +1,8 @@
 <?php
 declare(strict_types=1);
+/* Sprachweiche im Kopf jeder Ausgabe — die Klasse also vor allem anderen laden
+   (04.10.2026: ohne Konfiguration brach die Seite sonst im <html> ab). */
+require_once __DIR__ . '/app/src/Sprache.php';
 /* ==========================================================================
    einwilligung.php — „Ja, Sie dürfen mir schreiben“ mit Double-Opt-in
    (26.09.2026). Das Verfahren und warum es so ist: app/src/AkquiseEinwilligung.php.
