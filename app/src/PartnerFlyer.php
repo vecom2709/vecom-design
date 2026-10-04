@@ -80,7 +80,8 @@ final class PartnerFlyer
         $f = self::liste()[$slug];
         $r = (int) ($f['beschnitt'] ?? 0);
         [$x, $y, $b, $h] = $f['q'];
-        return ['b' => $f['b'] - 2 * $r, 'h' => $f['h'] - 2 * $r, 'q' => [$x - $r, $y - $r, $b, $h], 'r' => $r, 'ag' => $f['ag'] ?? null];
+        $u = isset($f['u']) ? ['x' => $f['u']['x'] - $r, 'y' => $f['u']['y'] - $r] + $f['u'] : null;
+        return ['b' => $f['b'] - 2 * $r, 'h' => $f['h'] - 2 * $r, 'q' => [$x - $r, $y - $r, $b, $h], 'r' => $r, 'ag' => $f['ag'] ?? null, 'u' => $u];
     }
 
     /** Vorschau im Dashboard: etwa 340 px breit, egal wie groß die Vorlage ist. */
@@ -227,8 +228,13 @@ final class PartnerFlyer
             }
         }
 
-        $a = self::adressLage($f);
         $schrift = dirname(__DIR__) . '/schrift/archivo-semibold.ttf';
+        if ($f['u'] !== null && function_exists('imagettftext') && is_file($schrift)) {
+            self::linkMalen($im, $f['u'], self::kurz($p), $k, $schrift);
+            $f['ag'] = null; $a = ['passt' => false];
+        } else {
+            $a = self::adressLage($f);
+        }
         if ($a['passt'] && $k >= 1 && function_exists('imagettftext') && is_file($schrift)) {
             $farbe = $hell > 0.55 ? imagecolorallocate($im, 38, 30, 18) : imagecolorallocate($im, 247, 230, 174);
             $gr = $a['gr'] * $k * 0.75; // GD rechnet in Punkt
@@ -243,6 +249,25 @@ final class PartnerFlyer
         imagejpeg($im, null, $qualitaet);
         imagedestroy($im);
         return (string) ob_get_clean();
+    }
+
+    /**
+     * Partner-Link an seinen festen Platz (Flyer im Originalstil, 04.10.2026, Uwe: „Code und
+     * Seiten-Link sollen vom Partner sein“) — dort stand in den Originalen www.vecom-design.it.
+     * $u: x, y (Grundlinie), gr (Pixel der Vorlage), anker links|mitte|rechts, farbe #rrggbb.
+     */
+    public static function linkMalen(\GdImage $im, array $u, string $text, float $k, string $schrift): void
+    {
+        [$r, $g, $b] = sscanf((string) ($u['farbe'] ?? '#fbf7ef'), '#%02x%02x%02x');
+        $pt = (float) $u['gr'] * $k * 0.75;
+        $box = imagettfbbox($pt, 0, $schrift, $text);
+        $breite = abs($box[2] - $box[0]);
+        $x = (float) $u['x'] * $k;
+        $x = match ($u['anker'] ?? 'links') { 'mitte' => $x - $breite / 2, 'rechts' => $x - $breite, default => $x };
+        $y = (int) round((float) $u['y'] * $k);
+        $schatten = imagecolorallocatealpha($im, 0, 0, 0, 60);
+        imagettftext($im, $pt, 0, (int) round($x) + 2, $y + 2, $schatten, $schrift, $text);
+        imagettftext($im, $pt, 0, (int) round($x), $y, imagecolorallocate($im, $r, $g, $b), $schrift, $text);
     }
 
     /** Der Flyer als PDF: Bild als Seite, Code als Vektor, 148 mm breit. */
@@ -281,7 +306,14 @@ final class PartnerFlyer
             }
         }
 
-        $a = self::adressLage($f);
+        if ($f['u'] !== null) {
+            [$ur, $ug, $ub] = sscanf((string) ($f['u']['farbe'] ?? '#fbf7ef'), '#%02x%02x%02x');
+            $pdf->text($f['u']['x'] * $k, $f['u']['y'] * $k, self::kurz($p), $f['u']['gr'] * $k * 0.95, true,
+                ['mitte' => 'mitte', 'rechts' => 'rechts'][$f['u']['anker'] ?? ''] ?? 'links', [$ur / 255, $ug / 255, $ub / 255]);
+            $a = ['passt' => false];
+        } else {
+            $a = self::adressLage($f);
+        }
         if ($a['passt']) {
             $hell = 0.0;
             if ($roh || (function_exists('imagecreatefromjpeg') && ($roh = @imagecreatefromjpeg(self::datei($slug, $sp))))) { $hell = self::hellUnten($roh, $f); }

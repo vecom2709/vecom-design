@@ -75,6 +75,10 @@ final class WmDruck
             if ($seite === 'hinten') { [$rf, $rs] = self::RUECKSEITE[$fmt]; return self::leinwand($p, $rf, $rs, 'hinten', $sprache, $kontakt, $mitQr); }
             $im = @imagecreatefromjpeg(PartnerFlyer::datei($stil, $sprache));
             if ($im && $mitQr) { self::qrMalen($im, self::qrVorn($stil, $im), $p, $fmt); }
+            // Flyer im Originalstil: der Link des Partners steht dort, wo im Original www.vecom-design.it stand.
+            $fu = PartnerFlyer::liste()[$stil]['u'] ?? null;
+            $schrift = dirname(__DIR__) . '/schrift/archivo-semibold.ttf';
+            if ($im && $fu && is_file($schrift)) { PartnerFlyer::linkMalen($im, $fu, PartnerFlyer::kurz($p), imagesx($im) / PartnerFlyer::liste()[$stil]['b'], $schrift); }
             return $im ?: null;
         }
         $im = @imagecreatefromjpeg(self::datei($fmt, $stil, $seite, $sprache));

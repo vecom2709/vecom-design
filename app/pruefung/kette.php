@@ -15051,6 +15051,12 @@ pruefe('Flyer DE/IT/EN: jede Branche dreisprachig, Bild ohne Beschnitt in Origin
     && PartnerFlyer::dateiname($flP, $flA, 'pdf', 'en') === 'vecom-flyer-' . $flA . '-en-flyer123.pdf'
     && str_starts_with($flPp, '%PDF') && str_contains($flPp, '419.53') && str_contains($flPp, '/p/FLYER123')
     && !PartnerFlyer::gibt($flA . '.it') && abs(PartnerFlyer::vorschauFaktor($flA) * $flM['b'] - 340) < 1, $flA);
+/* Originalstil (04.10.2026): 51 Flyer, jeder mit Platz für den Partner-Link (u) im Bild; im Bild steht er wirklich. */
+$flU = array_filter($flPro, fn ($s) => isset($flL[$s]['u']['x'], $flL[$s]['u']['y']) && $flL[$s]['u']['x'] > 0 && $flL[$s]['u']['x'] < $flL[$s]['b'] && $flL[$s]['u']['y'] < $flL[$s]['h'] - $flL[$s]['beschnitt']);
+$flUa = $flA !== '' ? PartnerFlyer::jpg($flP, $flA, 1.0, 90, 'de') : '';
+$flUb = $flA !== '' ? PartnerFlyer::jpg(['id' => 2, 'code' => 'ANDERER9', 'token' => 'y'], $flA, 1.0, 90, 'de') : '';
+pruefe('Flyer Originalstil: 51 Gestaltungen, jede mit Platz für den Link des Partners; Bild hängt am Partner (Code und Link)',
+    count($flPro) >= 51 && count($flU) === count($flPro) && $flUa !== '' && $flUa !== $flUb, implode(',', array_diff($flPro, $flU)));
 $flSeite = (string) file_get_contents($wurzel . '/../partner.php');
 $flView = (string) file_get_contents($wurzel . '/views/partner_werbung.php');
 pruefe('Flyer DE/IT/EN: Dashboard wählt die Sprache je Flyer, Server nimmt nur bekannte Sprachen',
