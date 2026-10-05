@@ -22268,6 +22268,10 @@ pruefe('aufgeklappte Auswahllisten zeichnen wir selbst (dunkel, Gold für den ge
 /* 05.10.2026, Uwe: „dieses Blau wie auf der Visitenkarte für den Hintergrund anstatt Braun, überall im Partner sowie
    Verwaltung“, danach „viel dunkler, leuchtend, edleres Blau“: tiefes Nachtblau #070e21 mit blauem Lichtschein. Grund
    der Verwaltung, der Kunden- und Partnerseiten und der Standardvorlage „gold“; kein Braun-Schwarz mehr als Grund oder Fläche. */
+/* 05.10.2026, Uwe: „nimm das Video von der Seite“ — das Ablauf-Video ist von der Startseite weg, die Sprungmarke #video bleibt. */
+$avIndex = (string) file_get_contents($oben . '/index.html');
+pruefe('Startseite ohne Ablauf-Video, Sprungmarke #video bleibt für alte Verweise',
+    !str_contains($avIndex, 'data-src="video/ablauf-') && !str_contains($avIndex, 'video-ablauf-') && str_contains($avIndex, '<span id="video" class="ablaufvideo" aria-hidden="true"></span>'));
 $bwKunde = (string) file_get_contents($oben . '/assets/css/kunde.css');
 $bwAdmin = (string) file_get_contents($oben . '/app/assets/admin.css');
 pruefe('Hintergrund tiefes Nachtblau (#070e21) statt Braun: Website, Verwaltung, Kunden- und Partnerseiten, Standardvorlage der Empfehlungsseite',
