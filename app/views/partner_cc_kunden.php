@@ -153,6 +153,7 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
       <a href="<?= $h($selbst() . '#anrufliste') ?>"><?= $h($l($L['wz']['anrufe'])) ?></a>
       <a href="<?= $h($selbst() . '#schnellcheck') ?>"><?= $h($l($L['wz']['check'])) ?></a>
       <a href="<?= $h($selbst() . '#vorab') ?>"><?= $h($l($L['wz']['vorab'])) ?></a>
+      <?php require_once dirname(__DIR__) . '/src/PartnerMail.php'; if (PartnerMail::kann($p)): ?><a href="<?= $h($selbst(['cc' => 1, 'mail' => 1])) ?>"><?= $h(Texte::h(Texte::PARTNER_MAIL['mehr_link'], $sprache)) ?></a><?php endif; ?>
     </nav>
   </section>
 </main>
@@ -173,6 +174,9 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
   $ldWaHref = $ldWa !== '' ? 'https://wa.me/' . $ldWa . '?text=' . rawurlencode(strtr(Texte::h($L['wa_text'], $ldSp), $ldErsatz)) : '';
   $ldMailHref = $mail !== '' ? 'mailto:' . rawurlencode($mail) . '?subject=' . rawurlencode(Texte::h($L['mail_betreff'], $ldSp)) . '&body=' . rawurlencode(strtr(Texte::h($L['mail_text'], $ldSp), $ldErsatz)) : '';
   $ldPost = is_array($ccLeadPost ?? null) ? $ccLeadPost : [];
+  /* Mit @vecom-Adresse (Phase 7a) führt E-MAIL in den eigenen Composer, vorausgefüllt; vermerkt wird erst beim Senden. */
+  require_once dirname(__DIR__) . '/src/PartnerMail.php';
+  if ($mail !== '' && PartnerMail::kann($p)) { $ldMailHref = $selbst(['cc' => 1, 'mail' => 1, 'an_lead' => $id]); $ldMailEigen = true; }
 ?>
 <main id="cc-start" tabindex="-1" class="cc-akte">
   <p class="cc-zurueck"><a href="<?= $h($lListe()) ?>">← <?= $h($l($L['zurueck'])) ?></a></p>
@@ -189,7 +193,7 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2"/></svg><span><?= $h($l($L['schnell']['anrufen'])) ?></span></a>
     <a class="<?= $ldWaHref === '' ? 'aus' : '' ?>" <?= $ldWaHref !== '' ? 'href="' . $h($ldWaHref) . '" target="_blank" rel="noopener" data-cc-kontakt="whatsapp" data-id="' . $id . '"' : 'aria-disabled="true" title="' . $h($l($L['kein_tel'])) . '"' ?>>
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20l1.3-4A8 8 0 1 1 8 18.7z"/><path d="M9 9.5c.5 2 2.5 4 4.5 4.5l1-1.2 2 .9-.3 1.6c-3.6.3-8-4.1-7.7-7.7l1.6-.3.9 2z"/></svg><span><?= $h($l($L['schnell']['whatsapp'])) ?></span></a>
-    <a class="<?= $ldMailHref === '' ? 'aus' : '' ?>" <?= $ldMailHref !== '' ? 'href="' . $h($ldMailHref) . '" data-cc-kontakt="email" data-id="' . $id . '"' : 'aria-disabled="true" title="' . $h($l($L['kein_mail'])) . '"' ?>>
+    <a class="<?= $ldMailHref === '' ? 'aus' : '' ?>" <?= $ldMailHref !== '' ? 'href="' . $h($ldMailHref) . '"' . (empty($ldMailEigen) ? ' data-cc-kontakt="email" data-id="' . $id . '"' : '') : 'aria-disabled="true" title="' . $h($l($L['kein_mail'])) . '"' ?>>
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3.5 7l8.5 6 8.5-6"/></svg><span><?= $h($l($L['schnell']['email'])) ?></span></a>
     <a href="#notiz"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19h4L19 9l-4-4L5 15z"/><path d="M13.5 6.5l4 4"/></svg><span><?= $h($l($L['schnell']['notiz'])) ?></span></a>
     <a href="#aufgabe"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 5-5"/></svg><span><?= $h($l($L['schnell']['aufgabe'])) ?></span></a>

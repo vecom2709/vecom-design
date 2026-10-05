@@ -1517,6 +1517,22 @@ if ($post) {
                 }
                 weiter('partner/auszahlungslauf');
 
+            case 'partner_vecom_adresse':
+            case 'vecom_adressen_lesen':
+                /* E-Mail-Center (Phase 7a, 05.10.2026): die BESTEHENDE @vecom-Adresse zuordnen (Uwe: „Email Adressen
+                   bestehen schon“) oder die Liste aus dem KAS lesen. Im KAS wird dabei nichts angelegt oder verändert. */
+                require_once __DIR__ . '/src/PartnerMail.php';
+                $pmId = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'partner_vecom_adresse') {
+                    $pmR = PartnerMail::adresseSetzen($pmId, (string) ($_POST['adresse'] ?? ''));
+                    $_SESSION[$pmR === 'ok' ? 'gut' : 'fehler'] = ['ok' => 'Gespeichert. Mit Adresse hat der Partner das E-Mail-Center, ohne nicht.',
+                        'form' => 'Nur eine Adresse @' . PartnerMail::DOMAIN . ' (Kleinbuchstaben, Ziffern, Punkt, Bindestrich).',
+                        'belegt' => 'Diese Adresse ist schon einem anderen Partner zugeordnet.', 'partner' => 'Partner nicht gefunden.'][$pmR];
+                } else {
+                    $pmN = PartnerMail::kasLesen();
+                    $_SESSION[$pmN > 0 ? 'gut' : 'fehler'] = $pmN > 0 ? $pmN . ' Adressen @' . PartnerMail::DOMAIN . ' gelesen (nur lesen).' : 'Keine Adressen gelesen — KAS-Zugang fehlt oder die Domain liegt unter einem anderen Konto. Die Adresse kann trotzdem von Hand eingetragen werden.';
+                }
+                weiter('partner/' . $pmId . '#vecom-adresse');
             case 'partner_kurzlink':
             case 'partner_kurzlink_sperren':
                 /* Kurzlink (Phase 4, 05.10.2026): Uwe setzt einen Namen (ohne Obergrenze) oder sperrt einen. Gesperrt führt nirgends hin. */

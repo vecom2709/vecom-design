@@ -2972,6 +2972,7 @@ final class Texte
         'PARTNER_KAMPAGNE'    => [],
         'PARTNER_GELD'        => [],
         'PARTNER_SHOP'        => [],
+        'PARTNER_MAIL'        => [],   // Vorlage an den Betrieb kommt aus PARTNER_LEADS (mail_betreff, mail_text: Sie)
         'PARTNER_START'       => [],
         'PARTNER_HEUTE'       => [],
         'PARTNER_AUTOMATIK'   => [],
@@ -3548,6 +3549,46 @@ final class Texte
         'alle'    => ['it' => 'Tutti i prodotti e i design', 'de' => 'Alle Produkte und Designs', 'en' => 'All products and designs'],
         'entscheid_antwort' => ['it' => 'Risposta di Vecom', 'de' => 'Antwort von Vecom', 'en' => 'Vecom’s reply'],
         'frist'   => ['it' => 'Reclamo possibile fino al {datum}', 'de' => 'Reklamation möglich bis {datum}', 'en' => 'Complaint possible until {datum}'],
+    ];
+
+    /* E-MAIL-CENTER im Command Center (Phase 7a, 05.10.2026): nur für Partner mit @vecom-Adresse.
+       Betreff Pflicht (Formular UND Server, PartnerMail::betreffPruefen). Deutsch duzt; die Vorlage an den Betrieb ist PARTNER_LEADS mail_betreff/mail_text (Sie). */
+    public const PARTNER_MAIL = [
+        'titel'    => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'Email'],
+        'satz'     => ['it' => 'Scriva ai suoi contatti dal suo indirizzo {adresse}. Le risposte arrivano lì.', 'de' => 'Schreib deinen Kontakten von deiner Adresse {adresse}. Antworten kommen dort an.', 'en' => 'Write to your contacts from your address {adresse}. Replies arrive there.'],
+        'neu'      => ['it' => 'Nuova e-mail', 'de' => 'Neue E-Mail', 'en' => 'New email'],
+        'an'       => ['it' => 'A', 'de' => 'An', 'en' => 'To'],
+        'an_hilfe' => ['it' => 'Indirizzo e-mail dell’attività', 'de' => 'E-Mail-Adresse des Betriebs', 'en' => 'The business’s email address'],
+        'von'      => ['it' => 'Da', 'de' => 'Von', 'en' => 'From'],
+        'betreff'  => ['it' => 'Oggetto', 'de' => 'Betreff', 'en' => 'Subject'],
+        'betreff_pflicht' => ['it' => 'Obbligatorio — senza oggetto l’e-mail non parte.', 'de' => 'Pflicht — ohne Betreff geht keine E-Mail hinaus.', 'en' => 'Required — no email goes out without a subject.'],
+        'text'     => ['it' => 'Messaggio', 'de' => 'Nachricht', 'en' => 'Message'],
+        'sprache'  => ['it' => 'Lingua del piè di pagina', 'de' => 'Sprache der Fußzeile', 'en' => 'Footer language'],
+        'fuss_hilfe' => ['it' => 'Sotto il messaggio aggiungiamo il suo nome, il suo indirizzo e un link per non ricevere altri messaggi.', 'de' => 'Unter die Nachricht setzen wir deinen Namen, deine Adresse und einen Link „Keine weiteren Nachrichten“.', 'en' => 'Below the message we add your name, your address and a “no further messages” link.'],
+        'senden'   => ['it' => 'Invia e-mail', 'de' => 'E-Mail senden', 'en' => 'Send email'],
+        'zaehler'  => ['it' => 'Oggi {n} di {max} · massimo {std} all’ora', 'de' => 'Heute {n} von {max} · höchstens {std} pro Stunde', 'en' => 'Today {n} of {max} · at most {std} per hour'],
+        'zum_lead' => ['it' => 'Per il contatto: {name}', 'de' => 'Zum Kontakt: {name}', 'en' => 'For the contact: {name}'],
+        'ausgang'  => ['it' => 'Inviate', 'de' => 'Gesendet', 'en' => 'Sent'],
+        'ausgang_leer' => ['it' => 'Nessuna e-mail ancora.', 'de' => 'Noch keine E-Mail.', 'en' => 'No email yet.'],
+        'status'   => ['gesendet' => ['it' => 'inviata', 'de' => 'gesendet', 'en' => 'sent'], 'fehler' => ['it' => 'non inviata', 'de' => 'nicht gesendet', 'en' => 'not sent'],
+                       'wird_gesendet' => ['it' => 'in invio', 'de' => 'wird gesendet', 'en' => 'sending'], 'abgemeldet' => ['it' => 'non vuole più messaggi', 'de' => 'will keine Nachrichten mehr', 'en' => 'wants no more messages']],
+        'm' => [
+            'ok'                  => ['it' => 'E-mail inviata.', 'de' => 'E-Mail gesendet.', 'en' => 'Email sent.'],
+            'betreff_leer'        => ['it' => 'Manca l’oggetto. Senza oggetto non inviamo nessuna e-mail.', 'de' => 'Der Betreff fehlt. Ohne Betreff senden wir keine E-Mail.', 'en' => 'The subject is missing. We never send an email without one.'],
+            'betreff_kurz'        => ['it' => 'L’oggetto è troppo corto — almeno 3 caratteri.', 'de' => 'Der Betreff ist zu kurz — mindestens 3 Zeichen.', 'en' => 'The subject is too short — at least 3 characters.'],
+            'betreff_lang'        => ['it' => 'L’oggetto è troppo lungo — al massimo 150 caratteri.', 'de' => 'Der Betreff ist zu lang — höchstens 150 Zeichen.', 'en' => 'The subject is too long — at most 150 characters.'],
+            'betreff_platzhalter' => ['it' => 'L’oggetto sembra un segnaposto. Scriva di cosa parla l’e-mail.', 'de' => 'Der Betreff sieht nach Platzhalter aus. Schreib, worum es geht.', 'en' => 'The subject looks like a placeholder. Say what the email is about.'],
+            'keine_adresse'       => ['it' => 'Per lei l’invio dal dashboard non è attivo.', 'de' => 'Für dich ist das Senden aus dem Dashboard nicht eingerichtet.', 'en' => 'Sending from the dashboard is not set up for you.'],
+            'empfaenger'          => ['it' => 'L’indirizzo del destinatario non è valido.', 'de' => 'Die Empfängeradresse ist nicht gültig.', 'en' => 'The recipient address is not valid.'],
+            'text'                => ['it' => 'Il messaggio deve avere tra 10 e 6000 caratteri.', 'de' => 'Die Nachricht braucht 10 bis 6000 Zeichen.', 'en' => 'The message needs 10 to 6000 characters.'],
+            'gesperrt'            => ['it' => 'Questo indirizzo non vuole ricevere messaggi. Non inviamo.', 'de' => 'Diese Adresse will keine Nachrichten bekommen. Wir senden nicht.', 'en' => 'This address does not want messages. We do not send.'],
+            'stunde'              => ['it' => 'Già 5 e-mail nell’ultima ora. Riprovi più tardi.', 'de' => 'Schon 5 E-Mails in der letzten Stunde. Versuch es später noch einmal.', 'en' => 'Already 5 emails in the last hour. Try again later.'],
+            'tag'                 => ['it' => 'Raggiunto il massimo di 20 e-mail in 24 ore.', 'de' => 'Höchstzahl von 20 E-Mails in 24 Stunden erreicht.', 'en' => 'Maximum of 20 emails in 24 hours reached.'],
+            'lead'                => ['it' => 'Contatto non trovato.', 'de' => 'Kontakt nicht gefunden.', 'en' => 'Contact not found.'],
+            'fehler'              => ['it' => 'L’invio non è riuscito. Riprovi più tardi — Vecom è avvisato.', 'de' => 'Der Versand hat nicht geklappt. Versuch es später — Vecom ist informiert.', 'en' => 'Sending failed. Try again later — Vecom has been notified.'],
+            'csrf'                => ['it' => 'La pagina era scaduta. Riprovi.', 'de' => 'Die Seite war abgelaufen. Bitte noch einmal.', 'en' => 'The page had expired. Please try again.'],
+        ],
+        'mehr_link' => ['it' => 'E-mail', 'de' => 'E-Mails', 'en' => 'Emails'],
     ];
 
     /* ERGEBNISSE im Command Center (Phase 5, 05.10.2026; Spezifikation 28–31 und 55): Geld in vier Stufen,

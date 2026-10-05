@@ -42,9 +42,20 @@ if (!$ungueltig && is_file(__DIR__ . '/app/config.local.php')) {
     try {
         // Ohne Vorlage (z. B. von Hand vermerkt) ist die Sprache leer — der Link gilt trotzdem.
         $s = Db::wert("SELECT COALESCE(t.sprache, '') FROM akq_versand v LEFT JOIN akq_vorlagen t ON t.id = v.vorlage_id WHERE v.abmelde_token = ?", [$token], null);
+        /* Partner-Mails (Phase 7a, 05.10.2026) tragen denselben Link mit eigenem Schlüssel — und landen
+           auf derselben Sperrliste: Wer hier widerspricht, hört von Vecom auf keinem Weg mehr etwas. */
+        if ($s === null) {
+            require_once __DIR__ . '/app/src/PartnerMail.php';
+            $pmS = PartnerMail::tokenSprache($token);
+            if ($pmS !== null) {
+                $sprache = in_array($pmS, ['de', 'it', 'en'], true) ? $pmS : $sprache;
+                if ($post) { $erledigt = PartnerMail::widerspruch($token); }
+                $s = false;   // erledigt, nicht der Akquise-Zweig
+            }
+        }
         if ($s === null) {
             $ungueltig = true;
-        } else {
+        } elseif ($s !== false) {
             $sprache = in_array($s, ['de', 'it', 'en'], true) ? (string) $s : $sprache;
             if ($post) { $erledigt = AkquiseVersand::widerspruch($token) !== null; }
         }

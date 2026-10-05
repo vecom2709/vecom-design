@@ -23553,6 +23553,8 @@ $trNeu = ['telefon_schluessel' => Telefon::neuerSchluessel(), 'werkstatt_schlues
           'webpush_privat' => WebPush::schluessel()['privat']];
 (new ReflectionMethod('PartnerStimmen', 'geheimnis'))->setAccessible(true);
 $trNeu['partner_formular_geheim'] = (string) (new ReflectionMethod('PartnerStimmen', 'geheimnis'))->invoke(null);
+require_once $wurzel . '/src/Versand.php';   // Phase 7a: der Brevo-Schlüssel steht seither auch im Tresor
+Versand::speichern($trNeu['brevo_key'] = 'xkeysib-' . bin2hex(random_bytes(24)), '', '', '');
 $trKlar = [];
 foreach ($trNeu as $trK => $trW) {
     $trR = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$trK], '');
@@ -24860,6 +24862,164 @@ pruefe('Texte SHOP und Reklamations-Mails: dreisprachig mit denselben Platzhalte
 Db::run("DELETE FROM notifications WHERE type = 'wm_reklamation'");
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [$p6i]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p6i, (int) $p6F['id']]);
+
+/* ============================================================================
+   E-Mail-Center des Partners (Phase 7a, 05.10.2026). DIE PFLICHTREGEL: keine Mail
+   aus dem Dashboard ohne Betreff — im Formular UND auf dem Server. Nur mit
+   @vecom-Adresse (aus der Datenbank, nie aus dem Formular), 20/Tag, 5/Stunde,
+   Sperrliste, Abmeldelink, Absender nur der eigenen Domain, Brevo-Schlüssel versiegelt.
+   ============================================================================ */
+abschnitt('Partner: E-Mail-Center und Betreff-Pflicht');
+require_once $wurzel . '/src/PartnerMail.php';
+require_once $wurzel . '/src/PartnerLeads.php';
+require_once $wurzel . '/src/Versand.php';
+require_once $wurzel . '/src/Tresor.php';
+$p7 = Partner::laden(Partner::anlegen(['name' => 'Mia Mail', 'email' => 'mia.privat@partner.example', 'code' => 'MIAMAIL7', 'sprache' => 'de', 'status' => 'aktiv']));
+$p7O = Partner::laden(Partner::anlegen(['name' => 'Otto Ohne', 'email' => 'otto@partner.example', 'code' => 'OTTOOHNE7', 'sprache' => 'de', 'status' => 'aktiv']));
+$p7i = (int) $p7['id'];
+pruefe('Betreff-Prüfung: leer, Leerzeichen, geschütztes Leerzeichen, Nullbreite, zu kurz, zu lang und Platzhalter fallen durch; ein echter Betreff geht',
+    PartnerMail::betreffPruefen('') === 'leer' && PartnerMail::betreffPruefen("   \t\n ") === 'leer' && PartnerMail::betreffPruefen("\u{00A0}\u{00A0}") === 'leer'
+    && PartnerMail::betreffPruefen("\u{200B}\u{FEFF}\u{2060}") === 'leer' && PartnerMail::betreffPruefen(' ab ') === 'kurz' && PartnerMail::betreffPruefen(str_repeat('x', 151)) !== null
+    && PartnerMail::betreffPruefen('Betreff') === 'platzhalter' && PartnerMail::betreffPruefen(' (kein Betreff) ') === 'platzhalter' && PartnerMail::betreffPruefen('Oggetto:') === 'platzhalter'
+    && PartnerMail::betreffPruefen('.....') === 'platzhalter' && PartnerMail::betreffPruefen('Test') === 'platzhalter'
+    && PartnerMail::betreffPruefen('Ihre Website — ein paar Ideen') === null && PartnerMail::betreffPruefen('Tür') === null);
+$p7Gesendet = [];
+PartnerMail::$senden = static function (string $an, string $b, string $t, array $bz) use (&$p7Gesendet): bool { $p7Gesendet[] = [$an, $b, $t, $bz]; return true; };
+// Ohne @vecom-Adresse: kein Center, auch nicht mit einer Adresse im Formular (die gibt es dort gar nicht).
+$p7Ohne = PartnerMail::senden($p7O, 'betrieb@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de');
+pruefe('Ohne @vecom-Adresse: kein E-Mail-Center, nichts gesendet, nichts gespeichert',
+    !PartnerMail::kann($p7O) && $p7Ohne === 'keine_adresse' && $p7Gesendet === [] && (int) Db::wert('SELECT COUNT(*) FROM partner_mails', [], 0) === 0);
+pruefe('Adresse zuordnen (nur Verwaltung): nur @vecom-design.it, Kleinbuchstaben, eindeutig je Partner',
+    PartnerMail::adresseSetzen($p7i, 'mia@gmail.com') === 'form' && PartnerMail::adresseSetzen($p7i, 'mia@vecom-design.it.boese.example') === 'form'
+    && PartnerMail::adresseSetzen($p7i, ' Mia.Mail@Vecom-Design.it ') === 'ok' && PartnerMail::adresseSetzen((int) $p7O['id'], 'mia.mail@vecom-design.it') === 'belegt'
+    && PartnerMail::adresseSetzen(999999, 'x@vecom-design.it') === 'partner' && Partner::laden($p7i)['vecom_adresse'] === 'mia.mail@vecom-design.it');
+$p7 = Partner::laden($p7i);
+// DIE PFLICHTREGEL auf dem Server: jeder dieser Versuche endet, bevor gezählt, gespeichert oder gesendet wird.
+$p7Leer = [];
+foreach (['', '   ', "\u{00A0}\u{200B}", 'ok', 'Betreff', '...'] as $p7B) { $p7Leer[] = PartnerMail::senden($p7, 'betrieb@kunde.example', $p7B, 'Guten Tag, ein kurzer Gruß.', 'de'); }
+pruefe('PFLICHTREGEL (Server): ohne gültigen Betreff geht keine Mail hinaus — nichts gesendet, nichts gespeichert, kein Platz im Limit verbraucht',
+    $p7Leer === ['betreff_leer', 'betreff_leer', 'betreff_leer', 'betreff_kurz', 'betreff_platzhalter', 'betreff_platzhalter'] && $p7Gesendet === []
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_mails', [], 0) === 0, json_encode($p7Leer));
+$p7L = PartnerLeads::anlegen($p7i, ['name' => 'Bar Sole', 'email' => 'info@barsole.example', 'ansprechpartner' => 'Rosa']);
+$p7Lid = (int) ($p7L['id'] ?? 0);
+$p7Ok = PartnerMail::senden($p7 + ['vecom_adresse' => 'boese@vecom-design.it'], ' info@BarSole.example ', '  Ihre Website — ein paar Ideen ', "Guten Tag Rosa,\r\nich habe Ideen für Sie.", 'de', $p7Lid);
+$p7Z = Db::one('SELECT * FROM partner_mails WHERE partner_id = ? ORDER BY id DESC LIMIT 1', [$p7i]) ?: [];
+$p7G = $p7Gesendet[0] ?? ['', '', '', []];
+pruefe('Senden: Absender und Antwortadresse aus der Datenbank (nicht aus dem übergebenen Partner), Empfänger normalisiert, Betreff getrimmt, Fußzeile mit Abmeldelink und List-Unsubscribe; gespeichert mit Inhalt',
+    $p7Ok === 'ok' && $p7G[0] === 'info@barsole.example' && $p7G[1] === 'Ihre Website — ein paar Ideen'
+    && ($p7G[3]['absender']['email'] ?? '') === 'mia.mail@vecom-design.it' && ($p7G[3]['antwortAn'] ?? '') === 'mia.mail@vecom-design.it'
+    && str_contains($p7G[2], "ich habe Ideen für Sie.\n\n-- \nMia Mail\nmia.mail@vecom-design.it\nPartner von Vecom Design") && !str_contains($p7G[2], "\r")
+    && str_contains($p7G[2], 'https://pruefung.example/widerspruch.php?t=' . ($p7Z['abmelde_token'] ?? 'x') . '&l=de')
+    && ($p7G[3]['kopfzeilen']['List-Unsubscribe'] ?? '') === '<https://pruefung.example/widerspruch.php?t=' . ($p7Z['abmelde_token'] ?? 'x') . '&l=de>'
+    && ($p7Z['status'] ?? '') === 'gesendet' && ($p7Z['text'] ?? '') === "Guten Tag Rosa,\nich habe Ideen für Sie." && (int) ($p7Z['lead_id'] ?? 0) === $p7Lid
+    && ($p7Z['absender'] ?? '') === 'mia.mail@vecom-design.it' && !str_contains(json_encode($p7G[3]), 'mia.privat'),
+    json_encode([$p7Ok, $p7G[0], $p7G[1], $p7G[3]['absender'] ?? null]));
+$p7V = PartnerLeads::verlauf($p7i, $p7Lid);
+pruefe('Senden an einen eigenen Lead: Kontakt vermerkt (NEU → KONTAKTIERT), Betreff im Verlauf; ein fremder Lead wird abgelehnt',
+    (PartnerLeads::laden($p7i, $p7Lid)['stufe'] ?? '') === 'kontaktiert' && (bool) array_filter($p7V, static fn($v) => $v['art'] === 'email')
+    && (bool) array_filter($p7V, static fn($v) => str_contains((string) $v['text'], 'Ihre Website — ein paar Ideen'))
+    && PartnerMail::senden($p7, 'x@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de', 987654) === 'lead');
+pruefe('Empfänger und Text: ungültig, .invalid, die eigene Adresse und zu kurzer Text werden abgelehnt',
+    PartnerMail::senden($p7, 'kein-mail', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
+    && PartnerMail::senden($p7, 'weg@anonym.invalid', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
+    && PartnerMail::senden($p7, 'mia.mail@vecom-design.it', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
+    && PartnerMail::senden($p7, 'b@kunde.example', 'Ihre Website', 'Hallo', 'de') === 'text');
+// Abmelden: der Link sperrt die Adresse für alle Kanäle; danach geht auch keine Partner-Mail mehr hin.
+$p7Tok = (string) ($p7Z['abmelde_token'] ?? '');
+pruefe('Abmeldelink: gültiger Schlüssel sperrt die Adresse (Sperrliste aller Kanäle), ein falscher nicht; danach wird nicht mehr gesendet',
+    PartnerMail::tokenSprache($p7Tok) === 'de' && PartnerMail::tokenSprache(str_repeat('a', 40)) === null && !PartnerMail::widerspruch('zu-kurz')
+    && PartnerMail::widerspruch($p7Tok) && (int) Db::wert("SELECT COUNT(*) FROM akq_sperrliste WHERE art = 'email' AND wert = 'info@barsole.example' AND quelle = 'abmeldung'", [], 0) === 1
+    && Db::wert('SELECT abgemeldet_am FROM partner_mails WHERE abmelde_token = ?', [$p7Tok], null) !== null
+    && PartnerMail::senden($p7, 'info@barsole.example', 'Noch eine Frage', 'Guten Tag, noch eine Frage.', 'de') === 'gesperrt'
+    && str_contains((string) file_get_contents($oben . '/widerspruch.php'), 'PartnerMail::widerspruch($token)'));
+// Grenzen: 5 pro Stunde, 20 in 24 Stunden — gezählt werden gesendete und laufende.
+$p7Lauf = [];
+for ($i = 0; $i < 5; $i++) { $p7Lauf[] = PartnerMail::senden($p7, "b$i@kunde.example", 'Ihre Website ' . $i, 'Guten Tag, ein kurzer Gruß.', 'it'); }
+pruefe('Grenze je Stunde: nach 5 Mails in der letzten Stunde ist Schluss (die erste zählte mit)',
+    $p7Lauf === ['ok', 'ok', 'ok', 'ok', 'stunde'] && PartnerMail::gezaehlt($p7i) === ['tag' => 5, 'stunde' => 5], json_encode($p7Lauf));
+Db::run("UPDATE partner_mails SET created_at = NOW() - INTERVAL 2 HOUR WHERE partner_id = ?", [$p7i]);
+for ($i = 0; $i < 15; $i++) { Db::run("INSERT INTO partner_mails (partner_id, absender, an, betreff, text, status, abmelde_token, created_at) VALUES (?, 'mia.mail@vecom-design.it', 'alt@kunde.example', 'Alt', 'Alt', 'gesendet', ?, NOW() - INTERVAL 3 HOUR)", [$p7i, bin2hex(random_bytes(20))]); }
+pruefe('Grenze je Tag: 20 in 24 Stunden; ältere als 24 Stunden zählen nicht',
+    PartnerMail::senden($p7, 'neu@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'tag'
+    && (static function () use ($p7, $p7i): bool { Db::run("UPDATE partner_mails SET created_at = NOW() - INTERVAL 25 HOUR WHERE partner_id = ? AND betreff = 'Alt'", [$p7i]);
+        return PartnerMail::senden($p7, 'neu@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'ok'; })());
+PartnerMail::$senden = static fn(): bool => false;
+pruefe('Scheitert der Versand, bleibt die Mail als „fehler“ stehen — der Partner bekommt eine Meldung, keine Wiederholung',
+    PartnerMail::senden($p7, 'neu2@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'fehler'
+    && Db::wert("SELECT status FROM partner_mails WHERE an = 'neu2@kunde.example'", [], '') === 'fehler');
+PartnerMail::$senden = null;
+// Die letzte Tür für JEDE Mail: Mail::senden ohne Betreff, und mit fremdem Absender.
+Db::run("DELETE FROM mails WHERE anlass = 'kette_betreff'");
+$p7M1 = Mail::senden('kette_betreff', 'jemand@kunde.example', " \u{00A0} ", 'Text');
+$trBrevoAlt = Db::one("SELECT svalue FROM settings WHERE skey = 'brevo_key'");
+Versand::speichern('xkeysib-' . str_repeat('k', 64) . '-kette7a', 'kontakt@vecom-design.it', 'Vecom Design', 'kontakt@vecom-design.it');
+$p7Roh = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'brevo_key'", [], '');
+$p7M2 = Mail::senden('kette_betreff', 'jemand@kunde.example', 'Ihre Website', 'Text', ['absender' => ['email' => 'boese@anders.example']]);
+$p7M3 = Mail::senden('kette_betreff', 'jemand@kunde.example', 'Ihre Website', 'Text', ['absender' => ['email' => 'x@vecom-design.it.boese.example']]);
+$p7Mf = array_column(Db::all("SELECT fehler FROM mails WHERE anlass = 'kette_betreff' ORDER BY id"), 'fehler');
+pruefe('Mail::senden (für alle Mails): ohne Betreff nichts; ein Absender außerhalb der eigenen Domain wird abgelehnt, nicht ersetzt',
+    $p7M1 === false && $p7M2 === false && $p7M3 === false && count($p7Mf) === 3 && str_starts_with((string) $p7Mf[0], 'Ohne Betreff')
+    && str_starts_with((string) $p7Mf[1], 'Absender gehört nicht') && str_starts_with((string) $p7Mf[2], 'Absender gehört nicht'), json_encode($p7Mf));
+pruefe('Brevo-Schlüssel steht nur versiegelt in settings; der Versand liest denselben Wert',
+    $p7Roh !== '' && !str_contains($p7Roh, 'xkeysib') && in_array('brevo_key', Tresor::SCHLUESSEL, true)
+    && (Versand::zugang()['key'] ?? '') === 'xkeysib-' . str_repeat('k', 64) . '-kette7a' && Versand::schluesselEnde() === 'te7a');
+Db::run("DELETE FROM settings WHERE skey IN ('brevo_key', 'brevo_from', 'brevo_name', 'brevo_to')");
+if ($trBrevoAlt) { Db::run("INSERT INTO settings (skey, svalue) VALUES ('brevo_key', ?)", [$trBrevoAlt['svalue']]); }
+Db::run("DELETE FROM mails WHERE anlass = 'kette_betreff'");
+// KAS: nur lesen — jede Adresse der eigenen Domain aus einer beliebig geschachtelten Antwort, nichts anderes.
+pruefe('KAS-Adressen: aus einer Antwort ohne bekannte Feldnamen nur die eigene Domain, klein, ohne Doppelte',
+    PartnerMail::adressenIn([['mail_login' => 'm0123', 'mail_adresses' => 'Mia.Mail@vecom-design.it,info@vecom-design.it'], ['x' => ['ziel' => 'privat@gmail.com', 'q' => 'info@vecom-design.it']], 'kontakt@vecom-design.it.evil.example'])
+      === ['mia.mail@vecom-design.it', 'info@vecom-design.it']);
+// Die Seite: Von steht fest, Betreff Pflicht im Formular, Zähler, Postausgang ohne Abmeldeschlüssel.
+$p7Seite = static function (int $pid, array $get = [], string $fehler = '', ?array $post = null) use ($wurzel): string {
+    $altGet = $_GET; $_GET = $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $ccMailFehler = $fehler; $ccMailPost = $post;
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_mail.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$p7L2 = PartnerLeads::anlegen($p7i, ['name' => 'Pizzeria <Napoli>', 'email' => 'ciao@napoli.it', 'ansprechpartner' => 'Gino']);
+$p7H = $p7Seite($p7i, ['an_lead' => (int) ($p7L2['id'] ?? 0)]);
+pruefe('E-MAIL-Seite: Von fest (nur lesen, aus der Datenbank), Betreff Pflicht (required, minlength, pattern) mit sichtbarem Hinweis, aus der Akte vorausgefüllt in der Sprache des Betriebs, Namen escaped, CSRF, kein Abmeldeschlüssel',
+    str_contains($p7H, 'value="Mia Mail &lt;mia.mail@vecom-design.it&gt;" readonly') && preg_match('~name="betreff"[^>]*required[^>]*minlength="3"~', $p7H) === 1
+    && str_contains($p7H, 'Pflicht — ohne Betreff geht keine E-Mail hinaus.') && str_contains($p7H, 'value="ciao@napoli.it"')
+    && str_contains($p7H, 'Il suo sito web') && str_contains($p7H, 'Buongiorno Gino') && str_contains($p7H, 'Pizzeria &lt;Napoli&gt;') && !str_contains($p7H, '<Napoli>')
+    && str_contains($p7H, 'name="_csrf"') && str_contains($p7H, 'value="mail_senden"') && !str_contains($p7H, (string) $p7Tok)
+    && str_contains($p7H, 'Heute ') && str_contains($p7H, 'will keine Nachrichten mehr') && str_contains($p7H, 'data-betreff-min="3"'));
+$p7H2 = $p7Seite($p7i, [], 'betreff_leer', ['an' => 'a@b.example', 'betreff' => '  ', 'text' => 'Mein langer Text bleibt.', 'lead' => null, 'fsprache' => 'it']);
+pruefe('E-MAIL-Seite nach Ablehnung: Meldung „Betreff fehlt“, Feld markiert, alles Eingegebene bleibt',
+    str_contains($p7H2, 'Der Betreff fehlt. Ohne Betreff senden wir keine E-Mail.') && str_contains($p7H2, 'aria-invalid="true"')
+    && str_contains($p7H2, 'Mein langer Text bleibt.') && str_contains($p7H2, 'value="a@b.example"') && str_contains($p7H2, '<option value="it" selected>'));
+$p7Pp = (string) file_get_contents($oben . '/partner.php');
+$p7Js = (string) file_get_contents($oben . '/assets/js/partner-cc.js');
+pruefe('Wege: E-MAIL nur mit @vecom-Adresse erreichbar; Senden nur mit CSRF über PartnerMail; Browser prüft den Betreff vorab (auch unsichtbare Leerzeichen); Verwaltung ordnet zu',
+    str_contains($p7Pp, "isset(\$_GET['mail']) && (static function () use (\$p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann(\$p); })()")
+    && str_contains($p7Pp, "!\$ccCsrf ? 'csrf' : PartnerMail::senden(\$p,") && str_contains($p7Js, "getElementById('pm-form')") && str_contains($p7Js, '​')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_vecom_adresse"')
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_vecom_adresse', $t) || str_starts_with('vecom_adressen_lesen', $t)));
+$p7Fehlt = []; $p7Platz = [];
+$p7Drei = static function ($w, string $pfad) use (&$p7Drei, &$p7Fehlt, &$p7Platz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { $v = (string) ($w[$l] ?? ''); if (trim($v) === '') { $p7Fehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z_]+\}~', $v, $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $p7Platz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $p7Drei($v, "$pfad.$k"); }
+};
+$p7Drei(Texte::PARTNER_MAIL, 'PARTNER_MAIL');
+pruefe('Texte E-MAIL: dreisprachig mit denselben Platzhaltern, Deutsch duzt; jede Antwort von PartnerMail::senden hat einen Satz',
+    $p7Fehlt === [] && $p7Platz === [] && Texte::duzt('PARTNER_MAIL.satz')
+    && !array_diff(['ok', 'betreff_leer', 'betreff_kurz', 'betreff_lang', 'betreff_platzhalter', 'keine_adresse', 'empfaenger', 'text', 'gesperrt', 'stunde', 'tag', 'lead', 'fehler', 'csrf'], array_keys(Texte::PARTNER_MAIL['m'])),
+    json_encode([$p7Fehlt, $p7Platz]));
+Db::run("DELETE FROM akq_sperrliste WHERE wert = 'info@barsole.example'");
+Db::run('DELETE FROM partner_mails WHERE partner_id IN (?, ?)', [$p7i, (int) $p7O['id']]);
+Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id = ?', [$p7i]);
+Db::run('DELETE FROM partner_leads WHERE partner_id = ?', [$p7i]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p7i, (int) $p7O['id']]);
 
 /* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).

@@ -379,6 +379,36 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">/go/<?= Fmt::h((string) $kn['name']) ?> sperren</button></form>
   <?php endforeach; ?>
 </div>
+<?php /* E-Mail-Center (Phase 7a, 05.10.2026, Uwe: „nur bei denen einbauen, die eine @vecom Email haben“):
+         die bestehende Adresse zuordnen — angelegt, geändert oder gelesen wird im KAS dabei nichts außer der Adressliste. */
+  require_once dirname(__DIR__) . '/src/PartnerMail.php';
+  $pmKas = PartnerMail::kasAdressen(); $pmVergeben = array_column(Db::all('SELECT vecom_adresse FROM partner WHERE vecom_adresse IS NOT NULL AND id <> ?', [(int) $p['id']]), 'vecom_adresse');
+  $pmMails = []; try { $pmMails = PartnerMail::fuerVerwaltung((int) $p['id'], 30); } catch (Throwable $e) { $pmMails = []; } ?>
+<div class="block" id="vecom-adresse">
+  <h2 style="font-size:15px;margin:0 0 6px">@vecom-Adresse und E-Mails</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
+    <?php if (!empty($p['vecom_adresse'])): ?>Sendet aus dem Dashboard als <code><?= Fmt::h((string) $p['vecom_adresse']) ?></code> — Antworten gehen an diese Adresse. Höchstens <?= PartnerMail::TAG_MAX ?> am Tag, <?= PartnerMail::STUNDE_MAX ?> pro Stunde, Betreff Pflicht, Abmeldelink unter jeder Mail.
+    <?php else: ?>Keine Adresse zugeordnet: Der Partner hat kein E-Mail-Center, nur den Link ins eigene Mailprogramm.<?php endif; ?></p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_vecom_adresse"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <div class="feld" style="margin:0;min-width:260px"><label for="pm-adr">Adresse (leer = keine)</label>
+      <input id="pm-adr" name="adresse" value="<?= Fmt::h((string) ($p['vecom_adresse'] ?? '')) ?>" maxlength="120" list="pm-kas" placeholder="name@<?= PartnerMail::DOMAIN ?>" autocomplete="off">
+      <datalist id="pm-kas"><?php foreach ($pmKas['adressen'] as $pmA => $pmArt): if (in_array($pmA, $pmVergeben, true)) { continue; } ?><option value="<?= Fmt::h((string) $pmA) ?>"><?= Fmt::h((string) $pmArt) ?></option><?php endforeach; ?></datalist></div>
+    <button class="knopf">Speichern</button></form>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:8px 0 0">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="vecom_adressen_lesen"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <button class="knopf stumm" style="min-height:32px;padding:5px 10px;font-size:12.5px">Bestehende Adressen aus dem KAS lesen</button>
+    <small style="color:var(--leise)"><?= $pmKas['am'] !== '' ? count($pmKas['adressen']) . ' Adressen, gelesen ' . Fmt::h($pmKas['am']) : 'noch nicht gelesen' ?> · nur lesen, kein Passwort</small></form>
+  <?php if ($pmMails): ?>
+    <details style="margin:12px 0 0"><summary style="font-size:13px;cursor:pointer">Gesendete E-Mails (<?= count($pmMails) ?>, mit Inhalt)</summary>
+      <div class="tabellenrahmen"><table id="partner-mails"><thead><tr><th>Wann</th><th>An</th><th>Betreff</th><th>Stand</th></tr></thead><tbody>
+      <?php foreach ($pmMails as $pmX): ?>
+        <tr><td><?= Fmt::h(Fmt::datum((string) $pmX['created_at'])) ?></td><td><?= Fmt::h((string) $pmX['an']) ?></td>
+          <td><details><summary><?= Fmt::h((string) $pmX['betreff']) ?></summary><pre style="white-space:pre-wrap;font:13px/1.5 inherit;margin:6px 0 0"><?= Fmt::h((string) $pmX['text']) ?></pre></details></td>
+          <td><?= Fmt::h($pmX['abgemeldet_am'] !== null ? 'abgemeldet' : (string) $pmX['status']) ?><?= $pmX['fehler'] ? ' · ' . Fmt::h((string) $pmX['fehler']) : '' ?></td></tr>
+      <?php endforeach; ?></tbody></table></div></details>
+  <?php endif; ?>
+</div>
 <?php endif; ?>
 
 <?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>

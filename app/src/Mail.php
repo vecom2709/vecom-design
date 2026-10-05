@@ -109,10 +109,32 @@ final class Mail
                 'fehler' => 'Empfänger ist anonymisiert — es wurde nichts verschickt.']);
             return false;
         }
+        /* Kein Betreff, keine Mail (Phase 7a, 05.10.2026, Spezifikation: „EINE E-MAIL AUS DEM
+           PARTNER-DASHBOARD DARF NIEMALS OHNE BETREFF VERSENDET WERDEN“). Das Formular und
+           PartnerMail prüfen strenger; diese Stelle ist die letzte Tür für JEDE Mail des Systems —
+           auch eine, die später ein neuer Weg hinausschickt und die Prüfung vergisst. */
+        if (trim((string) preg_replace('~[\s\x{00A0}\x{200B}-\x{200D}\x{2060}\x{FEFF}]+~u', ' ', $betreff)) === '') {
+            self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Ohne Betreff — es wurde nichts verschickt.']);
+            return false;
+        }
         $z = self::zugang();
         if ($z === null) {
             self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Kein Brevo-Schlüssel hinterlegt.']);
             return false;
+        }
+        /* Eigener Absender (Partner-Mails, Phase 7a): nur eine Adresse der Domain, die bei Brevo
+           authentifiziert ist — also derselben Domain wie der eingetragene Absender. Alles andere
+           wird abgelehnt, nicht stillschweigend ersetzt: Eine Mail mit falschem Absender soll gar
+           nicht erst hinausgehen. */
+        $absender = ['email' => $z['from'], 'name' => $z['name']];
+        if (isset($bezug['absender'])) {
+            $wunsch = mb_strtolower(trim((string) ($bezug['absender']['email'] ?? '')));
+            $domain = mb_strtolower((string) substr((string) strrchr($z['from'], '@'), 1));
+            if ($domain === '' || !filter_var($wunsch, FILTER_VALIDATE_EMAIL) || !str_ends_with($wunsch, '@' . $domain)) {
+                self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Absender gehört nicht zur eigenen Domain — es wurde nichts verschickt.']);
+                return false;
+            }
+            $absender = ['email' => $wunsch, 'name' => mb_substr(trim((string) ($bezug['absender']['name'] ?? '')) ?: $z['name'], 0, 70)];
         }
         if (!filter_var($an, FILTER_VALIDATE_EMAIL)) {
             self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Ungültige Empfängeradresse.']);
@@ -122,7 +144,7 @@ final class Mail
         $sprache = self::spracheVon($bezug);
 
         $inhalt = [
-            'sender'      => ['email' => $z['from'], 'name' => $z['name']],
+            'sender'      => $absender,
             'to'          => [['email' => $an]],
             'subject'     => $betreff,
             'textContent' => $text,

@@ -32,7 +32,8 @@ final class Tresor
 {
     /** Diese Einträge in settings sind Geheimnisse und werden nur versiegelt gespeichert. */
     public const SCHLUESSEL = ['telefon_schluessel', 'werkstatt_schluessel', 'akq_worker_schluessel',
-        'cron_schluessel', 'partner_formular_geheim', 'webpush_privat'];
+        'cron_schluessel', 'partner_formular_geheim', 'webpush_privat',
+        'brevo_key'];   // Phase 7a (05.10.2026): der Brevo-Schlüssel, derselbe Wert, nur versiegelt (Versand::schluessel)
 
     /** Klartext des Geheimnisses oder ''. */
     public static function lesen(string $skey): string

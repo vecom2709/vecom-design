@@ -255,6 +255,19 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
             $ccFotoOk ? (string) $ccF['tmp_name'] : null, $ccFotoOk ? (int) $ccF['size'] : 0);
         header('Location: ' . $ccZurueck(['ok' => 'problem', 'grund' => 'problem_grund', 'foto' => 'problem_foto'][$ccR] ?? 'problem_grund'), true, 303); exit;
     }
+    /* E-MAIL-CENTER (Phase 7a, 05.10.2026): nur mit @vecom-Adresse (PartnerMail::kann). Absender, Grenzen,
+       Sperrliste und die Betreff-Pflicht prüft PartnerMail auf dem Server — das Formular prüft nur vorab.
+       Bei einem Fehler bleibt alles Eingegebene stehen; nach dem Senden zurück auf die Seite (PRG). */
+    $ccMailFehler = ''; $ccMailPost = null;
+    if ($ccTat === 'mail_senden') {
+        require_once __DIR__ . '/app/src/PartnerMail.php';
+        $ccMLead = (int) ($_POST['lead'] ?? 0) ?: null;
+        $ccMailPost = ['an' => mb_substr((string) ($_POST['an'] ?? ''), 0, 190), 'betreff' => mb_substr((string) ($_POST['betreff'] ?? ''), 0, 200),
+                       'text' => mb_substr((string) ($_POST['text'] ?? ''), 0, 7000), 'lead' => $ccMLead, 'fsprache' => (string) ($_POST['fsprache'] ?? $sprache)];
+        $ccMailFehler = !$ccCsrf ? 'csrf' : PartnerMail::senden($p, $ccMailPost['an'], $ccMailPost['betreff'], $ccMailPost['text'], $ccMailPost['fsprache'], $ccMLead);
+        if ($ccMailFehler === 'ok') { header('Location: ' . $selbst(['cc' => 1, 'mail' => 1, 'm' => 'ok']), true, 303); exit; }
+        $_GET['mail'] = 1;
+    }
     /* Kunden & Leads (Phase 2, 05.10.2026): jede Tat nur für eigene Leads — PartnerLeads prüft die Partner-ID
        in jeder Abfrage, ein fremder Lead ist „nicht vorhanden“. Nach dem Speichern zurück in die Akte (PRG). */
     require_once __DIR__ . '/app/src/PartnerLeads.php';
@@ -334,6 +347,7 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
     }
     elseif (isset($_GET['marketing'])) { $ccSeite = 'marketing'; }
     elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }
+    elseif (isset($_GET['mail']) && (static function () use ($p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann($p); })()) { $ccSeite = 'mail'; }   // E-MAIL (Phase 7a): nur mit @vecom-Adresse
     elseif (isset($_GET['shop']) && $ccMc) { $ccSeite = 'shop'; }   // SHOP (Phase 6a): zwei Druckwege, Bestellungen   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
     elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
     elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }

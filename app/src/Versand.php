@@ -43,13 +43,13 @@ final class Versand
     /** Ist in der Datenbank ein Schluessel hinterlegt? */
     public static function eigenerSchluessel(): bool
     {
-        return self::wert(self::SCHLUESSEL) !== '';
+        return self::schluessel() !== '';
     }
 
     /** Die letzten vier Zeichen — zum Wiedererkennen, mehr nicht. */
     public static function schluesselEnde(): string
     {
-        $k = self::wert(self::SCHLUESSEL);
+        $k = self::schluessel();
         return $k === '' ? '' : substr($k, -4);
     }
 
@@ -76,7 +76,7 @@ final class Versand
      */
     public static function zugang(): ?array
     {
-        $key = self::wert(self::SCHLUESSEL);
+        $key = self::schluessel();
         if ($key === '') { return null; }
 
         $from = self::wert(self::ABSENDER) ?: 'kontakt@vecom-design.it';
@@ -91,6 +91,21 @@ final class Versand
     }
 
     /* ---------- Schreiben ---------- */
+
+    /**
+     * Der Brevo-Schlüssel — versiegelt in settings (Phase 7a, 05.10.2026, wie die Schlüssel aus
+     * Etappe 0b). Ein alter Klartext-Wert wird beim ersten Lesen versiegelt zurückgeschrieben;
+     * der Schlüssel selbst bleibt derselbe, bei Brevo ändert sich nichts.
+     */
+    private static function schluessel(): string
+    {
+        try {
+            require_once __DIR__ . '/Tresor.php';
+            return trim(Tresor::lesen(self::SCHLUESSEL));
+        } catch (Throwable $e) {
+            return '';   // vor der ersten Einrichtung gibt es die Tabelle noch nicht
+        }
+    }
 
     private static function merken(string $name, string $wert): void
     {
@@ -132,7 +147,7 @@ final class Versand
         }
         if ($fehler) { return $fehler; }
 
-        if ($key !== '') { self::merken(self::SCHLUESSEL, $key); }
+        if ($key !== '') { require_once __DIR__ . '/Tresor.php'; Tresor::schreiben(self::SCHLUESSEL, $key); }   // versiegelt (Phase 7a)
         self::merken(self::ABSENDER, $from);
         self::merken(self::NAME, $name);
         self::merken(self::MELDUNGEN, $to);

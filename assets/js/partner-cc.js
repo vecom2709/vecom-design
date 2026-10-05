@@ -174,3 +174,25 @@
     } else { feld.select(); try { document.execCommand('copy'); fertig(); } catch (x) { } }
   });
 })();
+
+/* E-MAIL (Phase 7a, 05.10.2026): die Pflichtregel schon im Browser — ohne die Prüfung auf dem Server
+   zu ersetzen. Ein Betreff aus Leerzeichen (auch geschützten oder unsichtbaren) gilt als leer; gesendet
+   wird erst, wenn er steht. Danach ist der Knopf gesperrt, damit ein Doppelklick nicht zweimal sendet. */
+(function () {
+  var f = document.getElementById('pm-form');
+  if (!f) { return; }
+  var b = f.querySelector('[name=betreff]'), min = parseInt(f.getAttribute('data-betreff-min') || '3', 10);
+  f.addEventListener('submit', function (e) {
+    var w = (b ? b.value : '').replace(/[\s ​-‍⁠﻿]+/g, ' ').trim();
+    var leer = w.length < min;
+    if (b) { b.setAttribute('aria-invalid', leer ? 'true' : 'false'); }
+    if (leer || !f.checkValidity()) {
+      e.preventDefault();
+      var z = leer ? b : f.querySelector(':invalid');
+      if (z) { z.focus(); }
+      if (f.reportValidity) { f.reportValidity(); }
+      return;
+    }
+    var k = f.querySelector('button[type=submit]'); if (k) { k.disabled = true; }
+  });
+})();

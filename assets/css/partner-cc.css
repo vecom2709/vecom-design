@@ -625,3 +625,18 @@ html{scroll-padding-top:76px}
 .cc-problem textarea{width:100%;box-sizing:border-box;font-size:14px;padding:10px 12px}
 .cc-problem input[type=file]{font-size:13px}
 .cc-problem form .knopf{align-self:flex-start}
+
+/* E-MAIL (Phase 7a, 05.10.2026): Composer und Gesendet. Der Betreff ist Pflicht — das steht sichtbar unter dem Feld. */
+.cc-mail-bezug{margin:-4px 0 12px;font-size:14px;color:var(--dim)}
+.cc-mail input[readonly]{opacity:.75;cursor:default}
+.cc-mail-pflicht{font-size:12.5px;color:var(--leise);line-height:1.45}
+.cc-mail [aria-invalid=true]{border-color:#e07a6a}
+.cc-mail [aria-invalid=true] + .cc-mail-pflicht{color:#f0a294}
+.cc-mail textarea{min-height:220px}
+.cc-mail-fuss{margin:0 0 14px;font-size:13px;color:var(--leise);line-height:1.5}
+.cc-mail-senden{display:flex;flex-wrap:wrap;align-items:center;gap:10px 16px}
+.cc-mail-senden small{font-size:12.5px;color:var(--leise)}
+@media (max-width:560px){.cc-mail-senden .knopf{width:100%}}
+.cc-stufe.st-gesendet{color:#9fdcb4;border-color:rgba(102,196,136,.38);background:rgba(102,196,136,.08)}
+.cc-stufe.st-fehler{color:#f0a294;border-color:rgba(224,122,106,.4);background:rgba(224,122,106,.08)}
+.cc-stufe.st-abgemeldet{color:var(--leise)}

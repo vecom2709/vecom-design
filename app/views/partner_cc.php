@@ -23,7 +23,7 @@ if ($ccMeldung === 'pf_fehler' && is_array($ccPost ?? null)) {   // Eingaben beh
              'ziel' => (string) ($ccPost['ziel'] ?? ''), 'ort' => (string) ($ccPost['ort'] ?? ''), 'fertig' => false];
 }
 $ccSeite ??= 'start';
-$ccKundenSeite = in_array($ccSeite, ['kunden', 'lead'], true);
+$ccKundenSeite = in_array($ccSeite, ['kunden', 'lead', 'mail'], true);   // E-MAIL gehört zu KUNDEN (Phase 7a)
 $ccMarketingSeite = in_array($ccSeite, ['marketing', 'kampagne', 'neu', 'qr'], true);   // Kampagnen und QR gehören zu MARKETING (Phase 3)
 $ccErgebnisSeite = $ccSeite === 'ergebnisse';   // ERGEBNISSE im Command Center (Phase 5)
 $ccShopSeite = $ccSeite === 'shop';   // SHOP im Command Center (Phase 6a)
@@ -119,8 +119,8 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
     </details>
   </nav>
 
-  <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccKundenSeite ? '/partner_cc_kunden.php' : ($ccSeite === 'marketing' ? '/partner_cc_marketing.php'
-      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : ($ccShopSeite ? '/partner_cc_shop.php' : '/partner_cc_kampagne.php')))); else: ?>
+  <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccSeite === 'mail' ? '/partner_cc_mail.php' : ($ccKundenSeite ? '/partner_cc_kunden.php' : ($ccSeite === 'marketing' ? '/partner_cc_marketing.php'
+      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : ($ccShopSeite ? '/partner_cc_shop.php' : '/partner_cc_kampagne.php'))))); else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
