@@ -35,6 +35,13 @@ if (!$wmNurLesen && isset($_GET['wmnochmal'])) {
     }
 }
 $wmLaender = Werbemittel::LIEFERLAENDER;   // Italien und Deutschland (04.10.2026)
+/* Aus dem Kampagnen-Assistenten (Etappe 2, 05.10.2026): ?kampagne=N — nur eine eigene Kampagne;
+   das gestaltete Material bekommt sie (Werbemittel::entwurfAnlegen prüft das noch einmal). */
+$wmKamp = null;
+if (!$wmNurLesen && isset($_GET['kampagne']) && (int) ($p['id'] ?? 0) > 0) {
+    require_once dirname(__DIR__) . '/src/PartnerKampagne.php';
+    $wmKamp = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kampagne']);
+}
 /* Marketingcenter Schritt 2 (04.10.2026): Bereiche statt Kategorien, Favoriten, Designs, Erfolge. */
 require_once dirname(__DIR__) . '/src/Marketingcenter.php';
 require_once dirname(__DIR__) . '/src/Designlinie.php';

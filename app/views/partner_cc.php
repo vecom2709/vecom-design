@@ -19,7 +19,13 @@ if ($ccMeldung === 'pf_fehler' && is_array($ccPost ?? null)) {   // Eingaben beh
     $ccPf = ['branchen' => array_map('strval', (array) ($ccPost['branchen'] ?? [])), 'wege' => array_map('strval', (array) ($ccPost['wege'] ?? [])),
              'ziel' => (string) ($ccPost['ziel'] ?? ''), 'ort' => (string) ($ccPost['ort'] ?? ''), 'fertig' => false];
 }
-$ccBereich = static fn(string $anker): string => $selbst() . '#' . $anker;
+$ccSeite ??= 'start';
+/* Sprungziele: Anker im Partnerbereich — oder, mit „cc:“, Stellen im Command Center selbst (Kampagnen). */
+$ccBereich = static fn(string $anker): string => match ($anker) {
+    'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
+    'cc:kampagnen'    => $selbst(['cc' => 1]) . '#kampagnen',
+    default           => $selbst() . '#' . $anker,
+};
 $ccName = trim((string) preg_split('~\s+~u', trim((string) $p['name']))[0]) ?: Partner::anzeigeName($p);
 $ccZahl = static fn(int $n): string => number_format($n, 0, ',', $sprache === 'en' ? ',' : '.');
 $ccIcon = [
@@ -39,7 +45,7 @@ $ccLeiste = [
 ];
 if (!$ccMc) { unset($ccLeiste['werbemittel']); }
 $ccKacheln = [
-    'kampagnen'    => [$ccZ['kampagnen'], 'werben', ''],
+    'kampagnen'    => [$ccZ['kampagnen'], 'cc:kampagnen', ''],
     'scans'        => [$ccZ['scans'], $ccMc ? 'mc-erfolge' : 'werben', ''],
     'leads'        => [$ccZ['leads'], 'besuche', ''],
     'kunden'       => [$ccZ['kunden'], 'empfehlungen', ''],
@@ -66,11 +72,13 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 <link rel="stylesheet" href="/assets/css/partner-cc.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/partner-cc.css') ?>">
 </head>
 <body class="cc">
+<?php if ($ccSeite === 'start'): ?>
 <div class="cc-intro" id="cc-intro" hidden aria-hidden="true">
   <div class="cc-intro__schein"></div>
   <div class="cc-intro__v"><img src="/assets/img/vecom-v.svg" alt="" width="289" height="235"></div>
   <button class="cc-intro__weg" type="button" tabindex="-1"><?= $h($c($C['intro_weg'])) ?></button>
 </div>
+<?php endif; ?>
 
 <div class="seite">
   <header class="cc-kopf">
@@ -87,6 +95,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
     <?php endforeach; ?>
   </nav>
 
+  <?php if ($ccSeite !== 'start'): require __DIR__ . '/partner_cc_kampagne.php'; else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['hallo']), 2), 2, ''); /* Name in Gold, der Gruß drumherum aus Texte */ ?>
@@ -132,6 +141,23 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         </div>
       </section>
 
+      <?php $ccKListe = array_slice(PartnerKampagne::liste((int) $p['id']), 0, 6); $KK = Texte::PARTNER_KAMPAGNE; ?>
+      <section class="cc-breit cc-auf z4" id="kampagnen" aria-labelledby="cc-kamp-t">
+        <div class="cc-titelzeile"><h2 class="cc-titel" id="cc-kamp-t"><?= $h($c($KK['liste'])) ?></h2>
+          <a class="knopf haupt" href="<?= $h($selbst(['cc' => 1, 'kampagne' => 'neu'])) ?>">+ <?= $h($c($KK['neu'])) ?></a></div>
+        <?php if (!$ccKListe): ?>
+          <p class="cc-leer"><?= $h($c($KK['leer'])) ?></p>
+        <?php else: ?>
+          <ul class="cc-kliste">
+            <?php foreach ($ccKListe as $kk): $kz = PartnerKampagne::zahlen((int) $p['id'], (int) $kk['id']) ?? []; ?>
+              <li><a href="<?= $h($selbst(['cc' => 1, 'kampagne' => (int) $kk['id']])) ?>">
+                <span><b><?= $h((string) $kk['name']) ?></b><small><?= $h(PartnerKampagne::nummer($kk)) ?> · <span class="cc-status s-<?= $h((string) $kk['status']) ?>"><?= $h($c($KK['status'][(string) $kk['status']])) ?></span></small></span>
+                <span class="cc-kz"><b><?= (int) ($kz['scans'] ?? 0) + (int) ($kz['klicks'] ?? 0) ?></b><small><?= $h($c($KK['kz'])) ?></small></span></a></li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </section>
+
       <section class="cc-breit cc-karte cc-profil cc-auf z4" id="profil" aria-labelledby="cc-profil-t">
         <h2 id="cc-profil-t"><?= $h($c($C['pf_titel'])) ?></h2>
         <?php if ($ccPf['fertig'] && $ccMeldung !== 'pf_fehler' && !isset($_GET['profil'])): ?>
@@ -145,7 +171,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         <?php else: ?>
           <p class="lead"><?= $h($c($C['pf_text'])) ?></p>
           <?php if ($ccMeldung === 'pf_fehler'): ?><div class="hinweis schlecht" role="alert" style="margin:0 0 14px"><?= $h($c($C['pf_fehler'])) ?></div><?php endif; ?>
-          <form method="post" action="<?= $h($selbst(['cc' => 1])) ?>#profil" id="cc-profil-form" data-max-branchen="<?= PartnerCommand::HOECHSTENS_BRANCHEN ?>"
+          <form method="post" action="<?= $h($selbst(['cc' => 1])) ?>#profil" id="cc-profil-form" class="cc-assistent" data-max-branchen="<?= PartnerCommand::HOECHSTENS_BRANCHEN ?>"
                 data-stand="<?= $h($c($C['pf_schritt'])) ?>">
             <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="cc_profil">
             <fieldset class="cc-schritt">
@@ -158,7 +184,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
             </fieldset>
             <fieldset class="cc-schritt">
               <legend><label for="cc-ort"><?= $h($c($C['pf_region'])) ?></label></legend>
-              <input type="text" id="cc-ort" name="ort" maxlength="80" autocomplete="address-level2" value="<?= $h($ccPf['ort']) ?>" placeholder="<?= $h($c($C['pf_region_ph'])) ?>">
+              <input type="text" id="cc-ort" name="ort" data-pflicht maxlength="80" autocomplete="address-level2" value="<?= $h($ccPf['ort']) ?>" placeholder="<?= $h($c($C['pf_region_ph'])) ?>">
               <p class="hilfe"><?= $h($c($C['pf_region_hilfe'])) ?></p>
             </fieldset>
             <fieldset class="cc-schritt">
@@ -188,6 +214,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       </section>
     </div>
   </main>
+  <?php endif; ?>
 
 
   <div class="sprachen">

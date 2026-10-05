@@ -23567,7 +23567,7 @@ $ccDrei(Texte::PARTNER_CC, 'PARTNER_CC');
 $ccAnker = '';
 foreach (array_merge(glob($wurzel . '/views/partner_*.php'), [$oben . '/partner.php']) as $ccF) { $ccAnker .= (string) file_get_contents($ccF); }
 $ccOhne = array_values(array_filter(array_unique(array_merge(array_values(PartnerCommand::ANKER), array_values(PartnerCommand::SCHNELLWEGE), ['empfehlungen', 'provisionen', 'mc-erfolge', 'medien'])),
-    static fn($a) => !str_contains($ccAnker, 'id="' . $a . '"')));
+    static fn($a) => !str_starts_with($a, 'cc:') && !str_contains($ccAnker, 'id="' . $a . '"')));
 pruefe('Texte des Command Centers dreisprachig, Deutsch duzt; jedes Sprungziel gibt es im Partnerbereich',
     $ccFehlt === [] && Texte::duzt('PARTNER_CC.e.zahlen.warum') && $ccOhne === [], json_encode([$ccFehlt, $ccOhne]));
 $ccSeite = (string) file_get_contents($oben . '/partner.php');
@@ -23593,6 +23593,69 @@ Db::run('DELETE FROM partner_provisionen WHERE partner_id IN (?, ?)', [(int) $cc
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM customers WHERE id = ?', [$ccKunde]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+
+/* ============================================================================
+   Kampagnen-Assistent (Etappe 2, 05.10.2026): Strategie in Sätzen, Paket aus
+   vorhandenen Vorlagen, Budget aus echten Endpreisen — nichts erfunden.
+   ============================================================================ */
+abschnitt('Partner: Kampagnen-Assistent');
+require_once $wurzel . '/src/PartnerKampagne.php';
+require_once $wurzel . '/src/PartnerCommand.php';
+$kaP = Partner::laden(Partner::anlegen(['name' => 'Kai Assistent', 'email' => 'kai.assistent@partner.example', 'code' => 'KAIASSI', 'sprache' => 'de', 'status' => 'aktiv']));
+$kaKat = [['slug' => 'print', 'name' => 'Print', 'produkte' => [
+    ['id' => 901, 'vorlage' => 'visitenkarte', 'name' => 'Visitenkarte Vecom-Partner', 'ab_cent' => 3310],
+    ['id' => 905, 'vorlage' => 'flyer_branche', 'name' => 'Branchen-Flyer A5', 'ab_cent' => 3650]]]];
+$kaId = PartnerKampagne::anlegen($kaP, ['ziel' => 'neue_kunden', 'branche' => 'gastro', 'region' => 'Agrigento', 'sprache' => 'de']);
+$kaK = PartnerKampagne::laden((int) $kaP['id'], $kaId);
+$kaPaket = PartnerKampagne::paket($kaP, $kaK, 'de', $kaKat);
+$kaArten = array_column($kaPaket, 'art');
+$kaLink = PartnerWerbung::link($kaP, 'kampagne-' . $kaId);
+$kaWa = $kaPaket[array_search('whatsapp', $kaArten, true)]['text'] ?? '';
+$kaPost = $kaPaket[array_search('post', $kaArten, true)]['text'] ?? '';
+pruefe('Assistent: Paket für „Neue Kunden · Gastronomie“ = Kampagnenlink, Visitenkarte, Branchen-Flyer, WhatsApp, Beitrag — Texte sind die freigegebenen Branchentexte (gesiezt) mit dem Link DIESER Kampagne, Beitrag als Werbung gekennzeichnet',
+    $kaArten === ['link', 'visitenkarte', 'flyer', 'whatsapp', 'post'] && $kaPaket[0]['link'] === $kaLink
+    && str_contains($kaWa, $kaLink) && str_contains($kaWa, 'Restaurants und Bars') && str_contains($kaWa, 'kennen Sie vorher')
+    && str_contains($kaPost, $kaLink) && str_contains($kaPost, '#Werbung')
+    && $kaPaket[1]['produkt_id'] === 901 && $kaPaket[1]['ab_cent'] === 3310 && str_contains($kaPaket[2]['satz'], '36,50'), json_encode($kaArten));
+$kaB = [PartnerKampagne::budget($kaPaket, null), PartnerKampagne::budget($kaPaket, 6000), PartnerKampagne::budget($kaPaket, 10000), PartnerKampagne::budget($kaPaket, 1000)];
+pruefe('Budget aus echten Endpreisen: Summe der kleinsten Auflagen; ein Budget deckt in der Reihenfolge des Pakets, was hineinpasst',
+    $kaB[0]['summe'] === 6960 && $kaB[0]['n'] === 2 && $kaB[0]['budget'] === null && !$kaB[0]['reicht']
+    && $kaB[1]['deckt'] === ['Visitenkarte Vecom-Partner'] && !$kaB[1]['reicht'] && $kaB[2]['reicht'] && $kaB[3]['deckt'] === [], json_encode($kaB));
+$kaAuto = PartnerKampagne::laden((int) $kaP['id'], PartnerKampagne::anlegen($kaP, ['ziel' => 'reaktivieren', 'branche' => 'automotive', 'sprache' => 'it']));
+$kaPa = PartnerKampagne::paket($kaP, $kaAuto, 'de', [['produkte' => [['id' => 901, 'vorlage' => 'visitenkarte', 'name' => 'Visitenkarte', 'ab_cent' => 3310]]]]);
+$kaMesse = PartnerKampagne::laden((int) $kaP['id'], PartnerKampagne::anlegen($kaP, ['ziel' => 'messe', 'branche' => 'handwerk']));
+$kaPm = PartnerKampagne::paket($kaP, $kaMesse, 'de', $kaKat);
+pruefe('Ohne Branchentext (Automotive): die allgemeinen Vorlagen, in der Sprache der Kampagne (it) mit Kampagnenlink; E-Mail mit Betreff; Druck nur, was im Katalog steht (Messe ohne Roll-up/Geschenk im Katalog)',
+    array_column($kaPa, 'art') === ['link', 'whatsapp', 'email', 'visitenkarte']
+    && str_contains($kaPa[1]['text'], PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id'])) && str_contains($kaPa[1]['text'], 'Vecom Design')
+    && $kaPa[1]['text'] === strtr(Texte::h(Texte::PARTNER_WERBUNG['vorlagen']['whatsapp']['persoenlich']['text'], 'it'), ['{link}' => PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id']), '{name}' => Partner::anzeigeName($kaP)])
+    && ($kaPa[2]['betreff'] ?? '') !== '' && array_column($kaPm, 'art') === ['link', 'flyer', 'visitenkarte'], json_encode(array_column($kaPm, 'art')));
+$kaS = PartnerKampagne::strategie($kaK, 'de');
+pruefe('Strategie in drei Sätzen: wer und wo, wie (je Ziel), woran man es misst — ohne Versprechen',
+    count($kaS) === 3 && $kaS[0] === 'Ziel: Neue Kunden. Für: Gastronomie in Agrigento.' && str_contains($kaS[1], 'Persönlich') && str_contains($kaS[2], 'ohne Schätzung')
+    && count(array_filter(PartnerKampagne::ZIELE, static fn($z) => !isset(PartnerKampagne::PAKETE[$z], Texte::PARTNER_KAMPAGNE['s_weg'][$z]))) === 0, json_encode($kaS, JSON_UNESCAPED_UNICODE));
+// Empfehlung: aktiver Partner mit Besuchen, aber noch nie eine Kampagne → der Assistent
+Db::run('UPDATE partner SET vereinbarung_am = NOW() WHERE id = ?', [(int) $kaP['id']]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [(int) $kaP['id']]);
+Db::run('INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 4)', [(int) $kaP['id']]);
+$kaP = Partner::laden((int) $kaP['id']);
+$kaZ = PartnerCommand::zahlen($kaP);
+$kaE = PartnerCommand::empfehlung($kaP, 'de', $kaZ, true, strtotime('2026-07-10 10:00:00'));
+pruefe('Command Center: wer schon Besuche hat, aber nie eine Kampagne, bekommt den Assistenten empfohlen (Sprungziel im Command Center)',
+    !PartnerCommand::wenigDaten($kaZ) && $kaE['k'] === 'kampagne' && $kaE['anker'] === 'cc:kampagne-neu' && $kaE['titel'] === 'Starte deine erste Kampagne', json_encode($kaE, JSON_UNESCAPED_UNICODE));
+$kaSeite = (string) file_get_contents($oben . '/partner.php');
+$kaWm = (string) file_get_contents($wurzel . '/views/partner_werbemittel.php');
+$kaPr = (string) file_get_contents($wurzel . '/views/partner_mc_produkt.php');
+pruefe('Wege: Anlegen nur mit CSRF und höchstens 20 offenen Kampagnen; Seite, Status und Ziel nur für eigene; Material aus dem Assistenten bekommt die eigene Kampagne',
+    str_contains($kaSeite, "if (\$ccCsrf && \$ccTat === 'kampagne_neu')") && str_contains($kaSeite, 'PartnerKampagne::offen((int) $p[\'id\']) >= PartnerKampagne::HOECHSTENS_OFFEN')
+    && str_contains($kaSeite, "\$ccK = PartnerKampagne::laden((int) \$p['id'], (int) \$_GET['kampagne']);")
+    && str_contains($kaSeite, "PartnerKampagne::statusSetzen((int) \$p['id'], \$ccId,")
+    && str_contains($kaWm, "\$wmKamp = PartnerKampagne::laden((int) \$p['id'], (int) \$_GET['kampagne']);")
+    && str_contains($kaPr, '<input type="hidden" name="kampagne" value="<?= (int) $wmKamp[\'id\'] ?>">')
+    && PartnerKampagne::offen((int) $kaP['id']) === 0 && PartnerKampagne::WEG_STANDARD['check'] === 'check');
+Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [(int) $kaP['id']]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [(int) $kaP['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $kaP['id']]);
 
 /* ============================================================================
    Aufräumen und Bilanz

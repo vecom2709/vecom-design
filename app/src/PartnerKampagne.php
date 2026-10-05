@@ -186,4 +186,143 @@ final class PartnerKampagne
                                       WHERE pp.partner_id = ? AND z.kanal IN ($in) AND pp.status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')", array_merge([$partnerId], $kanaele), 0);
         return ['scans' => $scans, 'klicks' => $klicks, 'besucher' => $besucher, 'anfragen' => $anfragen, 'kunden' => $kunden, 'provision_cents' => $provision];
     }
+
+    /* ======================================================================
+       Kampagnen-Assistent (Etappe 2, 05.10.2026): aus Ziel, Branche und Ort
+       eine Strategie in Sätzen und ein Paket aus dem, was es schon gibt —
+       Kampagnenlink, Druckprodukte aus dem Katalog des Partners (mit echtem
+       Endpreis), fertige Texte für WhatsApp, Beiträge, E-Mail, Story-Grafik.
+       Nichts wird neu erfunden: Die Texte an Betriebe sind dieselben, die
+       Uwe freigegeben hat (PARTNER_BRANCHEN, PARTNER_WERBUNG), nur mit dem
+       Link dieser Kampagne — damit jeder Klick hier zählt.
+       ====================================================================== */
+
+    /** Höchstens so viele aktive oder pausierte Kampagnen je Partner. */
+    public const HOECHSTENS_OFFEN = 20;
+
+    /** Was ins Paket gehört — je Ziel, in dieser Reihenfolge. */
+    public const PAKETE = [
+        'neue_kunden'  => ['link', 'visitenkarte', 'flyer', 'whatsapp', 'post'],
+        'anfragen'     => ['link', 'flyer', 'visitenkarte', 'whatsapp', 'post'],
+        'bekanntheit'  => ['link', 'post', 'story', 'visitenkarte', 'aufkleber'],
+        'lokal'        => ['link', 'flyer', 'aufkleber', 'visitenkarte', 'whatsapp'],
+        'social'       => ['link', 'post', 'story', 'whatsapp'],
+        'messe'        => ['link', 'rollup', 'flyer', 'visitenkarte', 'geschenk'],
+        'eroeffnung'   => ['link', 'flyer', 'post', 'geschenk', 'aufkleber'],
+        'reaktivieren' => ['link', 'whatsapp', 'email', 'visitenkarte'],
+        'check'        => ['link', 'flyer', 'whatsapp', 'post'],
+    ];
+
+    /** Druckprodukte je Art: die erste Vorlage, die der Partner im Katalog hat, gilt. */
+    public const DRUCK = [
+        'visitenkarte' => ['visitenkarte'],
+        'flyer'        => ['flyer_branche', 'flyer_a6', 'flyer_a5'],
+        'aufkleber'    => ['aufkleber_50'],
+        'rollup'       => ['rollup_85'],
+        'geschenk'     => ['tasse_11', 'beutel', 'notizbuch', 'untersetzer', 'flasche'],
+    ];
+
+    /** Wohin der Link führt, wenn der Partner nichts wählt. */
+    public const WEG_STANDARD = ['anfragen' => 'preis', 'check' => 'check'];
+
+    /** Branchen der Kampagne → Gruppe der 51 Branchen-Flyer (PartnerFlyer::GRUPPEN). */
+    public const FLYER_GRUPPE = ['gastro' => 'gast', 'unterkunft' => 'gast', 'handwerk' => 'bau', 'laden' => 'handel', 'automotive' => 'handel',
+        'beauty' => 'gesundheit', 'praxis' => 'gesundheit', 'sonstige' => 'allgemein'];
+
+    /** Branchen der Kampagne → fertige Branchen-Texte (PARTNER_BRANCHEN); ohne Eintrag die allgemeinen Vorlagen. */
+    public const TEXT_BRANCHE = ['gastro' => 'gastro', 'unterkunft' => 'unterkunft', 'handwerk' => 'handwerk', 'laden' => 'laden',
+        'beauty' => 'laden', 'praxis' => 'praxis'];
+
+    /** Wie viele aktive oder pausierte Kampagnen der Partner hat. */
+    public static function offen(int $partnerId): int
+    {
+        return (int) Db::wert("SELECT COUNT(*) FROM mk_kampagnen WHERE partner_id = ? AND status IN ('aktiv','pausiert')", [$partnerId], 0);
+    }
+
+    /** Drei Sätze: wer, wie, woran man es sieht. $sprache = Sprache der Oberfläche. @return list<string> */
+    public static function strategie(array $k, string $sprache): array
+    {
+        require_once __DIR__ . '/Texte.php';
+        $K = Texte::PARTNER_KAMPAGNE;
+        $t = static fn(array $x): string => Texte::h($x, $sprache);
+        $ziel = (string) $k['ziel_art'];
+        $region = trim((string) ($k['region'] ?? ''));
+        return [
+            strtr($t($K['s_wer']), ['{ziel}' => $t(Texte::KAMPAGNE_ZIELE[$ziel] ?? []), '{branche}' => $t(Texte::KAMPAGNE_BRANCHEN[(string) $k['branche']] ?? []),
+                '{region}' => $region === '' ? '' : strtr($t($K['s_region']), ['{region}' => $region])]),
+            $t($K['s_weg'][$ziel] ?? $K['s_weg']['neue_kunden']),
+            $t($K['s_mess']),
+        ];
+    }
+
+    /**
+     * Das Paket einer eigenen Kampagne. $katalog = Werbemittel::katalog(…) des Partners (nur was er bestellen kann).
+     * Texte an Betriebe in der Sprache der Kampagne; Beschriftungen in der Sprache der Oberfläche.
+     * @return list<array{art:string, titel:string, satz:string, text?:string, betreff?:string, link?:string, produkt_id?:int, ab_cent?:int, teilen?:?string}>
+     */
+    public static function paket(array $p, array $k, string $sprache, array $katalog): array
+    {
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/PartnerWerbung.php';
+        require_once __DIR__ . '/PartnerVorlagen.php';
+        require_once __DIR__ . '/Fmt.php';
+        $K = Texte::PARTNER_KAMPAGNE;
+        $t = static fn(array $x): string => Texte::h($x, $sprache);
+        $ks = in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : $sprache;   // Sprache der Werbemittel
+        $link = PartnerWerbung::link($p, self::kanal((int) $k['id']));
+        $ersatz = ['{link}' => $link, '{name}' => Partner::anzeigeName($p)];
+        $tb = self::TEXT_BRANCHE[(string) $k['branche']] ?? null;
+        $vorlage = static fn(string $kanal, string $id, string $teil) => strtr(PartnerVorlagen::text("werbung.$kanal.$id.$teil", $ks,
+            Texte::h(Texte::PARTNER_WERBUNG['vorlagen'][$kanal][$id][$teil] ?? [], $ks)), $ersatz);
+        $produkte = [];
+        foreach ($katalog as $kat) { foreach ($kat['produkte'] as $pr) { $produkte[(string) $pr['vorlage']] = $pr; } }
+        $aus = [];
+        foreach (self::PAKETE[(string) $k['ziel_art']] ?? self::PAKETE['neue_kunden'] as $art) {
+            switch ($art) {
+                case 'link':
+                    $aus[] = ['art' => 'link', 'titel' => $t($K['p']['link'][0]), 'satz' => strtr($t($K['p']['link'][1]), ['{weg}' => $t($K['wege'][(string) $k['ziel_weg']] ?? $K['wege'][''])]), 'link' => $link];
+                    break;
+                case 'whatsapp':
+                    $text = $tb !== null ? strtr(Texte::h(Texte::PARTNER_BRANCHEN[$tb]['wa'], $ks), $ersatz) : $vorlage('whatsapp', 'persoenlich', 'text');
+                    $aus[] = ['art' => 'whatsapp', 'titel' => $t($K['p']['whatsapp'][0]), 'satz' => $t($K['p']['whatsapp'][1]), 'text' => $text,
+                              'teilen' => PartnerWerbung::teilen('whatsapp', $text, '', $link)];
+                    break;
+                case 'post':
+                    $text = $tb !== null ? strtr(Texte::h(Texte::PARTNER_BRANCHEN[$tb]['post'], $ks), $ersatz) : $vorlage('instagram', 'post', 'text');
+                    if (!str_contains($text, '#')) { $text .= "\n\n" . (['it' => '#ad', 'de' => '#Werbung', 'en' => '#ad'][$ks] ?? '#ad'); }   // Werbung kennzeichnen
+                    $aus[] = ['art' => 'post', 'titel' => $t($K['p']['post'][0]), 'satz' => $t($K['p']['post'][1]), 'text' => $text];
+                    break;
+                case 'email':
+                    $aus[] = ['art' => 'email', 'titel' => $t($K['p']['email'][0]), 'satz' => $t($K['p']['email'][1]),
+                              'betreff' => $vorlage('email', 'kontakt', 'betreff'), 'text' => $vorlage('email', 'kontakt', 'text')];
+                    break;
+                case 'story':
+                    $aus[] = ['art' => 'story', 'titel' => $t($K['p']['story'][0]), 'satz' => $t($K['p']['story'][1])];
+                    break;
+                default:   // Druck: nur, was im Katalog des Partners steht
+                    foreach (self::DRUCK[$art] ?? [] as $v) {
+                        if (!isset($produkte[$v])) { continue; }
+                        $pr = $produkte[$v];
+                        $aus[] = ['art' => $art, 'titel' => strtr($t($K['p']['druck'][0]), ['{produkt}' => (string) $pr['name']]),
+                                  'satz' => strtr($t($K['p']['druck'][1]), ['{preis}' => Fmt::geld((int) $pr['ab_cent'])]),
+                                  'produkt_id' => (int) $pr['id'], 'ab_cent' => (int) $pr['ab_cent'], 'vorlage' => $v];
+                        break;
+                    }
+            }
+        }
+        return $aus;
+    }
+
+    /**
+     * Was der Druck mindestens kostet und was ein Budget davon abdeckt (in der Reihenfolge des Pakets).
+     * @return array{summe:int, n:int, budget:?int, reicht:bool, deckt:list<string>}
+     */
+    public static function budget(array $paket, ?int $budgetCents): array
+    {
+        $druck = array_values(array_filter($paket, static fn($x) => isset($x['ab_cent'])));
+        $summe = array_sum(array_column($druck, 'ab_cent'));
+        $deckt = []; $rest = (int) $budgetCents;
+        foreach ($druck as $d) { if ($budgetCents !== null && $d['ab_cent'] <= $rest) { $deckt[] = $d['titel']; $rest -= $d['ab_cent']; } }
+        return ['summe' => $summe, 'n' => count($druck), 'budget' => $budgetCents, 'reicht' => $budgetCents !== null && $budgetCents >= $summe, 'deckt' => $deckt];
+    }
 }

@@ -30,6 +30,12 @@ if ($mcBr) {
 }
 $mcGrp = [];
 foreach ($mcBr as $mcS) { $mcGrp[(string) (PartnerFlyer::liste()[$mcS]['g'] ?? 'allgemein')][] = $mcS; }
+/* Aus einer Kampagne und noch ohne eigenen Entwurf: Branchengruppe und Sprache der Kampagne vorwählen. */
+if (!empty($wmKamp) && empty($wmSt['entwurf']) && empty($wmSt['freigegeben'])) {
+    $wmJetzt['sprache'] = (string) $wmKamp['sprache'];
+    $mcKampGr = PartnerKampagne::FLYER_GRUPPE[(string) $wmKamp['branche']] ?? '';
+    foreach ($mcBr as $mcS) { if ((PartnerFlyer::liste()[$mcS]['g'] ?? '') === $mcKampGr) { $wmJetzt['stil'] = $mcS; break; } }
+}
 $mcGrpJetzt = isset($wmBranchen[$wmJetzt['stil']]) ? (string) (PartnerFlyer::liste()[$wmJetzt['stil']]['g'] ?? '') : '';
 $mcQuer = $wmVl === 'visitenkarte';
 $mcMini = static fn(string $s): string => $wmNurLesen ? '' : $selbst(['wmmini' => $wmVl, 'st' => $s, 'vks' => $sprache]);
@@ -130,6 +136,8 @@ $mcKachel = static function (string $s, string $linie, string $gruppe = '', stri
         <form method="post" action="<?= $h($selbst()) ?>#wm-p<?= (int) $wmP['id'] ?>" class="wm-gestalter wm-gestalten" data-bild="wm-bild-<?= (int) $wmP['id'] ?>">
           <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf'] ?? '') ?>"><input type="hidden" name="tat" value="wm_entwurf">
           <input type="hidden" name="produkt" value="<?= (int) $wmP['id'] ?>">
+          <?php if (!empty($wmKamp)): ?><input type="hidden" name="kampagne" value="<?= (int) $wmKamp['id'] ?>">
+            <p class="hinweis mc-kampagne" style="margin:0 0 10px;font-size:13.5px"><?= $h(strtr(Texte::h(Texte::PARTNER_KAMPAGNE['fuer'], $sprache), ['{name}' => (string) $wmKamp['name']])) ?></p><?php endif; ?>
           <p class="wm-meta wm-wahl-hinweis" hidden style="margin:0"><?= $h($W('vorschau_wahl')) ?> ↑</p>
           <?php if ($mcBr): ?>
             <fieldset class="mc-motive">

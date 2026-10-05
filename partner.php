@@ -160,10 +160,13 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    Hinter Gerät und Sperre, vor allem anderen: Die Seite lädt nur, was sie zeigt
    (PartnerCommand), nicht die rund 40 Blöcke des Partnerbereichs. Gespeichert
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
-if ($p && (isset($_GET['cc']) || ($_POST['tat'] ?? '') === 'cc_profil')) {
+if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg'], true))) {
     require_once __DIR__ . '/app/src/PartnerCommand.php';
-    $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut'], true) ? (string) $_GET['m'] : '';
+    require_once __DIR__ . '/app/src/PartnerKampagne.php';
+    $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut'], true) ? (string) $_GET['m'] : '';
     $ccPost = null;
+    $ccTat = (string) ($_POST['tat'] ?? '');
+    $ccCsrf = $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'cc_profil'
         && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
         if (PartnerCommand::profilSpeichern((int) $p['id'], $_POST) === 'ok') {
@@ -171,11 +174,43 @@ if ($p && (isset($_GET['cc']) || ($_POST['tat'] ?? '') === 'cc_profil')) {
         }
         $ccMeldung = 'pf_fehler'; $ccPost = $_POST;
     }
-    $ccMc = false;
+    /* Kampagnen-Assistent (Etappe 2): anlegen, Status, Ziel des Links — alles nur für eigene Kampagnen
+       (PartnerKampagne prüft die Partner-ID in jeder Abfrage). */
+    if ($ccCsrf && $ccTat === 'kampagne_neu') {
+        $ccWeg = (string) ($_POST['weg'] ?? 'auto');
+        $ccWeg = $ccWeg === 'auto' ? (PartnerKampagne::WEG_STANDARD[(string) ($_POST['ziel'] ?? '')] ?? '') : ($ccWeg === 'seite' ? '' : $ccWeg);
+        $ccBudget = (int) round(100 * (float) str_replace(',', '.', preg_replace('~[^0-9,.]~', '', (string) ($_POST['budget'] ?? '')) ?: '0'));
+        if (PartnerKampagne::offen((int) $p['id']) >= PartnerKampagne::HOECHSTENS_OFFEN) {
+            $ccMeldung = 'k_zu_viele'; $ccPost = $_POST;
+        } else {
+            try {
+                $ccId = PartnerKampagne::anlegen($p, ['ziel' => (string) ($_POST['ziel'] ?? ''), 'branche' => (string) ($_POST['branche'] ?? ''),
+                    'region' => (string) ($_POST['region'] ?? ''), 'sprache' => (string) ($_POST['sprache'] ?? ''), 'ziel_weg' => $ccWeg,
+                    'budget_cents' => $ccBudget > 0 ? $ccBudget : null]);
+                header('Location: ' . $selbst(['cc' => 1, 'kampagne' => $ccId, 'm' => 'k_erstellt']), true, 303); exit;
+            } catch (InvalidArgumentException $e) { $ccMeldung = 'k_fehler'; $ccPost = $_POST; }
+        }
+        $_GET['kampagne'] = 'neu';
+    }
+    if ($ccCsrf && in_array($ccTat, ['kampagne_status', 'kampagne_weg'], true)) {
+        $ccId = (int) ($_POST['id'] ?? 0);
+        $ok = $ccTat === 'kampagne_status'
+            ? PartnerKampagne::statusSetzen((int) $p['id'], $ccId, (string) ($_POST['status'] ?? ''))
+            : PartnerKampagne::zielSetzen((int) $p['id'], 'kampagne', $ccId, ($w = (string) ($_POST['weg'] ?? '')) === 'seite' ? '' : $w);
+        header('Location: ' . $selbst(['cc' => 1, 'kampagne' => $ccId] + ($ok ? ['m' => 'k_gut'] : [])), true, 303); exit;
+    }
+    $ccKatalog = [];
     try {
         require_once __DIR__ . '/app/src/Werbemittel.php';
-        $ccMc = (bool) Werbemittel::katalog($sprache, false, Werbemittel::anzeigeLand($p));
-    } catch (Throwable $e) { $ccMc = false; }
+        $ccKatalog = Werbemittel::katalog($sprache, false, Werbemittel::anzeigeLand($p));
+    } catch (Throwable $e) { $ccKatalog = []; }
+    $ccMc = (bool) $ccKatalog;
+    $ccSeite = 'start'; $ccK = null;
+    if (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
+    elseif (isset($_GET['kampagne'])) {
+        $ccK = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kampagne']);   // fremde oder unbekannte → Startseite
+        $ccSeite = $ccK ? 'kampagne' : 'start';
+    }
     require __DIR__ . '/app/views/partner_cc.php';
     exit;
 }

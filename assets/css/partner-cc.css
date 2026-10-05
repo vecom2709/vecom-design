@@ -92,7 +92,7 @@ html{scroll-padding-top:76px}
 .cc-chip input:checked + span{background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 45%,rgba(0,0,0,.08)),var(--metall);color:#16120b;border-color:transparent;font-weight:650}
 .cc-chip input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
 .cc-profil input[type=text]{width:100%;font-size:16px;padding:12px 14px;box-sizing:border-box}
-.cc-profil .hilfe{font-size:12.5px;color:var(--leise);margin:6px 0 0}
+.cc .hilfe{font-size:12.5px;color:var(--leise);margin:6px 0 0;line-height:1.5}
 .cc-fuss{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 .cc-fuss .knopf:disabled{opacity:.42;cursor:not-allowed;transform:none;box-shadow:none}
 .cc-fuss .stand{font-size:12.5px;color:var(--leise);margin-left:auto}
@@ -101,6 +101,53 @@ html{scroll-padding-top:76px}
 .cc-kurz b{color:var(--text);font-weight:600}
 .cc-kurz a{color:var(--gold)}
 .cc-kurz > span:not(:first-child)::before{content:'·';color:var(--leise);margin-right:14px}
+
+/* ---------- Kampagnen (Etappe 2) ---------- */
+.cc-titelzeile{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
+.cc-titelzeile .cc-titel{margin:0}
+.cc-titelzeile .knopf{min-height:42px;padding:10px 16px;font-size:14px}
+.cc-leer{margin:0;padding:16px;border:1px dashed var(--linie2);border-radius:14px;color:var(--dim);font-size:14.5px}
+.cc-kliste{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cc-kliste a{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border-radius:14px;border:1px solid var(--linie);
+  background:rgba(255,255,255,.02);color:var(--text);text-decoration:none;transition:border-color .18s,background .18s}
+.cc-kliste a:hover{border-color:var(--haar);background:rgba(241,211,139,.04)}
+.cc-kliste a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-kliste a > span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cc-kliste b{font-weight:650;font-size:15px;line-height:1.3}
+.cc-kliste small{font-size:12.5px;color:var(--leise)}
+.cc-kz{display:flex;flex-direction:column;align-items:flex-end;flex:none;text-align:right}
+.cc-kz b{font:700 22px/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.cc-status{font-weight:650;letter-spacing:.02em}
+.cc-status.s-aktiv{color:var(--gut)}
+.cc-status.s-pausiert{color:var(--gold)}
+.cc-status.s-beendet{color:var(--leise)}
+.cc-zurueck{margin:14px 0 0;font-size:14px}
+.cc-zurueck a{color:var(--dim);text-decoration:none;display:inline-block;padding:8px 0;min-height:44px;line-height:28px}
+.cc-zurueck a:hover{color:var(--text)}
+.cc-feldname{display:block;font-size:13px;color:var(--dim);margin:16px 0 6px}
+.cc select{width:100%;max-width:280px;font-size:16px;padding:11px 12px}
+.cc-strat1{font:650 18px/1.45 var(--f-display);margin:0 0 10px;text-wrap:balance}
+.cc-budget{margin:4px 0 0;padding-top:12px;border-top:1px solid var(--linie);color:var(--dim);font-size:13.5px;line-height:1.6}
+.cc-zahlen-klein .cc-zahl{min-height:0;padding:12px}
+.cc-zahlen-klein .cc-zahl b{font-size:24px}
+.cc-paket{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+@media (min-width:860px){.cc-paket{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.cc-teil{display:flex;flex-direction:column;gap:10px;padding:15px;border-radius:16px;border:1px solid var(--linie);background:linear-gradient(180deg,var(--flaeche),var(--grund2))}
+.cc-teil.a-link{border-color:var(--haar)}
+.cc-teil-kopf{display:flex;flex-direction:column;gap:3px}
+.cc-teil-kopf b{font-weight:650;font-size:15.5px}
+.cc-teil-kopf small{font-size:13px;color:var(--leise);line-height:1.45}
+.cc-teil textarea{width:100%;box-sizing:border-box;font-size:14px;line-height:1.5;padding:10px 12px;resize:vertical;min-height:110px}
+.cc-teil .cc-betreff{width:100%;box-sizing:border-box;font-size:14px;padding:9px 12px;font-weight:600}
+.cc-teil .knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+.cc-teil > .knopf{align-self:flex-start}
+.cc-kopie{display:flex;gap:8px}
+.cc-kopie input{flex:1;min-width:0;font-size:14px;padding:10px 12px}
+.cc-mat{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.cc-mat li{display:flex;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:10px;border:1px solid var(--linie);font-size:14px;color:var(--dim)}
+.cc-ende{margin-top:10px}
+.cc-ende > summary{list-style:none;display:inline-flex;cursor:pointer}
+.cc-ende > summary::-webkit-details-marker{display:none}
 
 /* ---------- Leiste unten (wie die Reiter im Partnerbereich) ---------- */
 .cc-leiste{display:flex;gap:3px;max-width:980px;margin:10px auto 0;position:sticky;top:8px;z-index:30;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px;box-sizing:border-box;background:rgba(20,19,17,.88);

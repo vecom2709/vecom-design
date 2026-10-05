@@ -32,7 +32,7 @@ final class PartnerCommand
     /** Wohin die Empfehlung führt. */
     public const ANKER = ['kontakte' => 'besuche', 'heiss' => 'heiss', 'nachhaken' => 'nachhaken', 'anrufen' => 'anrufliste',
         'nachrichten' => 'nachrichten', 'zahlen' => 'mc-bestellungen', 'freigeben' => 'mc-designs', 'material' => 'mc-start',
-        'anlass' => 'kalender', 'posten' => 'kalender'];
+        'anlass' => 'kalender', 'posten' => 'kalender', 'kampagne' => 'cc:kampagne-neu'];
     /** Was in PartnerHeute so dringend ist, dass es vor allem anderen kommt (Reihenfolge von dort). */
     public const DRINGEND = ['kontakte', 'heiss', 'nachhaken', 'anrufen', 'nachrichten'];
     public const WEGE = ['persoenlich', 'whatsapp', 'social', 'telefon', 'druck', 'email'];
@@ -114,15 +114,19 @@ final class PartnerCommand
             return ['k' => 'start_' . $st['naechster'], 'n' => 1, 'titel' => $t($sd[0]), 'warum' => $t(Texte::PARTNER_CC['start_warum']),
                     'knopf' => $t(Texte::PARTNER_CC['los']), 'anker' => PartnerStart::ANKER[$st['naechster']], 'wenig' => true];
         }
-        // 4. Noch kein Werbemittel freigegeben: die erste Karte.
+        // 4. Noch nie eine Kampagne: der Assistent bündelt Link, Werbemittel und Texte (Etappe 2).
+        if (!$wenig && (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM mk_kampagnen WHERE partner_id = ?', [(int) $p['id']], 0), 0) === 0) {
+            return $aus('kampagne');
+        }
+        // 5. Noch kein Werbemittel freigegeben: die erste Karte.
         if ($mc && $z['freigegeben'] === 0) { return $aus('material', 1, [], $wenig); }
-        // 5. Ein Anlass in den nächsten sieben Tagen (Saison).
+        // 6. Ein Anlass in den nächsten sieben Tagen (Saison).
         $bald = self::still(static fn() => PartnerKalender::bald($jetzt, 7, PartnerKalender::region($p)), null);
         $name = is_array($bald) ? (Texte::PARTNER_KALENDER['anlaesse'][$bald['schluessel']]['titel'] ?? null) : null;
         if (is_array($bald) && $name) {
             return $aus('anlass', 1, ['{tage}' => (string) $bald['in'], '{anlass}' => $t($name)], $wenig);
         }
-        // 6. Sonst: der Beitrag des Tages — den gibt es immer.
+        // 7. Sonst: der Beitrag des Tages — den gibt es immer.
         $posten = null;
         foreach ($punkte as $hp) { if ($hp['k'] === 'posten') { $posten = $hp; } }
         return $aus('posten', 1, ['{titel}' => (string) ($posten['titel'] ?? '')], $wenig);
