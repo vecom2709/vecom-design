@@ -47,6 +47,18 @@ if (is_file($konfig)) {
             header('X-Content-Type-Options: nosniff');
             echo $f; exit;
         }
+        /* Bild einer Mediathek-Karte (Phase 3, 05.10.2026) — nur aktive Karten; Versionsanhang in der Adresse.
+           Mit &dl=1 als Download (der Partner speichert es fürs Handy). */
+        if (isset($_GET['mt'])) {
+            require_once __DIR__ . '/app/src/PartnerMediathek.php';
+            $f = PartnerMediathek::bildDaten((int) $_GET['mt']);
+            if ($f === null) { http_response_code(404); exit; }
+            header('Content-Type: image/webp');
+            header('Cache-Control: public, max-age=31536000, immutable');
+            header('X-Content-Type-Options: nosniff');
+            if (isset($_GET['dl'])) { header('Content-Disposition: attachment; filename="vecom-' . (int) $_GET['mt'] . '.webp"'); }
+            echo $f; exit;
+        }
         /* Foto einer veröffentlichten Kundenstimme (03.10.2026, N4) — nur freigegeben und mit Erlaubnis. */
         if (isset($_GET['sfoto'])) {
             require_once __DIR__ . '/app/src/PartnerStimmen.php';

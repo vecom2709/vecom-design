@@ -53,11 +53,13 @@ final class PartnerWerbung
         $aus = [];
         foreach (self::KANAELE as $k) {
             $link = self::link($p, $k);
-            // Telegram (04.10.2026): dieselben Texte wie WhatsApp — ein Chat ist ein Chat.
-            foreach (Texte::PARTNER_WERBUNG['vorlagen'][$k] ?? ($k === 'telegram' ? Texte::PARTNER_WERBUNG['vorlagen']['whatsapp'] : []) as $id => $v) {
+            // Telegram (04.10.2026): dieselben Texte wie WhatsApp — ein Chat ist ein Chat. Dann auch Uwes eigene
+            // WhatsApp-Fassung: Bis 05.10.2026 wurde sie unter „werbung.telegram.…“ gesucht und kam dort nie an.
+            $quelle = isset(Texte::PARTNER_WERBUNG['vorlagen'][$k]) ? $k : ($k === 'telegram' ? 'whatsapp' : $k);
+            foreach (Texte::PARTNER_WERBUNG['vorlagen'][$quelle] ?? [] as $id => $v) {
                 // Uwes eigene Fassung aus dem Admin geht vor (PartnerVorlagen, 27.09.2026).
                 $fuell = static fn(?array $t, string $teil): string => $t === null ? '' : strtr(
-                    PartnerVorlagen::text("werbung.$k.$id.$teil", $sprache, Texte::h($t, $sprache)), ['{link}' => $link, '{name}' => $name]);
+                    PartnerVorlagen::text("werbung.$quelle.$id.$teil", $sprache, Texte::h($t, $sprache)), ['{link}' => $link, '{name}' => $name]);
                 $text = $fuell($v['text'], 'text'); $betreff = $fuell($v['betreff'] ?? null, 'betreff');
                 $aus[$k][] = ['id' => $k . '_' . $id, 'titel' => Texte::h($v['titel'], $sprache), 'betreff' => $betreff,
                     'text' => $text, 'teilen' => self::teilen($k, $text, $betreff, $link), 'link' => $link];

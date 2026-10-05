@@ -1431,6 +1431,36 @@ if ($post) {
                 } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = 'Die Nachricht ist leer.'; }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0) . '#nachrichten');
 
+            case 'partner_mediathek':
+                /* Mediathek der Partner (Phase 3, 05.10.2026): Karte anlegen oder ändern, mit Bild (neu gerechnet, ohne EXIF). */
+                require_once __DIR__ . '/src/PartnerMediathek.php';
+                $pmId = (int) ($_POST['id'] ?? 0) > 0 ? (int) $_POST['id'] : null;
+                $pmF = $_FILES['bild'] ?? null;
+                $pmPfad = is_array($pmF) && (int) ($pmF['error'] ?? 4) === UPLOAD_ERR_OK && is_uploaded_file((string) $pmF['tmp_name']) ? (string) $pmF['tmp_name'] : null;
+                if (is_array($pmF) && in_array((int) ($pmF['error'] ?? 4), [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true)) {
+                    $_SESSION['fehler'] = 'Das Bild ist zu groß (höchstens ' . intdiv(PartnerMediathek::BILD_MAX_BYTE, 1_000_000) . ' MB).';
+                    weiter('partner/mediathek' . ($pmId ? '#m-' . $pmId : ''));
+                }
+                $pmR = PartnerMediathek::speichern($_POST, $pmId, $pmPfad, $pmPfad !== null ? (int) $pmF['size'] : 0);
+                if ($pmR['ok']) {
+                    Events::protokoll('partner_mediathek', 'Mediathek-Karte ' . ($pmId ? 'geändert' : 'angelegt') . ': #' . $pmR['id'], null, null, null, ['id' => $pmR['id']]);
+                    $_SESSION['gut'] = 'Gespeichert.' . ((string) ($_POST['status'] ?? '') === 'aktiv' ? ' Die Partner sehen die Karte sofort.' : ' Sichtbar wird sie mit dem Stand „aktiv“.');
+                    weiter('partner/mediathek#m-' . $pmR['id']);
+                }
+                $_SESSION['fehler'] = ['zweck' => 'Bitte einen Zweck wählen.', 'titel' => 'Bitte einen Titel angeben (mindestens in einer Sprache).',
+                    'inhalt' => 'Eine Karte braucht einen Text, ein Bild oder einen Verweis.', 'bild_gross' => 'Das Bild ist zu groß.',
+                    'bild_art' => 'Das Bild muss JPG, PNG oder WebP sein.', 'fehlt' => 'Diese Karte gibt es nicht mehr.'][$pmR['grund']] ?? 'Speichern ging nicht.';
+                weiter('partner/mediathek' . ($pmId ? '#m-' . $pmId : '?neu=1'));
+
+            case 'partner_mediathek_status':
+                require_once __DIR__ . '/src/PartnerMediathek.php';
+                $pmId = (int) ($_POST['id'] ?? 0);
+                if (PartnerMediathek::statusSetzen($pmId, (string) ($_POST['status'] ?? ''))) {
+                    Events::protokoll('partner_mediathek', 'Mediathek-Karte #' . $pmId . ': ' . (string) $_POST['status'], null, null, null, ['id' => $pmId]);
+                    $_SESSION['gut'] = (string) $_POST['status'] === 'aktiv' ? 'Aktiv — die Partner sehen die Karte jetzt.' : 'Stand geändert.';
+                }
+                weiter('partner/mediathek#m-' . $pmId);
+
             case 'partner_vorlage':
                 /* Werbevorlage, FAQ oder Leitfaden in Uwes Fassung (27.09.2026). Leer = Standard. */
                 require_once __DIR__ . '/src/PartnerVorlagen.php';
@@ -4324,6 +4354,17 @@ switch ($route) {
         if ($unter === 'vorlagen') {
             require_once __DIR__ . '/src/PartnerVorlagen.php';
             ansicht('partner_vorlagen', ['katalog' => PartnerVorlagen::katalog()]);
+            break;
+        }
+        if ($unter === 'mediathek') {   // Mediathek der Partner (Phase 3)
+            require_once __DIR__ . '/src/PartnerMediathek.php';
+            if (isset($_GET['bild'])) {   // Vorschau auch für Entwürfe — nur in der Verwaltung
+                $pmB = Db::wert('SELECT bild FROM partner_mediathek WHERE id = ? AND bild IS NOT NULL', [(int) $_GET['bild']], null);
+                if (!is_string($pmB) || $pmB === '') { http_response_code(404); exit; }
+                header('Content-Type: image/webp'); header('Cache-Control: private, max-age=300'); header('X-Content-Type-Options: nosniff');
+                echo $pmB; exit;
+            }
+            ansicht('partner_mediathek', ['karten' => PartnerMediathek::verwaltungListe()]);
             break;
         }
         if ($id !== null && isset($_GET['akte'])) {   // Akte für den Anwalt (30.09.2026)

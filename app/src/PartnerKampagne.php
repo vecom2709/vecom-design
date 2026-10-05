@@ -20,13 +20,16 @@ declare(strict_types=1);
    NUR EIGENES: Jede Methode mit Partner-Bezug nimmt die Partner-ID und
    prüft sie in der Abfrage selbst — nie „erst laden, dann prüfen“.
    ========================================================================== */
+require_once __DIR__ . '/PartnerBranche.php';
+
 final class PartnerKampagne
 {
     /** Ziele (Uwes Liste „Was möchtest du erreichen?“). */
     public const ZIELE = ['neue_kunden', 'anfragen', 'bekanntheit', 'lokal', 'social', 'messe', 'eroeffnung', 'reaktivieren', 'check'];
 
-    /** Branchen: die fünf mit fertigen Partner-Paketen (PartnerMarketing::BRANCHEN) und die ersten neuen Welten (Uwe: Ja zu Gastronomie, Handwerk, Beauty, Automotive, Einzelhandel). */
-    public const BRANCHEN = ['gastro', 'unterkunft', 'handwerk', 'laden', 'praxis', 'beauty', 'automotive', 'sonstige'];
+    /** Branchen: seit Phase 3 (05.10.2026) die EINE Liste des Partnerbereichs (PartnerBranche, 12 + andere).
+        Ältere Kampagnen tragen noch gastro, laden, automotive … — PartnerBranche::von() übersetzt beim Lesen. */
+    public const BRANCHEN = PartnerBranche::ALLE;
 
     /** Wohin ein Link/QR führt: '' = Partnerseite; sonst einer der Wege (PartnerSeite::wegZiel, WhatsApp). */
     public const WEGE = ['', 'preis', 'check', 'termin', 'wa'];
@@ -58,7 +61,7 @@ final class PartnerKampagne
     {
         $ziel = (string) ($d['ziel'] ?? '');
         if (!in_array($ziel, self::ZIELE, true)) { throw new InvalidArgumentException('Ziel unbekannt.'); }
-        $branche = (string) ($d['branche'] ?? 'sonstige');
+        $branche = PartnerBranche::von((string) ($d['branche'] ?? 'andere'));   // alte Schlüssel (gastro …) werden übersetzt
         if (!in_array($branche, self::BRANCHEN, true)) { throw new InvalidArgumentException('Branche unbekannt.'); }
         require_once __DIR__ . '/Designlinie.php';
         $linie = (string) ($d['designlinie'] ?? 'premium');
@@ -92,8 +95,8 @@ final class PartnerKampagne
     {
         require_once __DIR__ . '/Texte.php';
         $z = (string) (Texte::KAMPAGNE_ZIELE[$ziel][$sprache] ?? $ziel);
-        $b = (string) (Texte::KAMPAGNE_BRANCHEN[$branche][$sprache] ?? $branche);
-        return implode(' · ', array_filter([$z, $branche === 'sonstige' ? '' : $b, $region]));
+        $b = PartnerBranche::name($branche, $sprache);
+        return implode(' · ', array_filter([$z, PartnerBranche::von($branche) === 'andere' ? '' : $b, $region]));
     }
 
     /** Eine eigene Kampagne — oder null (fremde gibt es für den Partner nicht). */
@@ -225,14 +228,6 @@ final class PartnerKampagne
     /** Wohin der Link führt, wenn der Partner nichts wählt. */
     public const WEG_STANDARD = ['anfragen' => 'preis', 'check' => 'check'];
 
-    /** Branchen der Kampagne → Gruppe der 51 Branchen-Flyer (PartnerFlyer::GRUPPEN). */
-    public const FLYER_GRUPPE = ['gastro' => 'gast', 'unterkunft' => 'gast', 'handwerk' => 'bau', 'laden' => 'handel', 'automotive' => 'handel',
-        'beauty' => 'gesundheit', 'praxis' => 'gesundheit', 'sonstige' => 'allgemein'];
-
-    /** Branchen der Kampagne → fertige Branchen-Texte (PARTNER_BRANCHEN); ohne Eintrag die allgemeinen Vorlagen. */
-    public const TEXT_BRANCHE = ['gastro' => 'gastro', 'unterkunft' => 'unterkunft', 'handwerk' => 'handwerk', 'laden' => 'laden',
-        'beauty' => 'laden', 'praxis' => 'praxis'];
-
     /** Wie viele aktive oder pausierte Kampagnen der Partner hat. */
     public static function offen(int $partnerId): int
     {
@@ -248,7 +243,7 @@ final class PartnerKampagne
         $ziel = (string) $k['ziel_art'];
         $region = trim((string) ($k['region'] ?? ''));
         return [
-            strtr($t($K['s_wer']), ['{ziel}' => $t(Texte::KAMPAGNE_ZIELE[$ziel] ?? []), '{branche}' => $t(Texte::KAMPAGNE_BRANCHEN[(string) $k['branche']] ?? []),
+            strtr($t($K['s_wer']), ['{ziel}' => $t(Texte::KAMPAGNE_ZIELE[$ziel] ?? []), '{branche}' => PartnerBranche::name((string) $k['branche'], $sprache),
                 '{region}' => $region === '' ? '' : strtr($t($K['s_region']), ['{region}' => $region])]),
             $t($K['s_weg'][$ziel] ?? $K['s_weg']['neue_kunden']),
             $t($K['s_mess']),
@@ -271,7 +266,7 @@ final class PartnerKampagne
         $ks = in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : $sprache;   // Sprache der Werbemittel
         $link = PartnerWerbung::link($p, self::kanal((int) $k['id']));
         $ersatz = ['{link}' => $link, '{name}' => Partner::anzeigeName($p)];
-        $tb = self::TEXT_BRANCHE[(string) $k['branche']] ?? null;
+        $tb = PartnerBranche::PAKET[PartnerBranche::von((string) $k['branche'])] ?? null;
         $vorlage = static fn(string $kanal, string $id, string $teil) => strtr(PartnerVorlagen::text("werbung.$kanal.$id.$teil", $ks,
             Texte::h(Texte::PARTNER_WERBUNG['vorlagen'][$kanal][$id][$teil] ?? [], $ks)), $ersatz);
         $produkte = [];

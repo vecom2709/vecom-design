@@ -229,13 +229,19 @@ final class PartnerCommand
        Marketingprofil: Branchen (bis 3), Ort (= heimatort), Wege, Ziel.
        --------------------------------------------------------------------- */
 
+    /** Beliebige Branchenschlüssel → die zwölf (PartnerBranche), ohne Leeres und ohne Doppelte, Reihenfolge bleibt. @return list<string> */
+    private static function branchen(array $roh): array
+    {
+        require_once __DIR__ . '/PartnerBranche.php';
+        return array_values(array_unique(array_filter(array_map(static fn($b): string => PartnerBranche::von((string) $b), $roh))));
+    }
+
     /** @return array{branchen:list<string>, wege:list<string>, ziel:string, ort:string, fertig:bool} */
     public static function profil(array $p): array
     {
         $j = json_decode((string) ($p['mk_profil'] ?? ''), true);
         $j = is_array($j) ? $j : [];
-        require_once __DIR__ . '/PartnerKampagne.php';
-        $b = array_values(array_intersect(array_map('strval', (array) ($j['branchen'] ?? [])), PartnerKampagne::BRANCHEN));
+        $b = self::branchen((array) ($j['branchen'] ?? []));   // ältere Profile tragen gastro, laden … — übersetzt
         $w = array_values(array_intersect(array_map('strval', (array) ($j['wege'] ?? [])), self::WEGE));
         $z = in_array((string) ($j['ziel'] ?? ''), self::PROFIL_ZIELE, true) ? (string) $j['ziel'] : '';
         $o = trim((string) ($p['heimatort'] ?? ''));
@@ -248,8 +254,7 @@ final class PartnerCommand
      */
     public static function profilSpeichern(int $partnerId, array $d): string
     {
-        require_once __DIR__ . '/PartnerKampagne.php';
-        $b = array_slice(array_values(array_unique(array_intersect(array_map('strval', (array) ($d['branchen'] ?? [])), PartnerKampagne::BRANCHEN))), 0, self::HOECHSTENS_BRANCHEN);
+        $b = array_slice(self::branchen((array) ($d['branchen'] ?? [])), 0, self::HOECHSTENS_BRANCHEN);
         $w = array_values(array_unique(array_intersect(array_map('strval', (array) ($d['wege'] ?? [])), self::WEGE)));
         $z = in_array((string) ($d['ziel'] ?? ''), self::PROFIL_ZIELE, true) ? (string) $d['ziel'] : '';
         $o = trim(mb_substr(strip_tags((string) ($d['ort'] ?? '')), 0, 80));

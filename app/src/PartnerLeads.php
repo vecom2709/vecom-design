@@ -50,8 +50,8 @@ final class PartnerLeads
     private const SYSTEM = ['landingpage', 'vorab', 'finder', 'anrufliste'];
     /** Alte Status aus „Meine Kontakte“ → Stufe. */
     public const IMPORT_STUFE = ['neu' => 'neu', 'angeschrieben' => 'kontaktiert', 'interessiert' => 'interesse', 'kunde' => 'auftrag', 'nein' => 'verloren'];
-    /** Branchen aus „Meine Kontakte“ → Schlüssel aus akquise_branchen.json. */
-    public const IMPORT_BRANCHE = ['gastro' => 'restaurant', 'unterkunft' => 'hotel', 'handwerk' => 'handwerk', 'laden' => 'einzelhandel', 'praxis' => 'medizin'];
+    /** Branchen aus „Meine Kontakte“ → die zwölf (PartnerBranche, seit Phase 3). */
+    public const IMPORT_BRANCHE = ['gastro' => 'gastronomie', 'unterkunft' => 'unterkunft', 'handwerk' => 'handwerk', 'laden' => 'einzelhandel', 'praxis' => 'gesundheit'];
 
     private static function still(callable $f, mixed $sonst): mixed
     {
@@ -95,13 +95,15 @@ final class PartnerLeads
     private static function stammdaten(array $d): array
     {
         require_once __DIR__ . '/Akquise.php';
+        require_once __DIR__ . '/PartnerBranche.php';
         $branche = self::feld($d, 'branche', 40);
         $email = mb_strtolower(self::feld($d, 'email', 190));
         $web = self::feld($d, 'website', 255);
         return [
             'name' => self::feld($d, 'name', 120),
             'ansprechpartner' => self::feld($d, 'ansprechpartner', 80),
-            'branche' => isset(Akquise::branchen()[$branche]) ? $branche : '',
+            // Die zwölf (Formular, seit Phase 3) oder ein feinerer Schlüssel aus Finder/Anrufliste (bar_cafe …).
+            'branche' => in_array($branche, PartnerBranche::ALLE, true) || isset(Akquise::branchen()[$branche]) ? $branche : '',
             'ort' => self::feld($d, 'ort', 80),
             'telefon' => self::feld($d, 'telefon', 40),
             'email' => $email !== '' && filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '',

@@ -6,7 +6,7 @@ $gruppen = [];
 foreach ($katalog as $k => $v) { $gruppen[$v['gruppe']][$k] = $v; }
 $sprachen = ['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'];
 ?>
-<div class="kopf"><h1>Partner-Vorlagen</h1><a class="knopf" href="<?= Fmt::h(url('partner')) ?>">← Partner</a></div>
+<div class="kopf"><h1>Partner-Vorlagen</h1><a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>">Mediathek</a><a class="knopf" href="<?= Fmt::h(url('partner')) ?>">← Partner</a></div>
 <div class="block" style="padding:14px 18px">
   <p style="font-size:13.5px;line-height:1.7;margin:0;color:var(--dim)">Was du hier änderst, sehen alle Partner sofort in ihrem Werbe-Paket.
     <b style="color:var(--text)">{link}</b> wird zum persönlichen Link des Partners, <b style="color:var(--text)">{name}</b> zu seinem Namen — beide müssen drinbleiben, wo sie im Standard stehen.

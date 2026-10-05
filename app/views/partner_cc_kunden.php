@@ -14,10 +14,11 @@ require_once dirname(__DIR__) . '/src/PartnerLeads.php';
 require_once dirname(__DIR__) . '/src/PartnerAnschreiben.php';
 require_once dirname(__DIR__) . '/src/PartnerPost.php';
 require_once dirname(__DIR__) . '/src/Akquise.php';
+require_once dirname(__DIR__) . '/src/PartnerBranche.php';
 $L = Texte::PARTNER_LEADS;
 $l = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache), $r);
 $lDatum = static fn(?string $d): string => $d ? date($sprache === 'en' ? 'd/m/Y' : ($sprache === 'de' ? 'd.m.Y' : 'd/m/Y'), (int) strtotime($d)) : '';
-$lBranche = static fn(string $k): string => $k === '' ? '' : Akquise::branchenName($k, $sprache);
+$lBranche = static fn(string $k): string => PartnerBranche::name($k, $sprache);
 $lMeld = static function (string $m) use ($L, $l): array {
     if ($m === 'angelegt' || $m === 'gespeichert' || $m === 'ue_gut') { return ['gut', $l($L[$m])]; }
     if (str_starts_with($m, 'import:')) { [, $n, $s] = array_pad(explode(':', $m), 3, '0'); return ['gut', $l($L['import_gut'], ['{neu}' => $n, '{schon}' => $s])]; }
@@ -28,8 +29,7 @@ $lAkte = static fn(int $id): string => $selbst(['cc' => 1, 'lead' => $id]);
 $lListe = static fn(array $x = []): string => $selbst(['cc' => 1, 'kunden' => 1] + $x);
 $lFormKopf = static fn(string $tat, int $id = 0): string => '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="' . $h($tat) . '">'
     . ($id > 0 ? '<input type="hidden" name="id" value="' . $id . '">' : '');
-$lBranchen = Akquise::branchen();
-uasort($lBranchen, static fn($a, $b) => strcoll((string) ($a[$sprache] ?? $a['de']), (string) ($b[$sprache] ?? $b['de'])));
+$lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ein feinerer Wert aus dem Finder bleibt wählbar, solange er gesetzt ist
 ?>
 <?php if ($ccSeite === 'kunden'):
   $lStufe = in_array((string) ($_GET['stufe'] ?? ''), PartnerLeads::STUFEN, true) ? (string) $_GET['stufe'] : null;
@@ -68,7 +68,7 @@ uasort($lBranchen, static fn($a, $b) => strcoll((string) ($a[$sprache] ?? $a['de
         <label class="cc-feld breit"><span><?= $h($l($L['f']['name'])) ?> *</span><input name="name" required minlength="2" maxlength="120" value="<?= $h((string) ($lPost['name'] ?? '')) ?>" autocomplete="organization"></label>
         <label class="cc-feld"><span><?= $h($l($L['f']['ansprechpartner'])) ?></span><input name="ansprechpartner" maxlength="80" value="<?= $h((string) ($lPost['ansprechpartner'] ?? '')) ?>" autocomplete="name"></label>
         <label class="cc-feld"><span><?= $h($l($L['f']['branche'])) ?></span><select name="branche"><option value=""><?= $h($l($L['f']['keine'])) ?></option>
-          <?php foreach ($lBranchen as $bk => $bv): ?><option value="<?= $h($bk) ?>"<?= ($lPost['branche'] ?? '') === $bk ? ' selected' : '' ?>><?= $h((string) ($bv[$sprache] ?? $bv['de'])) ?></option><?php endforeach; ?></select></label>
+          <?php foreach ($lBranchen as $bk => $bv): ?><option value="<?= $h($bk) ?>"<?= ($lPost['branche'] ?? '') === $bk ? ' selected' : '' ?>><?= $h($bv) ?></option><?php endforeach; ?></select></label>
         <label class="cc-feld"><span><?= $h($l($L['f']['ort'])) ?></span><input name="ort" maxlength="80" value="<?= $h((string) ($lPost['ort'] ?? $p['heimatort'] ?? '')) ?>" autocomplete="address-level2"></label>
         <label class="cc-feld"><span><?= $h($l($L['f']['telefon'])) ?></span><input name="telefon" type="tel" maxlength="40" value="<?= $h((string) ($lPost['telefon'] ?? '')) ?>" autocomplete="tel"></label>
         <label class="cc-feld"><span><?= $h($l($L['f']['email'])) ?></span><input name="email" type="email" maxlength="190" value="<?= $h((string) ($lPost['email'] ?? '')) ?>" autocomplete="email"></label>
@@ -272,7 +272,8 @@ uasort($lBranchen, static fn($a, $b) => strcoll((string) ($a[$sprache] ?? $a['de
           <label class="cc-feld breit"><span><?= $h($l($L['f']['name'])) ?> *</span><input name="name" required minlength="2" maxlength="120" value="<?= $h((string) $ld['name']) ?>"></label>
           <label class="cc-feld"><span><?= $h($l($L['f']['ansprechpartner'])) ?></span><input name="ansprechpartner" maxlength="80" value="<?= $h((string) $ld['ansprechpartner']) ?>"></label>
           <label class="cc-feld"><span><?= $h($l($L['f']['branche'])) ?></span><select name="branche"><option value=""><?= $h($l($L['f']['keine'])) ?></option>
-            <?php foreach ($lBranchen as $bk => $bv): ?><option value="<?= $h($bk) ?>"<?= $ld['branche'] === $bk ? ' selected' : '' ?>><?= $h((string) ($bv[$sprache] ?? $bv['de'])) ?></option><?php endforeach; ?></select></label>
+            <?php if ((string) $ld['branche'] !== '' && !isset($lBranchen[(string) $ld['branche']])): ?><option value="<?= $h((string) $ld['branche']) ?>" selected><?= $h($lBranche((string) $ld['branche'])) ?></option><?php endif; ?>
+            <?php foreach ($lBranchen as $bk => $bv): ?><option value="<?= $h($bk) ?>"<?= $ld['branche'] === $bk ? ' selected' : '' ?>><?= $h($bv) ?></option><?php endforeach; ?></select></label>
           <label class="cc-feld"><span><?= $h($l($L['f']['ort'])) ?></span><input name="ort" maxlength="80" value="<?= $h((string) $ld['ort']) ?>"></label>
           <label class="cc-feld"><span><?= $h($l($L['f']['telefon'])) ?></span><input name="telefon" type="tel" maxlength="40" value="<?= $h($tel) ?>"></label>
           <label class="cc-feld"><span><?= $h($l($L['f']['email'])) ?></span><input name="email" type="email" maxlength="190" value="<?= $h($mail) ?>"></label>
