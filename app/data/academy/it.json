@@ -1176,5 +1176,273 @@
     "modul:zum-auftrag"
    ]
   }
+ ],
+ "abschluss": [
+  {
+   "frage": "Chi prepara l'offerta precisa per un'attività?",
+   "antworten": [
+    "Lei, come partner",
+    "Vecom Design",
+    "L'attività stessa"
+   ],
+   "richtig": 1,
+   "warum": "Il prezzo indicativo lo mostra il questionario, l'offerta precisa la fa sempre Vecom."
+  },
+  {
+   "frage": "Un'attività vuole sapere quando il sito sarà pronto. Cosa dice?",
+   "antworten": [
+    "«Tra due settimane, promesso.»",
+    "«I tempi Le verranno comunicati da Vecom con l'offerta.»",
+    "«Faremo prestissimo, non si preoccupi.»"
+   ],
+   "richtig": 1,
+   "warum": "Le scadenze le conferma solo Vecom. Lei non promette ciò che non decide."
+  },
+  {
+   "frage": "Perché invia all'attività il Suo link personale al questionario?",
+   "antworten": [
+    "Perché il contatto Le venga attribuito",
+    "Perché altrimenti il questionario non funziona",
+    "Perché l'attività ottenga uno sconto"
+   ],
+   "richtig": 0,
+   "warum": "Tramite il Suo link Vecom sa che l'attività è arrivata grazie a Lei: è così che nasce la Sua provvigione."
+  },
+  {
+   "frage": "Può inviare a un'attività un'e-mail pubblicitaria senza il suo consenso?",
+   "antworten": [
+    "Sì, se l'indirizzo è pubblico",
+    "No, solo con consenso preventivo",
+    "Sì, una volta è consentito"
+   ],
+   "richtig": 1,
+   "warum": "La pubblicità via e-mail, WhatsApp o SMS richiede il consenso preventivo dell'attività."
+  },
+  {
+   "frage": "In Italia vuole telefonare a un'attività. A cosa fa attenzione?",
+   "antworten": [
+    "A nulla di particolare",
+    "Il numero non deve essere iscritto al Registro delle Opposizioni",
+    "Telefonare solo la sera"
+   ],
+   "richtig": 1,
+   "warum": "I numeri iscritti al Registro delle Opposizioni non si chiamano mai."
+  },
+  {
+   "frage": "Qual è un buon modo per iniziare una visita di persona?",
+   "antworten": [
+    "Dire subito il prezzo",
+    "Un'osservazione concreta sul sito dell'attività",
+    "Una lunga presentazione di Vecom"
+   ],
+   "richtig": 1,
+   "warum": "Un'osservazione concreta mostra che si è preparato e apre la conversazione."
+  },
+  {
+   "frage": "L'attività dice: «Ho già un sito.» Qual è la reazione migliore?",
+   "antworten": [
+    "«Allora va bene così, arrivederci.»",
+    "«Posso chiederLe se Le porta nuovi clienti?»",
+    "«Il Suo sito è fatto male.»"
+   ],
+   "richtig": 1,
+   "warum": "Una domanda aperta mostra se c'è un'esigenza, senza criticare il sito esistente."
+  },
+  {
+   "frage": "Cosa distingue un buon colloquio per capire le esigenze?",
+   "antworten": [
+    "Lei parla per la maggior parte del tempo",
+    "Lei fa domande e ascolta",
+    "Lei presenta subito tutti i servizi"
+   ],
+   "richtig": 1,
+   "warum": "Chi chiede e ascolta capisce di cosa l'attività ha davvero bisogno."
+  },
+  {
+   "frage": "Un'attività ha molti ospiti dall'estero. Quale servizio è particolarmente adatto?",
+   "antworten": [
+    "Multilingua",
+    "Hosting",
+    "Animazione"
+   ],
+   "richtig": 0,
+   "warum": "Gli ospiti stranieri leggono volentieri il sito nella propria lingua."
+  },
+  {
+   "frage": "Un salone di parrucchiera perde molto tempo al telefono per gli appuntamenti. Cosa consiglia?",
+   "antworten": [
+    "Negozio online",
+    "Prenotazione online degli appuntamenti",
+    "Esperienza 3D"
+   ],
+   "richtig": 1,
+   "warum": "Gli appuntamenti online fanno risparmiare telefonate e si prenotano a qualsiasi ora."
+  },
+  {
+   "frage": "Cosa significa «ottimizzazione mobile» per l'attività?",
+   "antworten": [
+    "Il sito funziona bene sullo smartphone",
+    "Il sito funziona solo sullo smartphone",
+    "C'è un'app dedicata"
+   ],
+   "richtig": 0,
+   "warum": "La maggior parte dei clienti naviga dallo smartphone: lì il sito deve essere leggibile e veloce."
+  },
+  {
+   "frage": "L'attività dice: «Devo pensarci.» Qual è un buon passo successivo?",
+   "antworten": [
+    "Fare pressione: «L'offerta vale solo oggi.»",
+    "Inviare il link al questionario e concordare un ricontatto",
+    "Non fare più nulla"
+   ],
+   "richtig": 1,
+   "warum": "Senza pressioni: inviare il link e concordare una data per ricontattare."
+  },
+  {
+   "frage": "Può parlare male di altri fornitori?",
+   "antworten": [
+    "Sì, se è vero",
+    "No, mai",
+    "Solo se l'attività lo chiede"
+   ],
+   "richtig": 1,
+   "warum": "Lei convince con Vecom, non parlando male degli altri."
+  },
+  {
+   "frage": "Quando la Sua provvigione diventa pagabile?",
+   "antworten": [
+    "Subito dopo il colloquio",
+    "Dopo il pagamento del cliente e la scadenza del periodo di recesso",
+    "Quando l'attività compila il questionario"
+   ],
+   "richtig": 1,
+   "warum": "La provvigione nasce con il pagamento e diventa disponibile dopo il periodo di recesso."
+  },
+  {
+   "frage": "Un'attività non è raggiungibile. Cosa fa?",
+   "antworten": [
+    "Chiamare dieci volte al giorno",
+    "Riprovare più tardi, in un momento tranquillo",
+    "Inviare un messaggio senza consenso"
+   ],
+   "richtig": 1,
+   "warum": "Un nuovo tentativo in un momento tranquillo è cortese e funziona."
+  },
+  {
+   "frage": "Cosa mostra il controllo rapido del sito?",
+   "antworten": [
+    "Punti misurabili come HTTPS, compatibilità mobile e Google",
+    "Il fatturato dell'attività",
+    "I prezzi della concorrenza"
+   ],
+   "richtig": 0,
+   "warum": "Il controllo rapido verifica elementi misurabili: nulla è inventato."
+  },
+  {
+   "frage": "Un'attività chiede uno sconto. Cosa risponde?",
+   "antworten": [
+    "«Il 10 per cento si può fare.»",
+    "«Prezzi e sconti li decide Vecom: chiedo volentieri.»",
+    "«Nessun problema.»"
+   ],
+   "richtig": 1,
+   "warum": "Gli sconti li decide solo Vecom."
+  },
+  {
+   "frage": "Quale affermazione sul progetto è corretta?",
+   "antworten": [
+    "L'attività vede un'anteprima e dà l'approvazione prima che il sito vada online",
+    "Il sito va online senza approvazione",
+    "L'attività deve costruire tutto da sé"
+   ],
+   "richtig": 0,
+   "warum": "Anteprima e approvazione da parte dell'attività fanno parte di ogni progetto."
+  },
+  {
+   "frage": "Cosa è importante sui social quando condivide il Suo link?",
+   "antworten": [
+    "Indicare che si tratta di pubblicità",
+    "Nascondere il link",
+    "Citare altri marchi"
+   ],
+   "richtig": 0,
+   "warum": "Rende chiaro che il Suo link porta una provvigione (ad es. #pubblicità)."
+  },
+  {
+   "frage": "Qual è l'obiettivo di un contatto di ricontatto?",
+   "antworten": [
+    "Convincere l'attività",
+    "Ricordare con gentilezza e chiarire i dubbi",
+    "Offrire uno sconto"
+   ],
+   "richtig": 1,
+   "warum": "Ricontattare significa ricordare e aiutare, non insistere."
+  },
+  {
+   "frage": "Quali informazioni condivide sui clienti paganti di altri partner?",
+   "antworten": [
+    "Nome e prezzo",
+    "Nessuna",
+    "Solo il nome"
+   ],
+   "richtig": 1,
+   "warum": "I dati dei clienti restano riservati."
+  },
+  {
+   "frage": "L'attività dice: «Non ho tempo.» Cosa è opportuno?",
+   "antworten": [
+    "«Posso inviarLe il link? Il questionario richiede due minuti.»",
+    "Spiegare comunque per dieci minuti",
+    "Andarsene offeso"
+   ],
+   "richtig": 0,
+   "warum": "Rispetti il tempo dell'attività e proponga il passo successivo più piccolo."
+  },
+  {
+   "frage": "Che cos'è il branding?",
+   "antworten": [
+    "Un'immagine coordinata con logo, colori e carattere",
+    "Pubblicità alla radio",
+    "Un negozio online"
+   ],
+   "richtig": 0,
+   "warum": "Il branding fa sì che l'attività appaia ovunque uniforme e professionale."
+  },
+  {
+   "frage": "Chi decide, alla fine, se l'attività conferisce l'incarico?",
+   "antworten": [
+    "Lei",
+    "L'attività",
+    "Vecom"
+   ],
+   "richtig": 1,
+   "warum": "A decidere è sempre l'attività: Lei l'aiuta soltanto."
+  }
+ ],
+ "sim": [
+  {
+   "slug": "restaurant",
+   "titel": "Ristorante: titolare scettico",
+   "rolle": "Titolare di un ristorante a conduzione familiare in una piccola città. Ha un vecchio sito fatto da un nipote. Poco tempo, scettico sui costi, orgoglioso della sua cucina.",
+   "ziel": "Porti il titolare ad accettare il link al questionario."
+  },
+  {
+   "slug": "friseur",
+   "titel": "Parrucchiera: molto telefono",
+   "rolle": "Titolare di un salone di parrucchiera. Nessun sito, solo Instagram. Il telefono squilla di continuo per gli appuntamenti. Aperta, ma incerta se ne valga la pena.",
+   "ziel": "Scopra l'esigenza e proponga i servizi adatti, senza indicare prezzi."
+  },
+  {
+   "slug": "handwerk",
+   "titel": "Artigiano: «non mi serve»",
+   "rolle": "Elettricista titolare con l'agenda piena. Ritiene superfluo un sito: tutti i clienti arrivano per passaparola.",
+   "ziel": "Resti cordiale e scopra se un vantaggio c'è comunque (ad es. trovare personale qualificato)."
+  },
+  {
+   "slug": "ferienwohnung",
+   "titel": "Casa vacanze: ospiti dall'estero",
+   "rolle": "Proprietaria di tre case vacanza. Affitta tramite piattaforme di prenotazione e paga commissioni alte. Molti ospiti dalla Germania.",
+   "ziel": "Mostri il vantaggio della prenotazione diretta e del multilingua e concordi il passo successivo."
+  }
  ]
 }

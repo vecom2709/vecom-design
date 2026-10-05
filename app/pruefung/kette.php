@@ -24362,11 +24362,98 @@ pruefe('Academy 2: Verwaltungsseite „Partner Academy“ mit Statistik, Schalte
     && (Ablauf::TRAGWEITE['academy_melden'][0] ?? '') === Ablauf::RAUS
     && str_contains((string) file_get_contents($wurzel . '/views/academy.php'), 'enctype="multipart/form-data"'));
 pruefe('Academy 2: „Vecom soll anschreiben“ (ak_vecom) und der Rücksprung ?ak=<Firma> landen nicht in der Academy',
-    str_contains($akSeite, "(!ctype_digit(\$akQ) || (\$akQ === '1' && !isset(\$_GET['m'])))") && str_contains($akSeite, "['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg'], true)")
+    str_contains($akSeite, "(!ctype_digit(\$akQ) || (\$akQ === '1' && !isset(\$_GET['m'])))") && str_contains($akSeite, "in_array((string) (\$_POST['tat'] ?? ''), ['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg',") && !str_contains($akSeite, "'ak_vecom', 'ak_")
     && !str_contains($akSeite, "str_starts_with((string) (\$_POST['tat'] ?? ''), 'ak_')"));
 pruefe('Academy 2: neue Seiten (Bedarf, Kundenfinder, Was mache ich jetzt, Bibliothek) speichern keine Kundendaten und hängen in der Recherche',
     str_contains($akSeite, "'bedarf', 'finder', 'jetzt', 'bibliothek'") && !preg_match('~INSERT INTO[^;]*(bedarf|finder)~i', $akSeite . (string) file_get_contents($wurzel . '/src/Academy.php'))
     && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'Academy::lageFirma') && str_contains($akAnsicht, "\$akSeite === 'bibliothek'"));
+/* ---------- Partner Academy, Etappe 3 (05.10.2026, Uwe: „Etappe 3 bauen“) ---------- */
+$ak3Bau = static fn(array $d): array => [array_map(static fn($f) => [count($f['antworten']), $f['richtig']], $d['abschluss'] ?? []), array_column($d['sim'] ?? [], 'slug')];
+$ak3Fragen = true;
+foreach ($akD as $ak3X) { foreach (($ak3X['abschluss'] ?? []) as $ak3F) { if (!isset($ak3F['antworten'][(int) $ak3F['richtig']]) || trim((string) $ak3F['warum']) === '') { $ak3Fragen = false; } } }
+pruefe('Academy 3: Abschlussfragen (24) und Simulator-Szenen (4) in it/de/en gleich gebaut, jede Frage mit gültiger Antwort und Begründung',
+    count($akD['de']['abschluss'] ?? []) === 24 && count($akD['de']['sim'] ?? []) === 4 && $ak3Bau($akD['de']) === $ak3Bau($akD['it']) && $ak3Bau($akD['de']) === $ak3Bau($akD['en']) && $ak3Fragen
+    && count(Academy::abschlussPool('de')) === 32);
+$ak3Vorher = Academy::darfAbschluss($akBid);
+foreach (Academy::inhalte('de')['module'] as $ak3M) {
+    Db::run('INSERT INTO academy_fortschritt (partner_id, modul, lektionen, begonnen_am, zuletzt_am, fertig_am) VALUES (?, ?, ?, NOW(), NOW(), NOW())
+             ON DUPLICATE KEY UPDATE fertig_am = NOW()', [$akBid, $ak3M['slug'], '0']);
+}
+$ak3Pool = Academy::abschlussPool('it');
+$ak3K = Academy::abschlussZiehen('it');
+$ak3Richtig = array_map(static fn($k) => (int) $ak3Pool[$k]['richtig'], $ak3K);
+$ak3Falsch = array_map(static fn($k) => ((int) $ak3Pool[$k]['richtig'] + 1) % count($ak3Pool[$k]['antworten']), $ak3K);
+$ak3E0 = Academy::abschlussAuswerten($akA, $ak3K, $ak3Richtig, 'it');                 // A hat nicht alle Pflichtmodule
+$ak3E1 = Academy::abschlussAuswerten($akB, array_slice($ak3K, 0, 5), $ak3Richtig, 'it');  // zu wenige Fragen
+$ak3E2 = Academy::abschlussAuswerten($akB, $ak3K, $ak3Falsch, 'it');
+$ak3E3 = Academy::abschlussAuswerten($akB, $ak3K, $ak3Richtig, 'it');
+$ak3E4 = Academy::abschlussAuswerten($akB, $ak3K, $ak3Richtig, 'it');
+pruefe('Academy 3: Abschlusstest erst nach allen Pflichtmodulen, nur mit den gezogenen 20 Fragen; ab 80 % bestanden, genau ein Zertifikat',
+    !$ak3Vorher && Academy::darfAbschluss($akBid) && !Academy::darfAbschluss($akAid) && count($ak3K) === 20 && count(array_unique($ak3K)) === 20
+    && !$ak3E0['ok'] && !$ak3E1['ok'] && $ak3E2['ok'] && !$ak3E2['bestanden'] && $ak3E2['zertifikat'] === null
+    && $ak3E3['bestanden'] && $ak3E3['prozent'] === 100 && preg_match('~^VA-[A-Z0-9]{4}-[A-Z0-9]{4}$~', (string) ($ak3E3['zertifikat']['nummer'] ?? ''))
+    && ($ak3E4['zertifikat']['nummer'] ?? '') === $ak3E3['zertifikat']['nummer']
+    && (int) Db::wert('SELECT COUNT(*) FROM academy_zertifikate WHERE partner_id = ?', [$akBid]) === 1 && count(Academy::versuche($akBid)) === 3,
+    json_encode([$ak3E0['ok'], $ak3E1['ok'], $ak3E2['prozent'] ?? null, $ak3E3['prozent'] ?? null]));
+$ak3Nr = (string) $ak3E3['zertifikat']['nummer'];
+$ak3P1 = Academy::zertifikatPruefen(strtolower($ak3Nr));
+Academy::zertifikatWiderrufen((int) $ak3E3['zertifikat']['id'], true);
+$ak3P2 = Academy::zertifikatPruefen($ak3Nr);
+$ak3Weg = Academy::zertifikat($akBid);
+Academy::zertifikatWiderrufen((int) $ak3E3['zertifikat']['id'], false);
+pruefe('Academy 3: Prüfseite zeigt nur gültig/ungültig, Datum und „Vorname I.“; Widerruf wirkt; Unsinn liefert nichts',
+    $ak3P1 && $ak3P1['gueltig'] && $ak3P1['name'] === 'Bea A.' && $ak3P1['am'] === date('Y-m-d') && $ak3P2 && !$ak3P2['gueltig'] && $ak3Weg === null
+    && Academy::zertifikatPruefen('VA-0000-0000') === null && Academy::zertifikatPruefen("x' OR 1=1") === null && Academy::zertifikat($akBid) !== null,
+    json_encode([$ak3P1, $ak3P2]));
+require_once $wurzel . '/src/AcademyPdf.php';
+$ak3Pdf = AcademyPdf::zertifikat((array) Academy::zertifikat($akBid), 'it');
+$ak3Zp = (string) file_get_contents($wurzel . '/../zertifikat.php');
+pruefe('Academy 3: Zertifikat als PDF (A4 quer); öffentliche Prüfseite ohne Suchmaschinen und ohne Ergebnis oder Kontakt',
+    str_starts_with($ak3Pdf, '%PDF-') && str_contains($ak3Pdf, '841.89') && str_contains($ak3Zp, 'noindex') && str_contains($ak3Zp, 'Academy::zertifikatPruefen')
+    && !str_contains($ak3Zp, 'ergebnis') && !str_contains($ak3Zp, 'email'));
+$ak3Tmp = sys_get_temp_dir() . '/ak3-' . bin2hex(random_bytes(4));
+file_put_contents($ak3Tmp . '.txt', "kein Audio\n");
+file_put_contents($ak3Tmp . '.mp3', "ID3\x04\x00\x00\x00\x00\x00\x00" . str_repeat("\xFF\xFB\x90\x64" . str_repeat("\x00", 413), 8));
+$ak3M1 = Academy::medienSpeichern($ak3Tmp . '.txt', 'erstkontakt', 0, 'alle', '');
+$ak3M2 = Academy::medienSpeichern($ak3Tmp . '.mp3', 'erstkontakt', 99, 'alle', '');
+$ak3M3 = Academy::medienSpeichern($ak3Tmp . '.mp3', 'erstkontakt', 0, 'de', 'Beispielgespräch');
+pruefe('Academy 3: eigene Medien nur als echtes Audio/Video zu einer echten Lektion, je Sprache sichtbar',
+    $ak3M1 === 'typ' && $ak3M2 === 'lektion' && is_int($ak3M3) && count(Academy::medien('erstkontakt', 0, 'de')) === 1 && Academy::medien('erstkontakt', 0, 'it') === []
+    && Academy::medium((int) $ak3M3, 'it') === null && Academy::medium((int) $ak3M3, 'de') !== null, json_encode([$ak3M1, $ak3M2, $ak3M3]));
+if (is_int($ak3M3)) { Academy::medienLoeschen($ak3M3); }
+foreach (['.txt', '.mp3'] as $ak3E) { @unlink($ak3Tmp . $ak3E); }
+$ak3Karte = json_decode((string) @file_get_contents($wurzel . '/data/academy/audio.json'), true) ?: [];
+$ak3Ton = []; $ak3TonN = 0;
+foreach ($ak3Karte as $ak3L => $ak3Ms) { foreach ($ak3Ms as $ak3Mod => $ak3Ls) { foreach ($ak3Ls as $ak3Nr2 => $ak3Eintrag) {
+    $ak3TonN++;
+    if (Academy::audio($ak3Mod, (int) $ak3Nr2, $ak3L) === null) { $ak3Ton[] = "$ak3L/$ak3Mod/$ak3Nr2"; }
+} } }
+pruefe('Academy 3: jede Sprecheraufnahme passt noch zum Lektionstext und liegt im Repository (sonst neu erzeugen)', $ak3Ton === [], implode(', ', array_slice($ak3Ton, 0, 5)) . " von $ak3TonN");
+require_once $wurzel . '/src/AcademySimulator.php';
+$ak3Sz = AcademySimulator::szene('restaurant', 'de');
+$ak3Senden = static function (array $anfrage) use (&$ak3Letzte): array { $ak3Letzte = $anfrage; return ['content' => [['type' => 'text', 'text' => 'Wir haben schon eine Seite.']]]; };
+$ak3Letzte = null;
+$ak3S1 = AcademySimulator::antwort($akBid, $ak3Sz, [['partner', 'Guten Tag!']], 'de', false);    // aus
+$ak3S2 = AcademySimulator::antwort($akBid, $ak3Sz, [['partner', 'Guten Tag!']], 'de', false, $ak3Senden);
+$ak3Ein = AcademySimulator::schalten(true, false);
+pruefe('Academy 3: Simulator ist aus (Schalter, Datenschutz, Schlüssel), lässt sich ohne Datenschutzprüfung nicht einschalten, speichert keine Gespräche',
+    !AcademySimulator::aktiv() && !$ak3S1['ok'] && ($ak3S1['grund'] ?? '') === 'aus' && !$ak3Ein && $ak3S2['ok'] && $ak3S2['text'] === 'Wir haben schon eine Seite.'
+    && ($ak3Letzte['messages'][0]['role'] ?? '') === 'user' && str_contains((string) $ak3Letzte['system'], 'Preise') && AcademySimulator::heute($akBid) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name LIKE 'academy_sim%'") === 0,
+    json_encode([$ak3S1, $ak3S2, $ak3Ein]));
+pruefe('Academy 3: Simulator entfernt E-Mail und Telefonnummern, kürzt lange Nachrichten',
+    !str_contains(AcademySimulator::saeubern('Schreiben Sie an max@beispiel.it oder +39 333 123 4567'), '@')
+    && !preg_match('~\d{3}~', AcademySimulator::saeubern('Ruf 0922 123456 an')) && mb_strlen(AcademySimulator::saeubern(str_repeat('a ', 600))) <= AcademySimulator::ZEICHEN_MAX);
+Db::run("DELETE FROM settings WHERE skey IN ('academy_sim_an', 'academy_sim_datenschutz')");
+Db::run("DELETE FROM partner_zaehler WHERE partner_id = ? AND art = 'sim'", [$akBid]);
+$ak3Ansicht = (string) file_get_contents($wurzel . '/views/partner_academy.php');
+pruefe('Academy 3: Seiten Abschlusstest und Simulator, Fragen aus der Sitzung, Medien mit Byte-Bereichen, Verwaltung mit Zertifikaten, Medien und Simulator-Schalter',
+    str_contains($akSeite, "'abschluss', 'sim'], true)") && str_contains($akSeite, "\$_SESSION['ak_abschluss'] = ['fragen' => Academy::abschlussZiehen(")
+    && str_contains($akSeite, 'HTTP_RANGE') && str_contains($ak3Ansicht, "\$akSeite === 'abschluss'") && str_contains($ak3Ansicht, 'data-ak-vorlesen')
+    && str_contains($ak2Index, "case 'academy_medium':") && str_contains($ak2Index, "case 'academy_zert_widerruf':") && str_contains($ak2Index, "case 'academy_sim':")
+    && (Ablauf::TRAGWEITE['academy_sim'][0] ?? '') === Ablauf::RAUS);
+Db::run('DELETE FROM academy_abschluss WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
+Db::run('DELETE FROM academy_zertifikate WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_fortschritt WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_merkliste WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_notizen WHERE partner_id IN (?, ?)', [$akAid, $akBid]);

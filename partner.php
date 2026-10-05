@@ -309,9 +309,40 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
    „?m=…&ak=<Firmen-ID>“ (Rücksprung zum Betrieb) gehören der Partnerseite und dürfen hier nicht landen. */
 $akQ = (string) ($_GET['ak'] ?? '');   // „1“ = Academy-Start; der Rücksprung trägt immer auch „m“
 if ($p && (($akQ !== '' && (!ctype_digit($akQ) || ($akQ === '1' && !isset($_GET['m']))))
-    || in_array((string) ($_POST['tat'] ?? ''), ['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg'], true))) {
+    || in_array((string) ($_POST['tat'] ?? ''), ['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg', 'ak_abschluss', 'ak_abschluss_senden', 'ak_sim', 'ak_sim_neu', 'ak_sim_auswertung'], true))) {
     require_once __DIR__ . '/app/src/Academy.php';
     /* PDF-Bibliothek (Etappe 2): eingebaute Unterlagen entstehen beim Abruf, eigene kommen aus der Datenbank. */
+    /* Zertifikat (Etappe 3): nur das eigene, gültige. */
+    if (($_GET['ak'] ?? '') === 'zertifikat' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $akZ = Academy::zertifikat((int) $p['id']);
+        if (!$akZ) { header('Location: ' . $start(['ak' => 'abschluss']), true, 303); exit; }
+        require_once __DIR__ . '/app/src/AcademyPdf.php';
+        $akPdf = AcademyPdf::zertifikat($akZ, $sprache);
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: ' . (isset($_GET['laden']) ? 'attachment' : 'inline') . '; filename="vecom-academy-zertifikat-' . $akZ['nummer'] . '.pdf"');
+        header('Content-Length: ' . strlen($akPdf));
+        header('Cache-Control: private, no-store');
+        header('X-Content-Type-Options: nosniff');
+        echo $akPdf; exit;
+    }
+    /* Video/Audio der Verwaltung zu einer Lektion (Etappe 3) — mit Byte-Bereichen, sonst spult Safari nicht. */
+    if (($_GET['ak'] ?? '') === 'medium' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $akMd = Academy::medium((int) ($_GET['id'] ?? 0), $sprache);
+        if (!$akMd) { http_response_code(404); exit; }
+        $akB = (string) $akMd['datei']; $akL = strlen($akB); $akVon = 0; $akBis = $akL - 1;
+        if (preg_match('~^bytes=(\d*)-(\d*)$~', (string) ($_SERVER['HTTP_RANGE'] ?? ''), $akR) && ($akR[1] !== '' || $akR[2] !== '')) {
+            if ($akR[1] === '') { $akVon = max(0, $akL - (int) $akR[2]); } else { $akVon = (int) $akR[1]; $akBis = $akR[2] !== '' ? min($akBis, (int) $akR[2]) : $akBis; }
+            if ($akVon > $akBis || $akVon >= $akL) { http_response_code(416); header('Content-Range: bytes */' . $akL); exit; }
+            http_response_code(206);
+            header('Content-Range: bytes ' . $akVon . '-' . $akBis . '/' . $akL);
+        }
+        header('Content-Type: ' . $akMd['mime']);
+        header('Accept-Ranges: bytes');
+        header('Content-Length: ' . ($akBis - $akVon + 1));
+        header('Cache-Control: private, max-age=3600');
+        header('X-Content-Type-Options: nosniff');
+        echo substr($akB, $akVon, $akBis - $akVon + 1); exit;
+    }
     if (($_GET['ak'] ?? '') === 'pdf' && $_SERVER['REQUEST_METHOD'] === 'GET') {
         $akD = (string) ($_GET['d'] ?? '');
         $akPdf = null;
@@ -360,13 +391,49 @@ if ($p && (($akQ !== '' && (!ctype_digit($akQ) || ($akQ === '1' && !isset($_GET[
             $akOk = Academy::notizSpeichern($akPid, (string) ($_POST['m'] ?? ''), (string) ($_POST['text'] ?? ''));
             header('Location: ' . $akZu($akZurueck + ($akOk ? ['e' => 'notiz'] : [])) . '#notizen', true, 303); exit;
         }
+        /* Abschlusstest (Etappe 3): die Fragen werden gezogen und in der Sitzung gehalten — nie aus dem Formular übernommen. */
+        if ($akTat === 'ak_abschluss') {
+            if (Academy::darfAbschluss($akPid)) { $_SESSION['ak_abschluss'] = ['fragen' => Academy::abschlussZiehen($sprache), 'sprache' => $sprache]; }
+            header('Location: ' . $akZu(['ak' => 'abschluss', 'l' => 'test']), true, 303); exit;
+        }
+        if ($akTat === 'ak_abschluss_senden') {
+            $akS = $_SESSION['ak_abschluss'] ?? null;
+            unset($_SESSION['ak_abschluss']);
+            $akE = is_array($akS) ? Academy::abschlussAuswerten($p, (array) $akS['fragen'], (array) ($_POST['a'] ?? []), (string) $akS['sprache']) : ['ok' => false];
+            if ($akE['ok']) { $_SESSION['ak_abschluss_erg'] = ['fragen' => $akS['fragen'], 'sprache' => $akS['sprache']] + $akE; }
+            header('Location: ' . $akZu(['ak' => 'abschluss'] + ($akE['ok'] ? ['l' => 'ergebnis'] : [])), true, 303); exit;
+        }
+        /* Gesprächssimulator (Etappe 3): Verlauf nur in der Sitzung. */
+        if (in_array($akTat, ['ak_sim', 'ak_sim_neu', 'ak_sim_auswertung'], true)) {
+            require_once __DIR__ . '/app/src/AcademySimulator.php';
+            $akSz = AcademySimulator::szene((string) ($_POST['s'] ?? ''), $sprache);
+            if (!$akSz || !AcademySimulator::aktiv()) { header('Location: ' . $akZu(['ak' => 'sim']), true, 303); exit; }
+            $akV = $_SESSION['ak_sim'][$akSz['slug']] ?? ['verlauf' => [], 'rueckmeldung' => ''];
+            $akFehl = '';
+            if ($akTat === 'ak_sim_neu') {
+                $akV = ['verlauf' => [], 'rueckmeldung' => ''];
+            } elseif ($akTat === 'ak_sim') {
+                $akN = AcademySimulator::saeubern((string) ($_POST['text'] ?? ''));
+                $akZ = count(array_filter($akV['verlauf'], static fn($x) => $x[0] === 'partner'));
+                if ($akN !== '' && $akZ < AcademySimulator::ZUEGE_MAX && $akV['rueckmeldung'] === '') {
+                    $akV['verlauf'][] = ['partner', $akN];
+                    $akA = AcademySimulator::antwort($akPid, $akSz, $akV['verlauf'], $sprache, false);
+                    if ($akA['ok']) { $akV['verlauf'][] = ['betrieb', $akA['text']]; } else { array_pop($akV['verlauf']); $akFehl = (string) ($akA['grund'] ?? 'fehler'); }
+                }
+            } else {
+                $akA = AcademySimulator::antwort($akPid, $akSz, $akV['verlauf'], $sprache, true);
+                if ($akA['ok']) { $akV['rueckmeldung'] = $akA['text']; } else { $akFehl = (string) ($akA['grund'] ?? 'fehler'); }
+            }
+            $_SESSION['ak_sim'] = [$akSz['slug'] => $akV];   // nur das laufende Gespräch
+            header('Location: ' . $akZu(['ak' => 'sim', 's' => $akSz['slug']] + ($akFehl !== '' ? ['e' => $akFehl] : [])) . '#sim-ende', true, 303); exit;
+        }
         if ($akTat === 'ak_notiz_weg') {
             Academy::notizLoeschen($akPid, (int) ($_POST['id'] ?? 0));
             header('Location: ' . $akZu($akZurueck) . '#notizen', true, 303); exit;
         }
         header('Location: ' . $akZu(['ak' => '1']), true, 303); exit;
     }
-    $akSeite = in_array((string) $_GET['ak'], ['modul', 'einwaende', 'kontakt', 'leistungen', 'suche', 'meine', 'bedarf', 'finder', 'jetzt', 'bibliothek'], true) ? (string) $_GET['ak'] : 'start';
+    $akSeite = in_array((string) $_GET['ak'], ['modul', 'einwaende', 'kontakt', 'leistungen', 'suche', 'meine', 'bedarf', 'finder', 'jetzt', 'bibliothek', 'abschluss', 'sim'], true) ? (string) $_GET['ak'] : 'start';
     require __DIR__ . '/app/views/partner_academy.php';
     exit;
 }

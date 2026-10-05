@@ -22,6 +22,8 @@ $stand = Academy::stand($akPid, $sprache);
 $fortschritt = Academy::fortschritt($akPid);
 $name = trim((string) preg_split('~\s+~u', trim((string) $p['name']))[0]) ?: Partner::anzeigeName($p);
 $csrf = (string) $_SESSION['csrf'];
+require_once dirname(__DIR__) . '/src/AcademySimulator.php';
+$akSimAn = AcademySimulator::aktiv();
 
 /* Absätze: Leerzeile trennt, Zeilen „1. …“ werden eine nummerierte Liste. */
 $absaetze = static function (string $text) use ($h, $t): string {
@@ -87,6 +89,8 @@ $icon = [
     'finder'   => '<path d="M4 6.5l1.6 1.6L8.5 5"/><path d="M4 12.5l1.6 1.6 2.9-3.1"/><path d="M4 18.5l1.6 1.6 2.9-3.1"/><path d="M11.5 6.5h8.5"/><path d="M11.5 12.5h8.5"/><path d="M11.5 18.5h8.5"/>',
     'jetzt'    => '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
     'pdf'      => '<path d="M6.5 3h7.5l4.5 4.5V20a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4.5h4.5"/><path d="M8.5 13h7"/><path d="M8.5 16.5h5"/>',
+    'zert'     => '<circle cx="12" cy="9.5" r="5.5"/><path d="M9 14.5L7.5 21l4.5-2.5 4.5 2.5-1.5-6.5"/><path d="M10 9.5l1.5 1.5 3-3"/>',
+    'sim'      => '<path d="M4 5h11a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1H9l-4 3v-3H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1z"/><path d="M19 9h1a1 1 0 0 1 1 1v6a1 1 0 0 1-1 1h-1v3l-4-3h-4"/>',
     'academy'  => '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4.2"/><path d="M21.5 9.5v5"/>',
 ];
 $leiste = [   /* dieselbe Reihe wie im Command Center (Spezifikation Punkt 3), dazu die Academy */
@@ -195,12 +199,13 @@ if ($akSeite === 'start'):
               'bedarf'   => [$ziel('bedarf'), 's_bedarf', 's_bedarf_satz'],
               'finder'   => [$ziel('finder'), 's_finder', 's_finder_satz'],
               'pdf'      => [$ziel('bibliothek'), 's_bibliothek', 's_bibliothek_satz'],
+              'zert'     => [$ziel('abschluss'), 's_abschluss', 's_abschluss_satz'],
               'kunden'   => [$selbst() . '#r-finden', 's_kunden', 's_kunden_satz'],
               'meine'    => [$ziel('meine'), 'merkliste', 'notizen'],
-            ] as $sk => [$url, $t1, $t2]): ?>
+            ] + ($akSimAn ? ['sim' => [$ziel('sim'), 's_sim', 's_sim_satz']] : []) as $sk => [$url, $t1, $t2]): ?>
             <li><a class="cc-ziel<?= $sk === 'einwand' ? ' ak-ziel-gold' : '' ?>" href="<?= $h($url) ?>">
               <i aria-hidden="true"><svg viewBox="0 0 24 24"><?= $icon[$sk] ?></svg></i>
-              <span><b><?= $h($a($t1)) ?></b><small><?= $h($a($t2)) ?></small></span></a></li>
+              <span><b><?= $h($a($t1)) ?></b><small><?= $h($a($t2, ['{n}' => (string) Academy::ABSCHLUSS_ANZAHL])) ?></small></span></a></li>
           <?php endforeach; ?>
         </ul>
       </section>
@@ -262,6 +267,24 @@ elseif ($akSeite === 'modul'):
       <article class="ak-lektion cc-karte cc-auf">
         <p class="ak-auge"><?= $h($a('lektion', ['{n}' => (string) ($l + 1), '{gesamt}' => (string) count($lek)])) ?></p>
         <h2><?= $h($x['titel']) ?></h2>
+        <?php /* Etappe 3: Sprecheraufnahme (Kie.ai), Videos/Audios der Verwaltung, sonst Vorlesen durch das Gerät */
+          $akTon = Academy::audio($m['slug'], $l, $sprache); $akMed = Academy::medien($m['slug'], $l, $sprache); ?>
+        <div class="ak-medien">
+          <?php foreach ($akMed as $md): $mdUrl = $start(['ak' => 'medium', 'id' => (int) $md['id']]); ?>
+            <?php if ($md['art'] === 'video'): ?>
+              <figure class="ak-video"><video controls preload="metadata" playsinline src="<?= $h($mdUrl) ?>"></video><?php if ($md['titel'] !== ''): ?><figcaption><?= $h($md['titel']) ?></figcaption><?php endif; ?></figure>
+            <?php else: ?>
+              <p class="ak-ton"><span><?= $h($md['titel'] !== '' ? $md['titel'] : $a('anhoeren')) ?></span><audio controls preload="none" src="<?= $h($mdUrl) ?>"></audio></p>
+            <?php endif; ?>
+          <?php endforeach; ?>
+          <?php if ($akTon): ?>
+            <p class="ak-ton"><span><?= $h($a('anhoeren')) ?></span><audio controls preload="none" src="<?= $h($akTon) ?>"></audio></p>
+          <?php else: ?>
+            <button type="button" class="ak-vorlesen" data-ak-vorlesen="<?= $h(['it' => 'it-IT', 'de' => 'de-DE', 'en' => 'en-GB'][$sprache] ?? 'it-IT') ?>" data-stopp="<?= $h($a('vorlesen_stopp')) ?>" hidden>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5v5h3.5l4.5 4v-13l-4.5 4z"/><path d="M15.5 9a4 4 0 0 1 0 6"/></svg><span><?= $h($a('vorlesen')) ?></span></button>
+          <?php endif; ?>
+        </div>
+        <div class="ak-lesetext">
         <?= !empty($x['text']) ? $absaetze((string) $x['text']) : '' ?>
         <?= $liste($x['punkte'] ?? []) ?>
         <?php if (!empty($x['fragenliste'])): ?><h3><?= $h($a('fragenliste')) ?></h3><?= $liste($x['fragenliste'], 'ak-fragen') ?><?php endif; ?>
@@ -279,6 +302,7 @@ elseif ($akSeite === 'modul'):
         <?php endif; ?>
         <?php if (!empty($x['weg'])): ?><ol class="ak-weg"><?php foreach ($x['weg'] as $i => $w): ?><li><span><?= $i + 1 ?></span><?= $h($w) ?></li><?php endforeach; ?></ol><?php endif; ?>
         <?php if (!empty($x['merke'])): ?><p class="ak-merke"><b><?= $h($a('merke')) ?>:</b> <?= $h($t($x['merke'])) ?></p><?php endif; ?>
+        </div>
         <?php $bezug = ['erstkontakt' => ['kontakt', 's_kontakt', 's_kontakt_satz'], 'vecom-praesentieren' => ['leistungen', 's_leistung', 's_leistung_satz'], 'einwaende' => ['einwaende', 's_einwand', 's_einwand_satz']][$m['slug']] ?? null;
           if ($bezug && $l === count($lek) - 1): ?>
           <a class="cc-ziel ak-bezug" href="<?= $h($ziel($bezug[0])) ?>"><i aria-hidden="true"><svg viewBox="0 0 24 24"><?= $icon[$bezug[0] === 'einwaende' ? 'einwand' : ($bezug[0] === 'leistungen' ? 'leistung' : 'kontakt')] ?></svg></i>
@@ -626,6 +650,130 @@ elseif ($akSeite === 'bibliothek'):
         </li>
       <?php endforeach; ?>
     </ul>
+
+<?php
+/* =============================== ABSCHLUSSTEST UND ZERTIFIKAT (Etappe 3) =============================== */
+elseif ($akSeite === 'abschluss'):
+  $abL = (string) ($_GET['l'] ?? '');
+  $abDarf = Academy::darfAbschluss($akPid);
+  $abZ = Academy::zertifikat($akPid);
+  $abFehlen = 0;
+  foreach ($D['module'] as $m) { if (!empty($m['pflicht']) && (($fortschritt[$m['slug']]['fertig_am'] ?? null) === null)) { $abFehlen++; } }
+  $abPool = Academy::abschlussPool($sprache);
+  $abN = min(Academy::ABSCHLUSS_ANZAHL, count($abPool)); ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a></nav>
+    <header class="ak-kopf"><div><h1><?= $h($a('abschluss')) ?></h1><p class="ak-ziel"><?= $h($a('abschluss_satz')) ?></p></div></header>
+    <?php if ($abZ): ?>
+      <section class="cc-heute ak-zert cc-auf" aria-labelledby="ak-zert-t">
+        <p class="cc-auge" id="ak-zert-t"><?= $h($a('zertifikat')) ?></p>
+        <p class="ak-gross"><?= $h($a('z_hat', ['{n}' => (string) $abZ['nummer']])) ?></p>
+        <div class="ak-knoepfe">
+          <a class="knopf haupt" href="<?= $h($start(['ak' => 'zertifikat'])) ?>" target="_blank" rel="noopener"><?= $h($a('z_ansehen')) ?></a>
+          <a class="knopf" href="<?= $h($start(['ak' => 'zertifikat', 'laden' => 1])) ?>"><?= $h($a('z_laden')) ?></a>
+        </div>
+      </section>
+    <?php endif; ?>
+    <?php if ($abL === 'test' && $abDarf && is_array($_SESSION['ak_abschluss'] ?? null)):
+      $abFragen = (array) $_SESSION['ak_abschluss']['fragen']; ?>
+      <form class="ak-test cc-karte cc-auf" method="post">
+        <input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_abschluss_senden">
+        <p class="hilfe"><?= $h($a('abschluss_regeln', ['{n}' => (string) count($abFragen), '{g}' => (string) Academy::ABSCHLUSS_GRENZE])) ?></p>
+        <?php foreach ($abFragen as $fi => $fk): $fr = $abPool[$fk] ?? null; if (!$fr) { continue; } ?>
+          <fieldset><legend><?= (int) $fi + 1 ?>. <?= $h($t($fr['frage'])) ?></legend>
+            <?php foreach ($fr['antworten'] as $ai => $an): ?>
+              <label class="ak-wahl"><input type="radio" name="a[<?= (int) $fi ?>]" value="<?= (int) $ai ?>" required> <span><?= $h($t($an)) ?></span></label>
+            <?php endforeach; ?>
+          </fieldset>
+        <?php endforeach; ?>
+        <button class="knopf haupt" type="submit"><?= $h($a('abschluss_senden')) ?> ✓</button>
+      </form>
+    <?php elseif ($abL === 'ergebnis' && is_array($_SESSION['ak_abschluss_erg'] ?? null)):
+      $abE = $_SESSION['ak_abschluss_erg']; unset($_SESSION['ak_abschluss_erg']); ?>
+      <section class="cc-heute ak-ergebnis <?= $abE['bestanden'] ? 'ak-stufe-hoch' : 'ak-stufe-mittel' ?> cc-auf">
+        <p class="ak-stufe"><b><?= $h($a($abE['bestanden'] ? 'abschluss_bestanden' : 'abschluss_nicht')) ?></b></p>
+        <p class="ak-gross"><?= $h($a('abschluss_ergebnis', ['{r}' => (string) $abE['richtig'], '{n}' => (string) $abE['gesamt'], '{p}' => (string) $abE['prozent']])) ?></p>
+        <?php if ($abE['bestanden'] && !empty($abE['zertifikat'])): ?>
+          <div class="ak-knoepfe"><a class="knopf haupt" href="<?= $h($start(['ak' => 'zertifikat'])) ?>" target="_blank" rel="noopener"><?= $h($a('z_ansehen')) ?></a></div>
+        <?php endif; ?>
+      </section>
+      <ol class="ak-auswertung">
+        <?php foreach ($abE['auswertung'] as $x): $fr = $abPool[$x['k']] ?? null; if (!$fr) { continue; } ?>
+          <li class="<?= $x['ok'] ? 'ok' : 'nein' ?>"><b><?= $h($t($fr['frage'])) ?></b>
+            <span><?= $x['ok'] ? '✓' : '✗' ?> <?= $h($a('richtig_war')) ?> <?= $h($t($fr['antworten'][(int) $fr['richtig']])) ?></span>
+            <small><?= $h($t($fr['warum'])) ?></small></li>
+        <?php endforeach; ?>
+      </ol>
+      <form method="post" class="ak-nav"><input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_abschluss">
+        <button class="knopf<?= $abE['bestanden'] ? '' : ' haupt' ?>" type="submit"><?= $h($a('abschluss_nochmal')) ?></button></form>
+    <?php else: ?>
+      <section class="cc-karte cc-auf">
+        <?php if (!$abDarf): ?>
+          <p class="ak-warn" role="note"><?= $h($a('abschluss_gesperrt', ['{n}' => (string) $abFehlen])) ?></p>
+          <a class="knopf" href="<?= $h($L([])) ?>"><?= $h($a('zur_academy')) ?></a>
+        <?php else: ?>
+          <p><?= $h($a('abschluss_regeln', ['{n}' => (string) $abN, '{g}' => (string) Academy::ABSCHLUSS_GRENZE])) ?></p>
+          <form method="post"><input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_abschluss">
+            <button class="knopf haupt" type="submit"><?= $h($a($abZ ? 'abschluss_nochmal' : 'abschluss_los')) ?> →</button></form>
+        <?php endif; ?>
+      </section>
+    <?php endif; ?>
+    <?php $abV = Academy::versuche($akPid); if ($abV && $abL !== 'test'): ?>
+      <h2 class="cc-titel ak-abstand"><?= $h($a('abschluss_versuche')) ?></h2>
+      <ul class="ak-versuche">
+        <?php foreach ($abV as $v): ?><li class="<?= (int) $v['bestanden'] ? 'ok' : '' ?>"><span><?= $h(Fmt::datum((string) $v['created_at'])) ?></span><b><?= (int) $v['richtig'] ?>/<?= (int) $v['gesamt'] ?></b><?= (int) $v['bestanden'] ? ' ✓' : '' ?></li><?php endforeach; ?>
+      </ul>
+    <?php endif; ?>
+
+<?php
+/* =============================== GESPRÄCHSSIMULATOR (Etappe 3, mit KI — vorbereitet, aus) =============================== */
+elseif ($akSeite === 'sim'):
+  require_once dirname(__DIR__) . '/src/AcademySimulator.php';
+  $smAn = AcademySimulator::aktiv();
+  $smSz = $smAn ? AcademySimulator::szene((string) ($_GET['s'] ?? ''), $sprache) : null; ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a><?php if ($smSz): ?> <span aria-hidden="true">/</span> <a href="<?= $h($ziel('sim')) ?>"><?= $h($a('sim')) ?></a><?php endif; ?></nav>
+    <header class="ak-kopf"><div><h1><?= $h($smSz['titel'] ?? $a('sim')) ?></h1><p class="ak-ziel"><?= $h($smSz ? $a('sim_ziel') . ': ' . $smSz['ziel'] : $a('sim_satz')) ?></p></div></header>
+    <?php if (!$smAn): ?>
+      <p class="cc-leer"><?= $h($a('sim_aus')) ?></p>
+    <?php elseif (!$smSz): ?>
+      <h2 class="cc-titel"><?= $h($a('sim_wahl')) ?></h2>
+      <ul class="ak-lagen">
+        <?php foreach ($D['sim'] as $i => $x): ?><li><a href="<?= $h($ziel('sim', ['s' => $x['slug']])) ?>"><span><?= $i + 1 ?></span><?= $h($x['titel']) ?></a></li><?php endforeach; ?>
+      </ul>
+    <?php else:
+      $smV = $_SESSION['ak_sim'][$smSz['slug']] ?? ['verlauf' => [], 'rueckmeldung' => ''];
+      $smZuege = count(array_filter($smV['verlauf'], static fn($x) => $x[0] === 'partner'));
+      $smE = (string) ($_GET['e'] ?? ''); ?>
+      <p class="ak-warn" role="note"><?= $h($a('sim_datenschutz')) ?></p>
+      <div class="ak-chat cc-karte" aria-live="polite">
+        <?php if (!$smV['verlauf']): ?><p class="hilfe"><?= $h($a('sim_start')) ?></p><?php endif; ?>
+        <?php foreach ($smV['verlauf'] as [$wer, $txt]): ?>
+          <div class="ak-blase <?= $wer === 'partner' ? 'du' : 'er' ?>"><small><?= $h($a($wer === 'partner' ? 'sim_du' : 'sim_betrieb')) ?></small><p><?= nl2br($h($txt)) ?></p></div>
+        <?php endforeach; ?>
+        <?php if ($smV['rueckmeldung'] !== ''): ?>
+          <div class="ak-merke ak-rueck"><b><?= $h($a('sim_rueck')) ?></b><p><?= nl2br($h($smV['rueckmeldung'])) ?></p></div>
+        <?php endif; ?>
+        <span id="sim-ende"></span>
+      </div>
+      <?php if ($smE !== ''): ?><p class="hinweis schlecht" role="alert"><?= $h($a($smE === 'tag' ? 'sim_fehler_tag' : 'sim_fehler')) ?></p><?php endif; ?>
+      <?php if ($smV['rueckmeldung'] === ''): ?>
+        <?php if ($smZuege < AcademySimulator::ZUEGE_MAX): ?>
+          <form method="post" class="ak-notiz-form">
+            <input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_sim"><input type="hidden" name="s" value="<?= $h($smSz['slug']) ?>">
+            <label class="sr-only" for="ak-sim"><?= $h($a('sim_ph')) ?></label>
+            <textarea id="ak-sim" name="text" rows="2" maxlength="<?= AcademySimulator::ZEICHEN_MAX ?>" placeholder="<?= $h($a('sim_ph')) ?>" required></textarea>
+            <button class="knopf haupt" type="submit"><?= $h($a('sim_senden')) ?></button>
+          </form>
+        <?php else: ?><p class="hilfe"><?= $h($a('sim_voll')) ?></p><?php endif; ?>
+      <?php endif; ?>
+      <div class="ak-knoepfe">
+        <?php if ($smZuege > 0 && $smV['rueckmeldung'] === ''): ?>
+          <form method="post"><input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_sim_auswertung"><input type="hidden" name="s" value="<?= $h($smSz['slug']) ?>">
+            <button class="knopf" type="submit"><?= $h($a('sim_auswerten')) ?></button></form>
+        <?php endif; ?>
+        <form method="post"><input type="hidden" name="_csrf" value="<?= $h($csrf) ?>"><input type="hidden" name="tat" value="ak_sim_neu"><input type="hidden" name="s" value="<?= $h($smSz['slug']) ?>">
+          <button class="knopf stumm" type="submit"><?= $h($a('sim_neu')) ?></button></form>
+      </div>
+    <?php endif; ?>
 
 <?php
 /* =============================== MEINE ACADEMY =============================== */

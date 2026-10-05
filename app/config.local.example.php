@@ -51,4 +51,8 @@ return [
         'store' => '',                        // nur bei Konto-Schlüssel
         'modus' => 'entwurf',                 // 'entwurf' oder 'auftrag'
     ],
+    // Gesprächssimulator der Partner Academy (Etappe 3, 05.10.2026): bleibt aus, solange leer.
+    // Zusätzlich muss er in der Verwaltung eingeschaltet und die Datenschutzprüfung bestätigt sein.
+    'ki_schluessel' => '',                     // Anthropic-API-Schlüssel
+    'ki_modell'     => 'claude-haiku-4-5',
 ];

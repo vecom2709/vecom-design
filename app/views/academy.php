@@ -4,6 +4,7 @@
    werden, welche Einwände und Unterlagen gebraucht werden. Dazu die Schalter
    je Modul, eigene PDFs und die Meldung „Neue Schulung verfügbar“.
    Die Inhalte selbst stehen in app/data/academy/*.json (im Repository). */
+require_once dirname(__DIR__) . '/src/AcademySimulator.php';
 $st = $stat + ['partner_aktiv' => 0, 'module_fertig' => 0, 'partner_mit' => 0, 'je_modul' => [], 'einwaende' => [], 'pdfs' => [], 'oft' => []];
 $jeModul = array_column($st['je_modul'], null, 'modul');
 $deE = []; foreach (Academy::inhalte('de')['einwaende'] as $e) { $deE[$e['slug']] = $e['satz']; }
@@ -126,5 +127,76 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
       <optgroup label="Unterlagen"><?php foreach ($docs as $d): ?><option value="pdf:<?= Fmt::h($d['slug']) ?>"><?= Fmt::h($d['titel']) ?></option><?php endforeach; ?></optgroup>
     </select></div>
     <button class="knopf haupt">An alle Partner melden</button>
+  </form>
+</div>
+
+<?php /* ---------- Etappe 3 (05.10.2026): Abschlusstest, Zertifikate, Medien, Simulator ---------- */
+$vs = $versuche + ['n' => 0, 'b' => 0]; ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Abschlusstest und Zertifikate</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px"><?= Academy::ABSCHLUSS_ANZAHL ?> Fragen aus allen Modulen, ab <?= Academy::ABSCHLUSS_GRENZE ?> % bestanden. Erst nach allen Pflichtmodulen.
+    Bisher <?= (int) $vs['n'] ?> Versuche, <?= (int) $vs['b'] ?> bestanden. Prüfseite für Dritte: <a href="/zertifikat.php" target="_blank" rel="noopener">/zertifikat.php</a></p>
+  <?php if (!$zertifikate): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zertifikate.</p><?php else: ?>
+  <div class="tabellenrahmen"><table>
+    <thead><tr><th>Prüfnummer</th><th>Name</th><th>Ergebnis</th><th>Ausgestellt</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($zertifikate as $z): $weg = $z['widerrufen_am'] !== null; ?>
+      <tr<?= $weg ? ' style="opacity:.55"' : '' ?>><td><code><?= Fmt::h($z['nummer']) ?></code></td><td><?= Fmt::h($z['name']) ?></td><td><?= (int) $z['ergebnis'] ?> %</td>
+        <td><?= Fmt::h(Fmt::datum($z['ausgestellt_am'])) ?><?= $weg ? ' · widerrufen' : '' ?></td>
+        <td><form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="academy_zert_widerruf"><input type="hidden" name="zurueck" value="academy">
+          <input type="hidden" name="id" value="<?= (int) $z['id'] ?>"><input type="hidden" name="widerrufen" value="<?= $weg ? '' : '1' ?>">
+          <button class="knopf klein"><?= $weg ? 'Wieder gültig' : 'Widerrufen' ?></button></form></td></tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+  <?php endif; ?>
+</div>
+
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Audio und Video je Lektion</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Jede Lektion hat eine Sprecherstimme (Kie.ai) in it/de/en, sonst liest das Gerät vor. Hier kommen eigene Videos oder Audios dazu
+    (MP4/WebM, MP3/M4A, höchstens <?= Academy::MEDIEN_MAX >> 20 ?> MB).</p>
+  <?php if ($medien): ?>
+  <div class="tabellenrahmen"><table>
+    <thead><tr><th>Lektion</th><th>Art</th><th>Titel</th><th>Sprache</th><th>Größe</th><th></th></tr></thead>
+    <tbody>
+    <?php foreach ($medien as $md): ?>
+      <tr><td><?= Fmt::h($md['modul']) ?> · <?= (int) $md['lektion'] + 1 ?></td><td><?= Fmt::h($md['art']) ?></td><td><?= Fmt::h($md['titel']) ?></td><td><?= Fmt::h($sprachen[$md['sprache']] ?? $md['sprache']) ?></td><td><?= $kb((int) $md['groesse']) ?></td>
+        <td><form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="academy_medium_weg"><input type="hidden" name="zurueck" value="academy">
+          <input type="hidden" name="id" value="<?= (int) $md['id'] ?>"><button class="knopf klein">Entfernen</button></form></td></tr>
+    <?php endforeach; ?>
+    </tbody>
+  </table></div>
+  <?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" enctype="multipart/form-data" style="margin-top:12px">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="academy_medium"><input type="hidden" name="zurueck" value="academy">
+    <div class="reihe">
+      <div class="feld"><label>Lektion *</label><select name="lektion" required>
+        <?php foreach ($module as $m): ?><optgroup label="<?= (int) $m['nr'] ?> · <?= Fmt::h($m['titel']) ?>">
+          <?php foreach ($m['lektionen'] as $i => $lx): ?><option value="<?= Fmt::h($m['slug']) ?>:<?= (int) $i ?>"><?= (int) $i + 1 ?>. <?= Fmt::h($lx['titel']) ?></option><?php endforeach; ?>
+        </optgroup><?php endforeach; ?></select></div>
+      <div class="feld"><label>Titel (optional)</label><input name="titel" maxlength="160"></div>
+      <div class="feld"><label>Für</label><select name="sprache"><?php foreach ($sprachen as $k => $n): ?><option value="<?= $k ?>"><?= Fmt::h($n) ?></option><?php endforeach; ?></select></div>
+    </div>
+    <div class="reihe"><div class="feld"><label>Datei *</label><input type="file" name="datei" accept="video/mp4,video/webm,audio/mpeg,audio/mp4,.m4a" required></div></div>
+    <button class="knopf haupt">Hochladen</button>
+  </form>
+</div>
+
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Gesprächssimulator (KI)</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Partner üben ein Verkaufsgespräch mit einem KI-Betriebsinhaber (<?= count(Academy::inhalte('de')['sim']) ?> Szenen) und bekommen eine Rückmeldung.
+    Gespräche werden nicht gespeichert, Kontaktdaten vorher entfernt, höchstens <?= AcademySimulator::TAG_MAX ?> Nachrichten je Partner und Tag.
+    Er läuft erst, wenn alle drei Punkte erfüllt sind:</p>
+  <ul style="font-size:13.5px;line-height:1.8;margin:0 0 12px;padding-left:20px">
+    <li><?= $sim['schluessel'] ? '✓' : '✗' ?> KI-Schlüssel in <code>app/config.local.php</code> (<code>ki_schluessel</code>, optional <code>ki_modell</code>)</li>
+    <li><?= $sim['datenschutz'] ? '✓' : '✗' ?> Datenschutzprüfung bestätigt (Auftragsverarbeitung mit dem KI-Anbieter, Hinweis in der Partner-Datenschutzerklärung)</li>
+    <li><?= $sim['an'] ? '✓' : '✗' ?> Eingeschaltet</li>
+  </ul>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="academy_sim"><input type="hidden" name="zurueck" value="academy">
+    <label style="font-size:13.5px"><input type="checkbox" name="datenschutz" value="1" <?= $sim['datenschutz'] ? 'checked' : '' ?>> Datenschutzprüfung ist erledigt</label>
+    <label style="font-size:13.5px"><input type="checkbox" name="an" value="1" <?= $sim['an'] ? 'checked' : '' ?>> Simulator für Partner einschalten</label>
+    <button class="knopf">Speichern</button>
   </form>
 </div>

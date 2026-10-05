@@ -1,0 +1,380 @@
+{
+ "de": {
+  "bedarf-erkennen": {
+   "0": {
+    "datei": "de/bedarf-erkennen-0-327ce97f.mp3",
+    "quelle": "1710375f8c2a"
+   },
+   "1": {
+    "datei": "de/bedarf-erkennen-1-0b68a48f.mp3",
+    "quelle": "d98f9617a9f1"
+   },
+   "2": {
+    "datei": "de/bedarf-erkennen-2-147f91ef.mp3",
+    "quelle": "b1238ccb234d"
+   }
+  },
+  "einwaende": {
+   "0": {
+    "datei": "de/einwaende-0-3cd463b7.mp3",
+    "quelle": "4efa444327df"
+   },
+   "1": {
+    "datei": "de/einwaende-1-e561cc8d.mp3",
+    "quelle": "e63837e5bfb6"
+   },
+   "2": {
+    "datei": "de/einwaende-2-0b8f601b.mp3",
+    "quelle": "9a81ab017dc8"
+   }
+  },
+  "erstkontakt": {
+   "0": {
+    "datei": "de/erstkontakt-0-bba371b3.mp3",
+    "quelle": "2e84683e6e1a"
+   },
+   "1": {
+    "datei": "de/erstkontakt-1-54bae2a1.mp3",
+    "quelle": "87bc4a806b2e"
+   },
+   "2": {
+    "datei": "de/erstkontakt-2-96a610e8.mp3",
+    "quelle": "0fe0f3935e8e"
+   }
+  },
+  "gespraech-fuehren": {
+   "0": {
+    "datei": "de/gespraech-fuehren-0-065adabe.mp3",
+    "quelle": "582c528ec2f4"
+   },
+   "1": {
+    "datei": "de/gespraech-fuehren-1-1701557f.mp3",
+    "quelle": "9d542d73804a"
+   },
+   "2": {
+    "datei": "de/gespraech-fuehren-2-858b1a0c.mp3",
+    "quelle": "7c5163300477"
+   }
+  },
+  "kunden-finden": {
+   "0": {
+    "datei": "de/kunden-finden-0-5aca5ee2.mp3",
+    "quelle": "288b09b82ce3"
+   },
+   "1": {
+    "datei": "de/kunden-finden-1-789c5802.mp3",
+    "quelle": "09e6e270d561"
+   },
+   "2": {
+    "datei": "de/kunden-finden-2-202ed041.mp3",
+    "quelle": "a8dc307295ca"
+   },
+   "3": {
+    "datei": "de/kunden-finden-3-0d549309.mp3",
+    "quelle": "ad3cfc62d2ec"
+   }
+  },
+  "vecom-praesentieren": {
+   "0": {
+    "datei": "de/vecom-praesentieren-0-42378a5d.mp3",
+    "quelle": "37ba3366e4f3"
+   },
+   "1": {
+    "datei": "de/vecom-praesentieren-1-4b199649.mp3",
+    "quelle": "3f0a557b02b6"
+   }
+  },
+  "vecom-verstehen": {
+   "0": {
+    "datei": "de/vecom-verstehen-0-57e1b7e8.mp3",
+    "quelle": "ce42ae063f6e"
+   },
+   "1": {
+    "datei": "de/vecom-verstehen-1-333d4914.mp3",
+    "quelle": "55ee992a6589"
+   },
+   "2": {
+    "datei": "de/vecom-verstehen-2-bcdd1b62.mp3",
+    "quelle": "6e573862d312"
+   },
+   "3": {
+    "datei": "de/vecom-verstehen-3-f717eaf4.mp3",
+    "quelle": "5db4d6f32a29"
+   },
+   "4": {
+    "datei": "de/vecom-verstehen-4-81adfd85.mp3",
+    "quelle": "f78a9883c78e"
+   }
+  },
+  "zum-auftrag": {
+   "0": {
+    "datei": "de/zum-auftrag-0-4e291d60.mp3",
+    "quelle": "2362db0fe154"
+   },
+   "1": {
+    "datei": "de/zum-auftrag-1-5cdb5743.mp3",
+    "quelle": "abbf263d902e"
+   },
+   "2": {
+    "datei": "de/zum-auftrag-2-d71e33fd.mp3",
+    "quelle": "fb235acfcd14"
+   },
+   "3": {
+    "datei": "de/zum-auftrag-3-a105c2eb.mp3",
+    "quelle": "5350d9cee85d"
+   }
+  }
+ },
+ "en": {
+  "bedarf-erkennen": {
+   "0": {
+    "datei": "en/bedarf-erkennen-0-8f75dc0c.mp3",
+    "quelle": "456f6a3b4519"
+   },
+   "1": {
+    "datei": "en/bedarf-erkennen-1-575180f4.mp3",
+    "quelle": "3fa71aea24e9"
+   },
+   "2": {
+    "datei": "en/bedarf-erkennen-2-0968e179.mp3",
+    "quelle": "d02f801603ee"
+   }
+  },
+  "einwaende": {
+   "0": {
+    "datei": "en/einwaende-0-3a06610e.mp3",
+    "quelle": "861e757e05e6"
+   },
+   "1": {
+    "datei": "en/einwaende-1-dc72e6be.mp3",
+    "quelle": "9f51d0508515"
+   },
+   "2": {
+    "datei": "en/einwaende-2-ac38b69d.mp3",
+    "quelle": "04397aabd689"
+   }
+  },
+  "erstkontakt": {
+   "0": {
+    "datei": "en/erstkontakt-0-c1fdb08d.mp3",
+    "quelle": "bf19de4fda70"
+   },
+   "1": {
+    "datei": "en/erstkontakt-1-86dfc965.mp3",
+    "quelle": "a5c87e21de9a"
+   },
+   "2": {
+    "datei": "en/erstkontakt-2-c2f38a35.mp3",
+    "quelle": "57da4ee8ba72"
+   }
+  },
+  "gespraech-fuehren": {
+   "0": {
+    "datei": "en/gespraech-fuehren-0-4ce964d2.mp3",
+    "quelle": "0558803eb982"
+   },
+   "1": {
+    "datei": "en/gespraech-fuehren-1-a7935610.mp3",
+    "quelle": "737ecd6e8bb4"
+   },
+   "2": {
+    "datei": "en/gespraech-fuehren-2-97c24ef6.mp3",
+    "quelle": "2a9267018112"
+   }
+  },
+  "kunden-finden": {
+   "0": {
+    "datei": "en/kunden-finden-0-05a26928.mp3",
+    "quelle": "6192c8c7e345"
+   },
+   "1": {
+    "datei": "en/kunden-finden-1-94c2a878.mp3",
+    "quelle": "3532f5138653"
+   },
+   "2": {
+    "datei": "en/kunden-finden-2-6924c86a.mp3",
+    "quelle": "6e21a4211d7e"
+   },
+   "3": {
+    "datei": "en/kunden-finden-3-09e6eb6c.mp3",
+    "quelle": "a808ee7a82cd"
+   }
+  },
+  "vecom-praesentieren": {
+   "0": {
+    "datei": "en/vecom-praesentieren-0-6ad8b4d7.mp3",
+    "quelle": "74f8598aa464"
+   },
+   "1": {
+    "datei": "en/vecom-praesentieren-1-c47a6d2e.mp3",
+    "quelle": "6e45e485f8db"
+   }
+  },
+  "vecom-verstehen": {
+   "0": {
+    "datei": "en/vecom-verstehen-0-91442ad3.mp3",
+    "quelle": "f92d98d727af"
+   },
+   "1": {
+    "datei": "en/vecom-verstehen-1-cab4d623.mp3",
+    "quelle": "baa287caf759"
+   },
+   "2": {
+    "datei": "en/vecom-verstehen-2-c8357c20.mp3",
+    "quelle": "0d9a56c561ca"
+   },
+   "3": {
+    "datei": "en/vecom-verstehen-3-f7cc7ecf.mp3",
+    "quelle": "6f4c48c2d026"
+   },
+   "4": {
+    "datei": "en/vecom-verstehen-4-a155ff65.mp3",
+    "quelle": "14a57d6af367"
+   }
+  },
+  "zum-auftrag": {
+   "0": {
+    "datei": "en/zum-auftrag-0-31c3ecf2.mp3",
+    "quelle": "1209a477df24"
+   },
+   "1": {
+    "datei": "en/zum-auftrag-1-7befe098.mp3",
+    "quelle": "5fa63412113e"
+   },
+   "2": {
+    "datei": "en/zum-auftrag-2-170c93fa.mp3",
+    "quelle": "865790467efb"
+   },
+   "3": {
+    "datei": "en/zum-auftrag-3-8d29723d.mp3",
+    "quelle": "cbbf37d24cab"
+   }
+  }
+ },
+ "it": {
+  "bedarf-erkennen": {
+   "0": {
+    "datei": "it/bedarf-erkennen-0-2a8e1e95.mp3",
+    "quelle": "0aaa37af9a57"
+   },
+   "1": {
+    "datei": "it/bedarf-erkennen-1-81a36d0b.mp3",
+    "quelle": "e242b7048e35"
+   },
+   "2": {
+    "datei": "it/bedarf-erkennen-2-2bda964a.mp3",
+    "quelle": "5d8b5e6f9191"
+   }
+  },
+  "einwaende": {
+   "0": {
+    "datei": "it/einwaende-0-12e453e5.mp3",
+    "quelle": "ef43892f04cc"
+   },
+   "1": {
+    "datei": "it/einwaende-1-f7cfa8f0.mp3",
+    "quelle": "b0952b1b766d"
+   },
+   "2": {
+    "datei": "it/einwaende-2-9bfb1b81.mp3",
+    "quelle": "f34ad4eaadcb"
+   }
+  },
+  "erstkontakt": {
+   "0": {
+    "datei": "it/erstkontakt-0-da845c4c.mp3",
+    "quelle": "5aea1ac130d9"
+   },
+   "1": {
+    "datei": "it/erstkontakt-1-b1862869.mp3",
+    "quelle": "c9aca52f1f1f"
+   },
+   "2": {
+    "datei": "it/erstkontakt-2-b8c3ea0d.mp3",
+    "quelle": "66d2d655644d"
+   }
+  },
+  "gespraech-fuehren": {
+   "0": {
+    "datei": "it/gespraech-fuehren-0-3a14700f.mp3",
+    "quelle": "db0b5d3b2455"
+   },
+   "1": {
+    "datei": "it/gespraech-fuehren-1-a063bfa6.mp3",
+    "quelle": "ff0a3c471abc"
+   },
+   "2": {
+    "datei": "it/gespraech-fuehren-2-94c2fd8c.mp3",
+    "quelle": "4ec528269410"
+   }
+  },
+  "kunden-finden": {
+   "0": {
+    "datei": "it/kunden-finden-0-8c45de9f.mp3",
+    "quelle": "83a2f4e93ee3"
+   },
+   "1": {
+    "datei": "it/kunden-finden-1-bd25d8ae.mp3",
+    "quelle": "5c27c5a91713"
+   },
+   "2": {
+    "datei": "it/kunden-finden-2-17a7d110.mp3",
+    "quelle": "0622ab2819d6"
+   },
+   "3": {
+    "datei": "it/kunden-finden-3-d3262030.mp3",
+    "quelle": "d21e5696b0cf"
+   }
+  },
+  "vecom-praesentieren": {
+   "0": {
+    "datei": "it/vecom-praesentieren-0-bfb570aa.mp3",
+    "quelle": "229febced697"
+   },
+   "1": {
+    "datei": "it/vecom-praesentieren-1-9dc48bb2.mp3",
+    "quelle": "b2d15ac6826e"
+   }
+  },
+  "vecom-verstehen": {
+   "0": {
+    "datei": "it/vecom-verstehen-0-fc8d222f.mp3",
+    "quelle": "9c6b034d3e99"
+   },
+   "1": {
+    "datei": "it/vecom-verstehen-1-14eb6e38.mp3",
+    "quelle": "eb59b67dc76b"
+   },
+   "2": {
+    "datei": "it/vecom-verstehen-2-200671a1.mp3",
+    "quelle": "9b30bfb28bba"
+   },
+   "3": {
+    "datei": "it/vecom-verstehen-3-13ad1dd9.mp3",
+    "quelle": "d4b28dea7464"
+   },
+   "4": {
+    "datei": "it/vecom-verstehen-4-6fa446f5.mp3",
+    "quelle": "843d3156d9b1"
+   }
+  },
+  "zum-auftrag": {
+   "0": {
+    "datei": "it/zum-auftrag-0-7f65d2df.mp3",
+    "quelle": "4d14947f8986"
+   },
+   "1": {
+    "datei": "it/zum-auftrag-1-519e7e7f.mp3",
+    "quelle": "a5c7e370fa71"
+   },
+   "2": {
+    "datei": "it/zum-auftrag-2-d75d99be.mp3",
+    "quelle": "ef46406dbb20"
+   },
+   "3": {
+    "datei": "it/zum-auftrag-3-43dc0940.mp3",
+    "quelle": "6487ce91d55a"
+   }
+  }
+ }
+}

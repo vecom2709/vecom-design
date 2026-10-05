@@ -49,6 +49,28 @@
       } else { feld.select(); try { document.execCommand('copy'); ok(); } catch (e) { } }
     });
   });
+  // Vorlesen (Etappe 3): Sprachausgabe des Geräts, wenn es keine Sprecheraufnahme gibt.
+  if ('speechSynthesis' in window && window.SpeechSynthesisUtterance) {
+    [].forEach.call(document.querySelectorAll('[data-ak-vorlesen]'), function (b) {
+      var art = b.closest('article'); if (!art) { return; }
+      var lab = b.querySelector('span'), vorher = lab.textContent, laeuft = false;
+      b.hidden = false;
+      b.addEventListener('click', function () {
+        window.speechSynthesis.cancel();
+        if (laeuft) { laeuft = false; lab.textContent = vorher; b.setAttribute('aria-pressed', 'false'); return; }
+        var h2 = art.querySelector('h2'), txt = art.querySelector('.ak-lesetext');
+        var u = new SpeechSynthesisUtterance(((h2 ? h2.textContent + '. ' : '') + (txt ? txt.innerText : '')).replace(/\s+/g, ' '));
+        u.lang = b.getAttribute('data-ak-vorlesen'); u.rate = 0.98;
+        u.onend = u.onerror = function () { laeuft = false; lab.textContent = vorher; b.setAttribute('aria-pressed', 'false'); };
+        laeuft = true; lab.textContent = b.getAttribute('data-stopp') || vorher; b.setAttribute('aria-pressed', 'true');
+        window.speechSynthesis.speak(u);
+      });
+    });
+    window.addEventListener('pagehide', function () { window.speechSynthesis.cancel(); });
+  }
+  // Simulator: ans Ende des Gesprächs springen, Eingabe fokussieren.
+  var simEnde = document.getElementById('sim-ende');
+  if (simEnde && location.hash === '#sim-ende') { var ta = document.getElementById('ak-sim'); if (ta) { ta.focus({ preventScroll: true }); } }
   // PDF drucken: am Rechner direkt den Druckdialog, am Handy öffnet der Link das PDF.
   if (!window.matchMedia || !window.matchMedia('(pointer:coarse)').matches) {
     [].forEach.call(document.querySelectorAll('[data-ak-drucken]'), function (a) {

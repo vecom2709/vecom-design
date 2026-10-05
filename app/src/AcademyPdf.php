@@ -110,6 +110,46 @@ final class AcademyPdf
         return $o->ende();
     }
 
+    /**
+     * Zertifikat (Etappe 3): A4 quer, Name, Datum, Ergebnis, Prüfnummer und Adresse
+     * zum Prüfen. Ausdrücklich „interne Schulung“.
+     */
+    public static function zertifikat(array $z, string $sprache): string
+    {
+        $A = Texte::ACADEMY;
+        $w = static fn(string $k): string => Texte::h($A[$k] ?? [], $sprache);
+        $b = Pdf::A4_HOCH; $h = Pdf::A4_BREIT;   // quer
+        $pdf = new Pdf($b, $h);
+        $pdf->info(['Title' => $w('z_titel') . ' — ' . $z['name'], 'Author' => 'Vecom Design', 'Subject' => $w('intern')]);
+        $pdf->flaeche(0, 0, $b, $h, [0.985, 0.972, 0.94]);
+        $gold = self::GOLD;
+        foreach ([[24, 1.6], [32, 0.5]] as [$r, $d]) {
+            $pdf->linie($r, $r, $b - $r, $r, $d, $gold); $pdf->linie($r, $h - $r, $b - $r, $h - $r, $d, $gold);
+            $pdf->linie($r, $r, $r, $h - $r, $d, $gold); $pdf->linie($b - $r, $r, $b - $r, $h - $r, $d, $gold);
+        }
+        $m = $b / 2;
+        $pdf->text($m, 92, 'VECOM DESIGN', 13, true, 'mitte', $gold);
+        $pdf->text($m, 112, 'PARTNER ACADEMY', 9, true, 'mitte', self::GRAU);
+        $pdf->text($m, 178, mb_strtoupper($w('z_titel')), 30, true, 'mitte', self::TINTE);
+        $pdf->text($m, 222, $w('z_fuer'), 12, false, 'mitte', self::GRAU);
+        $pdf->text($m, 270, (string) $z['name'], 30, true, 'mitte', self::TINTE);
+        $pdf->linie($m - 170, 284, $m + 170, 284, 0.6, $gold);
+        $y = 318;
+        foreach ($pdf->umbrechen($w('z_satz'), 520, 13) as $zeile) { $pdf->text($m, $y, $zeile, 13, false, 'mitte', self::TINTE); $y += 19; }
+        $pdf->text($m, $y + 12, strtr($w('z_ergebnis'), ['{p}' => (string) (int) $z['ergebnis']]), 11, true, 'mitte', $gold);
+        $yu = $h - 118;
+        $pdf->text(120, $yu, Fmt::datum((string) $z['ausgestellt_am']), 12, true, 'links', self::TINTE);
+        $pdf->linie(120, $yu + 8, 300, $yu + 8, 0.5, self::GRAU);
+        $pdf->text(120, $yu + 22, $w('z_datum'), 8.5, false, 'links', self::GRAU);
+        $pdf->text($b - 120, $yu, (string) $z['nummer'], 12, true, 'rechts', self::TINTE);
+        $pdf->linie($b - 300, $yu + 8, $b - 120, $yu + 8, 0.5, self::GRAU);
+        $pdf->text($b - 120, $yu + 22, $w('z_nummer'), 8.5, false, 'rechts', self::GRAU);
+        $url = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/zertifikat.php?n=' . $z['nummer'];
+        $pdf->text($m, $h - 70, $w('z_pruefen') . ' ' . $url, 8.5, false, 'mitte', self::GRAU);
+        $pdf->text($m, $h - 54, $w('intern'), 8, false, 'mitte', self::GRAU);
+        return $pdf->fertig();
+    }
+
     private function __construct() { $this->pdf = new Pdf(); }
 
     private function t(string $s): string { return strtr($s, $this->platz); }

@@ -506,6 +506,43 @@ if ($post) {
                 $_SESSION['gut'] = !empty($_POST['archiv']) ? 'PDF archiviert — Partner sehen es nicht mehr.' : 'PDF ist wieder sichtbar.';
                 zurueck('academy');
 
+            case 'academy_medium':
+                require_once __DIR__ . '/src/Academy.php';
+                $amF = $_FILES['datei'] ?? null;
+                if (!is_array($amF) || (int) ($amF['error'] ?? 4) !== UPLOAD_ERR_OK || !is_uploaded_file((string) $amF['tmp_name'])) {
+                    $_SESSION['fehler'] = 'Keine Datei angekommen (höchstens ' . (Academy::MEDIEN_MAX >> 20) . ' MB).';
+                    zurueck('academy');
+                }
+                [$amMod, $amLek] = array_pad(explode(':', (string) ($_POST['lektion'] ?? ''), 2), 2, '');
+                $amR = Academy::medienSpeichern((string) $amF['tmp_name'], $amMod, (int) $amLek, (string) ($_POST['sprache'] ?? 'alle'), (string) ($_POST['titel'] ?? ''));
+                if (is_int($amR)) {
+                    Events::protokoll('academy_medium', 'Academy: Medium zu ' . $amMod . ' Lektion ' . ((int) $amLek + 1) . ' hochgeladen');
+                    $_SESSION['gut'] = 'Gespeichert — erscheint sofort in der Lektion.';
+                } else {
+                    $_SESSION['fehler'] = ['zu_gross' => 'Zu groß (höchstens ' . (Academy::MEDIEN_MAX >> 20) . ' MB). Video vorher verkleinern.', 'typ' => 'Nur MP4/WebM-Video oder MP3/M4A-Audio.', 'lektion' => 'Diese Lektion gibt es nicht.'][$amR] ?? 'Speichern ging nicht.';
+                }
+                zurueck('academy');
+
+            case 'academy_medium_weg':
+                require_once __DIR__ . '/src/Academy.php';
+                Academy::medienLoeschen((int) ($_POST['id'] ?? 0));
+                $_SESSION['gut'] = 'Medium entfernt.';
+                zurueck('academy');
+
+            case 'academy_zert_widerruf':
+                require_once __DIR__ . '/src/Academy.php';
+                Academy::zertifikatWiderrufen((int) ($_POST['id'] ?? 0), !empty($_POST['widerrufen']));
+                Events::protokoll('academy_zert', 'Academy-Zertifikat #' . (int) ($_POST['id'] ?? 0) . (!empty($_POST['widerrufen']) ? ' widerrufen' : ' wieder gültig'));
+                $_SESSION['gut'] = !empty($_POST['widerrufen']) ? 'Zertifikat widerrufen — die Prüfseite zeigt es als ungültig.' : 'Zertifikat ist wieder gültig.';
+                zurueck('academy');
+
+            case 'academy_sim':
+                require_once __DIR__ . '/src/Academy.php';
+                require_once __DIR__ . '/src/AcademySimulator.php';
+                $asOk = AcademySimulator::schalten(!empty($_POST['an']), !empty($_POST['datenschutz']));
+                $_SESSION[$asOk ? 'gut' : 'fehler'] = $asOk ? 'Gesprächssimulator gespeichert.' : 'Einschalten geht nur mit bestätigter Datenschutzprüfung.';
+                zurueck('academy');
+
             case 'academy_melden':
                 require_once __DIR__ . '/src/Academy.php';
                 $amM = Academy::melden((string) ($_POST['ziel'] ?? ''));
@@ -4254,6 +4291,10 @@ switch ($route) {
             'eigene'  => sicher(static fn() => Db::all('SELECT id, titel, kategorie, sprache, version, dateiname, groesse, archiviert, updated_at FROM academy_dokumente ORDER BY archiviert, updated_at DESC'), []),
             'docs'    => Academy::dokumente('de'),
             'neu'     => Academy::neu(),
+            'zertifikate' => sicher(static fn() => Db::all('SELECT z.id, z.nummer, z.name, z.ergebnis, z.ausgestellt_am, z.widerrufen_am FROM academy_zertifikate z ORDER BY z.id DESC LIMIT 100'), []),
+            'versuche' => sicher(static fn() => Db::one('SELECT COUNT(*) AS n, SUM(bestanden) AS b FROM academy_abschluss'), []),
+            'medien'  => sicher(static fn() => Db::all('SELECT id, modul, lektion, sprache, art, titel, groesse, created_at FROM academy_medien ORDER BY modul, lektion, id'), []),
+            'sim'     => (static function () { require_once __DIR__ . '/src/AcademySimulator.php'; return AcademySimulator::stand(); })(),
         ]);
         break;
 

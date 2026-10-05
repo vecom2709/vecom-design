@@ -1176,5 +1176,273 @@
     "modul:zum-auftrag"
    ]
   }
+ ],
+ "abschluss": [
+  {
+   "frage": "Wer erstellt das genaue Angebot für einen Betrieb?",
+   "antworten": [
+    "Du als Partner",
+    "Vecom Design",
+    "Der Betrieb selbst"
+   ],
+   "richtig": 1,
+   "warum": "Den Richtpreis zeigt der Fragebogen, das genaue Angebot macht immer Vecom."
+  },
+  {
+   "frage": "Ein Betrieb möchte wissen, wann die Seite fertig ist. Was sagst du?",
+   "antworten": [
+    "„In zwei Wochen, versprochen.“",
+    "„Den Zeitplan nennt Ihnen Vecom mit dem Angebot.“",
+    "„Das geht ganz schnell, keine Sorge.“"
+   ],
+   "richtig": 1,
+   "warum": "Termine sagt nur Vecom zu. Du versprichst nichts, was du nicht entscheidest."
+  },
+  {
+   "frage": "Warum schickst du dem Betrieb deinen persönlichen Link zum Fragebogen?",
+   "antworten": [
+    "Damit der Kontakt dir zugeordnet wird",
+    "Weil der Fragebogen sonst nicht funktioniert",
+    "Damit der Betrieb einen Rabatt bekommt"
+   ],
+   "richtig": 0,
+   "warum": "Über deinen Link weiß Vecom, dass der Betrieb über dich kam – so entsteht deine Provision."
+  },
+  {
+   "frage": "Darfst du einem Betrieb ohne seine Zustimmung eine Werbe-E-Mail schicken?",
+   "antworten": [
+    "Ja, wenn die Adresse öffentlich ist",
+    "Nein, nur mit vorheriger Zustimmung",
+    "Ja, einmal ist erlaubt"
+   ],
+   "richtig": 1,
+   "warum": "Werbung per E-Mail, WhatsApp oder SMS braucht vorher die Zustimmung des Betriebs."
+  },
+  {
+   "frage": "In Italien willst du einen Betrieb anrufen. Worauf achtest du?",
+   "antworten": [
+    "Auf nichts Besonderes",
+    "Die Nummer darf nicht im Registro delle Opposizioni stehen",
+    "Nur abends anrufen"
+   ],
+   "richtig": 1,
+   "warum": "Nummern im Registro delle Opposizioni rufst du nie an."
+  },
+  {
+   "frage": "Was ist ein guter Einstieg beim persönlichen Besuch?",
+   "antworten": [
+    "Sofort den Preis nennen",
+    "Eine konkrete Beobachtung zur Website des Betriebs",
+    "Eine lange Vorstellung von Vecom"
+   ],
+   "richtig": 1,
+   "warum": "Eine konkrete Beobachtung zeigt, dass du dich vorbereitet hast, und öffnet das Gespräch."
+  },
+  {
+   "frage": "Der Betrieb sagt: „Ich habe schon eine Website.“ Was ist die beste Reaktion?",
+   "antworten": [
+    "„Dann passt es ja, auf Wiedersehen.“",
+    "„Darf ich fragen, ob sie Ihnen neue Kunden bringt?“",
+    "„Ihre Seite ist schlecht.“"
+   ],
+   "richtig": 1,
+   "warum": "Eine offene Frage zeigt, ob es einen Bedarf gibt – ohne die bestehende Seite schlechtzumachen."
+  },
+  {
+   "frage": "Was macht ein gutes Bedarfsgespräch aus?",
+   "antworten": [
+    "Du redest die meiste Zeit",
+    "Du stellst Fragen und hörst zu",
+    "Du zeigst sofort alle Leistungen"
+   ],
+   "richtig": 1,
+   "warum": "Wer fragt und zuhört, versteht, was der Betrieb wirklich braucht."
+  },
+  {
+   "frage": "Ein Betrieb hat viele Gäste aus dem Ausland. Welche Leistung passt besonders?",
+   "antworten": [
+    "Mehrsprachigkeit",
+    "Hosting",
+    "Animation"
+   ],
+   "richtig": 0,
+   "warum": "Gäste aus dem Ausland lesen die Seite gern in ihrer Sprache."
+  },
+  {
+   "frage": "Ein Friseursalon verliert viel Zeit am Telefon für Termine. Was empfiehlst du?",
+   "antworten": [
+    "Onlineshop",
+    "Online-Terminbuchung",
+    "3D-Experience"
+   ],
+   "richtig": 1,
+   "warum": "Online-Termine sparen Anrufe und sind rund um die Uhr buchbar."
+  },
+  {
+   "frage": "Was bedeutet „Mobile Optimierung“ für den Betrieb?",
+   "antworten": [
+    "Die Seite funktioniert gut auf dem Handy",
+    "Die Seite läuft nur auf dem Handy",
+    "Es gibt eine eigene App"
+   ],
+   "richtig": 0,
+   "warum": "Die meisten Kunden schauen am Handy – dort muss die Seite gut lesbar und schnell sein."
+  },
+  {
+   "frage": "Der Betrieb sagt: „Ich muss darüber nachdenken.“ Was ist ein guter nächster Schritt?",
+   "antworten": [
+    "Druck machen: „Das Angebot gilt nur heute.“",
+    "Den Link zum Fragebogen schicken und Nachfassen vereinbaren",
+    "Nichts mehr tun"
+   ],
+   "richtig": 1,
+   "warum": "Ohne Druck: Link schicken, einen Termin zum Nachfassen vereinbaren."
+  },
+  {
+   "frage": "Darfst du über andere Anbieter schlecht reden?",
+   "antworten": [
+    "Ja, wenn es stimmt",
+    "Nein, nie",
+    "Nur wenn der Betrieb fragt"
+   ],
+   "richtig": 1,
+   "warum": "Du überzeugst mit Vecom, nicht durch schlechte Worte über andere."
+  },
+  {
+   "frage": "Wann wird deine Provision auszahlbar?",
+   "antworten": [
+    "Sofort nach dem Gespräch",
+    "Nach Zahlung des Kunden und Ablauf der Widerrufsfrist",
+    "Wenn der Betrieb den Fragebogen ausfüllt"
+   ],
+   "richtig": 1,
+   "warum": "Die Provision entsteht mit der Zahlung und wird nach der Widerrufsfrist frei."
+  },
+  {
+   "frage": "Ein Betrieb ist nicht erreichbar. Was tust du?",
+   "antworten": [
+    "Zehnmal am Tag anrufen",
+    "Später noch einmal versuchen, zu einer ruhigen Zeit",
+    "Eine Nachricht ohne Zustimmung schicken"
+   ],
+   "richtig": 1,
+   "warum": "Ein neuer Versuch zur ruhigen Zeit ist freundlich und wirkt."
+  },
+  {
+   "frage": "Was zeigt der Website-Schnellcheck?",
+   "antworten": [
+    "Messbare Punkte wie HTTPS, Handy-Tauglichkeit und Google",
+    "Den Umsatz des Betriebs",
+    "Die Preise der Konkurrenz"
+   ],
+   "richtig": 0,
+   "warum": "Der Schnellcheck prüft messbare Dinge – nichts wird erfunden."
+  },
+  {
+   "frage": "Ein Betrieb fragt nach einem Rabatt. Was antwortest du?",
+   "antworten": [
+    "„10 Prozent sind drin.“",
+    "„Preise und Rabatte entscheidet Vecom – ich frage gern nach.“",
+    "„Kein Problem.“"
+   ],
+   "richtig": 1,
+   "warum": "Rabatte entscheidet nur Vecom."
+  },
+  {
+   "frage": "Welche Aussage über das Projekt stimmt?",
+   "antworten": [
+    "Der Betrieb sieht eine Vorschau und gibt frei, bevor die Seite online geht",
+    "Die Seite geht ohne Freigabe online",
+    "Der Betrieb muss alles selbst bauen"
+   ],
+   "richtig": 0,
+   "warum": "Vorschau und Freigabe durch den Betrieb gehören zu jedem Projekt."
+  },
+  {
+   "frage": "Was ist bei Social Media wichtig, wenn du deinen Link teilst?",
+   "antworten": [
+    "Kennzeichnen, dass es Werbung ist",
+    "Den Link verstecken",
+    "Andere Marken nennen"
+   ],
+   "richtig": 0,
+   "warum": "Du machst kenntlich, dass dein Link eine Provision bringt (z. B. #werbung)."
+  },
+  {
+   "frage": "Was ist das Ziel eines Nachfass-Kontakts?",
+   "antworten": [
+    "Den Betrieb überreden",
+    "Freundlich erinnern und Fragen klären",
+    "Einen Rabatt anbieten"
+   ],
+   "richtig": 1,
+   "warum": "Nachfassen heißt erinnern und helfen – nicht drängen."
+  },
+  {
+   "frage": "Welche Information gibst du über zahlende Kunden anderer Partner weiter?",
+   "antworten": [
+    "Name und Preis",
+    "Gar keine",
+    "Nur den Namen"
+   ],
+   "richtig": 1,
+   "warum": "Kundendaten bleiben vertraulich."
+  },
+  {
+   "frage": "Der Betrieb sagt: „Ich habe keine Zeit.“ Was ist gut?",
+   "antworten": [
+    "„Darf ich Ihnen den Link schicken? Der Fragebogen dauert zwei Minuten.“",
+    "Trotzdem zehn Minuten erklären",
+    "Beleidigt gehen"
+   ],
+   "richtig": 0,
+   "warum": "Respektiere die Zeit des Betriebs und biete den kleinsten nächsten Schritt an."
+  },
+  {
+   "frage": "Was ist Branding?",
+   "antworten": [
+    "Ein einheitliches Erscheinungsbild mit Logo, Farben und Schrift",
+    "Werbung im Radio",
+    "Ein Onlineshop"
+   ],
+   "richtig": 0,
+   "warum": "Branding sorgt dafür, dass der Betrieb überall gleich und professionell wirkt."
+  },
+  {
+   "frage": "Wer entscheidet am Ende, ob der Betrieb einen Auftrag gibt?",
+   "antworten": [
+    "Du",
+    "Der Betrieb",
+    "Vecom"
+   ],
+   "richtig": 1,
+   "warum": "Die Entscheidung trifft immer der Betrieb – du hilfst ihm nur dabei."
+  }
+ ],
+ "sim": [
+  {
+   "slug": "restaurant",
+   "titel": "Restaurant: skeptischer Inhaber",
+   "rolle": "Inhaber eines Familienrestaurants in einer Kleinstadt. Hat eine alte Website, die ein Neffe gebaut hat. Wenig Zeit, skeptisch bei Kosten, stolz auf seine Küche.",
+   "ziel": "Bring den Inhaber dazu, den Link zum Fragebogen anzunehmen."
+  },
+  {
+   "slug": "friseur",
+   "titel": "Friseursalon: viel Telefon",
+   "rolle": "Inhaberin eines Friseursalons. Keine Website, nur Instagram. Das Telefon klingelt ständig wegen Terminen. Offen, aber unsicher, ob sich das lohnt.",
+   "ziel": "Finde den Bedarf heraus und schlage passende Leistungen vor, ohne Preise zu nennen."
+  },
+  {
+   "slug": "handwerk",
+   "titel": "Handwerker: „brauche ich nicht“",
+   "rolle": "Elektromeister mit vollem Auftragsbuch. Hält eine Website für überflüssig, alle Kunden kämen über Empfehlung.",
+   "ziel": "Bleib freundlich und finde heraus, ob es doch einen Nutzen gibt (z. B. Fachkräfte finden)."
+  },
+  {
+   "slug": "ferienwohnung",
+   "titel": "Ferienwohnung: Gäste aus dem Ausland",
+   "rolle": "Vermieterin von drei Ferienwohnungen. Vermietet über Buchungsplattformen und zahlt hohe Gebühren. Viele Gäste aus Deutschland.",
+   "ziel": "Zeige den Nutzen von Direktbuchung und Mehrsprachigkeit und vereinbare den nächsten Schritt."
+  }
  ]
 }

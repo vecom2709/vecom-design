@@ -114,6 +114,13 @@ final class Ablauf
             . '(steht er schon da, wird er nur aktualisiert).',
             'Ja, Menü veröffentlichen'],
         /* Umfragen im Kanal (01.10.2026, Kanal-Vorschlag 6) */
+        'academy_sim' => [self::RAUS,
+            'Ist alles bestätigt, gehen die Übungsgespräche der Partner an den KI-Dienst (ohne Namen und Kontaktdaten, nicht gespeichert). '
+            . 'Nur einschalten, wenn die Datenschutzprüfung wirklich erledigt ist.',
+            'Ja, speichern'],
+        'academy_zert_widerruf' => [self::RAUS,
+            'Die Prüfseite zeigt dieses Zertifikat danach als widerrufen (oder wieder als gültig).',
+            'Ja, ändern'],
         'academy_melden' => [self::RAUS,
             'Alle freigeschalteten Partner bekommen jetzt den Hinweis „Neue Schulung verfügbar“ aufs Handy (wer die App hat). '
             . 'Auf der Academy-Startseite steht er 14 Tage.',

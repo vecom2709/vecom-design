@@ -67,7 +67,7 @@ final class Academy
             }
         }
         $daten += ['module' => [], 'kontakt' => [], 'einwaende' => [], 'leistungen' => [], 'finder' => [], 'woerter' => [],
-                   'bedarf' => [], 'bedarf_grund' => [], 'finder_ergebnis' => [], 'lagen' => []];
+                   'bedarf' => [], 'bedarf_grund' => [], 'finder_ergebnis' => [], 'lagen' => [], 'abschluss' => [], 'sim' => []];
         /* Schalter der Verwaltung (Etappe 2): aktiv, Pflicht, Reihenfolge. Ohne Tabelle gilt die Datei. */
         $schalter = self::schalter();
         $alle = [];
@@ -552,6 +552,188 @@ final class Academy
         try { $j = json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'academy_neu'", [], ''), true); } catch (Throwable $e) { return null; }
         if (!is_array($j) || empty($j['ziel']) || empty($j['am'])) { return null; }
         return strtotime((string) $j['am']) >= strtotime('-14 days') ? ['ziel' => (string) $j['ziel'], 'am' => (string) $j['am']] : null;
+    }
+
+    /* ---------------------------------------------------------------- Abschlusstest und Zertifikat (Etappe 3) */
+
+    public const ABSCHLUSS_ANZAHL = 20;
+    /** Ab so viel Prozent ist der Abschlusstest bestanden. */
+    public const ABSCHLUSS_GRENZE = 80;
+
+    /**
+     * Alle Fragen für den Abschlusstest: die Wissensfragen der aktiven Module und
+     * der eigene Fragenpool. Schlüssel „m:<modul>:<nr>“ bzw. „a:<nr>“.
+     * @return array<string,array{frage:string,antworten:list<string>,richtig:int,warum:string}>
+     */
+    public static function abschlussPool(string $sprache): array
+    {
+        $d = self::inhalte($sprache);
+        $o = [];
+        foreach ($d['module'] as $m) { foreach (($m['fragen'] ?? []) as $i => $f) { $o['m:' . $m['slug'] . ':' . $i] = $f; } }
+        foreach (($d['abschluss'] ?? []) as $i => $f) { $o['a:' . $i] = $f; }
+        return $o;
+    }
+
+    /** Sind alle Pflichtmodule abgeschlossen? Erst dann gibt es den Abschlusstest. */
+    public static function darfAbschluss(int $partnerId): bool
+    {
+        $fp = self::fortschritt($partnerId);
+        foreach (self::inhalte('de')['module'] as $m) {
+            if (!empty($m['pflicht']) && (($fp[$m['slug']]['fertig_am'] ?? null) === null)) { return false; }
+        }
+        return true;
+    }
+
+    /** Zufällige Auswahl für einen Versuch. @return list<string> Schlüssel */
+    public static function abschlussZiehen(string $sprache): array
+    {
+        $k = array_keys(self::abschlussPool($sprache));
+        shuffle($k);
+        return array_slice($k, 0, self::ABSCHLUSS_ANZAHL);
+    }
+
+    /**
+     * Wertet einen Versuch aus und speichert nur das Ergebnis. Bestanden ohne gültiges
+     * Zertifikat → es wird ausgestellt.
+     * @param list<string> $schluessel gezogene Fragen (aus der Sitzung, nie aus der Anfrage)
+     * @return array{ok:bool, richtig:int, gesamt:int, prozent:int, bestanden:bool, auswertung:array, zertifikat:?array}
+     */
+    public static function abschlussAuswerten(array $p, array $schluessel, array $antworten, string $sprache): array
+    {
+        $leer = ['ok' => false, 'richtig' => 0, 'gesamt' => 0, 'prozent' => 0, 'bestanden' => false, 'auswertung' => [], 'zertifikat' => null];
+        $pid = (int) $p['id'];
+        if (!self::darfAbschluss($pid)) { return $leer; }
+        $pool = self::abschlussPool($sprache);
+        $schluessel = array_values(array_filter($schluessel, static fn($k) => is_string($k) && isset($pool[$k])));
+        if (count($schluessel) < min(self::ABSCHLUSS_ANZAHL, count($pool))) { return $leer; }
+        $r = 0; $aus = [];
+        foreach ($schluessel as $i => $k) {
+            $ok = isset($antworten[$i]) && (string) $antworten[$i] !== '' && (int) $antworten[$i] === (int) $pool[$k]['richtig'];
+            if ($ok) { $r++; }
+            $aus[] = ['k' => $k, 'ok' => $ok];
+        }
+        $n = count($schluessel);
+        $proz = (int) floor(100 * $r / max(1, $n));
+        $best = $proz >= self::ABSCHLUSS_GRENZE;
+        Db::run('INSERT INTO academy_abschluss (partner_id, richtig, gesamt, bestanden) VALUES (?, ?, ?, ?)', [$pid, $r, $n, $best ? 1 : 0]);
+        $z = self::zertifikat($pid);
+        if ($best && !$z) { $z = self::zertifikatAusstellen($p, $proz); }
+        return ['ok' => true, 'richtig' => $r, 'gesamt' => $n, 'prozent' => $proz, 'bestanden' => $best, 'auswertung' => $aus, 'zertifikat' => $z];
+    }
+
+    /** @return list<array> Versuche eines Partners, neueste zuerst */
+    public static function versuche(int $partnerId): array
+    {
+        try { return Db::all('SELECT richtig, gesamt, bestanden, created_at FROM academy_abschluss WHERE partner_id = ? ORDER BY id DESC LIMIT 10', [$partnerId]); }
+        catch (Throwable $e) { return []; }
+    }
+
+    /** Gültiges Zertifikat eines Partners. */
+    public static function zertifikat(int $partnerId): ?array
+    {
+        try { $z = Db::one('SELECT * FROM academy_zertifikate WHERE partner_id = ? AND widerrufen_am IS NULL ORDER BY id DESC LIMIT 1', [$partnerId]); }
+        catch (Throwable $e) { return null; }
+        return $z ?: null;
+    }
+
+    public static function zertifikatAusstellen(array $p, int $prozent): array
+    {
+        $abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        for ($v = 0; $v < 5; $v++) {
+            $n = 'VA-';
+            $b = random_bytes(8);
+            for ($i = 0; $i < 8; $i++) { $n .= $abc[ord($b[$i]) % strlen($abc)] . ($i === 3 ? '-' : ''); }
+            try {
+                Db::run('INSERT INTO academy_zertifikate (partner_id, nummer, name, ergebnis) VALUES (?, ?, ?, ?)',
+                    [(int) $p['id'], $n, mb_substr(trim((string) $p['name']), 0, 160), max(0, min(100, $prozent))]);
+                return (array) Db::one('SELECT * FROM academy_zertifikate WHERE nummer = ?', [$n]);
+            } catch (Throwable $e) { continue; }   // Nummer schon vergeben: neu würfeln
+        }
+        throw new RuntimeException('Zertifikatsnummer konnte nicht vergeben werden.');
+    }
+
+    /**
+     * Öffentliche Prüfung einer Nummer: nur, ob es gilt, wann es ausgestellt wurde und
+     * ein gekürzter Name (Vorname + Initial) — nie Kontakt oder Ergebnis.
+     * @return array{gueltig:bool, name:string, am:string}|null
+     */
+    public static function zertifikatPruefen(string $nummer): ?array
+    {
+        $nummer = strtoupper(trim($nummer));
+        if (!preg_match('~^VA-[A-Z0-9]{4}-[A-Z0-9]{4}$~', $nummer)) { return null; }
+        try { $z = Db::one('SELECT name, ausgestellt_am, widerrufen_am FROM academy_zertifikate WHERE nummer = ?', [$nummer]); }
+        catch (Throwable $e) { return null; }
+        if (!$z) { return null; }
+        $teile = preg_split('~\s+~u', trim((string) $z['name'])) ?: [''];
+        $kurz = $teile[0] . (count($teile) > 1 ? ' ' . mb_substr((string) end($teile), 0, 1) . '.' : '');
+        return ['gueltig' => $z['widerrufen_am'] === null, 'name' => $kurz, 'am' => substr((string) $z['ausgestellt_am'], 0, 10)];
+    }
+
+    public static function zertifikatWiderrufen(int $id, bool $widerrufen): bool
+    {
+        return Db::run('UPDATE academy_zertifikate SET widerrufen_am = ' . ($widerrufen ? 'NOW()' : 'NULL') . ' WHERE id = ?', [$id])->rowCount() === 1;
+    }
+
+    /* ---------------------------------------------------------------- Audio und Video je Lektion (Etappe 3) */
+
+    /** Eigene Medien der Verwaltung: höchstens so groß (MEDIUMBLOB, Paketgrenze des Webspace). */
+    public const MEDIEN_MAX = 12 * 1024 * 1024;
+    public const MEDIEN_TYPEN = ['video/mp4' => 'video', 'video/webm' => 'video', 'audio/mpeg' => 'audio', 'audio/mp4' => 'audio', 'audio/x-m4a' => 'audio'];
+
+    /** Kennung des gesprochenen Inhalts einer Lektion — ändert sich der Text, passt die Aufnahme nicht mehr. */
+    public static function lektionQuelle(array $l): string
+    {
+        return substr(sha1((string) ($l['titel'] ?? '') . "\n" . (string) ($l['text'] ?? '') . "\n" . (string) ($l['merke'] ?? '')), 0, 12);
+    }
+
+    /** Adresse der Sprecheraufnahme (Kie.ai) einer Lektion, oder null, wenn es keine passende gibt. */
+    public static function audio(string $modul, int $lektion, string $sprache): ?string
+    {
+        static $karte = null;
+        $o = self::$ordner ?? dirname(__DIR__) . '/data/academy';
+        $karte ??= (json_decode((string) @file_get_contents($o . '/audio.json'), true) ?: []);
+        $e = $karte[$sprache][$modul][(string) $lektion] ?? null;
+        $m = self::modul($modul, $sprache);
+        $l = $m['lektionen'][$lektion] ?? null;
+        if (!is_array($e) || !$l || ($e['quelle'] ?? '') !== self::lektionQuelle($l) || !preg_match('~^[a-z]{2}/[a-z0-9-]+\.mp3$~', (string) ($e['datei'] ?? ''))) { return null; }
+        return is_file(dirname(__DIR__, 2) . '/assets/audio/academy/' . $e['datei']) ? '/assets/audio/academy/' . $e['datei'] : null;
+    }
+
+    /** @return int|string ID oder Fehlercode */
+    public static function medienSpeichern(string $pfad, string $modul, int $lektion, string $sprache, string $titel): int|string
+    {
+        if (!is_file($pfad)) { return 'keine_datei'; }
+        $g = (int) filesize($pfad);
+        if ($g <= 0 || $g > self::MEDIEN_MAX) { return 'zu_gross'; }
+        $mime = function_exists('finfo_open') ? (string) finfo_file(finfo_open(FILEINFO_MIME_TYPE), $pfad) : '';
+        if (!isset(self::MEDIEN_TYPEN[$mime])) { return 'typ'; }
+        $m = null;
+        foreach (self::inhalte('de')['alle_module'] as $x) { if ($x['slug'] === $modul) { $m = $x; } }
+        if (!$m || !isset($m['lektionen'][$lektion])) { return 'lektion'; }
+        $sprache = in_array($sprache, ['alle', 'it', 'de', 'en'], true) ? $sprache : 'alle';
+        Db::run('INSERT INTO academy_medien (modul, lektion, sprache, art, mime, titel, groesse, datei) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+            [$modul, $lektion, $sprache, self::MEDIEN_TYPEN[$mime], $mime, mb_substr(trim($titel), 0, 160), $g, (string) file_get_contents($pfad)]);
+        return (int) Db::wert('SELECT LAST_INSERT_ID()');
+    }
+
+    /** @return list<array> Medien einer Lektion (ohne Inhalt) */
+    public static function medien(string $modul, int $lektion, string $sprache): array
+    {
+        try {
+            return Db::all("SELECT id, art, mime, titel, groesse FROM academy_medien WHERE modul = ? AND lektion = ? AND sprache IN ('alle', ?) ORDER BY id", [$modul, $lektion, $sprache]);
+        } catch (Throwable $e) { return []; }
+    }
+
+    public static function medium(int $id, string $sprache): ?array
+    {
+        try { $z = Db::one("SELECT * FROM academy_medien WHERE id = ? AND sprache IN ('alle', ?)", [$id, $sprache]); }
+        catch (Throwable $e) { return null; }
+        return $z && self::modul((string) $z['modul'], $sprache) ? $z : null;
+    }
+
+    public static function medienLoeschen(int $id): bool
+    {
+        return Db::run('DELETE FROM academy_medien WHERE id = ?', [$id])->rowCount() === 1;
     }
 
     /* ---------------------------------------------------------------- Zähler und Platzhalter */

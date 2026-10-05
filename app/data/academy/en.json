@@ -1176,5 +1176,273 @@
     "modul:zum-auftrag"
    ]
   }
+ ],
+ "abschluss": [
+  {
+   "frage": "Who prepares the exact quote for a business?",
+   "antworten": [
+    "You, as the partner",
+    "Vecom Design",
+    "The business itself"
+   ],
+   "richtig": 1,
+   "warum": "The questionnaire shows the guide price; the exact quote always comes from Vecom."
+  },
+  {
+   "frage": "A business wants to know when the site will be ready. What do you say?",
+   "antworten": [
+    "“Two weeks, promised.”",
+    "“Vecom will give you the schedule with the quote.”",
+    "“It'll be really quick, don't worry.”"
+   ],
+   "richtig": 1,
+   "warum": "Only Vecom commits to dates. You don't promise anything you don't decide."
+  },
+  {
+   "frage": "Why do you send the business your personal link to the questionnaire?",
+   "antworten": [
+    "So the contact is attributed to you",
+    "Because the questionnaire won't work otherwise",
+    "So the business gets a discount"
+   ],
+   "richtig": 0,
+   "warum": "Your link tells Vecom the business came through you – that's how your commission arises."
+  },
+  {
+   "frage": "May you send a business a promotional email without its consent?",
+   "antworten": [
+    "Yes, if the address is public",
+    "No, only with prior consent",
+    "Yes, once is allowed"
+   ],
+   "richtig": 1,
+   "warum": "Promotion by email, WhatsApp or SMS needs the business's prior consent."
+  },
+  {
+   "frage": "In Italy you want to call a business. What do you check?",
+   "antworten": [
+    "Nothing in particular",
+    "The number must not be on Italy's “Registro delle Opposizioni” do-not-call register",
+    "Only call in the evening"
+   ],
+   "richtig": 1,
+   "warum": "You never call numbers listed in the Registro delle Opposizioni."
+  },
+  {
+   "frage": "What is a good way to open an in-person visit?",
+   "antworten": [
+    "State the price right away",
+    "A specific observation about the business's website",
+    "A long introduction of Vecom"
+   ],
+   "richtig": 1,
+   "warum": "A specific observation shows you prepared and opens the conversation."
+  },
+  {
+   "frage": "The business says: “I already have a website.” What is the best response?",
+   "antworten": [
+    "“Then you're all set, goodbye.”",
+    "“May I ask whether it brings you new customers?”",
+    "“Your site is bad.”"
+   ],
+   "richtig": 1,
+   "warum": "An open question shows whether there is a need, without putting down the existing site."
+  },
+  {
+   "frage": "What makes a good needs conversation?",
+   "antworten": [
+    "You do most of the talking",
+    "You ask questions and listen",
+    "You immediately present all services"
+   ],
+   "richtig": 1,
+   "warum": "Asking and listening shows you what the business really needs."
+  },
+  {
+   "frage": "A business has many guests from abroad. Which service fits best?",
+   "antworten": [
+    "Multilingual site",
+    "Hosting",
+    "Animation"
+   ],
+   "richtig": 0,
+   "warum": "Guests from abroad prefer to read the site in their own language."
+  },
+  {
+   "frage": "A hair salon loses a lot of time on the phone for appointments. What do you recommend?",
+   "antworten": [
+    "Online shop",
+    "Online appointment booking",
+    "3D experience"
+   ],
+   "richtig": 1,
+   "warum": "Online appointments save calls and can be booked around the clock."
+  },
+  {
+   "frage": "What does “mobile optimization” mean for the business?",
+   "antworten": [
+    "The site works well on a phone",
+    "The site only works on a phone",
+    "There is a dedicated app"
+   ],
+   "richtig": 0,
+   "warum": "Most customers browse on their phone – the site must be readable and fast there."
+  },
+  {
+   "frage": "The business says: “I need to think about it.” What is a good next step?",
+   "antworten": [
+    "Apply pressure: “The offer is only valid today.”",
+    "Send the questionnaire link and agree on a follow-up",
+    "Do nothing more"
+   ],
+   "richtig": 1,
+   "warum": "No pressure: send the link and agree on a date for a follow-up."
+  },
+  {
+   "frage": "May you speak badly of other providers?",
+   "antworten": [
+    "Yes, if it's true",
+    "No, never",
+    "Only if the business asks"
+   ],
+   "richtig": 1,
+   "warum": "You win people over with Vecom, not by speaking ill of others."
+  },
+  {
+   "frage": "When does your commission become payable?",
+   "antworten": [
+    "Right after the conversation",
+    "After the customer has paid and the withdrawal period has ended",
+    "When the business fills in the questionnaire"
+   ],
+   "richtig": 1,
+   "warum": "The commission arises with payment and is released after the withdrawal period."
+  },
+  {
+   "frage": "A business can't be reached. What do you do?",
+   "antworten": [
+    "Call ten times a day",
+    "Try again later, at a quiet time",
+    "Send a message without consent"
+   ],
+   "richtig": 1,
+   "warum": "Trying again at a quiet time is friendly and works."
+  },
+  {
+   "frage": "What does the website quick check show?",
+   "antworten": [
+    "Measurable points like HTTPS, mobile-friendliness and Google",
+    "The business's revenue",
+    "The competition's prices"
+   ],
+   "richtig": 0,
+   "warum": "The quick check tests measurable things – nothing is invented."
+  },
+  {
+   "frage": "A business asks for a discount. What do you answer?",
+   "antworten": [
+    "“10 percent is possible.”",
+    "“Prices and discounts are decided by Vecom – I'm happy to ask.”",
+    "“No problem.”"
+   ],
+   "richtig": 1,
+   "warum": "Only Vecom decides on discounts."
+  },
+  {
+   "frage": "Which statement about the project is true?",
+   "antworten": [
+    "The business sees a preview and approves it before the site goes live",
+    "The site goes live without approval",
+    "The business has to build everything itself"
+   ],
+   "richtig": 0,
+   "warum": "A preview and the business's approval are part of every project."
+  },
+  {
+   "frage": "What matters on social media when you share your link?",
+   "antworten": [
+    "Disclose that it is advertising",
+    "Hide the link",
+    "Mention other brands"
+   ],
+   "richtig": 0,
+   "warum": "You make clear that your link earns a commission (e.g. #ad)."
+  },
+  {
+   "frage": "What is the goal of a follow-up contact?",
+   "antworten": [
+    "To talk the business into it",
+    "To remind them kindly and clear up questions",
+    "To offer a discount"
+   ],
+   "richtig": 1,
+   "warum": "Following up means reminding and helping – not pushing."
+  },
+  {
+   "frage": "What information do you share about paying customers of other partners?",
+   "antworten": [
+    "Name and price",
+    "None at all",
+    "Only the name"
+   ],
+   "richtig": 1,
+   "warum": "Customer data stays confidential."
+  },
+  {
+   "frage": "The business says: “I don't have time.” What is a good response?",
+   "antworten": [
+    "“May I send you the link? The questionnaire takes two minutes.”",
+    "Explain for ten minutes anyway",
+    "Walk away offended"
+   ],
+   "richtig": 0,
+   "warum": "Respect the business's time and offer the smallest possible next step."
+  },
+  {
+   "frage": "What is branding?",
+   "antworten": [
+    "A consistent look with logo, colors and typeface",
+    "Radio advertising",
+    "An online shop"
+   ],
+   "richtig": 0,
+   "warum": "Branding makes the business look the same and professional everywhere."
+  },
+  {
+   "frage": "Who ultimately decides whether the business places an order?",
+   "antworten": [
+    "You",
+    "The business",
+    "Vecom"
+   ],
+   "richtig": 1,
+   "warum": "The business always decides – you only help along the way."
+  }
+ ],
+ "sim": [
+  {
+   "slug": "restaurant",
+   "titel": "Restaurant: skeptical owner",
+   "rolle": "Owner of a family restaurant in a small town. Has an old website built by a nephew. Short on time, skeptical about costs, proud of the cooking.",
+   "ziel": "Get the owner to accept the link to the questionnaire."
+  },
+  {
+   "slug": "friseur",
+   "titel": "Hair salon: lots of phone calls",
+   "rolle": "Owner of a hair salon. No website, only Instagram. The phone keeps ringing for appointments. Open-minded, but unsure whether it's worth it.",
+   "ziel": "Find out the need and suggest suitable services, without naming prices."
+  },
+  {
+   "slug": "handwerk",
+   "titel": "Tradesperson: “I don't need it”",
+   "rolle": "Master electrician with a full order book. Considers a website unnecessary; all customers come by referral.",
+   "ziel": "Stay friendly and find out whether there is a benefit after all (e.g. finding skilled staff)."
+  },
+  {
+   "slug": "ferienwohnung",
+   "titel": "Holiday apartments: guests from abroad",
+   "rolle": "Landlady of three holiday apartments. Rents through booking platforms and pays high fees. Many guests from Germany.",
+   "ziel": "Show the benefit of direct booking and a multilingual site and agree on the next step."
+  }
  ]
 }
