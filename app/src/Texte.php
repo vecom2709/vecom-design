@@ -3034,6 +3034,27 @@ final class Texte
     ];
 
     public const PARTNER = [
+        /* Gerätecode (05.10.2026, Uwe: „Ja“ zu „neues Gerät: einmal Code per E-Mail“). Noch in „Sie“ wie der übrige
+           Partnerbereich; „du“ (Uwe, 05.10.2026) kommt für alle Partnertexte auf einmal — nicht gemischt. */
+        'geraet_titel'   => ['it' => 'Confermi questo dispositivo', 'de' => 'Dieses Gerät bestätigen', 'en' => 'Confirm this device'],
+        'geraet_start'   => ['it' => 'Sta aprendo l’area partner su un dispositivo nuovo. Per proteggere i Suoi dati Le mandiamo una volta un codice a {mail}.', 'de' => 'Sie öffnen den Partnerbereich auf einem neuen Gerät. Zum Schutz Ihrer Daten schicken wir Ihnen einmal einen Code an {mail}.', 'en' => 'You are opening the partner area on a new device. To protect your data we will send a one-time code to {mail}.'],
+        'geraet_senden'  => ['it' => 'Mandatemi il codice', 'de' => 'Code schicken', 'en' => 'Send me the code'],
+        'geraet_text'    => ['it' => 'Per proteggere i Suoi dati Le abbiamo mandato un codice di 6 cifre a {mail}. Lo inserisca qui — una sola volta per dispositivo.', 'de' => 'Zum Schutz Ihrer Daten haben wir Ihnen einen 6-stelligen Code an {mail} geschickt. Geben Sie ihn hier ein — nur einmal je Gerät.', 'en' => 'To protect your data we sent a 6-digit code to {mail}. Enter it here — once per device.'],
+        'geraet_uwe'     => ['it' => 'L’e-mail non è partita. Vecom ha ricevuto il codice e glielo comunica — ci scriva su WhatsApp.', 'de' => 'Die E-Mail ging nicht raus. Vecom hat den Code bekommen und gibt ihn Ihnen — schreiben Sie uns per WhatsApp.', 'en' => 'The email could not be sent. Vecom has the code and will pass it on — message us on WhatsApp.'],
+        'geraet_code'    => ['it' => 'Codice', 'de' => 'Code', 'en' => 'Code'],
+        'geraet_knopf'   => ['it' => 'Conferma', 'de' => 'Bestätigen', 'en' => 'Confirm'],
+        'geraet_neu'     => ['it' => 'Mandatemi un nuovo codice', 'de' => 'Neuen Code schicken', 'en' => 'Send a new code'],
+        'geraet_falsch'  => ['it' => 'Codice errato o scaduto. Usi quello dell’ultima e-mail o richieda un nuovo codice.', 'de' => 'Der Code stimmt nicht oder ist abgelaufen. Nehmen Sie den aus der neuesten Mail oder lassen Sie sich einen neuen schicken.', 'en' => 'Wrong or expired code. Use the one from the latest email or request a new one.'],
+        'geraet_warten'  => ['it' => 'Il codice è appena partito — controlli anche lo spam.', 'de' => 'Der Code ist gerade unterwegs — schauen Sie auch im Spam-Ordner.', 'en' => 'The code is on its way — check your spam folder too.'],
+        'geraet_grenze'  => ['it' => 'Troppi codici nell’ultima ora. Riprovi più tardi.', 'de' => 'Zu viele Codes in der letzten Stunde. Bitte später noch einmal.', 'en' => 'Too many codes in the last hour. Please try again later.'],
+        'geraet_mail_betreff' => ['it' => 'Il Suo codice per l’area partner Vecom', 'de' => 'Ihr Code für den Vecom-Partnerbereich', 'en' => 'Your code for the Vecom partner area'],
+        'geraet_mail_text' => ['it' => "Gentile {name},\n\nil Suo codice è: {code}\n\nVale {min} minuti per questo dispositivo: {geraet}.\nSe non è stato Lei, ignori questa e-mail — senza il codice nessuno entra.", 'de' => "Guten Tag {name},\n\nIhr Code lautet: {code}\n\nEr gilt {min} Minuten für dieses Gerät: {geraet}.\nWaren Sie das nicht? Dann ignorieren Sie diese Mail — ohne den Code kommt niemand hinein.", 'en' => "Hi {name},\n\nyour code is: {code}\n\nIt is valid for {min} minutes on this device: {geraet}.\nNot you? Ignore this email — nobody gets in without the code."],
+        'anmelden_titel' => ['it' => 'Accesso all’area partner', 'de' => 'Im Partnerbereich anmelden', 'en' => 'Sign in to the partner area'],
+        'anmelden_text'  => ['it' => 'Inserisca l’e-mail con cui è partner Vecom. Le mandiamo un codice.', 'de' => 'Geben Sie die E-Mail ein, mit der Sie Vecom-Partner sind. Wir schicken Ihnen einen Code.', 'en' => 'Enter the email you use as a Vecom partner. We will send you a code.'],
+        'anmelden_mail'  => ['it' => 'La Sua e-mail', 'de' => 'Ihre E-Mail', 'en' => 'Your email'],
+        'anmelden_knopf' => ['it' => 'Mandatemi il codice', 'de' => 'Code schicken', 'en' => 'Send me the code'],
+        'anmelden_unbekannt' => ['it' => 'Se l’indirizzo appartiene a un partner, il codice è in arrivo.', 'de' => 'Wenn die Adresse zu einem Partner gehört, ist der Code unterwegs.', 'en' => 'If the address belongs to a partner, the code is on its way.'],
+        'anmelden_link'  => ['it' => 'È già partner? Acceda', 'de' => 'Schon Partner? Anmelden', 'en' => 'Already a partner? Sign in'],
         /* Kunde mit vereinbartem Preis (PartnerVorab, 02.10.2026) */
         'pv_titel'    => ['it' => 'Cliente con prezzo concordato', 'de' => 'Kunde mit vereinbartem Preis', 'en' => 'Customer with an agreed price'],
         'pv_text'     => ['it' => 'Ha già concordato un prezzo con un cliente? Lo inserisca qui. Riceve un link personale da inviare lei stesso al cliente: inserisce solo i suoi dati e arriva nel suo spazio personale, senza questionario. Vecom controlla il prezzo e gli invia il preventivo; il cliente conta per lei.',

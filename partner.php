@@ -19,11 +19,14 @@ declare(strict_types=1);
 $konfig = __DIR__ . '/app/config.local.php';
 if (!is_file($konfig)) { http_response_code(503); exit('Derzeit nicht erreichbar.'); }
 
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing', 'PartnerVorab', 'PartnerDaten'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerSchutz', 'PartnerWege', 'PartnerPost', 'PartnerWerbung', 'PartnerRecherche', 'PartnerCheck', 'PartnerSeite', 'PartnerStart', 'PartnerErfolg', 'PartnerKalender', 'PartnerWettbewerb', 'PartnerMappe', 'PartnerAnschreiben', 'PartnerMarketing', 'PartnerVorab', 'PartnerDaten', 'PartnerGeraet'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecompartnerseite');
+// Sitzungs-Keks ausdrücklich gehärtet (05.10.2026): nicht per JavaScript lesbar, nur über HTTPS, nicht von fremden Seiten mitgeschickt.
+session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
+    'secure' => ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off']);
 session_start();
 if (empty($_SESSION['csrf'])) { $_SESSION['csrf'] = bin2hex(random_bytes(16)); }
 
@@ -41,6 +44,11 @@ try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaet
 
 $token = (string) ($_GET['t'] ?? $_POST['t'] ?? '');
 $p = $token !== '' ? Partner::ausToken($token) : null;
+/* Ohne Link, aber auf einem bestätigten Gerät (App vom Startbildschirm, 05.10.2026): der zuletzt benutzte Partner. */
+if (!$p && $token === '' && !isset($_GET['anmelden'])) {
+    $p = PartnerGeraet::partnerVomGeraet();
+    if ($p) { $token = (string) $p['token']; }
+}
 /* DIE SPRACHE DES PARTNERS GEWINNT (Uwe, 26.09.2026: „ständig auf Englisch“)
    Auf der Partnerseite gilt die Sprache, die am Partner steht — nicht der
    Sprach-Keks, den der Browser von der Website mitbringt (wer dort einmal
@@ -74,6 +82,58 @@ $selbst = static fn(array $extra = []) => '/partner.php?' . http_build_query(arr
 
 $meldung = ''; $gut = false;
 
+/* ---------- Gerät bestätigen (05.10.2026, Uwe: „Ja“) ----------
+   Der Link allein öffnet den Partnerbereich nur noch auf einem Gerät, das
+   einmal einen Code aus der E-Mail des Partners bekommen hat. Vor allem
+   anderen — auch vor Manifest, Downloads und der Sperrseite. Der Code wird
+   erst auf Klick verschickt: Mail-Programme öffnen Links zur Prüfung selbst,
+   und der Partner bekäme sonst Codes, die er nie angefordert hat. */
+$gMaske = static function (string $m): string {
+    [$l, $d] = array_pad(explode('@', $m, 2), 2, '');
+    return $d === '' ? '' : mb_substr($l, 0, 1) . str_repeat('•', max(2, min(6, mb_strlen($l) - 1))) . '@' . $d;
+};
+$gPost = $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
+$gTat = $gPost ? (string) ($_POST['tat'] ?? '') : '';
+$gGeraet = PartnerGeraet::bezeichnung((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
+if ($p && !PartnerGeraet::bekannt($p)) {
+    $gModus = 'geraet'; $gSchritt = 'start'; $gStand = ''; $gMail = $gMaske((string) $p['email']); $gZiel = $selbst();
+    if ($gTat === 'geraet_code') {
+        if (PartnerGeraet::codePruefen($p, (string) ($_POST['code'] ?? ''))) { header('Location: ' . $selbst(), true, 303); exit; }
+        $gSchritt = 'code'; $gStand = 'falsch';
+    } elseif ($gTat === 'geraet_neu') {
+        $gStand = PartnerGeraet::codeSenden($p, $sprache, $gGeraet);
+        $gSchritt = in_array($gStand, ['gesendet', 'uwe', 'warten'], true) ? 'code' : 'start';
+    }
+    require __DIR__ . '/app/views/partner_geraet.php';
+    exit;
+}
+/* Anmelden ohne Link (App auf dem Startbildschirm, neues Handy): E-Mail → Code → Gerät bestätigt.
+   Unbekannte Adressen sehen dieselbe Antwort — so verrät das Formular nicht, wer Partner ist. */
+if (!$p && (isset($_GET['anmelden']) || isset($_GET['app']))) {
+    $gModus = 'anmelden'; $gSchritt = 'start'; $gStand = ''; $gMail = ''; $gZiel = '/partner.php?anmelden=1';
+    $gPid = (int) ($_SESSION['anmelde_pid'] ?? -1);
+    $gWer = $gPid > 0 ? Partner::laden($gPid) : null;
+    if ($gTat === 'anmelden_mail') {
+        $gWer = PartnerGeraet::partnerZuMail((string) ($_POST['email'] ?? ''));
+        $_SESSION['anmelde_pid'] = $gWer ? (int) $gWer['id'] : 0;
+        if ($gWer) { $gStand = PartnerGeraet::codeSenden($gWer, (string) $gWer['sprache'], $gGeraet); }
+        $gSchritt = 'code';
+    } elseif ($gTat === 'anmelden_neu' && $gPid >= 0) {
+        if ($gWer) { $gStand = PartnerGeraet::codeSenden($gWer, (string) $gWer['sprache'], $gGeraet); }
+        $gSchritt = 'code';
+    } elseif ($gTat === 'anmelden_code' && $gPid >= 0) {
+        if ($gWer && PartnerGeraet::codePruefen($gWer, (string) ($_POST['code'] ?? ''))) {
+            unset($_SESSION['anmelde_pid']);
+            header('Location: /partner.php?' . http_build_query(['t' => $gWer['token']]), true, 303); exit;
+        }
+        $gSchritt = 'code'; $gStand = 'falsch';
+    }
+    if ($gWer && $gSchritt === 'code') { $gMail = $gMaske((string) $gWer['email']); }
+    if ($gStand === 'uwe' || $gStand === 'grenze') { $gStand = $gWer ? $gStand : ''; }
+    require __DIR__ . '/app/views/partner_geraet.php';
+    exit;
+}
+
 /* ---------- Gesperrt, bis zugestimmt und freigeschaltet (30.09.2026) ----------
    Uwe: „alle Partner-Dashboards sollen direkt gesperrt werden und erst mit
    Zustimmung aktiviert werden“. Solange der Partner der aktuellen Fassung
@@ -102,7 +162,8 @@ if ($p && isset($_GET['manifest'])) {
     header('Content-Type: application/manifest+json; charset=utf-8');
     echo json_encode([
         'name' => 'Vecom Design — Partner', 'short_name' => 'Vecom Partner',
-        'start_url' => '/partner.php?t=' . $p['token'], 'scope' => '/partner.php', 'id' => '/partner.php?app=' . substr(hash('sha256', (string) $p['token']), 0, 12),
+        // Ohne Schlüssel (05.10.2026): Die App öffnet über das bestätigte Gerät; fehlt es, fragt sie nach E-Mail und Code.
+        'start_url' => '/partner.php?app=1', 'scope' => '/partner.php', 'id' => '/partner.php?app=' . substr(hash('sha256', (string) $p['token']), 0, 12),
         'display' => 'standalone', 'background_color' => '#0a0908', 'theme_color' => '#0a0908', 'lang' => $sprache,
         'icons' => [
             // „any“ und „maskable“ getrennt -- zusammengelegt warnen Chrome und die WebAPK-Erzeugung.
@@ -1161,6 +1222,8 @@ if ($p && isset($_GET['karte'])) {
 <?php if (!$p): ?>
   <div class="block pt">
     <h1><?= $h($T('titel')) ?></h1>
+    <?php /* Anmelden ohne Link (05.10.2026): wer schon Partner ist, kommt mit E-Mail und Code hinein. */ ?>
+    <p style="margin:-4px 0 12px"><a href="<?= $h('/partner.php?' . http_build_query(['anmelden' => 1, 'lang' => $sprache])) ?>"><?= $h($T('anmelden_link')) ?></a></p>
     <?php if ($meldung !== ''): ?>
       <div class="hinweis <?= $gut ? 'gut' : 'schlecht' ?>" role="status"><?= $h($T($meldung)) ?></div>
     <?php endif; ?>

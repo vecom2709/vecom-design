@@ -23227,6 +23227,70 @@ $_SESSION = [];
 Db::run('DELETE FROM users WHERE id = ?', [$rvUid]);
 
 /* ============================================================================
+   Partnerbereich nur auf bestätigten Geräten (05.10.2026, Uwe: „Ja“ zu
+   „Partner-Link bleibt, auf einem neuen Gerät kommt einmal ein Code per E-Mail“)
+   ============================================================================ */
+abschnitt('Partner: Gerät bestätigen');
+require_once $wurzel . '/src/PartnerGeraet.php';
+$pgP = Partner::laden(Partner::anlegen(['name' => 'Gerda Gerät', 'email' => 'Gerda.Geraet@partner.example', 'code' => 'GERDAGE', 'sprache' => 'de']));
+Db::run("UPDATE partner SET status = 'aktiv' WHERE id = ?", [(int) $pgP['id']]);
+$pgP = Partner::laden((int) $pgP['id']);
+$pgCodes = [];
+PartnerGeraet::$versand = static function (array $p, string $c) use (&$pgCodes): bool { $pgCodes[] = $c; return true; };
+$_COOKIE = [];
+$pgVor = PartnerGeraet::bekannt($pgP);
+$pgS1 = PartnerGeraet::codeSenden($pgP, 'de', 'Chrome · Android');
+$pgGeheim = PartnerGeraet::geheimnis();
+$pgZeile = Db::one('SELECT * FROM partner_geraete WHERE partner_id = ?', [(int) $pgP['id']]);
+pruefe('Unbekanntes Gerät: der Link allein reicht nicht; Code geht raus, Keks bekommt ein Zufallsgeheimnis, in der Tabelle nur Hashes (Gerät und Code), noch nicht bestätigt',
+    !$pgVor && $pgS1 === 'gesendet' && count($pgCodes) === 1 && preg_match('~^\d{6}$~', $pgCodes[0]) === 1 && preg_match('~^[a-f0-9]{64}$~', $pgGeheim) === 1
+    && $pgZeile && $pgZeile['geraet'] !== $pgGeheim && !str_contains((string) $pgZeile['code_hash'], $pgCodes[0]) && $pgZeile['bestaetigt_am'] === null
+    && !PartnerGeraet::bekannt($pgP) && PartnerGeraet::partnerVomGeraet() === null);
+pruefe('Sofort noch einmal: kein zweiter Code (unter einer Minute)', PartnerGeraet::codeSenden($pgP, 'de', 'x') === 'warten' && count($pgCodes) === 1);
+$pgFalsch = [];
+for ($pgI = 0; $pgI < PartnerGeraet::VERSUCHE; $pgI++) { $pgFalsch[] = PartnerGeraet::codePruefen($pgP, $pgCodes[0] === '000000' ? '111111' : '000000'); }
+pruefe('Fünf falsche Versuche sperren den Code — danach hilft auch der richtige nicht', !in_array(true, $pgFalsch, true) && !PartnerGeraet::codePruefen($pgP, $pgCodes[0]) && !PartnerGeraet::bekannt($pgP));
+Db::run('UPDATE partner_geraete SET code_bis = NOW() - INTERVAL 1 MINUTE WHERE partner_id = ?', [(int) $pgP['id']]);
+pruefe('Abgelaufener Code gilt nicht', !PartnerGeraet::codePruefen($pgP, $pgCodes[0]));
+$pgS2 = PartnerGeraet::codeSenden($pgP, 'de', 'Chrome · Android');
+$pgOk = PartnerGeraet::codePruefen($pgP, implode(' ', str_split((string) end($pgCodes), 3)));
+pruefe('Neuer Code (mit Leerzeichen getippt) bestätigt das Gerät; danach öffnet es auch ohne Link den zuletzt benutzten Partner',
+    $pgS2 === 'gesendet' && $pgOk && PartnerGeraet::bekannt($pgP) && (int) (PartnerGeraet::partnerVomGeraet()['id'] ?? 0) === (int) $pgP['id']
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_geraete WHERE partner_id = ? AND code_hash IS NULL AND bestaetigt_am IS NOT NULL', [(int) $pgP['id']]) === 1,
+    json_encode([$pgS2, $pgOk, PartnerGeraet::bekannt($pgP), PartnerGeraet::partnerVomGeraet()['id'] ?? null, $pgP['id'], Db::one('SELECT code_hash, code_bis, versuche, sendungen FROM partner_geraete WHERE partner_id = ?', [(int) $pgP['id']])]));
+$_COOKIE = [PartnerGeraet::KEKS => str_repeat('a', 64)];
+pruefe('Ein anderes Gerät (anderes Geheimnis) ist nicht bestätigt, auch mit demselben Link; ein kaputter Keks zählt als keiner',
+    !PartnerGeraet::bekannt($pgP) && PartnerGeraet::partnerVomGeraet() === null && ($_COOKIE = [PartnerGeraet::KEKS => 'kaputt']) && PartnerGeraet::geheimnis() === '');
+$_COOKIE = [];
+$pgGrenze = [];
+for ($pgI = 0; $pgI < PartnerGeraet::CODES_JE_STUNDE + 1; $pgI++) {
+    $_COOKIE = [PartnerGeraet::KEKS => str_pad(dechex($pgI + 1), 64, 'b', STR_PAD_LEFT)];
+    $pgGrenze[] = PartnerGeraet::codeSenden($pgP, 'de', 'x');
+}
+pruefe('Höchstens ' . PartnerGeraet::CODES_JE_STUNDE . ' Code-Mails je Partner und Stunde, über alle Geräte', end($pgGrenze) === 'grenze' && count(array_filter($pgGrenze, static fn($x) => $x === 'gesendet')) < PartnerGeraet::CODES_JE_STUNDE + 1, json_encode($pgGrenze));
+PartnerGeraet::$versand = static fn(array $p, string $c): bool => false;
+Db::run('DELETE FROM partner_geraete WHERE partner_id = ?', [(int) $pgP['id']]);
+$_COOKIE = [];
+$pgUwe = PartnerGeraet::codeSenden($pgP, 'de', 'x');
+pruefe('Geht die Mail nicht raus, sagt die Seite das (Uwe gibt den Code weiter) — der Partner ist nie ausgesperrt', $pgUwe === 'uwe');
+PartnerGeraet::$versand = null;
+pruefe('Anmelden ohne Link: E-Mail ohne Groß/Klein, nur aktive oder pausierte Partner; Gerätename aus dem Browser',
+    (int) (PartnerGeraet::partnerZuMail(' gerda.GERAET@partner.example ')['id'] ?? 0) === (int) $pgP['id'] && PartnerGeraet::partnerZuMail('kein@partner.example') === null
+    && PartnerGeraet::partnerZuMail('keine-mail') === null
+    && PartnerGeraet::bezeichnung('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1') === 'Safari · iPhone'
+    && PartnerGeraet::bezeichnung('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36') === 'Chrome · Android');
+$pgSeite = (string) file_get_contents($oben . '/partner.php');
+$pgTor = strpos($pgSeite, 'if ($p && !PartnerGeraet::bekannt($p)) {');
+pruefe('partner.php: Gerät-Tor vor Sperrseite, Manifest, Formularen und Seite; Code nur auf Klick (Mail-Prüfer öffnen Links); Manifest ohne Schlüssel; Sitzungs-Kekse gehärtet (auch kunde.php)',
+    $pgTor !== false && $pgTor < strpos($pgSeite, 'if ($p && !PartnerSchutz::freigeschaltet($p)) {') && $pgTor < strpos($pgSeite, "isset(\$_GET['manifest'])")
+    && $pgTor < strpos($pgSeite, '---------- Formulare') && substr_count($pgSeite, 'PartnerGeraet::codeSenden(') === 3
+    && str_contains($pgSeite, "} elseif (\$gTat === 'geraet_neu') {") && str_contains($pgSeite, "'start_url' => '/partner.php?app=1'") && !str_contains($pgSeite, "'start_url' => '/partner.php?t='")
+    && str_contains($pgSeite, "session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',")
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), "session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',"));
+$_COOKIE = [];
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $pgP['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

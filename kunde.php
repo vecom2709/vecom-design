@@ -27,6 +27,9 @@ foreach (['Texte', 'Kundenzugang', 'Vorgang', 'Nachricht', 'Ablage', 'Onboarding
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 session_name('vecomkunde');
+// Sitzungs-Keks ausdrücklich gehärtet (05.10.2026), wie beim Partnerbereich.
+session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
+    'secure' => ($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off']);
 session_start();
 
 // Der Schluessel steht in der Adresse — er soll nicht ueber den Verweis-Kopf
