@@ -145,7 +145,8 @@ final class Telefon
 
     public static function schluessel(): string
     {
-        $da = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'telefon_schluessel'", [], '');
+        require_once __DIR__ . '/Tresor.php';
+        $da = Tresor::lesen('telefon_schluessel');   // versiegelt in settings (Etappe 0b)
         if ($da !== '') { return $da; }
         return self::neuerSchluessel();
     }
@@ -153,19 +154,18 @@ final class Telefon
     /** Erzeugt einen neuen und macht damit den alten wertlos. */
     public static function neuerSchluessel(): string
     {
+        require_once __DIR__ . '/Tresor.php';
         $neu = bin2hex(random_bytes(24));
-        Db::run("INSERT INTO settings (skey, svalue) VALUES ('telefon_schluessel', ?)
-                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$neu]);
+        Tresor::schreiben('telefon_schluessel', $neu);
         return $neu;
     }
 
     public static function schluesselStimmt(string $eingabe): bool
     {
-        $soll = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'telefon_schluessel'", [], '');
+        require_once __DIR__ . '/Tresor.php';
         /* Ohne hinterlegten Schluessel ist der Endpunkt zu. Sonst stuende er
            offen, solange ihn niemand einmal aufgerufen hat. */
-        if ($soll === '' || $eingabe === '') { return false; }
-        return hash_equals($soll, $eingabe);
+        return Tresor::stimmt('telefon_schluessel', $eingabe);
     }
 
     /** Die Adresse, die bei STRATO eingetragen wird. */

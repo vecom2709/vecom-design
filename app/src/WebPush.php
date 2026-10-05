@@ -39,16 +39,17 @@ final class WebPush
      */
     public static function schluessel(): array
     {
-        $privat = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'webpush_privat'", [], '');
+        require_once __DIR__ . '/Tresor.php';
+        // Der private Schlüssel liegt versiegelt in settings (Etappe 0b), der öffentliche offen — er ist öffentlich.
+        $privat = Tresor::lesen('webpush_privat');
         $offen  = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'webpush_oeffentlich'", [], '');
         if ($privat !== '' && $offen !== '') { return ['privat' => $privat, 'oeffentlich' => $offen]; }
         [$pem, $punkt] = self::paar();
-        foreach (['webpush_privat' => $pem, 'webpush_oeffentlich' => self::b64($punkt)] as $k => $v) {
-            // INSERT IGNORE: laufen zwei Aufrufe gleichzeitig, gewinnt der erste -- beide lesen danach dasselbe.
-            Db::run('INSERT IGNORE INTO settings (skey, svalue) VALUES (?, ?)', [$k, $v]);
-        }
+        // INSERT IGNORE (in Tresor::anlegen): laufen zwei Aufrufe gleichzeitig, gewinnt der erste -- beide lesen danach dasselbe.
+        $privat = Tresor::anlegen('webpush_privat', $pem);
+        Db::run('INSERT IGNORE INTO settings (skey, svalue) VALUES (?, ?)', ['webpush_oeffentlich', self::b64($punkt)]);
         return [
-            'privat' => (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'webpush_privat'", [], ''),
+            'privat' => $privat,
             'oeffentlich' => (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'webpush_oeffentlich'", [], ''),
         ];
     }

@@ -29,11 +29,11 @@ final class PartnerStimmen
 
     private static function geheimnis(): string
     {
-        $g = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_formular_geheim'", [], '');
+        require_once __DIR__ . '/Tresor.php';
+        $g = Tresor::lesen('partner_formular_geheim');   // versiegelt (Etappe 0b)
         if (strlen($g) < 32) {
-            $g = bin2hex(random_bytes(32));
-            Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_formular_geheim', ?) ON DUPLICATE KEY UPDATE svalue = IF(CHAR_LENGTH(svalue) >= 32, svalue, VALUES(svalue))", [$g]);
-            $g = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_formular_geheim'", [], $g);
+            if ($g !== '') { Db::run("DELETE FROM settings WHERE skey = 'partner_formular_geheim'"); }   // zu kurz = unbrauchbar
+            $g = Tresor::anlegen('partner_formular_geheim', bin2hex(random_bytes(32)));
         }
         return $g;
     }

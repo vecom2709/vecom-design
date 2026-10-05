@@ -45,13 +45,15 @@ final class AkquiseWorker
 
     public static function schluessel(): string
     {
-        return (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [self::SCHLUESSEL], '');
+        require_once __DIR__ . '/Tresor.php';
+        return Tresor::lesen(self::SCHLUESSEL);   // versiegelt (Etappe 0b)
     }
 
     public static function neuerSchluessel(): string
     {
+        require_once __DIR__ . '/Tresor.php';
         $neu = bin2hex(random_bytes(24));
-        AkquiseGate::setzen(self::SCHLUESSEL, $neu);
+        Tresor::schreiben(self::SCHLUESSEL, $neu);
         Events::pruefspur('akquise_schluessel', 'settings', null);
         return $neu;
     }

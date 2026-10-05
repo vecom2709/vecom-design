@@ -22,12 +22,11 @@ final class Cron
 
     public static function schluessel(): string
     {
-        $vorhanden = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_schluessel'", [], '');
+        require_once __DIR__ . '/Tresor.php';
+        // Versiegelt in settings (Etappe 0b). Der Wert bleibt derselbe — die Adresse im KAS gilt weiter.
+        $vorhanden = Tresor::lesen('cron_schluessel');
         if ($vorhanden !== '') { return $vorhanden; }
-        $neu = bin2hex(random_bytes(16));
-        Db::run("INSERT INTO settings (skey, svalue) VALUES ('cron_schluessel', ?)
-                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$neu]);
-        return $neu;
+        return Tresor::anlegen('cron_schluessel', bin2hex(random_bytes(16)));
     }
 
     /** Die vollstaendige Adresse, die im KAS eingetragen wird. */
@@ -39,11 +38,10 @@ final class Cron
 
     public static function schluesselStimmt(string $eingabe): bool
     {
-        $soll = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_schluessel'", [], '');
+        require_once __DIR__ . '/Tresor.php';
         // Ohne hinterlegten Schluessel laeuft gar nichts — sonst waere die
         // Adresse offen, solange die Verwaltung noch nie aufgerufen wurde.
-        if ($soll === '' || $eingabe === '') { return false; }
-        return hash_equals($soll, $eingabe);
+        return Tresor::stimmt('cron_schluessel', $eingabe);
     }
 
     public static function zuletzt(): ?string

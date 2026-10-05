@@ -23400,6 +23400,51 @@ Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [(int) $pkA['id']
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $pkA['id'], (int) $pkB['id']]);
 
 /* ============================================================================
+   Tresor: eigene Geheimnisse in settings nur versiegelt (Etappe 0b, 05.10.2026)
+   ============================================================================ */
+abschnitt('Sicherheit: Geheimnisse versiegelt');
+require_once $wurzel . '/src/Tresor.php';
+require_once $wurzel . '/src/Cron.php';
+require_once $wurzel . '/src/WebPush.php';
+require_once $wurzel . '/src/Werkstatt.php';
+require_once $wurzel . '/src/AkquiseWorker.php';
+require_once $wurzel . '/src/PartnerStimmen.php';
+$trAlt = [];
+foreach (Tresor::SCHLUESSEL as $trK) { $trAlt[$trK] = Db::one('SELECT svalue FROM settings WHERE skey = ?', [$trK]); }
+// Ein alter Klartext-Wert (wie bisher gespeichert) wird beim ersten Lesen versiegelt — der Wert bleibt derselbe.
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('cron_schluessel', 'abc123abc123abc123abc123abc123ab') ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)");
+$trCron = Cron::schluessel();
+$trRoh = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_schluessel'", [], '');
+pruefe('Tresor: alter Klartext bleibt als Wert gültig (KAS-Adresse unverändert), steht danach aber nur noch versiegelt in der Datenbank',
+    $trCron === 'abc123abc123abc123abc123abc123ab' && !str_contains($trRoh, 'abc123') && Hosting::entsiegeln($trRoh) !== null
+    && Cron::schluesselStimmt('abc123abc123abc123abc123abc123ab') && !Cron::schluesselStimmt('abc123abc123abc123abc123abc123aX') && !Cron::schluesselStimmt('')
+    && str_ends_with(Cron::adresse(), '?schluessel=abc123abc123abc123abc123abc123ab'));
+foreach (Tresor::SCHLUESSEL as $trK) { Db::run('DELETE FROM settings WHERE skey = ?', [$trK]); }
+$trNeu = ['telefon_schluessel' => Telefon::neuerSchluessel(), 'werkstatt_schluessel' => Werkstatt::neuerSchluessel(),
+          'akq_worker_schluessel' => AkquiseWorker::neuerSchluessel(), 'cron_schluessel' => Cron::schluessel(),
+          'webpush_privat' => WebPush::schluessel()['privat']];
+(new ReflectionMethod('PartnerStimmen', 'geheimnis'))->setAccessible(true);
+$trNeu['partner_formular_geheim'] = (string) (new ReflectionMethod('PartnerStimmen', 'geheimnis'))->invoke(null);
+$trKlar = [];
+foreach ($trNeu as $trK => $trW) {
+    $trR = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$trK], '');
+    if ($trW === '' || $trR === '' || str_contains($trR, substr($trW, 0, 16)) || Tresor::lesen($trK) !== $trW) { $trKlar[] = $trK; }
+}
+pruefe('Tresor: Telefon-, Werkstatt-, Akquise-Worker-, Cron-Schlüssel, Formular-Geheimnis und privater Web-Push-Schlüssel stehen nur versiegelt in settings; die Prüfung klappt weiter',
+    $trKlar === [] && count($trNeu) === count(Tresor::SCHLUESSEL) && Telefon::schluesselStimmt($trNeu['telefon_schluessel']) && !Telefon::schluesselStimmt('falsch')
+    && Werkstatt::schluesselStimmt($trNeu['werkstatt_schluessel']) && AkquiseWorker::schluesselStimmt($trNeu['akq_worker_schluessel'])
+    && str_contains($trNeu['webpush_privat'], 'PRIVATE KEY') && strlen($trNeu['partner_formular_geheim']) === 64, json_encode($trKlar));
+Werkstatt::schluesselEntfernen();
+pruefe('Tresor: ohne hinterlegten Schlüssel bleibt der Zugang zu; Lesen eines fehlenden Eintrags legt nichts an',
+    !Werkstatt::schluesselStimmt('') && !Werkstatt::schluesselStimmt($trNeu['werkstatt_schluessel']) && Tresor::lesen('gibt_es_nicht') === ''
+    && Db::wert("SELECT COUNT(*) FROM settings WHERE skey = 'gibt_es_nicht'", [], 0) == 0
+    && str_contains((string) file_get_contents($wurzel . '/src/Tresor.php'), "if ((string) Config::get('hosting_geheim', '') === '') { return \$roh; }"));
+foreach ($trAlt as $trK => $trZ) {
+    Db::run('DELETE FROM settings WHERE skey = ?', [$trK]);
+    if ($trZ) { Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)', [$trK, $trZ['svalue']]); }
+}
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

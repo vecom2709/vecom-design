@@ -55,8 +55,8 @@ final class Werkstatt
 
     public static function schluessel(): string
     {
-        return (string) self::still(static fn() => Db::wert(
-            'SELECT svalue FROM settings WHERE skey = ?', [self::SCHLUESSEL], ''), '');
+        require_once __DIR__ . '/Tresor.php';
+        return (string) self::still(static fn() => Tresor::lesen(self::SCHLUESSEL), '');   // versiegelt (Etappe 0b)
     }
 
     public static function eingerichtet(): bool
@@ -67,9 +67,9 @@ final class Werkstatt
     /** Erzeugt einen neuen und macht damit den alten wertlos. */
     public static function neuerSchluessel(): string
     {
+        require_once __DIR__ . '/Tresor.php';
         $neu = bin2hex(random_bytes(24));
-        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)
-                 ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [self::SCHLUESSEL, $neu]);
+        Tresor::schreiben(self::SCHLUESSEL, $neu);
         return $neu;
     }
 
