@@ -1,0 +1,938 @@
+{
+ "module": [
+  {
+   "slug": "vecom-verstehen",
+   "nr": 1,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Understanding Vecom Design",
+   "ziel": "You know what Vecom offers, how a project runs and what you may tell a business – and what you may not.",
+   "lektionen": [
+    {
+     "titel": "What is Vecom Design?",
+     "text": "Vecom Design builds websites for businesses that want to win people over with their craft: restaurants, salons, tradespeople, car dealerships, holiday rentals, small manufacturers. Every site is designed for the business – no template, no website builder.\n\nThe business has a dedicated contact person and a personal area where it can see every step of its project: from the questionnaire to the preview to the approval."
+    },
+    {
+     "titel": "How does a project work?",
+     "text": "1. The business answers a few questions online and immediately sees a price estimate.\n2. Vecom gets in touch with an exact quote, usually within one working day.\n3. Nothing is paid until there is a written agreement.\n4. The business provides content (or Vecom helps with it), Vecom designs and builds.\n5. The business sees a preview, gives feedback and approves.\n6. The site goes live – with hosting and support if desired.",
+     "punkte": [
+      "price estimate right away in the questionnaire",
+      "exact quote from Vecom",
+      "payment only after a written agreement",
+      "preview and approval by the business"
+     ]
+    },
+    {
+     "titel": "Why are there no fixed packages?",
+     "text": "A menu, a booking system or three languages each take a different amount of work. Instead of squeezing the business into a package, the price is made up of what it really needs. That is why the questionnaire shows a price estimate, and the exact quote comes from Vecom.\n\nFor you, this means: you don’t need to know any prices. Your path is always the questionnaire via your link."
+    },
+    {
+     "titel": "What sets Vecom apart from a website builder?",
+     "text": "A website builder is cheap, but the business does everything itself and looks like many others. Vecom designs a site of its own, takes care of the technology, mobile display and security, and supports the business until the site is live.\n\nNever say this in a way that puts other providers down. Simply explain what the business gets with Vecom."
+    },
+    {
+     "titel": "What you may promise – and what you may not",
+     "text": "You may explain how Vecom works and guide the business to the questionnaire. Anything that makes money, time or technology binding is decided by Vecom alone.",
+     "darf": [
+      "explain how a project works",
+      "point to the price estimate in the questionnaire",
+      "show examples from the Vecom website",
+      "say: “Vecom will get in touch with an exact quote”"
+     ],
+     "darf_nicht": [
+      "state or estimate fixed prices",
+      "promise discounts or special terms",
+      "promise completion dates",
+      "guarantee Google rankings or more revenue",
+      "make technical commitments (“that will definitely work”)",
+      "speak badly about other providers"
+     ],
+     "merke": "If you are unsure: “I’ll clarify that with Vecom, and you’ll get a binding answer.” That is professional, not weak."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "A business asks: “Roughly how much does a website like that cost?” What do you answer?",
+     "antworten": [
+      "“About 800 euros.”",
+      "“That depends on what you need. In the questionnaire you’ll see a price estimate in two minutes.”",
+      "“I’ll make it cheaper for you.”"
+     ],
+     "richtig": 1,
+     "warum": "You don’t name a figure off the top of your head. The questionnaire shows the price estimate, and the exact quote comes from Vecom."
+    },
+    {
+     "frage": "When does a business pay Vecom?",
+     "antworten": [
+      "Right after the questionnaire",
+      "Only after a written agreement",
+      "Only when the site is live"
+     ],
+     "richtig": 1,
+     "warum": "Nothing is paid before a written agreement."
+    }
+   ]
+  },
+  {
+   "slug": "kunden-finden",
+   "nr": 2,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Finding potential clients",
+   "ziel": "You recognise businesses that a better website would really help – and don’t waste time on the others.",
+   "lektionen": [
+    {
+     "titel": "How do you recognise a good candidate?",
+     "text": "A good candidate has a problem you can see. You can check this in two minutes with your phone or with the quick check in your partner area.",
+     "punkte": [
+      "no website of its own, only Facebook or a Google listing",
+      "website looks dated or is hard to read on a phone",
+      "no HTTPS (browser shows “not secure”)",
+      "phone number, address or opening hours hard to find",
+      "no online booking, even though they give appointments",
+      "products, but no shop",
+      "guests from abroad, but only one language",
+      "newly opened or recently moved"
+     ]
+    },
+    {
+     "titel": "Which industries are a particularly good fit?",
+     "text": "It is easiest with businesses whose customers look online first: anyone going out to eat, looking for a hairdresser or booking a holiday rental decides on their phone.",
+     "punkte": [
+      "hospitality and restaurants",
+      "hotels, B&Bs, holiday rentals, tourism",
+      "hairdressers, cosmetics, beauty",
+      "trades and construction companies",
+      "car dealerships and garages",
+      "medical practices, law firms, coaches, service providers",
+      "fitness and studios",
+      "local shops, small manufacturers, clubs and associations"
+     ]
+    },
+    {
+     "titel": "Where do you find them?",
+     "text": "Start with people you know: your hairdresser, the restaurant around the corner, the tradesperson who came to your home. A personal contact opens more doors than a hundred messages.\n\nIn the “Clients” tab you will also find the business finder: businesses in your town that you can reserve for yourself for 60 days, plus five suggestions from the autopilot every morning."
+    },
+    {
+     "titel": "Check before you reach out",
+     "text": "Use the client finder checklist in the Academy or the quick check. Only talk about what you have actually seen. A business notices immediately whether you have looked at its site.",
+     "merke": "No invented flaws. Only say “Your site loads slowly on a phone” if the check shows it."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Which business is the best candidate?",
+     "antworten": [
+      "A law firm with a modern, fast website",
+      "A restaurant that only has a Facebook page",
+      "A large corporation with its own IT department"
+     ],
+     "richtig": 1,
+     "warum": "The restaurant has a visible problem, and its guests search on their phones."
+    }
+   ]
+  },
+  {
+   "slug": "erstkontakt",
+   "nr": 3,
+   "minuten": 9,
+   "pflicht": true,
+   "titel": "The first client contact",
+   "ziel": "You approach a business in a way that makes it happy to listen to you – in person, by phone or in writing.",
+   "lektionen": [
+    {
+     "titel": "The goal of the first contact",
+     "text": "In the first contact you don’t sell anything. Your goal is a small yes: “Yes, show me” or “Yes, send me the link”.\n\nTalk about the business, not about Vecom. A specific observation is the best way to start."
+    },
+    {
+     "titel": "Good and bad wording",
+     "schlecht": [
+      "“You urgently need a new website.”",
+      "“Your site is bad.”",
+      "“I have a great offer for you.”"
+     ],
+     "gut": [
+      "“I noticed that there is still some potential in a few places in your online presence. May I quickly show you what could be improved?”",
+      "“I looked at your site on my phone – I couldn’t find the opening hours. Is that intentional?”",
+      "“May I send you a short report on your site? It’s free of charge.”"
+     ]
+    },
+    {
+     "titel": "The contact channels at a glance",
+     "text": "Each channel has its own rules. Open “Contact channels” below: for each channel you will find the goal, the opening, an example, good and bad wording and the next step.",
+     "merke": "WhatsApp, email and SMS only to people who have allowed you to or whom you know personally. No series, no automated messages. In Italy, do not call numbers listed in the Registro delle Opposizioni."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "What is the goal of the first contact?",
+     "antworten": [
+      "Close the deal immediately",
+      "A small yes, for example to a short report",
+      "State the price"
+     ],
+     "richtig": 1,
+     "warum": "The first contact is about interest, not about the order."
+    }
+   ]
+  },
+  {
+   "slug": "gespraech-fuehren",
+   "nr": 4,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Having a good client conversation",
+   "ziel": "You lead a conversation in which the business talks more than you do – and at the end it is clear what happens next.",
+   "lektionen": [
+    {
+     "titel": "The flow in six steps",
+     "text": "1. Open: thank them for their time, briefly say what it is about.\n2. Trust: say something genuine you like about the business.\n3. Ask: ask open questions (see module 5).\n4. Listen: let them finish, ask follow-up questions, take notes.\n5. Summarise: “Have I understood correctly that …?”\n6. Next step: agree specifically who does what by when."
+    },
+    {
+     "titel": "Listen instead of selling",
+     "text": "If you listen, you find out what the business really wants – more guests during the week, fewer calls about appointments, a better image with tourists. Only then do you explain how Vecom helps with that.",
+     "punkte": [
+      "don’t interrupt",
+      "ask: “What exactly do you mean?”",
+      "be comfortable with pauses",
+      "take notes",
+      "no jargon"
+     ]
+    },
+    {
+     "titel": "Closing the conversation",
+     "text": "A good conversation never ends with “Get in touch sometime”. It ends with a next step.",
+     "gut": [
+      "“I’ll send you the link to the questionnaire now. It takes two minutes, and you’ll see a price estimate right away.”",
+      "“Would it suit you if I got back in touch on Thursday?”"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "The business talks at length about its problems. What do you do?",
+     "antworten": [
+      "Interrupt and explain Vecom",
+      "Listen, ask follow-up questions and summarise at the end",
+      "Change the subject"
+     ],
+     "richtig": 1,
+     "warum": "The more the business tells you, the better you understand what it needs."
+    }
+   ]
+  },
+  {
+   "slug": "bedarf-erkennen",
+   "nr": 5,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Recognising the client’s needs",
+   "ziel": "With a few good questions, you find out what the business really needs.",
+   "lektionen": [
+    {
+     "titel": "The best questions",
+     "text": "Open questions start with What, How or Which. They can’t be answered with yes or no. You don’t have to ask all of them – five good ones are enough.",
+     "fragenliste": [
+      "What would you like to achieve with your website?",
+      "How do you win new customers today?",
+      "Do you already have a website? What do you like about it, and what not?",
+      "Which services would you particularly like to show?",
+      "Would you like to offer appointments or reservations online?",
+      "Do you sell products that could be ordered online?",
+      "Do your customers also come from abroad?",
+      "Would you like to be easier to find on Google?",
+      "Do you have a logo, photos and texts – or do you need help with them?",
+      "Are there websites whose style you like?",
+      "Which customers would you most like to reach?"
+     ]
+    },
+    {
+     "titel": "From conversation to recommendation",
+     "text": "With the needs assistant in the Academy, you record the answers. It then shows you which Vecom services could fit – for example web design, appointment booking or multiple languages.\n\nThese are pointers for you, not a booking and not a price. The business sees the price estimate in the questionnaire via your link."
+    },
+    {
+     "titel": "Typical signals",
+     "punkte": [
+      "“The phone rings constantly about appointments” → appointment booking",
+      "“Lots of tourists ask in English” → multiple languages",
+      "“We also sell wine/oil/products” → shop",
+      "“Nobody finds us on Google” → a clean foundation for search engines",
+      "“We don’t have a proper logo” → branding (logo on request only)"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Which question is an open question?",
+     "antworten": [
+      "“Do you have a website?”",
+      "“How do you win new customers today?”",
+      "“Do you want more customers?”"
+     ],
+     "richtig": 1,
+     "warum": "Open questions get the business talking."
+    }
+   ]
+  },
+  {
+   "slug": "vecom-praesentieren",
+   "nr": 6,
+   "minuten": 8,
+   "pflicht": false,
+   "titel": "Presenting Vecom the right way",
+   "ziel": "You explain every Vecom service the way the person in front of you needs it: in 30 seconds, normal or in detail.",
+   "lektionen": [
+    {
+     "titel": "Three levels for every service",
+     "text": "Some people only want one sentence, others want to know exactly. That is why there are three explanations for every service: short, normal and detailed – plus an “in 30 seconds” version you can read out on the phone.\n\nOpen “Explaining services” below. Read through all of them once beforehand, and you will feel confident."
+    },
+    {
+     "titel": "Showing beats explaining",
+     "text": "The Vecom website has demos for many industries: restaurant, salon, car dealership, holiday rental and more. Show the business the demo for its industry on your phone. A picture says more than any explanation.",
+     "merke": "Explain without technical terms. Instead of “responsive”, say “looks just as good on a phone”."
+    }
+   ],
+   "fragen": []
+  },
+  {
+   "slug": "einwaende",
+   "nr": 7,
+   "minuten": 10,
+   "pflicht": true,
+   "titel": "Handling objections with confidence",
+   "ziel": "You respond to “too expensive”, “no time” or “I don’t need it” calmly and kindly – and find out what is behind it.",
+   "lektionen": [
+    {
+     "titel": "An objection is not a rejection",
+     "text": "An objection usually means: “I’m not convinced yet” or “I have a concern”. Don’t argue and don’t get defensive. Ask what is behind it.\n\nThe basic rule: acknowledge – ask – answer – offer a next step."
+    },
+    {
+     "titel": "The four steps",
+     "punkte": [
+      "Acknowledge: “I understand that well.”",
+      "Ask: “May I ask what exactly the reason is?”",
+      "Answer: briefly, honestly, without pressure",
+      "Next step: offer something small and non-binding"
+     ]
+    },
+    {
+     "titel": "The quick help",
+     "text": "Below you will find the most common objections with their meaning, a follow-up question, a sample answer, what to avoid and the next step. During a conversation you can reach them via the “Client objection” button – from any page of the Academy with one tap.",
+     "merke": "Never promise a discount to overcome an objection. Prices and terms are decided by Vecom alone."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "The business says: “Can you give me a discount?” What is correct?",
+     "antworten": [
+      "“Sure, 20 percent is always possible.”",
+      "“That’s up to Vecom. Take a look at the price estimate in the questionnaire, and then we’ll see.”",
+      "“No, absolutely not.”"
+     ],
+     "richtig": 1,
+     "warum": "You don’t commit to anything only Vecom may decide – but you stay friendly and keep the conversation open."
+    }
+   ]
+  },
+  {
+   "slug": "zum-auftrag",
+   "nr": 8,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "From first contact to order",
+   "ziel": "You know the whole path from the first conversation to the commission and know what to do at every step.",
+   "lektionen": [
+    {
+     "titel": "The path at a glance",
+     "weg": [
+      "Prospect",
+      "First contact",
+      "Interest",
+      "Needs conversation",
+      "Questionnaire via your link",
+      "Quote from Vecom",
+      "Follow-up",
+      "Order",
+      "Project",
+      "Commission"
+     ]
+    },
+    {
+     "titel": "When does a client belong to you?",
+     "text": "A client is assigned to you when they come to Vecom via your link or your code – for example, when they fill in the questionnaire via your link or enter your code. Whoever is assigned first stays assigned. The assignment is valid for {zuordnung} months."
+    },
+    {
+     "titel": "When is your commission earned?",
+     "text": "Your commission ({satz}) is earned when the client pays – not at the questionnaire and not at the quote. It becomes payable after {tage} days (cancellation period), and payouts start from {min}. You can see the status of every commission in the “Money” tab.",
+     "punkte": [
+      "pending: payment has arrived, the period is running",
+      "ready: can be paid out",
+      "on its way: transfer in progress",
+      "paid out: has reached you"
+     ]
+    },
+    {
+     "titel": "What do I do now?",
+     "text": "In the Academy and for every business you have reserved, “What do I do now?” shows you the right next step – with conversation help and a guide.",
+     "merke": "Most orders come about at the second or third contact. Friendly follow-ups after 3 and 7 days are part of it."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "When is your commission earned?",
+     "antworten": [
+      "When the business fills in the questionnaire",
+      "When the client pays",
+      "When you call the business"
+     ],
+     "richtig": 1,
+     "warum": "Commission is paid on amounts that have been paid."
+    }
+   ]
+  }
+ ],
+ "kontakt": [
+  {
+   "slug": "persoenlich",
+   "name": "Visiting in person",
+   "ziel": "Rapport and a quick look at the website or demo on your phone.",
+   "eroeffnung": "Come at a quiet time (not at lunchtime in a restaurant), introduce yourself briefly, mention an observation.",
+   "beispiel": "“Good afternoon, I’m [Name] and I work with Vecom Design. I’ve looked at your site and have an idea – do you have two minutes?”",
+   "gut": [
+    "a specific observation",
+    "show the industry demo on your phone",
+    "leave the folder behind"
+   ],
+   "schlecht": [
+    "interrupting during busy hours",
+    "long monologues",
+    "putting on pressure"
+   ],
+   "fehler": [
+    "showing up unprepared",
+    "not agreeing on a next step"
+   ],
+   "weiter": "Send the link to the questionnaire or arrange a time for a short conversation."
+  },
+  {
+   "slug": "telefon",
+   "name": "Phone",
+   "ziel": "Spark interest and arrange a report or an appointment.",
+   "eroeffnung": "Name, reason in one sentence, ask for two minutes of their time.",
+   "beispiel": "“Good afternoon, [Name] here, I work with Vecom Design. I looked at your website on my phone and noticed two things. May I quickly tell you which ones?”",
+   "gut": [
+    "smile (people can hear it)",
+    "keep it short",
+    "ask for the best time to call back"
+   ],
+   "schlecht": [
+    "reading a script like a call centre",
+    "talking about prices"
+   ],
+   "fehler": [
+    "calling at peak times",
+    "calling numbers listed in the Registro delle Opposizioni (Italy)"
+   ],
+   "weiter": "Send the quick check report or the questionnaire link (only with consent)."
+  },
+  {
+   "slug": "whatsapp",
+   "name": "WhatsApp",
+   "ziel": "Give a short, personal pointer – only if you know the person or they have agreed.",
+   "eroeffnung": "Personal greeting, reference to the last contact.",
+   "beispiel": "“Hello [Name], as discussed, here is the short report on your website. Take a look at your leisure – I’m here if you have any questions.”",
+   "gut": [
+    "short",
+    "one link, not three",
+    "personal"
+   ],
+   "schlecht": [
+    "chain messages",
+    "five-minute voice messages"
+   ],
+   "fehler": [
+    "messaging strangers without consent",
+    "sending the same message to many people"
+   ],
+   "weiter": "After 3 days, kindly ask whether everything arrived."
+  },
+  {
+   "slug": "social",
+   "name": "Social media and messengers",
+   "ziel": "Be visible, build trust, start conversations.",
+   "eroeffnung": "React to a post by the business, don’t start selling right away.",
+   "beispiel": "“Great photos of your new terrace! Do you have them on your website too?”",
+   "gut": [
+    "genuine interest",
+    "your own posts with examples from the partner area"
+   ],
+   "schlecht": [
+    "posting ads under other people’s posts",
+    "mass messages"
+   ],
+   "fehler": [
+    "not labelling the partner link as a referral"
+   ],
+   "weiter": "Move to a personal conversation."
+  },
+  {
+   "slug": "email",
+   "name": "Email",
+   "ziel": "Send a specific, useful pointer that the business has asked for.",
+   "eroeffnung": "Clear subject line, one sentence of context, one benefit.",
+   "beispiel": "Subject: “Short report on your website” – “Good afternoon, as discussed on the phone …”",
+   "gut": [
+    "short",
+    "personal",
+    "one clear next step"
+   ],
+   "schlecht": [
+    "attachments of many MB",
+    "advertising copy"
+   ],
+   "fehler": [
+    "emails to unknown businesses without consent"
+   ],
+   "weiter": "Follow up once after a week."
+  },
+  {
+   "slug": "empfehlung",
+   "name": "Referrals and network",
+   "ziel": "Reach new businesses through satisfied people around you.",
+   "eroeffnung": "Ask acquaintances whom they know who could use a better website.",
+   "beispiel": "“Do you know anyone with a business who isn’t happy with their website? I can send them a free report.”",
+   "gut": [
+    "your link for acquaintances",
+    "clubs, regular get-togethers, networks"
+   ],
+   "schlecht": [
+    "putting pressure on acquaintances"
+   ],
+   "fehler": [
+    "not following up on the contact"
+   ],
+   "weiter": "Approach the referred business personally and say who sent you."
+  }
+ ],
+ "einwaende": [
+  {
+   "slug": "zu-teuer",
+   "satz": "That’s too expensive for me.",
+   "dahinter": "They don’t even know the price yet, are comparing with a website builder or don’t see the benefit yet.",
+   "frage": "“May I ask what you are comparing it with?”",
+   "antwort": "“I understand. We don’t actually know the price yet – it depends on what you really need. In the questionnaire you’ll see a price estimate in two minutes, with no obligation. Nothing is paid until there is a written agreement.”",
+   "vermeiden": "Estimating prices, offering a discount, badmouthing other providers.",
+   "ziel": "Find out whether it is about money or a lack of benefit.",
+   "weiter": "Send the link to the questionnaire.",
+   "suche": "price cost expensive money"
+  },
+  {
+   "slug": "nachdenken",
+   "satz": "I need to think about it.",
+   "dahinter": "An open question or concern they don’t voice – or a polite no.",
+   "frage": "“Of course. What exactly would you like to think over?”",
+   "antwort": "“Of course, it’s an important decision. So you can compare at your leisure: may I send you the link to the questionnaire? Then you’ll have a price estimate in black and white.”",
+   "vermeiden": "Pushing, inventing artificial deadlines.",
+   "ziel": "Find the real question behind the thinking it over.",
+   "weiter": "Send the questionnaire link and arrange a follow-up in 3 days.",
+   "suche": "think consider later"
+  },
+  {
+   "slug": "brauche-keine",
+   "satz": "I don’t need a new website.",
+   "dahinter": "They are satisfied or don’t see a connection between the website and customers.",
+   "frage": "“How do new customers find you today?”",
+   "antwort": "“That may well be. May I still send you a short report on your site? Free of charge – then you can see for yourself whether anything needs doing.”",
+   "vermeiden": "Trying to convince them that their site is bad.",
+   "ziel": "Spark curiosity instead of persuading.",
+   "weiter": "Do the quick check and send the report (with consent).",
+   "suche": "website need dont"
+  },
+  {
+   "slug": "habe-jemanden",
+   "satz": "I already have someone.",
+   "dahinter": "Loyalty to an acquaintance or an agency.",
+   "frage": "“Good. Are you happy with the support?”",
+   "antwort": "“That’s good, then you’re in good hands. If you’d ever like a second opinion or are planning something new, feel free to get in touch.”",
+   "vermeiden": "Criticising the other provider.",
+   "ziel": "Show respect and leave the door open.",
+   "weiter": "Say goodbye kindly, renew contact after a few months.",
+   "suche": "agency web designer"
+  },
+  {
+   "slug": "bekannter-billiger",
+   "satz": "Someone I know does it cheaper.",
+   "dahinter": "Price pressure or uncertainty about what the difference is.",
+   "frage": "“What matters most to you about the website?”",
+   "antwort": "“That may well be. With Vecom you get your own design, a dedicated contact person and support until the site is live. Take a look at the price estimate in the questionnaire – then you can compare fairly.”",
+   "vermeiden": "Putting down the acquaintance.",
+   "ziel": "Show the difference without arguing.",
+   "weiter": "Show the questionnaire link or the industry demo.",
+   "suche": "cheaper friend acquaintance"
+  },
+  {
+   "slug": "kein-budget",
+   "satz": "I don’t have the budget at the moment.",
+   "dahinter": "A real financial limit – or a lack of priority.",
+   "frage": "“When would be a good time to talk about it again?”",
+   "antwort": "“I understand. Then simply take a look at the price estimate at your leisure so you can plan. In any case, nothing is paid until there is a written agreement.”",
+   "vermeiden": "Promising instalments or a discount.",
+   "ziel": "Find a realistic time.",
+   "weiter": "Set a reminder and follow up at the agreed time.",
+   "suche": "budget money later"
+  },
+  {
+   "slug": "email-schreiben",
+   "satz": "Just send me an email first.",
+   "dahinter": "They want to end the conversation – or really want something in writing.",
+   "frage": "“Of course. What should the email contain so that it really helps you?”",
+   "antwort": "“Will do. I’ll send you a short report on your site and the link to the questionnaire. May I briefly get in touch on Thursday to check that everything arrived?”",
+   "vermeiden": "Sending a long promotional email.",
+   "ziel": "Turn the request into a next step.",
+   "weiter": "Send the email with the report (they agreed) and arrange a follow-up.",
+   "suche": "email write send"
+  },
+  {
+   "slug": "partner-fragen",
+   "satz": "I need to ask my business partner.",
+   "dahinter": "They don’t decide alone – or need time.",
+   "frage": "“What will be important to your partner?”",
+   "antwort": "“Of course. I’ll send you the link to the questionnaire so you can look at it together. If you like, I can briefly explain it to both of you.”",
+   "vermeiden": "Going over the partner’s head.",
+   "ziel": "Involve the co-decision-maker.",
+   "weiter": "Offer a joint appointment.",
+   "suche": "partner boss decide"
+  },
+  {
+   "slug": "genug-kunden",
+   "satz": "We have enough customers.",
+   "dahinter": "They see no need for more customers – but perhaps for less effort or better customers.",
+   "frage": "“How much time do phone calls about appointments or questions cost you today?”",
+   "antwort": "“I’m glad to hear that. A website can also save time – for example, when appointments are booked online or the most common questions are already answered.”",
+   "vermeiden": "Promising more revenue.",
+   "ziel": "Find a different benefit: time, reputation, better enquiries.",
+   "weiter": "Offer a needs conversation about workflows.",
+   "suche": "customers enough busy full"
+  },
+  {
+   "slug": "funktioniert-doch",
+   "satz": "Our website works fine.",
+   "dahinter": "They are satisfied or aren’t aware of the problems.",
+   "frage": "“Have you looked at it on a phone recently?”",
+   "antwort": "“Good. May I send you a short, free report? It shows you, for example, how the site comes across on a phone.”",
+   "vermeiden": "Inventing or exaggerating flaws.",
+   "ziel": "Spark curiosity with facts.",
+   "weiter": "Do the quick check and only talk about real results.",
+   "suche": "works fine good enough"
+  },
+  {
+   "slug": "google-unnoetig",
+   "satz": "We don’t need Google.",
+   "dahinter": "They get customers through recommendations and don’t see Google as a channel.",
+   "frage": "“What is the first thing someone does after you’ve been recommended to them?”",
+   "antwort": "“Many people who hear about you through a recommendation still look you up online first. Then it helps if they get a good impression there.”",
+   "vermeiden": "Promising Google rankings.",
+   "ziel": "Show that recommendations are also checked online.",
+   "weiter": "Show the industry demo.",
+   "suche": "google seo search engine"
+  },
+  {
+   "slug": "warum-so-viel",
+   "satz": "Why does a website cost so much?",
+   "dahinter": "They don’t know how much work is involved.",
+   "frage": "“What do you picture when you think of a website?”",
+   "antwort": "“A good website is designed and written for your business, optimised for phones and built cleanly from a technical point of view. You’ll see exactly what you need in the questionnaire – the price estimate there is made up of your requirements.”",
+   "vermeiden": "Justifying prices you don’t know.",
+   "ziel": "Make the effort understandable.",
+   "weiter": "Send the questionnaire link.",
+   "suche": "cost price much expensive"
+  },
+  {
+   "slug": "rabatt",
+   "satz": "Can you give me a discount?",
+   "dahinter": "A negotiating reflex – or genuine interest in buying.",
+   "frage": "“What would be important to you for it to work for you?”",
+   "antwort": "“Prices and terms are decided directly by Vecom. Take a look at the price estimate in the questionnaire – Vecom will then get in touch with an exact quote.”",
+   "vermeiden": "Promising or hinting at a discount.",
+   "ziel": "Recognise interest without committing to anything.",
+   "weiter": "Send the questionnaire link; record their wishes as a note for Vecom.",
+   "suche": "discount reduction percent cheaper"
+  },
+  {
+   "slug": "300-euro",
+   "satz": "Others make websites for 300 euros.",
+   "dahinter": "They are comparing with website builders or budget providers.",
+   "frage": "“What exactly is included in those offers?”",
+   "antwort": "“Those exist, often as a website builder where you do a lot yourself. With Vecom you get your own design, texts and technology from a single source, and support until the site is live. Compare at your leisure – the price estimate in the questionnaire will help.”",
+   "vermeiden": "Insulting budget providers.",
+   "ziel": "Show the difference objectively.",
+   "weiter": "Industry demo and questionnaire link.",
+   "suche": "300 cheap builder"
+  },
+  {
+   "slug": "familie-fragen",
+   "satz": "I need to ask my wife / my husband first.",
+   "dahinter": "A joint decision – or time to think.",
+   "frage": "“What will be important to her/him?”",
+   "antwort": "“Of course, that’s something to decide together. I’ll send you the link, then you can take a look together at your leisure.”",
+   "vermeiden": "Belittling the partner.",
+   "ziel": "Make the joint decision easier.",
+   "weiter": "Send the link, follow up in a few days.",
+   "suche": "wife husband family"
+  },
+  {
+   "slug": "vielleicht-spaeter",
+   "satz": "Maybe later.",
+   "dahinter": "No pressure right now – or a polite no.",
+   "frage": "“When would be a good moment?”",
+   "antwort": "“Of course. May I get in touch again in [month]? Until then I’ll send you the link in case you’d like to take a look beforehand.”",
+   "vermeiden": "Pestering or pushing.",
+   "ziel": "Agree on a specific time.",
+   "weiter": "Set a reminder.",
+   "suche": "later someday sometime"
+  },
+  {
+   "slug": "schlechte-erfahrung",
+   "satz": "I’ve had bad experiences with agencies.",
+   "dahinter": "They were disappointed – costs, time or communication.",
+   "frage": "“What happened back then?”",
+   "antwort": "“I’m sorry to hear that; unfortunately it does happen. With Vecom you see every step in your personal area, you get an exact quote beforehand, and nothing is paid until there is a written agreement.”",
+   "vermeiden": "Badmouthing the previous agency or promising everything.",
+   "ziel": "Build trust through transparency.",
+   "weiter": "Explain the process and send the questionnaire link.",
+   "suche": "agency experience disappointed"
+  },
+  {
+   "slug": "nicht-binden",
+   "satz": "I don’t want to commit long-term.",
+   "dahinter": "Fear of subscriptions and hidden costs.",
+   "frage": "“What exactly would you like to avoid?”",
+   "antwort": "“I understand. Whether you want support after launch is your decision – the terms are clearly set out in Vecom’s quote.”",
+   "vermeiden": "Inventing contract terms.",
+   "ziel": "Take the concern seriously and refer to the quote.",
+   "weiter": "Questionnaire link; pass open questions on to Vecom.",
+   "suche": "contract subscription commit term"
+  },
+  {
+   "slug": "bringt-das-was",
+   "satz": "How do I know it will really make a difference?",
+   "dahinter": "They need reassurance.",
+   "frage": "“What would success look like for you?”",
+   "antwort": "“Nobody can honestly guarantee more customers. But in the demos and work on the Vecom website you can see how businesses like yours present themselves – and what a good site does for the first impression.”",
+   "vermeiden": "Guaranteeing revenue or a Google ranking.",
+   "ziel": "Create realistic expectations and trust.",
+   "weiter": "Show work and demos.",
+   "suche": "guarantee success results worth"
+  }
+ ],
+ "leistungen": [
+  {
+   "slug": "webdesign",
+   "name": "Web design",
+   "kurz": "A website of your own that suits your business.",
+   "normal": "Vecom designs your website for your business – no template. Colours, images and texts show what makes you special, and your customers quickly find what they are looking for.",
+   "ausfuehrlich": "It all starts with your goals and your customers. From these come the structure, design and texts. The site is built to look good on phones, tablets and computers, load quickly and be easy to use. You see a preview and approve it before it goes live.",
+   "s30": "Vecom builds you a website of your own, designed for your business. It looks just as good on a phone as on a computer, and your customers find your phone number, address and offer right away. You see a preview beforehand and decide for yourself."
+  },
+  {
+   "slug": "branding",
+   "name": "Branding",
+   "kurz": "A consistent look for your business.",
+   "normal": "Logo, colours and fonts that go together and look the same everywhere – on the website, on cards and on social media.",
+   "ausfuehrlich": "A clear visual identity makes a business recognisable. Vecom can build on existing material or – on request – develop a logo. Exactly what is needed is clarified by Vecom in the quote.",
+   "s30": "Your business should look consistent and professional everywhere. Vecom makes sure your logo, colours and fonts go together. A new logo is available on request."
+  },
+  {
+   "slug": "seo",
+   "name": "SEO / Google",
+   "kurz": "We build your website so that search engines can understand it cleanly from a technical point of view.",
+   "normal": "Your site gets clear titles, descriptions and a clean structure. This helps Google better understand what you offer and where you are.",
+   "ausfuehrlich": "Basic optimisation includes, for example, meaningful page titles and descriptions, a clean structure, fast loading times, mobile display and machine-readable details on address and opening hours. Nobody can honestly promise a specific ranking – but a clean foundation is the prerequisite.",
+   "s30": "For Google to understand your site, it has to be built cleanly from a technical point of view: clear titles, fast loading, good on phones. Vecom does this from the start. Nobody can guarantee a specific position on Google, but without this foundation it won’t work."
+  },
+  {
+   "slug": "shop",
+   "name": "Online shop",
+   "kurz": "Sell your products directly on your website.",
+   "normal": "Customers can view your products, add them to the basket and order – on your own site.",
+   "ausfuehrlich": "A shop includes product pages, a basket, ordering and payment. The scope and processes – such as shipping or collection – are clarified with you by Vecom in the quote.",
+   "s30": "If you sell products, your website can also be a shop. Customers order directly from you. Vecom will discuss with you exactly what is included."
+  },
+  {
+   "slug": "buchung",
+   "name": "Appointments and bookings",
+   "kurz": "Customers book appointments or tables online.",
+   "normal": "Instead of calling, your customers choose a free appointment themselves or reserve a table – even in the evening and at weekends.",
+   "ausfuehrlich": "Depending on the business, a simple appointment request or table reservation is enough, or a booking system with availability is needed. Which solution fits emerges from the questionnaire and the quote.",
+   "s30": "Your customers can book an appointment or a table online whenever they like. That saves you phone calls. Vecom suggests the solution that suits your business."
+  },
+  {
+   "slug": "hosting",
+   "name": "Hosting",
+   "kurz": "Your website is securely and reliably available.",
+   "normal": "Vecom makes sure your site is on a server, is reachable and has an encrypted connection (HTTPS).",
+   "ausfuehrlich": "Hosting includes storage space, domain connection, a security certificate and availability. The terms are set out in the quote.",
+   "s30": "For your website to be online, it needs a place on the internet. Vecom takes care of that – securely encrypted and reliable."
+  },
+  {
+   "slug": "wartung",
+   "name": "Maintenance and support",
+   "kurz": "Someone looks after your site, even after launch.",
+   "normal": "With monthly support, your site stays up to date and technically sound, and you have a contact person for changes.",
+   "ausfuehrlich": "What the support includes and on what terms is set out in the quote. Whether you want it is your decision.",
+   "s30": "After launch, Vecom stays by your side if you wish: technology, small changes, a contact person. Whether you want that is up to you."
+  },
+  {
+   "slug": "sprachen",
+   "name": "Multiple languages",
+   "kurz": "Your website in several languages.",
+   "normal": "Guests and customers from abroad read your site in their own language – for example Italian, German and English.",
+   "ausfuehrlich": "Each additional language is set up per page. The questionnaire asks for the number of languages, and the price estimate shows what difference that makes.",
+   "s30": "If guests come from abroad, they should understand your site. Vecom builds it in several languages."
+  },
+  {
+   "slug": "animation",
+   "name": "Animation",
+   "kurz": "Subtle movement that makes your site feel high-quality.",
+   "normal": "Smooth transitions and small movements draw the eye to what matters – without slowing the site down.",
+   "ausfuehrlich": "Animations are used sparingly and are automatically reduced for less powerful devices and for people who prefer less motion.",
+   "s30": "Small, calm movements make a site lively and high-quality. Vecom uses them deliberately so that nothing distracts or slows things down."
+  },
+  {
+   "slug": "3d",
+   "name": "3D and interactive experiences",
+   "kurz": "Products or spaces that people can rotate and experience on the website.",
+   "normal": "A car, a piece of furniture or a holiday rental is shown in 3D – the customer rotates, zooms and tries out variants.",
+   "ausfuehrlich": "3D experiences are well suited to products with variants and to spaces. They are adapted for less powerful devices. Whether 3D makes sense for the business is clarified by Vecom in conversation – show the demos on the Vecom website for this.",
+   "s30": "For some businesses, more than photos pays off: customers rotate a product or walk through a space. Take a look at the demos on the Vecom site."
+  },
+  {
+   "slug": "performance",
+   "name": "Performance",
+   "kurz": "Your site loads quickly.",
+   "normal": "Images are optimised and the technology is kept lean so that the site appears quickly even on a weak connection.",
+   "ausfuehrlich": "Fast loading times matter for visitors and for search engines. Vecom pays attention to optimised images, lean scripts and good caching.",
+   "s30": "Nobody likes waiting. Vecom builds your site so that it loads quickly even on a phone on the go."
+  },
+  {
+   "slug": "mobil",
+   "name": "Mobile optimisation",
+   "kurz": "Your site looks perfect on a phone.",
+   "normal": "Most visitors come on a phone. Texts are readable, buttons are big enough, and phone or directions are just one tap away.",
+   "ausfuehrlich": "The site is designed for phones, tablets and computers and tested on different screen sizes.",
+   "s30": "Most of your customers look on their phones. With Vecom, the site is just as good there as on a computer – with call and directions buttons."
+  }
+ ],
+ "finder": [
+  {
+   "k": "website",
+   "frage": "Website available?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "modern",
+   "frage": "Modern design?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "mobil",
+   "frage": "Easy to read on a phone?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "https",
+   "frage": "HTTPS in place (no “not secure”)?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "kontakt",
+   "frage": "Phone, address, opening hours clearly visible?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "google",
+   "frage": "Easy to find on Google?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "termine",
+   "frage": "Would online appointment booking make sense?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "shop",
+   "frage": "Would a shop make sense?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "sprachen",
+   "frage": "Would multiple languages make sense?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "seo",
+   "frage": "Potential on Google (SEO)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "branding",
+   "frage": "Potential in visual identity (branding)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "erlebnis",
+   "frage": "Potential for 3D / experience?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  }
+ ],
+ "woerter": {
+  "ja": "Yes",
+  "nein": "No",
+  "unklar": "Unclear",
+  "niedrig": "Low",
+  "mittel": "Medium",
+  "hoch": "High"
+ }
+}

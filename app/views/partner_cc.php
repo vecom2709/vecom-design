@@ -44,11 +44,12 @@ $ccLeiste = [
     'werben'      => ['<path d="M3 10.5v3a1 1 0 0 0 1 1h2.5L12 18.5v-13L6.5 9.5H4a1 1 0 0 0-1 1z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/>', Texte::PARTNER_REITER['reiter']['werben']['kurz']],
     'geld'        => ['<path d="M4 19.5h16"/><path d="M6.5 16v-4"/><path d="M11 16V8"/><path d="M15.5 16v-6"/><path d="M20 16V5"/>', Texte::PARTNER_REITER['reiter']['geld']['kurz']],
     'werbemittel' => ['<path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>', Texte::PARTNER_REITER['reiter']['werbemittel']['kurz']],
+    'academy'     => ['<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4.2"/><path d="M21.5 9.5v5"/>', Texte::PARTNER_REITER['reiter']['academy']['kurz']],
     'profil'      => ['<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>', Texte::PARTNER_REITER['reiter']['profil']['kurz']],
 ];
 if (!$ccMc) { unset($ccLeiste['werbemittel']); }
 /* Am Handy höchstens fünf: START · KUNDEN · MARKETING · ERGEBNISSE · MEHR (Punkt 3). */
-$ccMehr = ['werbemittel', 'profil'];
+$ccMehr = ['werbemittel', 'academy', 'profil'];
 /* Die vier Kennzahlen (Punkt 4) — jede führt zu ihren Einzelheiten. */
 $ccKacheln = [
     'leads'     => [$ccZ['leads_neu'], 'besuche', ''],
@@ -93,7 +94,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : $selbst() . '#r-' . $lk) ?>"<?= $lk === 'cc' ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
+      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : ($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk)) ?>"<?= $lk === 'cc' ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
     <?php /* MEHR am Handy: ohne Skript, als aufklappbare Liste über der Leiste. */ ?>
@@ -101,7 +102,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <summary aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache)) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span><?= $h(Texte::h(Texte::PARTNER_REITER['mehr'], $sprache)) ?></span></summary>
       <div class="cc-mehr__liste">
         <?php foreach ($ccMehr as $lk): if (!isset($ccLeiste[$lk])) { continue; } [$svg, $wort] = $ccLeiste[$lk]; ?>
-          <a href="<?= $h($selbst() . '#r-' . $lk) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
+          <a href="<?= $h($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
         <?php endforeach; ?>
       </div>
     </details>
@@ -163,6 +164,23 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <a href="<?= $h($selbst(['cc' => 1, 'qr' => 1])) ?>"><?= $h($c($C['schnell']['qr'])) ?></a>
       <a href="<?= $h($selbst(['cc' => 1]) . '#profil') ?>"><?= $h($c($C['schnell']['profil'])) ?></a>
     </nav>
+
+      <?php /* Partner Academy (05.10.2026): Training fortsetzen und die Einwand-Hilfe — zwei Tipps vom Start entfernt. */
+        require_once dirname(__DIR__) . '/src/Academy.php'; $ccAk = Texte::ACADEMY; $ccA = static fn(string $k, array $r = []): string => strtr(Texte::h($ccAk[$k], $sprache), $r);
+        try { $ccAs = Academy::stand((int) $p['id'], $sprache); } catch (Throwable $e) { $ccAs = null; } ?>
+      <?php if ($ccAs): ?>
+      <section class="cc-karte ak-cc cc-auf z3" aria-labelledby="cc-ak-t">
+        <div class="ak-cc__text">
+          <h2 class="cc-titel" id="cc-ak-t"><?= $h($ccA('titel')) ?></h2>
+          <p><b><?= (int) $ccAs['prozent'] ?> %</b> · <?= $h($ccA('module_fertig', ['{n}' => (string) $ccAs['fertig'], '{gesamt}' => (string) $ccAs['gesamt']])) ?><?php if ($ccAs['naechstes']): ?> · <?= $h($ccA('naechstes')) ?>: <?= $h($ccAs['naechstes']['titel']) ?><?php endif; ?></p>
+          <div class="ak-cc__balken" aria-hidden="true"><i style="width:<?= (int) $ccAs['prozent'] ?>%"></i></div>
+        </div>
+        <div class="ak-cc__knoepfe">
+          <a class="knopf haupt" href="<?= $h($start(['ak' => '1'])) ?>"><?= $h($ccA($ccAs['begonnen'] ? 'fortsetzen' : 'beginnen')) ?> →</a>
+          <a class="knopf" href="<?= $h($start(['ak' => 'einwaende'])) ?>"><?= $h($ccA('s_einwand')) ?></a>
+        </div>
+      </section>
+      <?php endif; ?>
 
     <?php /* Darunter, zugeklappt: was es vorher auf dieser Seite gab. Offen, wenn das Profil gerade bearbeitet wird. */
           $ccOffen = $ccMeldung === 'pf_fehler' || $ccMeldung === 'pf_gut' || isset($_GET['profil']); ?>

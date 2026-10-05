@@ -1,0 +1,182 @@
+/* ==========================================================================
+   partner-academy.css — Vecom Partner Academy (Etappe 1, 05.10.2026).
+   Baut auf kunde.css und partner-cc.css auf (Kopf, Leiste, Karten, Ziele).
+   Lesbar am Handy: 16px Text, große Tippflächen, Einwand-Hilfe immer unten rechts.
+   ========================================================================== */
+.ak .seite{max-width:860px}
+.sr-only{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Suche */
+.ak-suche{display:flex;gap:8px;margin:16px 0 4px}
+.ak input[type=search]{-webkit-appearance:none;appearance:none;width:100%;padding:12px 14px;min-height:46px;background:rgba(255,255,255,.03);color:var(--text);
+  border:1px solid var(--linie2);border-radius:12px;font:400 16px/1.5 var(--f-text);box-sizing:border-box}
+.ak input[type=search]:focus{border-color:var(--gold);background:rgba(255,255,255,.05);outline:none}
+.ak-suche input{flex:1;min-width:0;max-width:none}
+.ak-suche .knopf{min-height:46px}
+
+/* Fortschritt */
+.ak-prozent{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 10px}
+.ak-prozent b{font:800 clamp(34px,8vw,46px)/1 var(--f-display);letter-spacing:-.02em;background:var(--metall-text);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ak-prozent span{color:var(--dim);font-size:15px}
+.ak-balken,.ak-mini{position:relative;height:10px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:0 0 18px}
+.ak-balken i,.ak-mini i{position:absolute;inset:0 auto 0 0;border-radius:inherit;background:linear-gradient(90deg,#b98a31,#f7e6ae 70%,#d6a849)}
+.ak-naechst{display:flex;flex-direction:column;gap:3px;margin:0 0 14px}
+.ak-naechst span{font-size:13px;color:var(--dim)}
+.ak-naechst b{font:700 18px/1.3 var(--f-display)}
+.ak-zuletzt{margin:14px 0 0;font-size:14px;color:var(--dim)}
+.ak-zuletzt a{color:var(--gold)}
+.ak-ziel-gold{border-color:var(--haar)!important;background:rgba(241,211,139,.06)!important}
+
+/* Modulliste */
+.ak-module{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+@media (min-width:700px){.ak-module{grid-template-columns:1fr 1fr}}
+.ak-modul{position:relative;display:flex;align-items:center;gap:14px;padding:14px;min-height:64px;border-radius:14px;border:1px solid var(--linie);
+  background:rgba(255,255,255,.025);color:var(--text);text-decoration:none;transition:border-color .18s,background .18s}
+.ak-modul:hover{border-color:var(--haar);background:rgba(241,211,139,.05)}
+.ak-nr{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:50%;border:1px solid var(--haar);color:var(--gold);font-weight:800}
+.ak-modul.s-fertig .ak-nr{background:linear-gradient(135deg,#b98a31,#f7e6ae);color:#16120b;border:0}
+.ak-modul__text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.ak-modul__text b{font-size:15.5px;line-height:1.3}
+.ak-modul__text small{color:var(--dim);font-size:13px}
+.ak-modul .ak-mini{position:absolute;left:64px;right:14px;bottom:8px;height:3px;margin:0}
+
+/* Weg zum Auftrag */
+.ak-weg{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px}
+.ak-weg li{display:flex;align-items:center;gap:8px;padding:8px 12px 8px 8px;border-radius:999px;border:1px solid var(--linie);font-size:14px;background:rgba(255,255,255,.02)}
+.ak-weg li span{display:grid;place-items:center;width:22px;height:22px;border-radius:50%;background:rgba(241,211,139,.14);color:var(--gold);font-size:12px;font-weight:700}
+
+/* Modulseite */
+.ak-pfad{margin:18px 0 6px;font-size:13.5px;color:var(--dim)}
+.ak-pfad a{color:var(--dim)}
+.ak-kopf{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:6px 0 14px}
+.ak-kopf h1,.ak-h1{font:700 clamp(26px,5.4vw,38px)/1.12 var(--f-display);letter-spacing:-.02em;margin:0 0 8px;text-wrap:balance}
+.ak-ziel{margin:0;color:var(--dim);font-size:15.5px;line-height:1.55}
+.ak-ziel b{color:var(--text)}
+.ak-punkte{list-style:none;margin:0 0 14px;padding:0;display:flex;gap:6px}
+.ak-punkte li{flex:1}
+.ak-punkte a{display:block;height:8px;border-radius:99px;background:rgba(255,255,255,.08);min-height:8px;position:relative}
+.ak-punkte a::after{content:'';position:absolute;inset:-14px 0}
+.ak-punkte li.ok a{background:rgba(241,211,139,.55)}
+.ak-punkte li.jetzt a{background:var(--gold);box-shadow:0 0 0 3px rgba(241,211,139,.18)}
+.ak-auge{font:700 12px/1.2 var(--f-text);letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin:0 0 8px}
+.ak-lektion h2{font:700 clamp(21px,4.4vw,26px)/1.25 var(--f-display);margin:0 0 12px}
+.ak-lektion h3,.ak-klapp h3{font:700 13px/1.3 var(--f-text);letter-spacing:.06em;text-transform:uppercase;color:var(--dim);margin:18px 0 8px}
+.ak-lektion p,.ak-klapp p{font-size:16px;line-height:1.65;margin:0 0 12px}
+.ak-schritte{margin:0 0 14px;padding-left:22px;font-size:16px;line-height:1.6}
+.ak-schritte li{margin:0 0 6px}
+.ak-liste{margin:0 0 12px;padding:0;list-style:none;display:grid;gap:7px}
+.ak-liste li{position:relative;padding-left:22px;font-size:15.5px;line-height:1.55}
+.ak-liste li::before{content:'';position:absolute;left:4px;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--gold)}
+.ak-fragen li::before{content:'?';width:auto;height:auto;background:none;color:var(--gold);font-weight:800;top:0;left:3px}
+.ak-zwei{display:grid;gap:12px;margin:14px 0}
+@media (min-width:700px){.ak-zwei{grid-template-columns:1fr 1fr}}
+.ak-gut,.ak-schlecht{border-radius:14px;padding:12px 14px 4px;border:1px solid var(--linie)}
+.ak-gut{border-color:rgba(120,200,140,.32);background:rgba(120,200,140,.05)}
+.ak-gut h3{color:#8fd3a2!important;margin-top:4px!important}
+.ak-gut .ak-liste li::before{background:#8fd3a2}
+.ak-schlecht{border-color:rgba(230,120,110,.32);background:rgba(230,120,110,.05)}
+.ak-schlecht h3{color:#ef9a90!important;margin-top:4px!important}
+.ak-schlecht .ak-liste li::before{background:#ef9a90;border-radius:2px;transform:rotate(45deg)}
+.ak-merke{margin:16px 0 0;padding:12px 14px;border-left:3px solid var(--gold);background:rgba(241,211,139,.06);border-radius:0 12px 12px 0;font-size:15.5px;line-height:1.55}
+.ak-bezug{margin-top:16px}
+.ak-nav{display:flex;justify-content:space-between;gap:10px;margin:16px 0 22px;flex-wrap:wrap}
+.ak-nav .knopf{min-height:50px}
+@media (max-width:560px){.ak-nav .knopf.haupt,.ak-nav form{flex:1}.ak-nav form .knopf{width:100%}}
+
+/* Merken */
+.ak-merk-form{margin:0}
+.ak-merk{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:44px;padding:8px 14px;border-radius:999px;border:1px solid var(--linie2);background:none;color:var(--dim);font:600 13.5px/1 var(--f-text);cursor:pointer;white-space:nowrap}
+.ak-merk span{font-size:17px;color:var(--gold)}
+.ak-merk.an{border-color:var(--haar);color:var(--text);background:rgba(241,211,139,.07)}
+.ak-merk:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+
+/* Test */
+.ak-test fieldset{border:0;margin:0 0 18px;padding:0}
+.ak-test legend{font-weight:700;font-size:16px;line-height:1.45;margin:0 0 10px;padding:0}
+.ak-wahl{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;margin:0 0 8px;border-radius:12px;border:1px solid var(--linie);cursor:pointer;font-size:15.5px;line-height:1.45}
+.ak-wahl input{margin-top:3px;accent-color:#d6a849;width:18px;height:18px;flex:none}
+.ak-wahl:has(input:checked){border-color:var(--haar);background:rgba(241,211,139,.06)}
+.ak-auswertung{margin:0 0 6px;padding:0;list-style:none;display:grid;gap:10px}
+.ak-auswertung li{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;border:1px solid var(--linie);background:rgba(0,0,0,.18);font-size:15px;line-height:1.5}
+.ak-auswertung li.ok span{color:#8fd3a2}.ak-auswertung li.nein span{color:#ef9a90}
+.ak-auswertung small{color:var(--dim)}
+
+/* Notizen */
+.ak-notizen{margin:8px 0 24px}
+.ak-notiz-form{display:flex;flex-direction:column;gap:8px;margin:0 0 12px}
+.ak-notiz-form textarea{max-width:none;font-size:16px;min-height:70px}
+.ak-notiz-form .knopf{align-self:flex-start;min-height:44px}
+.ak-notiz{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;padding:10px 0;border-top:1px solid var(--linie)}
+.ak-notiz p{margin:0;font-size:15px;line-height:1.55;white-space:normal}
+.ak-notiz small{display:block;color:var(--gold);font-size:12px;margin-bottom:3px}
+.ak-leise{background:none;border:0;color:var(--leise);font:600 13px var(--f-text);cursor:pointer;min-height:40px;padding:0 4px}
+.ak-leise:hover{color:var(--text)}
+.ak-abstand{margin-top:26px}
+
+/* Einwände */
+.ak-filter{max-width:none;width:100%;min-height:48px;font-size:16px;margin:0 0 12px}
+.ak-einwaende,.ak-treffer{list-style:none;margin:0 0 16px;padding:0;display:grid;gap:8px}
+.ak-einwaende a{display:flex;align-items:center;gap:12px;padding:15px 16px;min-height:58px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.025);
+  color:var(--text);text-decoration:none;font-size:16.5px;font-weight:600;line-height:1.35}
+.ak-einwaende a span{flex:1}
+.ak-einwaende a i{color:var(--gold);font-style:normal}
+.ak-einwaende a b{color:var(--gold)}
+.ak-einwaende a:hover{border-color:var(--haar);background:rgba(241,211,139,.05)}
+.ak-einwand .ak-kopf h1{font-size:clamp(24px,5vw,34px)}
+.ak-antwort{margin:0 0 14px}
+.ak-gross{font-size:17.5px!important;line-height:1.6!important;margin:0!important}
+.ak-felder{margin:0 0 14px;display:grid;gap:10px}
+.ak-felder > div{padding:12px 14px;border-radius:14px;border:1px solid var(--linie);background:linear-gradient(180deg,var(--flaeche),var(--grund2))}
+.ak-felder dt{font:700 12px/1.3 var(--f-text);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);margin:0 0 6px}
+.ak-felder dd{margin:0;font-size:16px;line-height:1.55}
+.ak-felder .schlecht{border-color:rgba(230,120,110,.32)}
+.ak-felder .schlecht dt{color:#ef9a90}
+.ak-zitat{font-style:italic;color:var(--text)}
+.ak-warn{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;background:rgba(230,120,110,.07);border:1px solid rgba(230,120,110,.28);font-size:14.5px;line-height:1.5;color:#f1c3bd;margin:0 0 16px}
+.ak-warn::before{content:'!';flex:none;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;background:#ef9a90;color:#16120b;font-weight:800;font-size:13px}
+.ak-alle{margin-bottom:24px}
+
+/* Aufklapp-Listen (Kontaktwege, Leistungen) */
+.ak-klapp{display:grid;gap:8px;margin:0 0 20px}
+.ak-klapp details{border:1px solid var(--linie);border-radius:14px;background:rgba(255,255,255,.025);overflow:hidden}
+.ak-klapp details[open]{border-color:var(--haar)}
+.ak-klapp summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:15px 44px 15px 16px;min-height:58px;position:relative}
+.ak-klapp summary::-webkit-details-marker{display:none}
+.ak-klapp summary::after{content:'+';position:absolute;right:16px;top:50%;transform:translateY(-50%);color:var(--gold);font-size:22px;font-weight:400}
+.ak-klapp details[open] summary::after{content:'–'}
+.ak-klapp summary b{font-size:16.5px}
+.ak-klapp summary small{color:var(--dim);font-size:14px;line-height:1.45}
+.ak-klapp__inhalt{padding:0 16px 16px}
+.ak-30{padding:14px;border-radius:12px;background:rgba(241,211,139,.07);border:1px solid var(--haar);margin:0 0 6px}
+.ak-ebenen section{padding:2px 0}
+.ak-ebenen.mit-tabs section{display:none}
+.ak-ebenen.mit-tabs section.an{display:block}
+.ak-tabs{display:flex;gap:6px;margin:14px 0 8px}
+.ak-tabs button{flex:1;min-height:42px;border-radius:10px;border:1px solid var(--linie);background:none;color:var(--dim);font:600 14px var(--f-text);cursor:pointer}
+.ak-tabs button[aria-selected="true"]{border-color:var(--haar);color:var(--text);background:rgba(241,211,139,.08)}
+.ak-ebenen.mit-tabs h3{display:none}
+
+/* Suche, Merkliste */
+.ak-treffer a{display:flex;flex-direction:column;gap:3px;padding:13px 16px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.025);color:var(--text);text-decoration:none}
+.ak-treffer a:hover{border-color:var(--haar)}
+.ak-treffer small{color:var(--gold);font-size:12px;letter-spacing:.06em;text-transform:uppercase;font-weight:700}
+.ak-treffer b{font-size:16px}
+.ak-treffer span{color:var(--dim);font-size:14px}
+
+.ak-intern{margin:28px 0 12px;font-size:12.5px;color:var(--leise);text-align:center}
+
+/* Einwand-Hilfe: immer erreichbar, über der Handyleiste */
+.ak-hilfe{position:fixed;right:16px;bottom:22px;z-index:31;display:inline-flex;align-items:center;gap:8px;min-height:50px;padding:12px 18px;border-radius:999px;
+  background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#d6a849);color:#16120b;font:700 14.5px/1 var(--f-text);text-decoration:none;box-shadow:0 14px 34px -14px rgba(200,150,62,.9)}
+.ak-hilfe svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ak-hilfe:focus-visible{outline:2px solid #fff;outline-offset:3px}
+@media (max-width:760px){.ak-hilfe{bottom:calc(76px + env(safe-area-inset-bottom));right:12px}body.ak{padding-bottom:calc(150px + env(safe-area-inset-bottom))}}
+@media (min-width:761px){body.ak{padding-bottom:90px}}
+@media print{.cc-leiste,.ak-hilfe,.ak-suche,.ak-merk-form,.ak-notizen{display:none!important}}
+
+/* Begrüßung und Kopf: eigene Regeln, unabhängig vom Command Center */
+.ak .cc-hallo{margin:22px 0 20px}
+.ak .cc-hallo h1{font:700 clamp(28px,6vw,46px)/1.08 var(--f-display);letter-spacing:-.025em;margin:0;text-wrap:balance}
+.ak .cc-hallo .cc-frage{display:block;color:var(--dim);font-weight:600;font-size:.56em;letter-spacing:-.01em;margin-top:8px}
+.ak .cc-alles{white-space:nowrap;font-size:13.5px;color:var(--dim);text-decoration:none;padding:10px 0 10px 12px;min-height:44px;display:inline-flex;align-items:center;gap:6px}
+.ak .cc-alles:hover{color:var(--text)}

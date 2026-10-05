@@ -1,0 +1,938 @@
+{
+ "module": [
+  {
+   "slug": "vecom-verstehen",
+   "nr": 1,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Conoscere Vecom Design",
+   "ziel": "Sa che cosa offre Vecom, come si svolge un progetto e che cosa può dire a un'attività – e che cosa no.",
+   "lektionen": [
+    {
+     "titel": "Che cos'è Vecom Design?",
+     "text": "Vecom Design realizza siti web per attività che vogliono convincere con il proprio mestiere: ristoranti, saloni, artigiani, concessionarie, case vacanza, laboratori artigianali. Ogni sito viene progettato su misura per l'attività – nessun modello preconfezionato, nessun sito fai-da-te.\n\nL'attività ha un referente fisso e un'area personale in cui vede ogni passo del suo progetto: dal questionario all'anteprima fino all'approvazione."
+    },
+    {
+     "titel": "Come si svolge un progetto?",
+     "text": "1. L'attività risponde online ad alcune domande e vede subito un prezzo indicativo.\n2. Vecom si fa sentire con un'offerta precisa, di solito entro un giorno lavorativo.\n3. Si paga solo dopo un accordo scritto.\n4. L'attività fornisce i contenuti (oppure Vecom la aiuta), Vecom progetta e realizza.\n5. L'attività vede un'anteprima, dà il suo riscontro e approva.\n6. Il sito va online – su richiesta con hosting e assistenza.",
+     "punkte": [
+      "prezzo indicativo subito nel questionario",
+      "offerta precisa da parte di Vecom",
+      "si paga solo dopo un accordo scritto",
+      "anteprima e approvazione da parte dell'attività"
+     ]
+    },
+    {
+     "titel": "Perché non ci sono pacchetti fissi?",
+     "text": "Un menù, un sistema di prenotazione o tre lingue richiedono quantità di lavoro diverse. Invece di costringere l'attività in un pacchetto, il prezzo si compone di ciò di cui ha davvero bisogno. Per questo il questionario mostra un prezzo indicativo, e l'offerta precisa arriva da Vecom.\n\nPer Lei significa: non deve conoscere nessun prezzo. La Sua strada è sempre il questionario tramite il Suo link."
+    },
+    {
+     "titel": "Che cosa distingue Vecom da un sito fai-da-te?",
+     "text": "Un sito fai-da-te costa poco, ma l'attività deve fare tutto da sola e finisce per somigliare a tante altre. Vecom progetta un sito unico, si occupa della tecnica, della visualizzazione su smartphone e della sicurezza e accompagna l'attività fino alla messa online.\n\nNon ne parli mai in modo sprezzante rispetto ad altri fornitori. Spieghi semplicemente che cosa ottiene l'attività con Vecom."
+    },
+    {
+     "titel": "Che cosa può promettere – e che cosa no",
+     "text": "Può spiegare come lavora Vecom e accompagnare l'attività al questionario. Tutto ciò che rende vincolanti denaro, tempi o aspetti tecnici lo decide solo Vecom.",
+     "darf": [
+      "spiegare come si svolge un progetto",
+      "rimandare al prezzo indicativo nel questionario",
+      "mostrare esempi dal sito di Vecom",
+      "dire: «Vecom Le farà avere un'offerta precisa»"
+     ],
+     "darf_nicht": [
+      "indicare o stimare prezzi fissi",
+      "promettere sconti o condizioni speciali",
+      "promettere date di consegna",
+      "garantire posizionamenti su Google o un aumento del fatturato",
+      "fare promesse tecniche («si può fare di sicuro»)",
+      "parlare male di altri fornitori"
+     ],
+     "merke": "Se non è sicuro: «Lo verifico con Vecom, riceverà una risposta vincolante.» È professionale, non un segno di debolezza."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Un'attività chiede: «Quanto costa più o meno un sito così?» Che cosa risponde?",
+     "antworten": [
+      "«Circa 800 euro.»",
+      "«Dipende da ciò di cui ha bisogno. Nel questionario vede in due minuti un prezzo indicativo.»",
+      "«Per Lei faccio un prezzo più basso.»"
+     ],
+     "richtig": 1,
+     "warum": "Non dica cifre a memoria. Il questionario mostra il prezzo indicativo, l'offerta precisa arriva da Vecom."
+    },
+    {
+     "frage": "Quando paga un'attività con Vecom?",
+     "antworten": [
+      "Subito dopo il questionario",
+      "Solo dopo un accordo scritto",
+      "Solo quando il sito è online"
+     ],
+     "richtig": 1,
+     "warum": "Prima di un accordo scritto non si paga nulla."
+    }
+   ]
+  },
+  {
+   "slug": "kunden-finden",
+   "nr": 2,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Trovare potenziali clienti",
+   "ziel": "Riconosce le attività a cui un sito migliore serve davvero – e non perde tempo con le altre.",
+   "lektionen": [
+    {
+     "titel": "Come si riconosce un buon candidato?",
+     "text": "Un buon candidato ha un problema che si vede. Lo verifica in due minuti con lo smartphone o con il controllo rapido nella Sua area partner.",
+     "punkte": [
+      "nessun sito proprio, solo Facebook o la scheda Google",
+      "il sito sembra vecchio o è difficile da leggere sullo smartphone",
+      "niente HTTPS (il browser mostra «non sicuro»)",
+      "telefono, indirizzo o orari difficili da trovare",
+      "nessuna prenotazione online, pur lavorando su appuntamento",
+      "vende prodotti, ma non ha un negozio online",
+      "ospiti dall'estero, ma una sola lingua",
+      "appena aperta o appena trasferita"
+     ]
+    },
+    {
+     "titel": "Quali settori sono particolarmente adatti?",
+     "text": "È più facile con le attività i cui clienti guardano prima online: chi va a mangiare fuori, cerca un parrucchiere o prenota una casa vacanza decide dallo smartphone.",
+     "punkte": [
+      "gastronomia e ristoranti",
+      "hotel, B&B, case vacanza, turismo",
+      "parrucchieri, estetica, beauty",
+      "artigiani e imprese edili",
+      "concessionarie e officine",
+      "studi medici, studi legali, coach, servizi",
+      "fitness e studi",
+      "negozi locali, laboratori artigianali, associazioni"
+     ]
+    },
+    {
+     "titel": "Dove trovarli?",
+     "text": "Cominci dalle persone che conosce: il Suo parrucchiere, il ristorante sotto casa, l'artigiano che è venuto da Lei. Un contatto personale apre più porte di cento messaggi.\n\nNella scheda «Clienti» trova inoltre la ricerca attività: attività della Sua zona che può riservare per sé per 60 giorni, e ogni mattina cinque proposte dell'autopilota."
+    },
+    {
+     "titel": "Verifichi prima di contattare",
+     "text": "Usi la checklist per trovare clienti nell'Academy o il controllo rapido. Parli solo di ciò che ha visto davvero. Un'attività capisce subito se ha guardato il suo sito.",
+     "merke": "Nessun difetto inventato. «Il Suo sito si carica lentamente sullo smartphone» lo dice solo se il controllo lo mostra."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Quale attività è il candidato migliore?",
+     "antworten": [
+      "Uno studio legale con un sito moderno e veloce",
+      "Un ristorante che ha solo una pagina Facebook",
+      "Un grande gruppo con un proprio reparto IT"
+     ],
+     "richtig": 1,
+     "warum": "Il ristorante ha un problema visibile, e i suoi clienti cercano dallo smartphone."
+    }
+   ]
+  },
+  {
+   "slug": "erstkontakt",
+   "nr": 3,
+   "minuten": 9,
+   "pflicht": true,
+   "titel": "Il primo contatto con il cliente",
+   "ziel": "Si rivolge a un'attività in modo che La ascolti volentieri – di persona, al telefono o per iscritto.",
+   "lektionen": [
+    {
+     "titel": "L'obiettivo del primo contatto",
+     "text": "Nel primo contatto non vende nulla. Il Suo obiettivo è un piccolo sì: «Sì, me lo mostri» oppure «Sì, mi mandi il link».\n\nParli dell'attività, non di Vecom. Un'osservazione concreta è il modo migliore per iniziare."
+    },
+    {
+     "titel": "Formulazioni buone e cattive",
+     "schlecht": [
+      "«Ha urgentemente bisogno di un nuovo sito.»",
+      "«Il Suo sito è brutto.»",
+      "«Ho un'offerta fantastica per Lei.»"
+     ],
+     "gut": [
+      "«Guardando la Sua presenza online ho notato che in alcuni punti c'è ancora del potenziale. Posso mostrarLe brevemente che cosa si potrebbe migliorare?»",
+      "«Ho guardato il Suo sito sullo smartphone – non sono riuscito a trovare gli orari di apertura. È voluto?»",
+      "«Posso mandarLe un breve rapporto sul Suo sito? Non costa nulla.»"
+     ]
+    },
+    {
+     "titel": "I canali di contatto in sintesi",
+     "text": "Ogni canale ha le sue regole. Apra qui sotto «Canali di contatto»: per ogni canale trova obiettivo, approccio, esempio, formulazioni buone e cattive e il passo successivo.",
+     "merke": "WhatsApp, e-mail e SMS solo a persone che Le hanno dato il permesso o che conosce personalmente. Niente messaggi in serie, niente messaggi automatici. In Italia non chiami i numeri iscritti al Registro delle Opposizioni."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Qual è l'obiettivo del primo contatto?",
+     "antworten": [
+      "Chiudere subito il contratto",
+      "Un piccolo sì, per esempio per un breve rapporto",
+      "Comunicare il prezzo"
+     ],
+     "richtig": 1,
+     "warum": "Nel primo contatto conta l'interesse, non il contratto."
+    }
+   ]
+  },
+  {
+   "slug": "gespraech-fuehren",
+   "nr": 4,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Condurre un buon colloquio con il cliente",
+   "ziel": "Conduce un colloquio in cui l'attività parla più di Lei – e alla fine è chiaro che cosa succede dopo.",
+   "lektionen": [
+    {
+     "titel": "Lo svolgimento in sei passi",
+     "text": "1. Aprire: ringraziare per il tempo, dire brevemente di che cosa si tratta.\n2. Fiducia: dire qualcosa di sincero sull'attività che Le piace.\n3. Domande: fare domande aperte (vedi modulo 5).\n4. Ascolto: lasciar finire, chiedere approfondimenti, prendere appunti.\n5. Riepilogo: «Ho capito bene che …?»\n6. Passo successivo: concordare in concreto chi fa che cosa ed entro quando."
+    },
+    {
+     "titel": "Ascoltare invece di vendere",
+     "text": "Chi ascolta scopre che cosa vuole davvero l'attività – più clienti durante la settimana, meno telefonate per gli appuntamenti, un'immagine migliore verso i turisti. Solo dopo spiega come Vecom può aiutare.",
+     "punkte": [
+      "non interrompere",
+      "chiedere: «In che senso, esattamente?»",
+      "sopportare le pause",
+      "prendere appunti",
+      "niente termini tecnici"
+     ]
+    },
+    {
+     "titel": "Chiudere il colloquio",
+     "text": "Un buon colloquio non finisce mai con «Si faccia sentire». Finisce con un passo successivo.",
+     "gut": [
+      "«Le mando adesso il link al questionario. Ci vogliono due minuti, e vede subito un prezzo indicativo.»",
+      "«Le va bene se La ricontatto giovedì?»"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "L'attività racconta a lungo i suoi problemi. Che cosa fa?",
+     "antworten": [
+      "Interrompe e spiega Vecom",
+      "Ascolta, chiede approfondimenti e alla fine riassume",
+      "Cambia argomento"
+     ],
+     "richtig": 1,
+     "warum": "Più l'attività racconta, meglio capisce di che cosa ha bisogno."
+    }
+   ]
+  },
+  {
+   "slug": "bedarf-erkennen",
+   "nr": 5,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Capire le esigenze del cliente",
+   "ziel": "Con poche domande ben fatte scopre di che cosa ha davvero bisogno l'attività.",
+   "lektionen": [
+    {
+     "titel": "Le domande migliori",
+     "text": "Le domande aperte iniziano con Che cosa, Come o Quale. A queste non si può rispondere con sì o no. Non deve farle tutte – cinque buone domande bastano.",
+     "fragenliste": [
+      "Che cosa vorrebbe ottenere con il Suo sito?",
+      "Come trova oggi nuovi clienti?",
+      "Ha già un sito? Che cosa Le piace e che cosa no?",
+      "Quali servizi vorrebbe mettere particolarmente in evidenza?",
+      "Vorrebbe offrire appuntamenti o prenotazioni online?",
+      "Vende prodotti che si potrebbero ordinare online?",
+      "I Suoi clienti arrivano anche dall'estero?",
+      "Vorrebbe essere trovato meglio su Google?",
+      "Ha logo, foto e testi – oppure Le serve aiuto?",
+      "Ci sono siti il cui stile Le piace?",
+      "Quali clienti vorrebbe raggiungere soprattutto?"
+     ]
+    },
+    {
+     "titel": "Dal colloquio alla raccomandazione",
+     "text": "Con l'assistente esigenze nell'Academy annota le risposte. Dopo Le mostra quali servizi di Vecom potrebbero essere adatti – per esempio web design, prenotazione appuntamenti o sito multilingue.\n\nSono indicazioni per Lei, non un ordine e non un prezzo. Il prezzo indicativo l'attività lo vede nel questionario tramite il Suo link."
+    },
+    {
+     "titel": "Segnali tipici",
+     "punkte": [
+      "«Il telefono squilla in continuazione per gli appuntamenti» → prenotazione appuntamenti",
+      "«Molti turisti chiedono in inglese» → sito multilingue",
+      "«Vendiamo anche vino/olio/prodotti» → negozio online",
+      "«Su Google non ci trova nessuno» → base solida per i motori di ricerca",
+      "«Non abbiamo un vero logo» → branding (logo solo su richiesta)"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Quale domanda è una domanda aperta?",
+     "antworten": [
+      "«Ha un sito web?»",
+      "«Come trova oggi nuovi clienti?»",
+      "«Vuole più clienti?»"
+     ],
+     "richtig": 1,
+     "warum": "Le domande aperte portano l'attività a raccontare."
+    }
+   ]
+  },
+  {
+   "slug": "vecom-praesentieren",
+   "nr": 6,
+   "minuten": 8,
+   "pflicht": false,
+   "titel": "Presentare Vecom nel modo giusto",
+   "ziel": "Spiega ogni servizio di Vecom come serve al Suo interlocutore: in 30 secondi, in modo normale o in dettaglio.",
+   "lektionen": [
+    {
+     "titel": "Tre livelli per ogni servizio",
+     "text": "Alcuni vogliono solo una frase, altri vogliono sapere tutto nei dettagli. Per questo per ogni servizio ci sono tre spiegazioni: breve, normale e dettagliata – più una versione «in 30 secondi» che può leggere al telefono.\n\nApra qui sotto «Spiegare i servizi». Le legga tutte una volta prima, così si sentirà sicuro."
+    },
+    {
+     "titel": "Mostrare è meglio che spiegare",
+     "text": "Sul sito di Vecom ci sono demo per molti settori: ristorante, salone, concessionaria, casa vacanza e altri. Mostri all'attività la demo del suo settore sul Suo smartphone. Un'immagine dice più di qualsiasi spiegazione.",
+     "merke": "Spieghi senza termini tecnici. Invece di «responsive» dica «si vede bene anche sullo smartphone»."
+    }
+   ],
+   "fragen": []
+  },
+  {
+   "slug": "einwaende",
+   "nr": 7,
+   "minuten": 10,
+   "pflicht": true,
+   "titel": "Gestire le obiezioni con sicurezza",
+   "ziel": "Reagisce a «troppo caro», «non ho tempo» o «non mi serve» con calma e cortesia – e scopre che cosa c'è dietro.",
+   "lektionen": [
+    {
+     "titel": "Un'obiezione non è un rifiuto",
+     "text": "Un'obiezione di solito significa: «Non sono ancora convinto» oppure «Ho una preoccupazione». Non discuta e non si giustifichi. Chieda che cosa c'è dietro.\n\nLa regola di base: riconoscere – chiedere – rispondere – proporre il passo successivo."
+    },
+    {
+     "titel": "I quattro passi",
+     "punkte": [
+      "Riconoscere: «La capisco bene.»",
+      "Chiedere: «Posso chiederLe qual è esattamente il motivo?»",
+      "Rispondere: in breve, con sincerità, senza pressione",
+      "Passo successivo: proporre qualcosa di piccolo e senza impegno"
+     ]
+    },
+    {
+     "titel": "L'aiuto rapido",
+     "text": "Qui sotto trova le obiezioni più frequenti con significato, domanda di approfondimento, risposta di esempio, cose da evitare e passo successivo. Durante il colloquio le raggiunge con il pulsante «Obiezione del cliente» – da ogni pagina dell'Academy con un tocco.",
+     "merke": "Non prometta mai uno sconto per superare un'obiezione. Prezzi e condizioni li decide solo Vecom."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "L'attività dice: «Mi può fare uno sconto?» Qual è la risposta giusta?",
+     "antworten": [
+      "«Certo, il 20 percento si fa sempre.»",
+      "«Lo decide Vecom. Guardi il prezzo indicativo nel questionario, poi vediamo.»",
+      "«No, assolutamente no.»"
+     ],
+     "richtig": 1,
+     "warum": "Non promette nulla che possa decidere solo Vecom – ma resta cortese e tiene aperto il colloquio."
+    }
+   ]
+  },
+  {
+   "slug": "zum-auftrag",
+   "nr": 8,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Dal primo contatto al contratto",
+   "ziel": "Conosce l'intero percorso dal primo colloquio alla provvigione e sa a ogni passo che cosa fare.",
+   "lektionen": [
+    {
+     "titel": "Il percorso in sintesi",
+     "weg": [
+      "Potenziale cliente",
+      "Primo contatto",
+      "Interesse",
+      "Colloquio sulle esigenze",
+      "Questionario tramite il Suo link",
+      "Offerta di Vecom",
+      "Ricontatto",
+      "Contratto",
+      "Progetto",
+      "Provvigione"
+     ]
+    },
+    {
+     "titel": "Quando un cliente è Suo?",
+     "text": "Un cliente Le viene assegnato quando arriva a Vecom tramite il Suo link o il Suo codice – per esempio se compila il questionario tramite il Suo link o indica il Suo codice. Chi viene assegnato per primo resta assegnato. L'assegnazione vale {zuordnung} mesi."
+    },
+    {
+     "titel": "Quando matura la Sua provvigione?",
+     "text": "La Sua provvigione ({satz}) matura quando il cliente paga – non al momento del questionario e non al momento dell'offerta. Diventa pagabile dopo {tage} giorni (periodo di recesso), il pagamento avviene a partire da {min}. Lo stato di ogni provvigione lo vede nella scheda «Guadagni».",
+     "punkte": [
+      "in attesa: il pagamento è arrivato, il periodo è in corso",
+      "pronta: può essere pagata",
+      "in arrivo: il bonifico è in corso",
+      "pagata: è arrivata a Lei"
+     ]
+    },
+    {
+     "titel": "Che cosa faccio adesso?",
+     "text": "Nell'Academy e per ogni attività che ha riservato, «Che cosa faccio adesso?» Le mostra il passo successivo adatto – con supporto per il colloquio e guida.",
+     "merke": "La maggior parte dei contratti nasce al secondo o al terzo contatto. Ricontattare cortesemente dopo 3 e 7 giorni fa parte del lavoro."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Quando matura la Sua provvigione?",
+     "antworten": [
+      "Quando l'attività compila il questionario",
+      "Quando il cliente paga",
+      "Quando chiama l'attività"
+     ],
+     "richtig": 1,
+     "warum": "La provvigione spetta sugli importi pagati."
+    }
+   ]
+  }
+ ],
+ "kontakt": [
+  {
+   "slug": "persoenlich",
+   "name": "Passare di persona",
+   "ziel": "Simpatia e una rapida occhiata al sito o alla demo sullo smartphone.",
+   "eroeffnung": "Arrivare in un momento tranquillo (non a pranzo in un ristorante), presentarsi brevemente, citare un'osservazione.",
+   "beispiel": "«Buongiorno, sono [Nome] e collaboro con Vecom Design. Ho guardato il Suo sito e avrei un'idea – ha due minuti?»",
+   "gut": [
+    "un'osservazione concreta",
+    "mostrare la demo del settore sullo smartphone",
+    "lasciare la cartellina"
+   ],
+   "schlecht": [
+    "disturbare nel pieno del lavoro",
+    "lunghi monologhi",
+    "mettere pressione"
+   ],
+   "fehler": [
+    "arrivare senza preparazione",
+    "non concordare un passo successivo"
+   ],
+   "weiter": "Mandare il link al questionario o fissare un appuntamento per un breve colloquio."
+  },
+  {
+   "slug": "telefon",
+   "name": "Telefono",
+   "ziel": "Suscitare interesse e concordare un rapporto o un appuntamento.",
+   "eroeffnung": "Nome, motivo in una frase, chiedere se ha due minuti.",
+   "beispiel": "«Buongiorno, sono [Nome], collaboro con Vecom Design. Ho guardato il Suo sito sullo smartphone e ho notato due cose. Posso dirLe brevemente quali?»",
+   "gut": [
+    "sorridere (si sente)",
+    "essere brevi",
+    "chiedere qual è il momento migliore per richiamare"
+   ],
+   "schlecht": [
+    "leggere un testo come in un call center",
+    "parlare di prezzi"
+   ],
+   "fehler": [
+    "chiamare nelle ore di punta",
+    "chiamare numeri iscritti al Registro delle Opposizioni (Italia)"
+   ],
+   "weiter": "Mandare il rapporto del controllo rapido o il link al questionario (solo con consenso)."
+  },
+  {
+   "slug": "whatsapp",
+   "name": "WhatsApp",
+   "ziel": "Dare un'indicazione breve e personale – solo se conosce la persona o se ha dato il consenso.",
+   "eroeffnung": "Saluto personale, riferimento all'ultimo contatto.",
+   "beispiel": "«Buongiorno [Nome], come concordato ecco il breve rapporto sul Suo sito. Lo guardi con calma – per qualsiasi domanda sono a disposizione.»",
+   "gut": [
+    "breve",
+    "un link, non tre",
+    "personale"
+   ],
+   "schlecht": [
+    "catene di messaggi",
+    "messaggi vocali di cinque minuti"
+   ],
+   "fehler": [
+    "scrivere a sconosciuti senza consenso",
+    "mandare lo stesso messaggio a molte persone"
+   ],
+   "weiter": "Dopo 3 giorni chiedere cortesemente se è arrivato tutto."
+  },
+  {
+   "slug": "social",
+   "name": "Social media e messenger",
+   "ziel": "Essere visibili, creare fiducia, avviare conversazioni.",
+   "eroeffnung": "Reagire a un post dell'attività, senza vendere subito.",
+   "beispiel": "«Bellissime foto della Sua nuova terrazza! Le ha messe anche sul Suo sito?»",
+   "gut": [
+    "interesse sincero",
+    "post propri con esempi dall'area partner"
+   ],
+   "schlecht": [
+    "pubblicità sotto i post di altri",
+    "messaggi di massa"
+   ],
+   "fehler": [
+    "non indicare il link partner come raccomandazione"
+   ],
+   "weiter": "Passare a un colloquio personale."
+  },
+  {
+   "slug": "email",
+   "name": "E-mail",
+   "ziel": "Mandare un'indicazione concreta e utile che l'attività ha richiesto.",
+   "eroeffnung": "Oggetto chiaro, una frase di riferimento, un vantaggio.",
+   "beispiel": "Oggetto: «Breve rapporto sul Suo sito» – «Buongiorno, come concordato al telefono …»",
+   "gut": [
+    "breve",
+    "personale",
+    "un passo successivo chiaro"
+   ],
+   "schlecht": [
+    "allegati di molti MB",
+    "testi pubblicitari"
+   ],
+   "fehler": [
+    "e-mail senza consenso ad attività sconosciute"
+   ],
+   "weiter": "Dopo una settimana ricontattare una volta."
+  },
+  {
+   "slug": "empfehlung",
+   "name": "Passaparola e rete di contatti",
+   "ziel": "Arrivare a nuove attività tramite persone soddisfatte della Sua cerchia.",
+   "eroeffnung": "Chiedere ai conoscenti chi conoscono che potrebbe aver bisogno di un sito migliore.",
+   "beispiel": "«Conosci qualcuno con un'attività che non è soddisfatto del suo sito? Posso mandargli un rapporto gratuito.»",
+   "gut": [
+    "il Suo link per i conoscenti",
+    "associazioni, ritrovi, reti di contatti"
+   ],
+   "schlecht": [
+    "mettere sotto pressione i conoscenti"
+   ],
+   "fehler": [
+    "non dare seguito al contatto"
+   ],
+   "weiter": "Contattare di persona l'attività segnalata e dire chi La manda."
+  }
+ ],
+ "einwaende": [
+  {
+   "slug": "zu-teuer",
+   "satz": "È troppo caro per me.",
+   "dahinter": "Non conosce ancora il prezzo, fa il confronto con un sito fai-da-te o non vede ancora un vantaggio.",
+   "frage": "«Posso chiederLe con che cosa fa il confronto?»",
+   "antwort": "«La capisco. Il prezzo in realtà non lo conosciamo ancora – dipende da ciò di cui ha davvero bisogno. Nel questionario vede in due minuti un prezzo indicativo, senza alcun impegno. Si paga solo dopo un accordo scritto.»",
+   "vermeiden": "Stimare prezzi, offrire sconti, parlare male di altri fornitori.",
+   "ziel": "Capire se si tratta di soldi o di un vantaggio che manca.",
+   "weiter": "Mandare il link al questionario.",
+   "suche": "prezzo costo caro soldi"
+  },
+  {
+   "slug": "nachdenken",
+   "satz": "Devo pensarci.",
+   "dahinter": "Una domanda o preoccupazione che non esprime – oppure un no detto con gentilezza.",
+   "frage": "«Certo. Su che cosa vorrebbe riflettere ancora, esattamente?»",
+   "antwort": "«Naturalmente, è una decisione importante. Perché possa confrontare con calma: posso mandarLe il link al questionario? Così ha un prezzo indicativo nero su bianco.»",
+   "vermeiden": "Insistere, inventare scadenze artificiali.",
+   "ziel": "Trovare la vera domanda dietro il «devo pensarci».",
+   "weiter": "Mandare il link al questionario e concordare un ricontatto tra 3 giorni.",
+   "suche": "pensarci riflettere dopo"
+  },
+  {
+   "slug": "brauche-keine",
+   "satz": "Non mi serve un nuovo sito.",
+   "dahinter": "È soddisfatto o non vede un legame tra sito e clienti.",
+   "frage": "«Come La trovano oggi i nuovi clienti?»",
+   "antwort": "«Può darsi. Posso comunque mandarLe un breve rapporto sul Suo sito? Gratuito – così vede da solo se c'è qualcosa da fare.»",
+   "vermeiden": "Convincerlo che il suo sito è brutto.",
+   "ziel": "Suscitare curiosità invece di convincere.",
+   "weiter": "Fare il controllo rapido e mandare il rapporto (con consenso).",
+   "suche": "sito serve non"
+  },
+  {
+   "slug": "habe-jemanden",
+   "satz": "Ho già qualcuno.",
+   "dahinter": "Fedeltà a un conoscente o a un'agenzia.",
+   "frage": "«Bene. È soddisfatto dell'assistenza?»",
+   "antwort": "«Molto bene, allora è in buone mani. Se un giorno volesse un secondo parere o avesse in mente qualcosa di nuovo, mi contatti pure.»",
+   "vermeiden": "Criticare l'altro fornitore.",
+   "ziel": "Mostrare rispetto e lasciare la porta aperta.",
+   "weiter": "Salutare cordialmente, riprendere il contatto dopo qualche mese.",
+   "suche": "agenzia webdesigner"
+  },
+  {
+   "slug": "bekannter-billiger",
+   "satz": "Un mio conoscente lo fa a meno.",
+   "dahinter": "Pressione sul prezzo o incertezza su quale sia la differenza.",
+   "frage": "«Che cosa è più importante per Lei in un sito?»",
+   "antwort": "«Può darsi. Con Vecom ottiene un design su misura, un referente fisso e un accompagnamento fino alla messa online. Guardi il prezzo indicativo nel questionario – così può fare un confronto onesto.»",
+   "vermeiden": "Sminuire il conoscente.",
+   "ziel": "Mostrare la differenza senza discutere.",
+   "weiter": "Mandare il link al questionario o mostrare la demo del settore.",
+   "suche": "meno economico amico"
+  },
+  {
+   "slug": "kein-budget",
+   "satz": "Al momento non ho budget.",
+   "dahinter": "Un limite economico reale – oppure manca la priorità.",
+   "frage": "«Quale sarebbe un buon momento per riparlarne?»",
+   "antwort": "«La capisco. Allora guardi con calma il prezzo indicativo, così può pianificare. In ogni caso si paga solo dopo un accordo scritto.»",
+   "vermeiden": "Promettere pagamenti a rate o sconti.",
+   "ziel": "Trovare un momento realistico.",
+   "weiter": "Impostare un promemoria e ricontattare nel momento concordato.",
+   "suche": "budget soldi dopo"
+  },
+  {
+   "slug": "email-schreiben",
+   "satz": "Prima mi scriva un'e-mail.",
+   "dahinter": "Vuole chiudere la conversazione – oppure desidera davvero qualcosa per iscritto.",
+   "frage": "«Volentieri. Che cosa dovrebbe esserci nell'e-mail perché Le sia davvero utile?»",
+   "antwort": "«Lo faccio. Le mando un breve rapporto sul Suo sito e il link al questionario. Posso sentirLa brevemente giovedì per sapere se è arrivato tutto?»",
+   "vermeiden": "Mandare una lunga e-mail pubblicitaria.",
+   "ziel": "Trasformare la richiesta in un passo successivo.",
+   "weiter": "Mandare l'e-mail con il rapporto (ha dato il consenso) e concordare un ricontatto.",
+   "suche": "mail scrivere"
+  },
+  {
+   "slug": "partner-fragen",
+   "satz": "Devo chiedere al mio socio.",
+   "dahinter": "Non decide da solo – oppure ha bisogno di tempo.",
+   "frage": "«Che cosa sarà importante per il Suo socio?»",
+   "antwort": "«Naturalmente. Le mando il link al questionario, così potete guardarlo insieme. Se vuole, lo spiego brevemente a entrambi.»",
+   "vermeiden": "Scavalcare il socio.",
+   "ziel": "Coinvolgere chi decide insieme a lui.",
+   "weiter": "Proporre un appuntamento insieme.",
+   "suche": "socio capo decidere"
+  },
+  {
+   "slug": "genug-kunden",
+   "satz": "Abbiamo abbastanza clienti.",
+   "dahinter": "Non sente il bisogno di più clienti – forse però di meno lavoro o di clienti migliori.",
+   "frage": "«Quanto tempo Le costa oggi il telefono per appuntamenti o domande?»",
+   "antwort": "«Mi fa piacere. Un sito può anche far risparmiare tempo – per esempio se gli appuntamenti si prenotano online o se le domande più frequenti hanno già una risposta.»",
+   "vermeiden": "Promettere più fatturato.",
+   "ziel": "Trovare un altro vantaggio: tempo, reputazione, richieste migliori.",
+   "weiter": "Proporre un colloquio sulle esigenze legate all'organizzazione del lavoro.",
+   "suche": "clienti abbastanza pieno"
+  },
+  {
+   "slug": "funktioniert-doch",
+   "satz": "Il nostro sito funziona, no?",
+   "dahinter": "È soddisfatto o non conosce i problemi.",
+   "frage": "«L'ha guardato di recente sullo smartphone?»",
+   "antwort": "«Bene. Posso mandarLe un breve rapporto gratuito? Lì vede, per esempio, come appare il sito sullo smartphone.»",
+   "vermeiden": "Inventare o esagerare difetti.",
+   "ziel": "Incuriosire con i fatti.",
+   "weiter": "Fare il controllo rapido e parlare solo dei risultati reali.",
+   "suche": "funziona bene basta"
+  },
+  {
+   "slug": "google-unnoetig",
+   "satz": "Google non ci serve.",
+   "dahinter": "Trova clienti con il passaparola e non vede Google come un canale.",
+   "frage": "«Che cosa fa per prima cosa una persona a cui L'hanno consigliata?»",
+   "antwort": "«Molte persone a cui viene consigliato, prima La cercano comunque su internet. Allora è utile che lì si facciano una buona impressione.»",
+   "vermeiden": "Promettere posizionamenti su Google.",
+   "ziel": "Mostrare che anche il passaparola viene verificato online.",
+   "weiter": "Mostrare la demo del settore.",
+   "suche": "google seo motore ricerca"
+  },
+  {
+   "slug": "warum-so-viel",
+   "satz": "Perché un sito costa così tanto?",
+   "dahinter": "Non conosce il lavoro che c'è dietro.",
+   "frage": "«Che cosa immagina quando pensa a un sito?»",
+   "antwort": "«Un buon sito viene progettato e scritto per la Sua attività, ottimizzato per gli smartphone e realizzato in modo tecnicamente pulito. Di che cosa ha bisogno esattamente lo vede nel questionario – lì il prezzo indicativo si compone in base ai Suoi desideri.»",
+   "vermeiden": "Giustificare prezzi che non conosce.",
+   "ziel": "Rendere comprensibile il lavoro che c'è dietro.",
+   "weiter": "Mandare il link al questionario.",
+   "suche": "costo prezzo tanto caro"
+  },
+  {
+   "slug": "rabatt",
+   "satz": "Mi può fare uno sconto?",
+   "dahinter": "Riflesso da trattativa – oppure reale interesse all'acquisto.",
+   "frage": "«Che cosa sarebbe importante per Lei perché vada bene?»",
+   "antwort": "«Su prezzi e condizioni decide direttamente Vecom. Guardi il prezzo indicativo nel questionario – poi Vecom Le farà avere un'offerta precisa.»",
+   "vermeiden": "Promettere o lasciar intendere uno sconto.",
+   "ziel": "Riconoscere l'interesse senza promettere nulla.",
+   "weiter": "Mandare il link al questionario; annotare i desideri come nota per Vecom.",
+   "suche": "sconto riduzione percento economico"
+  },
+  {
+   "slug": "300-euro",
+   "satz": "Altri fanno siti per 300 euro.",
+   "dahinter": "Fa il confronto con siti fai-da-te o fornitori low cost.",
+   "frage": "«Che cosa è incluso esattamente in queste offerte?»",
+   "antwort": "«Esistono, spesso come siti fai-da-te in cui deve fare molto da solo. Con Vecom ottiene un design su misura, testi e tecnica da un unico fornitore e un accompagnamento fino alla messa online. Confronti con calma – il prezzo indicativo nel questionario La aiuta.»",
+   "vermeiden": "Denigrare i fornitori low cost.",
+   "ziel": "Mostrare la differenza in modo oggettivo.",
+   "weiter": "Demo del settore e link al questionario.",
+   "suche": "300 economico fai-da-te"
+  },
+  {
+   "slug": "familie-fragen",
+   "satz": "Prima devo chiedere a mia moglie / mio marito.",
+   "dahinter": "Decisione condivisa – oppure tempo per riflettere.",
+   "frage": "«Che cosa sarà importante per lei/lui?»",
+   "antwort": "«Certo, è una decisione da prendere insieme. Le mando il link, così lo guardate insieme con calma.»",
+   "vermeiden": "Sminuire il partner.",
+   "ziel": "Facilitare la decisione comune.",
+   "weiter": "Mandare il link, ricontattare dopo qualche giorno.",
+   "suche": "moglie marito famiglia"
+  },
+  {
+   "slug": "vielleicht-spaeter",
+   "satz": "Forse più avanti.",
+   "dahinter": "In questo momento nessuna urgenza – oppure un no detto con gentilezza.",
+   "frage": "«Quale sarebbe un buon momento?»",
+   "antwort": "«Volentieri. Posso ricontattarLa a [mese]? Nel frattempo Le mando il link, nel caso volesse dare un'occhiata prima.»",
+   "vermeiden": "Infastidire o insistere.",
+   "ziel": "Concordare un momento preciso.",
+   "weiter": "Impostare un promemoria.",
+   "suche": "dopo prima o poi"
+  },
+  {
+   "slug": "schlechte-erfahrung",
+   "satz": "Ho avuto brutte esperienze con le agenzie.",
+   "dahinter": "È rimasto deluso – per costi, tempi o comunicazione.",
+   "frage": "«Che cosa è successo allora?»",
+   "antwort": "«Mi dispiace, purtroppo capita. Con Vecom vede ogni passo nella Sua area personale, riceve prima un'offerta precisa e si paga solo dopo un accordo scritto.»",
+   "vermeiden": "Parlare male della vecchia agenzia o promettere tutto.",
+   "ziel": "Creare fiducia attraverso la trasparenza.",
+   "weiter": "Spiegare lo svolgimento e mandare il link al questionario.",
+   "suche": "agenzia esperienza deluso"
+  },
+  {
+   "slug": "nicht-binden",
+   "satz": "Non voglio vincolarmi a lungo termine.",
+   "dahinter": "Paura di abbonamenti e costi nascosti.",
+   "frage": "«Che cosa vorrebbe evitare, esattamente?»",
+   "antwort": "«La capisco. Se dopo la messa online desidera un'assistenza lo decide Lei – le condizioni sono indicate chiaramente nell'offerta di Vecom.»",
+   "vermeiden": "Inventare condizioni contrattuali.",
+   "ziel": "Prendere sul serio la preoccupazione e rimandare all'offerta.",
+   "weiter": "Link al questionario; inoltrare a Vecom le domande aperte.",
+   "suche": "contratto abbonamento vincolo durata"
+  },
+  {
+   "slug": "bringt-das-was",
+   "satz": "Come faccio a sapere che serve davvero a qualcosa?",
+   "dahinter": "Ha bisogno di sicurezza.",
+   "frage": "«Che cosa sarebbe per Lei un successo?»",
+   "antwort": "«Una garanzia di più clienti nessuno può darla onestamente. Ma nelle demo e nei lavori sul sito di Vecom vede come si presentano attività come la Sua – e che cosa fa un buon sito per la prima impressione.»",
+   "vermeiden": "Garantire fatturato o posizione su Google.",
+   "ziel": "Creare aspettative realistiche e fiducia.",
+   "weiter": "Mostrare lavori e demo.",
+   "suche": "garanzia successo serve"
+  }
+ ],
+ "leistungen": [
+  {
+   "slug": "webdesign",
+   "name": "Web design",
+   "kurz": "Un sito unico, adatto alla Sua attività.",
+   "normal": "Vecom progetta il Suo sito su misura per la Sua attività – nessun modello preconfezionato. Colori, immagini e testi mostrano che cosa La rende speciale, e i Suoi clienti trovano subito ciò che cercano.",
+   "ausfuehrlich": "All'inizio ci sono i Suoi obiettivi e i Suoi clienti. Da qui nascono struttura, design e testi. Il sito viene realizzato in modo da apparire bene su smartphone, tablet e computer, caricarsi velocemente ed essere facile da usare. Vede un'anteprima e approva prima che vada online.",
+   "s30": "Vecom Le realizza un sito unico, progettato per la Sua attività. Si vede bene sullo smartphone come sul computer, e i Suoi clienti trovano subito telefono, indirizzo e offerta. Prima vede un'anteprima e decide Lei."
+  },
+  {
+   "slug": "branding",
+   "name": "Branding",
+   "kurz": "Un'immagine coordinata per la Sua attività.",
+   "normal": "Logo, colori e caratteri che stanno bene insieme e appaiono uguali ovunque – sul sito, sui biglietti da visita e sui social.",
+   "ausfuehrlich": "Un'immagine chiara rende un'attività riconoscibile. Vecom può riprendere il materiale esistente oppure – su richiesta – sviluppare un logo. Che cosa serve esattamente lo chiarisce Vecom nell'offerta.",
+   "s30": "La Sua attività deve apparire ovunque uguale e professionale. Vecom fa in modo che logo, colori e caratteri stiano bene insieme. Un nuovo logo è disponibile su richiesta."
+  },
+  {
+   "slug": "seo",
+   "name": "SEO / Google",
+   "kurz": "Realizziamo il Suo sito in modo che i motori di ricerca possano comprenderlo correttamente dal punto di vista tecnico.",
+   "normal": "Il Suo sito riceve titoli e descrizioni chiari e una struttura pulita. Così Google capisce meglio che cosa offre e dove si trova.",
+   "ausfuehrlich": "L'ottimizzazione di base comprende, per esempio, titoli e descrizioni delle pagine significativi, una struttura pulita, tempi di caricamento rapidi, visualizzazione su smartphone e dati leggibili dalle macchine su indirizzo e orari di apertura. Una posizione precisa nessuno può prometterla onestamente – ma una base solida è il presupposto.",
+   "s30": "Perché Google capisca il Suo sito, deve essere realizzato in modo tecnicamente pulito: titoli chiari, caricamento rapido, buona resa sullo smartphone. Vecom lo fa fin dall'inizio. Una posizione precisa su Google nessuno può garantirla, ma senza questa base non si va da nessuna parte."
+  },
+  {
+   "slug": "shop",
+   "name": "Negozio online",
+   "kurz": "Vendere i Suoi prodotti direttamente sul Suo sito.",
+   "normal": "I clienti possono guardare i Suoi prodotti, metterli nel carrello e ordinarli – sul Suo sito.",
+   "ausfuehrlich": "Un negozio online comprende pagine prodotto, carrello, ordine e pagamento. Portata e procedure – per esempio spedizione o ritiro – le chiarisce Vecom con Lei nell'offerta.",
+   "s30": "Se vende prodotti, il Suo sito può essere anche un negozio online. I clienti ordinano direttamente da Lei. Che cosa comprende esattamente, Vecom lo discute con Lei."
+  },
+  {
+   "slug": "buchung",
+   "name": "Appuntamenti e prenotazioni",
+   "kurz": "I clienti prenotano appuntamenti o tavoli online.",
+   "normal": "Invece di telefonare, i Suoi clienti scelgono da soli un appuntamento libero o prenotano un tavolo – anche la sera e nel fine settimana.",
+   "ausfuehrlich": "A seconda dell'attività basta una semplice richiesta di appuntamento o prenotazione del tavolo, oppure serve un sistema di prenotazione con disponibilità. Quale soluzione sia adatta emerge dal questionario e dall'offerta.",
+   "s30": "I Suoi clienti possono prenotare online un appuntamento o un tavolo quando vogliono. Questo Le fa risparmiare telefonate. Vecom propone la soluzione adatta alla Sua attività."
+  },
+  {
+   "slug": "hosting",
+   "name": "Hosting",
+   "kurz": "Il Suo sito è raggiungibile in modo sicuro e affidabile.",
+   "normal": "Vecom si occupa che il Suo sito si trovi su un server, sia raggiungibile e abbia una connessione cifrata (HTTPS).",
+   "ausfuehrlich": "L'hosting comprende spazio di archiviazione, collegamento del dominio, certificato di sicurezza e raggiungibilità. Le condizioni sono indicate nell'offerta.",
+   "s30": "Perché il Suo sito sia online, ha bisogno di uno spazio su internet. Se ne occupa Vecom – con cifratura sicura e in modo affidabile."
+  },
+  {
+   "slug": "wartung",
+   "name": "Manutenzione e assistenza",
+   "kurz": "Qualcuno si occupa del Suo sito, anche dopo la messa online.",
+   "normal": "Con un'assistenza mensile il Suo sito resta aggiornato e tecnicamente in ordine, e ha un referente per le modifiche.",
+   "ausfuehrlich": "Che cosa comprende l'assistenza e a quali condizioni è indicato nell'offerta. Se desidera averla lo decide Lei.",
+   "s30": "Dopo la messa online, su richiesta, Vecom resta al Suo fianco: tecnica, piccole modifiche, un referente. Se lo desidera, lo decide Lei."
+  },
+  {
+   "slug": "sprachen",
+   "name": "Sito multilingue",
+   "kurz": "Il Suo sito in più lingue.",
+   "normal": "Ospiti e clienti dall'estero leggono il Suo sito nella loro lingua – per esempio italiano, tedesco e inglese.",
+   "ausfuehrlich": "Ogni lingua aggiuntiva viene impostata per ogni pagina. Il questionario chiede il numero di lingue, e il prezzo indicativo mostra quanto incide.",
+   "s30": "Se arrivano ospiti dall'estero, dovrebbero capire il Suo sito. Vecom lo realizza in più lingue."
+  },
+  {
+   "slug": "animation",
+   "name": "Animazione",
+   "kurz": "Movimenti discreti che rendono il Suo sito di alta qualità.",
+   "normal": "Transizioni morbide e piccoli movimenti guidano lo sguardo verso ciò che conta – senza rallentare il sito.",
+   "ausfuehrlich": "Le animazioni vengono usate con misura e ridotte automaticamente sui dispositivi meno potenti e per le persone che preferiscono meno movimento.",
+   "s30": "Piccoli movimenti tranquilli rendono un sito vivo e di qualità. Vecom li usa in modo mirato, perché nulla distragga o rallenti."
+  },
+  {
+   "slug": "3d",
+   "name": "3D ed esperienze interattive",
+   "kurz": "Prodotti o ambienti che si possono ruotare e vivere sul sito.",
+   "normal": "Un'auto, un mobile o una casa vacanza vengono mostrati in 3D – il cliente ruota, ingrandisce e prova le varianti.",
+   "ausfuehrlich": "Le esperienze 3D sono adatte a prodotti con varianti e ad ambienti. Vengono adattate ai dispositivi meno potenti. Se il 3D abbia senso per l'attività lo chiarisce Vecom durante il colloquio – mostri per questo le demo sul sito di Vecom.",
+   "s30": "Per alcune attività conviene andare oltre le foto: i clienti ruotano un prodotto o attraversano un ambiente. Guardi le demo sul sito di Vecom."
+  },
+  {
+   "slug": "performance",
+   "name": "Prestazioni",
+   "kurz": "Il Suo sito si carica velocemente.",
+   "normal": "Le immagini vengono ottimizzate e la tecnica resta leggera, così il sito è subito disponibile anche con una connessione debole.",
+   "ausfuehrlich": "Tempi di caricamento rapidi sono importanti per i visitatori e per i motori di ricerca. Vecom cura immagini ottimizzate, script essenziali e una buona memorizzazione nella cache.",
+   "s30": "Nessuno ama aspettare. Vecom realizza il Suo sito in modo che si carichi velocemente anche sullo smartphone in movimento."
+  },
+  {
+   "slug": "mobil",
+   "name": "Ottimizzazione per smartphone",
+   "kurz": "Il Suo sito si vede perfettamente sullo smartphone.",
+   "normal": "La maggior parte dei visitatori arriva dallo smartphone. I testi sono leggibili, i pulsanti abbastanza grandi e telefono o percorso raggiungibili con un tocco.",
+   "ausfuehrlich": "Il sito viene progettato per smartphone, tablet e computer e verificato su schermi di diverse dimensioni.",
+   "s30": "La maggior parte dei Suoi clienti guarda dallo smartphone. Con Vecom il sito lì funziona bene come sul computer – con pulsante per chiamare e per il percorso."
+  }
+ ],
+ "finder": [
+  {
+   "k": "website",
+   "frage": "Ha un sito web?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "modern",
+   "frage": "Design moderno?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "mobil",
+   "frage": "Ben leggibile sullo smartphone?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "https",
+   "frage": "HTTPS presente (nessun avviso «non sicuro»)?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "kontakt",
+   "frage": "Telefono, indirizzo e orari ben visibili?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "google",
+   "frage": "Facile da trovare su Google?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "termine",
+   "frage": "Avrebbe senso la prenotazione online degli appuntamenti?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "shop",
+   "frage": "Avrebbe senso un negozio online?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "sprachen",
+   "frage": "Avrebbe senso un sito in più lingue?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "seo",
+   "frage": "Potenziale su Google (SEO)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "branding",
+   "frage": "Potenziale sull'immagine (branding)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "erlebnis",
+   "frage": "Potenziale per 3D / esperienze?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  }
+ ],
+ "woerter": {
+  "ja": "Sì",
+  "nein": "No",
+  "unklar": "Non chiaro",
+  "niedrig": "Basso",
+  "mittel": "Medio",
+  "hoch": "Alto"
+ }
+}

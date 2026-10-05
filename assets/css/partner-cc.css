@@ -281,4 +281,13 @@ html{scroll-padding-top:76px}
   .cc-ziel,.cc-zahl,.cc-chip span,.cc-jetzt__knopf,.cc-wliste a{transition:none}
   .cc-jetzt[open] .cc-heute{animation:none}
 }
+/* Partner Academy im Command Center (05.10.2026) */
+.ak-cc{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}
+.ak-cc__text{flex:1 1 280px;min-width:0}
+.ak-cc__text p{margin:0 0 10px;color:var(--dim);font-size:14.5px;line-height:1.5}
+.ak-cc__text p b{color:var(--gold)}
+.ak-cc__balken{height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.ak-cc__balken i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,#b98a31,#f7e6ae 60%,#c49438)}
+.ak-cc__knoepfe{display:flex;gap:8px;flex-wrap:wrap}
+@media (max-width:560px){.ak-cc__knoepfe .knopf{flex:1}}
 :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}

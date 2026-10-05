@@ -14,6 +14,7 @@
    beim Scrollen stehen), am Handy untereinander. Eingebunden aus
    partner_werbemittel.php in der Schleife über $wmP — alle Variablen von dort.
    ========================================================================== */
+require_once dirname(__DIR__) . '/src/WmDruck.php';   // WmDruck::hatTitel/titel unten — nicht jeder Weg hierher hat die Klasse schon geladen (05.10.2026)
 $wmSt = !$wmNurLesen && (int) ($p['id'] ?? 0) > 0 ? Werbemittel::stand((int) $p['id'], (int) $wmP['id']) : ['entwurf' => null, 'freigegeben' => null];
 $wmJetzt = $wmSt['entwurf']['wahl'] ?? $wmSt['freigegeben']['wahl'] ?? ['stil' => '', 'sprache' => $sprache, 'kontakt' => 'email'];
 $wmVl = (string) $wmP['vorlage'];

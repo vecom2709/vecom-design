@@ -228,6 +228,51 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
     exit;
 }
 
+/* ---------- Partner Academy (Etappe 1, 05.10.2026, Uwe: „Ja, Etappe 1 bauen“) ----------
+   Eine eigene, schnelle Seite wie das Command Center: Module, Einwand-Schnellhilfe,
+   Gesprächshilfen, Leistungen in drei Ebenen, Suche, Merkliste, Notizen. Alles über
+   $p['id'] aus Link und Gerät, jede Tat mit CSRF; Inhalte und Slugs nur aus den
+   Dateien unter app/data/academy (Academy::gibt). */
+if ($p && (isset($_GET['ak']) || str_starts_with((string) ($_POST['tat'] ?? ''), 'ak_'))) {
+    require_once __DIR__ . '/app/src/Academy.php';
+    $akMeldung = '';
+    $akZu = static function (array $q) use ($start): string {
+        $erlaubt = array_intersect_key($q, array_flip(['ak', 'm', 'l', 'e', 'k', 's', 'q']));
+        $erlaubt = array_filter(array_map(static fn($v) => preg_replace('~[^a-z0-9 äöüßàèéìòù-]~iu', '', (string) $v), $erlaubt), static fn($v) => $v !== '');
+        return $start(['ak' => $erlaubt['ak'] ?? '1'] + $erlaubt);
+    };
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        if (!hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
+            header('Location: ' . $akZu(['ak' => '1']), true, 303); exit;
+        }
+        $akTat = (string) ($_POST['tat'] ?? '');
+        $akPid = (int) $p['id'];
+        $akZurueck = (array) $_POST;
+        if ($akTat === 'ak_merken') {
+            Academy::merken($akPid, (string) ($_POST['art'] ?? ''), (string) ($_POST['ziel'] ?? ''), !empty($_POST['an']));
+            header('Location: ' . $akZu($akZurueck) . '#' . preg_replace('~[^a-z0-9-]~', '', (string) ($_POST['anker'] ?? '')), true, 303); exit;
+        }
+        if ($akTat === 'ak_test') {
+            $akM = (string) ($_POST['m'] ?? '');
+            $akR = Academy::abschliessen($akPid, $akM, (array) ($_POST['a'] ?? []));
+            if ($akR['ok']) { $_SESSION['ak_ergebnis'] = ['m' => $akM] + $akR; }
+            header('Location: ' . $akZu(['ak' => 'modul', 'm' => $akM, 'l' => $akR['ok'] ? 'fertig' : 'test'] + ($akR['ok'] ? [] : ['e' => 'lesen'])), true, 303); exit;
+        }
+        if ($akTat === 'ak_notiz') {
+            $akOk = Academy::notizSpeichern($akPid, (string) ($_POST['m'] ?? ''), (string) ($_POST['text'] ?? ''));
+            header('Location: ' . $akZu($akZurueck + ($akOk ? ['e' => 'notiz'] : [])) . '#notizen', true, 303); exit;
+        }
+        if ($akTat === 'ak_notiz_weg') {
+            Academy::notizLoeschen($akPid, (int) ($_POST['id'] ?? 0));
+            header('Location: ' . $akZu($akZurueck) . '#notizen', true, 303); exit;
+        }
+        header('Location: ' . $akZu(['ak' => '1']), true, 303); exit;
+    }
+    $akSeite = in_array((string) $_GET['ak'], ['modul', 'einwaende', 'kontakt', 'leistungen', 'suche', 'meine'], true) ? (string) $_GET['ak'] : 'start';
+    require __DIR__ . '/app/views/partner_academy.php';
+    exit;
+}
+
 /* ---------- Die Partnerseite als App (26.09.2026) ----------
    Das Manifest traegt die persoenliche Adresse als start_url: Wer die Seite
    auf den Startbildschirm legt, landet genau hier, ohne Anmeldung. Es wird
@@ -1376,10 +1421,10 @@ if ($p && isset($_GET['karte'])) {
       'aria' => Texte::h(Texte::PARTNER_REITER['aria'], $sprache),
       'neu' => ['it' => 'novità', 'de' => 'neu', 'en' => 'new'][$sprache] ?? 'new',
       // Reihenfolge nach Spezifikation Punkt 3; START ist ein Link ins Command Center, kein Reiter (05.10.2026).
-      'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'profil'],
+      'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'academy', 'profil'],
       'start' => ['url' => $selbst(['cc' => 1]), 'kurz' => Texte::h(Texte::PARTNER_REITER['reiter']['start']['kurz'], $sprache)],
       'mehr' => Texte::h(Texte::PARTNER_REITER['mehr'], $sprache), 'mehr_aria' => Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache),
-      'mehr_ids' => ['werbemittel', 'profil'],
+      'mehr_ids' => ['werbemittel', 'academy', 'profil'],
       'so' => Texte::h(Texte::PARTNER_REITER['so'], $sprache), 'suche' => Texte::h(Texte::PARTNER_REITER['suche'], $sprache),
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [
@@ -1864,6 +1909,22 @@ if ($p && isset($_GET['karte'])) {
         <input type="checkbox" name="einverstanden" value="1" required style="margin-top:3px;width:auto"> <?= $h($T('m_einverstanden')) ?></label>
       <button class="knopf" type="submit"><?= $h($T('m_knopf')) ?></button>
     </form>
+  </div>
+
+  <?php /* Partner Academy (05.10.2026): der Reiter zeigt Fortschritt und die Wege hinein; die Academy selbst ist eine eigene Seite. */
+    require_once __DIR__ . '/app/src/Academy.php'; $akA = Texte::ACADEMY; $akW = static fn(string $k, array $r = []): string => strtr(Texte::h($akA[$k], $sprache), $r);
+    try { $akS = Academy::stand((int) $p['id'], $sprache); } catch (Throwable $e) { $akS = ['prozent' => 0, 'fertig' => 0, 'gesamt' => 8, 'naechstes' => null, 'begonnen' => false]; } ?>
+  <div class="block pt" id="academy" data-reiter="academy">
+    <h2><?= $h($akW('titel')) ?></h2>
+    <p class="lead"><?= $h($akW('block_satz')) ?></p>
+    <p><b><?= (int) $akS['prozent'] ?> %</b> · <?= $h($akW('module_fertig', ['{n}' => (string) $akS['fertig'], '{gesamt}' => (string) $akS['gesamt']])) ?></p>
+    <div class="es__balken" aria-hidden="true"><i style="width:<?= (int) $akS['prozent'] ?>%"></i></div>
+    <div class="knoepfe">
+      <a class="knopf haupt" href="<?= $h($start(['ak' => '1'])) ?>"><?= $h($akW($akS['begonnen'] ? 'fortsetzen' : 'beginnen')) ?> →</a>
+      <a class="knopf" href="<?= $h($start(['ak' => 'einwaende'])) ?>"><?= $h($akW('s_einwand')) ?></a>
+      <a class="knopf" href="<?= $h($start(['ak' => 'kontakt'])) ?>"><?= $h($akW('s_kontakt')) ?></a>
+      <a class="knopf" href="<?= $h($start(['ak' => 'leistungen'])) ?>"><?= $h($akW('s_leistung')) ?></a>
+    </div>
   </div>
 
   <div class="block pt" id="provisionen" data-reiter="geld">

@@ -12822,8 +12822,8 @@ foreach (Texte::PARTNER_REITER['reiter'] as $prK => $prR) {
     if (mb_strlen((string) $prR['kurz']['it']) > 10 || mb_strlen((string) $prR['kurz']['de']) > 10 || mb_strlen((string) $prR['kurz']['en']) > 10) { $prFehlt[] = "$prK.kurz zu lang fürs Handy"; }
 }
 /* Marketing Center (03.10.2026): sechster Reiter nach „Werben“; erscheint nur mit Katalog. */
-pruefe('Reiter: Start · Kunden · Marketing · Ergebnisse · Shop · Mein Konto (Spezifikation Punkt 3), dreisprachig, kurze Namen passen in die Handyleiste',
-    array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'werbemittel', 'finden', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
+pruefe('Reiter: Start · Kunden · Marketing · Ergebnisse · Shop · Academy · Mein Konto (Spezifikation Punkt 3, Academy 05.10.2026), dreisprachig, kurze Namen passen in die Handyleiste',
+    array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'werbemittel', 'finden', 'academy', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
 $prJs = (string) @file_get_contents($wurzel . '/../assets/js/partner-reiter.js');
 $prSeite = (string) file_get_contents($wurzel . '/../partner.php');
 pruefe('Reiter: ohne Skript bleibt alles sichtbar (die Leiste entsteht erst im Skript), eigene Klasse ohne Zusammenstoß mit dem Werbe-Paket',
@@ -23674,13 +23674,13 @@ pruefe('Startseite nach Punkt 4: Gruß, Satz, genau vier Zahlen (Neue Leads, Kun
     && str_contains($ccView, '<details class="cc-jetzt') && str_contains($ccView, "\$h(\$c(\$C['jetzt']))") && str_contains($ccView, '<details class="cc-mehrblick')
     && strpos($ccView, '<section class="cc-kz4') < strpos($ccView, '<section class="cc-wichtig') && strpos($ccView, '<section class="cc-wichtig') < strpos($ccView, '<details class="cc-jetzt')
     && Texte::h(Texte::PARTNER_CC['jetzt'], 'de') === 'Was soll ich jetzt tun?' && !isset(Texte::PARTNER_CC['frage']));
-pruefe('Navigation nach Punkt 3: START (Command Center) · KUNDEN · MARKETING · ERGEBNISSE · SHOP · MEIN KONTO; am Handy SHOP und MEIN KONTO hinter MEHR — im Command Center und im vollen Bereich',
+pruefe('Navigation nach Punkt 3: START (Command Center) · KUNDEN · MARKETING · ERGEBNISSE · SHOP · ACADEMY · MEIN KONTO; am Handy SHOP, ACADEMY und MEIN KONTO hinter MEHR — im Command Center und im vollen Bereich',
     Texte::h(Texte::PARTNER_REITER['reiter']['finden']['kurz'], 'de') === 'Kunden' && Texte::h(Texte::PARTNER_REITER['reiter']['werben']['kurz'], 'de') === 'Marketing'
     && Texte::h(Texte::PARTNER_REITER['reiter']['geld']['kurz'], 'de') === 'Ergebnisse' && Texte::h(Texte::PARTNER_REITER['reiter']['werbemittel']['kurz'], 'de') === 'Shop'
     && Texte::h(Texte::PARTNER_REITER['reiter']['profil']['kurz'], 'de') === 'Mein Konto' && Texte::h(Texte::PARTNER_REITER['mehr'], 'it') === 'Altro'
-    && str_contains($ccSeite, "'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'profil'],") && str_contains($ccSeite, "'mehr_ids' => ['werbemittel', 'profil'],")
-    && array_keys(array_slice((static function () use ($ccView): array { preg_match_all("~^    '([a-z]+)'\s+=> \['<~m", $ccView, $m); return array_flip($m[1]); })(), 0, 6)) === ['cc', 'finden', 'werben', 'geld', 'werbemittel', 'profil']
-    && str_contains($ccView, "\$ccMehr = ['werbemittel', 'profil'];") && str_contains($ccView, '<details class="cc-mehr">')
+    && str_contains($ccSeite, "'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'academy', 'profil'],") && str_contains($ccSeite, "'mehr_ids' => ['werbemittel', 'academy', 'profil'],")
+    && array_keys(array_slice((static function () use ($ccView): array { preg_match_all("~^    '([a-z]+)'\s+=> \['<~m", $ccView, $m); return array_flip($m[1]); })(), 0, 7)) === ['cc', 'finden', 'werben', 'geld', 'werbemittel', 'academy', 'profil']
+    && str_contains($ccView, "\$ccMehr = ['werbemittel', 'academy', 'profil'];") && str_contains($ccView, '<details class="cc-mehr">')
     && str_contains($ccR, "st.className = 'app-start';") && str_contains($ccR, "mehrKnopf.className = 'app-mehr';") && !str_contains($ccR, 'if (id === reihe[0]) { return; }'));
 $ccBl = '';
 foreach (array_merge(glob($wurzel . '/views/partner_*.php'), [$oben . '/partner.php']) as $ccF) { $ccBl .= (string) file_get_contents($ccF); }
@@ -23809,6 +23809,114 @@ Db::run('DELETE FROM partner WHERE id = ?', [(int) $qrFremd['id']]);
 Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $kaP['id']]);
+
+
+/* ============================================================================
+   Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).
+   Inhalte dreisprachig und gleich gebaut, keine Zusagen in Antworten, Fortschritt
+   und Notizen strikt je Partner, nur bekannte Inhalte merkbar, CSRF vor jeder Tat.
+   ============================================================================ */
+abschnitt('Partner Academy');
+require_once $wurzel . '/src/Academy.php';
+$akD = []; $akFehlt = [];
+foreach (['de', 'it', 'en'] as $akL) {
+    $akRoh = json_decode((string) @file_get_contents($wurzel . '/data/academy/' . $akL . '.json'), true);
+    if (!is_array($akRoh)) { $akFehlt[] = $akL; continue; }
+    $akD[$akL] = $akRoh;
+}
+$akSlugs = static fn(array $d): array => [array_column($d['module'], 'slug'), array_column($d['einwaende'], 'slug'), array_column($d['leistungen'], 'slug'), array_column($d['kontakt'], 'slug'),
+    array_map(static fn($m) => [count($m['lektionen']), count($m['fragen'] ?? []), array_column($m['fragen'] ?? [], 'richtig')], $d['module'])];
+pruefe('Academy: Inhalte in it/de/en vorhanden und gleich gebaut (Module, Lektionen, Fragen, Einwände, Leistungen, Kontaktwege)',
+    $akFehlt === [] && $akSlugs($akD['de']) === $akSlugs($akD['it']) && $akSlugs($akD['de']) === $akSlugs($akD['en']), implode(',', $akFehlt));
+$akAntwortOk = true;
+foreach ($akD as $akL => $akX) { foreach ($akX['module'] as $akM) { foreach (($akM['fragen'] ?? []) as $akF) {
+    if (!isset($akF['antworten'][(int) $akF['richtig']]) || trim((string) ($akF['warum'] ?? '')) === '') { $akAntwortOk = false; } } } }
+pruefe('Academy: 8 Module, 19 Einwände, 12 Leistungen; jede Testfrage hat eine gültige richtige Antwort und eine Begründung',
+    count($akD['de']['module']) === 8 && count($akD['de']['einwaende']) === 19 && count($akD['de']['leistungen']) === 12 && $akAntwortOk);
+/* Keine Zusagen: In Antworten, Erklärungen und Beispielen keine Beträge, Prozente oder Fristen als Versprechen. */
+$akZusage = [];
+foreach ($akD as $akL => $akX) {
+    $akTexte = [];
+    foreach ($akX['einwaende'] as $akE) { $akTexte[$akE['slug']] = $akE['antwort'] . ' ' . $akE['frage'] . ' ' . $akE['weiter']; }
+    foreach ($akX['leistungen'] as $akE) { $akTexte['l:' . $akE['slug']] = $akE['kurz'] . ' ' . $akE['normal'] . ' ' . $akE['ausfuehrlich'] . ' ' . $akE['s30']; }
+    foreach ($akX['kontakt'] as $akE) { $akTexte['k:' . $akE['slug']] = $akE['beispiel']; }
+    foreach ($akTexte as $akK => $akT) {
+        if ($akK === '300-euro') { $akT = (string) preg_replace('~300\s*(Euro|euro|€)~u', '', $akT); }
+        if (preg_match('~\d+\s*(€|Euro|euro|%|Prozent|percento|per cento|percent)~u', $akT)) { $akZusage[] = "$akL:$akK"; }
+    }
+}
+pruefe('Academy: Antworten und Erklärungen nennen keine Beträge oder Prozente (Preise und Rabatte entscheidet Vecom)', $akZusage === [], implode(', ', $akZusage));
+/* Anrede: Deutsch duzt den Partner in den Lektionen; „…“ darf siezen (Sätze an Betriebe). Kundensätze (Fragenliste, Leistungen) siezen. */
+$akSie = '/(?<![\p{L}])(Ihnen|Ihr|Ihre|Ihren|Ihrem|Ihrer|Ihres)(?![\p{L}])|(?<=[\p{Ll},;)]\s)Sie(?![\p{L}])/u';
+$akSieFunde = [];
+foreach ($akD['de']['module'] as $akM) {
+    foreach (array_merge([$akM['titel'], $akM['ziel']], ...array_map(static fn($l) => array_merge([$l['titel'], $l['text'] ?? '', $l['merke'] ?? ''], $l['punkte'] ?? [], $l['darf'] ?? [], $l['darf_nicht'] ?? []), $akM['lektionen'])) as $akT) {
+        if (preg_match($akSie, (string) preg_replace('/„[^“]*“/u', '„“', (string) $akT))) { $akSieFunde[] = $akM['slug'] . ': ' . mb_substr((string) $akT, 0, 50); }
+    }
+}
+pruefe('Academy: Lektionen duzen den Partner (Sätze an Betriebe nur in „…“)', $akSieFunde === [], implode(' | ', array_slice($akSieFunde, 0, 3)));
+
+$akA = Partner::laden(Partner::anlegen(['name' => 'Anna Akademie', 'email' => 'anna.akademie@partner.example', 'code' => 'ANNAAKA', 'sprache' => 'de', 'status' => 'aktiv']));
+$akB = Partner::laden(Partner::anlegen(['name' => 'Bea Andere', 'email' => 'bea.andere@partner.example', 'code' => 'BEAANDR', 'sprache' => 'it', 'status' => 'aktiv']));
+$akAid = (int) $akA['id']; $akBid = (int) $akB['id'];
+$akS0 = Academy::stand($akAid, 'de');
+pruefe('Academy: neuer Partner startet bei 0 %, nächstes Modul ist „Vecom Design verstehen“',
+    $akS0['prozent'] === 0 && $akS0['fertig'] === 0 && ($akS0['naechstes']['slug'] ?? '') === 'vecom-verstehen' && !$akS0['begonnen']);
+$akVorzeitig = Academy::abschliessen($akAid, 'vecom-verstehen', [0 => 1, 1 => 1]);
+foreach (range(0, 4) as $akI) { Academy::lektionGelesen($akAid, 'vecom-verstehen', $akI); }
+Academy::lektionGelesen($akAid, 'vecom-verstehen', 99);   // gibt es nicht
+Academy::lektionGelesen($akAid, 'gibt-es-nicht', 0);
+$akR = Academy::abschliessen($akAid, 'vecom-verstehen', [0 => 1, 1 => 0]);
+$akS1 = Academy::stand($akAid, 'de');
+pruefe('Academy: abschließen erst nach allen Lektionen; Test ausgewertet (1 von 2), Modul fertig, Fortschritt steigt',
+    !$akVorzeitig['ok'] && $akR['ok'] && $akR['richtig'] === 1 && $akR['fragen'] === 2 && $akS1['fertig'] === 1 && $akS1['prozent'] > 0
+    && ($akS1['naechstes']['slug'] ?? '') === 'kunden-finden'
+    && (int) Db::wert("SELECT COUNT(*) FROM academy_fortschritt WHERE modul = 'gibt-es-nicht'") === 0
+    && (string) Db::wert('SELECT lektionen FROM academy_fortschritt WHERE partner_id = ? AND modul = ?', [$akAid, 'vecom-verstehen'], '') === '0,1,2,3,4',
+    json_encode([$akR, $akS1['prozent']]));
+pruefe('Academy: der Fortschritt eines Partners ist für einen anderen unsichtbar',
+    Academy::fortschritt($akBid) === [] && Academy::stand($akBid, 'it')['prozent'] === 0);
+$akM1 = Academy::merken($akAid, 'einwand', 'zu-teuer', true);
+$akM2 = Academy::merken($akAid, 'einwand', 'erfunden', true);
+$akM3 = Academy::merken($akAid, 'kunde', 'zu-teuer', true);
+Academy::merken($akAid, 'einwand', 'zu-teuer', true);   // doppelt
+pruefe('Academy: Merkliste nur mit bekannten Inhalten, ohne Doppelte, je Partner',
+    $akM1 && !$akM2 && !$akM3 && count(Academy::merkliste($akAid)) === 1 && Academy::merkliste($akBid) === []
+    && Academy::gemerkt(Academy::merkliste($akAid), 'einwand', 'zu-teuer'));
+Academy::merken($akAid, 'einwand', 'zu-teuer', false);
+$akN1 = Academy::notizSpeichern($akAid, 'vecom-verstehen', str_repeat('x', 3000));
+$akN2 = Academy::notizSpeichern($akAid, '', '   ');
+$akNid = (int) Db::wert('SELECT id FROM academy_notizen WHERE partner_id = ? ORDER BY id DESC LIMIT 1', [$akAid]);
+$akFremd = Academy::notizLoeschen($akBid, $akNid);
+pruefe('Academy: Notizen gekürzt auf 2000 Zeichen, leere abgelehnt, fremde lassen sich nicht löschen, Partner B sieht keine',
+    $akN1 && !$akN2 && mb_strlen((string) Db::wert('SELECT text FROM academy_notizen WHERE id = ?', [$akNid], '')) === Academy::NOTIZ_MAX
+    && !$akFremd && Academy::notizen($akBid) === [] && count(Academy::notizen($akAid, 'vecom-verstehen')) === 1 && Academy::notizLoeschen($akAid, $akNid));
+$akT1 = Academy::suche('zu teuer', 'de');
+$akT2 = Academy::suche('troppo caro', 'it');
+$akT3 = Academy::suche('x', 'de');
+pruefe('Academy: Suche findet „zu teuer“ (de) und „troppo caro“ (it), zu kurze Suchen liefern nichts',
+    ($akT1[0]['slug'] ?? '') === 'zu-teuer' && ($akT1[0]['art'] ?? '') === 'einwand' && in_array('zu-teuer', array_column($akT2, 'slug'), true) && $akT3 === []);
+$akZSpalten = array_column(Db::all('SHOW COLUMNS FROM academy_zaehler'), 'Field');
+pruefe('Academy: Statistik zählt anonym (keine Partner-Spalte, kein Freitext)',
+    $akZSpalten === ['tag', 'art', 'ziel', 'n'] && (int) Db::wert("SELECT COUNT(*) FROM academy_zaehler WHERE ziel LIKE '%teuer%'") >= 1);
+$akPl = Academy::platzhalter($akA, 'de');
+pruefe('Academy: Provisionszahlen kommen aus denselben Einstellungen wie die Vereinbarung',
+    $akPl['{tage}'] === (string) max(14, Partner::zahl('partner_sperrtage')) && $akPl['{zuordnung}'] === (string) Partner::zahl('partner_zuordnung_monate') && $akPl['{satz}'] !== '');
+$akSeite = (string) file_get_contents($wurzel . '/../partner.php');
+$akAnsicht = (string) file_get_contents($wurzel . '/views/partner_academy.php');
+$akCsrf = strpos($akSeite, "if (!hash_equals((string) \$_SESSION['csrf'], (string) (\$_POST['_csrf'] ?? ''))) {\n            header('Location: ' . \$akZu");
+$akErste = strpos($akSeite, "Academy::merken(\$akPid");
+pruefe('Academy: jede Tat prüft zuerst CSRF und arbeitet nur mit der Partner-ID aus Link und Gerät',
+    $akCsrf !== false && $akErste !== false && $akCsrf < $akErste && str_contains($akSeite, "\$akPid = (int) \$p['id'];")
+    && !preg_match('~partner_id\s*=\s*\$_(GET|POST)~', $akSeite . $akAnsicht) && substr_count($akAnsicht, 'name="_csrf"') >= 5);
+pruefe('Academy: Reiter „Academy“ im Partnerbereich und in der Leiste des Command Centers, eigene Seite mit Einwand-Hilfe überall',
+    str_contains($akSeite, 'id="academy" data-reiter="academy"') && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), "'academy'")
+    && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-reiter.js'), 'academy:')
+    && str_contains($akAnsicht, 'class="ak-hilfe"') && str_contains($akAnsicht, "\$a('intern')"));
+Db::run('DELETE FROM academy_fortschritt WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
+Db::run('DELETE FROM academy_merkliste WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
+Db::run('DELETE FROM academy_notizen WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$akAid, $akBid]);
 
 /* ============================================================================
    Aufräumen und Bilanz

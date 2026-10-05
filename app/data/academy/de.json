@@ -1,0 +1,938 @@
+{
+ "module": [
+  {
+   "slug": "vecom-verstehen",
+   "nr": 1,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Vecom Design verstehen",
+   "ziel": "Du weißt, was Vecom anbietet, wie ein Projekt abläuft und was du einem Betrieb sagen darfst – und was nicht.",
+   "lektionen": [
+    {
+     "titel": "Was ist Vecom Design?",
+     "text": "Vecom Design baut Websites für Betriebe, die mit ihrem Handwerk überzeugen wollen: Restaurants, Salons, Handwerker, Autohäuser, Ferienwohnungen, Manufakturen. Jede Seite wird für den Betrieb gestaltet – keine Vorlage, kein Baukasten.\n\nDer Betrieb hat dabei einen festen Ansprechpartner und einen persönlichen Bereich, in dem er jeden Schritt seines Projekts sieht: vom Fragebogen über die Vorschau bis zur Freigabe."
+    },
+    {
+     "titel": "Wie läuft ein Projekt ab?",
+     "text": "1. Der Betrieb beantwortet online ein paar Fragen und sieht sofort einen Richtpreis.\n2. Vecom meldet sich mit einem genauen Angebot, in der Regel innerhalb eines Werktags.\n3. Erst nach einer schriftlichen Einigung wird etwas bezahlt.\n4. Der Betrieb liefert Inhalte (oder Vecom hilft dabei), Vecom gestaltet und baut.\n5. Der Betrieb sieht eine Vorschau, gibt Rückmeldung und gibt frei.\n6. Die Seite geht online – auf Wunsch mit Hosting und Betreuung.",
+     "punkte": [
+      "Richtpreis sofort im Fragebogen",
+      "genaues Angebot von Vecom",
+      "bezahlt wird erst nach schriftlicher Einigung",
+      "Vorschau und Freigabe durch den Betrieb"
+     ]
+    },
+    {
+     "titel": "Warum gibt es keine festen Pakete?",
+     "text": "Eine Speisekarte, ein Buchungssystem oder drei Sprachen kosten unterschiedlich viel Arbeit. Statt den Betrieb in ein Paket zu drücken, setzt sich der Preis aus dem zusammen, was er wirklich braucht. Darum zeigt der Fragebogen einen Richtpreis, und das genaue Angebot kommt von Vecom.\n\nFür dich heißt das: Du musst keinen Preis kennen. Dein Weg ist immer der Fragebogen über deinen Link."
+    },
+    {
+     "titel": "Was unterscheidet Vecom von einem Baukasten?",
+     "text": "Ein Baukasten ist billig, aber der Betrieb macht alles selbst und sieht aus wie viele andere. Vecom gestaltet eine eigene Seite, kümmert sich um Technik, mobile Darstellung und Sicherheit und begleitet den Betrieb, bis die Seite online ist.\n\nSag das nie abwertend über andere Anbieter. Erkläre einfach, was der Betrieb bei Vecom bekommt."
+    },
+    {
+     "titel": "Was du versprechen darfst – und was nicht",
+     "text": "Du darfst erklären, wie Vecom arbeitet, und den Betrieb zum Fragebogen führen. Alles, was Geld, Zeit oder Technik verbindlich macht, entscheidet nur Vecom.",
+     "darf": [
+      "erklären, wie ein Projekt abläuft",
+      "auf den Richtpreis im Fragebogen verweisen",
+      "Beispiele von der Vecom-Website zeigen",
+      "sagen: „Vecom meldet sich mit einem genauen Angebot“"
+     ],
+     "darf_nicht": [
+      "feste Preise nennen oder schätzen",
+      "Rabatte oder Sonderkonditionen zusagen",
+      "Fertigstellungstermine versprechen",
+      "Google-Platzierungen oder mehr Umsatz garantieren",
+      "technische Zusagen machen („das geht sicher“)",
+      "schlecht über andere Anbieter reden"
+     ],
+     "merke": "Wenn du unsicher bist: „Das kläre ich mit Vecom, Sie bekommen eine verbindliche Antwort.“ Das ist professionell, nicht schwach."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Ein Betrieb fragt: „Was kostet so eine Website ungefähr?“ Was antwortest du?",
+     "antworten": [
+      "„So etwa 800 Euro.“",
+      "„Das hängt davon ab, was Sie brauchen. Im Fragebogen sehen Sie in zwei Minuten einen Richtpreis.“",
+      "„Für Sie mache ich es günstiger.“"
+     ],
+     "richtig": 1,
+     "warum": "Du nennst keine Zahl aus dem Kopf. Der Fragebogen zeigt den Richtpreis, das genaue Angebot kommt von Vecom."
+    },
+    {
+     "frage": "Wann bezahlt ein Betrieb bei Vecom?",
+     "antworten": [
+      "Sofort nach dem Fragebogen",
+      "Erst nach einer schriftlichen Einigung",
+      "Erst wenn die Seite online ist"
+     ],
+     "richtig": 1,
+     "warum": "Vor einer schriftlichen Einigung wird nichts bezahlt."
+    }
+   ]
+  },
+  {
+   "slug": "kunden-finden",
+   "nr": 2,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Potenzielle Kunden finden",
+   "ziel": "Du erkennst Betriebe, denen eine bessere Website wirklich hilft – und verschwendest keine Zeit mit den anderen.",
+   "lektionen": [
+    {
+     "titel": "Woran erkennst du einen guten Kandidaten?",
+     "text": "Ein guter Kandidat hat ein Problem, das man sehen kann. Das prüfst du in zwei Minuten mit dem Handy oder mit dem Schnellcheck in deinem Partnerbereich.",
+     "punkte": [
+      "keine eigene Website, nur Facebook oder Google-Eintrag",
+      "Website sieht alt aus oder ist auf dem Handy schwer zu lesen",
+      "kein HTTPS (Browser zeigt „nicht sicher“)",
+      "Telefon, Adresse oder Öffnungszeiten schwer zu finden",
+      "keine Online-Terminbuchung, obwohl sie Termine vergeben",
+      "Produkte, aber kein Shop",
+      "Gäste aus dem Ausland, aber nur eine Sprache",
+      "neu eröffnet oder gerade umgezogen"
+     ]
+    },
+    {
+     "titel": "Welche Branchen passen besonders?",
+     "text": "Am leichtesten ist es bei Betrieben, deren Kunden vorher online schauen: Wer essen geht, einen Friseur sucht oder eine Ferienwohnung bucht, entscheidet am Handy.",
+     "punkte": [
+      "Gastronomie und Restaurants",
+      "Hotels, B&B, Ferienwohnungen, Tourismus",
+      "Friseure, Kosmetik, Beauty",
+      "Handwerk und Bauunternehmen",
+      "Autohäuser und Werkstätten",
+      "Praxen, Kanzleien, Coaches, Dienstleister",
+      "Fitness und Studios",
+      "lokale Geschäfte, Manufakturen, Vereine"
+     ]
+    },
+    {
+     "titel": "Wo findest du sie?",
+     "text": "Fang bei Menschen an, die du kennst: dein Friseur, das Restaurant um die Ecke, der Handwerker, der bei dir war. Ein persönlicher Kontakt öffnet mehr Türen als hundert Nachrichten.\n\nIm Reiter „Kunden“ findest du außerdem den Firmen-Finder: Betriebe in deinem Ort, die du für 60 Tage für dich reservieren kannst, und jeden Morgen fünf Vorschläge vom Autopiloten."
+    },
+    {
+     "titel": "Prüfe, bevor du ansprichst",
+     "text": "Nutze die Kundenfinder-Checkliste in der Academy oder den Schnellcheck. Sprich nur über das, was du wirklich gesehen hast. Ein Betrieb merkt sofort, ob du seine Seite angesehen hast.",
+     "merke": "Keine erfundenen Mängel. „Ihre Seite lädt auf dem Handy langsam“ sagst du nur, wenn der Check das zeigt."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Welcher Betrieb ist der beste Kandidat?",
+     "antworten": [
+      "Eine Kanzlei mit moderner, schneller Website",
+      "Ein Restaurant, das nur eine Facebook-Seite hat",
+      "Ein Konzern mit eigener IT-Abteilung"
+     ],
+     "richtig": 1,
+     "warum": "Das Restaurant hat ein sichtbares Problem, und seine Gäste suchen am Handy."
+    }
+   ]
+  },
+  {
+   "slug": "erstkontakt",
+   "nr": 3,
+   "minuten": 9,
+   "pflicht": true,
+   "titel": "Der erste Kundenkontakt",
+   "ziel": "Du sprichst einen Betrieb so an, dass er dir gern zuhört – persönlich, am Telefon oder schriftlich.",
+   "lektionen": [
+    {
+     "titel": "Das Ziel des ersten Kontakts",
+     "text": "Im ersten Kontakt verkaufst du nichts. Dein Ziel ist ein kleines Ja: „Ja, zeigen Sie mir das“ oder „Ja, schicken Sie mir den Link“.\n\nSprich über den Betrieb, nicht über Vecom. Eine konkrete Beobachtung ist der beste Einstieg."
+    },
+    {
+     "titel": "Gut und schlecht formuliert",
+     "schlecht": [
+      "„Sie brauchen dringend eine neue Website.“",
+      "„Ihre Seite ist schlecht.“",
+      "„Ich habe ein super Angebot für Sie.“"
+     ],
+     "gut": [
+      "„Mir ist bei Ihrem Online-Auftritt aufgefallen, dass an einigen Stellen noch Potenzial ist. Darf ich Ihnen kurz zeigen, was man verbessern könnte?“",
+      "„Ich habe Ihre Seite auf dem Handy angesehen – die Öffnungszeiten habe ich nicht gefunden. Ist das Absicht?“",
+      "„Darf ich Ihnen einen kurzen Bericht zu Ihrer Seite schicken? Kostet nichts.“"
+     ]
+    },
+    {
+     "titel": "Die Kontaktwege im Überblick",
+     "text": "Jeder Weg hat eigene Regeln. Öffne unten „Kontaktwege“: Für jeden Weg findest du Ziel, Einstieg, Beispiel, gute und schlechte Formulierungen und den nächsten Schritt.",
+     "merke": "WhatsApp, E-Mail und SMS nur an Menschen, die dir das erlaubt haben oder die du persönlich kennst. Keine Serien, keine automatischen Nachrichten. In Italien Nummern im Registro delle Opposizioni nicht anrufen."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Was ist das Ziel des ersten Kontakts?",
+     "antworten": [
+      "Den Auftrag sofort abschließen",
+      "Ein kleines Ja, zum Beispiel für einen kurzen Bericht",
+      "Den Preis nennen"
+     ],
+     "richtig": 1,
+     "warum": "Im ersten Kontakt geht es um Interesse, nicht um den Auftrag."
+    }
+   ]
+  },
+  {
+   "slug": "gespraech-fuehren",
+   "nr": 4,
+   "minuten": 8,
+   "pflicht": true,
+   "titel": "Ein gutes Kundengespräch führen",
+   "ziel": "Du führst ein Gespräch, in dem der Betrieb mehr redet als du – und am Ende ist klar, was als Nächstes passiert.",
+   "lektionen": [
+    {
+     "titel": "Der Ablauf in sechs Schritten",
+     "text": "1. Eröffnen: Danke für die Zeit, kurz sagen, worum es geht.\n2. Vertrauen: Etwas Echtes über den Betrieb sagen, das dir gefällt.\n3. Fragen: Offene Fragen stellen (siehe Modul 5).\n4. Zuhören: Ausreden lassen, nachfragen, notieren.\n5. Zusammenfassen: „Habe ich richtig verstanden, dass …?“\n6. Nächster Schritt: Konkret vereinbaren, wer was bis wann tut."
+    },
+    {
+     "titel": "Zuhören statt verkaufen",
+     "text": "Wer zuhört, erfährt, was der Betrieb wirklich will – mehr Gäste unter der Woche, weniger Anrufe für Termine, ein besseres Bild bei Touristen. Erst danach erklärst du, wie Vecom dabei hilft.",
+     "punkte": [
+      "nicht unterbrechen",
+      "nachfragen: „Wie meinen Sie das genau?“",
+      "Pausen aushalten",
+      "Notizen machen",
+      "keine Fachbegriffe"
+     ]
+    },
+    {
+     "titel": "Das Gespräch abschließen",
+     "text": "Ein gutes Gespräch endet nie mit „Melden Sie sich mal“. Es endet mit einem nächsten Schritt.",
+     "gut": [
+      "„Ich schicke Ihnen jetzt den Link zum Fragebogen. Dauert zwei Minuten, und Sie sehen sofort einen Richtpreis.“",
+      "„Passt es Ihnen, wenn ich mich am Donnerstag noch einmal melde?“"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Der Betrieb erzählt lange von seinen Problemen. Was tust du?",
+     "antworten": [
+      "Unterbrechen und Vecom erklären",
+      "Zuhören, nachfragen und am Ende zusammenfassen",
+      "Das Thema wechseln"
+     ],
+     "richtig": 1,
+     "warum": "Je mehr der Betrieb erzählt, desto besser verstehst du, was er braucht."
+    }
+   ]
+  },
+  {
+   "slug": "bedarf-erkennen",
+   "nr": 5,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Den Bedarf des Kunden erkennen",
+   "ziel": "Du findest mit wenigen guten Fragen heraus, was der Betrieb wirklich braucht.",
+   "lektionen": [
+    {
+     "titel": "Die besten Fragen",
+     "text": "Offene Fragen beginnen mit Was, Wie oder Welche. Darauf kann man nicht mit Ja oder Nein antworten. Du musst nicht alle stellen – fünf gute reichen.",
+     "fragenliste": [
+      "Was möchten Sie mit Ihrer Website erreichen?",
+      "Wie gewinnen Sie heute neue Kunden?",
+      "Haben Sie schon eine Website? Was gefällt Ihnen daran, was nicht?",
+      "Welche Leistungen möchten Sie besonders zeigen?",
+      "Möchten Sie Termine oder Reservierungen online anbieten?",
+      "Verkaufen Sie Produkte, die man online bestellen könnte?",
+      "Kommen Ihre Kunden auch aus dem Ausland?",
+      "Möchten Sie bei Google besser gefunden werden?",
+      "Haben Sie Logo, Fotos und Texte – oder brauchen Sie dabei Hilfe?",
+      "Gibt es Websites, deren Stil Ihnen gefällt?",
+      "Welche Kunden möchten Sie vor allem erreichen?"
+     ]
+    },
+    {
+     "titel": "Vom Gespräch zur Empfehlung",
+     "text": "Mit dem Bedarfsassistenten in der Academy hältst du die Antworten fest. Er zeigt dir danach, welche Vecom-Bereiche passen könnten – zum Beispiel Webdesign, Terminbuchung oder Mehrsprachigkeit.\n\nDas sind Hinweise für dich, keine Buchung und kein Preis. Den Richtpreis sieht der Betrieb im Fragebogen über deinen Link."
+    },
+    {
+     "titel": "Typische Signale",
+     "punkte": [
+      "„Das Telefon klingelt ständig wegen Terminen“ → Terminbuchung",
+      "„Viele Touristen fragen auf Englisch“ → Mehrsprachigkeit",
+      "„Wir verkaufen auch Wein/Öl/Produkte“ → Shop",
+      "„Uns findet keiner bei Google“ → saubere Grundlage für Suchmaschinen",
+      "„Wir haben kein richtiges Logo“ → Branding (Logo nur auf Anfrage)"
+     ]
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Welche Frage ist eine offene Frage?",
+     "antworten": [
+      "„Haben Sie eine Website?“",
+      "„Wie gewinnen Sie heute neue Kunden?“",
+      "„Wollen Sie mehr Kunden?“"
+     ],
+     "richtig": 1,
+     "warum": "Offene Fragen bringen den Betrieb zum Erzählen."
+    }
+   ]
+  },
+  {
+   "slug": "vecom-praesentieren",
+   "nr": 6,
+   "minuten": 8,
+   "pflicht": false,
+   "titel": "Vecom richtig präsentieren",
+   "ziel": "Du erklärst jede Vecom-Leistung so, wie es dein Gegenüber braucht: in 30 Sekunden, normal oder ausführlich.",
+   "lektionen": [
+    {
+     "titel": "Drei Ebenen für jede Leistung",
+     "text": "Manche wollen nur einen Satz, andere wollen es genau wissen. Darum gibt es zu jeder Leistung drei Erklärungen: kurz, normal und ausführlich – und eine Fassung „in 30 Sekunden“, die du am Telefon vorlesen kannst.\n\nÖffne unten „Leistungen erklären“. Lies vorher einmal alle durch, dann fühlst du dich sicher."
+    },
+    {
+     "titel": "Zeigen schlägt erklären",
+     "text": "Auf der Vecom-Website gibt es Demos für viele Branchen: Restaurant, Salon, Autohaus, Ferienwohnung und mehr. Zeig dem Betrieb die Demo seiner Branche auf deinem Handy. Ein Bild sagt mehr als jede Erklärung.",
+     "merke": "Erkläre ohne Fachwörter. Statt „responsive“ sag „sieht auf dem Handy genauso gut aus“."
+    }
+   ],
+   "fragen": []
+  },
+  {
+   "slug": "einwaende",
+   "nr": 7,
+   "minuten": 10,
+   "pflicht": true,
+   "titel": "Einwände souverän behandeln",
+   "ziel": "Du reagierst auf „zu teuer“, „keine Zeit“ oder „brauche ich nicht“ ruhig und freundlich – und findest heraus, was dahintersteckt.",
+   "lektionen": [
+    {
+     "titel": "Ein Einwand ist keine Absage",
+     "text": "Ein Einwand heißt meistens: „Ich bin noch nicht überzeugt“ oder „Ich habe eine Sorge“. Streite nicht und verteidige dich nicht. Frag nach, was dahintersteckt.\n\nDie Grundregel: anerkennen – nachfragen – antworten – nächsten Schritt anbieten."
+    },
+    {
+     "titel": "Die vier Schritte",
+     "punkte": [
+      "Anerkennen: „Das verstehe ich gut.“",
+      "Nachfragen: „Darf ich fragen, woran es genau liegt?“",
+      "Antworten: kurz, ehrlich, ohne Druck",
+      "Nächster Schritt: etwas Kleines, Unverbindliches anbieten"
+     ]
+    },
+    {
+     "titel": "Die Schnellhilfe",
+     "text": "Unten findest du die häufigsten Einwände mit Bedeutung, Rückfrage, Beispielantwort, Tabus und nächstem Schritt. Im Gespräch erreichst du sie über den Knopf „Einwand des Kunden“ – von jeder Seite der Academy mit einem Tipp.",
+     "merke": "Niemals einen Rabatt versprechen, um einen Einwand zu lösen. Preise und Konditionen entscheidet nur Vecom."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Der Betrieb sagt: „Können Sie mir Rabatt geben?“ Was ist richtig?",
+     "antworten": [
+      "„Klar, 20 Prozent gehen immer.“",
+      "„Das entscheidet Vecom. Schauen Sie sich im Fragebogen den Richtpreis an, dann sehen wir weiter.“",
+      "„Nein, auf keinen Fall.“"
+     ],
+     "richtig": 1,
+     "warum": "Du sagst nichts zu, was nur Vecom entscheiden darf – bleibst aber freundlich und hältst das Gespräch offen."
+    }
+   ]
+  },
+  {
+   "slug": "zum-auftrag",
+   "nr": 8,
+   "minuten": 7,
+   "pflicht": true,
+   "titel": "Vom Erstkontakt zum Auftrag",
+   "ziel": "Du kennst den ganzen Weg vom ersten Gespräch bis zur Provision und weißt in jedem Schritt, was jetzt zu tun ist.",
+   "lektionen": [
+    {
+     "titel": "Der Weg im Überblick",
+     "weg": [
+      "Interessent",
+      "Erstkontakt",
+      "Interesse",
+      "Bedarfsgespräch",
+      "Fragebogen über deinen Link",
+      "Angebot von Vecom",
+      "Nachfassen",
+      "Auftrag",
+      "Projekt",
+      "Provision"
+     ]
+    },
+    {
+     "titel": "Wann gehört ein Kunde zu dir?",
+     "text": "Ein Kunde wird dir zugeordnet, wenn er über deinen Link oder deinen Code zu Vecom kommt – zum Beispiel, wenn er den Fragebogen über deinen Link ausfüllt oder deinen Code angibt. Wer zuerst zugeordnet ist, bleibt zugeordnet. Die Zuordnung gilt {zuordnung} Monate."
+    },
+    {
+     "titel": "Wann entsteht deine Provision?",
+     "text": "Deine Provision ({satz}) entsteht, wenn der Kunde bezahlt – nicht beim Fragebogen und nicht beim Angebot. Sie wird nach {tage} Tagen auszahlbar (Widerrufsfrist), ausgezahlt wird ab {min}. Den Stand jeder Provision siehst du im Reiter „Geld“.",
+     "punkte": [
+      "wartet: Zahlung ist da, die Frist läuft",
+      "bereit: kann ausgezahlt werden",
+      "unterwegs: Überweisung läuft",
+      "ausgezahlt: ist bei dir angekommen"
+     ]
+    },
+    {
+     "titel": "Was mache ich jetzt?",
+     "text": "In der Academy und bei jedem Betrieb, den du reserviert hast, zeigt dir „Was mache ich jetzt?“ den passenden nächsten Schritt – mit Gesprächshilfe und Leitfaden.",
+     "merke": "Die meisten Aufträge entstehen beim zweiten oder dritten Kontakt. Freundliches Nachfassen nach 3 und 7 Tagen gehört dazu."
+    }
+   ],
+   "fragen": [
+    {
+     "frage": "Wann entsteht deine Provision?",
+     "antworten": [
+      "Wenn der Betrieb den Fragebogen ausfüllt",
+      "Wenn der Kunde bezahlt",
+      "Wenn du den Betrieb anrufst"
+     ],
+     "richtig": 1,
+     "warum": "Provision gibt es auf bezahlte Beträge."
+    }
+   ]
+  }
+ ],
+ "kontakt": [
+  {
+   "slug": "persoenlich",
+   "name": "Persönlich vorbeigehen",
+   "ziel": "Sympathie und ein kurzer Blick auf die Website oder Demo am Handy.",
+   "eroeffnung": "Zur ruhigen Zeit kommen (nicht mittags im Restaurant), kurz vorstellen, eine Beobachtung nennen.",
+   "beispiel": "„Guten Tag, ich bin [Name] und arbeite mit Vecom Design zusammen. Ich habe mir Ihre Seite angesehen und hätte eine Idee – haben Sie zwei Minuten?“",
+   "gut": [
+    "eine konkrete Beobachtung",
+    "die Demo der Branche am Handy zeigen",
+    "die Mappe dalassen"
+   ],
+   "schlecht": [
+    "mitten im Betrieb stören",
+    "lange Monologe",
+    "Druck machen"
+   ],
+   "fehler": [
+    "ohne Vorbereitung kommen",
+    "keinen nächsten Schritt vereinbaren"
+   ],
+   "weiter": "Link zum Fragebogen schicken oder einen Termin für ein kurzes Gespräch vereinbaren."
+  },
+  {
+   "slug": "telefon",
+   "name": "Telefon",
+   "ziel": "Interesse wecken und einen Bericht oder Termin vereinbaren.",
+   "eroeffnung": "Name, Grund in einem Satz, Frage nach zwei Minuten Zeit.",
+   "beispiel": "„Guten Tag, [Name], ich arbeite mit Vecom Design. Ich habe Ihre Website auf dem Handy angesehen und dabei zwei Dinge bemerkt. Darf ich Ihnen kurz sagen, welche?“",
+   "gut": [
+    "lächeln (man hört es)",
+    "kurz bleiben",
+    "nach dem besten Rückrufzeitpunkt fragen"
+   ],
+   "schlecht": [
+    "Text ablesen wie ein Callcenter",
+    "über Preise reden"
+   ],
+   "fehler": [
+    "zur Stoßzeit anrufen",
+    "Nummern aus dem Registro delle Opposizioni anrufen (Italien)"
+   ],
+   "weiter": "Schnellcheck-Bericht oder Fragebogen-Link schicken (nur mit Einverständnis)."
+  },
+  {
+   "slug": "whatsapp",
+   "name": "WhatsApp",
+   "ziel": "Einen kurzen, persönlichen Hinweis geben – nur, wenn du die Person kennst oder sie zugestimmt hat.",
+   "eroeffnung": "Persönliche Anrede, Bezug zum letzten Kontakt.",
+   "beispiel": "„Hallo [Name], wie besprochen hier der kurze Bericht zu Ihrer Website. Schauen Sie in Ruhe rein – bei Fragen bin ich da.“",
+   "gut": [
+    "kurz",
+    "ein Link, nicht drei",
+    "persönlich"
+   ],
+   "schlecht": [
+    "Kettennachrichten",
+    "Sprachnachrichten von fünf Minuten"
+   ],
+   "fehler": [
+    "Fremde ohne Einwilligung anschreiben",
+    "dieselbe Nachricht an viele schicken"
+   ],
+   "weiter": "Nach 3 Tagen freundlich nachfragen, ob alles angekommen ist."
+  },
+  {
+   "slug": "social",
+   "name": "Social Media und Messenger",
+   "ziel": "Sichtbar sein, Vertrauen aufbauen, Gespräche anstoßen.",
+   "eroeffnung": "Auf einen Beitrag des Betriebs reagieren, nicht sofort verkaufen.",
+   "beispiel": "„Tolle Fotos von Ihrer neuen Terrasse! Haben Sie die auch auf Ihrer Website?“",
+   "gut": [
+    "echtes Interesse",
+    "eigene Beiträge mit Beispielen aus dem Partnerbereich"
+   ],
+   "schlecht": [
+    "Werbung unter fremde Beiträge setzen",
+    "Massennachrichten"
+   ],
+   "fehler": [
+    "den Partnerlink nicht als Empfehlung kennzeichnen"
+   ],
+   "weiter": "Ins persönliche Gespräch wechseln."
+  },
+  {
+   "slug": "email",
+   "name": "E-Mail",
+   "ziel": "Einen konkreten, nützlichen Hinweis schicken, den der Betrieb erbeten hat.",
+   "eroeffnung": "Klarer Betreff, ein Satz Bezug, ein Nutzen.",
+   "beispiel": "Betreff: „Kurzer Bericht zu Ihrer Website“ – „Guten Tag, wie am Telefon besprochen …“",
+   "gut": [
+    "kurz",
+    "persönlich",
+    "ein klarer nächster Schritt"
+   ],
+   "schlecht": [
+    "Anhänge mit vielen MB",
+    "Werbetexte"
+   ],
+   "fehler": [
+    "E-Mails ohne Einwilligung an unbekannte Betriebe"
+   ],
+   "weiter": "Nach einer Woche einmal nachfassen."
+  },
+  {
+   "slug": "empfehlung",
+   "name": "Empfehlung und Netzwerk",
+   "ziel": "Über zufriedene Menschen in deinem Umfeld an neue Betriebe kommen.",
+   "eroeffnung": "Bekannte fragen, wen sie kennen, der eine bessere Website brauchen könnte.",
+   "beispiel": "„Kennst du jemanden mit einem Geschäft, der mit seiner Website nicht zufrieden ist? Ich kann ihm einen kostenlosen Bericht schicken.“",
+   "gut": [
+    "dein Link für Bekannte",
+    "Vereine, Stammtische, Netzwerke"
+   ],
+   "schlecht": [
+    "Bekannte unter Druck setzen"
+   ],
+   "fehler": [
+    "den Kontakt nicht weiterverfolgen"
+   ],
+   "weiter": "Den empfohlenen Betrieb persönlich ansprechen und sagen, wer dich geschickt hat."
+  }
+ ],
+ "einwaende": [
+  {
+   "slug": "zu-teuer",
+   "satz": "Das ist mir zu teuer.",
+   "dahinter": "Er kennt den Preis noch gar nicht, vergleicht mit einem Baukasten oder sieht noch keinen Nutzen.",
+   "frage": "„Darf ich fragen, womit Sie vergleichen?“",
+   "antwort": "„Das verstehe ich. Den Preis kennen wir ja noch gar nicht – er hängt davon ab, was Sie wirklich brauchen. Im Fragebogen sehen Sie in zwei Minuten einen Richtpreis, ganz unverbindlich. Bezahlt wird erst nach einer schriftlichen Einigung.“",
+   "vermeiden": "Preise schätzen, Rabatt anbieten, andere Anbieter schlechtmachen.",
+   "ziel": "Herausfinden, ob es um Geld oder um fehlenden Nutzen geht.",
+   "weiter": "Link zum Fragebogen schicken.",
+   "suche": "preis kosten teuer geld"
+  },
+  {
+   "slug": "nachdenken",
+   "satz": "Ich muss darüber nachdenken.",
+   "dahinter": "Eine offene Frage oder Sorge, die er nicht ausspricht – oder höfliches Nein.",
+   "frage": "„Gern. Was genau möchten Sie sich noch überlegen?“",
+   "antwort": "„Natürlich, das ist eine wichtige Entscheidung. Damit Sie in Ruhe vergleichen können: Darf ich Ihnen den Link zum Fragebogen schicken? Dann haben Sie einen Richtpreis schwarz auf weiß.“",
+   "vermeiden": "Drängeln, künstliche Fristen erfinden.",
+   "ziel": "Die eigentliche Frage hinter dem Nachdenken finden.",
+   "weiter": "Fragebogen-Link schicken und Nachfassen in 3 Tagen vereinbaren.",
+   "suche": "überlegen später"
+  },
+  {
+   "slug": "brauche-keine",
+   "satz": "Ich brauche keine neue Website.",
+   "dahinter": "Er ist zufrieden oder sieht keinen Zusammenhang zwischen Website und Kunden.",
+   "frage": "„Wie finden neue Kunden Sie heute?“",
+   "antwort": "„Das kann gut sein. Darf ich Ihnen trotzdem einen kurzen Bericht zu Ihrer Seite schicken? Kostenlos – dann sehen Sie selbst, ob etwas zu tun ist.“",
+   "vermeiden": "Ihm einreden, dass seine Seite schlecht ist.",
+   "ziel": "Neugier wecken statt überzeugen.",
+   "weiter": "Schnellcheck machen und den Bericht schicken (mit Einverständnis).",
+   "suche": "website brauchen keine"
+  },
+  {
+   "slug": "habe-jemanden",
+   "satz": "Ich habe bereits jemanden.",
+   "dahinter": "Loyalität zu einem Bekannten oder einer Agentur.",
+   "frage": "„Schön. Sind Sie mit der Betreuung zufrieden?“",
+   "antwort": "„Das ist gut, dann sind Sie in guten Händen. Falls Sie mal einen zweiten Blick möchten oder etwas Neues planen, melden Sie sich gern.“",
+   "vermeiden": "Den anderen Anbieter kritisieren.",
+   "ziel": "Respekt zeigen und die Tür offen lassen.",
+   "weiter": "Freundlich verabschieden, Kontakt nach einigen Monaten erneuern.",
+   "suche": "agentur webdesigner"
+  },
+  {
+   "slug": "bekannter-billiger",
+   "satz": "Mein Bekannter macht das billiger.",
+   "dahinter": "Preisdruck oder Unsicherheit, was der Unterschied ist.",
+   "frage": "„Was ist Ihnen bei der Website am wichtigsten?“",
+   "antwort": "„Das kann gut sein. Bei Vecom bekommen Sie eine eigene Gestaltung, einen festen Ansprechpartner und Begleitung bis die Seite online ist. Schauen Sie sich im Fragebogen den Richtpreis an – dann können Sie ehrlich vergleichen.“",
+   "vermeiden": "Den Bekannten abwerten.",
+   "ziel": "Unterschied zeigen, ohne zu streiten.",
+   "weiter": "Fragebogen-Link oder Branchen-Demo zeigen.",
+   "suche": "billiger günstiger freund"
+  },
+  {
+   "slug": "kein-budget",
+   "satz": "Ich habe momentan kein Budget.",
+   "dahinter": "Echte finanzielle Grenze – oder fehlende Priorität.",
+   "frage": "„Wann wäre ein guter Zeitpunkt, wieder darüber zu sprechen?“",
+   "antwort": "„Das verstehe ich. Dann schauen Sie sich den Richtpreis einfach in Ruhe an, damit Sie planen können. Bezahlt wird ohnehin erst nach einer schriftlichen Einigung.“",
+   "vermeiden": "Ratenzahlung oder Rabatt versprechen.",
+   "ziel": "Einen realistischen Zeitpunkt finden.",
+   "weiter": "Erinnerung setzen und zum vereinbarten Zeitpunkt nachfassen.",
+   "suche": "budget geld später"
+  },
+  {
+   "slug": "email-schreiben",
+   "satz": "Schreiben Sie mir erstmal eine E-Mail.",
+   "dahinter": "Er möchte das Gespräch beenden – oder wirklich etwas Schriftliches.",
+   "frage": "„Gern. Was soll in der E-Mail stehen, damit sie Ihnen wirklich hilft?“",
+   "antwort": "„Mache ich. Ich schicke Ihnen einen kurzen Bericht zu Ihrer Seite und den Link zum Fragebogen. Darf ich mich am Donnerstag kurz melden, ob alles angekommen ist?“",
+   "vermeiden": "Eine lange Werbe-Mail schicken.",
+   "ziel": "Aus der Bitte einen nächsten Schritt machen.",
+   "weiter": "E-Mail mit Bericht schicken (er hat zugestimmt) und Nachfassen vereinbaren.",
+   "suche": "mail schreiben"
+  },
+  {
+   "slug": "partner-fragen",
+   "satz": "Ich muss meinen Geschäftspartner fragen.",
+   "dahinter": "Er entscheidet nicht allein – oder braucht Zeit.",
+   "frage": "„Was wird Ihrem Partner wichtig sein?“",
+   "antwort": "„Natürlich. Ich schicke Ihnen den Link zum Fragebogen, dann können Sie ihn gemeinsam ansehen. Wenn Sie möchten, erkläre ich es Ihnen beiden kurz.“",
+   "vermeiden": "Den Partner übergehen.",
+   "ziel": "Den Mitentscheider einbeziehen.",
+   "weiter": "Gemeinsamen Termin anbieten.",
+   "suche": "partner chef entscheiden"
+  },
+  {
+   "slug": "genug-kunden",
+   "satz": "Wir haben genug Kunden.",
+   "dahinter": "Er sieht keinen Bedarf an mehr Kunden – vielleicht aber an weniger Aufwand oder besseren Kunden.",
+   "frage": "„Wie viel Zeit kostet Sie heute das Telefon wegen Terminen oder Fragen?“",
+   "antwort": "„Das freut mich. Eine Website kann auch Zeit sparen – zum Beispiel, wenn Termine online gebucht werden oder die häufigsten Fragen schon beantwortet sind.“",
+   "vermeiden": "Mehr Umsatz versprechen.",
+   "ziel": "Einen anderen Nutzen finden: Zeit, Ruf, bessere Anfragen.",
+   "weiter": "Bedarfsgespräch zu Abläufen anbieten.",
+   "suche": "kunden genug voll"
+  },
+  {
+   "slug": "funktioniert-doch",
+   "satz": "Unsere Website funktioniert doch.",
+   "dahinter": "Er ist zufrieden oder kennt die Probleme nicht.",
+   "frage": "„Haben Sie sie in letzter Zeit auf dem Handy angesehen?“",
+   "antwort": "„Schön. Darf ich Ihnen einen kurzen, kostenlosen Bericht schicken? Darin sehen Sie zum Beispiel, wie die Seite auf dem Handy wirkt.“",
+   "vermeiden": "Mängel erfinden oder übertreiben.",
+   "ziel": "Mit Fakten neugierig machen.",
+   "weiter": "Schnellcheck machen und nur über echte Ergebnisse sprechen.",
+   "suche": "funktioniert gut reicht"
+  },
+  {
+   "slug": "google-unnoetig",
+   "satz": "Google brauchen wir nicht.",
+   "dahinter": "Er bekommt Kunden über Empfehlung und sieht Google nicht als Weg.",
+   "frage": "„Was macht jemand, dem Sie empfohlen wurden, als Erstes?“",
+   "antwort": "„Viele, die Sie empfohlen bekommen, schauen Sie trotzdem zuerst im Internet nach. Dann hilft es, wenn sie dort ein gutes Bild bekommen.“",
+   "vermeiden": "Google-Platzierungen versprechen.",
+   "ziel": "Zeigen, dass auch Empfehlungen online geprüft werden.",
+   "weiter": "Branchen-Demo zeigen.",
+   "suche": "google seo suchmaschine"
+  },
+  {
+   "slug": "warum-so-viel",
+   "satz": "Warum kostet eine Website so viel?",
+   "dahinter": "Er kennt den Aufwand nicht.",
+   "frage": "„Was stellen Sie sich unter einer Website vor?“",
+   "antwort": "„Eine gute Website wird für Ihren Betrieb gestaltet, geschrieben, für Handys optimiert und technisch sauber gebaut. Was genau Sie brauchen, sehen Sie im Fragebogen – dort setzt sich der Richtpreis aus Ihren Wünschen zusammen.“",
+   "vermeiden": "Preise rechtfertigen, die du nicht kennst.",
+   "ziel": "Aufwand verständlich machen.",
+   "weiter": "Fragebogen-Link schicken.",
+   "suche": "kosten preis viel teuer"
+  },
+  {
+   "slug": "rabatt",
+   "satz": "Können Sie Rabatt geben?",
+   "dahinter": "Verhandlungsreflex – oder echtes Kaufinteresse.",
+   "frage": "„Was wäre Ihnen wichtig, damit es für Sie passt?“",
+   "antwort": "„Über Preise und Konditionen entscheidet Vecom direkt. Schauen Sie sich den Richtpreis im Fragebogen an – Vecom meldet sich dann mit einem genauen Angebot.“",
+   "vermeiden": "Einen Rabatt zusagen oder andeuten.",
+   "ziel": "Interesse erkennen, ohne etwas zuzusagen.",
+   "weiter": "Fragebogen-Link schicken; Wünsche als Notiz für Vecom festhalten.",
+   "suche": "rabatt nachlass prozent günstiger"
+  },
+  {
+   "slug": "300-euro",
+   "satz": "Andere machen Webseiten für 300 Euro.",
+   "dahinter": "Er vergleicht mit Baukästen oder Billiganbietern.",
+   "frage": "„Was ist bei diesen Angeboten genau dabei?“",
+   "antwort": "„Das gibt es, oft als Baukasten, bei dem Sie viel selbst machen. Bei Vecom bekommen Sie eine eigene Gestaltung, Texte und Technik aus einer Hand und Begleitung bis online. Vergleichen Sie in Ruhe – der Richtpreis im Fragebogen hilft dabei.“",
+   "vermeiden": "Billiganbieter beschimpfen.",
+   "ziel": "Den Unterschied sachlich zeigen.",
+   "weiter": "Branchen-Demo und Fragebogen-Link.",
+   "suche": "300 billig baukasten"
+  },
+  {
+   "slug": "familie-fragen",
+   "satz": "Ich muss erst meine Frau / meinen Mann fragen.",
+   "dahinter": "Gemeinsame Entscheidung – oder Bedenkzeit.",
+   "frage": "„Was wird ihr/ihm wichtig sein?“",
+   "antwort": "„Klar, das gehört zusammen entschieden. Ich schicke Ihnen den Link, dann schauen Sie gemeinsam in Ruhe.“",
+   "vermeiden": "Den Partner kleinreden.",
+   "ziel": "Die gemeinsame Entscheidung erleichtern.",
+   "weiter": "Link schicken, Nachfassen in einigen Tagen.",
+   "suche": "frau mann familie"
+  },
+  {
+   "slug": "vielleicht-spaeter",
+   "satz": "Vielleicht später.",
+   "dahinter": "Kein Druck gerade – oder höfliches Nein.",
+   "frage": "„Wann wäre ein guter Moment?“",
+   "antwort": "„Gern. Darf ich mich in [Monat] noch einmal melden? Bis dahin schicke ich Ihnen den Link, falls Sie vorher einen Blick werfen möchten.“",
+   "vermeiden": "Nerven oder drängen.",
+   "ziel": "Einen konkreten Zeitpunkt vereinbaren.",
+   "weiter": "Erinnerung setzen.",
+   "suche": "später irgendwann"
+  },
+  {
+   "slug": "schlechte-erfahrung",
+   "satz": "Ich habe schlechte Erfahrungen mit Agenturen gemacht.",
+   "dahinter": "Er wurde enttäuscht – Kosten, Zeit oder Kommunikation.",
+   "frage": "„Was ist damals passiert?“",
+   "antwort": "„Das tut mir leid, das kommt leider vor. Bei Vecom sehen Sie jeden Schritt in Ihrem persönlichen Bereich, Sie bekommen vorher ein genaues Angebot, und bezahlt wird erst nach einer schriftlichen Einigung.“",
+   "vermeiden": "Die frühere Agentur schlechtmachen oder alles versprechen.",
+   "ziel": "Vertrauen durch Transparenz aufbauen.",
+   "weiter": "Ablauf erklären und Fragebogen-Link schicken.",
+   "suche": "agentur erfahrung enttäuscht"
+  },
+  {
+   "slug": "nicht-binden",
+   "satz": "Ich möchte mich nicht langfristig binden.",
+   "dahinter": "Angst vor Abos und versteckten Kosten.",
+   "frage": "„Was genau möchten Sie vermeiden?“",
+   "antwort": "„Verstehe ich. Ob Sie nach dem Start eine Betreuung möchten, entscheiden Sie selbst – die Bedingungen stehen klar im Angebot von Vecom.“",
+   "vermeiden": "Vertragsbedingungen erfinden.",
+   "ziel": "Sorge ernst nehmen und auf das Angebot verweisen.",
+   "weiter": "Fragebogen-Link; offene Fragen an Vecom weitergeben.",
+   "suche": "vertrag abo binden laufzeit"
+  },
+  {
+   "slug": "bringt-das-was",
+   "satz": "Wie weiß ich, dass das wirklich etwas bringt?",
+   "dahinter": "Er braucht Sicherheit.",
+   "frage": "„Was wäre für Sie ein Erfolg?“",
+   "antwort": "„Eine Garantie für mehr Kunden kann niemand ehrlich geben. Aber Sie sehen in den Demos und Arbeiten auf der Vecom-Website, wie Betriebe wie Ihrer sich zeigen – und was eine gute Seite für den ersten Eindruck tut.“",
+   "vermeiden": "Umsatz oder Google-Platz garantieren.",
+   "ziel": "Realistische Erwartung und Vertrauen schaffen.",
+   "weiter": "Arbeiten und Demos zeigen.",
+   "suche": "garantie erfolg bringt"
+  }
+ ],
+ "leistungen": [
+  {
+   "slug": "webdesign",
+   "name": "Webdesign",
+   "kurz": "Eine eigene Website, die zu Ihrem Betrieb passt.",
+   "normal": "Vecom gestaltet Ihre Website für Ihren Betrieb – keine Vorlage. Farben, Bilder und Texte zeigen, was Sie besonders macht, und Ihre Kunden finden schnell, was sie suchen.",
+   "ausfuehrlich": "Am Anfang stehen Ihre Ziele und Ihre Kunden. Daraus entstehen Aufbau, Gestaltung und Texte. Die Seite wird so gebaut, dass sie auf Handy, Tablet und Rechner gut aussieht, schnell lädt und leicht zu bedienen ist. Sie sehen eine Vorschau und geben frei, bevor sie online geht.",
+   "s30": "Vecom baut Ihnen eine eigene Website, gestaltet für Ihren Betrieb. Sie sieht auf dem Handy genauso gut aus wie am Rechner, und Ihre Kunden finden Telefon, Adresse und Angebot sofort. Sie sehen vorher eine Vorschau und entscheiden selbst."
+  },
+  {
+   "slug": "branding",
+   "name": "Branding",
+   "kurz": "Ein einheitliches Erscheinungsbild für Ihren Betrieb.",
+   "normal": "Logo, Farben und Schriften, die zusammenpassen und überall gleich wirken – auf der Website, auf Karten und in sozialen Medien.",
+   "ausfuehrlich": "Ein klares Erscheinungsbild macht einen Betrieb wiedererkennbar. Vecom kann vorhandenes Material aufgreifen oder – auf Anfrage – ein Logo entwickeln. Was genau nötig ist, klärt Vecom im Angebot.",
+   "s30": "Ihr Betrieb soll überall gleich und professionell aussehen. Vecom sorgt dafür, dass Logo, Farben und Schriften zusammenpassen. Ein neues Logo gibt es auf Anfrage."
+  },
+  {
+   "slug": "seo",
+   "name": "SEO / Google",
+   "kurz": "Wir bauen Ihre Website so auf, dass Suchmaschinen sie technisch sauber verstehen können.",
+   "normal": "Ihre Seite bekommt klare Titel, Beschreibungen und einen sauberen Aufbau. So kann Google besser verstehen, was Sie anbieten und wo Sie sind.",
+   "ausfuehrlich": "Zur Grundoptimierung gehören zum Beispiel aussagekräftige Seitentitel und Beschreibungen, eine saubere Struktur, schnelle Ladezeiten, mobile Darstellung und maschinenlesbare Angaben zu Adresse und Öffnungszeiten. Eine bestimmte Platzierung kann niemand ehrlich versprechen – aber eine saubere Grundlage ist die Voraussetzung.",
+   "s30": "Damit Google Ihre Seite versteht, muss sie technisch sauber gebaut sein: klare Titel, schnelle Ladezeit, gut auf dem Handy. Das macht Vecom von Anfang an. Einen bestimmten Platz bei Google kann niemand garantieren, aber ohne diese Grundlage geht es nicht."
+  },
+  {
+   "slug": "shop",
+   "name": "Onlineshop",
+   "kurz": "Ihre Produkte direkt auf Ihrer Website verkaufen.",
+   "normal": "Kunden können Ihre Produkte ansehen, in den Warenkorb legen und bestellen – auf Ihrer eigenen Seite.",
+   "ausfuehrlich": "Ein Shop umfasst Produktseiten, Warenkorb, Bestellung und Zahlung. Umfang und Abläufe – etwa Versand oder Abholung – klärt Vecom mit Ihnen im Angebot.",
+   "s30": "Wenn Sie Produkte verkaufen, kann Ihre Website auch ein Shop sein. Kunden bestellen direkt bei Ihnen. Was genau dazugehört, bespricht Vecom mit Ihnen."
+  },
+  {
+   "slug": "buchung",
+   "name": "Termine und Buchungen",
+   "kurz": "Kunden buchen Termine oder Tische online.",
+   "normal": "Statt anzurufen, wählen Ihre Kunden selbst einen freien Termin oder reservieren einen Tisch – auch abends und am Wochenende.",
+   "ausfuehrlich": "Je nach Betrieb reicht eine einfache Terminanfrage oder Tischreservierung, oder es braucht ein Buchungssystem mit Verfügbarkeiten. Welche Lösung passt, ergibt sich aus dem Fragebogen und dem Angebot.",
+   "s30": "Ihre Kunden können online einen Termin oder Tisch buchen, wann sie wollen. Das spart Ihnen Anrufe. Vecom schlägt die Lösung vor, die zu Ihrem Betrieb passt."
+  },
+  {
+   "slug": "hosting",
+   "name": "Hosting",
+   "kurz": "Ihre Website ist sicher und zuverlässig erreichbar.",
+   "normal": "Vecom kümmert sich darum, dass Ihre Seite auf einem Server liegt, erreichbar ist und eine verschlüsselte Verbindung (HTTPS) hat.",
+   "ausfuehrlich": "Zum Hosting gehören Speicherplatz, Domain-Anbindung, Sicherheitszertifikat und Erreichbarkeit. Die Bedingungen stehen im Angebot.",
+   "s30": "Damit Ihre Website online ist, braucht sie einen Platz im Internet. Darum kümmert sich Vecom – sicher verschlüsselt und zuverlässig."
+  },
+  {
+   "slug": "wartung",
+   "name": "Wartung und Betreuung",
+   "kurz": "Jemand kümmert sich um Ihre Seite, auch nach dem Start.",
+   "normal": "Mit einer monatlichen Betreuung bleibt Ihre Seite aktuell und technisch in Ordnung, und Sie haben einen Ansprechpartner für Änderungen.",
+   "ausfuehrlich": "Was die Betreuung umfasst und zu welchen Bedingungen, steht im Angebot. Ob Sie sie möchten, entscheiden Sie selbst.",
+   "s30": "Nach dem Start bleibt Vecom auf Wunsch an Ihrer Seite: Technik, kleine Änderungen, ein Ansprechpartner. Ob Sie das möchten, entscheiden Sie."
+  },
+  {
+   "slug": "sprachen",
+   "name": "Mehrsprachigkeit",
+   "kurz": "Ihre Website in mehreren Sprachen.",
+   "normal": "Gäste und Kunden aus dem Ausland lesen Ihre Seite in ihrer Sprache – zum Beispiel Italienisch, Deutsch und Englisch.",
+   "ausfuehrlich": "Jede weitere Sprache wird pro Seite eingerichtet. Der Fragebogen fragt nach der Zahl der Sprachen, und der Richtpreis zeigt, was das ausmacht.",
+   "s30": "Wenn Gäste aus dem Ausland kommen, sollten sie Ihre Seite verstehen. Vecom baut sie in mehreren Sprachen."
+  },
+  {
+   "slug": "animation",
+   "name": "Animation",
+   "kurz": "Dezente Bewegung, die Ihre Seite hochwertig wirken lässt.",
+   "normal": "Weiche Übergänge und kleine Bewegungen lenken den Blick auf das Wichtige – ohne die Seite langsam zu machen.",
+   "ausfuehrlich": "Animationen werden sparsam eingesetzt und für schwächere Geräte und für Menschen, die weniger Bewegung wünschen, automatisch reduziert.",
+   "s30": "Kleine, ruhige Bewegungen machen eine Seite lebendig und hochwertig. Vecom setzt sie gezielt ein, damit nichts ablenkt oder bremst."
+  },
+  {
+   "slug": "3d",
+   "name": "3D und interaktive Experiences",
+   "kurz": "Produkte oder Räume, die man auf der Website drehen und erleben kann.",
+   "normal": "Ein Auto, ein Möbelstück oder eine Ferienwohnung wird in 3D gezeigt – der Kunde dreht, zoomt und probiert Varianten aus.",
+   "ausfuehrlich": "3D-Erlebnisse eignen sich für Produkte mit Varianten und für Räume. Sie werden für schwächere Geräte angepasst. Ob 3D für den Betrieb sinnvoll ist, klärt Vecom im Gespräch – zeig dazu die Demos auf der Vecom-Website.",
+   "s30": "Bei manchen Betrieben lohnt sich mehr als Fotos: Kunden drehen ein Produkt oder gehen durch einen Raum. Schauen Sie sich die Demos auf der Vecom-Seite an."
+  },
+  {
+   "slug": "performance",
+   "name": "Performance",
+   "kurz": "Ihre Seite lädt schnell.",
+   "normal": "Bilder werden optimiert und die Technik schlank gehalten, damit die Seite auch mit schwachem Netz schnell da ist.",
+   "ausfuehrlich": "Schnelle Ladezeiten sind wichtig für Besucher und für Suchmaschinen. Vecom achtet auf optimierte Bilder, sparsame Skripte und gutes Zwischenspeichern.",
+   "s30": "Niemand wartet gern. Vecom baut Ihre Seite so, dass sie auch am Handy unterwegs schnell lädt."
+  },
+  {
+   "slug": "mobil",
+   "name": "Mobile Optimierung",
+   "kurz": "Ihre Seite sieht auf dem Handy perfekt aus.",
+   "normal": "Die meisten Besucher kommen mit dem Handy. Texte sind lesbar, Knöpfe groß genug und Telefon oder Route mit einem Tipp erreichbar.",
+   "ausfuehrlich": "Die Seite wird für Handy, Tablet und Rechner gestaltet und auf verschiedenen Bildschirmgrößen geprüft.",
+   "s30": "Die meisten Ihrer Kunden schauen am Handy. Bei Vecom ist die Seite dort genauso gut wie am Rechner – mit Anruf- und Routenknopf."
+  }
+ ],
+ "finder": [
+  {
+   "k": "website",
+   "frage": "Website vorhanden?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "modern",
+   "frage": "Modernes Design?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "mobil",
+   "frage": "Auf dem Handy gut lesbar?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "https",
+   "frage": "HTTPS vorhanden (kein „nicht sicher“)?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "kontakt",
+   "frage": "Telefon, Adresse, Öffnungszeiten gut sichtbar?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "google",
+   "frage": "Bei Google gut zu finden?",
+   "optionen": [
+    "ja",
+    "nein",
+    "unklar"
+   ]
+  },
+  {
+   "k": "termine",
+   "frage": "Wäre Online-Terminbuchung sinnvoll?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "shop",
+   "frage": "Wäre ein Shop sinnvoll?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "sprachen",
+   "frage": "Wären mehrere Sprachen sinnvoll?",
+   "optionen": [
+    "ja",
+    "nein"
+   ]
+  },
+  {
+   "k": "seo",
+   "frage": "Potenzial bei Google (SEO)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "branding",
+   "frage": "Potenzial beim Erscheinungsbild (Branding)?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  },
+  {
+   "k": "erlebnis",
+   "frage": "Potenzial für 3D / Experience?",
+   "optionen": [
+    "niedrig",
+    "mittel",
+    "hoch"
+   ]
+  }
+ ],
+ "woerter": {
+  "ja": "Ja",
+  "nein": "Nein",
+  "unklar": "Unklar",
+  "niedrig": "Niedrig",
+  "mittel": "Mittel",
+  "hoch": "Hoch"
+ }
+}
