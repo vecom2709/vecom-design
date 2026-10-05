@@ -201,7 +201,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
       <label style="display:flex;align-items:flex-start;gap:6px;font-size:13.5px;margin:6px 0">
         <input type="checkbox" name="wege[]" value="<?= Fmt::h($w) ?>" <?= in_array($w, $an, true) ? 'checked' : '' ?> style="width:auto;margin:3px 0 0">
         <span><b><?= Fmt::h($wort) ?></b>
-          <?= in_array($w, PartnerWege::AUTOMATISCH, true) ? '<span class="marke2" style="margin-left:4px">über Schnittstelle, auf deinen Klick</span>' : '<span class="marke2" style="margin-left:4px">von Hand</span>' ?>
+          <?= in_array($w, PartnerWege::AUTOMATISCH, true) ? '<span class="marke2" style="margin-left:4px">automatisch</span>' : '<span class="marke2" style="margin-left:4px">von Hand</span>' ?>
           <?= $tech ? '' : '<span class="marke2 warnung" style="margin-left:4px">noch nicht eingerichtet</span>' ?>
           <br><span style="color:var(--leise);font-size:12px"><?= Fmt::h([
             'stripe' => 'Stripe Connect: im Stripe-Dashboard einmal „Connect“ aktivieren.',
@@ -278,11 +278,14 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
       </div>
     </div>
     <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin-bottom:12px">
-      <?php /* Seit 05.10.2026 kein Schalter mehr (Spezifikation 30/49: automatisch berechnen erlaubt, automatisch auszahlen verboten). */ ?>
-      <b style="font-size:13.5px">Ausgezahlt wird nur per Klick</b>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 0">
-        Provisionen werden automatisch berechnet und reifen nach der Wartezeit. Ist bei einem Partner etwas auszahlbar,
-        meldet sich das einmal am Tag unter „Was nicht läuft“ — ausgezahlt wird erst mit deinem Klick in seiner Akte.</p>
+      <label style="font-size:13.5px;display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_auto_auszahlen" value="1" <?= $e('partner_auto_auszahlen') === '1' ? 'checked' : '' ?>>
+        <b>Automatisch über Stripe auszahlen</b></label>
+      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 8px">
+        Nach der Wartezeit geht die Provision ohne Klick raus — nur an Partner mit bestätigter Vereinbarung und von Stripe
+        geprüftem Konto, nur wenn die Kundenzahlung in dem Moment noch bezahlt ist, nur ab dem Mindestbetrag.
+        Über dem Tageslimit wartet sie auf deinen Klick.</p>
+      <div class="feld" style="max-width:220px"><label>Tageslimit automatisch (€)</label>
+        <input name="partner_auto_tageslimit_cents" value="<?= Fmt::h($eu((int) $e('partner_auto_tageslimit_cents'))) ?>"></div>
     </div>
     <button class="knopf haupt">Bedingungen speichern</button>
   </form>

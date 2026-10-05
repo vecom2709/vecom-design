@@ -52,9 +52,6 @@ final class Meldungen
             // Nichts mehr freizugeben.
             'partner_freigabe' => static fn(array $m, ?int $id): bool =>
                 (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE status = 'freigabe'", [], 1) === 0,
-            // Auszahlbares zur Freigabe (05.10.2026, seit der Cron nie selbst auszahlt): erledigt, wenn nichts mehr „bereit“ ist.
-            'partner_auszahlbar' => static fn(array $m, ?int $id): bool =>
-                (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE status = 'bereit'", [], 1) === 0,
             // Die Wise-Überweisung ist bestätigt oder abgebrochen.
             'partner_wise' => static fn(array $m, ?int $id): bool => $id !== null
                 && (int) Db::wert("SELECT COUNT(*) FROM partner_auszahlungen WHERE partner_id = ? AND weg = 'wise' AND status = 'offen'", [$id], 1) === 0,

@@ -34,15 +34,17 @@ require_once __DIR__ . '/Events.php';
  * zurückgeholt; geht das nicht (Partner hat schon abgehoben), bekommt Uwe
  * eine Aufgabe „Rückforderung“ — nichts wird verschwiegen.
  *
- * AUSGEZAHLT WIRD NUR PER KLICK (05.10.2026, Spezifikation Punkt 30/49:
- * „Automatisch berechnen erlaubt. Automatisch auszahlen verboten.“)
- * Bis dahin war die automatische Auszahlung über Stripe/PayPal/Wise eine
- * bewusste Ausnahme, ab Werk eingeschaltet, mit Tageslimit. Jetzt gilt auch
- * hier: Was das Haus verlässt, bleibt am Klick eines Menschen. Der Cron
- * berechnet und lässt reifen; ist etwas auszahlbar, sagt er es Uwe einmal am
- * Tag („zur Freigabe“). Der alte Schalter `partner_auto_auszahlen` wird nicht
- * mehr gelesen — auch eine alte Datenbank, in der er noch auf 1 steht, zahlt
- * nichts von allein aus.
+ * DIE AUTOMATISCHE AUSZAHLUNG IST EINE BEWUSSTE AUSNAHME
+ * Sonst gilt: Was das Haus verlässt, bleibt am Klick eines Menschen. Uwe hat
+ * für Provisionen ausdrücklich anders entschieden. Die Leitplanken dafür:
+ * nur nach der Sperrfrist, nur wenn die Zahlung in diesem Moment noch
+ * „bezahlt“ ist, nur an Partner mit bestätigter Vereinbarung und von Stripe
+ * geprüftem Konto, nur ab dem Mindestbetrag, und nie mehr als das
+ * Tageslimit — darüber wartet es auf den Klick. Ein Schalter stellt alles
+ * auf „nur von Hand“ zurück.
+ * Am 05.10.2026 ausdrücklich bestätigt (Uwe: „Beides“): Die Ausnahme gilt
+ * weiter, auch gegen Punkt 30 der Partner-Spezifikation („automatisch
+ * auszahlen verboten“). Phase 0 hatte sie für einen Deploy abgeschaltet.
  */
 final class Partner
 {
@@ -67,8 +69,7 @@ final class Partner
         'partner_zuordnung_monate' => '12',
         'partner_gilt_website' => '1', 'partner_gilt_betreuung' => '1', 'partner_gilt_hosting' => '1',
         'partner_wiederkehrend_monate' => '12', 'partner_freigabe_noetig' => '0',
-        // Nur noch zur Anzeige alter Stände: Der Cron zahlt nie aus (05.10.2026, siehe Kopf).
-        'partner_auto_auszahlen' => '0', 'partner_auto_tageslimit_cents' => '100000',
+        'partner_auto_auszahlen' => '1', 'partner_auto_tageslimit_cents' => '100000',
         'partner_bewerbung_offen' => '1', 'partner_einbehalt_bp' => '0',
         'partner_stufen_an' => '1', 'partner_silber_ab' => '5', 'partner_silber_bp' => '1200',
         'partner_gold_ab' => '10', 'partner_gold_bp' => '1500',
@@ -104,7 +105,7 @@ final class Partner
         $neu['partner_zuordnung_monate'] = (string) max(1, min(60, (int) ($d['partner_zuordnung_monate'] ?? 12)));
         $neu['partner_wiederkehrend_monate'] = (string) max(0, min(60, (int) ($d['partner_wiederkehrend_monate'] ?? 12)));
         foreach (['partner_gilt_website', 'partner_gilt_betreuung', 'partner_gilt_hosting',
-                  'partner_freigabe_noetig', 'partner_bewerbung_offen'] as $k) {
+                  'partner_freigabe_noetig', 'partner_auto_auszahlen', 'partner_bewerbung_offen'] as $k) {
             $neu[$k] = !empty($d[$k]) ? '1' : '0';
         }
         $eb = trim((string) ($d['partner_einbehalt_bp'] ?? '0'));
@@ -122,6 +123,9 @@ final class Partner
             $neu['partner_' . $st . '_bp'] = (string) $bp;
         }
         if ((int) $neu['partner_gold_ab'] <= (int) $neu['partner_silber_ab']) { return 'Gold muss bei mehr Verkäufen beginnen als Silber.'; }
+        $lim = self::centsAusEingabe((string) ($d['partner_auto_tageslimit_cents'] ?? ''));
+        if ($lim === null) { return 'Das Tageslimit ist keine gültige Zahl.'; }
+        $neu['partner_auto_tageslimit_cents'] = (string) $lim;
 
         $vorher = [];
         foreach ($neu as $k => $v) {
@@ -1672,8 +1676,6 @@ final class Partner
     public static function auszahlenStripe(int $partnerId, bool $automatisch = false): array
     {
         require_once __DIR__ . '/Fmt.php';
-        // Zweite Sperre neben PartnerWege::auszahlen: ohne Klick geht kein Geld raus (Spezifikation 30/49).
-        if ($automatisch) { return ['ok' => false, 'text' => 'Ausgezahlt wird nur per Klick in der Verwaltung.']; }
         $p = self::laden($partnerId);
         if (!$p) { return ['ok' => false, 'text' => 'Partner nicht gefunden.']; }
         if ($p['status'] !== 'aktiv' && $p['status'] !== 'pausiert') { return ['ok' => false, 'text' => 'Partner ist nicht aktiv.']; }
@@ -1763,15 +1765,15 @@ final class Partner
     }
 
     /**
-     * Der Cronlauf: reifen lassen, Konten nachprüfen, Auszahlbares zur
-     * Freigabe melden. Ausgezahlt wird hier nie (05.10.2026, siehe Kopf).
+     * Der Cronlauf: reifen lassen, Konten nachprüfen, automatisch auszahlen —
+     * wenn eingeschaltet, und nie über das Tageslimit.
      *
      * @return array<string,int>
      */
     public static function lauf(): array
     {
         $r = self::reifen();
-        $r['ausgezahlt'] = 0;   // bleibt 0: der Cron zahlt nie aus (05.10.2026)
+        $r['ausgezahlt'] = 0; $r['wartet_limit'] = 0;
 
         /* Auch bereite Konten, die Stripe noch Angaben schulden (Frist!) -- 28.09.2026. */
         foreach (Db::all("SELECT * FROM partner WHERE stripe_konto IS NOT NULL AND (stripe_bereit = 0 OR stripe_fehlt > 0 OR stripe_status_am IS NULL OR stripe_status_am < NOW() - INTERVAL 1 DAY) AND status = 'aktiv'
@@ -1804,22 +1806,27 @@ final class Partner
                     . ' (' . PartnerWege::WEGE[$h['weg']] . ')', $hand)), '/partner');
         }
 
-        /* Auszahlbar über Stripe, PayPal oder Wise: nicht mehr selbst auszahlen (Spezifikation 30/49),
-           sondern einmal am Tag zur Freigabe melden — mit Namen, Betrag und Weg. */
-        $frei = [];
+        if (self::einstellung('partner_auto_auszahlen') !== '1') { return $r; }
+        $limit = self::zahl('partner_auto_tageslimit_cents');
         foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL") as $p) {
             $weg = PartnerWege::weg($p);
             if (!in_array($weg, PartnerWege::AUTOMATISCH, true) || !PartnerWege::bereit($p, $weg)) { continue; }
             $offen = self::auszahlbar((int) $p['id']);
             if ($offen < self::zahl('partner_mindest_cents')) { continue; }
-            $frei[] = ['partner' => $p, 'summe' => $offen, 'weg' => $weg];
-        }
-        $r['zur_freigabe'] = count($frei);
-        if ($frei && !self::heuteGemeldet('partner_auszahlbar')) {
-            require_once __DIR__ . '/Fmt.php';
-            Events::melden('partner_auszahlbar', count($frei) . ' Partner-Auszahlung' . (count($frei) === 1 ? '' : 'en') . ' zur Freigabe',
-                'hinweis', implode(', ', array_map(static fn($f) => $f['partner']['name'] . ' ' . Fmt::geld($f['summe'])
-                    . ' (' . PartnerWege::WEGE[$f['weg']] . ')', $frei)) . ' — ausgezahlt wird erst mit deinem Klick in der Partnerakte.', '/partner');
+            $heute = (int) Db::wert("SELECT COALESCE(SUM(betrag_cents),0) FROM partner_auszahlungen
+                                      WHERE automatisch = 1 AND status <> 'abgebrochen' AND created_at >= CURDATE()", [], 0);
+            if ($heute + $offen > $limit) {
+                $r['wartet_limit']++;
+                if (!self::heuteGemeldet('partner_limit')) {
+                    require_once __DIR__ . '/Fmt.php';
+                    Events::melden('partner_limit', 'Partner-Auszahlung über dem Tageslimit', 'hinweis',
+                        $p['name'] . ': ' . Fmt::geld($offen) . ' wartet — das automatische Tageslimit ('
+                        . Fmt::geld($limit) . ') ist erreicht. Von Hand auszahlen oder morgen automatisch.', '/partner/' . (int) $p['id']);
+                }
+                continue;
+            }
+            $e = PartnerWege::auszahlen((int) $p['id'], true);
+            if ($e['ok']) { $r['ausgezahlt']++; }
         }
         return $r;
     }

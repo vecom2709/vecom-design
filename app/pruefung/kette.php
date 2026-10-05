@@ -9974,37 +9974,30 @@ $paPr2 = Db::one('SELECT * FROM partner_provisionen WHERE payment_id = ?', [$paR
 pruefe('Partner: Steuereinbehalt 20 % wird an der Provision festgehalten',
     (int) $paPr2['einbehalt_cents'] === (int) round((int) $paPr2['provision_cents'] * 0.2));
 $paStripe = [];
-/* Auszahlen nur per Klick (05.10.2026, Spezifikation 30/49): Der Cron zahlt nie aus — auch
-   nicht mit einer alten Datenbank, in der der frühere Schalter noch auf 1 steht. Er meldet
-   einmal am Tag, was zur Freigabe bereitliegt. Der Klick in der Verwaltung zahlt aus. */
-Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_auto_auszahlen', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+/* Automatisch auszahlen bleibt (05.10.2026, Uwe: „Beides“ — Ausnahme von Spezifikation Punkt 30):
+   Migration 179 setzte den Schalter auf 0, 180 wieder auf 1. */
+pruefe('Auszahlung: Migration 180 stellt den Schalter wieder auf automatisch, der Standard ist 1',
+    Partner::STANDARD['partner_auto_auszahlen'] === '1'
+    && str_contains((string) file_get_contents($wurzel . '/migrations/180_auszahlen_automatisch_wieder.sql'), "UPDATE settings SET svalue = '1' WHERE skey = 'partner_auto_auszahlen'"));
 $paL = Partner::lauf();
-$paL2 = Partner::lauf();
-pruefe('Auszahlen nur per Klick: der Cron zahlt nie aus (auch mit altem Schalter auf 1), er meldet die Summe genau einmal am Tag zur Freigabe',
-    $paL['ausgezahlt'] === 0 && $paL['zur_freigabe'] === 1 && $paL2['ausgezahlt'] === 0
-    && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
-    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_auszahlbar'", [], 0) === 1
-    && str_contains((string) Db::wert("SELECT body FROM notifications WHERE type = 'partner_auszahlbar' ORDER BY id DESC LIMIT 1", [], ''), 'erst mit deinem Klick'),
-    json_encode([$paL, Db::all("SELECT type, title FROM notifications WHERE type LIKE 'partner\\_%' ORDER BY id DESC LIMIT 3")], JSON_UNESCAPED_UNICODE));
-pruefe('Auszahlen nur per Klick: ein Aufruf „automatisch“ wird an beiden Stellen abgelehnt, die Einstellungen kennen keinen Schalter mehr',
-    PartnerWege::auszahlen($paId, true)['ok'] === false && Partner::auszahlenStripe($paId, true)['ok'] === false
-    && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
-    && !str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'name="partner_auto_auszahlen"')
-    && !str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), "einstellung('partner_auto_auszahlen')")
-    && Partner::STANDARD['partner_auto_auszahlen'] === '0'
-    && str_contains((string) file_get_contents($wurzel . '/migrations/179_auszahlen_nur_per_klick.sql'), "UPDATE settings SET svalue = '0' WHERE skey = 'partner_auto_auszahlen'"));
+pruefe('Automatik: über dem Tageslimit (10 €) geht nichts raus, Uwe bekommt eine Meldung',
+    $paL['ausgezahlt'] === 0 && $paL['wartet_limit'] === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_limit'", [], 0) === 1);
+Db::run("UPDATE settings SET svalue = '10000000' WHERE skey = 'partner_auto_tageslimit_cents'");
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'partner_auto_auszahlen'");
+pruefe('Automatik: ausgeschaltet geht nichts raus', Partner::lauf()['ausgezahlt'] === 0 && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
+Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'partner_auto_auszahlen'");
 Db::run("UPDATE payments SET status = 'rueckerstattet' WHERE id = ?", [$paR2]);
-PartnerWege::auszahlen($paId);
-pruefe('Klick: in letzter Sekunde erstattet — nichts ausgezahlt, Provision entfällt',
+Partner::lauf();
+pruefe('Automatik: in letzter Sekunde erstattet — nichts ausgezahlt, Provision entfällt',
     !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
     && Db::wert('SELECT status FROM partner_provisionen WHERE payment_id = ?', [$paR2], '') === 'storniert');
 Db::run("UPDATE payments SET status = 'bezahlt' WHERE id = ?", [$paR2]);
 Db::run("UPDATE partner_provisionen SET status = 'bereit', grund = '' WHERE payment_id = ?", [$paR2]);
-$paK = PartnerWege::auszahlen($paId);
+$paL = Partner::lauf();
 $paT = array_values(array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
-pruefe('Klick in der Verwaltung: ausgezahlt wird Provision minus Einbehalt, als „von Hand ausgelöst“ gebucht (automatisch = 0)',
-    $paK['ok'] && (int) $paT[0][2]['amount'] === (int) $paPr2['provision_cents'] - (int) $paPr2['einbehalt_cents']
-    && (int) Db::wert('SELECT automatisch FROM partner_auszahlungen ORDER BY id DESC LIMIT 1', [], 1) === 0, json_encode($paK, JSON_UNESCAPED_UNICODE));
+pruefe('Automatik: eingeschaltet, im Limit — ausgezahlt wird Provision minus Einbehalt, als „automatisch“ gebucht',
+    $paL['ausgezahlt'] === 1 && (int) $paT[0][2]['amount'] === (int) $paPr2['provision_cents'] - (int) $paPr2['einbehalt_cents']
+    && (int) Db::wert('SELECT automatisch FROM partner_auszahlungen ORDER BY id DESC LIMIT 1', [], 0) === 1);
 $GLOBALS['paRueckGeht'] = false;
 Partner::beiErstattung($paR2, 2000000, 2000000);
 pruefe('Stripe: lässt sich nicht zurückholen → „zurückfordern“ und eine Meldung an Uwe',
@@ -10126,12 +10119,12 @@ Partner::vereinbarungMerken($wgB, 'Probe');
 pruefe('PayPal: ungültige E-Mail abgelehnt', PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'kein-mail']) === 'email_falsch');
 PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'Bruno@PayPal.example']);
 $wgBp = $wgProv($wgB, 7000);
-$wgR = PartnerWege::auszahlen($wgB);   // seit 05.10.2026 nur per Klick (Spezifikation 30/49)
-pruefe('PayPal: auf Klick über die Schnittstelle, genau der Betrag, feste Stapelkennung (doppelt lehnt PayPal ab)',
+$wgR = PartnerWege::auszahlen($wgB, true);
+pruefe('PayPal: automatisch, genau der Betrag, feste Stapelkennung (doppelt lehnt PayPal ab)',
     $wgR['ok'] && $wgHttp[0][2]['items'][0]['amount']['value'] === '70.00' && $wgHttp[0][2]['items'][0]['receiver'] === 'bruno@paypal.example'
     && str_starts_with($wgHttp[0][2]['sender_batch_header']['sender_batch_id'], 'vecom-' . $wgB . '-')
     && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgBp], '') === 'ausgezahlt');
-pruefe('PayPal: ein zweiter Klick zahlt nichts doppelt', PartnerWege::auszahlen($wgB)['ok'] === false);
+pruefe('PayPal: ein zweiter Lauf zahlt nichts doppelt', PartnerWege::auszahlen($wgB, true)['ok'] === false);
 
 $wgC = Partner::anlegen(['name' => 'Carla Wise', 'email' => 'carla@partner.example', 'status' => 'aktiv']);
 Partner::vereinbarungMerken($wgC, 'Probe');
@@ -10139,7 +10132,7 @@ PartnerWege::setzen($wgC, ['weg' => 'wise', 'kontoinhaber' => 'Carla Wise', 'iba
 $wgCp = $wgProv($wgC, 8000);
 $GLOBALS['wgWiseDirekt'] = false;
 $wgHttp = [];
-$wgR = PartnerWege::auszahlen($wgC);
+$wgR = PartnerWege::auszahlen($wgC, true);
 pruefe('Wise: verlangt Wise die Bestätigung in der App → angelegt, „offen“, Provision unterwegs, Meldung an Uwe',
     $wgR['ok'] && !empty($wgR['offen']) && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgCp], '') === 'unterwegs'
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_wise'", [], 0) >= 1

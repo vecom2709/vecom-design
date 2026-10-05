@@ -368,7 +368,7 @@ final class Ablauf
             'Alle auszahlungsbereiten Provisionen werden als ausgezahlt gebucht (Beleg mit Nummer, Mail an den Partner). Nur tun, wenn die Überweisung wirklich raus ist.',
             'Ja, als ausgezahlt buchen'],
         'partner_einstellungen' => [self::SCHWER,
-            'Die Bedingungen gelten für alle künftigen Provisionen. Ausgezahlt wird weiterhin nur auf deinen Klick.',
+            'Die Bedingungen gelten für alle künftigen Provisionen. Ist „automatisch auszahlen“ an, überweist Stripe ab jetzt ohne Klick — bis zum Tageslimit.',
             'Ja, speichern'],
         'partner_provision_streichen' => [self::SCHWER,
             'Die Provision entfällt und wird nicht ausgezahlt. Der Partner sieht sie als entfallen.',
