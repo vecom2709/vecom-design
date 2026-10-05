@@ -116,7 +116,7 @@
                Fenster, deckt es ihn zu; laedt es nicht, steht da trotzdem
                etwas Lesbares statt eines schwarzen Kastens. */ ?>
       <div style="position:relative;height:170px;border-radius:10px;overflow:hidden;
-                  border:1px solid var(--linie);background:var(--flaeche2,#0e1420)">
+                  border:1px solid var(--linie);background:var(--flaeche2,#0f1a2e)">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;
                     align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center">
           <span style="font-size:12.5px;color:var(--dim);word-break:break-all"><?=

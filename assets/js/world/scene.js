@@ -36,28 +36,29 @@ const DEEP = 0x070605;
    ========================================================================== */
 const THEMEN = {
   dark: {
-    /* Nachtblau statt Braun-Schwarz (05.10.2026, Uwe: „edleres Blau, auch auf der Hauptseite“).
-       Nur Hintergrund und Nebel; Umgebung, Lichtpaneele und Boden bleiben warm,
-       damit das Gold des V nicht blaustichig spiegelt. */
-    grund: ['#0c1428', '#070c1a', '#050811'],
-    nebelFarbe: 0x050811, nebelDichte: 0.032,
+    /* Nachtblau statt Braun-Schwarz (05.10.2026, Uwe: „edleres Blau, auch auf der Hauptseite“,
+       dann „vieles ist noch braun“). Hintergrund, Nebel, Rückwand, Boden und Grundlicht
+       nachtblau; die drei hellen Lichtpaneele (weiß, warm, gold) bleiben, damit das V golden
+       glänzt und vor dem Blau steht. */
+    grund: ['#0d1a38', '#081026', '#060b1a'],
+    nebelFarbe: 0x060b1a, nebelDichte: 0.032,
     envGrund: 0x070605,
     /* [Breite, Hoehe, Farbe, Staerke, Position, Drehung] */
     panels: [
       [13, 8,  0xffffff, 6.5, [-1, 9, 2],    [Math.PI / 2, 0, 0]],
       [11, 13, 0xffc478, 6.0, [-9, 1.5, 1],  [0, Math.PI / 2, 0]],
       [4,  13, 0xf1d38b, 5.5, [9, 0.5, -1],  [0, -Math.PI / 2, 0]],
-      [20, 13, 0x251f18, 1.6, [0, 0, -11],   null],
-      [20, 20, 0x090806, 1.0, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
+      [20, 13, 0x172e64, 1.6, [0, 0, -11],   null],
+      [20, 20, 0x070e21, 1.0, [0, -6, 0],    [-Math.PI / 2, 0, 0]],
     ],
-    ambient: [0x1c1814, 0.35],
+    ambient: [0x152446, 0.35],
     key: [0xffffff, 340],
     rimA: [BLUE, 90], rimB: [CYAN, 55],
     fill: [0xb39861, 18], spec: [0xffffff, 34], pointer: [0xf4e0aa, 26],
     logo: { color: 0xf0b64d, roughness: 0.36, envMapIntensity: 1.5, iridescence: 0.0 },   // satiniertes Gold, s. MATERIALS.metal
-    boden: { color: 0x110f0c, roughness: 0.3, envMapIntensity: 0.7 },
+    boden: { color: 0x0b152e, roughness: 0.3, envMapIntensity: 0.7 },
     /* Nachts braucht es keinen Fond: Der Grund IST dunkel. */
-    fond: { farbe: 0x070605, staerke: 0.0 },
+    fond: { farbe: 0x060b1a, staerke: 0.0 },
     belichtung: 1.05,
     bloom: 0.46,
     vignette: 0.55,

@@ -22245,25 +22245,25 @@ pruefe('jede öffentliche Seite mit Sprachweiche läuft durch — kein Abbruch, 
 $w7Liste = [];
 foreach (['app/assets/admin.css', 'assets/css/app.css', 'assets/css/kunde.css', 'partner.php', 'termin.php', 'website-check.php'] as $w7Css) {
     $w7T = (string) @file_get_contents($oben . '/' . $w7Css);
-    if (!str_contains($w7T, '@supports (appearance: base-select)') || !preg_match('~::picker\(select\)\{background:#(141311|0b1225)~', $w7T)) { $w7Liste[] = $w7Css; }
+    if (!str_contains($w7T, '@supports (appearance: base-select)') || !preg_match('~::picker\(select\)\{background:#(141311|0b1225|0c1834)~', $w7T)) { $w7Liste[] = $w7Css; }
 }
 pruefe('aufgeklappte Auswahllisten zeichnen wir selbst (dunkel, Gold für den gewählten Eintrag), wo der Browser es kann', $w7Liste === [], implode(', ', $w7Liste));
 /* 05.10.2026, Uwe: „dieses Blau wie auf der Visitenkarte für den Hintergrund anstatt Braun, überall im Partner sowie
-   Verwaltung“, danach „viel dunkler, leuchtend, edleres Blau“: tiefes Nachtblau #060a16 mit blauem Lichtschein. Grund
+   Verwaltung“, danach „viel dunkler, leuchtend, edleres Blau“: tiefes Nachtblau #070e21 mit blauem Lichtschein. Grund
    der Verwaltung, der Kunden- und Partnerseiten und der Standardvorlage „gold“; kein Braun-Schwarz mehr als Grund oder Fläche. */
 $bwKunde = (string) file_get_contents($oben . '/assets/css/kunde.css');
 $bwAdmin = (string) file_get_contents($oben . '/app/assets/admin.css');
-pruefe('Hintergrund tiefes Nachtblau (#060a16) statt Braun: Website, Verwaltung, Kunden- und Partnerseiten, Standardvorlage der Empfehlungsseite',
-    preg_match('~--grund:\s*#060a16~', $bwKunde) === 1 && preg_match('~--flaeche:\s*#0b1225~', $bwKunde) === 1
-    && preg_match('~--grund:#060a16~', $bwAdmin) === 1 && preg_match('~--flaeche:#0b1225~', $bwAdmin) === 1
-    && PartnerSeite::VORLAGEN['gold']['grund'] === '#060a16'
+pruefe('Hintergrund tiefes Nachtblau (#070e21) statt Braun: Website, Verwaltung, Kunden- und Partnerseiten, Standardvorlage der Empfehlungsseite',
+    preg_match('~--grund:\s*#070e21~', $bwKunde) === 1 && preg_match('~--flaeche:\s*#0c1834~', $bwKunde) === 1
+    && preg_match('~--grund:#070e21~', $bwAdmin) === 1 && preg_match('~--flaeche:#0c1834~', $bwAdmin) === 1
+    && PartnerSeite::VORLAGEN['gold']['grund'] === '#070e21'
     /* und auf der Website (Uwe: „auch auf der Hauptseite“): Grund, Startbild-Schleier, Erlebnis-Bereich, 3D-Hintergrund */
-    && preg_match('~--c-base:\s*#060a16~', (string) file_get_contents($oben . '/assets/css/app.css')) === 1
-    && str_contains((string) file_get_contents($oben . '/assets/css/app.css'), 'rgba(5,8,18, .96) 0%')
-    && str_contains((string) file_get_contents($oben . '/assets/css/erlebnis.css'), '--c-base:#060a16')
-    && str_contains((string) file_get_contents($oben . '/assets/js/world/scene.js'), "grund: ['#0c1428', '#070c1a', '#050811']")
+    && preg_match('~--c-base:\s*#070e21~', (string) file_get_contents($oben . '/assets/css/app.css')) === 1
+    && str_contains((string) file_get_contents($oben . '/assets/css/app.css'), 'rgba(6,11,27, .96) 0%')
+    && str_contains((string) file_get_contents($oben . '/assets/css/erlebnis.css'), '--c-base:#070e21')
+    && str_contains((string) file_get_contents($oben . '/assets/js/world/scene.js'), "grund: ['#0d1a38', '#081026', '#060b1a']")
     /* Aufgaben-Karten blau statt goldbraun getönt (auf Nachtblau wurde die Goldtönung schlammig) */
-    && str_contains((string) file_get_contents($oben . '/kunde.php'), '.dran{') && str_contains((string) file_get_contents($oben . '/kunde.php'), 'rgba(52,98,232,.16)')
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), '.dran{') && str_contains((string) file_get_contents($oben . '/kunde.php'), 'rgba(68,122,255, .21)')
     && !str_contains($bwAdmin, 'radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10)')
     && !preg_match('~background[^;}"]*#(0a0908|141311|1f1c18)~i', $bwKunde . $bwAdmin . (string) file_get_contents($oben . '/partner.php')));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));

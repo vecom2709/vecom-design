@@ -141,7 +141,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .band picture, .band img { display: block; width: 100%; height: 100%; }
 .band img { object-fit: cover; }
 .band::after { content: ""; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, var(--c-base) 0, transparent 18%, transparent 55%, rgba(6,10,22, .82) 100%); }
+  background: linear-gradient(180deg, var(--c-base) 0, transparent 18%, transparent 55%, rgba(7,14,33, .82) 100%); }
 .band figcaption { position: absolute; z-index: 1; left: 0; right: 0; bottom: clamp(1.6rem, 5vh, 3rem); }
 .band figcaption small { display: block; margin-bottom: .7rem; font-size: var(--t-xs); letter-spacing: .3em; text-transform: uppercase; color: var(--c-cyan); }
 .band figcaption span { display: block; max-width: 32rem; font-family: var(--f-serif); font-size: clamp(1.5rem, 1.1rem + 1.2vw, 2.3rem); line-height: 1.2; color: #fff; text-shadow: 0 2px 24px rgba(0, 0, 0, .8); }
@@ -161,7 +161,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
      „wichtig ist, dass der Telefonassistent rechts bleibt wie vorher“. */
   position: fixed; left: clamp(.9rem, 2vw, 1.5rem); bottom: clamp(.9rem, 2vw, 1.5rem); z-index: 60;
   display: flex; align-items: center; gap: .7rem; padding: .45rem 1.1rem .45rem .45rem;
-  background: rgba(11,18,37, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  background: rgba(12,24,52, .88); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--c-line-strong); border-radius: 999px;
   font-size: var(--t-sm); color: var(--c-text);
   box-shadow: 0 14px 34px -14px rgba(0, 0, 0, .9);
@@ -179,7 +179,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 /* Ohne Aufmacher lag der Text direkt auf der hellen Bühne — unlesbar
    (Probe 24.09.2026). Oben bleibt das V noch sichtbar, dann tragender Grund. */
 .technikseite { padding-top: clamp(8rem, 16vh, 11rem);
-  background: linear-gradient(180deg, rgba(6,10,22, .78) 0, rgba(6,10,22, .94) 320px, var(--c-base) 640px); }
+  background: linear-gradient(180deg, rgba(7,14,33, .78) 0, rgba(7,14,33, .94) 320px, var(--c-base) 640px); }
 .technikseite .sechead h1 { font-size: calc(var(--t-xl) * 1.25); }
 .technikseite .tiefer__kopf { display: none; }        /* hier immer offen, kein Zuklappen */
 .technikseite__zurueck { margin-top: var(--s-6); text-align: center; }
@@ -268,7 +268,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .zugangsfeld { width: 100%; max-width: 560px; }
 .zugangsfeld__zeile { display: flex; gap: 6px; padding: 6px; border-radius: 999px;
-  background: rgba(9,15,31, .62); border: 1px solid var(--edel-linie);
+  background: rgba(10,20,44, .62); border: 1px solid var(--edel-linie);
   backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
   transition: border-color .2s ease, box-shadow .2s ease; }
 .zugangsfeld__zeile:focus-within { border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(241, 211, 139, .14); }
@@ -308,7 +308,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
    keine fremde Farbe gegen das Gold spielt. */
 .vertrauen { position: relative; z-index: 2; padding: clamp(2.2rem, 4vw, 3.4rem) 0 clamp(2.6rem, 5vw, 4.2rem);
   border-top: 1px solid var(--edel-linie); border-bottom: 1px solid var(--edel-linie);
-  background: linear-gradient(180deg, rgba(6,10,22, .72), rgba(6,10,22, .9)); }
+  background: linear-gradient(180deg, rgba(7,14,33, .72), rgba(7,14,33, .9)); }
 .vertrauen__liste { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 0; padding: 0; list-style: none; }
 .vertrauen__liste li { display: flex; flex-direction: column; gap: .35rem; padding: .2rem clamp(1rem, 2vw, 1.8rem); }
 .vertrauen__liste li + li { border-left: 1px solid; border-image: linear-gradient(180deg, transparent, rgba(241, 211, 139, .45), transparent) 1; }
@@ -337,7 +337,7 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
   .handyleiste {
     display: block; position: fixed; left: 0; right: 0; bottom: 0; z-index: 59;
     padding: .7rem 1rem calc(.7rem + env(safe-area-inset-bottom));
-    background: linear-gradient(180deg, rgba(6,10,22, 0), rgba(6,10,22, .86) 38%);
+    background: linear-gradient(180deg, rgba(7,14,33, 0), rgba(7,14,33, .86) 38%);
     transform: translateY(110%); transition: transform 340ms cubic-bezier(.16, 1, .3, 1);
     pointer-events: none;
   }
@@ -363,12 +363,12 @@ h1 em, h2 em, h3 em, .hero h1 .accent {
 .vorschau__feld { display: flex; flex-direction: column; gap: .45rem; font-size: var(--t-xs); letter-spacing: .16em; text-transform: uppercase; color: var(--c-text-faint); }
 .vorschau__feld input, .vorschau__feld select {
   min-height: 52px; padding: 0 1rem; border-radius: 12px; border: 1px solid var(--edel-linie);
-  background: rgba(9,15,31, .62); color: var(--c-text); font: 400 1rem/1.2 var(--f-text); letter-spacing: 0; text-transform: none;
+  background: rgba(10,20,44, .62); color: var(--c-text); font: 400 1rem/1.2 var(--f-text); letter-spacing: 0; text-transform: none;
   -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
 }
 .vorschau__feld select { appearance: none; background-image: linear-gradient(45deg, transparent 50%, #e9cf86 50%), linear-gradient(135deg, #e9cf86 50%, transparent 50%);
   background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 2.4rem; }
-.vorschau__feld select option { background: #0b1225; color: #f7f3ea; }
+.vorschau__feld select option { background: #0c1834; color: #f7f3ea; }
 .vorschau__feld input:focus, .vorschau__feld select:focus { outline: none; border-color: var(--c-cyan); box-shadow: 0 0 0 3px rgba(241, 211, 139, .14); }
 .vorschau__form .btn { min-height: 52px; }
 .vorschau__weiter { margin-top: clamp(1.4rem, 3vw, 2rem); display: grid; gap: 1rem; max-width: 640px; }

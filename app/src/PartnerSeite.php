@@ -28,7 +28,7 @@ final class PartnerSeite
 {
     /** Vorlagen: Grundfarben der Seite (CSS-Variablen von kunde.css). hell = Akzent in dunkler Fassung, Knopftext weiß. */
     public const VORLAGEN = [
-        'gold'       => ['hell' => false, 'grund' => '#060a16', 'grund2' => '#090e1e', 'flaeche' => '#0b1225', 'flaeche2' => '#101933', 'text' => '#f7f3ea', 'dim' => '#b4ada2', 'leise' => '#9e978b', 'linie' => 'rgba(224,206,156,.13)', 'linie2' => 'rgba(224,206,156,.26)', 'akzent' => 'gold'],
+        'gold'       => ['hell' => false, 'grund' => '#070e21', 'grund2' => '#0a122b', 'flaeche' => '#0c1834', 'flaeche2' => '#112046', 'text' => '#f7f3ea', 'dim' => '#b4ada2', 'leise' => '#9e978b', 'linie' => 'rgba(224,206,156,.13)', 'linie2' => 'rgba(224,206,156,.26)', 'akzent' => 'gold'],
         'hell'       => ['hell' => true,  'grund' => '#f7f3ec', 'grund2' => '#efe9df', 'flaeche' => '#ffffff', 'flaeche2' => '#f3eee6', 'text' => '#1a1714', 'dim' => '#57514a', 'leise' => '#6f685f', 'linie' => 'rgba(40,30,15,.12)', 'linie2' => 'rgba(40,30,15,.22)', 'akzent' => 'gold'],
         'mediterran' => ['hell' => true,  'grund' => '#f3ece2', 'grund2' => '#ebe2d5', 'flaeche' => '#fffaf3', 'flaeche2' => '#f6efe4', 'text' => '#1d2a36', 'dim' => '#4f5c68', 'leise' => '#66727d', 'linie' => 'rgba(29,42,54,.12)', 'linie2' => 'rgba(29,42,54,.22)', 'akzent' => 'terrakotta'],
         'minimal'    => ['hell' => true,  'grund' => '#ffffff', 'grund2' => '#fafafa', 'flaeche' => '#f6f6f6', 'flaeche2' => '#efefef', 'text' => '#111111', 'dim' => '#4d4d4d', 'leise' => '#666666', 'linie' => 'rgba(0,0,0,.1)', 'linie2' => 'rgba(0,0,0,.2)', 'akzent' => 'graphit'],

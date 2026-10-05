@@ -448,7 +448,7 @@ if ($p && isset($_GET['manifest'])) {
         'name' => 'Vecom Design — Partner', 'short_name' => 'Vecom Partner',
         // Ohne Schlüssel (05.10.2026): Die App öffnet über das bestätigte Gerät; fehlt es, fragt sie nach E-Mail und Code.
         'start_url' => '/partner.php?app=1', 'scope' => '/partner.php', 'id' => '/partner.php?app=' . substr(hash('sha256', (string) $p['token']), 0, 12),
-        'display' => 'standalone', 'background_color' => '#060a16', 'theme_color' => '#060a16', 'lang' => $sprache,
+        'display' => 'standalone', 'background_color' => '#070e21', 'theme_color' => '#070e21', 'lang' => $sprache,
         'icons' => [
             // „any“ und „maskable“ getrennt -- zusammengelegt warnen Chrome und die WebAPK-Erzeugung.
             ['src' => '/assets/img/app-icon-192.png', 'sizes' => '192x192', 'type' => 'image/png', 'purpose' => 'any'],
@@ -1081,7 +1081,7 @@ if ($p && isset($_GET['karte'])) {
 <style>
   @page{size:A6;margin:0}
   body{margin:0;background:#e9e5dc;font-family:'Inter',system-ui,sans-serif}
-  .karte{width:105mm;height:148mm;margin:10mm auto;background:#060a16;color:#f7f3ea;box-sizing:border-box;padding:12mm 9mm;
+  .karte{width:105mm;height:148mm;margin:10mm auto;background:#070e21;color:#f7f3ea;box-sizing:border-box;padding:12mm 9mm;
          display:flex;flex-direction:column;align-items:center;text-align:center;border-radius:3mm}
   .karte img.logo{width:22mm;height:auto;margin-bottom:4mm}
   .karte .wort{font-family:'Archivo',sans-serif;font-weight:800;letter-spacing:.08em;font-size:13pt;margin-bottom:6mm}
@@ -1093,10 +1093,10 @@ if ($p && isset($_GET['karte'])) {
   .karte .url{font-size:10.5pt;color:#f1d38b;font-weight:600;word-break:break-all}
   .druck{display:block;margin:0 auto 10mm;padding:12px 22px;font-size:15px;border-radius:10px;border:0;cursor:pointer;
          background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438);color:#16120b;font-weight:700}
-  @media print{body{background:#060a16}.druck{display:none}.karte{margin:0;border-radius:0}}
+  @media print{body{background:#070e21}.druck{display:none}.karte{margin:0;border-radius:0}}
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
-  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#0b1225;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#101933;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#0c1834;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#112046;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
 </style></head><body>
 <div class="karte">
   <img class="logo" src="/assets/img/logo-mark.webp?v=gold2609" alt="">
@@ -1126,7 +1126,7 @@ if ($p && isset($_GET['karte'])) {
 <title><?= $h($p ? $T('p_titel') : $T('titel')) ?> — Vecom Design</title>
 <?php if ($p): ?>
 <link rel="manifest" href="<?= $h($selbst(['manifest' => 1])) ?>">
-<meta name="theme-color" content="#060a16">
+<meta name="theme-color" content="#070e21">
 <link rel="icon" href="/assets/img/favicon-96.png" sizes="96x96">
 <link rel="icon" href="/assets/img/favicon-48.png" sizes="48x48">
 <link rel="apple-touch-icon" href="/assets/img/app-icon-192.png">
@@ -1205,11 +1205,11 @@ if ($p && isset($_GET['karte'])) {
   /* So geht's je Reiter und Schnellsuche (03.10.2026) — beide baut partner-reiter.js */
   /* Handy-Vorschau (03.10.2026): ein Telefon mit dem Beitrag als Nachricht, so wie ihn die Kontakte sehen */
   .hv{border:0;padding:0;background:transparent;max-width:none;max-height:none;overflow:visible}
-  .hv::backdrop{background:rgba(4,6,15,.78)}
-  .hv-rahmen{width:min(320px,86vw);height:min(640px,82vh);border-radius:42px;padding:12px;background:#080d1b;box-shadow:0 0 0 2px #2b2722,0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;box-sizing:border-box}
-  .hv-kopf{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;background:#0f1830;border-radius:30px 30px 0 0;color:#f7f3ea;font-size:14px}
+  .hv::backdrop{background:rgba(5,8,24, .78)}
+  .hv-rahmen{width:min(320px,86vw);height:min(640px,82vh);border-radius:42px;padding:12px;background:#091127;box-shadow:0 0 0 2px #2b2722,0 30px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;box-sizing:border-box}
+  .hv-kopf{display:flex;align-items:center;gap:10px;padding:14px 14px 10px;background:#101f42;border-radius:30px 30px 0 0;color:#f7f3ea;font-size:14px}
   .hv-kopf i{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#b98a31,#f7e6ae);flex:0 0 auto}
-  .hv-chat{flex:1;overflow:auto;padding:14px 12px;background:#0b141a;border-radius:0 0 30px 30px}
+  .hv-chat{flex:1;overflow:auto;padding:14px 12px;background:#0c1a26;border-radius:0 0 30px 30px}
   .hv-blase{max-width:88%;margin-left:auto;background:#005c4b;color:#e9edef;border-radius:10px 2px 10px 10px;padding:6px 8px 8px;font-size:13.5px;line-height:1.42;white-space:pre-wrap;overflow-wrap:anywhere}
   .hv-blase img{display:block;width:100%;border-radius:6px;margin-bottom:6px}
   .hv-blase a{color:#53bdeb}
@@ -1223,7 +1223,7 @@ if ($p && isset($_GET['karte'])) {
   .pa-schalter input{appearance:none;-webkit-appearance:none;flex:0 0 auto;width:44px;height:26px;margin:1px 0 0;border-radius:13px;background:rgba(255,255,255,.14);position:relative;cursor:pointer;transition:background .18s}
   .pa-schalter input::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#f7f3ea;transition:transform .18s cubic-bezier(.16,1,.3,1)}
   .pa-schalter input:checked{background:linear-gradient(115deg,#b98a31,#f1d38b)}
-  .pa-schalter input:checked::after{transform:translateX(18px);background:#0b1124}
+  .pa-schalter input:checked::after{transform:translateX(18px);background:#0c1633}
   .pa-schalter input:focus-visible{outline:2px solid #f1d38b;outline-offset:3px}
   .pa-was b{display:block;font-weight:600;line-height:1.35}
   .pa-was small{display:block;color:var(--dim);font-size:13px;line-height:1.5;margin-top:2px}
@@ -1250,7 +1250,7 @@ if ($p && isset($_GET['karte'])) {
   .app-suche input{width:100%;box-sizing:border-box;font-size:16px;padding:11px 14px 11px 40px;border-radius:12px;border:1px solid var(--linie2);background:rgba(255,255,255,.03);color:var(--text)}
   .app-suche input:focus-visible{outline:2px solid #f1d38b;outline-offset:1px}
   .app-suche svg{position:absolute;left:13px;top:13px;width:18px;height:18px;fill:none;stroke:var(--dim);stroke-width:2;stroke-linecap:round;pointer-events:none}
-  .app-suche ul{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;list-style:none;margin:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);background:#0b1124;box-shadow:0 18px 40px rgba(0,0,0,.45);max-height:60vh;overflow:auto}
+  .app-suche ul{position:absolute;left:0;right:0;top:calc(100% + 6px);z-index:30;list-style:none;margin:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);background:#0c1633;box-shadow:0 18px 40px rgba(0,0,0,.45);max-height:60vh;overflow:auto}
   .app-suche li button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;width:100%;min-height:44px;padding:8px 10px;border:0;border-radius:8px;background:none;color:var(--text);font:inherit;font-size:14.5px;text-align:left;cursor:pointer}
   .app-suche li button small{font-size:12px;color:var(--dim)}
   .app-suche li button:hover,.app-suche li button[aria-selected="true"]{background:rgba(241,211,139,.1)}
@@ -1279,7 +1279,7 @@ if ($p && isset($_GET['karte'])) {
   .g3-stueck{position:relative;padding:0;border:2px solid transparent;border-radius:12px;overflow:hidden;background:#111;cursor:pointer;aspect-ratio:4/5;min-height:44px}
   .g3-stueck[aria-pressed="true"]{border-color:#f1d38b}
   .g3-stueck img,.g3-stueck video{width:100%;height:100%;object-fit:cover;display:block}
-  .g3-marke{position:absolute;left:6px;bottom:6px;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(6,10,22,.78);color:#f7f3ea}
+  .g3-marke{position:absolute;left:6px;bottom:6px;font-size:11px;padding:2px 7px;border-radius:999px;background:rgba(7,14,33, .78);color:#f7f3ea}
   .g3-eigen{left:auto;right:6px;top:6px;bottom:auto;background:#f1d38b;color:#17130b}
   .pt .g3-bestellen{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px 14px;align-items:end;text-align:left;justify-items:stretch}
   .pt .g3-bestellen label{display:flex;flex-direction:column;align-items:stretch;gap:5px;min-width:0;margin:0}
@@ -1471,7 +1471,7 @@ if ($p && isset($_GET['karte'])) {
   /* Reiter wie eine App (27.09.2026). Ohne Skript gibt es sie nicht -- dann steht alles untereinander. */
   .sr-nur{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
   .app-reiter{display:none}
-  .mit-reitern .app-reiter{display:flex;position:sticky;top:8px;z-index:30;gap:3px;max-width:760px;margin:0 auto 18px;box-sizing:border-box;padding:5px;background:rgba(11,18,37,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--linie);border-radius:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
+  .mit-reitern .app-reiter{display:flex;position:sticky;top:8px;z-index:30;gap:3px;max-width:760px;margin:0 auto 18px;box-sizing:border-box;padding:5px;background:rgba(12,24,52, .88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--linie);border-radius:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
   .app-reiter a{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 6px;border-radius:11px;color:var(--dim);text-decoration:none;font-size:13.5px;font-weight:600;position:relative;transition:color .18s cubic-bezier(.16,1,.3,1),background-color .18s cubic-bezier(.16,1,.3,1);white-space:nowrap}
   .app-reiter a svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .app-reiter a .k{display:none}
@@ -1496,11 +1496,11 @@ if ($p && isset($_GET['karte'])) {
     .app-mehr.aktiv,.app-mehr[aria-expanded=true]{color:#f1d38b}
     .app-mehr:focus-visible{outline:2px solid #f1d38b;outline-offset:1px}
     .app-mehr-liste:not([hidden]){display:grid;gap:4px;position:absolute;right:4px;bottom:calc(100% + 10px);min-width:210px;padding:6px;border-radius:16px;
-      border:1px solid var(--linie);background:#090f1f;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
+      border:1px solid var(--linie);background:#0a142c;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
     .app-reiter .app-mehr-liste a{flex-direction:row;justify-content:flex-start;gap:10px;font-size:15px;min-height:50px;padding:10px 12px}
     .app-reiter .app-mehr-liste a .k{display:none}
     .app-reiter .app-mehr-liste a .l{display:block}
-    .mit-reitern .app-reiter{position:fixed;top:auto;bottom:0;left:0;right:0;max-width:none;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(7,12,25,.95)}
+    .mit-reitern .app-reiter{position:fixed;top:auto;bottom:0;left:0;right:0;max-width:none;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(8,16,36, .95)}
     .app-reiter a{flex-direction:column;gap:3px;font-size:11.5px;font-weight:600;min-height:54px;padding:6px 2px;border-radius:12px}
     .app-reiter a svg{width:22px;height:22px}
     .app-reiter a .k{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis}
@@ -1511,8 +1511,8 @@ if ($p && isset($_GET['karte'])) {
   }
   @media (prefers-reduced-motion:reduce){.app-reiter a{transition:none}}
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
-  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#0b1225;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#101933;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#0c1834;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#112046;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
 </style>
 </head>
 <body>

@@ -193,7 +193,7 @@ $datum = static function (?string $d): string {
     filter:drop-shadow(0 2px 2px rgba(0,0,0,.55)) drop-shadow(0 10px 12px rgba(0,0,0,.45)) drop-shadow(0 24px 30px rgba(0,0,0,.4))}
   .akopf .siegel:focus-visible img{outline:2px solid #f1d38b;outline-offset:4px;border-radius:50%}
   .siegel__hinweis{position:absolute;top:calc(100% + 8px);right:0;width:min(300px,calc(100vw - 40px));padding:11px 13px;border-radius:12px;
-    background:#0a1123;border:1px solid rgba(241,211,139,.38);box-shadow:0 18px 40px -16px rgba(0,0,0,.8);
+    background:#0b1632;border:1px solid rgba(241,211,139,.38);box-shadow:0 18px 40px -16px rgba(0,0,0,.8);
     font-size:12.5px;line-height:1.55;color:var(--dim);opacity:0;visibility:hidden;translate:0 6px;pointer-events:none;
     transition:opacity .18s linear,translate .18s cubic-bezier(.16,1,.3,1),visibility 0s linear .18s}
   .akopf .siegel:hover .siegel__hinweis,.akopf .siegel:focus .siegel__hinweis{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}

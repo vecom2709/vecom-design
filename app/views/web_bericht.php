@@ -86,7 +86,7 @@ $wbStandFarbe = ['gut' => '#3fb56b', 'hinweis' => '#e0b341', 'schlecht' => '#e55
   .wb .wb-serp .t{font-size:18px;line-height:1.3;color:#1a0dab;margin:0 0 4px}
   .wb .wb-serp .d{font-size:14px;line-height:1.5;color:#4d5156;margin:0}
   .wb .wb-serp .d.leer{color:#b3261e;font-style:italic}
-  .wb .wb-chat{background:#0b141a;border-radius:12px;padding:14px}
+  .wb .wb-chat{background:#0c1a26;border-radius:12px;padding:14px}
   .wb .wb-blase{background:#005c4b;color:#e9edef;border-radius:10px;padding:6px;max-width:280px;margin-left:auto;font-family:system-ui,sans-serif}
   .wb .wb-blase .img{height:110px;border-radius:7px;background:linear-gradient(135deg,#b98a31,#f7e6ae 50%,#c49438);display:grid;place-items:center;color:#16120b;font:800 17px/1.2 'Archivo',sans-serif;text-align:center;padding:10px}
   .wb .wb-blase .kt{background:rgba(0,0,0,.18);border-radius:7px;padding:6px 8px;margin-top:4px;font-size:13px}

@@ -77,9 +77,9 @@ if ($ungueltig) { http_response_code(404); }
 <title><?= htmlspecialchars($T['titel']) ?> — Vecom Design</title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0b0f17; color: #e8ecf3;
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0c1422; color: #e8ecf3;
          font: 17px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 16px; box-sizing: border-box; }
-  main { max-width: 520px; width: 100%; background: #121826; border: 1px solid #1f2a3d; border-radius: 16px; padding: 32px 28px; }
+  main { max-width: 520px; width: 100%; background: #131f35; border: 1px solid #1f2a3d; border-radius: 16px; padding: 32px 28px; }
   .marke { letter-spacing: .18em; font-weight: 700; font-size: 13px; color: #7fa7ff; margin-bottom: 18px; }
   h1 { font-size: 24px; margin: 0 0 12px; }
   p { margin: 0 0 22px; color: #c3cad6; }
@@ -87,7 +87,7 @@ if ($ungueltig) { http_response_code(404); }
            width: 100%; cursor: pointer; min-height: 48px; }
   button:focus-visible { outline: 3px solid #9fbcff; outline-offset: 2px; }
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

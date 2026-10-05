@@ -14,7 +14,7 @@ $klausel = PartnerSchutz::klauselText($sprache);
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($T('sp_titel')) ?> — Vecom Design</title>
-<meta name="theme-color" content="#060a16">
+<meta name="theme-color" content="#070e21">
 <link rel="icon" href="/assets/img/favicon-96.png" sizes="96x96">
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/kunde.css') ?>">

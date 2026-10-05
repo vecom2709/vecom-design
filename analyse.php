@@ -50,8 +50,8 @@ if ($daten === null) {
     ?><!doctype html><html lang="it"><head><meta charset="utf-8">
 <?= Sprache::skript() ?><meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="robots" content="noindex, nofollow"><title>Vecom Design</title>
-    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#060a16;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center}  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+    <style>body{margin:0;min-height:100vh;display:grid;place-items:center;background:#070e21;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center}  /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style></head>
     <body><p>Questa pagina non è (più) disponibile. · Diese Seite ist nicht (mehr) verfügbar.<br><a style="color:#f1d38b" href="https://vecom-design.it">vecom-design.it</a></p></body></html><?php
     exit;
@@ -124,7 +124,7 @@ $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' 
   .einw h2 { margin-top: 0; }
   .einw p { color: var(--d); margin: 0 0 12px; }
   .einw label { display: block; font-size: 14px; color: var(--d); margin: 8px 0 6px; }
-  .einw input[type=email] { width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(241,211,139,.3); background: #080d1b; color: var(--t); }
+  .einw input[type=email] { width: 100%; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(241,211,139,.3); background: #091127; color: var(--t); }
   .einw .haken { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: var(--t); margin: 14px 0; }
   .einw .haken input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
   .einw button { width: 100%; min-height: 50px; border: 0; border-radius: 12px; font: 650 16px/1 'Inter', system-ui, sans-serif; color: var(--t); cursor: pointer; background: transparent; border: 1px solid rgba(241,211,139,.55); }
@@ -132,7 +132,7 @@ $mail = 'mailto:kontakt@vecom-design.it?subject=' . rawurlencode($T['kopf'] . ' 
   .einw .wabe { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   @media (max-width: 760px) { .raster { grid-template-columns: 1fr; } .foto { max-width: 300px; margin: 0 auto; } }
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

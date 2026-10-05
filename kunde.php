@@ -523,7 +523,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   @media (min-width:641px){ .wegzahl{display:none} }
   /* Der eine Kasten, der sagt, was dran ist. */
   .dran{border:1px solid var(--linie2);border-radius:16px;padding:20px 22px;margin-bottom:20px;
-    background:linear-gradient(135deg,rgba(52,98,232,.16),rgba(241,211,139,.05))}
+    background:linear-gradient(135deg,rgba(68,122,255, .21),rgba(241,211,139,.05))}
   .dran.warten{background:none}
   .dran .wer{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
   .dran.warten .wer{color:var(--leise)}

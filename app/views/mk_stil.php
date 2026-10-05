@@ -150,7 +150,7 @@
   .mk-laender a[aria-current]{background:var(--metall);color:#16120b;font-weight:700}
   .mk-laender a[aria-current] .mk-flagge{box-shadow:0 0 0 1px rgba(0,0,0,.35)}
   .mk-laender b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--rot);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
-  .mk-laender a[aria-current] b{background:#0b1124;color:#fff}
+  .mk-laender a[aria-current] b{background:#0c1633;color:#fff}
   @media(max-width:520px){.mk-laender{display:flex}.mk-laender a{flex:1 1 0;justify-content:center;padding:0 10px}}
   .mk-schritte{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 16px;padding:0;list-style:none;counter-reset:mks}
   .mk-schritte li{counter-increment:mks;border:1px solid var(--linie);border-radius:12px;padding:12px 14px 12px 52px;position:relative;background:var(--flaeche2);font-size:13.5px;line-height:1.45;color:var(--dim)}

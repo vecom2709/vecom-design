@@ -82,7 +82,7 @@ $T = [
   .hinweis.gut{border:1px solid var(--gut);color:#8fe3a9}.hinweis.schlecht{border:1px solid var(--rot);color:#ffb3aa}
   .weiter{display:inline-block;margin-top:20px;color:var(--a)}
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0c1834;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

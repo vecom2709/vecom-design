@@ -16,10 +16,10 @@
 :root{
   /* Grund und Flächen tiefes, leuchtendes Nachtblau statt Braun-Schwarz (05.10.2026, Uwe: „dieses Blau
      wie auf der Visitenkarte … anstatt Braun“, dann „viel dunkler, leuchtend, edleres Blau“); Gold, Schrift und Linien wie die Website. */
-  --grund:      #060a16;
-  --grund2:     #090e1e;
-  --flaeche:    #0b1225;
-  --flaeche2:   #101933;
+  --grund:      #070e21;
+  --grund2:     #0a122b;
+  --flaeche:    #0c1834;
+  --flaeche2:   #112046;
   --linie:      rgba(224,206,156,.13);
   --linie2:     rgba(224,206,156,.26);
 
@@ -62,8 +62,8 @@ body{
 body::before{
   content:''; position:fixed; inset:0; pointer-events:none; z-index:0;
   background:
-    radial-gradient(72vw 52vh at 50% -14%, rgba(52,98,232,.30), transparent 66%),
-    radial-gradient(54vw 42vh at 6% 108%, rgba(34,70,196,.18), transparent 64%),
+    radial-gradient(72vw 52vh at 50% -14%, rgba(68,122,255, .39), transparent 66%),
+    radial-gradient(54vw 42vh at 6% 108%, rgba(46,90,240, .23), transparent 64%),
     radial-gradient(46vw 34vh at 88% 104%, rgba(241,211,139,.07), transparent 62%);
 }
 
@@ -179,7 +179,7 @@ input[type=file]{
   border:1px solid var(--linie); background:rgba(255,255,255,.02);
 }
 .nachricht.wir{
-  background:linear-gradient(135deg, rgba(52,98,232,.12), rgba(241,211,139,.05));
+  background:linear-gradient(135deg, rgba(68,122,255, .16), rgba(241,211,139,.05));
   border-color:rgba(241,211,139,.20);
 }
 .nachricht .wer{
@@ -341,7 +341,7 @@ tr.fragezeile .frage{margin:0 0 8px}
    darauf unlesbar. Begründung ausführlich in app/assets/admin.css. */
 :root{color-scheme:dark}
 ::selection{background:#f1d38b;color:#0a0908}
-select option,select optgroup{background-color:#0b1225;color:#f7f3ea}
+select option,select optgroup{background-color:#0c1834;color:#f7f3ea}
 select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 
 /* Die aufgeklappte Liste selbst zeichnen, wo der Browser es kann (Chrome/Edge
@@ -352,10 +352,10 @@ select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);c
   select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}
   select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}
   select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}
-  ::picker(select){background:#0b1225;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;
+  ::picker(select){background:#0c1834;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;
     box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}
   select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}
-  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#101933;color:#fff;outline:none}
+  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#112046;color:#fff;outline:none}
   select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}
   select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}
   select:not([multiple]):not([size]) option::checkmark{color:currentColor}
