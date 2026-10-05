@@ -23092,8 +23092,9 @@ $gsPr = [];
 foreach (array_keys($gsArten) as $gsV) { $gsPr[$gsV] = Db::one('SELECT * FROM wm_produkte WHERE vorlage = ?', [$gsV]); }
 $gsZu = Db::all("SELECT p.vorlage, v.auflage, a.artikel, a.menge FROM wm_produkte p JOIN wm_varianten v ON v.produkt_id = p.id
                   JOIN wm_anbieter_produkte a ON a.variante_id = v.id AND a.anbieter = 'printful' WHERE p.vorlage IN ('notizbuch', 'flasche', 'untersetzer', 'beutel') ORDER BY p.sortierung, v.auflage");
-pruefe('Produkte: Bereich „Geschenke“, AUS bis Uwe einschaltet, je drei Auflagen mit Printful-Variante × Stückzahl, keine geschätzten Preise',
-    !in_array(null, $gsPr, true) && array_unique(array_column($gsPr, 'bereich')) === ['geschenke'] && array_sum(array_column($gsPr, 'aktiv')) === 0
+pruefe('Produkte: Bereich „Geschenke“, nach Uwes Ja eingeschaltet (Migration 172; sichtbar erst mit Printful-Preis), je drei Auflagen mit Printful-Variante × Stückzahl, keine geschätzten Preise',
+    !in_array(null, $gsPr, true) && array_unique(array_column($gsPr, 'bereich')) === ['geschenke'] && array_sum(array_column($gsPr, 'aktiv')) === 4
+    && !array_filter(Werbemittel::katalog('de', false, 'IT'), static fn($k) => array_intersect(['notizbuch', 'flasche', 'untersetzer', 'beutel'], array_column($k['produkte'], 'vorlage')) !== [])
     && count($gsZu) === 12 && $gsZu[0] == ['vorlage' => 'notizbuch', 'auflage' => 1, 'artikel' => '12141', 'menge' => 1]
     && in_array(['vorlage' => 'untersetzer', 'auflage' => 12, 'artikel' => '15662', 'menge' => 12], $gsZu, false)
     && in_array(['vorlage' => 'beutel', 'auflage' => 10, 'artikel' => '10457', 'menge' => 10], $gsZu, false)
