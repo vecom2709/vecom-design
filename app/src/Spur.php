@@ -402,6 +402,8 @@ final class Spur
     {
         $ua = (string) ($s['ua'] ?? '');
         if (Partner::istRoboter($ua)) { return null; }
+        /* Testpartner (Phase 9b): sein Link zählt in keiner Statistik — kein Besuch. */
+        if ($partnerId !== null && (int) Db::wert('SELECT test FROM partner WHERE id = ?', [$partnerId], 0) === 1) { return null; }
         $ip = (string) ($s['ip'] ?? '');
         $ipHash = self::ipHash($ip);
         $u = self::ua($ua);

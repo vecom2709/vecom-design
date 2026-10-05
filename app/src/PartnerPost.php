@@ -129,6 +129,8 @@ final class PartnerPost
      */
     public static function push(int $partnerId, string $titel, string $text, string $link, bool $immer = false): int
     {
+        /* Testpartner (Phase 9b): zählt nirgends. Kein Hinweis aufs Handy. */
+        if ((int) self::still(static fn() => Db::wert('SELECT test FROM partner WHERE id = ?', [$partnerId], 0), 0) === 1) { return 0; }
         // Urlaubsmodus (03.10.2026, PartnerAutomatik): bis ruhe_bis kein Hinweis -- an genau einer Stelle, damit kein Weg vorbeiführt.
         if (!$immer) {
             require_once __DIR__ . '/PartnerAutomatik.php';

@@ -175,6 +175,7 @@ final class PartnerWege
     {
         $p = Partner::laden($partnerId);
         if (!$p) { return ['ok' => false, 'text' => 'Partner nicht gefunden.']; }
+        if (!empty($p['test'])) { return ['ok' => false, 'text' => 'Der Testpartner bekommt nie Geld.']; }   /* Testpartner (Phase 9b): zählt nirgends. */ 
         $weg = self::weg($p);
         if ($weg === null) { return ['ok' => false, 'text' => 'Kein Auszahlungsweg eingeschaltet.']; }
         if ($automatisch && !in_array($weg, self::AUTOMATISCH, true)) {

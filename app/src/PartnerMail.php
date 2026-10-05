@@ -66,7 +66,8 @@ final class PartnerMail
     /** Darf dieser Partner aus dem Dashboard senden? */
     public static function kann(array $p): bool
     {
-        return ($p['status'] ?? '') === 'aktiv' && self::adresseGueltig((string) ($p['vecom_adresse'] ?? ''));
+        // Testpartner (Phase 9b): nie ein Mail-Center — seine Mails gingen an echte Kunden.
+        return ($p['status'] ?? '') === 'aktiv' && empty($p['test']) && self::adresseGueltig((string) ($p['vecom_adresse'] ?? ''));
     }
 
     /**
@@ -129,7 +130,7 @@ final class PartnerMail
         $betreff = trim((string) preg_replace('~[\s\x{00A0}\x{200B}-\x{200D}\x{2060}\x{FEFF}]+~u', ' ', $betreff));
         // 2. Nur wer eine @vecom-Adresse hat; die Adresse kommt aus der Datenbank, nie aus dem Formular.
         $pid = (int) ($p['id'] ?? 0);
-        $frisch = Db::one('SELECT id, name, status, vecom_adresse FROM partner WHERE id = ?', [$pid]);
+        $frisch = Db::one('SELECT id, name, status, vecom_adresse, test FROM partner WHERE id = ?', [$pid]);
         if (!$frisch || !self::kann($frisch)) { return 'keine_adresse'; }
         $absender = (string) $frisch['vecom_adresse'];
         // 3. Empfänger und Text.

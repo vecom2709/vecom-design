@@ -548,6 +548,7 @@ final class Partner
 
     public static function klick(int $partnerId, ?string $kanal = null): void
     {
+        /* Testpartner (Phase 9b): zählt nirgends. */ if ((int) self::still(static fn() => Db::wert('SELECT test FROM partner WHERE id = ?', [$partnerId], 0), 0) === 1) { return; }
         $roh = self::kanal((string) $kanal);
         self::still(static fn() => Db::run(
             'INSERT INTO partner_klicks (partner_id, tag, anzahl) VALUES (?, CURDATE(), 1)
@@ -740,6 +741,7 @@ final class Partner
     {
         $p = self::laden($partnerId);
         if (!$p || $p['status'] !== 'aktiv') { return 'kein_partner'; }
+        if (!empty($p['test'])) { return 'test'; }   /* Testpartner (Phase 9b): zählt nirgends. */ 
         if (Db::wert('SELECT partner_id FROM partner_zuordnungen WHERE customer_id = ?', [$kundeId], null) !== null) { return 'schon'; }
         if (self::istSelbst($p, $kundeId)) {
             Events::protokoll('partner_selbst', 'Partnercode beim eigenen Kauf — nicht zugeordnet', $kundeId, null, null, ['partner_id' => $partnerId]);
@@ -847,6 +849,7 @@ final class Partner
         if (!$zu) { return ['ok' => false, 'grund' => 'kein_partner']; }
         $p = self::laden((int) $zu['partner_id']);
         if (!$p || $p['status'] !== 'aktiv') { return ['ok' => false, 'grund' => 'partner_nicht_aktiv']; }
+        if (!empty($p['test'])) { return ['ok' => false, 'grund' => 'test']; }   /* Testpartner (Phase 9b): zählt nirgends. */ 
         if (self::istSelbst($p, $kundeId)) { return ['ok' => false, 'grund' => 'selbst']; }
 
         $s = self::satzFuer($p);
@@ -1826,7 +1829,7 @@ final class Partner
            ausgeschaltet oder beim Not-Aus bleibt das Geld bereit und wartet. */
         if (!Automation::darf('partner_auszahlung')) { $r['auszahlung_ruht'] = 1; return $r; }
         $limit = self::zahl('partner_auto_tageslimit_cents');
-        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL") as $p) {
+        foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL AND test = 0") as $p) {
             $weg = PartnerWege::weg($p);
             if (!in_array($weg, PartnerWege::AUTOMATISCH, true) || !PartnerWege::bereit($p, $weg)) { continue; }
             $offen = self::auszahlbar((int) $p['id']);
@@ -1859,6 +1862,7 @@ final class Partner
         require_once __DIR__ . '/Mail.php';
         $p = self::laden($partnerId);
         if (!$p) { return false; }
+        if (!empty($p['test'])) { return false; }   /* Testpartner (Phase 9b): zählt nirgends. Keine Mail. */
         $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
         $werte += ['name' => (string) $p['name'], 'link' => self::link($p), 'portal' => self::portalLink($p), 'code' => (string) $p['code']];
         [$betreff, $text] = Texte::mail($anlass, $sp, $werte);
@@ -1925,6 +1929,7 @@ final class Partner
                                    AND JSON_EXTRACT(meta, '$.partner_id') = ?", [$partnerId], 0);
         if ($heute >= 10) { return ['ok' => false, 'grund' => 'm_genug']; }
         if (mb_strtolower((string) $p['email']) === $email) { return ['ok' => true]; }   // sich selbst melden zählt nie — still
+        if (!empty($p['test'])) { return ['ok' => true, 'test' => true]; }   /* Testpartner (Phase 9b): zählt nirgends. Die Übergabe wird nur gespielt — keine echte Anfrage. */
 
         require_once __DIR__ . '/Anfrage.php';
         $anfrage = Anfrage::annehmen([
@@ -2041,7 +2046,7 @@ final class Partner
                 (SELECT COALESCE(SUM(provision_cents),0) FROM partner_provisionen pp WHERE pp.partner_id = p.id
                     AND pp.status NOT IN ('storniert','zurueckgeholt') AND pp.created_at >= NOW() - INTERVAL $monate MONTH) AS provision,
                 (SELECT COALESCE(SUM(anzahl),0) FROM partner_klicks k WHERE k.partner_id = p.id AND k.tag >= CURDATE() - INTERVAL $monate MONTH) AS klicks
-              FROM partner p WHERE p.status <> 'geloescht'");
+              FROM partner p WHERE p.status <> 'geloescht' AND p.test = 0");   // Testpartner in keiner Auswertung (Phase 9b)
         foreach ($zeilen as &$z) {
             $z['je_kunde'] = (int) $z['kunden'] > 0 ? (int) round((int) $z['provision'] / (int) $z['kunden']) : 0;
             $z['kanaele'] = Db::all("SELECT kanal, SUM(anzahl) AS klicks,

@@ -38,7 +38,7 @@ final class PartnerNews
     {
         if (!in_array($ziel, self::ZIELE, true)) { return []; }
         require_once __DIR__ . '/PartnerSchutz.php';
-        $wo = "p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND " . PartnerSchutz::sqlFrei('p');
+        $wo = "p.status = 'aktiv' AND p.vereinbarung_am IS NOT NULL AND p.test = 0 AND " . PartnerSchutz::sqlFrei('p');   // Testpartner (Phase 9b) nie
         $par = [];
         if ($ziel === 'land') {
             if (!preg_match('~^[A-Z]{2}$~', $wert)) { return []; }

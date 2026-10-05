@@ -1421,6 +1421,33 @@ if ($post) {
                 if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'kunde_zusammenfuehren':
+            case 'kunde_dublette_nein':
+                /* Dubletten (Phase 9b, Uwe: „Vorschlag + Zusammenführen per Klick“): nur der Admin, Zusammenführen mit Rückfrage (SCHWER). */
+                require_once __DIR__ . '/src/KundenDubletten.php';
+                if ($tat === 'kunde_dublette_nein') {
+                    KundenDubletten::verschieden((int) ($_POST['a'] ?? 0), (int) ($_POST['b'] ?? 0), Auth::id());
+                    $_SESSION['gut'] = 'Vermerkt: Die beiden sind verschieden — der Vorschlag kommt nicht wieder.';
+                    weiter('kunden/dubletten');
+                }
+                [$kdZiel, $kdWeg] = array_map('intval', array_pad(explode(':', (string) ($_POST['paar'] ?? '')), 2, '0'));
+                $kdR = KundenDubletten::zusammenfuehren($kdZiel, $kdWeg, Auth::id());
+                $_SESSION[$kdR['ok'] ? 'gut' : 'fehler'] = $kdR['text'];
+                weiter($kdR['ok'] ? 'kunden/' . $kdZiel : 'kunden/dubletten');
+
+            case 'partner_test_anlegen':
+            case 'partner_test_zuruecksetzen':
+                /* Testpartner (Phase 9b): nur der Admin (nicht in TATEN_MITARBEIT). */
+                require_once __DIR__ . '/src/PartnerTest.php';
+                if ($tat === 'partner_test_anlegen') {
+                    $tpP = PartnerTest::anlegen();
+                    $_SESSION['gut'] = 'Testpartner angelegt (Code ' . $tpP['code'] . '). „Als Testpartner öffnen“ — den Gerätecode findest du unter „Was nicht läuft“.';
+                } else {
+                    $tpN = PartnerTest::zuruecksetzen();
+                    $_SESSION['gut'] = 'Testpartner zurückgesetzt' . ($tpN ? ' (' . array_sum($tpN) . ' Einträge gelöscht).' : ' — es gab nichts zu löschen.');
+                }
+                weiter('partner#testpartner');
+
             case 'automation_schalten':
             case 'automation_notaus':
             case 'automation_weiter':
@@ -4373,6 +4400,11 @@ switch ($route) {
         // Die Steuerbegriffe richten sich nach der Sprache des Kunden.
         require_once __DIR__ . '/src/Kunde.php';
         if ($unter === 'neu') { ansicht('kunde_form', ['k' => null]); break; }
+        if ($unter === 'dubletten') {   // Phase 9b: Vorschläge, zusammengeführt wird nur per Klick
+            require_once __DIR__ . '/src/KundenDubletten.php';
+            ansicht('kunden_dubletten', ['paare' => sicher(static fn() => KundenDubletten::vorschlaege(), []), 'admin' => Auth::istAdmin()]);
+            break;
+        }
         if ($id !== null) {
             $k = Db::one('SELECT * FROM customers WHERE id = ?', [$id]);
             if (!$k) { http_response_code(404); exit('Kunde nicht gefunden.'); }

@@ -5,6 +5,9 @@
 <div class="kopf"><h1>Alle Kunden</h1><div class="rechts">
   <form class="leiste"><input type="search" name="q" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Name, E-Mail, Firma">
   <button class="knopf">Suchen</button></form>
+  <?php /* Phase 9b: mögliche Dubletten — nur ein Hinweis mit Zahl, zusammengeführt wird dort per Klick. */
+    $kdN = (int) sicher(static function (): int { require_once dirname(__DIR__) . '/src/KundenDubletten.php'; return KundenDubletten::anzahl(); }, 0);
+    if ($kdN > 0): ?><a class="knopf" id="dubletten-link" href="<?= Fmt::h(url('kunden/dubletten')) ?>"><?= $kdN ?> mögliche Dublette<?= $kdN === 1 ? '' : 'n' ?></a><?php endif; ?>
   <a class="knopf haupt" href="<?= Fmt::h(url('kunden/neu')) ?>">Neuer Kunde</a></div></div>
 <?php if (!empty($anfragen)): require_once dirname(__DIR__) . '/src/Zugang.php'; ?>
 <div class="block" id="anfragen">

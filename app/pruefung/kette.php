@@ -25784,6 +25784,112 @@ pruefe('Prüfspur: Seite nur für den Admin (nicht in Rechte::SEITEN), im Menü 
 Db::run('DELETE FROM audit_log WHERE id > ? AND entity = ?', [$p9Vor, 'p9objekt']);
 
 /* ============================================================================
+   Testpartner und Kunden-Dubletten (Phase 9b, 06.10.2026, Uwe: „Ja, ein
+   Testpartner“, „Vorschlag + Zusammenführen per Klick“).
+   ============================================================================ */
+abschnitt('Testpartner und Kunden-Dubletten');
+require_once $wurzel . '/src/PartnerTest.php';
+require_once $wurzel . '/src/KundenDubletten.php';
+require_once $wurzel . '/src/PartnerWege.php';
+require_once $wurzel . '/src/PartnerPost.php';
+require_once $wurzel . '/src/PartnerNews.php';
+require_once $wurzel . '/src/PartnerMail.php';
+require_once $wurzel . '/src/PartnerLeads.php';
+$tpA = PartnerTest::anlegen();
+$tpB = PartnerTest::anlegen();
+$tpId = (int) $tpA['id'];
+pruefe('Testpartner: genau einer, aktiv, Vereinbarung bestätigt, Adresse unter .invalid',
+    $tpId > 0 && (int) $tpB['id'] === $tpId && (int) Db::wert('SELECT COUNT(*) FROM partner WHERE test = 1', [], 0) === 1 && $tpA['status'] === 'aktiv'
+    && $tpA['vereinbarung_am'] !== null && str_ends_with((string) $tpA['email'], '.invalid') && PartnerTest::ist($tpA) && !PartnerTest::ist(['test' => 0]));
+$tpKlickVor = (int) Db::wert('SELECT COALESCE(SUM(anzahl), 0) FROM partner_klicks WHERE partner_id = ?', [$tpId], 0);
+Partner::klick($tpId, 'whatsapp');
+$tpKunde = (int) Db::insert('customers', ['name' => 'Beispiel Testkunde', 'email' => 'testkunde-p9@beispiel.example']);
+$tpAnfrVor = (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0);
+$tpMeld = Partner::kundeMelden($tpId, ['name' => 'Beispiel Kontakt', 'email' => 'kontakt-p9@beispiel.example', 'einverstanden' => 1], 'it');
+Db::run('UPDATE partner SET vecom_adresse = ? WHERE id = ?', ['testpartner@vecom-design.it', $tpId]);
+$tpFrisch = Partner::laden($tpId);
+$tpMail = PartnerMail::senden($tpFrisch, 'kunde@beispiel.example', 'Beispiel Betreff', 'Ein Beispieltext, lang genug für die Prüfung.', 'it');
+Db::run('UPDATE partner SET vecom_adresse = NULL WHERE id = ?', [$tpId]);
+pruefe('Testpartner zählt nirgends: kein Klick, keine Zuordnung, keine echte Anfrage, keine Mail, kein Push, kein Geld, kein Mail-Center',
+    (int) Db::wert('SELECT COALESCE(SUM(anzahl), 0) FROM partner_klicks WHERE partner_id = ?', [$tpId], 0) === $tpKlickVor
+    && Partner::zuordnen($tpKunde, $tpId, 'link') === 'test' && (int) Db::wert('SELECT COUNT(*) FROM partner_zuordnungen WHERE customer_id = ?', [$tpKunde], 0) === 0
+    && $tpMeld === ['ok' => true, 'test' => true] && (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0) === $tpAnfrVor
+    && Partner::schreiben($tpId, 'partner_weg_fehlt', ['betrag' => '1 €']) === false && PartnerPost::push($tpId, 'T', 'T', '/', true) === 0
+    && PartnerWege::auszahlen($tpId)['ok'] === false && !PartnerMail::kann(['status' => 'aktiv', 'test' => 1, 'vecom_adresse' => 'testpartner@vecom-design.it'])
+    && $tpMail !== 'ok', json_encode([$tpMeld, $tpMail]));
+pruefe('Testpartner zählt nirgends: keine Meldungen, keine Auswertung oder Rangliste, keine Provision (Quelle), kein Besuch im Tracking (Quelle)',
+    !in_array($tpId, array_map(static fn($p) => (int) $p['id'], PartnerNews::empfaenger('alle')), true)
+    && !in_array($tpId, array_map(static fn($z) => (int) $z['id'], Partner::auswertung(12)), true)
+    && str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), "if (!empty(\$p['test'])) { return ['ok' => false, 'grund' => 'test']; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/Spur.php'), "if (\$partnerId !== null && (int) Db::wert('SELECT test FROM partner WHERE id = ?', [\$partnerId], 0) === 1) { return null; }")
+    && str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), "WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL AND test = 0\") as \$p) {"));
+$tpLead = PartnerLeads::anlegen($tpId, ['name' => 'Beispiel Lead Test', 'branche' => 'bar', 'ort' => 'Sciacca']);
+Db::insert('partner_tickets', ['partner_id' => $tpId, 'thema' => 'technik', 'betreff' => 'Beispiel Test']);
+$tpZur = PartnerTest::zuruecksetzen();
+pruefe('Testpartner: Zurücksetzen löscht, was beim Ausprobieren entstand; Code und Link bleiben',
+    (int) Db::wert('SELECT COUNT(*) FROM partner_leads WHERE partner_id = ?', [$tpId], 0) === 0 && (int) Db::wert('SELECT COUNT(*) FROM partner_tickets WHERE partner_id = ?', [$tpId], 0) === 0
+    && ($tpZur['partner_tickets'] ?? 0) === 1 && (string) Db::wert('SELECT code FROM partner WHERE id = ?', [$tpId], '') === PartnerTest::CODE, json_encode([$tpLead, $tpZur]));
+$tpIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Testpartner: Anlegen und Zurücksetzen nur der Admin, Zurücksetzen fragt nach; Kasten in der Partnerliste nur für den Admin',
+    str_contains($tpIdx, "case 'partner_test_zuruecksetzen':") && (Ablauf::TRAGWEITE['partner_test_zuruecksetzen'][0] ?? '') === Ablauf::RAUS
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_test_anlegen', $t) || str_starts_with('kunde_zusammenfuehren', $t))
+    && str_contains((string) file_get_contents($wurzel . '/views/partner.php'), "if (Rechte::geld()): require_once dirname(__DIR__) . '/src/PartnerTest.php';"));
+Db::run('DELETE FROM partner WHERE id = ?', [$tpId]);
+Db::run('DELETE FROM customers WHERE id = ?', [$tpKunde]);
+
+/* Dubletten: Vorschläge */
+$kdK = [];
+foreach ([['Beispiel Rossi', 'rossi1@bar-sole.example', '+39 333 111 2222', 'Bar Sole S.r.l.', 'IT01234567890'],
+          ['Beispiel M. Rossi', 'mario@gmail.com', '333 1112222', 'BAR SOLE srl', ''],
+          ['Beispiel Bianchi', 'bianchi@forno.example', '0922 55 66 77', 'Forno Bianchi', 'IT09999999999'],
+          ['Beispiel Verdi', 'verdi@bar-sole.example', '', '', '']] as [$kdN, $kdE, $kdT, $kdF, $kdV]) {
+    $kdK[] = (int) Db::insert('customers', ['name' => $kdN, 'email' => $kdE, 'phone' => $kdT, 'company' => $kdF, 'vat_id' => $kdV]);
+}
+$kdPaar = static function (array $l, int $a, int $b): ?array { foreach ($l as $p) { if ([(int) $p['a']['id'], (int) $p['b']['id']] === [min($a, $b), max($a, $b)]) { return $p; } } return null; };
+$kdV1 = KundenDubletten::vorschlaege(200);
+$kd01 = $kdPaar($kdV1, $kdK[0], $kdK[1]); $kd03 = $kdPaar($kdV1, $kdK[0], $kdK[3]);
+pruefe('Dubletten: gleiche Telefonnummer und Firma (ohne Rechtsform) werden erkannt, gleiche Firmen-Domain ebenso; Gmail ist keine Firma; Fremde nicht',
+    $kd01 !== null && in_array('Telefon', $kd01['gruende'], true) && in_array('Firma', $kd01['gruende'], true) && !in_array('Domain', $kd01['gruende'], true)
+    && $kd03 !== null && $kd03['gruende'] === ['Domain'] && $kdPaar($kdV1, $kdK[0], $kdK[2]) === null
+    && KundenDubletten::telefon('+39 333 111 2222') === KundenDubletten::telefon('3331112222') && KundenDubletten::firma('Bar Sole S.r.l.') === KundenDubletten::firma('BAR SOLE srl')
+    && KundenDubletten::domain('x@gmail.com') === '' && array_search($kd01, $kdV1, true) < array_search($kd03, $kdV1, true), json_encode([$kd01['gruende'] ?? null, $kd03['gruende'] ?? null]));
+KundenDubletten::verschieden($kdK[3], $kdK[0], 1);
+pruefe('Dubletten: „Sind verschieden“ blendet das Paar für immer aus (in beide Richtungen)', $kdPaar(KundenDubletten::vorschlaege(200), $kdK[0], $kdK[3]) === null);
+
+/* Zusammenführen */
+$kdProj = (int) Db::insert('projects', ['customer_id' => $kdK[1], 'name' => 'Beispiel Projekt Dublette']);
+$kdAct = (int) Db::insert('activities', ['customer_id' => $kdK[1], 'type' => 'notiz', 'title' => 'Beispiel', 'actor' => 'Kette']);
+Db::run('UPDATE customers SET city = NULL WHERE id = ?', [$kdK[0]]);
+Db::run("UPDATE customers SET city = 'Sciacca', notes = 'Beispiel Notiz B' WHERE id = ?", [$kdK[1]]);
+Db::run('CREATE TABLE kette_dublette_probe (id INT AUTO_INCREMENT PRIMARY KEY, customer_id INT UNSIGNED NULL, UNIQUE KEY uq_kette_dublette (customer_id))');
+Db::run('INSERT INTO kette_dublette_probe (customer_id) VALUES (?), (?)', [$kdK[0], $kdK[1]]);
+$kdKonflikt = KundenDubletten::zusammenfuehren($kdK[0], $kdK[1], 1);
+$kdNachKonflikt = [(int) Db::wert('SELECT COUNT(*) FROM customers WHERE id = ?', [$kdK[1]], 0), (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$kdProj], 0)];
+Db::run('DROP TABLE kette_dublette_probe');
+pruefe('Zusammenführen: stößt ein Verweis auf einen eindeutigen Schlüssel, wird NICHTS geändert und gesagt, wo',
+    !$kdKonflikt['ok'] && str_contains($kdKonflikt['text'], 'uq_kette_dublette') && $kdNachKonflikt === [1, $kdK[1]], json_encode([$kdKonflikt, $kdNachKonflikt]));
+Db::run("INSERT INTO invoices (invoice_no, customer_id, net_cents, tax_cents, total_cents) VALUES ('KETTE-DUB-1', ?, 100, 0, 100)", [$kdK[1]]);
+$kdRech = KundenDubletten::zusammenfuehren($kdK[0], $kdK[1], 1);
+Db::run("DELETE FROM invoices WHERE invoice_no = 'KETTE-DUB-1'");
+$kdOk = KundenDubletten::zusammenfuehren($kdK[0], $kdK[1], 1);
+$kdZiel = Db::one('SELECT * FROM customers WHERE id = ?', [$kdK[0]]);
+$kdSpur = Db::one("SELECT * FROM audit_log WHERE action = 'kunde_zusammengefuehrt' AND entity_id = ? ORDER BY id DESC LIMIT 1", [$kdK[0]]);
+pruefe('Zusammenführen: Rechnungen wandern nie; sonst hängen Projekte und Verlauf am Ziel, leere Felder aufgefüllt, Notiz vermerkt, der andere ist weg und steht in der Prüfspur',
+    !$kdRech['ok'] && !empty($kdRech['tauschen']) && $kdOk['ok'] && (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$kdProj], 0) === $kdK[0]
+    && (int) Db::wert('SELECT customer_id FROM activities WHERE id = ?', [$kdAct], 0) === $kdK[0] && $kdZiel['city'] === 'Sciacca'
+    && str_contains((string) $kdZiel['notes'], 'Beispiel Notiz B') && (int) Db::wert('SELECT COUNT(*) FROM customers WHERE id = ?', [$kdK[1]], 0) === 0
+    && $kdSpur !== null && str_contains((string) $kdSpur['before_json'], 'mario@gmail.com') && !str_contains((string) $kdSpur['before_json'], '"token"'), json_encode([$kdRech, $kdOk]));
+$kdIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Zusammenführen nur per Klick: Rückfrage (schwer), nur Admin, kein Cron und kein Automatismus ruft es auf',
+    (Ablauf::TRAGWEITE['kunde_zusammenfuehren'][0] ?? '') === Ablauf::SCHWER && str_contains($kdIdx, "case 'kunde_zusammenfuehren':")
+    && !str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), 'KundenDubletten') && !str_contains((string) file_get_contents($wurzel . '/src/Automation.php'), 'zusammenfuehren(')
+    && substr_count(implode('', array_map(static fn($f) => (string) file_get_contents($f), glob($wurzel . '/src/*.php') ?: [])), 'KundenDubletten::zusammenfuehren(') === 0);
+Db::run('DELETE FROM activities WHERE id = ?', [$kdAct]);
+Db::run('DELETE FROM projects WHERE id = ?', [$kdProj]);
+Db::run('DELETE FROM kunden_verschieden WHERE a_id IN (' . implode(',', $kdK) . ') OR b_id IN (' . implode(',', $kdK) . ')');
+Db::run('DELETE FROM customers WHERE id IN (' . implode(',', $kdK) . ')');
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

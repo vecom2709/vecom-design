@@ -22,6 +22,26 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     Erstattet der Kunde, entfällt sie.</p>
 </div>
 
+<?php /* Testpartner (Phase 9b, Uwe: „Ja, ein Testpartner“): alles ausprobieren, was ein Partner erlebt — nichts davon zählt. */
+  if (Rechte::geld()): require_once dirname(__DIR__) . '/src/PartnerTest.php'; $tp = PartnerTest::laden(); ?>
+<div class="block" id="testpartner" style="padding:14px 18px;display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+  <div style="flex:1;min-width:260px;font-size:13.5px;line-height:1.6">
+    <b>Testpartner</b> — zum Ausprobieren des Partnerbereichs. Er zählt nirgends: keine Provision, keine Mail, kein Hinweis aufs Handy,
+    keine Auszahlung, keine Statistik; Kontakte, die er „übergibt“, werden keine echten Anfragen.
+    <?php if ($tp): ?><span style="color:var(--leise)">Den Gerätecode zum Anmelden findest du unter „Was nicht läuft“ (er geht nie per Mail raus).</span><?php endif; ?>
+  </div>
+  <?php if (!$tp): ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_test_anlegen">
+      <button class="knopf">Testpartner anlegen</button></form>
+  <?php else: ?>
+    <a class="knopf" href="<?= Fmt::h(Partner::portalLink($tp)) ?>" target="_blank" rel="noopener" id="testpartner-oeffnen">Als Testpartner öffnen</a>
+    <a class="knopf" href="<?= Fmt::h(url('partner/' . (int) $tp['id'])) ?>">Akte</a>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0" data-frage="Alles, was beim Ausprobieren entstand (Kontakte, Anliegen, Mails, Academy-Fortschritt, Geräte), wird gelöscht. Link und Code des Testpartners bleiben." data-ja="Ja, zurücksetzen">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_test_zuruecksetzen"><button class="knopf">Zurücksetzen</button></form>
+  <?php endif; ?>
+</div>
+<?php endif; ?>
+
 <?php /* Zentrale Aktion (28.09.2026, Uwe: Ja): einmal hier, dann auf allen
          Partnerseiten, im Partnerbereich und im Posting-Kalender, mit Countdown. */
   require_once dirname(__DIR__) . '/src/PartnerMarketing.php';
@@ -120,7 +140,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
                <th style="text-align:right">Offen</th><th style="text-align:right">Ausgezahlt</th><th>Land</th><th>Stripe</th></tr></thead><tbody>
     <?php foreach ($uebrige as $p): ?>
       <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $p['id'])) ?>"><strong><?= Fmt::h($p['name']) ?></strong></a>
-            <span class="marke2 <?= $marke[$p['status']] ?? '' ?>" style="margin-left:6px"><?= Fmt::h($p['status']) ?></span></td>
+            <span class="marke2 <?= $marke[$p['status']] ?? '' ?>" style="margin-left:6px"><?= Fmt::h($p['status']) ?></span><?php if (!empty($p['test'])): ?> <span class="marke2 warnung" title="Zählt nirgends: keine Provision, keine Mail, keine Auszahlung, keine Statistik">Testpartner</span><?php endif; ?></td>
           <td><code><?= Fmt::h($p['code']) ?></code></td>
           <td style="text-align:right"><?= (int) $p['klicks'] ?></td>
           <td style="text-align:right"><?= (int) $p['kunden'] ?></td>
@@ -151,7 +171,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
     <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a>
     <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Mediathek</a>
-    <a class="knopf" href="<?= Fmt::h(url('auszahlungen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a></h2>
+    <?php if (Rechte::geld()): ?><a class="knopf" href="<?= Fmt::h(url('auszahlungen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a><?php endif; ?></h2>
   <div class="tabellenrahmen"><table>
     <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>
                <th style="text-align:right"><?= $sortLink('kunden', 'Kunden') ?></th><th style="text-align:right"><?= $sortLink('umsatz', 'Umsatz (netto)') ?></th>
