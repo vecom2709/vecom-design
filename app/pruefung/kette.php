@@ -12606,7 +12606,10 @@ $stVor = count($stPost);
 PartnerSteuerung::weckruf(strtotime('today 11:00') + 86400 * 5);
 pruefe('Weckruf: höchstens einmal im Monat', count($stPost) === $stVor);
 WebPush::$probe = null;
-pruefe('Weckruf läuft im Partner-Cron', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'weckrufe' => PartnerSteuerung::weckruf()"));
+/* Seit Phase 8 eine eigene Regel im Automation Center (vorher im Bündel „partner“ als 'weckrufe'). */
+$stCron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Weckruf läuft im Partner-Cron', ($stCronP = strpos($stCron, "'partner_weckruf' => static function () use (\$partnerJetzt)")) !== false
+    && str_contains(substr($stCron, $stCronP, 300), 'return PartnerSteuerung::weckruf();'));
 
 $stKat = PartnerVorlagen::katalog();
 pruefe('Vorlagen: jede Werbevorlage, die FAQ und jeder Leitfaden-Abschnitt ist pflegbar', isset($stKat['werbung.whatsapp.status.text'], $stKat['faq'], $stKat['leitfaden.0.text'])
@@ -25577,6 +25580,126 @@ Db::run('DELETE FROM academy_fortschritt WHERE partner_id IN (?, ?)', [$akAid, $
 Db::run('DELETE FROM academy_merkliste WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_notizen WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$akAid, $akBid]);
+
+/* ============================================================================
+   Automation Center (Phase 8, 06.10.2026, Uwe: Probelauf „zeigt Liste“,
+   Not-Aus „alles, was rausgeht“, Fehler „Meldung + Handy“, „Schalten Admin,
+   Not-Aus alle“). Jede Cron-Aufgabe steht im Register; ausgeschaltet oder
+   beim Not-Aus läuft sie nicht; der Probelauf ändert nichts.
+   ============================================================================ */
+abschnitt('Automation Center');
+require_once $wurzel . '/src/Automation.php';
+$amCron = (string) file_get_contents($wurzel . '/src/Cron.php');
+preg_match_all("~^\s+'([a-z0-9_]+)'\s*=>\s*static (?:fn|function)~m", $amCron, $amT1);
+preg_match_all("~\\\$aufgaben\['([a-z0-9_]+)'\]\s*=~", $amCron, $amT2);
+$amTasks = array_values(array_unique(array_merge($amT1[1], $amT2[1])));
+$amTasks = array_values(array_diff($amTasks, ['websites_tun', 'ssl_tun']));   // keine Aufgaben, falls es sie je gibt
+$amInnen = ['partner_auszahlung', 'partner_hinweise'];   // stehen nicht im Cron, sondern werden in Partner::lauf gefragt
+// jetztPruefen() baut seine drei eigenen Schlüssel (websites, ssl, cockpit) — die stehen ohnehin im Register.
+$amFehlt = array_values(array_diff($amTasks, array_keys(Automation::REGELN)));
+$amTot = array_values(array_diff(array_keys(Automation::REGELN), $amTasks, $amInnen));
+$amKaputt = array_keys(array_filter(Automation::REGELN, static fn($r) => !isset(Automation::BEREICHE[$r[1]]) || !in_array($r[2], ['A', 'B'], true) || !is_bool($r[3]) || $r[4] === '' || ($r[2] === 'B' && $r[3])));
+pruefe('Automation Center: jede Aufgabe des Crons steht im Register, kein Eintrag ohne Aufgabe, Stufe B geht nie raus',
+    count($amTasks) >= 70 && $amFehlt === [] && $amTot === [] && $amKaputt === [], json_encode([count($amTasks), $amFehlt, $amTot, $amKaputt]));
+pruefe('Automation Center: der Cron fragt vor jeder Aufgabe das Register und hält jeden Lauf in einer Anweisung fest',
+    str_contains($amCron, '$ruht = Automation::grund($name);') && strpos($amCron, '$ruht = Automation::grund($name);') < strpos($amCron, '$bilanz[$name] = $tun();')
+    && str_contains($amCron, 'Automation::festhalten($laeufe);') && substr_count($amCron, '$bilanz[$name] = $tun()') === 1);
+pruefe('Automation Center: Geld, Mahnung, Erinnerungen, Posts und Partner-Post gehen raus; Prüfungen, Abgleich und Sicherung nicht',
+    Automation::REGELN['abbuchungen'][3] && Automation::REGELN['mahnungen'][3] && Automation::REGELN['partner_auszahlung'][3] && Automation::REGELN['marketing_posten'][3]
+    && Automation::REGELN['erinnerungen'][3] && Automation::REGELN['akquise_folgen'][3] && Automation::REGELN['partner_impuls'][3]
+    && !Automation::REGELN['sicherung'][3] && !Automation::REGELN['zahlabgleich'][3] && !Automation::REGELN['websites'][3] && !Automation::REGELN['partner'][3]
+    && !Automation::REGELN['marketing_autopilot'][3]);
+
+Automation::vergessen();
+$amVor = [Automation::darf('mahnungen'), Automation::darf('sicherung'), Automation::darf('gibt_es_nicht')];
+Automation::schalten('mahnungen', false, 1);
+$amAus = [Automation::darf('mahnungen'), Automation::grund('mahnungen'), Automation::darf('abbuchungen')];
+Automation::schalten('mahnungen', true, 1);
+Automation::notAusZiehen('Kette');
+Automation::vergessen();
+$amNot = [Automation::darf('abbuchungen'), Automation::darf('partner_auszahlung'), Automation::darf('marketing_posten'), Automation::darf('sicherung'),
+          Automation::darf('zahlabgleich'), Automation::darf('telegram_plan'), Automation::grund('mahnungen'), Automation::notAusStand()['von']];
+$amMeldung = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'automation_notaus'", [], 0);
+Automation::notAusLoesen('Kette');
+$amNach = [Automation::darf('abbuchungen'), Automation::notAus()];
+pruefe('Automation Center: ab Werk an; unbekannt läuft nicht; ausgeschaltet ruht nur diese eine Regel',
+    $amVor === [true, true, false] && $amAus[0] === false && $amAus[1] === 'Ausgeschaltet.' && $amAus[2] === true && Automation::darf('mahnungen'), json_encode([$amVor, $amAus]));
+pruefe('Automation Center: Not-Aus hält alles an, was rausgeht — Sicherung, Abgleich und Entwürfe laufen weiter; mit Meldung; lösen macht alles wieder frei',
+    $amNot[0] === false && $amNot[1] === false && $amNot[2] === false && $amNot[3] === true && $amNot[4] === true && $amNot[5] === true
+    && str_starts_with((string) $amNot[6], 'Not-Aus') && $amNot[7] === 'Kette' && $amMeldung === 1 && $amNach === [true, false], json_encode([$amNot, $amMeldung, $amNach]));
+
+/* Partner-Auszahlung: ausgeschaltet bleibt das Geld bereit. */
+$amAuto = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_auto_auszahlen'", [], '');
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_auto_auszahlen', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+Automation::schalten('partner_auszahlung', false, 1);
+$amPl = Partner::lauf();
+Automation::schalten('partner_auszahlung', true, 1);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_auto_auszahlen', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$amAuto]);
+pruefe('Automation Center: Partner-Auszahlung ausgeschaltet → Partner::lauf zahlt nichts aus und sagt, dass sie ruht',
+    ($amPl['auszahlung_ruht'] ?? 0) === 1 && $amPl['ausgezahlt'] === 0, json_encode($amPl));
+
+/* Fehler: nach drei Fehlschlägen hintereinander genau eine Meldung, ein Erfolg setzt zurück. */
+$amGemeldet = [];
+Automation::$melden = static function (string $r, string $t) use (&$amGemeldet) { $amGemeldet[] = [$r, $t]; };
+foreach ([1, 2, 3, 4] as $amI) { Automation::festhalten(['versand' => ['ms' => 5, 'ergebnis' => '', 'fehler' => 'Brevo antwortet nicht']]); }
+$amZ1 = Db::one("SELECT * FROM automationen WHERE regel = 'versand'");
+Automation::festhalten(['versand' => ['ms' => 3, 'ergebnis' => 'ok ja', 'fehler' => null], 'gibt_es_nicht' => ['ms' => 1, 'ergebnis' => '', 'fehler' => null]]);
+$amZ2 = Db::one("SELECT * FROM automationen WHERE regel = 'versand'");
+Automation::$melden = null;
+pruefe('Automation Center: drei Fehler hintereinander → genau eine Meldung; ein Erfolg setzt die Folge zurück, der letzte Fehler bleibt mit Datum sichtbar; Unbekanntes wird nicht gespeichert',
+    count($amGemeldet) === 1 && $amGemeldet[0][0] === 'versand' && str_contains($amGemeldet[0][1], '3-mal') && (int) $amZ1['fehler_folge'] === 4 && (int) $amZ1['laeufe'] === 4
+    && (int) $amZ2['fehler_folge'] === 0 && $amZ2['fehler'] === 'Brevo antwortet nicht' && $amZ2['fehler_am'] !== null && $amZ2['ergebnis'] === 'ok ja'
+    && (int) Db::wert("SELECT COUNT(*) FROM automationen WHERE regel = 'gibt_es_nicht'", [], 0) === 0, json_encode([$amGemeldet, $amZ1, $amZ2]));
+pruefe('Automation Center: Fehler erkennt es am Rückgabewert, die Kurzfassung bleibt lesbar',
+    Automation::fehlerAus(['fehler' => 'x']) === 'x' && Automation::fehlerAus(['fehler' => 1]) !== null && Automation::fehlerAus(['fehler' => 0]) === null
+    && Automation::fehlerAus(['erinnert' => 2]) === null && Automation::fehlerAus(3) === null
+    && Automation::kurz(['erinnert' => 2, 'geloescht' => 0]) === 'erinnert 2 · geloescht 0' && Automation::kurz(true) === 'ja' && Automation::kurz(5) === '5');
+
+/* Probelauf: läuft für jede Regel, die einen hat, ohne etwas zu ändern — und findet, was die Regel träfe. */
+Db::run("INSERT INTO akq_termine (token, beginn, ende, name, email, thema, created_at) VALUES (?, ?, ?, 'Beispiel Termin', 'termin@beispiel.example', 'website', NOW())",
+    [bin2hex(random_bytes(16)), date('Y-m-d H:i:s', time() + 20 * 3600), date('Y-m-d H:i:s', time() + 20 * 3600 + 1800)]);
+$amTerminId = (int) Db::pdo()->lastInsertId();
+$amVorher = [(int) Db::wert('SELECT COUNT(*) FROM mails', [], 0), (int) Db::wert('SELECT COUNT(*) FROM audit_log', [], 0)];
+$amProben = []; $amProbeFehler = [];
+foreach (Automation::REGELN as $amR => $amX) {
+    if (!method_exists(Automation::class, 'probe_' . $amR)) { continue; }
+    try { $amP = Automation::probe($amR); $amProben[$amR] = is_array($amP) && isset($amP['zeilen']) && is_array($amP['zeilen']); }
+    catch (Throwable $e) { $amProbeFehler[$amR] = mb_substr($e->getMessage(), 0, 140); }
+}
+$amNachher = [(int) Db::wert('SELECT COUNT(*) FROM mails', [], 0), (int) Db::wert('SELECT COUNT(*) FROM audit_log', [], 0)];
+$amTerminProbe = Automation::probe('akquise_termine');
+$amTerminStand = Db::one('SELECT erinnert_am FROM akq_termine WHERE id = ?', [$amTerminId]);
+pruefe('Automation Center: jeder Probelauf rechnet (mindestens acht Regeln), schreibt keine Mail und keine Prüfspur, und zeigt den fälligen Termin',
+    $amProbeFehler === [] && count($amProben) >= 8 && !in_array(false, $amProben, true) && $amVorher === $amNachher
+    && in_array('Beispiel Termin', array_column($amTerminProbe['zeilen'] ?? [], 'wer'), true) && $amTerminStand['erinnert_am'] === null
+    && Automation::probe('sicherung') === null && Automation::probe('gibt_es_nicht') === null, json_encode([$amProbeFehler, $amProben, $amVorher, $amNachher]));
+Automation::schalten('akquise_termine', false, 1);
+$amTerminAus = Automation::probe('akquise_termine');
+Automation::schalten('akquise_termine', true, 1);
+pruefe('Automation Center: der Probelauf sagt dazu, wenn die Regel gerade nicht läuft', str_contains((string) ($amTerminAus['hinweis'] ?? ''), 'Ausgeschaltet'), json_encode($amTerminAus));
+Db::run('DELETE FROM akq_termine WHERE id = ?', [$amTerminId]);
+
+/* Rechte, Rückfragen, Seite. */
+$amRolle = $_SESSION['rolle'] ?? null;
+$amR = [];
+foreach (['admin', 'mitarbeit', 'lesen'] as $amRo) { $_SESSION['rolle'] = $amRo; $amR[$amRo] = [Rechte::darfTat('automation_notaus'), Rechte::darfTat('automation_weiter'), Rechte::darfTat('automation_schalten'), Rechte::darfSeite('automationen')]; }
+if ($amRolle === null) { unset($_SESSION['rolle']); } else { $_SESSION['rolle'] = $amRolle; }
+pruefe('Automation Center: Not-Aus ziehen darf die Mitarbeit, lösen und schalten nur der Admin; „Nur lesen“ sieht die Seite, darf nichts',
+    $amR['admin'] === [true, true, true, true] && $amR['mitarbeit'] === [true, false, false, true] && $amR['lesen'] === [false, false, false, true], json_encode($amR));
+$amIdx = (string) file_get_contents($wurzel . '/index.php');
+$amSeite = (string) file_get_contents($wurzel . '/views/automationen.php');
+$amLayout = (string) file_get_contents($wurzel . '/views/layout.php');
+$amHeute = (string) file_get_contents($wurzel . '/views/heute.php');
+pruefe('Automation Center: Rückfragen für Not-Aus, Lösen und Schalten; Seite unter Einstellungen; Band auf jeder Seite; Not-Aus auf „Heute“',
+    (Ablauf::TRAGWEITE['automation_notaus'][0] ?? '') === Ablauf::RAUS && (Ablauf::TRAGWEITE['automation_weiter'][0] ?? '') === Ablauf::SCHWER
+    && (Ablauf::TRAGWEITE['automation_schalten'][0] ?? '') === Ablauf::RAUS
+    && str_contains($amIdx, "case 'automation_notaus':") && str_contains($amIdx, "case 'automationen':") && str_contains($amLayout, "['automationen', 'Automationen', 'automationen']")
+    && str_contains($amLayout, 'id="notaus-band"') && str_contains($amHeute, 'id="heute-notaus"') && str_contains($amSeite, 'name="tat" value="automation_schalten"')
+    && str_contains($amSeite, 'name="tat" value="automation_weiter"') && str_contains($amSeite, '?probe=') && isset(Hilfe::SAETZE['automationen']));
+Db::run("DELETE FROM automationen");
+Db::run("DELETE FROM settings WHERE skey LIKE 'auto\\_notaus%'");
+Db::run("DELETE FROM notifications WHERE type IN ('automation_notaus', 'automation_fehler')");
+Automation::vergessen();
 
 /* ============================================================================
    Aufräumen und Bilanz

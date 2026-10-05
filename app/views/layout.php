@@ -164,6 +164,8 @@ $menue = [
 
   ['einstellungen', 'Einstellungen', 'einstellungen', [
     ['bereit', 'Damit alles läuft', 'bereit'],
+    /* Phase 8 (06.10.2026): alle Automationen an einer Stelle, mit Schalter, Not-Aus und Probelauf. */
+    ['automationen', 'Automationen', 'automationen'],
     ['pakete', 'Preise', 'pakete'],
     ['telefon', 'Telefonassistentin', 'telefon'],
   ]],
@@ -383,6 +385,19 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       <div class="hinweis schlecht" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span style="flex:1;min-width:240px"><b>Das Cockpit steht offen.</b> Jeder, der die Adresse kennt, sieht deine Zahlen.</span>
         <a class="knopf" href="<?= Fmt::h(url('einstellungen')) ?>">Schützen</a>
+      </div>
+    <?php endif; ?>
+    <?php
+    /* Not-Aus (Phase 8): Steht er, ist das auf jeder Seite das Wichtigste — sonst wundert man sich
+       in drei Tagen, warum keine Erinnerung und keine Abbuchung mehr kam. */
+    $notAusAn = false;
+    try { $notAusAn = (string) Db::wert("SELECT svalue FROM settings WHERE skey='auto_notaus'", [], '0') === '1'; }
+    catch (Throwable $e) { }
+    ?>
+    <?php if ($notAusAn): ?>
+      <div class="hinweis schlecht" id="notaus-band" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span style="flex:1;min-width:240px"><b>Not-Aus steht.</b> Keine Automation schickt etwas raus — keine Mails, keine Abbuchung, keine Auszahlung. Prüfungen und Sicherung laufen weiter.</span>
+        <a class="knopf" href="<?= Fmt::h(url('automationen')) ?>">Automationen</a>
       </div>
     <?php endif; ?>
     <?php if ($beispielZahl > 0): ?>

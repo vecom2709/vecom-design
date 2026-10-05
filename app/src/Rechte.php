@@ -30,7 +30,7 @@ final class Rechte
         'empfehlungen', 'partner', 'tracking', 'stimmen', 'werbemittel',
         'marketing', 'zahlen', 'zielgruppen', 'recherche', 'freigabe', 'inhalte', 'kampagnen', 'kanaele', 'kanal-karte',
         'medien', 'demo', 'tiktok', 'verzeichnisse', 'ausfuellen', 'statistiken', 'seite-vorschau', 'bewertung-karte',
-        'werkstatt', 'onboarding', 'standard', 'muster', 'dateien', 'monitoring',
+        'werkstatt', 'onboarding', 'standard', 'muster', 'dateien', 'monitoring', 'automationen',
     ];
 
     /** Taten (Anfang des Namens), die Mitarbeit ausführen darf. Alles mit Geld, Preisen, Zugängen, Hosting fehlt bewusst. */
@@ -38,6 +38,8 @@ final class Rechte
         'anfrage_', 'bedarf_', 'nachricht', 'kommentar_', 'aufgabe_', 'meldung', 'merkliste_', 'notiz',
         'akq_', 'recherche_', 'zielgruppe_', 'inhalt_', 'inhalte_', 'medium_', 'demo_', 'stapel_', 'verzeichnis_',
         'fragebogen_', 'stimme_', 'werkstatt_', 'muster_', 'datei_', 'kunde_notiz', 'vorher_', 'woche_',
+        // Phase 8: den Not-Aus ziehen darf jede Mitarbeit — lösen nur der Admin (automation_weiter steht hier bewusst nicht).
+        'automation_notaus',
     ];
 
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):

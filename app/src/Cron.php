@@ -79,6 +79,15 @@ final class Cron
         $anfang = microtime(true);
         $bilanz = ['zeit' => date('c')];
 
+        /* Partnerprogramm: halbstuendlich reicht -- Geld, das 14 Tage gewartet hat,
+           wartet auch dreissig Minuten. Einmal hier entschieden, gilt fuer alle partner_*-Regeln. */
+        $partnerJetzt = false;
+        $partnerZuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_lauf_am'", [], '');
+        if ($partnerZuletzt === '' || $partnerZuletzt <= date('Y-m-d H:i:s', strtotime('-30 minutes'))) {
+            $partnerJetzt = true;
+            self::merken('partner_lauf_am', date('Y-m-d H:i:s'));
+        }
+
         $aufgaben = [
             'websites'    => static fn() => Monitoring::alle(),
             'ssl'         => static fn() => Monitoring::sslWarnungen(),
@@ -230,27 +239,56 @@ final class Cron
                Stripe-Konten nachpruefen, automatisch auszahlen (wenn an),
                am Monatsersten die Berichte. Halbstuendlich reicht -- Geld,
                das 14 Tage gewartet hat, wartet auch dreissig Minuten. */
-            'partner'     => static function () {
+            'partner'     => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
                 require_once __DIR__ . '/Partner.php';
-                $zuletzt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'partner_lauf_am'", [], '');
-                if ($zuletzt !== '' && $zuletzt > date('Y-m-d H:i:s', strtotime('-30 minutes'))) { return ['uebersprungen' => 1]; }
-                Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_lauf_am', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
-                        [date('Y-m-d H:i:s')]);
+                return Partner::lauf();
+            },
+            /* Phase 8 (06.10.2026): Was vorher in „partner“ gebündelt lief, steht jetzt je für sich im
+               Automation Center — einzeln abschaltbar, und der Not-Aus hält genau die an, die rausgehen.
+               Die halbe Stunde Abstand gilt weiter für alle zusammen ($partnerJetzt). */
+            'partner_berichte' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/Partner.php';
+                return Partner::monatsberichte();
+            },
+            // Geld liegt bereit, der Auszahlungsweg fehlt: hoechstens alle 14 Tage erinnern (26.09.2026).
+            'partner_weg' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
                 require_once __DIR__ . '/PartnerPost.php';
-                // Geld liegt bereit, der Auszahlungsweg fehlt: hoechstens alle 14 Tage erinnern (26.09.2026).
-                require_once __DIR__ . '/PartnerSteuerung.php';
-                // Weckruf nach 30 stillen Tagen, höchstens monatlich (27.09.2026).
-                // Neue Partnervereinbarung (30.09.2026): einmal Bescheid, dass der Bereich bis zur Zustimmung gesperrt ist.
+                return PartnerPost::wegErinnern();
+            },
+            'partner_impuls' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/PartnerPost.php';
+                return PartnerPost::wochenImpuls();
+            },
+            // Neue Partnervereinbarung (30.09.2026): einmal Bescheid, dass der Bereich bis zur Zustimmung gesperrt ist.
+            'partner_neufassung' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
                 require_once __DIR__ . '/PartnerSchutz.php';
-                return Partner::lauf() + ['berichte' => Partner::monatsberichte(), 'weg_erinnert' => PartnerPost::wegErinnern(), 'impulse' => PartnerPost::wochenImpuls(),
-                                          'neufassung' => (static function (): int { try { return PartnerSchutz::hinweiseVersenden(); } catch (Throwable $e) { return -1; } })(),
-                                          'weckrufe' => PartnerSteuerung::weckruf(), 'autopilot' => (static function (): int {
-                                              try { require_once __DIR__ . '/PartnerAutopilot.php'; return PartnerAutopilot::morgen(); } catch (Throwable $e) { return -1; }
-                                          })(), 'automatik' => (static function (): array {
-                                              try { require_once __DIR__ . '/PartnerAutomatik.php'; return PartnerAutomatik::lauf(); } catch (Throwable $e) { return ['fehler' => 1]; }
-                                          })(), 'rueckrufe' => (static function (): int {
-                                              try { require_once __DIR__ . '/PartnerAnrufliste.php'; return PartnerAnrufliste::morgen(); } catch (Throwable $e) { return -1; }
-                                          })()];
+                return PartnerSchutz::hinweiseVersenden();
+            },
+            // Weckruf nach 30 stillen Tagen, höchstens monatlich (27.09.2026).
+            'partner_weckruf' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/PartnerSteuerung.php';
+                return PartnerSteuerung::weckruf();
+            },
+            'partner_autopilot' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/PartnerAutopilot.php';
+                return PartnerAutopilot::morgen();
+            },
+            'partner_automatik' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/PartnerAutomatik.php';
+                return PartnerAutomatik::lauf();
+            },
+            'partner_rueckrufe' => static function () use ($partnerJetzt) {
+                if (!$partnerJetzt) { return ['uebersprungen' => 1]; }
+                require_once __DIR__ . '/PartnerAnrufliste.php';
+                return PartnerAnrufliste::morgen();
             },
             /* Meldungen, deren Anlass die Datenbank als vorbei belegt, gelten
                als gelesen (26.09.2026). Nie auf Verdacht -- siehe Meldungen. */
@@ -376,26 +414,42 @@ final class Cron
                 /* Beiträge (28.09.2026, Z4) — seit 01.10.2026 (G4, Uwe: „ein Facebook-Weg“) keine eigenen Entwürfe mehr:
                    Beiträge entstehen nur noch im Marketing (Start › Diese Woche werben, Autopilot) und gehen über
                    MkVeroeffentlichen raus. So postet nie etwas doppelt. Alte Entwürfe unter Akquise › Beiträge bleiben bedienbar. */
-                /* Ausführliche Berichte (28.09.2026, A1–A10): für Betriebe mit Bereich nachholen, alte anonyme löschen. */
-                try { require_once __DIR__ . '/WebBericht.php'; $wbN = WebBericht::nachholen(2); if ($wbN > 0) { $wa['berichte'] = $wbN; }
-                      if ((int) date('G') === 4) { WebBericht::aufraeumen(); } } catch (Throwable $e) { }
-                /* Branchen-Seiten und Anzeigen-Entwürfe (28.09.2026, W1/W3): nachts neu rechnen, montags Entwürfe. */
-                try { require_once __DIR__ . '/BranchenStatistik.php'; $bs = BranchenStatistik::lauf(); if ($bs) { $wa['statistik'] = $bs; } } catch (Throwable $e) { $wa['statistik_fehler'] = mb_substr($e->getMessage(), 0, 120); }
-                /* Website-Tipp der Woche (28.09.2026, D5): dienstags, nur bestätigte Abos. */
-                try { require_once __DIR__ . '/WebTipp.php'; $tp = WebTipp::lauf(); if ($tp['geschickt'] > 0) { $wa['tipps'] = $tp['geschickt']; } } catch (Throwable $e) { $wa['tipp_fehler'] = mb_substr($e->getMessage(), 0, 120); }
                 return AkquiseFolge::lauf() + $wa;
             },
+            /* Ausführliche Berichte (28.09.2026, A1–A10): für Betriebe mit Bereich nachholen, alte anonyme löschen.
+               Branchen-Seiten und Anzeigen-Entwürfe (28.09.2026, W1/W3): nachts neu rechnen, montags Entwürfe.
+               Phase 8: eigene Regel — sie verschickt nichts und läuft deshalb auch beim Not-Aus. */
+            'akquise_berichte' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
+                $wa = [];
+                try { require_once __DIR__ . '/WebBericht.php'; $wbN = WebBericht::nachholen(2); if ($wbN > 0) { $wa['berichte'] = $wbN; }
+                      if ((int) date('G') === 4) { WebBericht::aufraeumen(); } } catch (Throwable $e) { }
+                try { require_once __DIR__ . '/BranchenStatistik.php'; $bs = BranchenStatistik::lauf(); if ($bs) { $wa['statistik'] = $bs; } } catch (Throwable $e) { $wa['fehler'] = 'Statistik: ' . mb_substr($e->getMessage(), 0, 120); }
+                return $wa;
+            },
+            /* Website-Tipp der Woche (28.09.2026, D5): dienstags, nur bestätigte Abos. */
+            'akquise_tipp' => static function () {
+                foreach (['Akquise', 'AkquiseScore', 'AkquiseGate'] as $k) { require_once __DIR__ . "/$k.php"; }
+                require_once __DIR__ . '/WebTipp.php';
+                return WebTipp::lauf();
+            },
             /* Content-Studio (01.10.2026): geplante, freigegebene Inhalte auf Facebook, Instagram und Telegram veröffentlichen. */
+            /* P4: Schlüssel von LinkedIn, Google, YouTube, TikTok rechtzeitig erneuern (TikTok gilt nur 24 Stunden). */
+            'marketing_schluessel' => static function () {
+                require_once __DIR__ . '/MkPlattform.php';
+                return MkPlattform::auffrischen();
+            },
             'marketing_posten' => static function () {
                 require_once __DIR__ . '/MkVeroeffentlichen.php';
                 require_once __DIR__ . '/MkPlattform.php';
-                /* P4: Schlüssel von LinkedIn, Google, YouTube, TikTok rechtzeitig erneuern (TikTok gilt nur 24 Stunden). */
-                $pf = []; try { $pf = MkPlattform::auffrischen(); } catch (Throwable $e) { $pf = ['fehler' => mb_substr($e->getMessage(), 0, 120)]; }
                 /* 02.10.2026: Freigegebenes ohne Telegram-Spiegel nachholen (auch, was vor dieser Regel freigegeben wurde). */
                 $sp = 0; try { require_once __DIR__ . '/MkTelegramSpiegel.php'; $sp = MkTelegramSpiegel::nachholen(); } catch (Throwable $e) { }
-                /* Einmal: Entwürfe, die den Kanal auf Facebook/Instagram bekannt machen (Freigabe bei Uwe). */
-                try { require_once __DIR__ . '/TelegramWachstum.php'; TelegramWachstum::werbungAnlegen(); } catch (Throwable $e) { }
-                return MkVeroeffentlichen::faellige() + ($pf ? ['schluessel' => $pf] : []) + ($sp ? ['telegram_gespiegelt' => $sp] : []);
+                return MkVeroeffentlichen::faellige() + ($sp ? ['telegram_gespiegelt' => $sp] : []);
+            },
+            /* Einmal: Entwürfe, die den Kanal auf Facebook/Instagram bekannt machen (Freigabe bei Uwe). */
+            'telegram_werbung' => static function () {
+                require_once __DIR__ . '/TelegramWachstum.php';
+                return TelegramWachstum::werbungAnlegen();
             },
             /* Marketing-Studio 7: Wochen-Autopilot — je eingeschaltetem Land einmal je Woche eine Kampagne (ab Werk aus). */
             'marketing_autopilot' => static function () {
@@ -587,10 +641,22 @@ final class Cron
             };
         }
 
+        /* AUTOMATION CENTER (Phase 8, 06.10.2026): Vor jeder Aufgabe das Register fragen —
+           ausgeschaltet, Not-Aus (nur was rausgeht) oder gar nicht eingetragen heißt: läuft nicht.
+           Danach je Regel Dauer, Ergebnis und Fehler in EINER Anweisung festhalten. */
+        require_once __DIR__ . '/Automation.php';
+        Automation::vergessen();
+        $laeufe = [];
         foreach ($aufgaben as $name => $tun) {
-            try { $bilanz[$name] = $tun(); }
-            catch (Throwable $e) { $bilanz[$name] = ['fehler' => mb_substr($e->getMessage(), 0, 200)]; }
+            $ruht = Automation::grund($name);
+            if ($ruht !== null) { $bilanz[$name] = ['ruht' => $ruht]; continue; }
+            $t0 = microtime(true);
+            $fehler = null;
+            try { $bilanz[$name] = $tun(); $fehler = Automation::fehlerAus($bilanz[$name]); }
+            catch (Throwable $e) { $bilanz[$name] = ['fehler' => mb_substr($e->getMessage(), 0, 200)]; $fehler = $bilanz[$name]['fehler']; }
+            $laeufe[$name] = ['ms' => (int) round((microtime(true) - $t0) * 1000), 'ergebnis' => Automation::kurz($bilanz[$name]), 'fehler' => $fehler];
         }
+        try { Automation::festhalten($laeufe); } catch (Throwable $e) { $bilanz['automation_fehler'] = mb_substr($e->getMessage(), 0, 200); }
 
         $bilanz['dauer_ms'] = (int) round((microtime(true) - $anfang) * 1000);
         self::merken('cron_zuletzt', date('Y-m-d H:i:s'));

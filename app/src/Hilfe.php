@@ -42,6 +42,7 @@ final class Hilfe
         'monitoring'         => 'Hier siehst du, ob die Kundenseiten erreichbar sind und ihr Zertifikat gilt.',
         'einstellungen'      => 'Hier stellst du ein, was für alles gilt: Firma, Stripe, E-Mail, Zugänge.',
         'bereit'             => 'Hier steht, was noch eingerichtet werden muss, damit alles von allein läuft.',
+        'automationen'       => 'Hier steht alles, was ohne Klick läuft: je Regel ein Schalter, ein Probelauf und der letzte Lauf — und der Not-Aus für alles, was rausgeht.',
         'pakete'             => 'Hier legst du die Pakete an, die Kunden kaufen können.',
         'baukasten'          => 'Hier stellst du die Preise ein, aus denen der Preisrechner den Preis ausrechnet.',
         'telefon'            => 'Hier siehst du Manuelas Gespräche, Rückrufwünsche und Termine — und stellst sie ein.',

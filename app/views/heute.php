@@ -77,6 +77,15 @@ $zeile = static function (array $v, bool $vorne = false) {
     <span class="marke2"><?= count($liste['du']) ?> bei dir</span>
     <span class="marke2"><?= count($liste['kunde']) ?> beim Kunden</span>
     <?php if ($offenGeld > 0): ?><span class="marke2 warnung"><?= Fmt::geld($offenGeld) ?> offen</span><?php endif; ?>
+    <?php /* Not-Aus (Phase 8): auf der Seite, mit der man anfängt — leise, weil man ihn fast nie braucht.
+             Steht er schon, sagt das Band oben auf jeder Seite Bescheid. */
+          $heuteNotAus = false; try { $heuteNotAus = (string) Db::wert("SELECT svalue FROM settings WHERE skey='auto_notaus'", [], '0') === '1'; } catch (Throwable $e) { }
+          if (!$heuteNotAus && Rechte::darfTat('automation_notaus')): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:inline">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="automation_notaus"><input type="hidden" name="zurueck" value="heute">
+        <button class="knopf" id="heute-notaus" title="Hält jede Automation an, die Kunden oder Partner erreicht oder Geld bewegt" style="font-size:12px;padding:4px 10px">Not-Aus</button>
+      </form>
+    <?php endif; ?>
     <a class="knopf" href="<?= Fmt::h(url('vorgaenge')) ?>">Alle Kunden</a>
   </div>
 </div>

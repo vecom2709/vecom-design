@@ -1421,6 +1421,30 @@ if ($post) {
                 if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'automation_schalten':
+            case 'automation_notaus':
+            case 'automation_weiter':
+                /* Automation Center (Phase 8, 06.10.2026, Uwe: „Schalten Admin, Not-Aus alle“): Schalten und Lösen nur
+                   der Admin (Rechte::darfTat), den Not-Aus ziehen darf auch die Mitarbeit (TATEN_MITARBEIT). */
+                require_once __DIR__ . '/src/Automation.php';
+                $amWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                if ($tat === 'automation_notaus') {
+                    Automation::notAusZiehen($amWer);
+                    $_SESSION['gut'] = 'Not-Aus gezogen. Keine Automation schickt mehr etwas raus — Prüfungen und Sicherung laufen weiter.';
+                    zurueck('automationen');
+                }
+                if ($tat === 'automation_weiter') {
+                    Automation::notAusLoesen($amWer);
+                    $_SESSION['gut'] = 'Not-Aus gelöst. Beim nächsten Lauf arbeiten alle eingeschalteten Automationen wieder.';
+                    zurueck('automationen');
+                }
+                $amRegel = (string) ($_POST['regel'] ?? '');
+                $amAn = ($_POST['an'] ?? '') === '1';
+                $_SESSION[Automation::schalten($amRegel, $amAn, Auth::id()) ? 'gut' : 'fehler'] = isset(Automation::REGELN[$amRegel])
+                    ? '„' . Automation::REGELN[$amRegel][0] . '“ ist ' . ($amAn ? 'eingeschaltet.' : 'ausgeschaltet — sie läuft erst wieder, wenn du sie einschaltest.')
+                    : 'Unbekannte Automation.';
+                weiter('automationen#' . rawurlencode($amRegel));
+
             case 'partner_news_senden':
             case 'partner_news_zurueck':
                 /* Neu von Vecom (Phase 7b-2): an eine Zielgruppe senden (Rückfrage aus Ablauf::TRAGWEITE) oder zurückziehen. */
@@ -5479,6 +5503,22 @@ switch ($route) {
     case 'akquise':
         require __DIR__ . '/akquise_route.php';
         exit;
+
+    case 'automationen':
+        /* Automation Center (Phase 8): alle Regeln nach Bereich, Schalter, Not-Aus, Probelauf (nur lesen). */
+        require_once __DIR__ . '/src/Automation.php';
+        require_once __DIR__ . '/src/Cron.php';
+        $amProbe = (string) ($_GET['probe'] ?? '');
+        ansicht('automationen', [
+            'liste' => sicher(static fn() => Automation::liste(), []),
+            'notaus' => sicher(static fn() => Automation::notAusStand(), ['an' => false, 'am' => '', 'von' => '']),
+            'probeRegel' => isset(Automation::REGELN[$amProbe]) ? $amProbe : '',
+            'probe' => $amProbe !== '' ? sicher(static fn() => Automation::probe($amProbe), null) : null,
+            'lauf' => sicher(static fn() => Cron::zuletzt(), null),
+            'admin' => Auth::istAdmin(),
+            'darfNotaus' => Rechte::darfTat('automation_notaus'),
+        ]);
+        break;
 
     case 'monitoring':
         require_once __DIR__ . '/src/Monitoring.php';

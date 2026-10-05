@@ -1794,14 +1794,21 @@ final class Partner
         if (Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$tagSchluessel], null) === null) {
             Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$tagSchluessel, '1']);
             Db::run("DELETE FROM settings WHERE skey LIKE 'partner\\_tageslauf\\_%' AND skey <> ?", [$tagSchluessel]);
-            $r['ruhend'] = self::still(static fn() => self::ruhendeErinnern(), 0);
+            /* Phase 8: Was den Partner erreicht, fragt das Automation Center (Regel „partner_hinweise“,
+               der Not-Aus hält sie an); das Prüfen auf Auffälliges bleibt im Haus und läuft immer. */
+            require_once __DIR__ . '/Automation.php';
+            $hinweise = Automation::darf('partner_hinweise');
+            if ($hinweise) { $r['ruhend'] = self::still(static fn() => self::ruhendeErinnern(), 0); }
             $r['auffaellig'] = self::still(static fn() => self::missbrauchPruefen(), 0);
-            $r['jahr'] = self::still(static fn() => self::jahresmails(), 0);
+            if ($hinweise) { $r['jahr'] = self::still(static fn() => self::jahresmails(), 0); }
         }
 
         /* Marketing-Hinweise (28.09.2026): Nachhaken, Kurstag, Meilensteine -- je mit eigener Drosselung. */
         require_once __DIR__ . '/PartnerMarketing.php';
-        foreach ((array) self::still(static fn() => PartnerMarketing::lauf(), []) as $mk => $mv) { $r['marketing_' . $mk] = (int) $mv; }
+        require_once __DIR__ . '/Automation.php';
+        if (Automation::darf('partner_hinweise')) {
+            foreach ((array) self::still(static fn() => PartnerMarketing::lauf(), []) as $mk => $mv) { $r['marketing_' . $mk] = (int) $mv; }
+        }
 
         require_once __DIR__ . '/PartnerWege.php';
 
@@ -1815,6 +1822,9 @@ final class Partner
         }
 
         if (self::einstellung('partner_auto_auszahlen') !== '1') { return $r; }
+        /* Phase 8: Die automatische Auszahlung ist eine eigene Regel im Automation Center —
+           ausgeschaltet oder beim Not-Aus bleibt das Geld bereit und wartet. */
+        if (!Automation::darf('partner_auszahlung')) { $r['auszahlung_ruht'] = 1; return $r; }
         $limit = self::zahl('partner_auto_tageslimit_cents');
         foreach (Db::all("SELECT * FROM partner WHERE status = 'aktiv' AND vereinbarung_am IS NOT NULL") as $p) {
             $weg = PartnerWege::weg($p);
