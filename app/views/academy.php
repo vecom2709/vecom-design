@@ -135,7 +135,10 @@ $vs = $versuche + ['n' => 0, 'b' => 0]; ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Abschlusstest und Zertifikate</h2>
   <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px"><?= Academy::ABSCHLUSS_ANZAHL ?> Fragen aus allen Modulen, ab <?= Academy::ABSCHLUSS_GRENZE ?> % bestanden. Erst nach allen Pflichtmodulen.
-    Bisher <?= (int) $vs['n'] ?> Versuche, <?= (int) $vs['b'] ?> bestanden. Prüfseite für Dritte: <a href="/zertifikat.php" target="_blank" rel="noopener">/zertifikat.php</a></p>
+    Bisher <?= (int) $vs['n'] ?> Versuche, <?= (int) $vs['b'] ?> bestanden. Prüfseite für Dritte: <a href="/zertifikat.php" target="_blank" rel="noopener">/zertifikat.php</a>
+    · Muster ansehen: <a href="<?= Fmt::h(url('academy?zert_muster=1')) ?>" target="_blank" rel="noopener">Deutsch</a>,
+    <a href="<?= Fmt::h(url('academy?zert_muster=1&sprache=it')) ?>" target="_blank" rel="noopener">Italienisch</a>,
+    <a href="<?= Fmt::h(url('academy?zert_muster=1&sprache=en')) ?>" target="_blank" rel="noopener">Englisch</a></p>
   <?php if (!$zertifikate): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zertifikate.</p><?php else: ?>
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Prüfnummer</th><th>Name</th><th>Ergebnis</th><th>Ausgestellt</th><th></th></tr></thead>

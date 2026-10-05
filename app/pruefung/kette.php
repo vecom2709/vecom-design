@@ -24614,7 +24614,8 @@ require_once $wurzel . '/src/AcademyPdf.php';
 $ak3Pdf = AcademyPdf::zertifikat((array) Academy::zertifikat($akBid), 'it');
 $ak3Zp = (string) file_get_contents($wurzel . '/../zertifikat.php');
 pruefe('Academy 3: Zertifikat als PDF (A4 quer); öffentliche Prüfseite ohne Suchmaschinen und ohne Ergebnis oder Kontakt',
-    str_starts_with($ak3Pdf, '%PDF-') && str_contains($ak3Pdf, '841.89') && str_contains($ak3Zp, 'noindex') && str_contains($ak3Zp, 'Academy::zertifikatPruefen')
+    str_starts_with($ak3Pdf, '%PDF-') && str_contains($ak3Pdf, '841.89') && substr_count($ak3Pdf, '/FontFile2') === 3 && str_contains($ak3Pdf, '/ShadingType 2')
+    && str_contains($ak3Pdf, 'CormorantGaramond-MediumItalic') && str_contains($ak3Zp, 'noindex') && str_contains($ak3Zp, 'Academy::zertifikatPruefen')
     && !str_contains($ak3Zp, 'ergebnis') && !str_contains($ak3Zp, 'email'));
 $ak3Tmp = sys_get_temp_dir() . '/ak3-' . bin2hex(random_bytes(4));
 file_put_contents($ak3Tmp . '.txt', "kein Audio\n");

@@ -4299,6 +4299,16 @@ switch ($route) {
         /* Partner Academy verwalten (Etappe 2, 05.10.2026): nur Zahlen, keine Namen. */
         require_once __DIR__ . '/src/Academy.php';
         /* Ansehen in der Verwaltung: eigenes PDF (auch archiviert) oder eine eingebaute Unterlage mit Standardsatz. */
+        /* Muster-Zertifikat (05.10.2026): so sieht es ein Partner nach bestandenem Test. Nummer VA-0000-0000 ist nie gültig. */
+        if (isset($_GET['zert_muster'])) {
+            require_once __DIR__ . '/src/AcademyPdf.php';
+            $acSp = in_array($_GET['sprache'] ?? 'de', Academy::SPRACHEN, true) ? (string) $_GET['sprache'] : 'de';
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="academy-zertifikat-muster.pdf"');
+            header('Cache-Control: private, no-store');
+            echo AcademyPdf::zertifikat(['name' => 'Maria Musterfrau', 'nummer' => 'VA-0000-0000', 'ergebnis' => 95, 'ausgestellt_am' => date('Y-m-d H:i:s')], $acSp);
+            exit;
+        }
         if (isset($_GET['pdf']) || isset($_GET['vorschau'])) {
             $acPdf = null;
             if (isset($_GET['pdf'])) {
