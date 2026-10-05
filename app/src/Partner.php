@@ -527,7 +527,7 @@ final class Partner
      * beim Grundnamen — die Besucherliste liest die Kennung aus der Spur.
      */
     /* „wm“ (04.10.2026, Marketingcenter): ein Werbemittel aus dem Marketing Center, wm-241 = Entwurf 241. */
-    public const BEITRAG_KANAELE = ['kalender', 'beitrag', 'bild3d', 'video3d', 'wm'];
+    public const BEITRAG_KANAELE = ['kalender', 'beitrag', 'bild3d', 'video3d', 'wm', 'kampagne'];   // kampagne-N: Partner-Kampagne (05.10.2026)
 
     public static function kanalBasis(?string $kanal): ?string
     {

@@ -143,6 +143,12 @@ if (is_file($konfig)) {
                Preis-Aufruf und das Öffnen von WhatsApp hier, Check und
                Termin erst, wenn sie wirklich gemacht sind (dort). */
             $weg = (string) ($_GET['weg'] ?? '');
+            /* Ziel je Link (05.10.2026, Etappe 0c): Material und Kampagne des Partners können auf Preis, Check,
+               Termin oder WhatsApp zeigen statt auf die Partnerseite — umstellbar ohne Neudruck des QR-Codes. */
+            if ($weg === '' && !isset($_GET['n']) && $kanal !== null) {
+                require_once __DIR__ . '/app/src/PartnerKampagne.php';
+                $weg = PartnerKampagne::zielWeg((int) $p['id'], $kanal);
+            }
             if ($weg !== '') {
                 /* Besucherliste und Sofort-Hinweis (03.10.2026, K1/N1): jeder Weg zählt im Besuch — Preis, Check, Termin, WhatsApp. */
                 if (!Partner::istRoboter((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''))) {

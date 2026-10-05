@@ -23291,6 +23291,72 @@ $_COOKIE = [];
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $pgP['id']]);
 
 /* ============================================================================
+   Kampagnen der Partner — Datenmodell (Etappe 0c, 05.10.2026)
+   ============================================================================ */
+abschnitt('Partner: Kampagnen (Datenmodell)');
+require_once $wurzel . '/src/PartnerKampagne.php';
+require_once $wurzel . '/src/MkKampagne.php';
+$pkA = Partner::laden(Partner::anlegen(['name' => 'Karl Kampagne', 'email' => 'karl.kampagne@partner.example', 'code' => 'KARLKAM', 'sprache' => 'de']));
+$pkB = Partner::laden(Partner::anlegen(['name' => 'Bea Fremd', 'email' => 'bea.fremd@partner.example', 'code' => 'BEAFREM', 'sprache' => 'it']));
+$pkId = PartnerKampagne::anlegen($pkA, ['ziel' => 'neue_kunden', 'branche' => 'gastro', 'region' => 'Mainz', 'designlinie' => 'premium', 'ziel_weg' => '']);
+$pkK = PartnerKampagne::laden((int) $pkA['id'], $pkId);
+$pkFehler = [];
+foreach ([['ziel' => 'reich_werden'], ['ziel' => 'lokal', 'branche' => 'mond'], ['ziel' => 'lokal', 'designlinie' => 'neon'], ['ziel' => 'lokal', 'ziel_weg' => 'irgendwo'],
+          ['ziel' => 'lokal', 'region' => 'Mainz, Wiesbaden, Frankfurt'], ['ziel' => 'lokal', 'vorlage_id' => $pkId]] as $pkFalsch) {
+    try { PartnerKampagne::anlegen($pkA, $pkFalsch); $pkFehler[] = 'durch: ' . json_encode($pkFalsch); } catch (InvalidArgumentException $e) { }
+}
+pruefe('Kampagne anlegen: Name aus Ziel, Branche, Region („Neue Kunden · Gastronomie · Mainz“), Nummer VC-JJJJ-NNNNN; unbekannte Ziele/Branchen/Linien/Wege, Ortslisten und Partner-Kampagnen als Vorlage abgelehnt',
+    $pkK && $pkK['name'] === 'Neue Kunden · Gastronomie · Mainz' && (int) $pkK['partner_id'] === (int) $pkA['id'] && $pkK['ziel_art'] === 'neue_kunden'
+    && preg_match('~^VC-\d{4}-\d{5}$~', PartnerKampagne::nummer($pkK)) === 1 && PartnerKampagne::ausNummer(PartnerKampagne::nummer($pkK)) === $pkId
+    && $pkFehler === [] && PartnerKampagne::kanal($pkId) === 'kampagne-' . $pkId && Partner::kanalBasis('kampagne-' . $pkId) === 'kampagne', json_encode($pkFehler));
+pruefe('Nur eigenes: fremder Partner sieht, ändert, bewertet die Kampagne nicht; Verwaltung behandelt sie nicht als ihre (kein /k/, kein Aufräumen, nicht in ihren Listen)',
+    PartnerKampagne::laden((int) $pkB['id'], $pkId) === null && PartnerKampagne::zahlen((int) $pkB['id'], $pkId) === null
+    && !PartnerKampagne::statusSetzen((int) $pkB['id'], $pkId, 'beendet') && !PartnerKampagne::zielSetzen((int) $pkB['id'], 'kampagne', $pkId, 'preis')
+    && MkKampagne::laden($pkId) === null && MkKampagne::ausCode((string) $pkK['code'])[0] === null
+    && !in_array($pkId, array_map('intval', array_column(MkKampagne::leere(), 'id')), true)
+    && str_contains((string) file_get_contents($wurzel . '/src/MkKampagne.php'), "\$w = ['k.partner_id IS NULL'];")
+    && PartnerKampagne::liste((int) $pkB['id']) === [] && count(PartnerKampagne::liste((int) $pkA['id'])) === 1);
+Db::run("UPDATE wm_produkte SET aktiv = 1 WHERE vorlage = 'tasse_11'");
+$pkProd = (int) Db::wert("SELECT id FROM wm_produkte WHERE vorlage = 'tasse_11'", [], 0);
+$pkE1 = Werbemittel::entwurfAnlegen($pkA, $pkProd, ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'kampagne' => $pkId]);
+$pkE2 = Werbemittel::entwurfAnlegen($pkA, $pkProd, ['stil' => 'd', 'sprache' => 'de', 'kontakt' => 'email', 'kampagne' => $pkId]);
+$pkE3 = Werbemittel::entwurfAnlegen($pkB, $pkProd, ['stil' => 'a', 'sprache' => 'it', 'kontakt' => 'email', 'kampagne' => $pkId]);
+pruefe('Material bekommt Kampagne (nur eigene) und Version V1, V2 je Partner und Produkt',
+    (int) Db::wert('SELECT kampagne_id FROM wm_entwuerfe WHERE id = ?', [$pkE2], 0) === $pkId && (int) Db::wert('SELECT version FROM wm_entwuerfe WHERE id = ?', [$pkE2], 0) === 2
+    && Db::one('SELECT kampagne_id FROM wm_entwuerfe WHERE id = ?', [$pkE3])['kampagne_id'] === null && (int) Db::wert('SELECT version FROM wm_entwuerfe WHERE id = ?', [$pkE3], 0) === 1
+    && !PartnerKampagne::materialZuordnen((int) $pkB['id'], $pkE3, $pkId) && !PartnerKampagne::materialZuordnen((int) $pkB['id'], $pkE2, null)
+    && PartnerKampagne::materialZuordnen((int) $pkA['id'], $pkE2, $pkId));
+$pkW = [];
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'wm-' . $pkE2);                 // nichts eingestellt → Partnerseite
+PartnerKampagne::zielSetzen((int) $pkA['id'], 'kampagne', $pkId, 'preis');
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'wm-' . $pkE2);                 // erbt von der Kampagne
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'kampagne-' . $pkId);
+PartnerKampagne::zielSetzen((int) $pkA['id'], 'material', $pkE2, 'wa');
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'wm-' . $pkE2);                 // eigenes Ziel des Materials geht vor
+$pkW[] = PartnerKampagne::zielWeg((int) $pkB['id'], 'wm-' . $pkE2);                 // fremder Partner: nichts
+PartnerKampagne::statusSetzen((int) $pkA['id'], $pkId, 'pausiert');
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'kampagne-' . $pkId);          // pausierte Kampagne → Partnerseite
+$pkW[] = PartnerKampagne::zielWeg((int) $pkA['id'], 'flyer');
+pruefe('Ziel je Link ohne Neudruck: Material erbt das Ziel der Kampagne, eigenes geht vor; fremde Kanäle, pausierte Kampagnen und gewöhnliche Kanäle → Partnerseite; ungültige Ziele abgelehnt',
+    $pkW === ['', 'preis', 'preis', 'wa', '', '', ''] && !PartnerKampagne::zielSetzen((int) $pkA['id'], 'material', $pkE2, 'irgendwo')
+    && str_contains((string) file_get_contents($oben . '/p.php'), '$weg = PartnerKampagne::zielWeg((int) $p[\'id\'], $kanal);'), json_encode($pkW));
+PartnerKampagne::statusSetzen((int) $pkA['id'], $pkId, 'aktiv');
+Db::run('UPDATE wm_entwuerfe SET scans = 5 WHERE id = ?', [$pkE2]);
+Db::run('INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, ?, CURDATE(), 3)', [(int) $pkA['id'], 'kampagne-' . $pkId]);
+Db::run('INSERT INTO partner_kanal_klicks (partner_id, kanal, tag, anzahl) VALUES (?, ?, CURDATE(), 7)', [(int) $pkB['id'], 'kampagne-' . $pkId]);
+$pkKunde = (int) Db::insert('customers', ['name' => 'Kampagnenkunde', 'email' => 'kk@kunde.example']);
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle, kanal) VALUES (?, ?, ?, ?)', [$pkKunde, (int) $pkA['id'], 'link', 'wm-' . $pkE2]);
+$pkZ = PartnerKampagne::zahlen((int) $pkA['id'], $pkId);
+pruefe('Erfolg der Kampagne aus echten Zahlen: Scans der Materialien, Klicks des Kampagnenlinks (nur eigene), Anfragen über alle Kanäle der Kampagne; nichts geschätzt',
+    $pkZ !== null && $pkZ['scans'] === 5 && $pkZ['klicks'] === 3 && $pkZ['anfragen'] === 1 && $pkZ['kunden'] === 0 && $pkZ['provision_cents'] === 0, json_encode($pkZ));
+Db::run('DELETE FROM partner_zuordnungen WHERE customer_id = ?', [$pkKunde]);
+Db::run('DELETE FROM customers WHERE id = ?', [$pkKunde]);
+Db::run('DELETE FROM partner_kanal_klicks WHERE kanal = ?', ['kampagne-' . $pkId]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $pkA['id'], (int) $pkB['id']]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [(int) $pkA['id'], (int) $pkB['id']]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $pkA['id'], (int) $pkB['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

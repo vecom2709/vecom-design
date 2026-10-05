@@ -464,7 +464,7 @@ final class Spur
             } else {
                 /* Kein Partner gemerkt, aber eine Kampagne (mit Einwilligung). */
                 [$kc, $crc] = array_pad(explode(':', (string) ($_COOKIE[self::KEKS_KAMPAGNE] ?? ''), 2), 2, '');
-                $k = preg_match('/^[a-z0-9][a-z0-9-]{2,23}$/', $kc) ? Db::one("SELECT id FROM mk_kampagnen WHERE code = ? AND status = 'aktiv'", [$kc]) : null;
+                $k = preg_match('/^[a-z0-9][a-z0-9-]{2,23}$/', $kc) ? Db::one("SELECT id FROM mk_kampagnen WHERE code = ? AND status = 'aktiv' AND partner_id IS NULL", [$kc]) : null;
                 if (!$k) { return null; }
                 $cr = $crc !== '' ? Db::one('SELECT id FROM mk_creatives WHERE kampagne_id = ? AND code = ?', [(int) $k['id'], $crc]) : null;
                 $b = self::besuchAnlegen(null, (int) $k['id'], $cr ? (int) $cr['id'] : null, null, $s, (array) ($s['get'] ?? []), true);

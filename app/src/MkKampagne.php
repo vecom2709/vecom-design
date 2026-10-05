@@ -399,7 +399,8 @@ final class MkKampagne
     public static function leere(?string $land = null): array
     {
         $a = [date('Y-m-d H:i:s', time() - 2 * 86400)];
-        $sql = 'SELECT id, code, name FROM mk_kampagnen WHERE created_at < ?';
+        // Partner-Kampagnen (partner_id gesetzt, 05.10.2026) räumt nur der Partner selbst — nie das Aufräumen der Verwaltung.
+        $sql = 'SELECT id, code, name FROM mk_kampagnen WHERE partner_id IS NULL AND created_at < ?';
         if (in_array($land, ['IT', 'DE'], true)) { $sql .= " AND land IN (?, '')"; $a[] = $land; }
         $aus = [];
         foreach (Db::all($sql, $a) as $k) {
@@ -424,7 +425,7 @@ final class MkKampagne
 
     public static function laden(int $id): ?array
     {
-        return Db::one('SELECT * FROM mk_kampagnen WHERE id = ?', [$id]) ?: null;
+        return Db::one('SELECT * FROM mk_kampagnen WHERE id = ? AND partner_id IS NULL', [$id]) ?: null;   // Partner-Kampagnen: PartnerKampagne
     }
 
     /** Für k.php: aktive Kampagne und (falls bekannt) ihr Werbemittel. @return array{0:?array,1:?array} */
@@ -432,7 +433,7 @@ final class MkKampagne
     {
         $code = strtolower($code); $werbemittel = strtolower($werbemittel);
         if (!self::codeOk($code)) { return [null, null]; }
-        $k = Db::one("SELECT * FROM mk_kampagnen WHERE code = ? AND status = 'aktiv'", [$code]) ?: null;
+        $k = Db::one("SELECT * FROM mk_kampagnen WHERE code = ? AND status = 'aktiv' AND partner_id IS NULL", [$code]) ?: null;   // /k/ nur für Kampagnen der Verwaltung
         if ($k === null || $werbemittel === '' || !self::werbemittelCodeOk($werbemittel)) { return [$k, null]; }
         return [$k, Db::one('SELECT * FROM mk_creatives WHERE kampagne_id = ? AND code = ?', [(int) $k['id'], $werbemittel]) ?: null];
     }
@@ -558,7 +559,7 @@ final class MkKampagne
      */
     public static function liste(string $von, string $bis, array $f = []): array
     {
-        $w = []; $a = [];
+        $w = ['k.partner_id IS NULL']; $a = [];
         if (isset(self::PLATTFORMEN[(string) ($f['plattform'] ?? '')])) { $w[] = 'k.plattform = ?'; $a[] = (string) $f['plattform']; }
         if (isset(self::STATUS[(string) ($f['status'] ?? '')])) { $w[] = 'k.status = ?'; $a[] = (string) $f['status']; }
         if (isset(self::branchen()[(string) ($f['branche'] ?? '')])) { $w[] = 'k.branche = ?'; $a[] = (string) $f['branche']; }

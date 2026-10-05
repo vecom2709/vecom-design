@@ -372,7 +372,7 @@ final class MkInhalt
         $plattform = trim(preg_replace('/\s*\(.*\)$/u', '', (string) (MkKampagne::PLATTFORMEN[$x['plattform']] ?? $x['plattform'])) ?? '');
         $name = (MkKampagne::branchen()[$x['branche']] ?? $x['branche']) . ' ' . $x['land'] . ' · ' . $plattform . ' · Website-Check'
               . ' · ' . self::MONATE[(int) date('n')] . ' ' . date('Y') . ($x['art'] === 'bezahlt' ? ' · Anzeigen' : '');
-        $da = Db::wert("SELECT id FROM mk_kampagnen WHERE name = ? AND status <> 'beendet' ORDER BY id DESC LIMIT 1", [$name], null);
+        $da = Db::wert("SELECT id FROM mk_kampagnen WHERE name = ? AND status <> 'beendet' AND partner_id IS NULL ORDER BY id DESC LIMIT 1", [$name], null);
         if ($da !== null) { return (int) $da; }
         return MkKampagne::anlegen(['name' => $name, 'plattform' => $x['plattform'], 'ziel' => self::CHECK, 'land' => (string) $x['land'],
             'zielgruppe_id' => (int) ($x['zielgruppe_id'] ?? 0), 'ziel_art' => 'website_check', 'branche' => (string) $x['branche'], 'cta' => 'website_check',

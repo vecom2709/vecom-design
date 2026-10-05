@@ -5423,7 +5423,7 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
             $_SESSION['mk_land'] = (string) $mz['land'];   // im Land der Zielgruppe bleiben, wenn man weiterklickt
             ansicht('zielgruppe', ['z' => $mz, 'daten' => MkZielgruppe::datengrundlage((string) $mz['branche'], (string) $mz['land']),
                 'funde' => MkZielgruppe::recherche(['branche' => (string) $mz['branche'], 'land' => (string) $mz['land']], 20),
-                'kampagnen' => sicher(static fn() => Db::all("SELECT id, name, code, status, plattform FROM mk_kampagnen WHERE zielgruppe_id = ? OR (branche = ? AND land = ?)
+                'kampagnen' => sicher(static fn() => Db::all("SELECT id, name, code, status, plattform FROM mk_kampagnen WHERE partner_id IS NULL AND (zielgruppe_id = ? OR (branche = ? AND land = ?))
                                                                ORDER BY FIELD(status, 'aktiv', 'pausiert', 'beendet'), id DESC LIMIT 12", [$id, (string) $mz['branche'], (string) $mz['land']]), []),
                 'inhalteZahl' => (int) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM mk_inhalte WHERE zielgruppe_id = ? AND status <> 'verworfen'", [$id], 0), 0),
                 'gegenstueck' => sicher(static fn() => Db::one("SELECT id, titel, status FROM mk_zielgruppen WHERE branche = ? AND land = ? AND (status = 'freigegeben' OR vorher IS NOT NULL)", [(string) $mz['branche'], MkLand::andere((string) $mz['land'])]), null),
@@ -5434,7 +5434,7 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
                 'zahlen' => sicher(static function () use ($id, $mz): array {   // was die Kampagnen dieser Zielgruppe gebracht haben (30 Tage)
                     $z = MkKampagne::zahlen(date('Y-m-d', strtotime('-30 days')), date('Y-m-d'));
                     $s = MkKampagne::LEER;
-                    foreach (Db::all('SELECT id FROM mk_kampagnen WHERE zielgruppe_id = ? OR (branche = ? AND land = ?)', [$id, (string) $mz['branche'], (string) $mz['land']]) as $r) {
+                    foreach (Db::all('SELECT id FROM mk_kampagnen WHERE partner_id IS NULL AND (zielgruppe_id = ? OR (branche = ? AND land = ?))', [$id, (string) $mz['branche'], (string) $mz['land']]) as $r) {
                         foreach ($s as $k => $_) { $s[$k] += (int) ($z[(int) $r['id']][$k] ?? 0); }
                     }
                     return $s;
@@ -5507,7 +5507,7 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
                 'medien' => sicher(static fn() => MkMedium::zuInhalt($id), []),
                 'medienAuftraege' => sicher(static fn() => Db::all("SELECT * FROM mk_auftraege WHERE art = 'medien' AND parameter LIKE ? ORDER BY id DESC LIMIT 6", ['%"inhalt_id":' . $id . ',%']), []),
                 'pc' => sicher(static fn() => AkquiseSteuerung::stand(), ['pc_wach' => false, 'pc_alter' => null]),
-                'kampagnen' => Db::all("SELECT id, name, code FROM mk_kampagnen WHERE status <> 'beendet' ORDER BY id DESC LIMIT 60"),
+                'kampagnen' => Db::all("SELECT id, name, code FROM mk_kampagnen WHERE status <> 'beendet' AND partner_id IS NULL ORDER BY id DESC LIMIT 60"),
                 'funde' => $mi['fund_ids'] ? Db::all('SELECT id, art, titel FROM mk_recherche WHERE id IN (' . implode(',', array_map('intval', explode(',', (string) $mi['fund_ids']))) . ')') : []]);
             break;
         }
@@ -5521,7 +5521,7 @@ h1{font-size:21pt;margin:0;line-height:1.15}.de{font-size:14pt;color:#444;margin
         ansicht('inhalte', ['f' => $miF, 'land' => $miLand, 'liste' => MkInhalt::liste($miF), 'zahl' => MkInhalt::zaehlen($miLand), 'offen' => MkLand::offen(),
             'zielgruppen' => Db::all("SELECT id, branche, land, titel, status FROM mk_zielgruppen WHERE (status = 'freigegeben' OR vorher IS NOT NULL) AND land = ? ORDER BY titel", [$miLand]),
             'alleZg' => Db::all('SELECT id, titel FROM mk_zielgruppen WHERE land = ? ORDER BY titel', [$miLand]),
-            'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' AND land IN (?, '') ORDER BY id DESC LIMIT 60", [$miLand]),
+            'kampagnen' => Db::all("SELECT id, name FROM mk_kampagnen WHERE status <> 'beendet' AND land IN (?, '') AND partner_id IS NULL ORDER BY id DESC LIMIT 60", [$miLand]),
             'auftraege' => sicher(static fn() => MkAuftrag::liste(6, 'inhalte', $miLand), []),
             'ohneDeutsch' => $miLand === 'IT' ? (int) sicher(static fn() => count(MkZielgruppe::ohneUebersetzung(100)['inhalte']), 0) : 0,
             'vorherNachher' => sicher(static function (): array { require_once __DIR__ . '/src/MkVorherNachher.php'; return MkVorherNachher::kandidaten(); }, []),

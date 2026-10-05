@@ -3033,6 +3033,29 @@ final class Texte
         'land_Sonstiges'   => ['it' => 'Altro paese', 'de' => 'Anderes Land', 'en' => 'Other country'],
     ];
 
+    /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele und Branchen als kurze Namen — Kampagnenname, Auswahl, Auswertung. */
+    public const KAMPAGNE_ZIELE = [
+        'neue_kunden'  => ['it' => 'Nuovi clienti', 'de' => 'Neue Kunden', 'en' => 'New customers'],
+        'anfragen'     => ['it' => 'Più richieste', 'de' => 'Mehr Anfragen', 'en' => 'More enquiries'],
+        'bekanntheit'  => ['it' => 'Farsi conoscere', 'de' => 'Bekanntheit', 'en' => 'Awareness'],
+        'lokal'        => ['it' => 'Visibilità locale', 'de' => 'Lokal sichtbar', 'en' => 'Local visibility'],
+        'social'       => ['it' => 'Social media', 'de' => 'Social Media', 'en' => 'Social media'],
+        'messe'        => ['it' => 'Fiera ed evento', 'de' => 'Messe und Event', 'en' => 'Trade fair and event'],
+        'eroeffnung'   => ['it' => 'Nuova apertura', 'de' => 'Neueröffnung', 'en' => 'Grand opening'],
+        'reaktivieren' => ['it' => 'Riattivare clienti', 'de' => 'Kunden reaktivieren', 'en' => 'Win back customers'],
+        'check'        => ['it' => 'Check del sito', 'de' => 'Website-Check', 'en' => 'Website check'],
+    ];
+    public const KAMPAGNE_BRANCHEN = [
+        'gastro'     => ['it' => 'Ristorazione', 'de' => 'Gastronomie', 'en' => 'Food & drink'],
+        'unterkunft' => ['it' => 'Strutture ricettive', 'de' => 'Unterkünfte', 'en' => 'Accommodation'],
+        'handwerk'   => ['it' => 'Artigianato', 'de' => 'Handwerk', 'en' => 'Trades'],
+        'laden'      => ['it' => 'Negozi', 'de' => 'Einzelhandel', 'en' => 'Retail'],
+        'praxis'     => ['it' => 'Studi e salute', 'de' => 'Praxen und Gesundheit', 'en' => 'Practices and health'],
+        'beauty'     => ['it' => 'Parrucchieri e bellezza', 'de' => 'Friseur und Beauty', 'en' => 'Hair and beauty'],
+        'automotive' => ['it' => 'Auto e officine', 'de' => 'Automotive', 'en' => 'Automotive'],
+        'sonstige'   => ['it' => 'Altre attività', 'de' => 'Weitere Branchen', 'en' => 'Other businesses'],
+    ];
+
     public const PARTNER = [
         /* Gerätecode (05.10.2026, Uwe: „Ja“ zu „neues Gerät: einmal Code per E-Mail“). Noch in „Sie“ wie der übrige
            Partnerbereich; „du“ (Uwe, 05.10.2026) kommt für alle Partnertexte auf einmal — nicht gemischt. */

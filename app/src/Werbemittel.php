@@ -595,9 +595,17 @@ final class Werbemittel
         Db::run("DELETE FROM wm_entwuerfe WHERE partner_id = ? AND status = 'entsteht' AND created_at < NOW() - INTERVAL 1 HOUR", [(int) $p['id']]);
         $heute = (int) Db::wert('SELECT COUNT(*) FROM wm_entwuerfe WHERE partner_id = ? AND created_at >= CURDATE()', [(int) $p['id']]);
         if ($heute >= self::ENTWUERFE_JE_TAG) { throw new RuntimeException('zuviel'); }
+        // Kampagne (05.10.2026, Etappe 0c): nur eine eigene; Version: V1, V2, … je Partner und Produkt.
+        $kampagneId = (int) ($eingabe['kampagne'] ?? 0);
+        if ($kampagneId > 0) {
+            require_once __DIR__ . '/PartnerKampagne.php';
+            if (!PartnerKampagne::laden((int) $p['id'], $kampagneId)) { $kampagneId = 0; }
+        }
+        $version = 1 + (int) Db::wert('SELECT COALESCE(MAX(version), 0) FROM wm_entwuerfe WHERE partner_id = ? AND produkt_id = ?', [(int) $p['id'], $produktId], 0);
         $id = Db::insert('wm_entwuerfe', [
             'partner_id' => (int) $p['id'], 'produkt_id' => $produktId, 'wahl' => json_encode($w, JSON_UNESCAPED_UNICODE),
             'datei' => '', 'datei_hash' => str_repeat('0', 64), 'datei_bytes' => 0, 'status' => 'entsteht',
+            'kampagne_id' => $kampagneId > 0 ? $kampagneId : null, 'version' => $version,
         ]);
         try {
             if (self::$vorDatei) { (self::$vorDatei)(); }
