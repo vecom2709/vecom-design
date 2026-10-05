@@ -2940,6 +2940,7 @@ final class Texte
     public const ANREDE_DU = [
         'PARTNER'             => ['sie' => '~^(pv_wa_text|teilen_betreff|teilen_text|w_post\d|karte_titel|ck_wa_text)$~'],
         'PARTNER_REITER'      => [],
+        'PARTNER_CC'          => [],
         'PARTNER_START'       => [],
         'PARTNER_HEUTE'       => [],
         'PARTNER_AUTOMATIK'   => [],
@@ -3089,6 +3090,112 @@ final class Texte
         'land_Österreich'  => ['it' => 'Austria', 'de' => 'Österreich', 'en' => 'Austria'],
         'land_Schweiz'     => ['it' => 'Svizzera', 'de' => 'Schweiz', 'en' => 'Switzerland'],
         'land_Sonstiges'   => ['it' => 'Altro paese', 'de' => 'Anderes Land', 'en' => 'Other country'],
+    ];
+
+    /* Command Center (Etappe 1b, 05.10.2026): die schnelle Startseite des Partners.
+       Deutsch duzt (Texte::ANREDE_DU), Italienisch bleibt bei „Lei“ wie der übrige Partnerbereich. */
+    public const PARTNER_CC = [
+        'titel'     => ['it' => 'Command Center', 'de' => 'Command Center', 'en' => 'Command Center'],
+        'hallo'     => ['it' => 'Buongiorno {name},', 'de' => 'Hallo {name},', 'en' => 'Hello {name},'],
+        'frage'     => ['it' => 'cosa vuole ottenere oggi?', 'de' => 'was möchtest du heute erreichen?', 'en' => 'what would you like to achieve today?'],
+        'heute'     => ['it' => 'Cosa faccio oggi?', 'de' => 'Was soll ich heute machen?', 'en' => 'What should I do today?'],
+        'warum'     => ['it' => 'Perché', 'de' => 'Warum', 'en' => 'Why'],
+        'wenig'     => ['it' => 'Ancora pochi dati per un consiglio basato sui suoi numeri. Quindi prima questo:', 'de' => 'Noch zu wenig Daten für eine Empfehlung aus deinen Zahlen. Darum zuerst das:', 'en' => 'Not enough data yet for a recommendation from your numbers. So first this:'],
+        'start_warum' => ['it' => 'È il prossimo dei primi passi — dopo, i consigli arrivano dai suoi numeri.', 'de' => 'Das ist der nächste der ersten Schritte — danach kommen die Empfehlungen aus deinen Zahlen.', 'en' => 'It is the next of your first steps — after that, recommendations come from your numbers.'],
+        'los'       => ['it' => 'Iniziare', 'de' => 'Los geht’s', 'en' => 'Let’s go'],
+        'e' => [
+            'kontakte' => [
+                'titel' => [['it' => '1 persona vuole sentirla', 'de' => '1 Person möchte von dir hören', 'en' => '1 person wants to hear from you'],
+                            ['it' => '{n} persone vogliono sentirla', 'de' => '{n} Personen möchten von dir hören', 'en' => '{n} people want to hear from you']],
+                'warum' => ['it' => 'Hanno lasciato numero o e-mail per lei. Chi risponde in giornata ha le migliori possibilità.', 'de' => 'Sie haben Nummer oder E-Mail für dich freigegeben. Wer am selben Tag antwortet, kommt am ehesten ins Gespräch.', 'en' => 'They left their number or e-mail for you. Replying the same day gives you the best chance.'],
+                'knopf' => ['it' => 'Rispondere ora', 'de' => 'Jetzt melden', 'en' => 'Reply now']],
+            'heiss' => [
+                'titel' => [['it' => 'Qualcuno sta guardando la sua verifica del sito', 'de' => 'Jemand sieht gerade deinen Website-Check an', 'en' => 'Someone is looking at your website check'],
+                            ['it' => '{n} attività stanno guardando la sua verifica', 'de' => '{n} Betriebe sehen gerade deinen Website-Check an', 'en' => '{n} businesses are looking at your website check']],
+                'warum' => ['it' => 'Chi ha la verifica aperta adesso sta pensando al proprio sito: è il momento giusto per chiamare.', 'de' => 'Wer den Check gerade offen hat, denkt über seine Website nach — ein Anruf passt genau jetzt.', 'en' => 'Whoever has the check open right now is thinking about their website — this is the moment to call.'],
+                'knopf' => ['it' => 'Chiamare', 'de' => 'Anrufen', 'en' => 'Call']],
+            'nachhaken' => [
+                'titel' => [['it' => '1 attività aspetta un suo promemoria', 'de' => '1 Betrieb wartet auf dein Nachhaken', 'en' => '1 business is waiting for your follow-up'],
+                            ['it' => '{n} attività aspettano un suo promemoria', 'de' => '{n} Betriebe warten auf dein Nachhaken', 'en' => '{n} businesses are waiting for your follow-up']],
+                'warum' => ['it' => 'Ha scritto qualche giorno fa e non ha ancora risposta. La maggior parte dei clienti nasce al secondo contatto.', 'de' => 'Du hast vor ein paar Tagen geschrieben und noch keine Antwort. Die meisten Kunden entstehen beim zweiten Kontakt.', 'en' => 'You wrote a few days ago and have no answer yet. Most customers come from the second contact.'],
+                'knopf' => ['it' => 'Ricontattare', 'de' => 'Nachhaken', 'en' => 'Follow up']],
+            'anrufen' => [
+                'titel' => [['it' => '1 attività nella sua lista chiamate', 'de' => '1 Betrieb auf deiner Anrufliste', 'en' => '1 business on your call list'],
+                            ['it' => '{n} attività nella sua lista chiamate', 'de' => '{n} Betriebe auf deiner Anrufliste', 'en' => '{n} businesses on your call list']],
+                'warum' => ['it' => 'Vecom le ha scelte per lei. Il testo da leggere è pronto.', 'de' => 'Vecom hat sie für dich ausgesucht. Der Text zum Vorlesen liegt bereit.', 'en' => 'Vecom picked them for you. The script is ready.'],
+                'knopf' => ['it' => 'Alla lista', 'de' => 'Zur Anrufliste', 'en' => 'Open the list']],
+            'nachrichten' => [
+                'titel' => [['it' => 'Vecom le ha risposto', 'de' => 'Vecom hat dir geantwortet', 'en' => 'Vecom has replied'],
+                            ['it' => '{n} nuovi messaggi da Vecom', 'de' => '{n} neue Nachrichten von Vecom', 'en' => '{n} new messages from Vecom']],
+                'warum' => ['it' => 'Una risposta di Uwe la aspetta.', 'de' => 'Eine Antwort von Uwe wartet auf dich.', 'en' => 'A reply from Uwe is waiting for you.'],
+                'knopf' => ['it' => 'Leggere', 'de' => 'Lesen', 'en' => 'Read']],
+            'zahlen' => [
+                'titel' => [['it' => '1 ordine aspetta il pagamento', 'de' => '1 Bestellung wartet auf die Zahlung', 'en' => '1 order is waiting for payment'],
+                            ['it' => '{n} ordini aspettano il pagamento', 'de' => '{n} Bestellungen warten auf die Zahlung', 'en' => '{n} orders are waiting for payment']],
+                'warum' => ['it' => 'Si stampa solo dopo il pagamento: fino ad allora il materiale resta fermo.', 'de' => 'Gedruckt wird erst nach der Zahlung — bis dahin liegt dein Material nur bereit.', 'en' => 'Printing starts only after payment — until then your materials just wait.'],
+                'knopf' => ['it' => 'Vedere gli ordini', 'de' => 'Bestellungen ansehen', 'en' => 'See orders']],
+            'freigeben' => [
+                'titel' => [['it' => '1 file di stampa aspetta la sua approvazione', 'de' => '1 Druckdatei wartet auf deine Freigabe', 'en' => '1 print file is waiting for your approval'],
+                            ['it' => '{n} file di stampa aspettano la sua approvazione', 'de' => '{n} Druckdateien warten auf deine Freigabe', 'en' => '{n} print files are waiting for your approval']],
+                'warum' => ['it' => 'Si stampa solo ciò che ha approvato lei. Basta uno sguardo.', 'de' => 'Gedruckt wird nur, was du selbst freigegeben hast. Ein Blick genügt.', 'en' => 'Only what you approve gets printed. One look is enough.'],
+                'knopf' => ['it' => 'Controllare', 'de' => 'Prüfen', 'en' => 'Check']],
+            'material' => [
+                'titel' => ['it' => 'Crei il suo primo biglietto da visita', 'de' => 'Gestalte deine erste Visitenkarte', 'en' => 'Design your first business card'],
+                'warum' => ['it' => 'Non ha ancora approvato nessun materiale. Ogni biglietto porta il suo QR: ogni scansione conta per lei.', 'de' => 'Du hast noch kein Werbemittel freigegeben. Jede Karte trägt deinen QR-Code — jeder Scan zählt für dich.', 'en' => 'You have not approved any materials yet. Every card carries your QR code — every scan counts for you.'],
+                'knopf' => ['it' => 'Al Marketing Center', 'de' => 'Zum Marketing Center', 'en' => 'Open Marketing Center']],
+            'anlass' => [
+                'titel' => ['it' => 'Tra {tage} giorni: {anlass}', 'de' => 'In {tage} Tagen: {anlass}', 'en' => 'In {tage} days: {anlass}'],
+                'warum' => ['it' => 'Il post per l’occasione è pronto. Lo prepari ora, così esce in tempo.', 'de' => 'Der Beitrag zum Anlass liegt fertig bereit. Jetzt vorbereiten, dann ist er rechtzeitig draußen.', 'en' => 'The post for the occasion is ready. Prepare it now so it goes out on time.'],
+                'knopf' => ['it' => 'Vedere il post', 'de' => 'Beitrag ansehen', 'en' => 'See the post']],
+            'posten' => [
+                'titel' => ['it' => 'Pubblicare oggi: {titel}', 'de' => 'Heute posten: {titel}', 'en' => 'Post today: {titel}'],
+                'warum' => ['it' => 'Il post del giorno è pronto e contiene già il suo link. Pubblicare con regolarità la tiene nella memoria delle persone.', 'de' => 'Der Beitrag des Tages ist fertig und trägt schon deinen Link. Wer regelmäßig postet, bleibt im Gedächtnis.', 'en' => 'Today’s post is ready and already carries your link. Posting regularly keeps you in people’s minds.'],
+                'knopf' => ['it' => 'Aprire il post', 'de' => 'Beitrag öffnen', 'en' => 'Open the post']],
+        ],
+        'ziele_titel' => ['it' => 'Cosa vuole ottenere?', 'de' => 'Was möchtest du erreichen?', 'en' => 'What do you want to achieve?'],
+        'ziele' => [
+            'kunden'   => [['it' => 'Trovare nuovi clienti', 'de' => 'Neue Kunden finden', 'en' => 'Find new customers'], ['it' => 'Attività vicine, senza sito per prime.', 'de' => 'Betriebe in deiner Nähe, die ohne Website zuerst.', 'en' => 'Businesses near you, those without a website first.']],
+            'anfragen' => [['it' => 'Più richieste', 'de' => 'Mehr Anfragen', 'en' => 'More enquiries'], ['it' => 'Condividere il link dove serve: testi pronti.', 'de' => 'Deinen Link teilen, wo er wirkt — Texte fertig.', 'en' => 'Share your link where it works — texts ready.']],
+            'lokal'    => [['it' => 'Farsi vedere in zona', 'de' => 'Vor Ort sichtbar werden', 'en' => 'Be seen locally'], ['it' => 'Biglietti, volantini, adesivi con il suo QR.', 'de' => 'Karten, Flyer, Aufkleber mit deinem QR-Code.', 'en' => 'Cards, flyers, stickers with your QR code.']],
+            'social'   => [['it' => 'Pubblicare sui social', 'de' => 'Auf Social Media posten', 'en' => 'Post on social media'], ['it' => 'Il post del giorno e immagini 3D.', 'de' => 'Der Beitrag des Tages und 3D-Bilder.', 'en' => 'Today’s post and 3D images.']],
+            'check'    => [['it' => 'Inviare una verifica del sito', 'de' => 'Website-Check verschicken', 'en' => 'Send a website check'], ['it' => 'Il modo più facile per iniziare a parlare.', 'de' => 'Der leichteste Gesprächseinstieg.', 'en' => 'The easiest way to start a conversation.']],
+        ],
+        'zahlen_titel' => ['it' => 'I suoi numeri', 'de' => 'Deine Zahlen', 'en' => 'Your numbers'],
+        'k' => [
+            'kampagnen'    => [['it' => 'Campagne attive', 'de' => 'Aktive Kampagnen', 'en' => 'Active campaigns'], ['it' => 'Il costruttore di campagne arriva a breve.', 'de' => 'Der Kampagnen-Assistent kommt als Nächstes.', 'en' => 'The campaign builder is coming next.']],
+            'scans'        => [['it' => 'Scansioni', 'de' => 'Scans', 'en' => 'Scans'], ['it' => 'dei suoi QR stampati', 'de' => 'deiner gedruckten QR-Codes', 'en' => 'of your printed QR codes']],
+            'leads'        => [['it' => 'Contatti', 'de' => 'Leads', 'en' => 'Leads'], ['it' => 'richieste dal suo link e contatti per lei', 'de' => 'Anfragen über deinen Link und Kontakte für dich', 'en' => 'enquiries via your link and contacts for you']],
+            'kunden'       => [['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'], ['it' => 'hanno acquistato tramite lei', 'de' => 'haben über dich gekauft', 'en' => 'bought through you']],
+            'provision'    => [['it' => 'Provvigioni', 'de' => 'Provision', 'en' => 'Commission'], ['it' => 'guadagnate finora', 'de' => 'bisher verdient', 'en' => 'earned so far']],
+            'bestellungen' => [['it' => 'Ordini aperti', 'de' => 'Offene Bestellungen', 'en' => 'Open orders'], ['it' => 'in lavorazione o in viaggio', 'de' => 'in Arbeit oder unterwegs', 'en' => 'in progress or on the way']],
+        ],
+        'k_wartet'  => ['it' => 'di cui {betrag} nel periodo di recesso', 'de' => 'davon {betrag} in der Widerrufsfrist', 'en' => '{betrag} of it still in the withdrawal period'],
+        'k_zahlung' => ['it' => '{n} in attesa di pagamento', 'de' => '{n} warten auf die Zahlung', 'en' => '{n} waiting for payment'],
+        'pf_titel'  => ['it' => 'Il suo profilo marketing', 'de' => 'Dein Marketingprofil', 'en' => 'Your marketing profile'],
+        'pf_text'   => ['it' => 'Quattro domande, un minuto. Servono a proporle ciò che fa per lei.', 'de' => 'Vier Fragen, eine Minute. Damit passt, was wir dir vorschlagen.', 'en' => 'Four questions, one minute. So that what we suggest fits you.'],
+        'pf_branchen' => ['it' => 'A quali attività si rivolge? (fino a 3)', 'de' => 'Welche Betriebe sprichst du an? (bis zu 3)', 'en' => 'Which businesses do you approach? (up to 3)'],
+        'pf_region'   => ['it' => 'Dove si muove?', 'de' => 'Wo bist du unterwegs?', 'en' => 'Where are you active?'],
+        'pf_region_ph'=> ['it' => 'es. Agrigento', 'de' => 'z. B. Agrigento', 'en' => 'e.g. Agrigento'],
+        'pf_region_hilfe' => ['it' => 'Vale anche per «Attività vicine».', 'de' => 'Gilt auch für „Betriebe in deiner Nähe“.', 'en' => 'Also used for “Businesses near you”.'],
+        'pf_wege'     => ['it' => 'Come le raggiunge più volentieri?', 'de' => 'Wie erreichst du sie am liebsten?', 'en' => 'How do you prefer to reach them?'],
+        'pf_ziel'     => ['it' => 'Cosa conta di più adesso?', 'de' => 'Was ist dir gerade am wichtigsten?', 'en' => 'What matters most right now?'],
+        'pf_weiter'   => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Next'],
+        'pf_zurueck'  => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
+        'pf_speichern'=> ['it' => 'Salvare', 'de' => 'Speichern', 'en' => 'Save'],
+        'pf_schritt'  => ['it' => 'Domanda {n} di 4', 'de' => 'Frage {n} von 4', 'en' => 'Question {n} of 4'],
+        'pf_gut'      => ['it' => 'Salvato.', 'de' => 'Gespeichert.', 'en' => 'Saved.'],
+        'pf_fehler'   => ['it' => 'Scelga almeno un’attività, un luogo, un modo e un obiettivo.', 'de' => 'Bitte wähle mindestens eine Branche, einen Ort, einen Weg und ein Ziel.', 'en' => 'Please choose at least one sector, a place, one channel and a goal.'],
+        'pf_aendern'  => ['it' => 'Modificare', 'de' => 'Ändern', 'en' => 'Change'],
+        'wege' => [
+            'persoenlich' => ['it' => 'Di persona', 'de' => 'Persönlich vorbeigehen', 'en' => 'In person'],
+            'whatsapp'    => ['it' => 'WhatsApp', 'de' => 'WhatsApp', 'en' => 'WhatsApp'],
+            'social'      => ['it' => 'Instagram, Facebook, TikTok', 'de' => 'Instagram, Facebook, TikTok', 'en' => 'Instagram, Facebook, TikTok'],
+            'telefon'     => ['it' => 'Telefono', 'de' => 'Anrufen', 'en' => 'Phone'],
+            'druck'       => ['it' => 'Volantini e biglietti', 'de' => 'Flyer und Karten', 'en' => 'Flyers and cards'],
+            'email'       => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'E-mail'],
+        ],
+        'bereich'     => ['it' => 'Area partner', 'de' => 'Partnerbereich', 'en' => 'Partner area'],
+        'intro_weg'   => ['it' => 'Saltare', 'de' => 'Überspringen', 'en' => 'Skip'],
     ];
 
     /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele und Branchen als kurze Namen — Kampagnenname, Auswahl, Auswertung. */

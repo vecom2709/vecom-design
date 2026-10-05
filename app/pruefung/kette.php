@@ -23485,6 +23485,116 @@ pruefe('CSP: Verwaltung und Partnerbereich melden (Report-Only, blockiert nichts
 Db::run('DELETE FROM csp_berichte');
 
 /* ============================================================================
+   Command Center (Etappe 1b, 05.10.2026, Uwe: „eigene schnelle Seite“)
+   Nur echte Zahlen, nur die eigenen, genau eine Empfehlung — und wenn es zu
+   wenig Daten gibt, sagt die Seite das statt etwas zu erfinden.
+   ============================================================================ */
+abschnitt('Partner: Command Center');
+require_once $wurzel . '/src/PartnerCommand.php';
+require_once $wurzel . '/src/PartnerKampagne.php';
+$ccA = Partner::laden(Partner::anlegen(['name' => 'Clara Center', 'email' => 'clara.center@partner.example', 'code' => 'CLARACC', 'sprache' => 'de', 'status' => 'aktiv']));
+$ccB = Partner::laden(Partner::anlegen(['name' => 'Bruno Altro', 'email' => 'bruno.altro@partner.example', 'code' => 'BRUNOAL', 'sprache' => 'it', 'status' => 'aktiv']));
+Db::run('UPDATE partner SET vereinbarung_am = NOW() WHERE id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+$ccA = Partner::laden((int) $ccA['id']);
+$ccJuli = strtotime('2026-07-10 10:00:00');     // kein Anlass in den nächsten 7 Tagen (Region de)
+$ccZ0 = PartnerCommand::zahlen($ccA);
+$ccE0 = PartnerCommand::empfehlung($ccA, 'de', $ccZ0, true, $ccJuli);
+pruefe('Command Center, neuer Partner: alle Zahlen 0 (nichts erfunden), „zu wenig Daten“, Empfehlung = nächster der ersten Schritte (Auszahlungsweg)',
+    array_sum(array_map('intval', $ccZ0)) === 0 && PartnerCommand::wenigDaten($ccZ0)
+    && $ccE0['k'] === 'start_weg' && $ccE0['wenig'] && $ccE0['anker'] === 'wege' && $ccE0['titel'] === 'Auszahlungsweg festlegen', json_encode($ccE0, JSON_UNESCAPED_UNICODE));
+// Ein Kontakt, der vom Partner hören will — geht allem vor; der von Bruno zählt bei Clara nicht.
+Db::run("INSERT INTO partner_kontaktfreigaben (partner_id, name, telefon, einwilligung) VALUES (?, 'Ada', '+39 333 1', 'ja'), (?, 'Ugo', '+39 333 2', 'ja')", [(int) $ccA['id'], (int) $ccB['id']]);
+$ccZ1 = PartnerCommand::zahlen($ccA);
+$ccE1 = PartnerCommand::empfehlung($ccA, 'de', $ccZ1, true, $ccJuli);
+pruefe('Empfehlung aus echten Daten: wer vom Partner hören will, kommt zuerst (dieselbe Quelle wie „Heute zu tun“); fremde Kontakte zählen nicht',
+    $ccE1['k'] === 'kontakte' && $ccE1['n'] === 1 && $ccE1['titel'] === '1 Person möchte von dir hören' && $ccE1['anker'] === 'besuche' && !$ccE1['wenig']
+    && $ccZ1['leads'] === 1 && PartnerCommand::zahlen($ccB)['leads'] === 1, json_encode($ccE1, JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE partner_kontaktfreigaben SET erledigt_am = NOW() WHERE partner_id = ?', [(int) $ccA['id']]);
+foreach ([['CC-1', 'offen'], ['CC-2', 'beim_drucker'], ['CC-3', 'versendet'], ['CC-4', 'storniert']] as [$ccNr, $ccSt]) {
+    Db::run("INSERT INTO wm_bestellungen (nummer, partner_id, status, summe_cent, adresse) VALUES (?, ?, ?, 2500, '{}')", [$ccNr, (int) $ccA['id'], $ccSt]);
+}
+Db::run("INSERT INTO wm_bestellungen (nummer, partner_id, status, summe_cent, adresse) VALUES ('CC-5', ?, 'offen', 2500, '{}')", [(int) $ccB['id']]);
+$ccZ2 = PartnerCommand::zahlen($ccA);
+pruefe('Offene Bestellungen: in Arbeit oder unterwegs (nicht versendet/storniert), davon warten auf Zahlung; mit Marketing Center wird das die Empfehlung, ohne nicht',
+    $ccZ2['bestellungen'] === 2 && $ccZ2['bestellungen_zahlung'] === 1
+    && PartnerCommand::empfehlung($ccA, 'de', $ccZ2, true, $ccJuli)['k'] === 'zahlen'
+    && PartnerCommand::empfehlung($ccA, 'de', $ccZ2, false, $ccJuli)['k'] !== 'zahlen', json_encode($ccZ2));
+Db::run("UPDATE wm_bestellungen SET status = 'bezahlt' WHERE nummer = 'CC-1'");
+// Material, Scans, Provision, Kampagne
+Db::run("UPDATE wm_produkte SET aktiv = 1 WHERE vorlage = 'tasse_11'");
+$ccProd = (int) Db::wert("SELECT id FROM wm_produkte WHERE vorlage = 'tasse_11'", [], 0);
+$ccE = Werbemittel::entwurfAnlegen($ccA, $ccProd, ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email']);
+$ccZ3 = PartnerCommand::zahlen($ccA);
+$ccEm3 = PartnerCommand::empfehlung($ccA, 'de', $ccZ3, true, $ccJuli);
+Db::run("UPDATE wm_entwuerfe SET status = 'freigegeben', freigegeben_am = NOW(), scans = 4 WHERE id = ?", [$ccE]);
+$ccKunde = (int) Db::insert('customers', ['name' => 'CC Kunde', 'email' => 'cc@kunde.example']);
+Db::run("INSERT INTO partner_provisionen (partner_id, customer_id, payment_id, art, basis_cents, provision_cents, status, frei_ab)
+         VALUES (?, ?, 990771, 'website', 100000, 10000, 'bereit', NOW()), (?, ?, 990772, 'website', 50000, 5000, 'storniert', NOW())",
+    [(int) $ccA['id'], $ccKunde, (int) $ccA['id'], $ccKunde]);
+$ccKid = PartnerKampagne::anlegen($ccA, ['ziel' => 'lokal', 'branche' => 'gastro', 'region' => 'Mainz']);
+$ccZ4 = PartnerCommand::zahlen($ccA);
+pruefe('Kennzahlen aus den vorhandenen Tabellen: Scans der Werbemittel, Kunden mit Provision (storniert zählt nicht), verdiente Provision, aktive Kampagnen; Bruno sieht nichts davon',
+    $ccZ3['designs'] === 1 && $ccEm3['k'] === 'freigeben'
+    && $ccZ4['scans'] === 4 && $ccZ4['freigegeben'] === 1 && $ccZ4['kunden'] === 1 && $ccZ4['provision'] === 10000 && $ccZ4['kampagnen'] === 1
+    && !PartnerCommand::wenigDaten($ccZ4)
+    && PartnerCommand::zahlen($ccB)['scans'] === 0 && PartnerCommand::zahlen($ccB)['provision'] === 0 && PartnerCommand::zahlen($ccB)['kampagnen'] === 0, json_encode($ccZ4));
+PartnerKampagne::statusSetzen((int) $ccA['id'], $ccKid, 'pausiert');
+$ccZ5 = PartnerCommand::zahlen($ccA);
+$ccPosten = PartnerCommand::empfehlung($ccA, 'de', $ccZ5, true, $ccJuli);
+$ccAnlass = PartnerCommand::empfehlung($ccA, 'de', $ccZ5, true, strtotime('2026-09-28 10:00:00'));
+pruefe('Pausierte Kampagne ist nicht aktiv; ohne Dringendes: Anlass der nächsten 7 Tage (Saison), sonst der Beitrag des Tages — beide mit Grund',
+    $ccZ5['kampagnen'] === 0 && $ccPosten['k'] === 'posten' && str_starts_with($ccPosten['titel'], 'Heute posten:') && $ccPosten['anker'] === 'kalender'
+    && $ccAnlass['k'] === 'anlass' && str_starts_with($ccAnlass['titel'], 'In 5 Tagen:') && $ccAnlass['warum'] !== '', json_encode([$ccPosten, $ccAnlass], JSON_UNESCAPED_UNICODE));
+// Marketingprofil
+$ccPf0 = PartnerCommand::profilSpeichern((int) $ccA['id'], ['branchen' => ['gastro'], 'wege' => ['whatsapp'], 'ort' => 'Mainz']);   // ohne Ziel
+$ccPf1 = PartnerCommand::profilSpeichern((int) $ccA['id'], ['branchen' => ['gastro', 'mond', 'handwerk', 'beauty', 'automotive'], 'wege' => ['whatsapp', 'brieftaube'],
+    'ziel' => 'neue_kunden', 'ort' => ' <b>Agrigento</b> ', 'partner_id' => (int) $ccB['id']]);
+$ccPfA = PartnerCommand::profil(Partner::laden((int) $ccA['id']));
+pruefe('Marketingprofil: unvollständig wird abgelehnt; nur bekannte Branchen (höchstens 3) und Wege, Ort ohne HTML in heimatort, nur die eigene Zeile',
+    $ccPf0 === 'fehler' && $ccPf1 === 'ok' && $ccPfA['branchen'] === ['gastro', 'handwerk', 'beauty'] && $ccPfA['wege'] === ['whatsapp']
+    && $ccPfA['ziel'] === 'neue_kunden' && $ccPfA['ort'] === 'Agrigento' && $ccPfA['fertig']
+    && Partner::laden((int) $ccB['id'])['mk_profil'] === null, json_encode($ccPfA, JSON_UNESCAPED_UNICODE));
+$ccFehlt = [];
+$ccDrei = static function ($w, string $pfad) use (&$ccDrei, &$ccFehlt): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        foreach (['it', 'de', 'en'] as $l) { if (trim((string) ($w[$l] ?? '')) === '') { $ccFehlt[] = "$pfad.$l"; } }
+        return;
+    }
+    foreach ($w as $k => $v) { $ccDrei($v, "$pfad.$k"); }
+};
+$ccDrei(Texte::PARTNER_CC, 'PARTNER_CC');
+$ccAnker = '';
+foreach (array_merge(glob($wurzel . '/views/partner_*.php'), [$oben . '/partner.php']) as $ccF) { $ccAnker .= (string) file_get_contents($ccF); }
+$ccOhne = array_values(array_filter(array_unique(array_merge(array_values(PartnerCommand::ANKER), array_values(PartnerCommand::SCHNELLWEGE), ['empfehlungen', 'provisionen', 'mc-erfolge', 'medien'])),
+    static fn($a) => !str_contains($ccAnker, 'id="' . $a . '"')));
+pruefe('Texte des Command Centers dreisprachig, Deutsch duzt; jedes Sprungziel gibt es im Partnerbereich',
+    $ccFehlt === [] && Texte::duzt('PARTNER_CC.e.zahlen.warum') && $ccOhne === [], json_encode([$ccFehlt, $ccOhne]));
+$ccSeite = (string) file_get_contents($oben . '/partner.php');
+$ccView = (string) file_get_contents($wurzel . '/views/partner_cc.php');
+$ccCss = (string) file_get_contents($oben . '/assets/css/partner-cc.css');
+$ccJs = (string) file_get_contents($oben . '/assets/js/partner-cc.js');
+$ccSvg = (string) file_get_contents($oben . '/assets/img/vecom-v.svg');
+$ccPos = strpos($ccSeite, "isset(\$_GET['cc'])");
+pruefe('Seite: hinter Gerät und Sperre, vor allem anderen; Profil nur mit CSRF; Zahlen und Empfehlung nur aus PartnerCommand',
+    $ccPos !== false && $ccPos > strpos($ccSeite, 'PartnerSchutz::freigeschaltet($p)') && $ccPos > strpos($ccSeite, 'PartnerGeraet::bekannt($p)')
+    && $ccPos < strpos($ccSeite, "isset(\$_GET['manifest'])")
+    && preg_match("~tat'\] \?\? ''\) === 'cc_profil'\s*&& hash_equals\(\(string\) \\\$_SESSION\['csrf'\]~", $ccSeite) === 1
+    && str_contains($ccView, 'PartnerCommand::zahlen($p)') && str_contains($ccView, 'PartnerCommand::empfehlung('));
+pruefe('Signature-V: Originalkontur in Gold, höchstens 2 s, überspringbar, nur beim ersten Öffnen, aus bei reduzierter Bewegung',
+    str_contains($ccSvg, 'viewBox=') && str_contains($ccSvg, 'linearGradient') && substr_count($ccSvg, '<path') === 2
+    && str_contains($ccCss, 'animation:cc-intro-weg 2s') && preg_match('~prefers-reduced-motion:reduce\)\{\s*\.cc-intro\{display:none!important\}~', $ccCss) === 1
+    && str_contains($ccJs, "localStorage.getItem(MERK) === '1'") && str_contains($ccJs, 'setTimeout(zu, 2100)') && str_contains($ccJs, "addEventListener('click', zu)")
+    && str_contains($ccView, 'id="cc-intro" hidden'));
+Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM partner_provisionen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM customers WHERE id = ?', [$ccKunde]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

@@ -156,6 +156,30 @@ if ($p && !PartnerSchutz::freigeschaltet($p)) {
 }
 if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
 
+/* ---------- Command Center (Etappe 1b, 05.10.2026, Uwe: „eigene schnelle Seite“) ----------
+   Hinter Gerät und Sperre, vor allem anderen: Die Seite lädt nur, was sie zeigt
+   (PartnerCommand), nicht die rund 40 Blöcke des Partnerbereichs. Gespeichert
+   wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
+if ($p && (isset($_GET['cc']) || ($_POST['tat'] ?? '') === 'cc_profil')) {
+    require_once __DIR__ . '/app/src/PartnerCommand.php';
+    $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut'], true) ? (string) $_GET['m'] : '';
+    $ccPost = null;
+    if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'cc_profil'
+        && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
+        if (PartnerCommand::profilSpeichern((int) $p['id'], $_POST) === 'ok') {
+            header('Location: ' . $selbst(['cc' => 1, 'm' => 'pf_gut']) . '#profil', true, 303); exit;
+        }
+        $ccMeldung = 'pf_fehler'; $ccPost = $_POST;
+    }
+    $ccMc = false;
+    try {
+        require_once __DIR__ . '/app/src/Werbemittel.php';
+        $ccMc = (bool) Werbemittel::katalog($sprache, false, Werbemittel::anzeigeLand($p));
+    } catch (Throwable $e) { $ccMc = false; }
+    require __DIR__ . '/app/views/partner_cc.php';
+    exit;
+}
+
 /* ---------- Die Partnerseite als App (26.09.2026) ----------
    Das Manifest traegt die persoenliche Adresse als start_url: Wer die Seite
    auf den Startbildschirm legt, landet genau hier, ohne Anmeldung. Es wird

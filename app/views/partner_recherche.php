@@ -339,7 +339,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
    </details>
   </section>
 
-  <h3 class="md-h" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>
+  <h3 class="md-h" id="schnellcheck" style="margin-top:4px"><?= $h($T('ck_titel')) ?></h3>
   <p class="klein" style="margin-top:0"><?= $h($T('ck_text')) ?></p>
   <?php if (($_GET['m'] ?? '') === 'ck_weg_gut'): ?><div class="hinweis gut" role="status"><?= $h($T('ck_weg_gut')) ?></div><?php endif; ?>
   <?php if ($ckMeldung): ?><div class="hinweis schlecht" role="alert"><?= $h($T($ckMeldung)) ?></div><?php endif; ?>
