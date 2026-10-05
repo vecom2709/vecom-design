@@ -274,8 +274,9 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
                   if ((string) ($alP['saetze'][$k] ?? '') === '') { continue; } ?>
                   <li class="<?= in_array($k, ['ja', 'email'], true) ? 'satz' : '' ?>"><small lang="<?= $h($sprache) ?>"><?= $h($T($w)) ?></small><p><?= $h($alP['saetze'][$k]) ?></p></li>
                 <?php endforeach; ?>
+                <?php /* Einwände stehen seit Phase 3 an EINER Stelle: in der Academy (Uwe: „Academy ist die Quelle“). */ ?>
                 <li class="al-einw"><small lang="<?= $h($sprache) ?>"><?= $h($T('al_s_einwaende')) ?></small>
-                  <?php foreach ($alP['saetze']['einwaende'] as [$eq, $ea]): ?><p><b><?= $h($eq) ?></b> <?= $h($ea) ?></p><?php endforeach; ?></li>
+                  <p lang="<?= $h($sprache) ?>"><?= $h(Texte::h(Texte::PARTNER_MKT['vk_hinweis'], $sprache)) ?> <a href="<?= $h($start(['ak' => 'einwaende'])) ?>"><?= $h(Texte::h(Texte::PARTNER_MKT['vk_zur_academy'], $sprache)) ?> →</a></p></li>
                 <li><small lang="<?= $h($sprache) ?>"><?= $h($T('al_s_nein')) ?></small><p><?= $h($alP['saetze']['nein']) ?></p></li>
               </ol>
             </details>
@@ -468,6 +469,10 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   <div class="leitfaden" id="leitfaden" style="margin-top:22px">
     <h3 class="md-h"><?= $h($T('lf_titel')) ?></h3>
     <?php foreach (Texte::PARTNER_LEITFADEN as $li => $abschnitt): ?>
+      <?php if (isset($abschnitt['academy'])): /* Einwände: nur noch in der Academy (Phase 3) — der Text bleibt gespeichert, er wird nicht doppelt gezeigt. */ ?>
+        <details><summary><?= $h(PartnerVorlagen::text("leitfaden.$li.titel", $sprache, Texte::h($abschnitt['titel'], $sprache))) ?></summary>
+          <p><?= $h(Texte::h(Texte::PARTNER_MKT['vk_hinweis'], $sprache)) ?> <a href="<?= $h($start(['ak' => (string) $abschnitt['academy']])) ?>"><?= $h(Texte::h(Texte::PARTNER_MKT['vk_zur_academy'], $sprache)) ?> →</a></p></details>
+        <?php continue; endif; ?>
       <details><summary><?= $h(PartnerVorlagen::text("leitfaden.$li.titel", $sprache, Texte::h($abschnitt['titel'], $sprache))) ?></summary><pre><?= $h(PartnerVorlagen::text("leitfaden.$li.text", $sprache, Texte::h($abschnitt['text'], $sprache))) ?></pre></details>
     <?php endforeach; ?>
   </div>

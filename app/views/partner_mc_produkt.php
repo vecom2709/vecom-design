@@ -34,7 +34,8 @@ foreach ($mcBr as $mcS) { $mcGrp[(string) (PartnerFlyer::liste()[$mcS]['g'] ?? '
 /* Aus einer Kampagne und noch ohne eigenen Entwurf: Branchengruppe und Sprache der Kampagne vorwählen. */
 if (!empty($wmKamp) && empty($wmSt['entwurf']) && empty($wmSt['freigegeben'])) {
     $wmJetzt['sprache'] = (string) $wmKamp['sprache'];
-    $mcKampGr = PartnerKampagne::FLYER_GRUPPE[(string) $wmKamp['branche']] ?? '';
+    require_once dirname(__DIR__) . '/src/PartnerBranche.php';
+    $mcKampGr = PartnerBranche::FLYER[PartnerBranche::von((string) $wmKamp['branche'])] ?? '';
     foreach ($mcBr as $mcS) { if ((PartnerFlyer::liste()[$mcS]['g'] ?? '') === $mcKampGr) { $wmJetzt['stil'] = $mcS; break; } }
 }
 $mcGrpJetzt = isset($wmBranchen[$wmJetzt['stil']]) ? (string) (PartnerFlyer::liste()[$wmJetzt['stil']]['g'] ?? '') : '';

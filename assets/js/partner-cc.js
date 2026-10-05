@@ -38,6 +38,14 @@
     document.addEventListener('click', function (e) { if (mehr.open && !mehr.contains(e.target)) { mehr.open = false; } });
   }
 
+  /* Seitlich wischbare Leisten (MARKETING-Bereiche, KUNDEN-Stufen): Am Handy steht der gewählte Eintrag
+     sonst außerhalb des Bildes — „Website-Check“ ist gewählt, man sieht ihn nicht. Einmal hineinrücken. */
+  [].forEach.call(document.querySelectorAll('.cc-unterleiste, .cc-pipeline'), function (l) {
+    var a = l.querySelector('[aria-current]');
+    if (!a || l.scrollWidth <= l.clientWidth) { return; }
+    l.scrollLeft += a.getBoundingClientRect().left - l.getBoundingClientRect().left - (l.clientWidth - a.offsetWidth) / 2;
+  });
+
   var ruhig = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- 1. Signature-Moment ---------- */

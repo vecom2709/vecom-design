@@ -12,6 +12,7 @@
    ========================================================================== */
 require_once dirname(__DIR__) . '/src/PartnerCommand.php';
 require_once dirname(__DIR__) . '/src/PartnerKampagne.php';
+require_once dirname(__DIR__) . '/src/PartnerBranche.php';
 $C = Texte::PARTNER_CC;
 $c = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache), $r);
 $ccZ = PartnerCommand::zahlen($p);
@@ -23,10 +24,11 @@ if ($ccMeldung === 'pf_fehler' && is_array($ccPost ?? null)) {   // Eingaben beh
 }
 $ccSeite ??= 'start';
 $ccKundenSeite = in_array($ccSeite, ['kunden', 'lead'], true);
+$ccMarketingSeite = in_array($ccSeite, ['marketing', 'kampagne', 'neu', 'qr'], true);   // Kampagnen und QR gehören zu MARKETING (Phase 3)
 /* Sprungziele: Anker im Partnerbereich — oder, mit „cc:“, Stellen im Command Center selbst (Kampagnen). */
 $ccBereich = static fn(string $anker): string => match ($anker) {
     'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
-    'cc:kampagnen'    => $selbst(['cc' => 1]) . '#kampagnen',
+    'cc:kampagnen'    => $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen']),
     'cc:qr'           => $selbst(['cc' => 1, 'qr' => 1]),
     'cc:kunden'       => $selbst(['cc' => 1, 'kunden' => 1]),
     default           => $selbst() . '#' . $anker,
@@ -96,8 +98,9 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : 'cc'); /* KUNDEN ist seit Phase 2 eine eigene Seite im Command Center */ ?>
-      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : ($lk === 'finden' ? $selbst(['cc' => 1, 'kunden' => 1]) : ($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk))) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
+      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : ($ccMarketingSeite ? 'werben' : 'cc')); /* KUNDEN und MARKETING sind eigene Seiten im Command Center */ ?>
+      <a href="<?= $h(match ($lk) { 'cc' => $selbst(['cc' => 1]), 'finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1]),
+                 'academy' => $start(['ak' => '1']), default => $selbst() . '#r-' . $lk }) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
     <?php /* MEHR am Handy: ohne Skript, als aufklappbare Liste über der Leiste. */ ?>
@@ -111,7 +114,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
     </details>
   </nav>
 
-  <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccKundenSeite ? '/partner_cc_kunden.php' : '/partner_cc_kampagne.php'); else: ?>
+  <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccKundenSeite ? '/partner_cc_kunden.php' : ($ccSeite === 'marketing' ? '/partner_cc_marketing.php' : '/partner_cc_kampagne.php')); else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
@@ -163,7 +166,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 
     <nav class="cc-schnell cc-auf z3" aria-label="<?= $h($c($C['schnell_aria'])) ?>">
       <a href="<?= $h($selbst(['cc' => 1, 'kampagne' => 'neu'])) ?>">+ <?= $h($c($C['schnell']['kampagne_neu'])) ?></a>
-      <a href="<?= $h($selbst(['cc' => 1]) . '#kampagnen') ?>"><?= $h($c($C['schnell']['kampagnen'], ['{n}' => (string) $ccZ['kampagnen']])) ?></a>
+      <a href="<?= $h($selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen'])) ?>"><?= $h($c($C['schnell']['kampagnen'], ['{n}' => (string) $ccZ['kampagnen']])) ?></a>
       <a href="<?= $h($selbst(['cc' => 1, 'qr' => 1])) ?>"><?= $h($c($C['schnell']['qr'])) ?></a>
       <a href="<?= $h($selbst(['cc' => 1]) . '#profil') ?>"><?= $h($c($C['schnell']['profil'])) ?></a>
     </nav>
@@ -233,7 +236,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         <h2 id="cc-profil-t"><?= $h($c($C['pf_titel'])) ?></h2>
         <?php if ($ccPf['fertig'] && $ccMeldung !== 'pf_fehler' && !isset($_GET['profil'])): ?>
           <p class="cc-kurz">
-            <span><b><?= $h(implode(', ', array_map(static fn($b) => $c(Texte::KAMPAGNE_BRANCHEN[$b]), $ccPf['branchen']))) ?></b></span>
+            <span><b><?= $h(implode(', ', array_map(static fn($b) => PartnerBranche::name($b, $sprache), $ccPf['branchen']))) ?></b></span>
             <span><?= $h($ccPf['ort']) ?></span>
             <span><?= $h(implode(', ', array_map(static fn($w) => $c($C['wege'][$w]), $ccPf['wege']))) ?></span>
             <span><?= $h($c(Texte::KAMPAGNE_ZIELE[$ccPf['ziel']])) ?></span>
@@ -249,7 +252,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
               <legend><?= $h($c($C['pf_branchen'])) ?></legend>
               <div class="cc-chips">
                 <?php foreach (PartnerKampagne::BRANCHEN as $b): ?>
-                  <label class="cc-chip"><input type="checkbox" name="branchen[]" value="<?= $h($b) ?>"<?= $ccIst('branchen', $b) ? ' checked' : '' ?>><span><?= $h($c(Texte::KAMPAGNE_BRANCHEN[$b])) ?></span></label>
+                  <label class="cc-chip"><input type="checkbox" name="branchen[]" value="<?= $h($b) ?>"<?= $ccIst('branchen', $b) ? ' checked' : '' ?>><span><?= $h(PartnerBranche::name($b, $sprache)) ?></span></label>
                 <?php endforeach; ?>
               </div>
             </fieldset>
@@ -291,7 +294,9 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
-      <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h($selbst(['cc' => 1, 'lang' => $l])) ?>"><?= $h($wie) ?></a>
+      <?php /* Sprachwahl bleibt auf derselben Seite (KUNDEN, MARKETING …), statt zum Start zu springen. */
+        $ccDa = array_filter(array_intersect_key($_GET, array_flip(['kunden', 'lead', 'stufe', 'marketing', 'teil', 'zweck', 'branche', 'kanal', 'region', 'ziel', 'kampagne', 'qr'])), 'is_string'); ?>
+      <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h($selbst(['cc' => 1, 'lang' => $l] + $ccDa)) ?>"><?= $h($wie) ?></a>
     <?php endforeach; ?>
   </div>
 </div>

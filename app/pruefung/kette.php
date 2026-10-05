@@ -23602,7 +23602,7 @@ $ccPf1 = PartnerCommand::profilSpeichern((int) $ccA['id'], ['branchen' => ['gast
     'ziel' => 'neue_kunden', 'ort' => ' <b>Agrigento</b> ', 'partner_id' => (int) $ccB['id']]);
 $ccPfA = PartnerCommand::profil(Partner::laden((int) $ccA['id']));
 pruefe('Marketingprofil: unvollständig wird abgelehnt; nur bekannte Branchen (höchstens 3) und Wege, Ort ohne HTML in heimatort, nur die eigene Zeile',
-    $ccPf0 === 'fehler' && $ccPf1 === 'ok' && $ccPfA['branchen'] === ['gastro', 'handwerk', 'beauty'] && $ccPfA['wege'] === ['whatsapp']
+    $ccPf0 === 'fehler' && $ccPf1 === 'ok' && $ccPfA['branchen'] === ['gastronomie', 'handwerk', 'beauty'] && $ccPfA['wege'] === ['whatsapp']
     && $ccPfA['ziel'] === 'neue_kunden' && $ccPfA['ort'] === 'Agrigento' && $ccPfA['fertig']
     && Partner::laden((int) $ccB['id'])['mk_profil'] === null, json_encode($ccPfA, JSON_UNESCAPED_UNICODE));
 $ccFehlt = [];
@@ -23906,9 +23906,9 @@ $plI = PartnerLeads::importieren($plAi, [['name' => 'Pizzeria Mamma', 'branche' 
     ['name' => 'bar rossi'], ['name' => 'x'], 'kaputt', ['name' => 'Hotel Sole', 'branche' => 'unterkunft', 'status' => 'kunde'], ['name' => 'Laden Ohne', 'branche' => 'mond', 'status' => 'quatsch']]);
 $plIm = Db::one("SELECT * FROM partner_leads WHERE partner_id = ? AND name = 'Pizzeria Mamma'", [$plAi]) ?? [];
 pruefe('Import: alte Status → Stufe (angeschrieben → kontaktiert, Kunde → Auftrag, Unbekanntes → neu), Branche übersetzt oder leer, Notiz in den Verlauf, Doppelte und Kaputtes übersprungen',
-    $plI === ['neu' => 3, 'schon' => 1] && ($plIm['stufe'] ?? '') === 'kontaktiert' && ($plIm['branche'] ?? '') === 'restaurant'
+    $plI === ['neu' => 3, 'schon' => 1] && ($plIm['stufe'] ?? '') === 'kontaktiert' && ($plIm['branche'] ?? '') === 'gastronomie'
     && Db::wert("SELECT stufe FROM partner_leads WHERE partner_id = ? AND name = 'Hotel Sole'", [$plAi]) === 'auftrag'
-    && Db::wert("SELECT branche FROM partner_leads WHERE partner_id = ? AND name = 'Hotel Sole'", [$plAi]) === 'hotel'
+    && Db::wert("SELECT branche FROM partner_leads WHERE partner_id = ? AND name = 'Hotel Sole'", [$plAi]) === 'unterkunft'
     && Db::wert("SELECT CONCAT(stufe, '|', branche) FROM partner_leads WHERE partner_id = ? AND name = 'Laden Ohne'", [$plAi]) === 'neu|'
     && array_column(PartnerLeads::verlauf($plAi, (int) ($plIm['id'] ?? 0)), 'text') === ['Cugino di Toni']
     && PartnerLeads::importieren($plAi, array_fill(0, 60, ['name' => 'Gleich'])) === ['neu' => 1, 'schon' => PartnerLeads::IMPORT_HOECHSTENS - 1], json_encode([$plI, $plIm], JSON_UNESCAPED_UNICODE));
@@ -24022,7 +24022,7 @@ pruefe('partner.php: lead_-Taten öffnen das Command Center, ohne CSRF passiert 
     && strpos($plBlock, 'if (!$ccCsrf) {') < strpos($plBlock, 'switch ($ccTat)')
     && $plCases[1] === ['lead_kontakt', 'lead_neu', 'lead_import', 'lead_daten', 'lead_stufe', 'lead_prio', 'lead_naechster', 'lead_notiz', 'lead_aufgabe', 'lead_aufgabe_ok', 'lead_uebergeben', 'lead_archiv', 'lead_wieder']
     && substr_count($plBlock, "header('Location: ") >= 12
-    && str_contains($plSeiteP, "'extern' => ['finden' => \$selbst(['cc' => 1, 'kunden' => 1])]") && str_contains($plRj, 'daten.extern && daten.extern[id]')
+    && str_contains($plSeiteP, "'extern' => ['finden' => \$selbst(['cc' => 1, 'kunden' => 1]),") && str_contains($plRj, 'daten.extern && daten.extern[id]')
     && str_contains($plView, "'cc:kunden'       => \$selbst(['cc' => 1, 'kunden' => 1]),") && PartnerCommand::ANKER['kontakte'] === 'cc:kunden'
     && Texte::h(Texte::PARTNER_REITER['reiter']['finden']['titel'], 'de') === 'Neue Kunden gewinnen');
 pruefe('partner-cc.js: Stufe/Priorität speichern beim Wählen, Schnellfunktionen per sendBeacon mit CSRF, Import nur auf Klick (Kasten erst sichtbar, wenn im Browser etwas liegt)',
@@ -24039,6 +24039,211 @@ Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [$plA
 Db::run('DELETE FROM partner_vorab WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
 Db::run("DELETE FROM akq_firmen WHERE kennung LIKE 'PL0000000%'");
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$plAi, $plBi]);
+
+/* ============================================================================
+   MARKETING im Command Center (Phase 3, 05.10.2026; Uwe: fünf Bereiche, diese
+   zwölf Branchen, Academy als Quelle der Einwände, Mediathek mit Tabelle).
+   ============================================================================ */
+abschnitt('Partner: Marketing-Center');
+require_once $wurzel . '/src/PartnerBranche.php';
+require_once $wurzel . '/src/PartnerMediathek.php';
+require_once $wurzel . '/src/PartnerKampagne.php';
+require_once $wurzel . '/src/PartnerFlyer.php';
+require_once $wurzel . '/src/PartnerMarketing.php';
+require_once $wurzel . '/src/PartnerVorlagen.php';
+
+// --- Eine Branchenliste ---
+$mbAlt = array_merge(PartnerMarketing::BRANCHEN, ['beauty', 'automotive', 'sonstige'], array_keys(Akquise::branchen()),
+    array_keys(Texte::SEITE_BRANCHEN), array_keys(PartnerFlyer::GRUPPEN));
+$mbOhne = array_values(array_filter(array_unique($mbAlt), static fn($k) => PartnerBranche::von((string) $k) === ''));
+$mbNamen = [];
+foreach (PartnerBranche::ALLE as $mbK) { foreach (['it', 'de', 'en'] as $l) { if (trim((string) (Texte::BRANCHEN_LISTE[$mbK][$l] ?? '')) === '') { $mbNamen[] = "$mbK.$l"; } } }
+pruefe('Eine Branchenliste: zwölf und „andere“, dreisprachig; jeder Schlüssel aus den sieben alten Listen findet seinen Platz, Unbekanntes nicht',
+    count(PartnerBranche::ALLE) === 13 && PartnerBranche::ALLE[12] === 'andere' && $mbNamen === [] && $mbOhne === []
+    && PartnerBranche::von('gastro') === 'gastronomie' && PartnerBranche::von('laden') === 'einzelhandel' && PartnerBranche::von('automotive') === 'auto'
+    && PartnerBranche::von('bar_cafe') === 'gastronomie' && PartnerBranche::von('friseur') === 'beauty' && PartnerBranche::von('BEAUTY') === 'beauty'
+    && PartnerBranche::von('mond') === '' && PartnerBranche::von('') === ''
+    && !array_diff(array_values(PartnerBranche::PAKET), PartnerMarketing::BRANCHEN) && !array_diff(array_values(PartnerBranche::FLYER), array_keys(PartnerFlyer::GRUPPEN))
+    && PartnerBranche::name('bar_cafe', 'de') === Akquise::branchenName('bar_cafe', 'de') && PartnerBranche::name('gastro', 'de') === 'Gastronomie'
+    && in_array('restaurant', PartnerBranche::akquise('gastronomie'), true) && in_array('bar_cafe', PartnerBranche::akquise('gastronomie'), true)
+    && !defined('Texte::KAMPAGNE_BRANCHEN'), json_encode([$mbOhne, $mbNamen]));
+
+$mkA = Partner::laden(Partner::anlegen(['name' => 'Mara Markt', 'email' => 'mara.markt@partner.example', 'code' => 'MARAMKT', 'sprache' => 'de', 'status' => 'aktiv']));
+$mkAi = (int) $mkA['id'];
+$mkK1 = PartnerKampagne::anlegen($mkA, ['ziel' => 'neue_kunden', 'branche' => 'gastro', 'region' => 'Agrigento', 'sprache' => 'de']);
+$mkK2 = PartnerKampagne::anlegen($mkA, ['ziel' => 'lokal', 'branche' => 'fitness', 'sprache' => 'de']);
+$mkFalsch = null; try { PartnerKampagne::anlegen($mkA, ['ziel' => 'lokal', 'branche' => 'mond']); } catch (InvalidArgumentException $e) { $mkFalsch = 'abgelehnt'; }
+Db::run("UPDATE mk_kampagnen SET branche = 'automotive' WHERE id = ?", [$mkK2]);   // eine Kampagne von vor Phase 3
+$mkKa = PartnerKampagne::laden($mkAi, $mkK2);
+$mkPaket = PartnerKampagne::paket($mkA, PartnerKampagne::laden($mkAi, $mkK1), 'de', []);
+Db::run('UPDATE partner SET mk_profil = ? WHERE id = ?', [json_encode(['branchen' => ['gastro', 'laden', 'mond'], 'wege' => ['whatsapp'], 'ziel' => 'neue_kunden']), $mkAi]);
+$mkPf = PartnerCommand::profil(Partner::laden($mkAi));
+pruefe('Kampagnen und Marketingprofil sprechen die zwölf: alte Schlüssel werden beim Anlegen und Lesen übersetzt (gastro → Gastronomie, automotive → Auto & Werkstatt), Unbekanntes abgelehnt, Branchen-Texte passen weiter',
+    PartnerKampagne::laden($mkAi, $mkK1)['branche'] === 'gastronomie' && $mkFalsch === 'abgelehnt'
+    && str_contains((string) PartnerKampagne::laden($mkAi, $mkK1)['name'], 'Gastronomie')
+    && str_contains(implode(' ', PartnerKampagne::strategie($mkKa, 'de')), 'Auto & Werkstatt')
+    && str_contains((string) (array_values(array_filter($mkPaket, static fn($x) => $x['art'] === 'whatsapp'))[0]['text'] ?? ''), 'Restaurant')
+    && $mkPf['branchen'] === ['gastronomie', 'einzelhandel'], json_encode([$mkPf, PartnerKampagne::laden($mkAi, $mkK1)['name']], JSON_UNESCAPED_UNICODE));
+
+// --- Migration 183: Grundbestand, wiederholbar ---
+$mkMig = static function () use ($wurzel): void {
+    foreach (array_filter(array_map('trim', preg_split('/;\s*\n/', (string) preg_replace('/^--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/183_partner_mediathek.sql'))))) as $sql) { Db::run($sql); }
+};
+$mkMig();
+$mkGrund = Db::all("SELECT schluessel, anker, status FROM partner_mediathek WHERE schluessel LIKE 'anker:%'");
+pruefe('Migration 183: Tabelle und elf Verweise auf die vorhandenen Bereiche (aktiv, jeder Anker erlaubt); ein zweiter Lauf verdoppelt nichts',
+    count($mkGrund) === 11 && !array_filter($mkGrund, static fn($z) => $z['status'] !== 'aktiv' || !in_array($z['anker'], PartnerMediathek::ANKER, true) || $z['schluessel'] !== 'anker:' . $z['anker'])
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_mediathek') === 11, json_encode($mkGrund));
+
+// --- Karten: alles mit dem Link des Partners, öffentlich gekennzeichnet, E-Mail nie ohne Betreff ---
+$mkLink = Partner::link($mkA);
+$mkAlle = PartnerMediathek::karten($mkA, 'de');
+$mkIds = array_column($mkAlle, 'id');
+$mkTexte = array_filter($mkAlle, static fn($k) => $k['anker'] === '');
+$mkOhneLink = array_values(array_map(static fn($k) => $k['id'], array_filter($mkTexte, static fn($k) => !str_contains($k['text'], $mkLink))));
+$mkOhneHash = array_values(array_map(static fn($k) => $k['id'], array_filter($mkTexte, static fn($k) => array_intersect($k['kanaele'], PartnerMediathek::OEFFENTLICH) && !str_contains($k['text'], '#'))));
+$mkMailOhne = array_values(array_map(static fn($k) => $k['id'], array_filter($mkTexte, static fn($k) => $k['kanaele'] === ['email'] && trim($k['betreff']) === '')));
+pruefe('Mediathek: Beitrag des Tages, Branchen-Texte, Werbe-Vorlagen und Verweise in einer Liste; jeder Text trägt den Link des Partners, öffentliche Kanäle „#…“, E-Mail-Vorlagen einen Betreff; Verweise ohne Inhalt beim Partner (3D, Erfolge) fehlen',
+    in_array('s-tag', $mkIds, true) && in_array('s-wa-gastro', $mkIds, true) && in_array('s-v-whatsapp_persoenlich', $mkIds, true)
+    && $mkOhneLink === [] && $mkOhneHash === [] && $mkMailOhne === []
+    && !in_array('galerie3d', array_column($mkAlle, 'anker'), true) && !in_array('erfolge', array_column($mkAlle, 'anker'), true)
+    && in_array('gutschein', array_column($mkAlle, 'anker'), true), json_encode([$mkOhneLink, $mkOhneHash, $mkMailOhne, count($mkAlle)]));
+$mkWa = array_values(array_filter($mkAlle, static fn($k) => $k['id'] === 's-wa-gastro'))[0] ?? [];
+$mkFiltA = PartnerMediathek::karten($mkA, 'de', ['branche' => 'auto']);
+$mkFiltM = PartnerMediathek::karten($mkA, 'de', ['kanal' => 'email']);
+$mkFiltZ = PartnerMediathek::karten($mkA, 'de', ['zweck' => 'vertrauen']);
+pruefe('Filter: Branche (Gastronomie-Texte gelten auch für Lebensmittel, Auto hat keine eigenen), Kanal (nur E-Mail oder für alle) und Zweck greifen; die alten Schlüssel gehen auch',
+    in_array('gastronomie', $mkWa['branchen'] ?? [], true) && in_array('lebensmittel', $mkWa['branchen'] ?? [], true)
+    && !array_filter($mkFiltA, static fn($k) => str_starts_with($k['id'], 's-wa-') || str_starts_with($k['id'], 's-post-')) && count($mkFiltA) > 5
+    && !array_filter($mkFiltM, static fn($k) => $k['kanaele'] && !in_array('email', $k['kanaele'], true)) && $mkFiltM !== []
+    && !array_filter($mkFiltZ, static fn($k) => $k['zweck'] !== 'vertrauen') && $mkFiltZ !== []
+    && count(PartnerMediathek::karten($mkA, 'de', ['branche' => 'gastro'])) === count(PartnerMediathek::karten($mkA, 'de', ['branche' => 'gastronomie'])));
+
+// --- Eigene Karten: Pflichtfelder, Sichtbarkeit nur „aktiv“, Link angehängt, Kanäle bereinigt ---
+$mkS0 = PartnerMediathek::speichern(['zweck' => 'quatsch', 'titel_de' => 'X', 'text_de' => 'Y']);
+$mkS1 = PartnerMediathek::speichern(['zweck' => 'angebot', 'text_de' => 'Y']);
+$mkS2 = PartnerMediathek::speichern(['zweck' => 'angebot', 'titel_de' => 'Leer']);
+$mkS3 = PartnerMediathek::speichern(['zweck' => 'angebot', 'titel_de' => '<b>Herbst</b>-Aktion', 'text_de' => "Nur im Oktober: Website-Check gratis.\nMehr: {link}",
+    'text_it' => 'Solo a ottobre: check gratuito.', 'branchen' => ['beauty', 'mond'], 'kanaele' => ['whatsapp', 'instagram', 'brieftaube'], 'status' => 'entwurf', 'sort' => 5]);
+$mkId = (int) ($mkS3['id'] ?? 0);
+$mkZ = Db::one('SELECT branchen, kanaele FROM partner_mediathek WHERE id = ?', [$mkId]) ?? [];
+$mkSichtE = in_array('m' . $mkId, array_column(PartnerMediathek::karten($mkA, 'de'), 'id'), true);
+PartnerMediathek::statusSetzen($mkId, 'aktiv');
+$mkKe = array_values(array_filter(PartnerMediathek::karten($mkA, 'it'), static fn($k) => $k['id'] === 'm' . $mkId))[0] ?? [];
+$mkKd = array_values(array_filter(PartnerMediathek::karten($mkA, 'de'), static fn($k) => $k['id'] === 'm' . $mkId))[0] ?? [];
+$mkNichtBeauty = in_array('m' . $mkId, array_column(PartnerMediathek::karten($mkA, 'de', ['branche' => 'auto']), 'id'), true);
+PartnerMediathek::statusSetzen($mkId, 'archiv');
+$mkSichtA = in_array('m' . $mkId, array_column(PartnerMediathek::karten($mkA, 'de'), 'id'), true);
+PartnerMediathek::statusSetzen($mkId, 'aktiv');
+pruefe('Eigene Karte: ohne Zweck, Titel oder Inhalt nicht; nur Bekanntes bei Branchen und Kanälen; sichtbar erst „aktiv“, nicht mehr im Archiv; fehlt {link}, hängt der Link an (zählbar je Karte /mt-N); Instagram bekommt #adv',
+    $mkS0 === ['ok' => false, 'grund' => 'zweck'] && $mkS1 === ['ok' => false, 'grund' => 'titel'] && $mkS2 === ['ok' => false, 'grund' => 'inhalt']
+    && $mkId > 0 && $mkZ['branchen'] === ',beauty,' && $mkZ['kanaele'] === ',whatsapp,instagram,'
+    && !$mkSichtE && !$mkSichtA && !$mkNichtBeauty
+    && str_contains($mkKe['text'] ?? '', 'Solo a ottobre') && str_ends_with(trim($mkKe['text'] ?? ''), '#adv') && str_contains($mkKe['text'] ?? '', $mkLink . '/mt-' . $mkId)
+    && str_contains($mkKd['text'] ?? '', 'Mehr: ' . $mkLink . '/mt-' . $mkId) && ($mkKd['titel'] ?? '') === '<b>Herbst</b>-Aktion', json_encode([$mkS3, $mkZ, $mkKe], JSON_UNESCAPED_UNICODE));
+
+// --- Bilder: neu gerechnet (WebP, höchstens 1600 px), nur aktive ausgeliefert ---
+$mkPng = tempnam(sys_get_temp_dir(), 'mkb'); $mkGd = imagecreatetruecolor(2400, 1200); imagefill($mkGd, 0, 0, imagecolorallocate($mkGd, 20, 40, 90)); imagejpeg($mkGd, $mkPng, 80); imagedestroy($mkGd);
+$mkTxt = tempnam(sys_get_temp_dir(), 'mkt'); file_put_contents($mkTxt, 'kein Bild');
+$mkB1 = PartnerMediathek::bildRechnen($mkPng, (int) filesize($mkPng));
+$mkB2 = PartnerMediathek::bildRechnen($mkTxt, (int) filesize($mkTxt));
+$mkB3 = PartnerMediathek::bildRechnen($mkPng, PartnerMediathek::BILD_MAX_BYTE + 1);
+$mkSB = PartnerMediathek::speichern(['zweck' => 'vorstellung', 'titel_de' => 'Nur ein Bild', 'status' => 'entwurf'], null, $mkPng, (int) filesize($mkPng));
+$mkBi = (int) ($mkSB['id'] ?? 0);
+$mkGr = $mkB1 !== '' && !str_starts_with($mkB1, 'fehler:') ? getimagesizefromstring($mkB1) : false;
+$mkDaE = PartnerMediathek::bildDaten($mkBi);
+PartnerMediathek::statusSetzen($mkBi, 'aktiv');
+$mkKb = array_values(array_filter(PartnerMediathek::karten($mkA, 'de'), static fn($k) => $k['id'] === 'm' . $mkBi))[0] ?? [];
+pruefe('Bild: als WebP neu gerechnet (2400 → 1600 px Breite, ohne Originaldaten), falsche Art und zu groß abgelehnt; eine Karte nur mit Bild geht; ausgeliefert nur, wenn aktiv (p.php?mt=)',
+    is_array($mkGr) && $mkGr[0] === 1600 && $mkGr[1] === 800 && ($mkGr['mime'] ?? '') === 'image/webp'
+    && $mkB2 === 'fehler:bild_art' && $mkB3 === 'fehler:bild_gross' && $mkBi > 0 && $mkDaE === null
+    && PartnerMediathek::bildDaten($mkBi) !== null && str_starts_with((string) ($mkKb['bild'] ?? ''), '/p.php?mt=' . $mkBi . '&v=')
+    && str_contains((string) file_get_contents($oben . '/p.php'), 'PartnerMediathek::bildDaten((int) $_GET[\'mt\'])'), json_encode([$mkGr, $mkB2, $mkB3, $mkSB]));
+@unlink($mkPng); @unlink($mkTxt);
+
+// --- Assistent: drei passende Inhalte, nie leer ---
+$mkV1 = PartnerMediathek::vorschlaege($mkA, 'de', 'gastronomie', 'whatsapp', 'neukunden', 3);
+$mkV2 = PartnerMediathek::vorschlaege($mkA, 'de', 'auto', 'persoenlich', 'referenzen', 3);
+pruefe('Assistent: drei Vorschläge; für Gastronomie über WhatsApp zuerst die fertige Branchen-Nachricht; auch für einen schmalen Kanal (persönlich) drei, ohne Doppelte',
+    count($mkV1) === 3 && $mkV1[0]['id'] === 's-wa-gastro' && count($mkV2) === 3 && count(array_unique(array_column($mkV2, 'id'))) === 3
+    && $mkV2[0]['zweck'] === 'referenzen', json_encode([array_column($mkV1, 'id'), array_column($mkV2, 'id')]));
+
+// --- Telegram nimmt Uwes eigene WhatsApp-Fassung (Fehler bis 05.10.2026) ---
+$mkVor = PartnerVorlagen::speichern('werbung.whatsapp.persoenlich.text', 'de', 'Uwes eigene Fassung für {name}: {link}');
+$mkTg = array_values(array_filter(PartnerWerbung::vorlagen($mkA, 'de')['telegram'] ?? [], static fn($v) => $v['id'] === 'telegram_persoenlich'))[0]['text'] ?? '';
+PartnerVorlagen::speichern('werbung.whatsapp.persoenlich.text', 'de', '');
+pruefe('Telegram-Vorlagen tragen Uwes eigene WhatsApp-Fassung (vorher kam sie dort nie an)',
+    $mkVor === 'ok' && str_starts_with($mkTg, 'Uwes eigene Fassung für ') && str_contains($mkTg, $mkLink . '/telegram'), $mkTg);
+
+// --- Kundenliste: die zwölf oder ein feinerer Finder-Schlüssel ---
+$mkL1 = PartnerLeads::anlegen($mkAi, ['name' => 'Salone Uno', 'branche' => 'beauty'], true);
+$mkL2 = PartnerLeads::anlegen($mkAi, ['name' => 'Bar Due', 'branche' => 'bar_cafe'], true);
+$mkL3 = PartnerLeads::anlegen($mkAi, ['name' => 'Mondo Tre', 'branche' => 'mond'], true);
+pruefe('Kundenliste: Branche aus den zwölf oder feiner aus dem Finder; Unbekanntes wird leer',
+    PartnerLeads::laden($mkAi, (int) $mkL1['id'])['branche'] === 'beauty' && PartnerLeads::laden($mkAi, (int) $mkL2['id'])['branche'] === 'bar_cafe'
+    && PartnerLeads::laden($mkAi, (int) $mkL3['id'])['branche'] === '');
+
+// --- Seiten: fünf Bereiche rendern, escaped, CSRF, Betreff ---
+$mkSeite = static function (string $teil, array $get = []) use ($wurzel, $mkAi): string {
+    $altGet = $_GET; $_GET = ['teil' => $teil] + $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($mkAi); $sprache = 'de'; $ccPf = PartnerCommand::profil($p); $ccMkMeldung = '';
+    $C = Texte::PARTNER_CC; $c = static fn(array $t, array $r = []): string => strtr(Texte::h($t, 'de'), $r);
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    $start = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_marketing.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$mkH = [];
+foreach (['assistent', 'mediathek', 'kampagnen', 'verkauf', 'check'] as $mkT) { $mkH[$mkT] = $mkSeite($mkT); }
+$mkPost = 0; $mkCsrf = 0;
+foreach ($mkH as $mkX) { $mkPost += substr_count($mkX, '<form method="post"'); $mkCsrf += substr_count($mkX, 'name="_csrf"'); }
+preg_match_all('~href="mailto:\?subject=([^&"]*)~', $mkH['mediathek'], $mkMt);
+pruefe('MARKETING-Seite: fünf Bereiche mit Unterleiste (aktueller markiert), Assistent mit drei Karten und Kampagnen-Knopf, Mediathek mit Filter (GET mit Zugang und cc), Kampagnen, Verkaufshilfe aus der Academy, Website-Check; alles escaped, jedes POST-Formular mit CSRF, jede E-Mail mit Betreff',
+    !array_filter($mkH, static fn($x) => substr_count($x, '<nav class="cc-unterleiste') !== 1 || substr_count($x, 'aria-current="page"') !== 1)
+    && substr_count($mkH['assistent'], '<li class="cc-mt-karte') === 3 && str_contains($mkH['assistent'], 'kampagne=neu&amp;ziel=neue_kunden&amp;branche=gastronomie')
+    && str_contains($mkH['mediathek'], '<input type="hidden" name="cc" value="1">') && str_contains($mkH['mediathek'], '<input type="hidden" name="t" value="tok">')
+    && str_contains($mkH['mediathek'], '&lt;b&gt;Herbst&lt;/b&gt;-Aktion') && !str_contains($mkH['mediathek'], '<b>Herbst</b>')
+    && $mkMt[1] !== [] && !array_filter($mkMt[1], static fn($b) => trim(rawurldecode($b)) === '')
+    && str_contains($mkH['kampagnen'], 'Gastronomie') && str_contains($mkH['verkauf'], 'ak=einwaende&amp;e=') && str_contains($mkH['verkauf'], 'ak=bedarf')
+    && str_contains($mkH['check'], 'name="tat" value="mkt_check"') && $mkPost >= 1 && $mkPost === $mkCsrf,
+    json_encode([$mkPost, $mkCsrf, count($mkMt[1])]));
+$mkSeiteP = (string) file_get_contents($oben . '/partner.php');
+$mkCC = (string) file_get_contents($wurzel . '/views/partner_cc.php');
+$mkRech = (string) file_get_contents($wurzel . '/views/partner_recherche.php');
+$mkIdx = (string) file_get_contents($wurzel . '/index.php');
+$mkVw = (string) file_get_contents($wurzel . '/views/partner_mediathek.php');
+pruefe('Wege: Leiste und voller Bereich führen MARKETING ins Command Center, Kampagnen zurück dorthin; Leitfaden und Anrufskript verweisen auf die Academy statt eigener Einwände; Verwaltung /partner/mediathek mit Upload, nur für Admins schreibbar',
+    str_contains($mkCC, "'werben' => \$selbst(['cc' => 1, 'marketing' => 1])") && str_contains($mkSeiteP, "'werben' => \$selbst(['cc' => 1, 'marketing' => 1])")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_cc_kampagne.php'), "\$selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen'])")
+    && isset(Texte::PARTNER_LEITFADEN[3]['academy']) && Texte::h(Texte::PARTNER_LEITFADEN[3]['titel'], 'de') === 'Häufige Einwände'
+    && !str_contains($mkRech, "\$alP['saetze']['einwaende']") && substr_count($mkRech, "\$start(['ak' => 'einwaende'])") === 1
+    && str_contains($mkIdx, "case 'partner_mediathek':") && str_contains($mkIdx, "if (\$unter === 'mediathek')")
+    && substr_count($mkVw, 'enctype="multipart/form-data"') === 1 && substr_count($mkVw, '<form method="post"') === substr_count($mkVw, 'Csrf::feld()')
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_mediathek', $t)));
+$mkFehlt = []; $mkPlatz = [];
+$mkDrei = static function ($w, string $pfad) use (&$mkDrei, &$mkFehlt, &$mkPlatz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { if (trim((string) ($w[$l] ?? '')) === '') { $mkFehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z]+\}~', (string) ($w[$l] ?? ''), $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $mkPlatz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $mkDrei($v, "$pfad.$k"); }
+};
+$mkDrei(Texte::PARTNER_MKT, 'PARTNER_MKT'); $mkDrei(Texte::BRANCHEN_LISTE, 'BRANCHEN_LISTE');
+pruefe('Texte MARKETING: dreisprachig mit denselben Platzhaltern, Deutsch duzt; alle Zwecke und Kanäle benannt',
+    $mkFehlt === [] && $mkPlatz === [] && Texte::duzt('PARTNER_MKT.satz')
+    && array_keys(Texte::PARTNER_MKT['zwecke']) === PartnerMediathek::ZWECKE && array_keys(Texte::PARTNER_MKT['kanaele']) === PartnerMediathek::KANAELE
+    && array_keys(Texte::PARTNER_MKT['as_ziele']) === PartnerMediathek::ZWECKE, json_encode([$mkFehlt, $mkPlatz]));
+
+Db::run('DELETE FROM partner_mediathek WHERE schluessel IS NULL');
+Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id = ?', [$mkAi]);
+Db::run('DELETE FROM partner_leads WHERE partner_id = ?', [$mkAi]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [$mkAi]);
+Db::run('DELETE FROM partner WHERE id = ?', [$mkAi]);
 
 /* ============================================================================
    Kampagnen-Assistent (Etappe 2, 05.10.2026): Strategie in Sätzen, Paket aus

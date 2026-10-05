@@ -354,6 +354,59 @@ html{scroll-padding-top:76px}
 .cc-haken{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--dim);cursor:pointer}
 .cc-haken input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:#c8963e}
 
+/* ---------- MARKETING: fünf Bereiche, Mediathek, Assistent (Phase 3, 05.10.2026) ----------
+   Ein Ding je Bildschirm: im Assistenten ist „Daraus eine Kampagne machen“ golden,
+   in Kampagnen „+ Neue Kampagne“, im Website-Check „Prüfen“. Karten sind ruhig. */
+.cc-unterleiste{display:flex;gap:6px;margin:0 -16px 20px;padding:2px 16px 6px;overflow-x:auto;scrollbar-width:none;scroll-padding-inline:16px}
+.cc-unterleiste::-webkit-scrollbar{display:none}
+@media (min-width:860px){.cc-unterleiste{margin:0 0 22px;padding:0;flex-wrap:wrap;overflow:visible}}
+.cc-unterleiste a{flex:none;display:inline-flex;align-items:center;min-height:44px;padding:9px 16px;border-radius:999px;border:1px solid var(--linie2);
+  background:rgba(255,255,255,.03);color:var(--dim);text-decoration:none;font-size:14px;font-weight:600;white-space:nowrap;transition:border-color .18s,background .18s,color .18s}
+.cc-unterleiste a:hover{color:var(--text);border-color:var(--haar)}
+.cc-unterleiste a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-unterleiste a[aria-current]{color:var(--gold);border-color:rgba(241,211,139,.5);background:rgba(241,211,139,.1)}
+.cc-as-titel{font:700 clamp(19px,3.6vw,23px)/1.25 var(--f-display);margin:0 0 4px}
+.cc-mt-assistent{margin:0 0 16px}
+.cc-as-wahl{padding:0}
+.cc-as-wahl > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:56px;padding:12px 16px;font-size:15px;font-weight:600;line-height:1.4}
+.cc-as-wahl > summary::-webkit-details-marker{display:none}
+.cc-as-wahl > summary b{flex:none;color:var(--gold);font-size:14px}
+.cc-as-wahl > summary:focus-visible{outline:2px solid var(--gold);outline-offset:2px;border-radius:18px}
+.cc-as-wahl[open] > summary b{visibility:hidden}
+.cc-as-wahl > form{padding:0 16px 16px}
+.cc-as-form{margin:0}
+.cc-as-form .cc-feld.breit{flex-direction:row}
+@media (min-width:860px){.cc-as-form{grid-template-columns:repeat(4,minmax(0,1fr))}.cc-as-form .cc-feld.breit{grid-column:1 / -1}}
+
+.cc-mt-filter{margin:0 0 14px;display:grid;gap:12px}
+.cc-mt-filter .cc-zeile > .cc-feld{flex:1 1 200px}
+.cc-mt-liste{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+@media (min-width:760px){.cc-mt-liste{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1080px){.cc-mt-liste{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cc-mt-karte{display:flex;flex-direction:column;gap:10px;min-width:0;padding:16px;border-radius:18px;border:1px solid var(--linie);
+  background:linear-gradient(180deg,var(--flaeche),var(--grund2))}
+.cc-mt-bild{display:block;width:calc(100% + 32px);margin:-16px -16px 2px;max-height:240px;object-fit:cover;border-radius:18px 18px 0 0;background:#0b0f1c}
+.cc-mt-kopf{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;font-size:12px}
+.cc-mt-zweck{font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold)}
+.cc-mt-neu{padding:2px 8px;border-radius:999px;background:rgba(241,211,139,.12);color:var(--gold-hell);font-weight:650}
+.cc-mt-kanaele{color:var(--leise)}
+.cc-mt-karte h3{font:650 16px/1.35 var(--f-display);margin:0;overflow-wrap:anywhere}
+.cc-mt-satz{margin:0;color:var(--dim);font-size:14.5px;line-height:1.55}
+.cc-mt-betreff{margin:0;font-size:13.5px;color:var(--dim)}
+.cc-mt-betreff b{color:var(--text);font-weight:600}
+.cc .cc-mt-text{width:100%;box-sizing:border-box;min-height:118px;max-height:240px;resize:vertical;font-size:14px;line-height:1.55;padding:10px 12px;color:var(--text);background:rgba(255,255,255,.025)}
+.cc-mt-knoepfe{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:auto}
+.cc-mt-knoepfe .knopf{min-height:42px;padding:9px 14px;font-size:13.5px}
+.cc-mt-mehr{color:var(--gold);text-decoration:none;font-size:14px;font-weight:600}
+.cc-mt-mehr:hover{text-decoration:underline}
+.cc-einwaende a{align-items:flex-start}
+.cc-einwaende b{font-weight:600}
+.cc-ck-ergebnis{margin-top:16px}
+.cc-ck-punkte{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:6px;font-size:14.5px}
+.cc-ck-punkte li{display:flex;align-items:center;gap:10px}
+.cc-ampel{flex:none;width:10px;height:10px;border-radius:50%;background:var(--leise)}
+.cc-ampel.gut{background:#5cc28a}.cc-ampel.hinweis{background:#f1c84b}.cc-ampel.schlecht{background:#e5644e}
+
 /* ---------- Leiste unten (wie die Reiter im Partnerbereich) ---------- */
 .cc-leiste{display:flex;gap:3px;max-width:980px;margin:10px auto 0;position:sticky;top:8px;z-index:30;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px;box-sizing:border-box;background:rgba(12,24,52, .88);
   border:1px solid var(--linie);border-radius:16px}

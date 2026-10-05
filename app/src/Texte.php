@@ -2943,6 +2943,7 @@ final class Texte
         'ACADEMY'             => [],
         'PARTNER_CC'          => [],
         'PARTNER_LEADS'       => ['sie' => '~^(wa_text|mail_betreff|mail_text)$~'],   // Nachrichten an den Betrieb: Sie
+        'PARTNER_MKT'         => [],
         'PARTNER_KAMPAGNE'    => [],
         'PARTNER_START'       => [],
         'PARTNER_HEUTE'       => [],
@@ -3462,7 +3463,7 @@ final class Texte
                          'ersetzt' => ['it' => 'Sostituito, ancora in giro', 'de' => 'Ersetzt, noch im Umlauf', 'en' => 'Replaced, still in circulation']],
     ];
 
-    /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele und Branchen als kurze Namen — Kampagnenname, Auswahl, Auswertung. */
+    /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele als kurze Namen — Kampagnenname, Auswahl, Auswertung. Branchen: BRANCHEN_LISTE. */
     public const KAMPAGNE_ZIELE = [
         'neue_kunden'  => ['it' => 'Nuovi clienti', 'de' => 'Neue Kunden', 'en' => 'New customers'],
         'anfragen'     => ['it' => 'Più richieste', 'de' => 'Mehr Anfragen', 'en' => 'More enquiries'],
@@ -3474,15 +3475,124 @@ final class Texte
         'reaktivieren' => ['it' => 'Riattivare clienti', 'de' => 'Kunden reaktivieren', 'en' => 'Win back customers'],
         'check'        => ['it' => 'Check del sito', 'de' => 'Website-Check', 'en' => 'Website check'],
     ];
-    public const KAMPAGNE_BRANCHEN = [
-        'gastro'     => ['it' => 'Ristorazione', 'de' => 'Gastronomie', 'en' => 'Food & drink'],
-        'unterkunft' => ['it' => 'Strutture ricettive', 'de' => 'Unterkünfte', 'en' => 'Accommodation'],
-        'handwerk'   => ['it' => 'Artigianato', 'de' => 'Handwerk', 'en' => 'Trades'],
-        'laden'      => ['it' => 'Negozi', 'de' => 'Einzelhandel', 'en' => 'Retail'],
-        'praxis'     => ['it' => 'Studi e salute', 'de' => 'Praxen und Gesundheit', 'en' => 'Practices and health'],
-        'beauty'     => ['it' => 'Parrucchieri e bellezza', 'de' => 'Friseur und Beauty', 'en' => 'Hair and beauty'],
-        'automotive' => ['it' => 'Auto e officine', 'de' => 'Automotive', 'en' => 'Automotive'],
-        'sonstige'   => ['it' => 'Altre attività', 'de' => 'Weitere Branchen', 'en' => 'Other businesses'],
+    /* Die EINE Branchenliste des Partnerbereichs (Phase 3, 05.10.2026, Uwe: „Diese 12 nehmen“). Ersetzt die
+       Kampagnen-Branchen und gilt für Marketingprofil, Kampagnen, Kundenliste, Mediathek und Assistent.
+       Feinere Listen (22 der Akquise, 80 Flyer-Motive) bleiben und werden über PartnerBranche abgebildet. */
+    public const BRANCHEN_LISTE = [
+        'gastronomie'  => ['it' => 'Ristorazione', 'de' => 'Gastronomie', 'en' => 'Food & drink'],
+        'unterkunft'   => ['it' => 'Hotel e alloggi', 'de' => 'Hotel & Unterkunft', 'en' => 'Hotels & stays'],
+        'handwerk'     => ['it' => 'Artigiani ed edilizia', 'de' => 'Handwerk & Bau', 'en' => 'Trades & construction'],
+        'einzelhandel' => ['it' => 'Negozi', 'de' => 'Einzelhandel', 'en' => 'Retail'],
+        'beauty'       => ['it' => 'Parrucchieri e bellezza', 'de' => 'Friseur & Beauty', 'en' => 'Hair & beauty'],
+        'gesundheit'   => ['it' => 'Studi medici e salute', 'de' => 'Praxis & Gesundheit', 'en' => 'Practices & health'],
+        'fitness'      => ['it' => 'Fitness e sport', 'de' => 'Fitness & Sport', 'en' => 'Fitness & sport'],
+        'auto'         => ['it' => 'Auto e officine', 'de' => 'Auto & Werkstatt', 'en' => 'Cars & garages'],
+        'immobilien'   => ['it' => 'Immobiliare', 'de' => 'Immobilien', 'en' => 'Real estate'],
+        'beratung'     => ['it' => 'Studi professionali e consulenza', 'de' => 'Kanzlei & Beratung', 'en' => 'Law firms & consulting'],
+        'tourismus'    => ['it' => 'Turismo e tempo libero', 'de' => 'Tourismus & Freizeit', 'en' => 'Tourism & leisure'],
+        'lebensmittel' => ['it' => 'Alimentari e produttori', 'de' => 'Lebensmittel & Produzenten', 'en' => 'Food producers'],
+        'andere'       => ['it' => 'Altro', 'de' => 'Andere', 'en' => 'Other'],
+    ];
+
+    /* MARKETING im Command Center (Phase 3, 05.10.2026): fünf Bereiche, Mediathek, Assistent, Verkaufshilfe,
+       Website-Check. Der Partner wird geduzt, Italienisch „Lei“ (ANREDE_DU). */
+    public const PARTNER_MKT = [
+        'titel' => ['it' => 'Marketing', 'de' => 'Marketing', 'en' => 'Marketing'],
+        'satz'  => ['it' => 'Cosa condividere oggi, chi contattare e con cosa — in un unico posto.', 'de' => 'Was du heute teilst, wen du ansprichst und womit — an einem Ort.', 'en' => 'What to share today, who to reach and how — all in one place.'],
+        'teile_aria' => ['it' => 'Aree del marketing', 'de' => 'Bereiche im Marketing', 'en' => 'Marketing areas'],
+        'teile' => [
+            'assistent' => ['it' => 'Assistente', 'de' => 'Assistent', 'en' => 'Assistant'],
+            'mediathek' => ['it' => 'Mediateca', 'de' => 'Mediathek', 'en' => 'Media library'],
+            'kampagnen' => ['it' => 'Campagne e QR', 'de' => 'Kampagnen & QR', 'en' => 'Campaigns & QR'],
+            'verkauf'   => ['it' => 'Aiuto vendita', 'de' => 'Verkaufshilfe', 'en' => 'Sales help'],
+            'check'     => ['it' => 'Check del sito', 'de' => 'Website-Check', 'en' => 'Website check'],
+        ],
+        'zwecke' => [
+            'neukunden'   => ['it' => 'Nuovi clienti', 'de' => 'Neue Kunden', 'en' => 'New customers'],
+            'vertrauen'   => ['it' => 'Fiducia', 'de' => 'Vertrauen', 'en' => 'Trust'],
+            'angebot'     => ['it' => 'Offerta', 'de' => 'Angebot', 'en' => 'Offer'],
+            'anlass'      => ['it' => 'Ricorrenze', 'de' => 'Anlass', 'en' => 'Occasions'],
+            'vorstellung' => ['it' => 'Presentarsi', 'de' => 'Vorstellen', 'en' => 'Introduce yourself'],
+            'referenzen'  => ['it' => 'Lavori', 'de' => 'Referenzen', 'en' => 'References'],
+        ],
+        'kanaele' => [
+            'whatsapp'    => ['it' => 'WhatsApp', 'de' => 'WhatsApp', 'en' => 'WhatsApp'],
+            'telegram'    => ['it' => 'Telegram', 'de' => 'Telegram', 'en' => 'Telegram'],
+            'instagram'   => ['it' => 'Instagram', 'de' => 'Instagram', 'en' => 'Instagram'],
+            'facebook'    => ['it' => 'Facebook', 'de' => 'Facebook', 'en' => 'Facebook'],
+            'tiktok'      => ['it' => 'TikTok', 'de' => 'TikTok', 'en' => 'TikTok'],
+            'email'       => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'E-mail'],
+            'linkedin'    => ['it' => 'LinkedIn', 'de' => 'LinkedIn', 'en' => 'LinkedIn'],
+            'druck'       => ['it' => 'Stampa', 'de' => 'Druck', 'en' => 'Print'],
+            'persoenlich' => ['it' => 'Di persona', 'de' => 'Persönlich', 'en' => 'In person'],
+        ],
+        // Mediathek
+        'mt_alle'          => ['it' => 'Tutti', 'de' => 'Alle', 'en' => 'All'],
+        'mt_branche'       => ['it' => 'Settore', 'de' => 'Branche', 'en' => 'Industry'],
+        'mt_kanal'         => ['it' => 'Canale', 'de' => 'Kanal', 'en' => 'Channel'],
+        'mt_alle_branchen' => ['it' => 'Tutti i settori', 'de' => 'Alle Branchen', 'en' => 'All industries'],
+        'mt_alle_kanaele'  => ['it' => 'Tutti i canali', 'de' => 'Alle Kanäle', 'en' => 'All channels'],
+        'mt_filtern'       => ['it' => 'Filtra', 'de' => 'Filtern', 'en' => 'Filter'],
+        'mt_leer'          => ['it' => 'Nessun contenuto per questa scelta. Provi con «Tutti».', 'de' => 'Für diese Auswahl gibt es nichts. Versuch es mit „Alle“.', 'en' => 'Nothing for this choice. Try “All”.'],
+        'mt_n'             => [['it' => '1 contenuto', 'de' => '1 Inhalt', 'en' => '1 item'], ['it' => '{n} contenuti', 'de' => '{n} Inhalte', 'en' => '{n} items']],
+        'mt_kopieren'      => ['it' => 'Copia testo', 'de' => 'Text kopieren', 'en' => 'Copy text'],
+        'mt_kopiert'       => ['it' => 'Copiato ✓', 'de' => 'Kopiert ✓', 'en' => 'Copied ✓'],
+        'mt_wa'            => ['it' => 'WhatsApp', 'de' => 'WhatsApp', 'en' => 'WhatsApp'],
+        'mt_tg'            => ['it' => 'Telegram', 'de' => 'Telegram', 'en' => 'Telegram'],
+        'mt_bild'          => ['it' => 'Scarica immagine', 'de' => 'Bild laden', 'en' => 'Download image'],
+        'mt_oeffnen'       => ['it' => 'Apri', 'de' => 'Öffnen', 'en' => 'Open'],
+        'mt_vecom'         => ['it' => 'Novità da Vecom', 'de' => 'Neu von Vecom', 'en' => 'New from Vecom'],
+        'mt_betreff'       => ['it' => 'Oggetto', 'de' => 'Betreff', 'en' => 'Subject'],
+        'mt_text_aria'     => ['it' => 'Testo da condividere', 'de' => 'Text zum Teilen', 'en' => 'Text to share'],
+        'sk_tag'           => ['it' => 'Il post di oggi: {titel}', 'de' => 'Beitrag von heute: {titel}', 'en' => 'Today’s post: {titel}'],
+        'sk_tag_mehr'      => ['it' => 'Prossimi giorni', 'de' => 'Nächste Tage', 'en' => 'Next days'],
+        'sk_wa'            => ['it' => 'WhatsApp per: {branche}', 'de' => 'WhatsApp für: {branche}', 'en' => 'WhatsApp for: {branche}'],
+        'sk_post'          => ['it' => 'Post per: {branche}', 'de' => 'Beitrag für: {branche}', 'en' => 'Post for: {branche}'],
+        'sk_aktion'        => ['it' => 'Azione in corso', 'de' => 'Laufende Aktion', 'en' => 'Current promotion'],
+        'sk_arbeiten'      => ['it' => 'Lavori di Vecom', 'de' => 'Arbeiten von Vecom', 'en' => 'Vecom’s work'],
+        // Assistent
+        'as_titel'         => ['it' => 'Cosa condivido oggi?', 'de' => 'Was teile ich heute?', 'en' => 'What do I share today?'],
+        'as_satz'          => ['it' => 'Quattro risposte, tre contenuti pronti con il Suo link.', 'de' => 'Vier Antworten, drei fertige Inhalte mit deinem Link.', 'en' => 'Four answers, three ready items with your link.'],
+        'as_branche'       => ['it' => 'Per quale settore?', 'de' => 'Für welche Branche?', 'en' => 'For which industry?'],
+        'as_region'        => ['it' => 'Dove?', 'de' => 'Wo?', 'en' => 'Where?'],
+        'as_region_ph'     => ['it' => 'es. Agrigento', 'de' => 'z. B. Agrigento', 'en' => 'e.g. Agrigento'],
+        'as_kanal'         => ['it' => 'Su quale canale?', 'de' => 'Über welchen Kanal?', 'en' => 'On which channel?'],
+        'as_ziel'          => ['it' => 'Cosa vuole ottenere?', 'de' => 'Was willst du erreichen?', 'en' => 'What do you want to achieve?'],
+        'as_los'           => ['it' => 'Mostra proposte', 'de' => 'Vorschläge zeigen', 'en' => 'Show suggestions'],
+        'as_ergebnis'      => ['it' => 'Per «{branche}» a {region}, via {kanal}:', 'de' => 'Für „{branche}“ in {region}, über {kanal}:', 'en' => 'For “{branche}” in {region}, via {kanal}:'],
+        'as_ergebnis_ohne' => ['it' => 'Per «{branche}», via {kanal}:', 'de' => 'Für „{branche}“, über {kanal}:', 'en' => 'For “{branche}”, via {kanal}:'],
+        'as_tipp_region'   => ['it' => 'Consiglio: nomini {region} nella prima frase — chi è del posto si sente chiamato in causa.', 'de' => 'Tipp: Nenn {region} im ersten Satz — wer von dort ist, fühlt sich angesprochen.', 'en' => 'Tip: mention {region} in the first sentence — locals feel addressed.'],
+        'as_kampagne'      => ['it' => 'Farne una campagna', 'de' => 'Daraus eine Kampagne machen', 'en' => 'Turn it into a campaign'],
+        'as_mehr'          => ['it' => 'Altro nella mediateca', 'de' => 'Mehr in der Mediathek', 'en' => 'More in the media library'],
+        'as_ziele' => [
+            'neukunden'   => ['it' => 'Trovare nuovi clienti', 'de' => 'Neue Kunden gewinnen', 'en' => 'Win new customers'],
+            'vertrauen'   => ['it' => 'Creare fiducia', 'de' => 'Vertrauen aufbauen', 'en' => 'Build trust'],
+            'angebot'     => ['it' => 'Promuovere un’offerta', 'de' => 'Ein Angebot bewerben', 'en' => 'Promote an offer'],
+            'anlass'      => ['it' => 'Sfruttare una ricorrenza', 'de' => 'Zu einem Anlass posten', 'en' => 'Post for an occasion'],
+            'vorstellung' => ['it' => 'Farmi conoscere', 'de' => 'Mich bekannt machen', 'en' => 'Make myself known'],
+            'referenzen'  => ['it' => 'Mostrare lavori', 'de' => 'Arbeiten zeigen', 'en' => 'Show work'],
+        ],
+        // Verkaufshilfe
+        'vk_satz'          => ['it' => 'Tutto per il colloquio: domande, obiezioni, messaggi. I contenuti vengono dall’Academy.', 'de' => 'Alles fürs Gespräch: Fragen, Einwände, Nachrichten. Die Inhalte kommen aus der Academy.', 'en' => 'Everything for the conversation: questions, objections, messages. The content comes from the Academy.'],
+        'vk_vorher'        => ['it' => 'Prima del colloquio', 'de' => 'Vor dem Gespräch', 'en' => 'Before the conversation'],
+        'vk_bedarf'        => ['it' => 'Assistente bisogni', 'de' => 'Bedarfsassistent', 'en' => 'Needs assistant'],
+        'vk_bedarf_satz'   => ['it' => '9 domande → i servizi adatti, con il motivo.', 'de' => '9 Fragen → die passenden Leistungen, mit Grund.', 'en' => '9 questions → the right services, with a reason.'],
+        'vk_finder'        => ['it' => 'Checklist potenziale', 'de' => 'Kundenfinder-Checkliste', 'en' => 'Prospect checklist'],
+        'vk_finder_satz'   => ['it' => '12 punti: quanto potenziale ha questa attività?', 'de' => '12 Punkte: Wie viel Potenzial hat dieser Betrieb?', 'en' => '12 points: how much potential does this business have?'],
+        'vk_einwaende'     => ['it' => 'Obiezioni frequenti', 'de' => 'Häufige Einwände', 'en' => 'Common objections'],
+        'vk_alle'          => ['it' => 'Tutte le {n} obiezioni', 'de' => 'Alle {n} Einwände', 'en' => 'All {n} objections'],
+        'vk_gespraech'     => ['it' => 'Colloquio e telefonata', 'de' => 'Gespräch und Anruf', 'en' => 'Conversation and call'],
+        'vk_leitfaden'     => ['it' => 'Guida al colloquio', 'de' => 'Gesprächsleitfaden', 'en' => 'Conversation guide'],
+        'vk_anrufliste'    => ['it' => 'Lista chiamate', 'de' => 'Anrufliste', 'en' => 'Call list'],
+        'vk_jetzt'         => ['it' => 'Cosa faccio adesso?', 'de' => 'Was mache ich jetzt?', 'en' => 'What do I do now?'],
+        'vk_schreiben'     => ['it' => 'Scrivere', 'de' => 'Anschreiben', 'en' => 'Writing'],
+        'vk_akte'          => ['it' => 'Messaggi pronti nella scheda cliente', 'de' => 'Fertige Nachrichten in der Kundenakte', 'en' => 'Ready messages in the customer file'],
+        'vk_kontaktwege'   => ['it' => 'Canali di contatto', 'de' => 'Kontaktwege', 'en' => 'Contact channels'],
+        'vk_hinweis'       => ['it' => 'Le obiezioni ora sono in un solo posto: nell’Academy.', 'de' => 'Einwände stehen jetzt an einer Stelle: in der Academy.', 'en' => 'Objections now live in one place: the Academy.'],
+        'vk_zur_academy'   => ['it' => 'Apri nell’Academy', 'de' => 'In der Academy öffnen', 'en' => 'Open in the Academy'],
+        // Website-Check
+        'ck_satz'          => ['it' => 'Indirizzo di un’attività → rapporto di una pagina da inviare.', 'de' => 'Adresse eines Betriebs → ein Bericht auf einer Seite zum Weiterschicken.', 'en' => 'A business address → a one-page report to send on.'],
+        'ck_alle'          => ['it' => 'Tutte le verifiche', 'de' => 'Alle Prüfungen', 'en' => 'All checks'],
     ];
 
     public const PARTNER = [
@@ -4581,7 +4691,8 @@ final class Texte
          'text' => ['it' => "Non dica cifre a memoria. Il questionario sul suo link mostra subito un prezzo indicativo; l’offerta precisa arriva entro un giorno lavorativo. Prima di un accordo scritto non si paga nulla.",
                     'de' => 'Keine Zahlen aus dem Kopf nennen. Der Fragebogen hinter deinem Link zeigt sofort einen Richtpreis; das genaue Angebot kommt innerhalb eines Werktags. Vor einer schriftlichen Einigung wird nichts bezahlt.',
                     'en' => "Don’t quote figures from memory. The questionnaire behind your link shows a guide price right away; the exact quote follows within one working day. Nothing is paid before a written agreement."]],
-        ['titel' => ['it' => 'Obiezioni frequenti', 'de' => 'Häufige Einwände', 'en' => 'Common objections'],
+        ['academy' => 'einwaende',   // Phase 3 (Uwe: „Academy ist die Quelle“): wird nicht mehr gezeigt, sondern verweist auf die Academy
+         'titel' => ['it' => 'Obiezioni frequenti', 'de' => 'Häufige Einwände', 'en' => 'Common objections'],
          'text' => ['it' => "«Costa troppo.» → Il prezzo lo sai prima e decidi tu. Guardarlo non costa niente.\n«Ho già Facebook.» → Facebook è in affitto: le regole le fa un altro. Il sito è tuo, e Google lo trova.\n«Non ho tempo.» → Rispondi a qualche domanda, il resto lo fanno loro. Vedi ogni passo sul telefono.\n«Ho già qualcuno.» → Perfetto. Se un giorno vuoi un confronto, il link resta valido.\n«Più avanti.» → Nessun problema: ti mando il link, lo apri quando vuoi.",
                     'de' => "„Zu teuer.“ → Den Preis kennen Sie vorher, und Sie entscheiden. Anschauen kostet nichts.\n„Ich habe doch Facebook.“ → Facebook ist gemietet: Die Regeln macht ein anderer. Die Website gehört Ihnen, und Google findet sie.\n„Keine Zeit.“ → Ein paar Fragen beantworten, den Rest macht Vecom Design. Sie sehen jeden Schritt auf dem Handy.\n„Ich habe schon jemanden.“ → Prima. Wenn Sie einmal vergleichen möchten: Der Link bleibt gültig.\n„Später.“ → Kein Problem: Ich schicke Ihnen den Link, Sie öffnen ihn, wann Sie möchten.",
                     'en' => "“Too expensive.” → You know the price first and you decide. Looking costs nothing.\n“I have Facebook.” → Facebook is rented: someone else makes the rules. The website is yours, and Google finds it.\n“No time.” → Answer a few questions, they do the rest. You follow every step on your phone.\n“I already have someone.” → Great. If you ever want to compare, the link stays valid.\n“Later.” → No problem: I’ll send you the link, open it whenever you like."]],

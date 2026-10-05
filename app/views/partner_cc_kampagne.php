@@ -10,13 +10,15 @@ $K = Texte::PARTNER_KAMPAGNE;
 $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache), $r);
 ?>
 <main id="cc-start" tabindex="-1">
-<p class="cc-zurueck"><a href="<?= $h($selbst(['cc' => 1])) ?>">← <?= $h($k($K['zurueck'])) ?></a></p>
+<?php /* Kampagnen und QR gehören seit Phase 3 zu MARKETING — der Rückweg führt dorthin. */ ?>
+<p class="cc-zurueck"><a href="<?= $h($selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen'])) ?>">← <?= $h(Texte::h(Texte::PARTNER_MKT['teile']['kampagnen'], $sprache)) ?></a></p>
 
 <?php if ($ccSeite === 'neu'):
   $ccPf = PartnerCommand::profil($p);
-  $ccWahlZiel = (string) ($ccPost['ziel'] ?? ($ccPf['ziel'] !== '' ? $ccPf['ziel'] : ''));
-  $ccWahlBr = (string) ($ccPost['branche'] ?? ($ccPf['branchen'][0] ?? ''));
-  $ccWahlOrt = (string) ($ccPost['region'] ?? $ccPf['ort']);
+  // Vorbelegt: was gerade eingegeben war, sonst was der Marketing-Assistent mitgibt (?ziel=&branche=&region=), sonst das Profil.
+  $ccWahlZiel = (string) ($ccPost['ziel'] ?? (in_array((string) ($_GET['ziel'] ?? ''), PartnerKampagne::ZIELE, true) ? (string) $_GET['ziel'] : ($ccPf['ziel'] !== '' ? $ccPf['ziel'] : '')));
+  $ccWahlBr = PartnerBranche::von((string) ($ccPost['branche'] ?? ($_GET['branche'] ?? ($ccPf['branchen'][0] ?? ''))));
+  $ccWahlOrt = (string) ($ccPost['region'] ?? (isset($_GET['region']) ? mb_substr(trim((string) $_GET['region']), 0, 60) : $ccPf['ort']));
   $ccWahlSp = (string) ($ccPost['sprache'] ?? (string) $p['sprache']);
   $ccWahlWeg = (string) ($ccPost['weg'] ?? 'auto');
   $ccWahlBudget = (string) ($ccPost['budget'] ?? ''); ?>
@@ -39,7 +41,7 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
         <legend><?= $h($k($K['f_branche'])) ?></legend>
         <div class="cc-chips">
           <?php foreach (PartnerKampagne::BRANCHEN as $b): ?>
-            <label class="cc-chip"><input type="radio" name="branche" value="<?= $h($b) ?>"<?= $ccWahlBr === $b ? ' checked' : '' ?>><span><?= $h($k(Texte::KAMPAGNE_BRANCHEN[$b])) ?></span></label>
+            <label class="cc-chip"><input type="radio" name="branche" value="<?= $h($b) ?>"<?= $ccWahlBr === $b ? ' checked' : '' ?>><span><?= $h(PartnerBranche::name($b, $sprache)) ?></span></label>
           <?php endforeach; ?>
         </div>
       </fieldset>
