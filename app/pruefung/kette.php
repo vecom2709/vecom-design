@@ -25034,6 +25034,24 @@ pruefe('Automatisch zuordnen: Akzente egal (Lucía → lucia.ferrara), die priva
     && $p7Adr($p7A[1]) === null && $p7Adr($p7A[2]) === null && $p7Adr($p7A[4]) === null && $p7Adr($p7A[5]) === null && $p7Adr($p7Inaktiv) === null
     && $p7Adr($p7i) === 'mia.mail@vecom-design.it' && PartnerMail::automatischZuordnen() === []
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_vecom_adresse_auto'", [], 0) === 1, json_encode([$p7Auto, $p7Adr($p7A[5])]));
+// Gelesen wird mit dem Zugang des Kontos von vecom-design.it (Uwe: „unter dem kas wo auch vecom design läuft“), nur get_*.
+$p7KasAuf = [];
+PartnerMail::$kasRufen = static function (string $aktion, ?array $als) use (&$p7KasAuf): array {
+    $p7KasAuf[] = [$aktion, $als['login'] ?? null];
+    return ['ok' => true, 'daten' => $aktion === 'get_mailaccounts' ? [['mail_login' => 'm1', 'mail_adresses' => 'nuovo.partner@vecom-design.it']] : [['mail_forward_address' => 'weiter.leitung@vecom-design.it', 'mail_forward_targets' => 'privat@gmail.com']]];
+};
+$p7OhneZ = PartnerMail::kasDomainZugang();
+PartnerMail::kasDomainFrisch('w021fb9a', 'kette-geheim');
+$p7KN = PartnerMail::kasLesen();
+$p7KA = PartnerMail::kasAdressen();
+pruefe('KAS lesen mit dem Zugang des Kontos von vecom-design.it: nur get_mailaccounts und get_mailforwards, Adressen gemerkt, kein Passwort gespeichert; Formular in Einstellungen schreibt nur in config.local.php',
+    $p7OhneZ === null && $p7KN === 2 && $p7KasAuf === [['get_mailaccounts', 'w021fb9a'], ['get_mailforwards', 'w021fb9a']]
+    && $p7KA['adressen'] === ['nuovo.partner@vecom-design.it' => 'postfach', 'weiter.leitung@vecom-design.it' => 'weiterleitung']
+    && !str_contains((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'vecom_adressen'", [], ''), 'kette-geheim')
+    && str_contains((string) file_get_contents($wurzel . '/views/einstellungen/zugaenge.php'), 'value="kas_domain_zugang"')
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "\$alt['kas_domain'] = ['login' => \$login, 'passwort' => \$pass];"), json_encode([$p7KN, $p7KasAuf]));
+PartnerMail::$kasRufen = null;
+PartnerMail::kasDomainFrisch('', '');
 $p7Cron = (string) file_get_contents($wurzel . '/src/Cron.php');
 pruefe('Cron: Adressen einmal am Tag nur LESEN und eindeutig zuordnen; Printful misst neue Kandidaten (T-Shirt, Polo) sofort statt erst nach 24 Stunden',
     str_contains($p7Cron, "'partner_vecom_adressen' => static function") && str_contains($p7Cron, 'PartnerMail::automatischZuordnen()')

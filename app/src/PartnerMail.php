@@ -243,13 +243,40 @@ final class PartnerMail
      * der eigenen Domain aus der Antwort gelesen, statt Feldnamen zu raten. Kein Passwort wird
      * gespeichert: nur die Adressen. @return int Anzahl
      */
+    /** Prüfnaht für die Kette: fn(string $aktion, ?array $als): array{ok:bool, daten:mixed} — ersetzt Kas::rufen. */
+    public static $kasRufen = null;
+
+    /**
+     * Der KAS-Zugang des Kontos, unter dem vecom-design.it selbst läuft (Uwe, 05.10.2026: „unter dem kas wo
+     * auch vecom design läuft“). Das ist NICHT der Reseller-Zugang (config 'kas') — der sieht nur seine
+     * eigenen Postfächer. Login und KAS-Passwort trägt Uwe in der Verwaltung ein, sie liegen nur in
+     * config.local.php ('kas_domain'). Benutzt wird der Zugang ausschließlich zum LESEN (get_*). @return ?array{login:string, passwort:string}
+     */
+    private static ?array $kasDomainFrisch = null;
+
+    /** Direkt nach dem Speichern: die Konfigurationsdatei ist in diesem Aufruf noch die alte (wie Kas::zugangFrisch). */
+    public static function kasDomainFrisch(string $login, string $passwort): void
+    {
+        self::$kasDomainFrisch = ['login' => trim($login), 'passwort' => $passwort];
+    }
+
+    public static function kasDomainZugang(): ?array
+    {
+        $k = self::$kasDomainFrisch ?? (array) Config::get('kas_domain', []);
+        $l = trim((string) ($k['login'] ?? '')); $pw = (string) ($k['passwort'] ?? '');
+        return $l !== '' && $pw !== '' ? ['login' => $l, 'passwort' => $pw] : null;
+    }
+
     public static function kasLesen(): int
     {
         require_once __DIR__ . '/Kas.php';
-        if (!Kas::bereit()) { return 0; }
+        $als = self::kasDomainZugang();
+        if (self::$kasRufen === null && !Kas::bereit() && $als === null) { return 0; }
         $gefunden = [];
         foreach (['get_mailaccounts' => 'postfach', 'get_mailforwards' => 'weiterleitung'] as $aktion => $art) {
-            $r = Kas::rufen($aktion);
+            // Nur lesen — mit diesem Zugang geht nie etwas anderes als get_* hinaus.
+            if (!str_starts_with($aktion, 'get_')) { continue; }
+            $r = self::$kasRufen !== null ? (self::$kasRufen)($aktion, $als) : Kas::rufen($aktion, [], $als);
             if (!($r['ok'] ?? false)) { continue; }
             foreach (self::adressenIn($r['daten']) as $a) { $gefunden[$a] ??= $art; }
         }

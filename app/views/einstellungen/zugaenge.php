@@ -162,6 +162,28 @@ $kasFehlt  = Kas::voraussetzung();
   </div>
 </div>
 
+<?php /* Phase 7a (05.10.2026, Uwe: „unter dem kas wo auch vecom design läuft“): der KAS-Zugang des Kontos von
+         vecom-design.it — NUR zum Lesen der @vecom-Adressen für das E-Mail-Center der Partner. */
+  require_once dirname(__DIR__, 2) . '/src/PartnerMail.php';
+  $kdZ = PartnerMail::kasDomainZugang(); $kdA = PartnerMail::kasAdressen(); ?>
+<div class="block" id="kas-domain">
+  <h2>KAS-Konto von vecom-design.it (nur lesen)</h2>
+  <p style="color:var(--leise);max-width:70ch">Die @vecom-Adressen der Partner liegen im Konto, unter dem vecom-design.it läuft — nicht im Reseller-Vertrag.
+    Mit diesem Zugang liest die Verwaltung einmal am Tag die vorhandenen Postfächer und Weiterleitungen und ordnet sie den Partnern zu, wenn es eindeutig ist.
+    Sie <b>legt nichts an, ändert nichts und löscht nichts</b>. Login und KAS-Passwort landen nur in der Konfigurationsdatei auf diesem Server.</p>
+  <p style="font-size:13px;color:var(--leise)"><?= $kdZ ? 'Eingetragen: <code>' . Fmt::h($kdZ['login']) . '</code>' : 'Noch kein Zugang eingetragen.' ?>
+    · <?= $kdA['am'] !== '' ? count($kdA['adressen']) . ' Adressen, zuletzt gelesen ' . Fmt::h($kdA['am']) : 'noch nicht gelesen' ?></p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_domain_zugang">
+    <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
+    <div class="feld" style="margin:0"><label>KAS-Login</label>
+      <input name="login" value="<?= Fmt::h($kdZ['login'] ?? 'w021fb9a') ?>" style="width:180px"></div>
+    <div class="feld" style="margin:0"><label>KAS-Passwort <span style="color:var(--leise);font-weight:400">— <?= $kdZ ? 'leer: unverändert' : 'nicht das MembersArea-Passwort' ?></span></label>
+      <input name="passwort" type="password" autocomplete="new-password" style="width:200px"<?= $kdZ ? '' : ' required' ?>></div>
+    <button class="knopf haupt">Speichern und Adressen lesen</button>
+  </form>
+</div>
+
 <?php /* Der neue Kunden-Account: anlegen und die Zugangsdaten GENAU EINMAL
          zeigen. Die Passwörter stehen in der Session, werden hier in
          verdeckten Feldern angezeigt und danach sofort vergessen —

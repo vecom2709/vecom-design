@@ -1532,7 +1532,7 @@ if ($post) {
                     $pmN = PartnerMail::kasLesen();
                     $pmAuto = $pmN > 0 ? PartnerMail::automatischZuordnen() : [];
                     $_SESSION[$pmN > 0 ? 'gut' : 'fehler'] = $pmN > 0 ? $pmN . ' Adressen @' . PartnerMail::DOMAIN . ' gelesen (nur lesen)' . ($pmAuto ? ', ' . count($pmAuto) . ' eindeutig zugeordnet: ' . implode(', ', array_column($pmAuto, 'adresse')) : ', keine eindeutig zuzuordnen') . '.'
-                        : 'Keine Adressen gelesen — KAS-Zugang fehlt oder die Domain liegt unter einem anderen Konto. Die Adresse kann trotzdem von Hand eingetragen werden.';
+                        : 'Keine Adressen gelesen — der KAS-Zugang des Kontos von vecom-design.it fehlt (Einstellungen › Zugänge & Schutz) oder stimmt nicht. Die Adresse kann trotzdem von Hand eingetragen werden.';
                 }
                 weiter('partner/' . $pmId . '#vecom-adresse');
             case 'partner_kurzlink':
@@ -2904,6 +2904,36 @@ if ($post) {
                 $_SESSION[$probe['ok'] ? 'gut' : 'fehler'] = $probe['ok']
                     ? $probe['text']
                     : 'Gespeichert, aber die Prüfung schlug fehl: ' . $probe['text'];
+                zurueck('einstellungen?b=zugaenge');
+                break;
+
+            case 'kas_domain_zugang':
+                /* Phase 7a (05.10.2026, Uwe: „unter dem kas wo auch vecom design läuft“): der Zugang des Kontos von
+                   vecom-design.it — nur zum LESEN der @vecom-Adressen. Wie beim Reseller-Zugang: nur in
+                   app/config.local.php, nie im Repository. Gleich danach lesen und eindeutig zuordnen. */
+                require_once __DIR__ . '/src/Einrichtung.php';
+                require_once __DIR__ . '/src/PartnerMail.php';
+                $alt = is_file(dirname(__DIR__) . '/app/config.local.php')
+                     ? (array) (include dirname(__DIR__) . '/app/config.local.php') : [];
+                $bisher = (array) ($alt['kas_domain'] ?? []);
+                $login  = trim((string) ($_POST['login'] ?? '')) ?: (string) ($bisher['login'] ?? '');
+                $pass   = (string) ($_POST['passwort'] ?? '') ?: (string) ($bisher['passwort'] ?? '');
+                if ($login === '' || !preg_match('/^[a-z][a-z0-9_]{2,30}$/i', $login)) {
+                    $_SESSION['fehler'] = 'Das sieht nicht wie ein KAS-Login aus (w…).';
+                    zurueck('einstellungen?b=zugaenge');
+                }
+                $alt['kas_domain'] = ['login' => $login, 'passwort' => $pass];
+                if (!Einrichtung::konfigSchreiben(dirname(__DIR__) . '/app/config.local.php', $alt)) {
+                    $_SESSION['fehler'] = 'app/config.local.php konnte nicht geschrieben werden.';
+                    zurueck('einstellungen?b=zugaenge');
+                }
+                Events::protokoll('integration', 'KAS-Zugang für vecom-design.it (nur lesen) gespeichert');
+                PartnerMail::kasDomainFrisch($login, $pass);   // die Konfiguration dieses Aufrufs ist noch die alte
+                $kdN = PartnerMail::kasLesen();
+                $kdAuto = $kdN > 0 ? PartnerMail::automatischZuordnen() : [];
+                $_SESSION[$kdN > 0 ? 'gut' : 'fehler'] = $kdN > 0
+                    ? 'Gespeichert. ' . $kdN . ' Adressen @' . PartnerMail::DOMAIN . ' gelesen' . ($kdAuto ? ', ' . count($kdAuto) . ' eindeutig zugeordnet: ' . implode(', ', array_column($kdAuto, 'adresse')) : ', keine eindeutig zuzuordnen — dann in der Partner-Akte auswählen') . '.'
+                    : 'Gespeichert, aber keine Adressen gelesen. Stimmen Login und KAS-Passwort (nicht das MembersArea-Passwort)?';
                 zurueck('einstellungen?b=zugaenge');
                 break;
 
