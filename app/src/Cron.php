@@ -175,6 +175,12 @@ final class Cron
                 $s = new StripeAnbieter();
                 return $s->bereit() ? WmBestellung::abgleichen($s) : 0;
             },
+            /* Partner-Shop Phase 6a (05.10.2026, Uwe: „sonst nach 14 Tagen“): versendet ohne Bestätigung → zugestellt.
+               Stufe A: schreibt nur den Stand, schickt nichts. */
+            'wm_zustellen' => static function () {
+                require_once __DIR__ . '/WmBestellung.php';
+                return WmBestellung::automatischZustellen();
+            },
             'zahllinks'   => static fn() => self::abgelaufeneZahlungslinks(),
             /* Phase 2: angekuendigte Raten am Tag abbuchen. Nach dem Abgleich,
                damit eine gerade eingegangene Lastschrift zaehlt, bevor

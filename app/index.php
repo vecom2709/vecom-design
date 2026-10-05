@@ -2065,6 +2065,19 @@ if ($post) {
                 }
                 zurueck('werbemittel/bestellungen#b' . $wmBid);
 
+            case 'wm_b_zugestellt':
+            case 'wm_b_reklamation':
+                /* Partner-Shop Phase 6a (05.10.2026): zugestellt von Hand; über eine Reklamation entscheiden
+                   (Neudruck, Gutschrift, abgelehnt) — Geld und Druck macht Uwe selbst, hier steht der Entscheid. */
+                require_once __DIR__ . '/src/WmBestellung.php';
+                $wmBid = (int) ($_POST['id'] ?? 0);
+                try {
+                    $wmOk = $tat === 'wm_b_zugestellt' ? WmBestellung::zugestellt($wmBid, null, 'verwaltung')
+                        : WmBestellung::reklamationEntscheiden($wmBid, (string) ($_POST['entscheid'] ?? ''), (string) ($_POST['antwort'] ?? ''));
+                    $_SESSION[$wmOk ? 'gut' : 'fehler'] = $wmOk ? 'Gespeichert.' : 'Nichts geändert — die Bestellung steht schon auf einem anderen Stand.';
+                } catch (InvalidArgumentException $e) { $_SESSION['fehler'] = $e->getMessage(); }
+                zurueck('werbemittel/bestellungen#b' . $wmBid);
+
             case 'wm_b_bezahlt':
             case 'wm_b_drucker':
             case 'wm_b_versendet':
@@ -4791,6 +4804,12 @@ switch ($route) {
         }
         if (($teile[1] ?? '') === 'bestellungen') {
             require_once __DIR__ . '/src/WmBestellung.php';
+            if (isset($_GET['foto'])) {   // Foto einer Reklamation (Phase 6a) — nur in der Verwaltung
+                $wmRf = WmBestellung::reklamationFoto((int) $_GET['foto']);
+                if ($wmRf === null) { http_response_code(404); exit; }
+                header('Content-Type: image/webp'); header('Cache-Control: private, max-age=300'); header('X-Content-Type-Options: nosniff');
+                echo $wmRf; exit;
+            }
             ansicht('werbemittel_bestellungen', ['liste' => WmBestellung::verwaltung(), 'zahlweg' => WmBestellung::zahlweg()]);
             break;
         }

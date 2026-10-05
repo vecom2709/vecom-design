@@ -600,3 +600,28 @@ html{scroll-padding-top:76px}
 .cc-mat li b{white-space:nowrap}
 @media (max-width:640px){.cc-pvtab td{align-items:flex-start}}
 .cc-pvtab td:first-of-type{text-align:left}
+
+/* ---------- Phase 6a: SHOP (05.10.2026) ---------- */
+.cc-shop-wege{margin:14px 0 0;padding:12px 14px;border-radius:12px;border:1px solid var(--linie);font-size:14px;line-height:1.55;color:var(--dim);background:rgba(255,255,255,.02)}
+.cc-shop{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+@media (min-width:700px){.cc-shop{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:1080px){.cc-shop{grid-template-columns:repeat(3,minmax(0,1fr))}}
+.cc-shop .knoepfe{margin-top:auto}
+.cc-shop .knopf{display:inline-flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:0;min-height:44px;line-height:1.2}
+.cc-shop .knopf small{font-size:11.5px;font-weight:500;opacity:.75}
+.cc-shop-nur{font-size:12px;color:var(--leise)}
+.cc-best{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.cc-best > li{gap:6px}
+.cc-best small{font-size:12.5px;color:var(--leise);line-height:1.5}
+.cc-best-kopf{display:flex;justify-content:space-between;align-items:center;gap:6px 10px;flex-wrap:wrap}
+.cc-best-kopf b{word-break:keep-all;white-space:nowrap}
+.cc-best-entscheid{margin:4px 0 0;font-size:13.5px;line-height:1.5;color:var(--dim)}
+.cc-best .cc-stufe.st-versendet,.cc-best .cc-stufe.st-zugestellt{border-color:rgba(108,214,160,.5);color:#8ee0b6}
+.cc-best .cc-stufe.st-reklamation{border-color:rgba(255,159,90,.6);color:#ffb784}
+.cc-best .cc-stufe.st-offen,.cc-best .cc-stufe.st-angefragt{border-color:var(--gold);color:var(--gold-hell)}
+.cc-problem{flex-basis:100%}
+.cc-problem > summary{display:inline-flex;cursor:pointer}
+.cc-problem form{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.cc-problem textarea{width:100%;box-sizing:border-box;font-size:14px;padding:10px 12px}
+.cc-problem input[type=file]{font-size:13px}
+.cc-problem form .knopf{align-self:flex-start}

@@ -9,7 +9,10 @@ $S = [
     'angefragt' => ['Angefragt — Zahlung klären', 'warnung'], 'offen' => ['Bezahlseite offen', 'warnung'],
     'bezahlt' => ['Bezahlt — jetzt drucken lassen', 'gut'], 'beim_drucker' => ['Beim Drucker', ''],
     'versendet' => ['Versendet', 'gut'], 'storniert' => ['Storniert', ''],
+    // Phase 6a (05.10.2026)
+    'zugestellt' => ['Zugestellt', 'gut'], 'reklamation' => ['Reklamation — entscheiden', 'schlecht'],
 ];
+$rekWort = ['neudruck' => 'Neudruck', 'gutschrift' => 'Gutschrift', 'abgelehnt' => 'abgelehnt'];
 ?>
 <div class="kopf"><div><h1>Werbemittel-Bestellungen</h1>
   <p style="color:var(--leise);font-size:13px;margin-top:6px;max-width:760px">
@@ -98,6 +101,25 @@ $S = [
           <div class="feld" style="margin:0"><label>Sendungsnummer</label><input name="tracking" required style="width:170px"></div>
           <div class="feld" style="margin:0"><label>Link zur Verfolgung (https://…)</label><input name="url" type="url" placeholder="https://" style="width:260px"></div>
           <button class="knopf haupt">Versendet</button></form>
+      <?php elseif ($b['status'] === 'versendet'): ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_b_zugestellt"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+          <button class="knopf">Ist zugestellt</button></form>
+        <span style="font-size:12.5px;color:var(--leise)">Sonst automatisch <?= WmBestellung::ZUSTELL_TAGE ?> Tage nach dem Versand.</span>
+      <?php endif; ?>
+      <?php if (!empty($b['reklamation_am'])): /* Phase 6a: Reklamation mit Grund, Foto und Entscheid */ ?>
+        <div style="flex-basis:100%;border:1px solid var(--linie);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.6">
+          <b>Reklamation vom <?= Fmt::h(Fmt::datum((string) $b['reklamation_am'])) ?>:</b> <?= Fmt::h((string) $b['reklamation_grund']) ?>
+          <?php if (!empty($b['reklamation_mit_foto'])): ?><br><a href="<?= Fmt::h(url('werbemittel/bestellungen') . '?foto=' . (int) $b['id']) ?>" target="_blank" rel="noopener"><img src="<?= Fmt::h(url('werbemittel/bestellungen') . '?foto=' . (int) $b['id']) ?>" alt="Foto der Reklamation" style="max-height:140px;border-radius:8px;margin-top:6px"></a><?php endif; ?>
+          <?php if (!empty($b['reklamation_entscheid'])): ?><br>Entschieden <?= Fmt::h(Fmt::datum((string) $b['reklamation_entschieden_am'])) ?>: <b><?= Fmt::h($rekWort[$b['reklamation_entscheid']] ?? (string) $b['reklamation_entscheid']) ?></b><?= !empty($b['reklamation_antwort']) ? ' — ' . Fmt::h((string) $b['reklamation_antwort']) : '' ?><?php endif; ?>
+          <?php if ($b['status'] === 'reklamation'): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:8px 0 0;display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+              <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_b_reklamation"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
+              <div class="feld" style="margin:0"><label>Entscheid</label><select name="entscheid"><option value="neudruck">Neudruck</option><option value="gutschrift">Gutschrift</option><option value="abgelehnt">Abgelehnt</option></select></div>
+              <div class="feld" style="margin:0;flex:1;min-width:240px"><label>Satz an den Partner (bei „abgelehnt“ Pflicht)</label><input name="antwort" maxlength="600"></div>
+              <button class="knopf haupt">Entscheiden</button></form>
+          <?php endif; ?>
+        </div>
       <?php endif; ?>
       <?php if (in_array($b['status'], ['angefragt', 'offen', 'bezahlt'], true)): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 0 auto">

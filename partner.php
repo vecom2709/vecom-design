@@ -167,7 +167,7 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
 require_once __DIR__ . '/app/src/PartnerCommand.php';
 if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $_GET)
-           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel', 'mkt_check', 'kurzlink'], true)
+           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel', 'mkt_check', 'kurzlink', 'wm_angekommen', 'wm_problem'], true)
            || str_starts_with((string) ($_POST['tat'] ?? ''), 'lead_'))) {
     require_once __DIR__ . '/app/src/PartnerKampagne.php';
     $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut', 'kl_gut'], true) ? (string) $_GET['m'] : '';
@@ -234,6 +234,26 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         if ($ccKlFehler === '') { header('Location: ' . $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen', 'm' => 'kl_gut']) . '#kurzlink', true, 303); exit; }
         $ccKlWunsch = mb_substr((string) ($_POST['name'] ?? ''), 0, 40);
         $_GET['marketing'] = 1; $_GET['teil'] = 'kampagnen';
+    }
+    /* SHOP (Phase 6a, 05.10.2026): „Ist angekommen“ und „Problem melden“ — nur eigene Bestellungen
+       (WmBestellung prüft die Partner-ID in der Abfrage), zurück auf die Shop-Seite (PRG). */
+    if (in_array($ccTat, ['wm_angekommen', 'wm_problem'], true)) {
+        require_once __DIR__ . '/app/src/WmBestellung.php';
+        $ccBid = (int) ($_POST['bestellung'] ?? 0);
+        $ccZurueck = static fn(string $m) => $selbst(['cc' => 1, 'shop' => 1, 'wm' => $m]) . '#b-' . $ccBid;
+        if (!$ccCsrf) { header('Location: ' . $selbst(['cc' => 1, 'shop' => 1]), true, 303); exit; }
+        if ($ccTat === 'wm_angekommen') {
+            WmBestellung::zugestellt($ccBid, (int) $p['id'], 'partner');
+            header('Location: ' . $ccZurueck('angekommen'), true, 303); exit;
+        }
+        $ccF = $_FILES['foto'] ?? null;
+        $ccFotoOk = is_array($ccF) && (int) ($ccF['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_OK && is_uploaded_file((string) $ccF['tmp_name']);
+        if (is_array($ccF) && !in_array((int) ($ccF['error'] ?? UPLOAD_ERR_NO_FILE), [UPLOAD_ERR_OK, UPLOAD_ERR_NO_FILE], true)) {
+            header('Location: ' . $ccZurueck('problem_foto'), true, 303); exit;
+        }
+        $ccR = WmBestellung::reklamieren($ccBid, (int) $p['id'], (string) ($_POST['grund'] ?? ''),
+            $ccFotoOk ? (string) $ccF['tmp_name'] : null, $ccFotoOk ? (int) $ccF['size'] : 0);
+        header('Location: ' . $ccZurueck(['ok' => 'problem', 'grund' => 'problem_grund', 'foto' => 'problem_foto'][$ccR] ?? 'problem_grund'), true, 303); exit;
     }
     /* Kunden & Leads (Phase 2, 05.10.2026): jede Tat nur für eigene Leads — PartnerLeads prüft die Partner-ID
        in jeder Abfrage, ein fremder Lead ist „nicht vorhanden“. Nach dem Speichern zurück in die Akte (PRG). */
@@ -313,7 +333,8 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         $ccSeite = $ccLead ? 'lead' : 'kunden';
     }
     elseif (isset($_GET['marketing'])) { $ccSeite = 'marketing'; }
-    elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
+    elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }
+    elseif (isset($_GET['shop']) && $ccMc) { $ccSeite = 'shop'; }   // SHOP (Phase 6a): zwei Druckwege, Bestellungen   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
     elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
     elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
     elseif (isset($_GET['kampagne'])) {
@@ -920,6 +941,14 @@ if ($p && isset($_GET['fl'])) {
     header('Content-Length: ' . strlen($flDaten));
     echo $flDaten;
     exit;
+}
+/* ---------- Foto der eigenen Reklamation (Phase 6a) — nur der Partner, dem die Bestellung gehört ---------- */
+if ($p && isset($_GET['wmfoto'])) {
+    require_once __DIR__ . '/app/src/WmBestellung.php';
+    $wmF = WmBestellung::reklamationFoto((int) $_GET['wmfoto'], (int) $p['id']);
+    if ($wmF === null) { http_response_code(404); exit; }
+    header('Content-Type: image/webp'); header('Cache-Control: private, max-age=300'); header('X-Content-Type-Options: nosniff');
+    echo $wmF; exit;
 }
 /* ---------- Marketing Center: der eigene QR-Code (03.10.2026) ----------
    ?wmqr=svg|png — führt auf /p/CODE/qr, damit Scans von Gedrucktem eigens

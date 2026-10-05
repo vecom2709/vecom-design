@@ -1552,6 +1552,31 @@ final class Texte
             'en' => ['On its way: {nummer}',
                 "Hello {name},\n\nyour order {nummer} has shipped.\nTracking number: {tracking}\n{tracking_url}\n\nAll your orders are in your partner area:\n{portal}"],
         ],
+        /* Reklamation entschieden (Partner-Shop Phase 6a, 05.10.2026) — Antwort auf die eigene Meldung des Partners. */
+        'wm_reklamation_neudruck' => [
+            'it' => ['Reclamo accolto: {nummer}',
+                "Buongiorno {name},\n\nabbiamo esaminato il suo reclamo per l’ordine {nummer}: lo ristampiamo senza costi per lei. Appena spedito, riceve il numero di spedizione.\n{antwort}\n\n{portal}"],
+            'de' => ['Reklamation angenommen: {nummer}',
+                "Hallo {name},\n\nwir haben deine Reklamation zur Bestellung {nummer} geprüft: Wir drucken sie für dich kostenlos neu. Sobald sie verschickt ist, bekommst du die Sendungsnummer.\n{antwort}\n\n{portal}"],
+            'en' => ['Complaint accepted: {nummer}',
+                "Hello {name},\n\nwe have reviewed your complaint about order {nummer}: we will reprint it free of charge. Once it ships, you will get the tracking number.\n{antwort}\n\n{portal}"],
+        ],
+        'wm_reklamation_gutschrift' => [
+            'it' => ['Reclamo accolto: {nummer}',
+                "Buongiorno {name},\n\nabbiamo esaminato il suo reclamo per l’ordine {nummer}: le rimborsiamo l’importo di {betrag}. Il rimborso arriva sullo stesso metodo di pagamento.\n{antwort}\n\n{portal}"],
+            'de' => ['Reklamation angenommen: {nummer}',
+                "Hallo {name},\n\nwir haben deine Reklamation zur Bestellung {nummer} geprüft: Du bekommst {betrag} zurück, auf demselben Weg, auf dem du bezahlt hast.\n{antwort}\n\n{portal}"],
+            'en' => ['Complaint accepted: {nummer}',
+                "Hello {name},\n\nwe have reviewed your complaint about order {nummer}: you will get {betrag} back, to the same payment method you used.\n{antwort}\n\n{portal}"],
+        ],
+        'wm_reklamation_abgelehnt' => [
+            'it' => ['Il suo reclamo: {nummer}',
+                "Buongiorno {name},\n\nabbiamo esaminato con attenzione il suo reclamo per l’ordine {nummer} e questa volta non possiamo accoglierlo:\n{antwort}\n\nSe ha domande, risponda semplicemente a questa e-mail.\n\n{portal}"],
+            'de' => ['Deine Reklamation: {nummer}',
+                "Hallo {name},\n\nwir haben deine Reklamation zur Bestellung {nummer} genau geprüft und können sie diesmal nicht annehmen:\n{antwort}\n\nWenn du Fragen hast, antworte einfach auf diese Mail.\n\n{portal}"],
+            'en' => ['Your complaint: {nummer}',
+                "Hello {name},\n\nwe have carefully reviewed your complaint about order {nummer} and cannot accept it this time:\n{antwort}\n\nIf you have questions, simply reply to this email.\n\n{portal}"],
+        ],
         /* Partnerprogramm (26.09.2026) */
         'partner_willkommen' => [
             'it' => ['Benvenuto nel programma partner di Vecom Design',
@@ -2946,6 +2971,7 @@ final class Texte
         'PARTNER_MKT'         => [],
         'PARTNER_KAMPAGNE'    => [],
         'PARTNER_GELD'        => [],
+        'PARTNER_SHOP'        => [],
         'PARTNER_START'       => [],
         'PARTNER_HEUTE'       => [],
         'PARTNER_AUTOMATIK'   => [],
@@ -3502,6 +3528,26 @@ final class Texte
             'belegt'   => ['it' => 'Questo nome è già preso. Ne scelga un altro.', 'de' => 'Diesen Namen gibt es schon. Bitte wähle einen anderen.', 'en' => 'This name is already taken. Please choose another one.'],
             'zu_oft'   => ['it' => 'Ha già cambiato il nome tre volte. Per un altro cambio scriva a Vecom.', 'de' => 'Du hast den Namen schon dreimal geändert. Für eine weitere Änderung schreib Vecom.', 'en' => 'You have already changed the name three times. Write to Vecom for another change.'],
         ],
+    ];
+
+    /* SHOP im Command Center (Phase 6a, 05.10.2026; Spezifikation 32–38): jedes Produkt mit zwei Wegen —
+       selbst drucken (PDF, kostenlos) oder drucken lassen (Bestellung) —, darunter die eigenen Bestellungen
+       mit „Ist angekommen“ und „Problem melden“. Deutsch duzt. */
+    public const PARTNER_SHOP = [
+        'titel'   => ['it' => 'Shop', 'de' => 'Shop', 'en' => 'Shop'],
+        'satz'    => ['it' => 'Materiali con il suo nome, il suo link e il suo QR — da stampare da sé o da far stampare.', 'de' => 'Werbemittel mit deinem Namen, deinem Link und deinem QR-Code — selbst drucken oder drucken lassen.', 'en' => 'Materials with your name, your link and your QR code — print them yourself or have them printed.'],
+        'wege'    => ['it' => 'Stampare da sé è gratis e va bene per poche copie urgenti. Far stampare conviene per la qualità e quando ne servono molte: carta migliore, colori precisi, consegna a casa.', 'de' => 'Selbst drucken kostet nichts und passt für wenige Stück, die du gleich brauchst. Drucken lassen lohnt sich für Qualität und größere Mengen: besseres Papier, genaue Farben, Lieferung nach Hause.', 'en' => 'Printing yourself is free and suits a few copies you need now. Having them printed is worth it for quality and larger runs: better paper, accurate colours, delivered to you.'],
+        'selbst'  => ['it' => 'Stampare da sé', 'de' => 'Selbst drucken', 'en' => 'Print yourself'],
+        'selbst_klein' => ['it' => 'PDF gratuito', 'de' => 'PDF, kostenlos', 'en' => 'PDF, free'],
+        'lassen'  => ['it' => 'Far stampare', 'de' => 'Drucken lassen', 'en' => 'Have it printed'],
+        'ab'      => ['it' => 'da {preis}', 'de' => 'ab {preis}', 'en' => 'from {preis}'],
+        'nur_lassen' => ['it' => 'Solo in tipografia', 'de' => 'Nur in der Druckerei', 'en' => 'Printer only'],
+        'leer'    => ['it' => 'Il catalogo è in preparazione.', 'de' => 'Der Katalog wird gerade vorbereitet.', 'en' => 'The catalogue is being prepared.'],
+        'best'    => ['it' => 'I suoi ordini', 'de' => 'Deine Bestellungen', 'en' => 'Your orders'],
+        'best_leer' => ['it' => 'Ancora nessun ordine.', 'de' => 'Noch keine Bestellung.', 'en' => 'No order yet.'],
+        'alle'    => ['it' => 'Tutti i prodotti e i design', 'de' => 'Alle Produkte und Designs', 'en' => 'All products and designs'],
+        'entscheid_antwort' => ['it' => 'Risposta di Vecom', 'de' => 'Antwort von Vecom', 'en' => 'Vecom’s reply'],
+        'frist'   => ['it' => 'Reclamo possibile fino al {datum}', 'de' => 'Reklamation möglich bis {datum}', 'en' => 'Complaint possible until {datum}'],
     ];
 
     /* ERGEBNISSE im Command Center (Phase 5, 05.10.2026; Spezifikation 28–31 und 55): Geld in vier Stufen,
@@ -6126,6 +6172,24 @@ final class Texte
         's_beim_drucker' => ['it' => 'In stampa', 'de' => 'Im Druck', 'en' => 'Printing'],
         's_versendet' => ['it' => 'Spedito', 'de' => 'Versendet', 'en' => 'Shipped'],
         's_storniert' => ['it' => 'Annullato', 'de' => 'Storniert', 'en' => 'Cancelled'],
+        // Partner-Shop Phase 6a (05.10.2026): zugestellt und Reklamation
+        's_zugestellt' => ['it' => 'Consegnato', 'de' => 'Zugestellt', 'en' => 'Delivered'],
+        's_reklamation' => ['it' => 'Reclamo in esame', 'de' => 'Reklamation in Prüfung', 'en' => 'Complaint under review'],
+        'angekommen' => ['it' => 'È arrivato', 'de' => 'Ist angekommen', 'en' => 'Has arrived'],
+        'problem' => ['it' => 'Segnalare un problema', 'de' => 'Problem melden', 'en' => 'Report a problem'],
+        'problem_satz' => ['it' => 'Cosa non va? Ad esempio stampa sbagliata, danni, quantità. Una foto aiuta. Entro {tage} giorni dalla consegna.', 'de' => 'Was stimmt nicht? Zum Beispiel falscher Druck, Schaden, Menge. Ein Foto hilft. Bis {tage} Tage nach der Zustellung.', 'en' => 'What is wrong? For example wrong print, damage, quantity. A photo helps. Up to {tage} days after delivery.'],
+        'problem_grund' => ['it' => 'Descriva il problema', 'de' => 'Beschreibe das Problem', 'en' => 'Describe the problem'],
+        'problem_foto' => ['it' => 'Foto (facoltativa)', 'de' => 'Foto (freiwillig)', 'en' => 'Photo (optional)'],
+        'problem_senden' => ['it' => 'Inviare a Vecom', 'de' => 'An Vecom senden', 'en' => 'Send to Vecom'],
+        'm_problem' => ['it' => 'Grazie, il suo reclamo è arrivato. Vecom le risponde per e-mail.', 'de' => 'Danke, deine Reklamation ist angekommen. Vecom antwortet dir per Mail.', 'en' => 'Thank you, your complaint has arrived. Vecom will reply by email.'],
+        'm_problem_grund' => ['it' => 'Scriva almeno una frase sul problema.', 'de' => 'Bitte schreib mindestens einen Satz zum Problem.', 'en' => 'Please write at least one sentence about the problem.'],
+        'm_problem_foto' => ['it' => 'La foto non si apre — JPG, PNG o WebP fino a 8 MB.', 'de' => 'Das Foto lässt sich nicht öffnen — JPG, PNG oder WebP bis 8 MB.', 'en' => 'The photo cannot be opened — JPG, PNG or WebP up to 8 MB.'],
+        'm_angekommen' => ['it' => 'Bene! Segnato come consegnato.', 'de' => 'Prima! Als zugestellt vermerkt.', 'en' => 'Great! Marked as delivered.'],
+        'rek_entschieden' => [
+            'neudruck' => ['it' => 'Reclamo accolto: ristampa', 'de' => 'Reklamation angenommen: Neudruck', 'en' => 'Complaint accepted: reprint'],
+            'gutschrift' => ['it' => 'Reclamo accolto: rimborso', 'de' => 'Reklamation angenommen: Erstattung', 'en' => 'Complaint accepted: refund'],
+            'abgelehnt' => ['it' => 'Reclamo non accolto', 'de' => 'Reklamation nicht angenommen', 'en' => 'Complaint not accepted'],
+        ],
         'm_angefragt' => ['it' => 'Grazie! Il suo ordine è arrivato. Vecom la contatta con le modalità di pagamento.', 'de' => 'Danke! Deine Bestellung ist eingegangen. Vecom meldet sich mit dem Zahlungsweg.', 'en' => 'Thank you! Your order has been received. Vecom will contact you about payment.'],
         'm_danke' => ['it' => 'Grazie! Appena Stripe conferma il pagamento, il suo ordine va in stampa.', 'de' => 'Danke! Sobald Stripe die Zahlung bestätigt, geht deine Bestellung in Druck.', 'en' => 'Thank you! As soon as Stripe confirms the payment, your order goes to print.'],
         /* 04.10.2026 (Uwe: „Partner kann vor der Freigabe auch abbrechen“): Entwurf verwerfen, unbezahlte Bestellung abbrechen. */

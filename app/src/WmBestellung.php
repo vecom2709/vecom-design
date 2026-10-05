@@ -301,6 +301,100 @@ final class WmBestellung
         return $ok;
     }
 
+    // ---- Zugestellt und Reklamation (Phase 6a, 05.10.2026) --------------------
+    /* Uwe: „Partner bestätigt, sonst nach 14 Tagen“. Ab der Zustellung kann der Partner
+       14 Tage lang reklamieren; Uwe entscheidet: Neudruck, Gutschrift oder abgelehnt.
+       Geld bewegt sich hier nie — eine Gutschrift macht Uwe bei Stripe selbst, einen
+       Neudruck bei der Druckerei; hier steht nur, was entschieden ist. */
+
+    public const ZUSTELL_TAGE = 14;
+    public const REKLAMATION_TAGE = 14;
+    public const ENTSCHEIDE = ['neudruck', 'gutschrift', 'abgelehnt'];
+
+    /** Versendet → zugestellt. $partnerId null = Verwaltung oder Automatik. */
+    public static function zugestellt(int $id, ?int $partnerId, string $wie = 'partner'): bool
+    {
+        $wie = in_array($wie, ['partner', 'automatisch', 'verwaltung'], true) ? $wie : 'partner';
+        $sql = "UPDATE wm_bestellungen SET status = 'zugestellt', zugestellt_am = NOW(), zugestellt_wie = ? WHERE id = ? AND status = 'versendet'";
+        $arg = [$wie, $id];
+        if ($partnerId !== null) { $sql .= ' AND partner_id = ?'; $arg[] = $partnerId; }
+        $ok = Db::run($sql, $arg)->rowCount() === 1;
+        if ($ok) { Events::protokoll('wm_zugestellt', 'Werbemittel-Bestellung #' . $id . ' zugestellt (' . $wie . ')', null, null, null, ['wm_bestellung' => $id]); }
+        return $ok;
+    }
+
+    /** Cron: was seit ZUSTELL_TAGE versendet ist und keiner bestätigt hat, gilt als zugestellt. Schickt nichts. */
+    public static function automatischZustellen(): int
+    {
+        $n = 0;
+        foreach (Db::all("SELECT id FROM wm_bestellungen WHERE status = 'versendet' AND versendet_am < NOW() - INTERVAL " . self::ZUSTELL_TAGE . ' DAY LIMIT 200') as $b) {
+            if (self::zugestellt((int) $b['id'], null, 'automatisch')) { $n++; }
+        }
+        return $n;
+    }
+
+    /** Darf der Partner diese Bestellung (noch) reklamieren? Versendet, oder zugestellt und höchstens REKLAMATION_TAGE her. */
+    public static function reklamierbar(array $b): bool
+    {
+        if ($b['status'] === 'versendet') { return true; }
+        return $b['status'] === 'zugestellt' && empty($b['reklamation_am']) && !empty($b['zugestellt_am'])
+            && strtotime((string) $b['zugestellt_am']) >= time() - self::REKLAMATION_TAGE * 86400;
+    }
+
+    /**
+     * Der Partner meldet ein Problem — mit Grund (Pflicht) und Foto (freiwillig, als WebP neu gerechnet).
+     * Eine versendete Bestellung gilt damit auch als zugestellt. Nur eigene, nur einmal.
+     * @return string ok | grund | foto | nicht
+     */
+    public static function reklamieren(int $id, int $partnerId, string $grund, ?string $fotoPfad = null, int $fotoGroesse = 0): string
+    {
+        $grund = trim((string) preg_replace('/\s+/u', ' ', $grund));
+        if (mb_strlen($grund) < 10) { return 'grund'; }
+        $grund = mb_substr($grund, 0, 600);
+        $foto = null;
+        if ($fotoPfad !== null && $fotoGroesse > 0) {
+            require_once __DIR__ . '/PartnerMediathek.php';
+            $foto = PartnerMediathek::bildRechnen($fotoPfad, $fotoGroesse);
+            if (str_starts_with($foto, 'fehler:')) { return 'foto'; }
+        }
+        $b = Db::one('SELECT * FROM wm_bestellungen WHERE id = ? AND partner_id = ?', [$id, $partnerId]);
+        if (!$b || !self::reklamierbar($b)) { return 'nicht'; }
+        $ok = Db::run("UPDATE wm_bestellungen SET status = 'reklamation', reklamation_am = NOW(), reklamation_grund = ?, reklamation_foto = ?,
+                              zugestellt_am = COALESCE(zugestellt_am, NOW()), zugestellt_wie = COALESCE(zugestellt_wie, 'partner')
+                        WHERE id = ? AND partner_id = ? AND status IN ('versendet','zugestellt') AND reklamation_am IS NULL",
+                      [$grund, $foto, $id, $partnerId])->rowCount() === 1;
+        if (!$ok) { return 'nicht'; }
+        Events::melden('wm_reklamation', 'Reklamation: Werbemittel ' . $b['nummer'], 'warnung',
+            mb_substr($grund, 0, 300) . ($foto !== null ? ' (mit Foto)' : ''), '/werbemittel/bestellungen#b' . $id);
+        Events::protokoll('wm_reklamation', 'Werbemittel-Bestellung #' . $id . ' reklamiert', null, null, null, ['wm_bestellung' => $id]);
+        return 'ok';
+    }
+
+    /** Uwe entscheidet über eine Reklamation. Danach steht die Bestellung wieder auf „zugestellt“, mit Entscheid; der Partner bekommt eine Mail. */
+    public static function reklamationEntscheiden(int $id, string $entscheid, string $antwort = ''): bool
+    {
+        if (!in_array($entscheid, self::ENTSCHEIDE, true)) { throw new InvalidArgumentException('Entscheid unbekannt.'); }
+        $antwort = mb_substr(trim($antwort), 0, 600);
+        if ($entscheid === 'abgelehnt' && mb_strlen($antwort) < 10) { throw new InvalidArgumentException('Bei „abgelehnt“ bitte einen Satz für den Partner.'); }
+        $ok = Db::run("UPDATE wm_bestellungen SET status = 'zugestellt', reklamation_entscheid = ?, reklamation_antwort = ?, reklamation_entschieden_am = NOW()
+                        WHERE id = ? AND status = 'reklamation'", [$entscheid, $antwort !== '' ? $antwort : null, $id])->rowCount() === 1;
+        if ($ok) {
+            Events::pruefspur('wm_reklamation_entschieden', 'wm_bestellung', $id, ['status' => 'reklamation'], ['entscheid' => $entscheid]);
+            self::mailen($id, 'wm_reklamation_' . $entscheid, ['antwort' => $antwort]);
+        }
+        return $ok;
+    }
+
+    /** Foto einer Reklamation — für die Verwaltung und den Partner, dem die Bestellung gehört. */
+    public static function reklamationFoto(int $id, ?int $partnerId = null): ?string
+    {
+        $sql = 'SELECT reklamation_foto FROM wm_bestellungen WHERE id = ? AND reklamation_foto IS NOT NULL';
+        $arg = [$id];
+        if ($partnerId !== null) { $sql .= ' AND partner_id = ?'; $arg[] = $partnerId; }
+        $f = Db::wert($sql, $arg, null);
+        return is_string($f) && $f !== '' ? $f : null;
+    }
+
     /**
      * Der Partner bricht eine UNBEZAHLTE Bestellung ab (04.10.2026). Gibt es
      * eine Stripe-Bezahlseite, wird sie zuerst bei Stripe beendet
@@ -343,7 +437,7 @@ final class WmBestellung
      * Fehler beim Versand hält den Ablauf nicht auf — die Bestellung ist
      * gespeichert, und der Partner sieht den Stand in seinem Bereich.
      */
-    private static function mailen(int $id, string $anlass): void
+    private static function mailen(int $id, string $anlass, array $extra = []): void
     {
         try {
             require_once __DIR__ . '/Partner.php';
@@ -360,7 +454,7 @@ final class WmBestellung
                 'tracking' => (string) ($b['tracking'] ?? ''),
                 'tracking_url' => (string) ($b['tracking_url'] ?? ''),
                 'zahlung' => Texte::h(Texte::PARTNER_WERBEMITTEL[self::zahlweg() === 'stripe' ? 'mail_stripe' : 'mail_anfrage'], $sp),
-            ], self::$senden);
+            ] + $extra, self::$senden);
         } catch (Throwable $e) { error_log('WmBestellung::mailen ' . $anlass . ' ' . $id . ': ' . $e->getMessage()); }
     }
 
@@ -369,7 +463,8 @@ final class WmBestellung
     /** Für die Verwaltung: alles, mit Positionen (inkl. Einkauf). */
     public static function verwaltung(int $anzahl = 200): array
     {
-        $b = Db::all('SELECT b.*, p.name AS partner, p.code FROM wm_bestellungen b JOIN partner p ON p.id = b.partner_id
+        // Ohne das Foto selbst (MEDIUMBLOB) — die Verwaltung lädt es über reklamationFoto().
+        $b = Db::all('SELECT b.*, b.reklamation_foto IS NOT NULL AS reklamation_mit_foto, p.name AS partner, p.code FROM wm_bestellungen b JOIN partner p ON p.id = b.partner_id
                        ORDER BY b.id DESC LIMIT ' . max(1, min(1000, $anzahl)));
         return self::mitPositionen($b, true);
     }
@@ -378,7 +473,8 @@ final class WmBestellung
     public static function fuerPartner(int $partnerId): array
     {
         $b = Db::all('SELECT id, nummer, status, summe_cent, steuer_cent, waehrung, adresse, created_at, bezahlt_am, beim_drucker_am, versendet_am,
-                             storniert_am, tracking, tracking_url
+                             storniert_am, tracking, tracking_url, zugestellt_am, zugestellt_wie, reklamation_am, reklamation_grund,
+                             reklamation_foto IS NOT NULL AS reklamation_mit_foto, reklamation_entscheid, reklamation_antwort, reklamation_entschieden_am
                         FROM wm_bestellungen WHERE partner_id = ? ORDER BY id DESC LIMIT 50', [$partnerId]);
         return self::mitPositionen($b, false);
     }
@@ -392,6 +488,7 @@ final class WmBestellung
         $je = [];
         foreach ($pos as $x) { $je[(int) $x['bestellung_id']][] = $x; }
         foreach ($kopf as &$k) {
+            unset($k['reklamation_foto']);
             $k['positionen'] = $je[(int) $k['id']] ?? [];
             $k['adresse'] = (array) json_decode((string) $k['adresse'], true);
         }

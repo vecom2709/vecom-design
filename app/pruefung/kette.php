@@ -24692,6 +24692,126 @@ Db::run('DELETE FROM customers WHERE id IN (' . implode(',', $p5K) . ')');
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p5i, (int) $p5F['id']]);
 
 /* ============================================================================
+   Partner-Shop, Etappe 6a (05.10.2026, Uwe: „Partner bestätigt, sonst nach 14
+   Tagen“): zugestellt und Reklamation — nur eigene, Frist, Foto neu gerechnet,
+   Uwes Entscheid mit Mail; SHOP im Command Center mit zwei Druckwegen.
+   ============================================================================ */
+abschnitt('Partner: Shop, Zustellung und Reklamation');
+require_once $wurzel . '/src/WmBestellung.php';
+$p6 = Partner::laden(Partner::anlegen(['name' => 'Sara Shop', 'email' => 'sara.shop@partner.example', 'code' => 'SARA6', 'sprache' => 'de', 'status' => 'aktiv']));
+$p6F = Partner::laden(Partner::anlegen(['name' => 'Fred Fremd', 'email' => 'fred.fremd@partner.example', 'code' => 'FRED6', 'sprache' => 'de', 'status' => 'aktiv']));
+$p6i = (int) $p6['id'];
+$p6Best = static function (string $status, int $tageVersendet = 0) use ($p6i): int {
+    static $n = 0; $n++;
+    return (int) Db::insert('wm_bestellungen', ['nummer' => 'VEC-MKT-KETTE6-' . $n, 'partner_id' => $p6i, 'status' => $status, 'summe_cent' => 4990, 'steuer_cent' => 0,
+        'waehrung' => 'EUR', 'adresse' => json_encode(['name' => 'Sara', 'land' => 'IT']), 'sprache' => 'de', 'bezahlt_am' => date('Y-m-d H:i:s', strtotime('-20 days')),
+        'versendet_am' => $status === 'versendet' ? date('Y-m-d H:i:s', strtotime("-$tageVersendet days")) : null, 'tracking' => $status === 'versendet' ? 'TRK' . $n : null]);
+};
+$p6B1 = $p6Best('versendet', 2); $p6B2 = $p6Best('versendet', 15); $p6B3 = $p6Best('versendet', 13); $p6B4 = $p6Best('beim_drucker');
+$p6Z = [WmBestellung::zugestellt($p6B1, (int) $p6F['id']), WmBestellung::zugestellt($p6B1, $p6i), WmBestellung::zugestellt($p6B1, $p6i), WmBestellung::zugestellt($p6B4, $p6i)];
+$p6Auto = WmBestellung::automatischZustellen();
+$p6St = static fn(int $id): array => Db::one('SELECT status, zugestellt_wie, reklamation_am, reklamation_entscheid FROM wm_bestellungen WHERE id = ?', [$id]) ?: [];
+pruefe('Zugestellt: nur der eigene Partner und nur aus „versendet“, einmal; automatisch erst nach 14 Tagen (13 Tage bleibt versendet), ohne Mail',
+    $p6Z === [false, true, false, false] && $p6St($p6B1)['zugestellt_wie'] === 'partner' && $p6Auto >= 1
+    && $p6St($p6B2)['status'] === 'zugestellt' && $p6St($p6B2)['zugestellt_wie'] === 'automatisch' && $p6St($p6B3)['status'] === 'versendet'
+    && $p6St($p6B4)['status'] === 'beim_drucker', json_encode([$p6Z, $p6Auto, $p6St($p6B2), $p6St($p6B3)]));
+
+$p6Png = tempnam(sys_get_temp_dir(), 'p6'); $p6Gd = imagecreatetruecolor(2000, 1500); imagefill($p6Gd, 0, 0, imagecolorallocate($p6Gd, 200, 30, 30)); imagepng($p6Gd, $p6Png); imagedestroy($p6Gd);
+$p6Txt = tempnam(sys_get_temp_dir(), 'p6t'); file_put_contents($p6Txt, 'kein Bild');
+$p6R = [
+    WmBestellung::reklamieren($p6B3, $p6i, 'kurz'),
+    WmBestellung::reklamieren($p6B3, (int) $p6F['id'], 'Die Farbe ist ganz falsch gedruckt.'),
+    WmBestellung::reklamieren($p6B3, $p6i, 'Die Farbe ist ganz falsch gedruckt.', $p6Txt, (int) filesize($p6Txt)),
+    WmBestellung::reklamieren($p6B3, $p6i, '  Die Farbe   ist ganz falsch gedruckt.  ', $p6Png, (int) filesize($p6Png)),
+    WmBestellung::reklamieren($p6B3, $p6i, 'Noch einmal dieselbe Meldung zur Farbe.'),
+    WmBestellung::reklamieren($p6B4, $p6i, 'Noch gar nicht angekommen, aber schon kaputt.'),
+];
+Db::run('UPDATE wm_bestellungen SET zugestellt_am = NOW() - INTERVAL 15 DAY WHERE id = ?', [$p6B2]);
+$p6R[] = WmBestellung::reklamieren($p6B2, $p6i, 'Nach drei Wochen fällt mir etwas auf.');
+$p6Foto = WmBestellung::reklamationFoto($p6B3, $p6i);
+$p6Gr = $p6Foto !== null ? getimagesizefromstring($p6Foto) : false;
+$p6Row = Db::one('SELECT status, reklamation_grund, zugestellt_am FROM wm_bestellungen WHERE id = ?', [$p6B3]);
+pruefe('Reklamation: Grund ab einem Satz, nur eigene, nur versendet oder binnen 14 Tagen nach Zustellung, nur einmal; Foto als WebP neu gerechnet (höchstens 1600 px), kein Bild abgelehnt; versendet gilt damit als zugestellt; Uwe bekommt eine Meldung',
+    $p6R === ['grund', 'nicht', 'foto', 'ok', 'nicht', 'nicht', 'nicht'] && $p6Row['status'] === 'reklamation' && $p6Row['reklamation_grund'] === 'Die Farbe ist ganz falsch gedruckt.'
+    && $p6Row['zugestellt_am'] !== null && is_array($p6Gr) && $p6Gr['mime'] === 'image/webp' && $p6Gr[0] === 1600
+    && WmBestellung::reklamationFoto($p6B3, (int) $p6F['id']) === null && WmBestellung::reklamationFoto($p6B3) !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'wm_reklamation'", [], 0) >= 1, json_encode([$p6R, $p6Row]));
+@unlink($p6Png); @unlink($p6Txt);
+
+$p6Mails = [];
+WmBestellung::$senden = static function (string $anlass, string $an, string $betreff, string $text, array $bezug = []) use (&$p6Mails): bool { $p6Mails[] = [$anlass, $an, $betreff, $text]; return true; };
+$p6E = [];
+foreach ([['quatsch', ''], ['abgelehnt', 'zu kurz']] as [$e, $a]) { try { WmBestellung::reklamationEntscheiden($p6B3, $e, $a); $p6E[] = 'ok'; } catch (InvalidArgumentException $x) { $p6E[] = 'nein'; } }
+$p6E[] = WmBestellung::reklamationEntscheiden($p6B3, 'neudruck', 'Neue Karten gehen morgen raus.') ? 'ok' : 'x';
+$p6E[] = WmBestellung::reklamationEntscheiden($p6B3, 'gutschrift') ? 'doppelt' : 'einmal';
+WmBestellung::$senden = null;
+$p6L = WmBestellung::fuerPartner($p6i);
+$p6LB3 = array_values(array_filter($p6L, static fn($b) => (int) $b['id'] === $p6B3))[0] ?? [];
+pruefe('Entscheid: nur Neudruck, Gutschrift oder abgelehnt (abgelehnt nur mit Satz), nur einmal; danach wieder „zugestellt“ mit Entscheid; der Partner bekommt die Mail in seiner Sprache mit Uwes Satz; seine Liste trägt den Entscheid, aber nie das Foto selbst',
+    $p6E === ['nein', 'nein', 'ok', 'einmal'] && $p6St($p6B3)['status'] === 'zugestellt' && $p6St($p6B3)['reklamation_entscheid'] === 'neudruck'
+    && count($p6Mails) === 1 && $p6Mails[0][0] === 'wm_reklamation_neudruck' && $p6Mails[0][1] === 'sara.shop@partner.example'
+    && str_contains($p6Mails[0][2], 'VEC-MKT-KETTE6-') && str_contains($p6Mails[0][3], 'Neue Karten gehen morgen raus.') && str_contains($p6Mails[0][3], 'Hallo Sara')
+    && ($p6LB3['reklamation_entscheid'] ?? '') === 'neudruck' && !array_key_exists('reklamation_foto', $p6LB3) && (int) ($p6LB3['reklamation_mit_foto'] ?? 0) === 1,
+    json_encode([$p6E, array_map(static fn($m) => [$m[0], $m[2]], $p6Mails)]));
+
+// --- SHOP-Seite: zwei Druckwege, Bestellungen mit den neuen Knöpfen ---
+$p6Seite = static function (int $pid, array $katalog, array $get = []) use ($wurzel): string {
+    $altGet = $_GET; $_GET = $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $ccKatalog = $katalog; $ccMeldung = '';
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_shop.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$p6Kat = [['slug' => 'visitenkarten', 'name' => 'Visitenkarten', 'produkte' => [
+    ['id' => 71, 'nummer' => 'P1', 'name' => 'Visitenkarte <Vecom>', 'text' => '', 'format' => '85 × 55 mm', 'vorlage' => 'visitenkarte', 'bereich' => null, 'land' => 'IT', 'ab_cent' => 3310, 'varianten' => []],
+    ['id' => 72, 'nummer' => 'P2', 'name' => 'Tasse', 'text' => '', 'format' => '11 oz', 'vorlage' => 'tasse_11', 'bereich' => 'geschenke', 'land' => 'IT', 'ab_cent' => 1990, 'varianten' => []]]]];
+$p6H = $p6Seite($p6i, $p6Kat, ['wm' => 'problem']);
+pruefe('SHOP: jedes Produkt mit „Drucken lassen“, die Visitenkarte zusätzlich mit „Selbst drucken“ (PDF), die Tasse nur aus der Druckerei; Bestellungen: „Ist angekommen“ nur bei versendet, „Problem melden“ mit Foto-Upload und CSRF; Namen escaped',
+    substr_count($p6H, 'druck=visitenkarten') === 1 && substr_count($p6H, 'druck=') === 1 && str_contains($p6H, 'PDF, kostenlos') && str_contains($p6H, 'Nur in der Druckerei')
+    && str_contains($p6H, '#wm-p71') && str_contains($p6H, '#wm-p72') && str_contains($p6H, 'Visitenkarte &lt;Vecom&gt;') && !str_contains($p6H, '<Vecom>')
+    && substr_count($p6H, 'value="wm_angekommen"') === 0 && substr_count($p6H, 'value="wm_problem"') === 1   // nur die frisch zugestellte (Frist läuft)
+    && !str_contains($p6H, 'Reklamation in Prüfung') && str_contains($p6H, 'Reklamation angenommen: Neudruck') && str_contains($p6H, 'Reklamation möglich bis')
+    && str_contains($p6H, 'Danke, deine Reklamation ist angekommen.')
+    && substr_count($p6H, '<form method="post"') === substr_count($p6H, 'name="_csrf"'),
+    json_encode([str_contains($p6H, 'druck=visitenkarten'), substr_count($p6H, 'Selbst drucken'), str_contains($p6H, 'Nur in der Druckerei'), str_contains($p6H, '#wm-p71'),
+        str_contains($p6H, 'Visitenkarte &lt;Vecom&gt;'), substr_count($p6H, 'value="wm_angekommen"'), substr_count($p6H, 'value="wm_problem"'),
+        str_contains($p6H, 'Reklamation in Prüfung'), str_contains($p6H, 'Reklamation angenommen: Neudruck'), str_contains($p6H, 'Reklamation möglich bis'),
+        str_contains($p6H, 'Danke, deine Reklamation ist angekommen.'), substr_count($p6H, '<form method="post"'), substr_count($p6H, 'name="_csrf"')]));
+$p6B5 = $p6Best('versendet', 1);
+$p6H2 = $p6Seite($p6i, $p6Kat);
+pruefe('SHOP: eine frisch versendete Bestellung bekommt beide Knöpfe; das Problem-Formular lädt Dateien hoch (multipart) und nimmt nur Bilder',
+    substr_count($p6H2, 'value="wm_angekommen"') === 1 && substr_count($p6H2, 'value="wm_problem"') >= 1
+    && str_contains($p6H2, 'enctype="multipart/form-data"') && str_contains($p6H2, 'accept="image/jpeg,image/png,image/webp"'));
+$p6Pp = (string) file_get_contents($oben . '/partner.php');
+$p6Cron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Wege: SHOP in Leiste und MEHR führt ins Command Center; Taten nur mit CSRF und für die eigene Partner-ID; Foto nur für den eigenen Partner; Cron stellt automatisch zu; Uwes Entscheid fragt nach (Mail an den Partner)',
+    str_contains($p6Pp, "elseif (isset(\$_GET['shop']) && \$ccMc) { \$ccSeite = 'shop'; }") && str_contains($p6Pp, "WmBestellung::zugestellt(\$ccBid, (int) \$p['id'], 'partner')")
+    && str_contains($p6Pp, "WmBestellung::reklamationFoto((int) \$_GET['wmfoto'], (int) \$p['id'])")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), "'werbemittel' => \$selbst(['cc' => 1, 'shop' => 1])")
+    && str_contains($p6Cron, "'wm_zustellen' => static function") && (Ablauf::TRAGWEITE['wm_b_reklamation'][0] ?? '') === Ablauf::RAUS);
+$p6Fehlt = []; $p6Platz = [];
+$p6Drei = static function ($w, string $pfad) use (&$p6Drei, &$p6Fehlt, &$p6Platz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { $v = is_array($w[$l] ?? null) ? implode(' ', $w[$l]) : (string) ($w[$l] ?? ''); if (trim($v) === '') { $p6Fehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z_]+\}~', $v, $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $p6Platz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $p6Drei($v, "$pfad.$k"); }
+};
+$p6Drei(Texte::PARTNER_SHOP, 'PARTNER_SHOP');
+foreach (['wm_reklamation_neudruck', 'wm_reklamation_gutschrift', 'wm_reklamation_abgelehnt'] as $p6Mk) { $p6Drei(Texte::MAILS[$p6Mk] ?? ['it' => ''], $p6Mk); }
+pruefe('Texte SHOP und Reklamations-Mails: dreisprachig mit denselben Platzhaltern, Deutsch duzt',
+    $p6Fehlt === [] && $p6Platz === [] && Texte::duzt('PARTNER_SHOP.satz'), json_encode([$p6Fehlt, $p6Platz]));
+
+Db::run("DELETE FROM notifications WHERE type = 'wm_reklamation'");
+Db::run('DELETE FROM wm_bestellungen WHERE partner_id = ?', [$p6i]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p6i, (int) $p6F['id']]);
+
+/* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).
    Inhalte dreisprachig und gleich gebaut, keine Zusagen in Antworten, Fortschritt
    und Notizen strikt je Partner, nur bekannte Inhalte merkbar, CSRF vor jeder Tat.

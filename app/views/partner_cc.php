@@ -26,6 +26,7 @@ $ccSeite ??= 'start';
 $ccKundenSeite = in_array($ccSeite, ['kunden', 'lead'], true);
 $ccMarketingSeite = in_array($ccSeite, ['marketing', 'kampagne', 'neu', 'qr'], true);   // Kampagnen und QR gehören zu MARKETING (Phase 3)
 $ccErgebnisSeite = $ccSeite === 'ergebnisse';   // ERGEBNISSE im Command Center (Phase 5)
+$ccShopSeite = $ccSeite === 'shop';   // SHOP im Command Center (Phase 6a)
 /* Sprungziele: Anker im Partnerbereich — oder, mit „cc:“, Stellen im Command Center selbst (Kampagnen). */
 $ccBereich = static fn(string $anker): string => match ($anker) {
     'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
@@ -100,9 +101,10 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : ($ccMarketingSeite ? 'werben' : ($ccErgebnisSeite ? 'geld' : 'cc'))); /* KUNDEN, MARKETING, ERGEBNISSE sind eigene Seiten im Command Center */ ?>
+      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : ($ccMarketingSeite ? 'werben' : ($ccErgebnisSeite ? 'geld' : ($ccShopSeite ? 'werbemittel' : 'cc')))); /* KUNDEN, MARKETING, ERGEBNISSE, SHOP sind eigene Seiten im Command Center */ ?>
       <a href="<?= $h(match ($lk) { 'cc' => $selbst(['cc' => 1]), 'finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1]),
                  'geld' => $selbst(['cc' => 1, 'ergebnisse' => 1]),
+                 'werbemittel' => $selbst(['cc' => 1, 'shop' => 1]),
                  'academy' => $start(['ak' => '1']), default => $selbst() . '#r-' . $lk }) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
@@ -111,14 +113,14 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <summary aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache)) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span><?= $h(Texte::h(Texte::PARTNER_REITER['mehr'], $sprache)) ?></span></summary>
       <div class="cc-mehr__liste">
         <?php foreach ($ccMehr as $lk): if (!isset($ccLeiste[$lk])) { continue; } [$svg, $wort] = $ccLeiste[$lk]; ?>
-          <a href="<?= $h($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
+          <a href="<?= $h(match ($lk) { 'academy' => $start(['ak' => '1']), 'werbemittel' => $selbst(['cc' => 1, 'shop' => 1]), default => $selbst() . '#r-' . $lk }) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
         <?php endforeach; ?>
       </div>
     </details>
   </nav>
 
   <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccKundenSeite ? '/partner_cc_kunden.php' : ($ccSeite === 'marketing' ? '/partner_cc_marketing.php'
-      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : '/partner_cc_kampagne.php'))); else: ?>
+      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : ($ccShopSeite ? '/partner_cc_shop.php' : '/partner_cc_kampagne.php')))); else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
