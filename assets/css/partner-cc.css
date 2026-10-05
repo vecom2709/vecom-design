@@ -102,6 +102,15 @@ html{scroll-padding-top:76px}
 .cc-kurz a{color:var(--gold)}
 .cc-kurz > span:not(:first-child)::before{content:'·';color:var(--leise);margin-right:14px}
 
+/* Vom Kontakt zur Provision: fünf Stufen nebeneinander, jede eine Zahl */
+.cc-trichter{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+.cc-trichter li{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:12px 4px;border-radius:12px;border:1px solid var(--linie);background:rgba(255,255,255,.02);text-align:center}
+.cc-trichter li + li::before{content:'';position:absolute;left:-6px;top:50%;width:6px;height:1px;background:var(--linie2)}
+.cc-trichter b{font:700 clamp(17px,4.6vw,24px)/1.1 var(--f-display);font-variant-numeric:tabular-nums}
+.cc-trichter span{font-size:11.5px;color:var(--dim);line-height:1.25}
+.cc-trichter li.null b{color:var(--leise)}
+.cc-trichter li.gold b{color:var(--gold-hell)}
+
 /* ---------- Kampagnen (Etappe 2) ---------- */
 .cc-titelzeile{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 10px}
 .cc-titelzeile .cc-titel{margin:0}

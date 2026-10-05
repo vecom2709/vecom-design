@@ -72,6 +72,28 @@ final class PartnerCommand
         ];
     }
 
+    /**
+     * Lead-Center (Etappe 3): der Weg vom Kontakt zur Provision — nur Anzahlen, nie Namen (Vereinbarung:
+     * der Partner sieht, DASS jemand kam und kaufte, nicht WER). Gezählt werden die über den Partner
+     * zugeordneten Kunden je erreichter Stufe; Beispieldaten (demo) zählen nicht.
+     * @return array{leads:int, gespraech:int, angebot:int, kunden:int, provision:int}
+     */
+    public static function trichter(array $p): array
+    {
+        $pid = (int) $p['id'];
+        $w = static fn(string $sql): int => (int) self::still(static fn() => Db::wert($sql, [$pid], 0), 0);
+        return [
+            'leads'     => $w('SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?'),
+            'gespraech' => $w("SELECT COUNT(DISTINCT z.customer_id) FROM partner_zuordnungen z WHERE z.partner_id = ? AND (
+                                 EXISTS (SELECT 1 FROM bedarf b WHERE b.customer_id = z.customer_id AND b.abgesendet_am IS NOT NULL AND COALESCE(b.demo, 0) = 0)
+                              OR EXISTS (SELECT 1 FROM angebote a WHERE a.customer_id = z.customer_id AND COALESCE(a.demo, 0) = 0))"),
+            'angebot'   => $w("SELECT COUNT(DISTINCT z.customer_id) FROM partner_zuordnungen z WHERE z.partner_id = ?
+                                 AND EXISTS (SELECT 1 FROM angebote a WHERE a.customer_id = z.customer_id AND a.gesendet_am IS NOT NULL AND COALESCE(a.demo, 0) = 0)"),
+            'kunden'    => $w("SELECT COUNT(DISTINCT customer_id) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')"),
+            'provision' => (int) (self::still(static fn() => PartnerHeute::fortschritt($p), ['verdient' => 0])['verdient'] ?? 0),
+        ];
+    }
+
     /** Gibt es schon genug, um aus Zahlen etwas zu empfehlen? Ohne Besuch, Scan, Lead oder Material: nein. */
     public static function wenigDaten(array $z): bool
     {

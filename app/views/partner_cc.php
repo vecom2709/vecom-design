@@ -142,6 +142,17 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         </div>
       </section>
 
+      <?php $ccTr = PartnerCommand::trichter($p); ?>
+      <section class="cc-breit cc-auf z3" aria-labelledby="cc-weg-t">
+        <h2 class="cc-titel" id="cc-weg-t"><?= $h($c($C['weg_titel'])) ?></h2>
+        <ol class="cc-trichter">
+          <?php foreach ($C['weg'] as $tk => $tn): $tw = (int) $ccTr[$tk]; ?>
+            <li class="<?= $tw === 0 ? 'null' : '' ?><?= $tk === 'provision' && $tw > 0 ? ' gold' : '' ?>"><b><?= $h($tk === 'provision' ? Fmt::geld($tw) : $ccZahl($tw)) ?></b><span><?= $h($c($tn)) ?></span></li>
+          <?php endforeach; ?>
+        </ol>
+        <p class="hilfe"><?= $h($c($C['weg_satz'])) ?></p>
+      </section>
+
       <?php $ccKListe = array_slice(PartnerKampagne::liste((int) $p['id']), 0, 6); $KK = Texte::PARTNER_KAMPAGNE; ?>
       <section class="cc-breit cc-auf z4" id="kampagnen" aria-labelledby="cc-kamp-t">
         <div class="cc-titelzeile"><h2 class="cc-titel" id="cc-kamp-t"><?= $h($c($KK['liste'])) ?></h2>

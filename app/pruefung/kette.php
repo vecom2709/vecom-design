@@ -23677,6 +23677,25 @@ pruefe('QR-Center: alle eigenen Werbemittel (meiste Scans zuerst) mit Kampagne u
     && $qrW === ['preis', 'wa', '', ''] && PartnerKampagne::qrListe((int) $qrFremd['id'], 'de') === []
     && !PartnerKampagne::zielSetzen((int) $qrFremd['id'], 'material', $qrE1, 'check')
     && str_contains((string) file_get_contents($oben . '/partner.php'), "if (\$ccCsrf && \$ccTat === 'qr_ziel')"), json_encode($qrW));
+// Lead-Center (Etappe 3): Stufen aus vorhandenen Daten, nur Anzahlen; Beispieldaten zählen nicht.
+$trK = [];
+foreach (['a', 'b', 'c', 'd'] as $trX) { $trK[$trX] = (int) Db::insert('customers', ['name' => 'Trichter ' . $trX, 'email' => "trichter.$trX@kunde.example"]); }
+foreach (['a', 'b', 'c'] as $trX) { Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle) VALUES (?, ?, ?)', [$trK[$trX], (int) $kaP['id'], 'link']); }
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle) VALUES (?, ?, ?)', [$trK['d'], (int) $qrFremd['id'], 'link']);
+Db::run("INSERT INTO bedarf (customer_id, token, abgesendet_am, demo) VALUES (?, ?, NOW(), 0), (?, ?, NOW(), 1), (?, ?, NOW(), 0)",
+    [$trK['a'], bin2hex(random_bytes(8)), $trK['c'], bin2hex(random_bytes(8)), $trK['d'], bin2hex(random_bytes(8))]);
+Db::run("INSERT INTO angebote (nummer, customer_id, token, gesendet_am, demo) VALUES (?, ?, ?, NOW(), 0)", ['TR-' . $trK['b'], $trK['b'], bin2hex(random_bytes(8))]);
+Db::run("INSERT INTO partner_provisionen (partner_id, customer_id, payment_id, art, basis_cents, provision_cents, status, frei_ab) VALUES (?, ?, 990881, 'website', 50000, 5000, 'wartet', NOW())",
+    [(int) $kaP['id'], $trK['b']]);
+$trT = PartnerCommand::trichter($kaP);
+pruefe('Lead-Center: Kontakte → im Gespräch (Fragebogen oder Angebot) → Angebot gesendet → Kunde → Provision, nur Anzahlen; Beispieldaten und fremde Zuordnungen zählen nicht',
+    $trT === ['leads' => 3, 'gespraech' => 2, 'angebot' => 1, 'kunden' => 1, 'provision' => 5000]
+    && PartnerCommand::trichter($qrFremd)['gespraech'] === 1 && PartnerCommand::trichter($qrFremd)['angebot'] === 0, json_encode($trT));
+Db::run('DELETE FROM partner_provisionen WHERE payment_id = 990881');
+Db::run('DELETE FROM angebote WHERE customer_id IN (' . implode(',', $trK) . ')');
+Db::run('DELETE FROM bedarf WHERE customer_id IN (' . implode(',', $trK) . ')');
+Db::run('DELETE FROM partner_zuordnungen WHERE customer_id IN (' . implode(',', $trK) . ')');
+Db::run('DELETE FROM customers WHERE id IN (' . implode(',', $trK) . ')');
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $qrFremd['id']]);
 Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [(int) $kaP['id']]);
