@@ -493,3 +493,63 @@ html{scroll-padding-top:76px}
 .ak-cc__knoepfe{display:flex;gap:8px;flex-wrap:wrap}
 @media (max-width:560px){.ak-cc__knoepfe .knopf{flex:1}}
 :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}
+
+/* ---------- Phase 4: Kampagnen + QR (05.10.2026) ---------- */
+/* Die Kette einer Kampagne: Scans → … → Provision. Am Handy zwei Spalten, am Rechner eine Reihe; der Pfeil zeigt die Folge. */
+.cc-kette{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;counter-reset:k}
+.cc-kette .cc-zahl{min-height:0;padding:11px 12px;position:relative}
+.cc-kette .cc-zahl b{font-size:22px}
+@media (min-width:560px){.cc-kette{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.cc-qr-bild{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.cc-qr-bild svg{width:132px;height:132px;flex:none;border-radius:10px;background:#fff;padding:6px;box-sizing:border-box}
+.cc-qr-bild .knoepfe{flex-direction:column;align-items:stretch}
+.cc-beste{margin:0 0 12px;padding:11px 14px;border-radius:12px;border:1px solid var(--haar);background:rgba(241,211,139,.06);font-size:14.5px;line-height:1.45}
+.cc-beste a{color:var(--gold-hell);text-decoration:none}
+.cc-beste a:hover{text-decoration:underline}
+/* Übersicht aller Kampagnen: am Rechner eine Tabelle, am Handy Karten mit beschrifteten Zahlen (data-l). */
+.cc-ktab-rahmen{overflow-x:auto}
+.cc-ktab{width:100%;border-collapse:collapse;font-size:14px;font-variant-numeric:tabular-nums}
+.cc-ktab th,.cc-ktab td{padding:11px 10px;border-bottom:1px solid var(--linie);text-align:right;white-space:nowrap}
+.cc-ktab thead th{font-size:12px;font-weight:650;color:var(--dim);letter-spacing:.02em}
+.cc-ktab th:first-child{text-align:left;white-space:normal}
+.cc-ktab tbody th{font-weight:400}
+.cc-ktab tbody th b{display:block;margin-bottom:2px}
+.cc-ktab tbody th a{color:var(--text);text-decoration:none}
+.cc-ktab tbody th a:hover b{text-decoration:underline}
+.cc-ktab tbody th small{display:block;font-size:12px;color:var(--leise)}
+.cc-ktab td.gold{color:var(--gold-hell);font-weight:650}
+.cc-ktab tr.beste th b::after{content:' ★';color:var(--gold)}
+.cc-ktab tfoot th,.cc-ktab tfoot td{font-weight:650;border-bottom:0;border-top:1px solid var(--linie2)}
+@media (max-width:640px){
+  .cc-ktab thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .cc-ktab,.cc-ktab tbody,.cc-ktab tfoot{display:block}
+  /* Je Kampagne eine Karte: Name oben, darunter drei Zahlen in einer Reihe, dann Umsatz und Provision — Beschriftung über der Zahl. */
+  .cc-ktab tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px 10px;padding:13px 14px;margin:0 0 8px;border:1px solid var(--linie);border-radius:14px}
+  .cc-ktab tr.beste{border-color:var(--haar)}
+  .cc-ktab th,.cc-ktab td{display:flex;flex-direction:column;gap:1px;padding:0;border:0;text-align:left;white-space:nowrap;font-size:16px;font-weight:650}
+  .cc-ktab th[scope=row]{grid-column:1 / -1;margin-bottom:2px;font-size:14px;white-space:normal}
+  .cc-ktab td::before{content:attr(data-l);color:var(--leise);font-size:11.5px;font-weight:500;white-space:normal}
+  .cc-ktab td:nth-of-type(4){grid-column:1 / span 2}
+  .cc-ktab tfoot tr{border-color:var(--linie2);background:rgba(255,255,255,.02)}
+  .cc-ktab tfoot th,.cc-ktab tfoot td{border:0}
+}
+/* Kurzlink */
+.cc-kl-form{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.cc-kl-feld{display:flex;align-items:center;width:100%;max-width:520px;border:1px solid var(--linie2);border-radius:12px;overflow:hidden;background:rgba(255,255,255,.03)}
+.cc-kl-feld span{padding:0 0 0 12px;color:var(--leise);font-size:14px;white-space:nowrap}
+.cc-kl-feld input{flex:1;min-width:0;border:0;background:transparent;font-size:15px;padding:11px 12px 11px 2px;font-weight:600}
+.cc-kl-feld:focus-within{outline:2px solid var(--gold);outline-offset:2px}
+.cc-kl-feld input:focus{outline:none}
+.cc-kl-form .hilfe{margin:0}
+.cc-kl-sprache{display:flex;gap:6px;margin:0 0 10px}
+.cc-kl-sprache a{min-width:44px;min-height:34px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13px;font-weight:650;text-decoration:none}
+.cc-kl-sprache a[aria-current]{border-color:var(--gold);color:var(--gold-hell);background:rgba(241,211,139,.08)}
+.cc-kl-liste{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.cc-kl-liste li{display:flex;flex-direction:column;gap:5px}
+.cc-kl-liste .n{font-size:13px;font-weight:650;color:var(--dim)}
+.cc-kl-liste .cc-kopie input{font-size:13.5px}
+.cc-kl-liste .cc-kopie .knopf{min-height:42px;padding:8px 14px;font-size:13.5px}
+@media (max-width:560px){.cc-kl-liste .cc-kopie{flex-wrap:wrap}.cc-kl-liste .cc-kopie input{flex:1 1 100%;font-size:13px}.cc-kl-liste .cc-kopie .knopf{min-height:38px;padding:7px 14px}}
+.cc-kl-alle{margin-top:12px}
+.cc-kl-alle > summary{cursor:pointer;color:var(--gold);font-size:14px;font-weight:600;padding:6px 0}
+.cc-kl-alle[open] > summary{margin-bottom:8px}

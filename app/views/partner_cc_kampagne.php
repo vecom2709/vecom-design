@@ -140,12 +140,14 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
 
     <section class="cc-auf z3" aria-labelledby="cc-zahl-t">
       <h2 class="cc-titel" id="cc-zahl-t"><?= $h($k($K['zahlen'])) ?></h2>
-      <div class="cc-zahlen cc-zahlen-klein">
-        <?php foreach ($K['z'] as $zk => $zn): $zw = (int) ($ccKZ[$zk] ?? 0); ?>
-          <div class="cc-zahl<?= $zw === 0 ? ' null' : '' ?><?= $zk === 'provision_cents' && $zw > 0 ? ' gold' : '' ?>"><span class="l"><?= $h($k($zn)) ?></span>
-            <b><?= $h($zk === 'provision_cents' ? Fmt::geld($zw) : (string) $zw) ?></b></div>
+      <p class="hilfe" style="margin:-4px 0 10px"><?= $h($k($K['kette_satz'])) ?></p>
+      <?php /* Phase 4: die Kette vom Scan bis zur Provision, in dieser Reihenfolge — eine Liste, damit Vorleser sie als Folge lesen. */ ?>
+      <ol class="cc-kette">
+        <?php foreach ($K['z'] as $zk => $zn): $zw = (int) ($ccKZ[$zk] ?? 0); $geld = str_ends_with($zk, '_cents'); ?>
+          <li class="cc-zahl<?= $zw === 0 ? ' null' : '' ?><?= $zk === 'provision_cents' && $zw > 0 ? ' gold' : '' ?>"><span class="l"><?= $h($k($zn)) ?></span>
+            <b><?= $h($geld ? Fmt::geld($zw) : (string) $zw) ?></b></li>
         <?php endforeach; ?>
-      </div>
+      </ol>
     </section>
 
     <section class="cc-breit cc-auf z3" aria-labelledby="cc-paket-t">
@@ -162,8 +164,20 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
               <textarea id="<?= $xid ?>" readonly rows="5"><?= $h($x['text']) ?></textarea>
               <div class="knoepfe">
                 <button class="knopf" type="button" data-cc-kopie="<?= $xid ?>" data-fertig="<?= $h($k($K['kopiert'])) ?>"><?= $h($k($K['kopieren'])) ?></button>
-                <?php if (!empty($x['teilen'])): ?><a class="knopf" href="<?= $h($x['teilen']) ?>" target="_blank" rel="noopener"><?= $h($k($K['wa_oeffnen'])) ?></a><?php endif; ?>
+                <?php if (!empty($x['teilen'])): ?><a class="knopf" href="<?= $h($x['teilen']) ?>" target="_blank" rel="noopener"><?= $h($x['art'] === 'telegram' ? 'In Telegram' : $k($K['wa_oeffnen'])) ?></a><?php endif; ?>
               </div>
+            <?php elseif ($x['art'] === 'seite'): ?>
+              <?php if ($x['ansehen'] !== null): ?><a class="knopf" href="<?= $h($x['ansehen']) ?>" target="_blank" rel="noopener"><?= $h($k($K['ansehen'])) ?> →</a><?php endif; ?>
+            <?php elseif ($x['art'] === 'qr'): ?>
+              <div class="cc-qr-bild"><?= $x['svg'] /* QrBild::svg — vom Server gerechnet, kein fremder Inhalt */ ?>
+                <div class="knoepfe">
+                  <a class="knopf" href="<?= $h($selbst(['wmqr' => 'png', 'kq' => $x['kampagne']])) ?>" download><?= $h($k($K['qr_png'])) ?></a>
+                  <a class="knopf" href="<?= $h($selbst(['wmqr' => 'svg', 'kq' => $x['kampagne']])) ?>" download><?= $h($k($K['qr_svg'])) ?></a>
+                </div></div>
+            <?php elseif ($x['art'] === 'selbstdruck'): ?>
+              <a class="knopf" href="<?= $h($selbst(['druck' => 'flyer', 'kampagne' => $x['kampagne'], 'hell' => 1])) ?>" target="_blank" rel="noopener"><?= $h($k($K['drucken'])) ?> →</a>
+            <?php elseif ($x['art'] === 'texte'): ?>
+              <a class="knopf" href="<?= $h($selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'mediathek'] + ($x['branche'] !== '' ? ['branche' => $x['branche']] : []))) ?>"><?= $h($k($K['zur_mt'])) ?> →</a>
             <?php elseif ($x['art'] === 'story'): ?>
               <a class="knopf" href="<?= $h($selbst() . '#medien') ?>"><?= $h($k($K['oeffnen'])) ?> →</a>
             <?php elseif (isset($x['produkt_id'])): ?>

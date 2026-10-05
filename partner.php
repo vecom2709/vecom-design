@@ -167,10 +167,10 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
 require_once __DIR__ . '/app/src/PartnerCommand.php';
 if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $_GET)
-           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel', 'mkt_check'], true)
+           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel', 'mkt_check', 'kurzlink'], true)
            || str_starts_with((string) ($_POST['tat'] ?? ''), 'lead_'))) {
     require_once __DIR__ . '/app/src/PartnerKampagne.php';
-    $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut'], true) ? (string) $_GET['m'] : '';
+    $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut', 'kl_gut'], true) ? (string) $_GET['m'] : '';
     $ccPost = null;
     $ccTat = (string) ($_POST['tat'] ?? '');
     $ccCsrf = $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
@@ -222,6 +222,18 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         if ($ccR['ok']) { header('Location: ' . $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'check', 'ck' => $ccR['token']]) . '#ck-ergebnis', true, 303); exit; }
         $ccMkMeldung = (string) $ccR['grund'];
         $_GET['marketing'] = 1; $_GET['teil'] = 'check';
+    }
+    /* Kurzlink (Phase 4, 05.10.2026, Uwe: „Partner wählt selbst“): Namen sichern oder ändern — nur den eigenen,
+       höchstens PartnerKurzlink::NAMEN_MAX Namen; der alte bleibt beim Partner und führt weiter zu ihm. */
+    $ccKlFehler = ''; $ccKlWunsch = null;
+    if ($ccTat === 'kurzlink') {
+        require_once __DIR__ . '/app/src/PartnerKurzlink.php';
+        $ccZiel = $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen']);
+        if (!$ccCsrf) { header('Location: ' . $ccZiel . '#kurzlink', true, 303); exit; }
+        $ccKlFehler = (string) PartnerKurzlink::setzen((int) $p['id'], (string) ($_POST['name'] ?? ''));
+        if ($ccKlFehler === '') { header('Location: ' . $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen', 'm' => 'kl_gut']) . '#kurzlink', true, 303); exit; }
+        $ccKlWunsch = mb_substr((string) ($_POST['name'] ?? ''), 0, 40);
+        $_GET['marketing'] = 1; $_GET['teil'] = 'kampagnen';
     }
     /* Kunden & Leads (Phase 2, 05.10.2026): jede Tat nur für eigene Leads — PartnerLeads prüft die Partner-ID
        in jeder Abfrage, ein fremder Lead ist „nicht vorhanden“. Nach dem Speichern zurück in die Akte (PRG). */
@@ -915,12 +927,29 @@ if ($p && in_array((string) ($_GET['wmqr'] ?? ''), ['svg', 'png'], true)) {
     PartnerSchutz::protokoll((int) $p['id'], 'download', null, 'qr');
     require_once __DIR__ . '/app/src/QrBild.php';
     $wmArt = (string) $_GET['wmqr'];
-    $wmDaten = $wmArt === 'svg' ? QrBild::svg(PartnerWerbung::link($p, 'qr'), 1000, 4) : QrBild::png(PartnerWerbung::link($p, 'qr'));
+    /* Phase 4 (05.10.2026): &kq=N — QR der eigenen Kampagne N; &go=haupt|<branche> — QR des eigenen Kurzlinks.
+       Fremde Kampagne oder kein Kurzlink: 404 statt eines Codes, der still für niemanden zählt. */
+    $wmLink = PartnerWerbung::link($p, 'qr'); $wmName = strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code']));
+    if (isset($_GET['kq'])) {
+        require_once __DIR__ . '/app/src/PartnerKampagne.php';
+        $wmK = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kq']);
+        if (!$wmK) { http_response_code(404); exit; }
+        $wmLink = PartnerWerbung::link($p, PartnerKampagne::kanal((int) $wmK['id'])); $wmName .= '-' . strtolower(PartnerKampagne::nummer($wmK));
+    } elseif (isset($_GET['go'])) {
+        require_once __DIR__ . '/app/src/PartnerKurzlink.php';
+        $wmB = (string) $_GET['go'];
+        $wmB = isset(PartnerKurzlink::SLUGS[$wmB]) ? $wmB : null;
+        $wmSp = in_array((string) ($_GET['gl'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['gl'] : $sprache;
+        $wmLink = PartnerKurzlink::link((int) $p['id'], $wmB, $wmSp);
+        if ($wmLink === null) { http_response_code(404); exit; }
+        $wmName = 'go-' . (PartnerKurzlink::name((int) $p['id']) ?? '') . ($wmB !== null ? '-' . PartnerKurzlink::SLUGS[$wmB][$wmSp] : '');
+    }
+    $wmDaten = $wmArt === 'svg' ? QrBild::svg($wmLink, 1000, 4) : QrBild::png($wmLink);
     header('X-Robots-Tag: noindex, nofollow');
     header('X-Content-Type-Options: nosniff');
     header('Content-Type: ' . ($wmArt === 'svg' ? 'image/svg+xml' : 'image/png'));
     header('Cache-Control: private, max-age=3600');
-    header('Content-Disposition: attachment; filename="vecom-qr-' . strtolower((string) preg_replace('~[^A-Za-z0-9]~', '', (string) $p['code'])) . '.' . $wmArt . '"');
+    header('Content-Disposition: attachment; filename="vecom-qr-' . $wmName . '.' . $wmArt . '"');
     header('Content-Length: ' . strlen($wmDaten));
     echo $wmDaten;
     exit;

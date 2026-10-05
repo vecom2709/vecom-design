@@ -359,6 +359,26 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <input name="code" value="<?= Fmt::h($p['code']) ?>" maxlength="16" required style="text-transform:uppercase"></div>
     <button class="knopf">Code ändern</button></form>
 </div>
+<?php /* Kurzlink (Phase 4, 05.10.2026): der Partner wählt selbst, Uwe kann ändern (ohne Obergrenze) und sperren. */
+  require_once dirname(__DIR__) . '/src/PartnerKurzlink.php';
+  $pkl = []; try { $pkl = PartnerKurzlink::liste((int) $p['id']); } catch (Throwable $e) { $pkl = []; } ?>
+<div class="block">
+  <h2 style="font-size:15px;margin:0 0 6px">Kurzlink</h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
+    <?php if ($pkl): ?>Namen: <?php foreach ($pkl as $i => $kn): ?><?= $i ? ' · ' : '' ?><code>/go/<?= Fmt::h((string) $kn['name']) ?></code> (<?= Fmt::h((string) $kn['status']) ?>)<?php endforeach; ?>.
+      Alte Namen führen weiter zum Partner; gesperrte nirgends hin.
+    <?php else: ?>Noch keiner. Der Partner wählt ihn unter MARKETING › Kampagnen &amp; QR.<?php endif; ?></p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_kurzlink"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+    <div class="feld" style="margin:0"><label>Name setzen</label>
+      <input name="name" value="<?= Fmt::h((string) (PartnerKurzlink::name((int) $p['id']) ?? '')) ?>" maxlength="30" required></div>
+    <button class="knopf">Speichern</button></form>
+  <?php foreach ($pkl as $kn): if ($kn['status'] === 'gesperrt') { continue; } ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline-block;margin:8px 8px 0 0">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_kurzlink_sperren"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="name" value="<?= Fmt::h((string) $kn['name']) ?>">
+      <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">/go/<?= Fmt::h((string) $kn['name']) ?> sperren</button></form>
+  <?php endforeach; ?>
+</div>
 <?php endif; ?>
 
 <?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>

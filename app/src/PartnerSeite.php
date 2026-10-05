@@ -155,7 +155,9 @@ final class PartnerSeite
     public const TEXT_MAX = ['titel' => 80, 'lead' => 320, 'p1' => 100, 'p2' => 100, 'p3' => 100];
     /** Schrift zum Ein-Klick-Look je Branche (03.10.2026, E2). */
     public const LOOK_SCHRIFT = ['gastro' => 'klassisch', 'hotel' => 'elegant', 'beauty' => 'elegant', 'auto' => 'modern', 'handwerk' => 'modern',
-                                'produkte' => 'klassisch', 'laden' => 'elegant', 'transport' => 'modern'];
+                                'produkte' => 'klassisch', 'laden' => 'elegant', 'transport' => 'modern',
+                                /* Branchenseiten der Kurzlinks (Phase 4) — ohne eigenes Titelbild, im Gestalter deshalb kein Look */
+                                'handel' => 'elegant', 'praxis' => 'modern', 'fitness' => 'modern', 'immobilien' => 'elegant', 'beratung' => 'klassisch', 'tourismus' => 'elegant'];
     public const BILD_MAX_BYTE = 10 * 1024 * 1024;
 
     /** Die gültige Gestaltung eines Partners -- fehlende oder unbekannte Werte fallen auf den Standard. */

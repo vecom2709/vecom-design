@@ -49,6 +49,16 @@ final class Config
                                 'mwst' => 0.0, 'zeitzone' => 'Europe/Rome'];
     }
 
+    /**
+     * Steht die Konfiguration schon? Nur im Kettentest vor dem Laden einer Seite wahr (setzenFuerTest) —
+     * p.php und go.php fragen das, damit die Kette den Kurzlink wirklich durchlaufen kann, ohne dass je eine
+     * config.local.php neben dem Test liegen muss. Im Betrieb ist sie an dieser Stelle nie geladen.
+     */
+    public static function steht(): bool
+    {
+        return self::$data !== null;
+    }
+
     /** Basis-URL des Admin-Bereichs, ohne Schraegstrich am Ende. */
     public static function basis(): string
     {

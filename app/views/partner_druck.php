@@ -17,11 +17,17 @@ $hell = !empty($_GET['hell']);
 $M = static fn(string $k): string => strtr(Texte::h(Texte::PARTNER_MEDIEN[$k] ?? [], $sprache), ['{name}' => Partner::anzeigeName($p)]);
 $motiv = Texte::PARTNER_MEDIEN['motive']['allgemein'];
 $kanal = ['visitenkarten' => 'karte', 'flyer' => 'flyer', 'aufsteller' => 'flyer', 'aufkleber' => 'flyer'][$art];
+/* Zum Selbstdrucken aus einer Kampagne (Phase 4, 05.10.2026): &kampagne=N — der QR-Code zählt dann für diese
+   Kampagne. Nur eine eigene; eine fremde Nummer gibt den gewöhnlichen Flyer. */
+if ($art === 'flyer' && isset($_GET['kampagne'])) {
+    require_once dirname(__DIR__) . '/src/PartnerKampagne.php';
+    if (($dK = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kampagne'])) !== null) { $kanal = PartnerKampagne::kanal((int) $dK['id']); }
+}
 $link = PartnerWerbung::link($p, $kanal);
 $kurz = preg_replace('~^https?://~', '', Partner::link($p));
 $qr = QrBild::svg($link, 200, 1);
 $zurueck = '/partner.php?' . http_build_query(['t' => $p['token'], 'voll' => 1]) . '#medien';   // voll: der schlichte Link öffnet das Command Center
-$umschalten = '/partner.php?' . http_build_query(array_filter(['t' => $p['token'], 'druck' => $art, 'hell' => $hell ? null : 1]));
+$umschalten = '/partner.php?' . http_build_query(array_filter(['t' => $p['token'], 'druck' => $art, 'hell' => $hell ? null : 1, 'kampagne' => isset($dK) ? (int) $dK['id'] : null]));
 $seite = ['visitenkarten' => 'A4', 'flyer' => 'A5', 'aufsteller' => 'A4 landscape', 'aufkleber' => 'A4'][$art];
 $logo = '<span class="wort"><img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="40" height="32"><b>VECOM</b> DESIGN</span>';
 ?><!doctype html>

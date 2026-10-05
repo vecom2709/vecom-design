@@ -49,6 +49,10 @@ RewriteRule ^e/([A-Za-z0-9]{5,16})/?$ bedarf.php?e=$1 [L,QSA]
 RewriteRule ^p/([A-Za-z0-9]{5,16})/?$ p.php?c=$1 [L,QSA]
 # Kanal-Links: /p/ROSSK4M2/instagram -- derselbe Partner, der Kanal wird mitgezaehlt.
 RewriteRule ^p/([A-Za-z0-9]{5,16})/([A-Za-z0-9-]{1,20})/?$ p.php?c=$1&k=$2 [L,QSA]
+# Kurzlinks (05.10.2026, Phase 4): /go/ulli und /go/ulli/ristoranti -- go.php macht daraus den Partnercode
+# und den Kanal go-gastronomie und gibt an p.php weiter.
+RewriteRule ^go/([A-Za-z0-9-]{3,30})/?$ go.php?n=$1 [L,QSA]
+RewriteRule ^go/([A-Za-z0-9-]{3,30})/([A-Za-z-]{2,20})/?$ go.php?n=$1&b=$2 [L,QSA]
 # Kampagnenlinks (30.09.2026, Growth Engine Phase 3): /k/restaurants-herbst und
 # /k/restaurants-herbst/reel3 -- Klick zaehlen, anonymer Besuch, weiter auf die eigene Zielseite.
 RewriteRule ^k/([A-Za-z0-9-]{3,24})/?$ k.php?c=$1 [L,QSA]

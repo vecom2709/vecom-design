@@ -34,6 +34,12 @@ final class PartnerWerbung
     public static function name(string $kanal, string $sprache): string
     {
         $n = Texte::PARTNER_WERBUNG['namen'][$kanal] ?? null;
+        // Kurzlink je Branche (Phase 4): „Kurzlink · Gastronomie“ statt „Go-gastronomie“.
+        if ($n === null && str_starts_with($kanal, 'go-')) {
+            require_once __DIR__ . '/PartnerBranche.php';
+            $b = PartnerBranche::name(substr($kanal, 3), $sprache);
+            if ($b !== '') { return Texte::h(Texte::PARTNER_WERBUNG['namen']['go'], $sprache) . ' · ' . $b; }
+        }
         if ($n === null) { return $kanal === '' ? Texte::h(Texte::PARTNER_WERBUNG['namen']['_haupt'], $sprache) : ucfirst($kanal); }
         return is_array($n) ? Texte::h($n, $sprache) : $n;
     }

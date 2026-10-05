@@ -24263,11 +24263,12 @@ $kaArten = array_column($kaPaket, 'art');
 $kaLink = PartnerWerbung::link($kaP, 'kampagne-' . $kaId);
 $kaWa = $kaPaket[array_search('whatsapp', $kaArten, true)]['text'] ?? '';
 $kaPost = $kaPaket[array_search('post', $kaArten, true)]['text'] ?? '';
-pruefe('Assistent: Paket für „Neue Kunden · Gastronomie“ = Kampagnenlink, Visitenkarte, Branchen-Flyer, WhatsApp, Beitrag — Texte sind die freigegebenen Branchentexte (gesiezt) mit dem Link DIESER Kampagne, Beitrag als Werbung gekennzeichnet',
-    $kaArten === ['link', 'visitenkarte', 'flyer', 'whatsapp', 'post'] && $kaPaket[0]['link'] === $kaLink
+$kaArt = static fn(array $paket, string $art): array => array_values(array_filter($paket, static fn($x) => $x['art'] === $art))[0] ?? [];
+pruefe('Assistent: Paket für „Neue Kunden · Gastronomie“ = Kampagnenlink mit Seite und QR, Visitenkarte, Branchen-Flyer, WhatsApp und Telegram, Beitrag, Flyer zum Selbstdrucken, Mediathek — Texte sind die freigegebenen Branchentexte (gesiezt) mit dem Link DIESER Kampagne, Beitrag als Werbung gekennzeichnet',
+    $kaArten === ['link', 'seite', 'qr', 'visitenkarte', 'flyer', 'whatsapp', 'telegram', 'post', 'selbstdruck', 'texte'] && $kaPaket[0]['link'] === $kaLink
     && str_contains($kaWa, $kaLink) && str_contains($kaWa, 'Restaurants und Bars') && str_contains($kaWa, 'kennen Sie vorher')
     && str_contains($kaPost, $kaLink) && str_contains($kaPost, '#Werbung')
-    && $kaPaket[1]['produkt_id'] === 901 && $kaPaket[1]['ab_cent'] === 3310 && str_contains($kaPaket[2]['satz'], '36,50'), json_encode($kaArten));
+    && $kaArt($kaPaket, 'visitenkarte')['produkt_id'] === 901 && $kaArt($kaPaket, 'visitenkarte')['ab_cent'] === 3310 && str_contains($kaArt($kaPaket, 'flyer')['satz'], '36,50'), json_encode($kaArten));
 $kaB = [PartnerKampagne::budget($kaPaket, null), PartnerKampagne::budget($kaPaket, 6000), PartnerKampagne::budget($kaPaket, 10000), PartnerKampagne::budget($kaPaket, 1000)];
 pruefe('Budget aus echten Endpreisen: Summe der kleinsten Auflagen; ein Budget deckt in der Reihenfolge des Pakets, was hineinpasst',
     $kaB[0]['summe'] === 6960 && $kaB[0]['n'] === 2 && $kaB[0]['budget'] === null && !$kaB[0]['reicht']
@@ -24277,10 +24278,10 @@ $kaPa = PartnerKampagne::paket($kaP, $kaAuto, 'de', [['produkte' => [['id' => 90
 $kaMesse = PartnerKampagne::laden((int) $kaP['id'], PartnerKampagne::anlegen($kaP, ['ziel' => 'messe', 'branche' => 'handwerk']));
 $kaPm = PartnerKampagne::paket($kaP, $kaMesse, 'de', $kaKat);
 pruefe('Ohne Branchentext (Automotive): die allgemeinen Vorlagen, in der Sprache der Kampagne (it) mit Kampagnenlink; E-Mail mit Betreff; Druck nur, was im Katalog steht (Messe ohne Roll-up/Geschenk im Katalog)',
-    array_column($kaPa, 'art') === ['link', 'whatsapp', 'email', 'visitenkarte']
-    && str_contains($kaPa[1]['text'], PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id'])) && str_contains($kaPa[1]['text'], 'Vecom Design')
-    && $kaPa[1]['text'] === strtr(Texte::h(Texte::PARTNER_WERBUNG['vorlagen']['whatsapp']['persoenlich']['text'], 'it'), ['{link}' => PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id']), '{name}' => Partner::anzeigeName($kaP)])
-    && ($kaPa[2]['betreff'] ?? '') !== '' && array_column($kaPm, 'art') === ['link', 'flyer', 'visitenkarte'], json_encode(array_column($kaPm, 'art')));
+    array_column($kaPa, 'art') === ['link', 'seite', 'qr', 'whatsapp', 'telegram', 'email', 'visitenkarte', 'texte']
+    && str_contains($kaArt($kaPa, 'whatsapp')['text'], PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id'])) && str_contains($kaArt($kaPa, 'whatsapp')['text'], 'Vecom Design')
+    && $kaArt($kaPa, 'whatsapp')['text'] === strtr(Texte::h(Texte::PARTNER_WERBUNG['vorlagen']['whatsapp']['persoenlich']['text'], 'it'), ['{link}' => PartnerWerbung::link($kaP, 'kampagne-' . (int) $kaAuto['id']), '{name}' => Partner::anzeigeName($kaP)])
+    && ($kaArt($kaPa, 'email')['betreff'] ?? '') !== '' && array_column($kaPm, 'art') === ['link', 'seite', 'qr', 'flyer', 'visitenkarte', 'selbstdruck', 'texte'], json_encode(array_column($kaPm, 'art')));
 $kaS = PartnerKampagne::strategie($kaK, 'de');
 pruefe('Strategie in drei Sätzen: wer und wo, wie (je Ziel), woran man es misst — ohne Versprechen',
     count($kaS) === 3 && $kaS[0] === 'Ziel: Neue Kunden. Für: Gastronomie in Agrigento.' && str_contains($kaS[1], 'Persönlich') && str_contains($kaS[2], 'ohne Schätzung')
@@ -24353,6 +24354,197 @@ Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $kaP['id']]);
 
+
+/* ============================================================================
+   Kampagnen + QR (Phase 4, 05.10.2026, Uwe: „Partner wählt selbst“, „Ja,
+   Umsatz zeigen“): Kurzlink /go/name/branche ohne zweite Zählwelt, Paket mit
+   Seite, QR und Telegram, Erfolg bis Umsatz und Provision, nur Eigenes.
+   ============================================================================ */
+abschnitt('Partner: Kampagnen + QR');
+require_once $wurzel . '/src/PartnerKurzlink.php';
+require_once $wurzel . '/src/PartnerKampagne.php';
+require_once $wurzel . '/src/PartnerSeite.php';
+$p4A = Partner::laden(Partner::anlegen(['name' => 'Jürgen Kurz', 'email' => 'juergen.kurz@partner.example', 'code' => 'JKURZ4', 'sprache' => 'de', 'status' => 'aktiv']));
+$p4B = Partner::laden(Partner::anlegen(['name' => 'Bea Zwei', 'email' => 'bea.zwei@partner.example', 'code' => 'BEAZW4', 'sprache' => 'it', 'status' => 'aktiv']));
+$p4Ai = (int) $p4A['id']; $p4Bi = (int) $p4B['id'];
+
+// --- Namen: Form, reservierte Wörter, eindeutig, alte bleiben beim Partner ---
+$p4F = [PartnerKurzlink::pruefen('ab')['fehler'], PartnerKurzlink::pruefen('1abc')['fehler'], PartnerKurzlink::pruefen(str_repeat('a', 31))['fehler'],
+        PartnerKurzlink::pruefen('a/b')['fehler'], PartnerKurzlink::pruefen('Admin')['fehler'], PartnerKurzlink::pruefen('ristoranti')['fehler'],
+        PartnerKurzlink::pruefen('vecom')['fehler']];
+$p4Vor = PartnerKurzlink::vorschlag($p4A);
+$p4S1 = PartnerKurzlink::setzen($p4Ai, 'Jürgen Kurz');
+$p4S2 = PartnerKurzlink::setzen($p4Bi, 'juergen-kurz');
+$p4S3 = PartnerKurzlink::setzen($p4Ai, 'JUERGEN  kurz');
+pruefe('Kurzlink-Name: 3–30 Zeichen, Buchstabe vorn, nur a–z, Ziffern, Bindestrich; Umlaute und Leerzeichen werden umgeschrieben (Jürgen Kurz → juergen-kurz); reservierte Wörter und Branchenwörter nie; ein Name gehört genau einem Partner; derselbe Name noch einmal ändert nichts',
+    $p4F === ['form', 'form', 'form', 'form', 'gesperrt', 'gesperrt', 'gesperrt'] && PartnerKurzlink::normal(' Jürgen  Kurz ') === 'juergen-kurz'
+    && $p4Vor === 'juergen' && $p4S1 === null && $p4S2 === 'belegt' && $p4S3 === null && PartnerKurzlink::name($p4Ai) === 'juergen-kurz'
+    && PartnerKurzlink::name($p4Bi) === null && (int) Db::wert('SELECT COUNT(*) FROM partner_kurznamen WHERE partner_id = ?', [$p4Ai], 0) === 1,
+    json_encode([$p4F, $p4Vor, $p4S1, $p4S2, $p4S3]));
+$p4S4 = PartnerKurzlink::setzen($p4Ai, 'jk-agrigento');
+$p4Alt = PartnerKurzlink::aufloesen('juergen-kurz');
+$p4S5 = PartnerKurzlink::setzen($p4Ai, 'jk-sicilia');
+$p4S6 = PartnerKurzlink::setzen($p4Ai, 'jk-vier');
+$p4S7 = PartnerKurzlink::setzen($p4Ai, 'juergen-kurz');            // eigener alter Name: geht auch an der Grenze
+$p4S8 = PartnerKurzlink::setzen($p4Ai, 'jk-uwe', true);              // Uwe in der Verwaltung: ohne Grenze
+$p4S9 = PartnerKurzlink::setzen($p4Bi, 'jk-agrigento');              // alter Name eines anderen: nie frei
+pruefe('Umbenennen: der alte Name wird „alt“ und führt weiter zum selben Partner (gedruckte QR-Codes bleiben gültig); höchstens drei Namen je Partner, ein eigener alter geht immer, Uwe ohne Grenze; alte Namen werden nie an andere vergeben',
+    $p4S4 === null && ($p4Alt['id'] ?? 0) === $p4Ai && $p4S5 === null && $p4S6 === 'zu_oft' && $p4S7 === null && $p4S8 === null && $p4S9 === 'belegt'
+    && PartnerKurzlink::name($p4Ai) === 'jk-uwe' && PartnerKurzlink::rest($p4Ai) === 0
+    && (int) (PartnerKurzlink::aufloesen('jk-agrigento')['id'] ?? 0) === $p4Ai && (int) (PartnerKurzlink::aufloesen('JK-SICILIA')['id'] ?? 0) === $p4Ai
+    && (int) Db::wert("SELECT COUNT(*) FROM partner_kurznamen WHERE partner_id = ? AND status = 'aktiv'", [$p4Ai], 0) === 1,
+    json_encode([$p4S4, $p4S5, $p4S6, $p4S7, $p4S8, $p4S9, PartnerKurzlink::liste($p4Ai)]));
+$p4Sp = PartnerKurzlink::sperren('jk-sicilia');
+Db::run("UPDATE partner SET status = 'pausiert' WHERE id = ?", [$p4Ai]);
+$p4Pause = PartnerKurzlink::aufloesen('jk-uwe');
+Db::run("UPDATE partner SET status = 'aktiv' WHERE id = ?", [$p4Ai]);
+pruefe('Sperren: Der Name führt nirgends mehr hin und ist für niemanden mehr frei, auch nicht für den Partner selbst; ein pausierter Partner hat keinen Kurzlink; Unbekanntes und Unsinn lösen nichts auf',
+    $p4Sp && !PartnerKurzlink::sperren('jk-sicilia') && PartnerKurzlink::aufloesen('jk-sicilia') === null && PartnerKurzlink::pruefen('jk-sicilia', $p4Ai)['fehler'] === 'belegt'
+    && $p4Pause === null && PartnerKurzlink::aufloesen('gibt-es-nicht') === null && PartnerKurzlink::aufloesen("x' OR 1=1") === null
+    && isset(Ablauf::TRAGWEITE['partner_kurzlink_sperren']) && Ablauf::TRAGWEITE['partner_kurzlink_sperren'][0] === Ablauf::SCHWER);
+
+// --- Branche in der Adresse: drei Sprachen, ein Kanal, keine zweite Zählwelt ---
+$p4Slugs = []; foreach (PartnerKurzlink::SLUGS as $b => $je) { foreach ($je as $l => $w) { $p4Slugs[$w][] = $b; } }
+$p4Doppelt = array_keys(array_filter($p4Slugs, static fn($bs) => count(array_unique($bs)) > 1));
+$p4KanalOk = !array_filter(array_keys(PartnerKurzlink::SLUGS), static fn($b) => Partner::kanal(PartnerKurzlink::kanal($b)) !== 'go-' . $b || PartnerKurzlink::ausKanal('go-' . $b) !== $b);
+pruefe('Branchenwort: jede der zwölf (ohne „andere“) in it/de/en, kein Wort für zwei Branchen; ristoranti → Gastronomie auf Italienisch, fitness ohne feste Sprache; Kanal go-<branche> passt in die Kanal-Regel von p.php und zurück',
+    array_keys(PartnerKurzlink::SLUGS) === array_slice(PartnerBranche::ALLE, 0, 12) && $p4Doppelt === [] && $p4KanalOk
+    && PartnerKurzlink::branche('Ristoranti') === ['gastronomie', 'it'] && PartnerKurzlink::branche('gastronomie') === ['gastronomie', 'de']
+    && PartnerKurzlink::branche('fitness') === ['fitness', null] && PartnerKurzlink::branche('mond') === null
+    && PartnerKurzlink::kanal(null) === 'go' && PartnerKurzlink::kanal('mond') === 'go' && PartnerKurzlink::ausKanal('go') === null && PartnerKurzlink::ausKanal('go-mond') === null
+    && PartnerKurzlink::link($p4Ai, 'gastronomie', 'it') === 'https://pruefung.example/go/jk-uwe/ristoranti'
+    && PartnerKurzlink::link($p4Ai, null, 'de') === 'https://pruefung.example/go/jk-uwe' && PartnerKurzlink::link($p4Bi, null, 'it') === null
+    && PartnerWerbung::name('go-gastronomie', 'de') === 'Kurzlink · Gastronomie' && PartnerWerbung::name('go', 'it') === 'Link breve', json_encode($p4Doppelt));
+$p4Grp = []; $p4Lang = [];
+foreach (PartnerKurzlink::SEITE as $b => [$grp, $bild]) {
+    if (!isset(Texte::SEITE_BRANCHEN[$grp]) || ($bild !== null && !isset(PartnerSeite::BILDER[$bild]))) { $p4Grp[] = $b; continue; }
+    foreach (['it', 'de', 'en'] as $l) { foreach (PartnerSeite::TEXT_MAX as $k => $max) {
+        $t = (string) (Texte::SEITE_BRANCHEN[$grp][$l][$k] ?? '');
+        if ($t === '' || mb_strlen($t) > $max || preg_match('~\b(du|dich|dein|deine)\b~u', $t)) { $p4Lang[] = "$grp.$l.$k"; }
+    } }
+}
+$p4G = PartnerKurzlink::gestaltung(PartnerSeite::gestaltung($p4A), 'beratung');
+pruefe('Branchenseite: jede der zwölf hat Überschrift, Text und drei Punkte in drei Sprachen (gesiezt, in den Längen der Gestaltung) und ein vorhandenes Titelbild oder das des Partners; der Überschriften-Test ruht dort',
+    array_keys(PartnerKurzlink::SEITE) === array_keys(PartnerKurzlink::SLUGS) && $p4Grp === [] && $p4Lang === []
+    && $p4G['texte']['de']['titel'] === 'Websites für Kanzleien und Beratung' && $p4G['ab'] === null
+    && PartnerKurzlink::gestaltung(PartnerSeite::gestaltung($p4A), 'gastronomie')['bild'] === 'gastro', json_encode([$p4Grp, $p4Lang]));
+
+// --- go.php wirklich ausführen: Branchenseite, gezählt als Kanal, Unbekanntes still auf die Startseite ---
+$p4Lauf = static function (string $uri) use ($wurzel, $oben, $db): string {
+    $cfg = json_encode(['db' => ['host' => $db['host'], 'name' => $db['name'], 'user' => $db['user'], 'pass' => $db['pass'], 'socket' => $db['sock']],
+        'website' => 'https://pruefung.example', 'basis' => '/app', 'zeitzone' => 'Europe/Rome', 'firma' => 'Vecom Design Pruefung']);
+    $code = 'require ' . var_export($wurzel . '/src/Config.php', true) . '; Config::setzenFuerTest(json_decode(getenv("KETTE_CFG"), true));'
+        . ' $_SERVER += ["REQUEST_METHOD" => "GET", "REQUEST_URI" => ' . var_export($uri, true) . ', "HTTP_HOST" => "localhost", "REMOTE_ADDR" => "127.0.0.9",'
+        . ' "HTTP_USER_AGENT" => "Mozilla/5.0 (Kette Phase 4)", "HTTP_ACCEPT_LANGUAGE" => "de-DE"]; chdir(' . var_export($oben, true) . ');'
+        . ' include ' . var_export($oben . '/go.php', true) . ';';
+    return (string) shell_exec('KETTE_CFG=' . escapeshellarg((string) $cfg) . ' ' . escapeshellarg(PHP_BINARY)
+        . ' -d display_errors=1 -d error_reporting=' . (E_ALL & ~E_DEPRECATED & ~E_NOTICE & ~E_WARNING) . ' -r ' . escapeshellarg($code) . ' 2>&1');
+};
+$p4Gast = $p4Lauf('/go/jk-uwe/ristoranti');
+$p4Alt2 = $p4Lauf('/go/juergen-kurz/');
+$p4Tipp = $p4Lauf('/go/jk-uwe/ristorantti');
+$p4Nix = $p4Lauf('/go/jk-sicilia/ristoranti');
+$p4Klick = Db::all('SELECT kanal, SUM(anzahl) AS n FROM partner_kanal_klicks WHERE partner_id = ? GROUP BY kanal ORDER BY kanal', [$p4Ai]);
+pruefe('go.php läuft durch: /go/name/ristoranti zeigt die Seite des Partners mit der Gastronomie-Überschrift auf Italienisch und zählt als go-gastronomie; ein alter Name führt zum Partner (Kanal go); ein Tippfehler in der Branche auf die normale Seite; ein gesperrter Name zeigt nichts',
+    !preg_match('~Fatal error|Uncaught~', $p4Gast . $p4Alt2 . $p4Tipp . $p4Nix)
+    && str_contains($p4Gast, 'Siti web per ristoranti e bar in Sicilia') && str_contains($p4Gast, 'lang="it"')
+    && str_contains($p4Alt2, 'Jürgen') && !str_contains($p4Alt2, 'ristoranti e bar') && str_contains($p4Tipp, 'Jürgen') && !str_contains($p4Tipp, 'ristoranti e bar')
+    && trim($p4Nix) === '' && array_map(static fn($z) => $z['kanal'] . ':' . (int) $z['n'], $p4Klick) === ['go:2', 'go-gastronomie:1'],
+    json_encode([mb_substr(strip_tags($p4Gast), 0, 200), mb_substr(trim($p4Nix), 0, 200), $p4Klick], JSON_UNESCAPED_UNICODE));
+$p4Ht = (string) file_get_contents($oben . '/.htaccess');
+pruefe('.htaccess leitet /go/name und /go/name/branche an go.php; go.php übersetzt nur und übergibt an p.php (kein eigener Zählweg)',
+    str_contains($p4Ht, 'RewriteRule ^go/([A-Za-z0-9-]{3,30})/?$ go.php?n=$1 [L,QSA]') && str_contains($p4Ht, 'RewriteRule ^go/([A-Za-z0-9-]{3,30})/([A-Za-z-]{2,20})/?$ go.php?n=$1&b=$2 [L,QSA]')
+    && str_contains((string) file_get_contents($oben . '/go.php'), "require __DIR__ . '/p.php';") && !str_contains((string) file_get_contents($oben . '/go.php'), 'partner_kanal_klicks'));
+
+// --- Kampagne: Paket mit Seite, QR, Telegram; Erfolg bis Umsatz, nur Eigenes ---
+$p4K1 = PartnerKampagne::anlegen($p4A, ['ziel' => 'social', 'branche' => 'beauty', 'sprache' => 'it']);
+$p4K2 = PartnerKampagne::anlegen($p4A, ['ziel' => 'anfragen', 'branche' => 'auto', 'sprache' => 'de', 'ziel_weg' => 'preis']);
+$p4K3 = PartnerKampagne::anlegen($p4A, ['ziel' => 'reaktivieren', 'branche' => 'fitness', 'sprache' => 'de', 'ziel_weg' => 'wa']);
+$p4Pk = static fn(int $id) => array_column(PartnerKampagne::paket($p4A, PartnerKampagne::laden($p4Ai, $id), 'de', []), null, 'art');
+[$p4P1, $p4P2, $p4P3] = [$p4Pk($p4K1), $p4Pk($p4K2), $p4Pk($p4K3)];
+$p4L1 = PartnerWerbung::link($p4A, 'kampagne-' . $p4K1);
+pruefe('Paket: Seite hinter dem Link (ohne Klick zu zählen; beim Weg „Preis“ die Preisseite, bei WhatsApp keine Seite), QR-Code des Kampagnenlinks, Telegram mit demselben Text wie WhatsApp über den offiziellen Teilen-Link, Mediathek der Branche',
+    str_contains((string) $p4P1['seite']['ansehen'], 'k=kampagne-' . $p4K1) && str_contains((string) $p4P1['seite']['ansehen'], 'n=1') && str_contains((string) $p4P1['seite']['ansehen'], 'lang=it')
+    && $p4P2['seite']['ansehen'] === '/bedarf.php?lang=de' && $p4P3['seite']['ansehen'] === null
+    && str_starts_with((string) $p4P1['qr']['svg'], '<svg') && $p4P1['qr']['kampagne'] === $p4K1
+    && $p4P1['telegram']['text'] === $p4P1['whatsapp']['text'] && str_starts_with((string) $p4P1['telegram']['teilen'], 'https://t.me/share/url?url=' . rawurlencode($p4L1))
+    && $p4P1['texte']['branche'] === 'beauty' && !isset($p4P1['selbstdruck']) && isset($p4P2['selbstdruck']), json_encode(array_keys($p4P1)));
+$p4Ku = [];
+foreach (['a' => $p4K1, 'b' => $p4K1, 'c' => $p4K2, 'd' => $p4K2] as $kn => $kid) {
+    $p4Ku[$kn] = (int) Db::insert('customers', ['name' => 'P4 Kunde ' . $kn, 'email' => "p4$kn@kunde.example"]);
+    Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle, kanal) VALUES (?, ?, ?, ?)', [$p4Ku[$kn], $p4Ai, 'link', 'kampagne-' . $kid]);
+}
+$p4Fr = (int) Db::insert('customers', ['name' => 'P4 Fremd', 'email' => 'p4f@kunde.example']);
+Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle, kanal) VALUES (?, ?, ?, ?)', [$p4Fr, $p4Bi, 'link', 'kampagne-' . $p4K1]);
+foreach ([[$p4Ku['a'], 120000, 12000, 'wartet'], [$p4Ku['b'], 80000, 8000, 'storniert'], [$p4Ku['c'], 50000, 5000, 'ausgezahlt'], [$p4Fr, 999900, 99990, 'wartet']] as $i => [$cid, $basis, $prov, $st]) {
+    Db::run("INSERT INTO partner_provisionen (partner_id, customer_id, payment_id, art, basis_cents, provision_cents, status, frei_ab) VALUES (?, ?, ?, 'website', ?, ?, ?, NOW())",
+        [$cid === $p4Fr ? $p4Bi : $p4Ai, $cid, 990900 + $i, $basis, $prov, $st]);
+}
+$p4Z1 = PartnerKampagne::zahlen($p4Ai, $p4K1); $p4Z2 = PartnerKampagne::zahlen($p4Ai, $p4K2);
+$p4U = PartnerKampagne::uebersicht($p4Ai);
+pruefe('Erfolg bis Umsatz: je Kampagne Umsatz netto und Provision aus partner_provisionen, Storniertes zählt weder als Umsatz noch als Provision, fremde Zuordnungen nie; Übersicht mit Summe; beste Kampagne erst mit echten Kunden (bei Gleichstand der höhere Umsatz)',
+    $p4Z1['umsatz_cents'] === 120000 && $p4Z1['provision_cents'] === 12000 && $p4Z1['anfragen'] === 2 && $p4Z1['kunden'] === 1
+    && $p4Z2['umsatz_cents'] === 50000 && $p4Z2['provision_cents'] === 5000 && $p4Z2['kunden'] === 1
+    && $p4U['summe']['umsatz_cents'] === 170000 && $p4U['summe']['provision_cents'] === 17000 && count($p4U['zeilen']) === 3 && $p4U['beste'] === $p4K1
+    && PartnerKampagne::uebersicht($p4Bi)['zeilen'] === [] && PartnerKampagne::zahlen($p4Bi, $p4K1) === null, json_encode([$p4Z1, $p4Z2, $p4U['summe'], $p4U['beste']]));
+Db::run('DELETE FROM partner_provisionen WHERE payment_id BETWEEN 990900 AND 990903');
+pruefe('Ohne Kunden keine „beste Kampagne“ (Anfragen und Klicks allein sind Zufall)', PartnerKampagne::uebersicht($p4Ai)['beste'] === null
+    && PartnerKampagne::zahlen($p4Ai, $p4K1)['anfragen'] === 2, json_encode(PartnerKampagne::zahlen($p4Ai, $p4K1)));
+
+// --- Seiten: Übersicht und Kurzlink rendern, escaped, CSRF; Downloads nur für Eigenes ---
+$p4Seite = static function (int $pid, array $get = [], array $vars = []) use ($wurzel): string {
+    $altGet = $_GET; $_GET = ['teil' => 'kampagnen'] + $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $ccPf = PartnerCommand::profil($p); $ccMkMeldung = ''; extract($vars);
+    $C = Texte::PARTNER_CC; $c = static fn(array $t, array $r = []): string => strtr(Texte::h($t, 'de'), $r);
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    $start = $selbst;
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_marketing.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+Db::run("UPDATE mk_kampagnen SET name = '<i>Herbst</i>' WHERE id = ?", [$p4K1]);
+$p4H1 = $p4Seite($p4Ai, ['gl' => 'it']);
+$p4H2 = $p4Seite($p4Bi, [], ['ccKlFehler' => 'belegt', 'ccKlWunsch' => '<script>x</script>']);
+pruefe('MARKETING › Kampagnen & QR: Tabelle aller Kampagnen mit Umsatz und Provision (escaped), Kurzlink je Branche mit Kopieren und QR in der gewählten Sprache; ohne Namen das Formular mit Vorschlag, Fehler dreisprachig, Eingabe escaped, jedes Formular mit CSRF',
+    str_contains($p4H1, '<table class="cc-ktab">') && str_contains($p4H1, '&lt;i&gt;Herbst&lt;/i&gt;') && !str_contains($p4H1, '<i>Herbst</i>')
+    && str_contains($p4H1, 'value="https://pruefung.example/go/jk-uwe/bellezza"') && str_contains($p4H1, 'wmqr=png&amp;go=beauty&amp;gl=it')
+    && str_contains($p4H1, 'id="kurzlink"') && str_contains($p4H1, 'Weitere Änderungen nur über Vecom.')
+    && str_contains($p4H2, 'name="tat" value="kurzlink"') && str_contains($p4H2, 'Diesen Namen gibt es schon') && str_contains($p4H2, '&lt;script&gt;x&lt;/script&gt;')
+    && !str_contains($p4H2, '<script>x') && substr_count($p4H1 . $p4H2, '<form method="post"') === substr_count($p4H1 . $p4H2, 'name="_csrf"'),
+    mb_substr(strip_tags($p4H2), 0, 300));
+$p4Pp = (string) file_get_contents($oben . '/partner.php');
+$p4Dr = (string) file_get_contents($wurzel . '/views/partner_druck.php');
+pruefe('QR-Download und Selbstdruck nur für Eigenes: fremde Kampagne oder fehlender Kurzlink → 404, beim Flyer der gewöhnliche Link; Kurzlink setzen nur mit CSRF und für die eigene Partner-ID',
+    str_contains($p4Pp, "\$wmK = PartnerKampagne::laden((int) \$p['id'], (int) \$_GET['kq']);\n        if (!\$wmK) { http_response_code(404); exit; }")
+    && str_contains($p4Pp, "if (\$wmLink === null) { http_response_code(404); exit; }")
+    && str_contains($p4Dr, "if ((\$dK = PartnerKampagne::laden((int) \$p['id'], (int) \$_GET['kampagne'])) !== null)")
+    && str_contains($p4Pp, "if (!\$ccCsrf) { header('Location: ' . \$ccZiel . '#kurzlink', true, 303); exit; }")
+    && str_contains($p4Pp, "PartnerKurzlink::setzen((int) \$p['id'], (string) (\$_POST['name'] ?? ''))")
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_kurzlink', $t)));
+$p4Fehlt = []; $p4Platz = [];
+$p4Drei = static function ($w, string $pfad) use (&$p4Drei, &$p4Fehlt, &$p4Platz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { if (trim((string) ($w[$l] ?? '')) === '') { $p4Fehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z]+\}~', (string) ($w[$l] ?? ''), $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $p4Platz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $p4Drei($v, "$pfad.$k"); }
+};
+$p4Drei(Texte::PARTNER_KAMPAGNE, 'PARTNER_KAMPAGNE');
+pruefe('Texte Kampagnen + QR: dreisprachig mit denselben Platzhaltern, Deutsch duzt; jede Fehlermeldung des Kurzlinks hat einen Text',
+    $p4Fehlt === [] && $p4Platz === [] && Texte::duzt('PARTNER_KAMPAGNE.kl_satz')
+    && array_keys(Texte::PARTNER_KAMPAGNE['kl_f']) === ['form', 'gesperrt', 'belegt', 'zu_oft'], json_encode([$p4Fehlt, $p4Platz]));
+
+Db::run('DELETE FROM partner_zuordnungen WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
+Db::run('DELETE FROM customers WHERE id IN (' . implode(',', array_merge(array_values($p4Ku), [$p4Fr])) . ')');
+Db::run('DELETE FROM partner_kanal_klicks WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
+Db::run('DELETE FROM partner_klicks WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
+Db::run('DELETE FROM partner_kurznamen WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
+Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p4Ai, $p4Bi]);
 
 /* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).

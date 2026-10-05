@@ -184,10 +184,35 @@ final class PartnerKampagne
         $kunden = (int) Db::wert("SELECT COUNT(DISTINCT pp.customer_id) FROM partner_provisionen pp
                                     JOIN partner_zuordnungen z ON z.customer_id = pp.customer_id AND z.partner_id = pp.partner_id
                                    WHERE pp.partner_id = ? AND z.kanal IN ($in) AND pp.status NOT IN ('storniert','abgelehnt')", array_merge([$partnerId], $kanaele), 0);
-        $provision = (int) Db::wert("SELECT COALESCE(SUM(pp.provision_cents), 0) FROM partner_provisionen pp
-                                       JOIN partner_zuordnungen z ON z.customer_id = pp.customer_id AND z.partner_id = pp.partner_id
-                                      WHERE pp.partner_id = ? AND z.kanal IN ($in) AND pp.status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')", array_merge([$partnerId], $kanaele), 0);
-        return ['scans' => $scans, 'klicks' => $klicks, 'besucher' => $besucher, 'anfragen' => $anfragen, 'kunden' => $kunden, 'provision_cents' => $provision];
+        /* Umsatz (Phase 4, 05.10.2026, Uwe: „Ja, Umsatz zeigen“): die Summe, auf die Provision gerechnet wurde —
+           netto, ohne Namen, mit denselben Ausschlüssen wie die Provision. Was storniert ist, war kein Umsatz. */
+        $geld = Db::one("SELECT COALESCE(SUM(pp.provision_cents), 0) AS provision, COALESCE(SUM(pp.basis_cents), 0) AS umsatz FROM partner_provisionen pp
+                           JOIN partner_zuordnungen z ON z.customer_id = pp.customer_id AND z.partner_id = pp.partner_id
+                          WHERE pp.partner_id = ? AND z.kanal IN ($in) AND pp.status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')", array_merge([$partnerId], $kanaele)) ?: [];
+        return ['scans' => $scans, 'klicks' => $klicks, 'besucher' => $besucher, 'anfragen' => $anfragen, 'kunden' => $kunden,
+                'umsatz_cents' => (int) ($geld['umsatz'] ?? 0), 'provision_cents' => (int) ($geld['provision'] ?? 0)];
+    }
+
+    /**
+     * Alle Kampagnen mit ihrem Ergebnis nebeneinander (Phase 4, 05.10.2026) und die beste — aber erst, wenn eine
+     * wirklich Kunden gebracht hat: Drei Klicks und null Kunden sind kein Rat, sondern Zufall (wie PartnerWerbung::auswertung).
+     * @return array{zeilen: list<array{k: array, z: array}>, beste: ?int, summe: array<string,int>}
+     */
+    public static function uebersicht(int $partnerId): array
+    {
+        $zeilen = [];
+        $summe = ['scans' => 0, 'klicks' => 0, 'besucher' => 0, 'anfragen' => 0, 'kunden' => 0, 'umsatz_cents' => 0, 'provision_cents' => 0];
+        foreach (self::liste($partnerId) as $k) {
+            $z = self::zahlen($partnerId, (int) $k['id']) ?? [];
+            foreach ($summe as $s => $_) { $summe[$s] += (int) ($z[$s] ?? 0); }
+            $zeilen[] = ['k' => $k, 'z' => $z];
+        }
+        $beste = null; $best = [0, 0, 0];
+        foreach ($zeilen as $r) {
+            $wert = [(int) ($r['z']['kunden'] ?? 0), (int) ($r['z']['umsatz_cents'] ?? 0), (int) ($r['z']['anfragen'] ?? 0)];
+            if ($wert[0] > 0 && $wert > $best) { $best = $wert; $beste = (int) $r['k']['id']; }
+        }
+        return ['zeilen' => $zeilen, 'beste' => $beste, 'summe' => $summe];
     }
 
     /* ======================================================================
@@ -261,6 +286,8 @@ final class PartnerKampagne
         require_once __DIR__ . '/PartnerWerbung.php';
         require_once __DIR__ . '/PartnerVorlagen.php';
         require_once __DIR__ . '/Fmt.php';
+        require_once __DIR__ . '/QrBild.php';
+        require_once __DIR__ . '/PartnerSeite.php';
         $K = Texte::PARTNER_KAMPAGNE;
         $t = static fn(array $x): string => Texte::h($x, $sprache);
         $ks = in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : $sprache;   // Sprache der Werbemittel
@@ -272,15 +299,46 @@ final class PartnerKampagne
         $produkte = [];
         foreach ($katalog as $kat) { foreach ($kat['produkte'] as $pr) { $produkte[(string) $pr['vorlage']] = $pr; } }
         $aus = [];
+        /* Kampagneninhalt komplett (Phase 4, 05.10.2026): zum Link die Seite dahinter und der QR-Code, zu WhatsApp
+           Telegram (ein Chat ist ein Chat), zum Flyer die Fassung zum Selbstdrucken, am Ende die Mediathek der Branche. */
+        $arten = [];
         foreach (self::PAKETE[(string) $k['ziel_art']] ?? self::PAKETE['neue_kunden'] as $art) {
+            $arten[] = $art;
+            if ($art === 'link') { $arten[] = 'seite'; $arten[] = 'qr'; }
+            if ($art === 'whatsapp') { $arten[] = 'telegram'; }
+        }
+        if (in_array('flyer', $arten, true)) { $arten[] = 'selbstdruck'; }
+        $arten[] = 'texte';
+        $weg = (string) $k['ziel_weg'];
+        foreach ($arten as $art) {
             switch ($art) {
                 case 'link':
-                    $aus[] = ['art' => 'link', 'titel' => $t($K['p']['link'][0]), 'satz' => strtr($t($K['p']['link'][1]), ['{weg}' => $t($K['wege'][(string) $k['ziel_weg']] ?? $K['wege'][''])]), 'link' => $link];
+                    $aus[] = ['art' => 'link', 'titel' => $t($K['p']['link'][0]), 'satz' => strtr($t($K['p']['link'][1]), ['{weg}' => $t($K['wege'][$weg] ?? $K['wege'][''])]), 'link' => $link];
+                    break;
+                case 'seite':
+                    // Was der Besucher sieht. n=1: Ansehen zählt nicht als Klick. WhatsApp hat keine Seite — dort öffnet sich der Chat.
+                    $ansehen = match ($weg) {
+                        '' => '/p.php?' . http_build_query(['c' => $p['code'], 'k' => self::kanal((int) $k['id']), 'lang' => $ks, 'n' => 1]),
+                        'wa' => null,
+                        default => PartnerSeite::wegZiel($weg, $ks),
+                    };
+                    $aus[] = ['art' => 'seite', 'titel' => $t($K['p']['seite'][0]), 'satz' => $t($K['p']['seite'][$ansehen === null ? 2 : 1]), 'ansehen' => $ansehen];
+                    break;
+                case 'qr':
+                    $aus[] = ['art' => 'qr', 'titel' => $t($K['p']['qr'][0]), 'satz' => $t($K['p']['qr'][1]), 'svg' => QrBild::svg($link, 132, 2), 'kampagne' => (int) $k['id']];
                     break;
                 case 'whatsapp':
+                case 'telegram':
                     $text = $tb !== null ? strtr(Texte::h(Texte::PARTNER_BRANCHEN[$tb]['wa'], $ks), $ersatz) : $vorlage('whatsapp', 'persoenlich', 'text');
-                    $aus[] = ['art' => 'whatsapp', 'titel' => $t($K['p']['whatsapp'][0]), 'satz' => $t($K['p']['whatsapp'][1]), 'text' => $text,
-                              'teilen' => PartnerWerbung::teilen('whatsapp', $text, '', $link)];
+                    $aus[] = ['art' => $art, 'titel' => $t($K['p'][$art][0]), 'satz' => $t($K['p'][$art][1]), 'text' => $text,
+                              'teilen' => PartnerWerbung::teilen($art, $text, '', $link)];
+                    break;
+                case 'selbstdruck':
+                    $aus[] = ['art' => 'selbstdruck', 'titel' => $t($K['p']['selbstdruck'][0]), 'satz' => $t($K['p']['selbstdruck'][1]), 'kampagne' => (int) $k['id']];
+                    break;
+                case 'texte':
+                    $aus[] = ['art' => 'texte', 'titel' => $t($K['p']['texte'][0]), 'satz' => strtr($t($K['p']['texte'][1]), ['{branche}' => PartnerBranche::name((string) $k['branche'], $sprache)]),
+                              'branche' => PartnerBranche::von((string) $k['branche'])];
                     break;
                 case 'post':
                     $text = $tb !== null ? strtr(Texte::h(Texte::PARTNER_BRANCHEN[$tb]['post'], $ks), $ersatz) : $vorlage('instagram', 'post', 'text');

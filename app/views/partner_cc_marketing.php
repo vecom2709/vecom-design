@@ -150,20 +150,100 @@ $mKarte = static function (array $k, string $nr) use ($h, $m, $M, $selbst): stri
   <?php endif; ?>
 
 <?php elseif ($mTeil === 'kampagnen'):
-  $kL = PartnerKampagne::liste((int) $p['id']); $KK = Texte::PARTNER_KAMPAGNE; ?>
+  /* Phase 4 (05.10.2026): Ergebnis aller Kampagnen nebeneinander — vom Kontakt bis zu Umsatz und Provision (Uwe: „Ja,
+     Umsatz zeigen“, als Summe ohne Namen) — und der Kurzlink /go/name/branche (Uwe: „Partner wählt selbst“). */
+  require_once dirname(__DIR__) . '/src/PartnerKurzlink.php';
+  $KK = Texte::PARTNER_KAMPAGNE;
+  $kU = PartnerKampagne::uebersicht((int) $p['id']);
+  $kBeste = null; foreach ($kU['zeilen'] as $kr) { if ((int) $kr['k']['id'] === $kU['beste']) { $kBeste = $kr; } } ?>
   <section class="cc-auf z2" aria-labelledby="cc-mk-t">
-    <div class="cc-titelzeile"><h2 class="cc-titel" id="cc-mk-t"><?= $h($m($KK['liste'])) ?></h2>
+    <div class="cc-titelzeile"><h2 class="cc-titel" id="cc-mk-t"><?= $h($m($KK['ue_titel'])) ?></h2>
       <a class="knopf haupt" href="<?= $h($selbst(['cc' => 1, 'kampagne' => 'neu'])) ?>">+ <?= $h($m($KK['neu'])) ?></a></div>
-    <?php if (!$kL): ?>
+    <?php if (!$kU['zeilen']): ?>
       <p class="cc-leer"><?= $h($m($KK['leer'])) ?></p>
     <?php else: ?>
-      <ul class="cc-kliste">
-        <?php foreach ($kL as $kk): $kz = PartnerKampagne::zahlen((int) $p['id'], (int) $kk['id']) ?? []; ?>
-          <li><a href="<?= $h($selbst(['cc' => 1, 'kampagne' => (int) $kk['id']])) ?>">
-            <span><b><?= $h((string) $kk['name']) ?></b><small><?= $h(PartnerKampagne::nummer($kk)) ?> · <span class="cc-status s-<?= $h((string) $kk['status']) ?>"><?= $h($m($KK['status'][(string) $kk['status']])) ?></span></small></span>
-            <span class="cc-kz"><b><?= (int) ($kz['scans'] ?? 0) + (int) ($kz['klicks'] ?? 0) ?></b><small><?= $h($m($KK['kz'])) ?></small></span></a></li>
+      <?php if ($kBeste): ?>
+        <p class="cc-beste"><a href="<?= $h($selbst(['cc' => 1, 'kampagne' => (int) $kBeste['k']['id']])) ?>"><?= $h($m($KK['beste'], ['{name}' => (string) $kBeste['k']['name'],
+          '{kunden}' => (string) (int) $kBeste['z']['kunden'], '{umsatz}' => Fmt::geld((int) $kBeste['z']['umsatz_cents'])])) ?></a></p>
+      <?php else: ?>
+        <p class="hilfe" style="margin:0 0 12px"><?= $h($m($KK['beste_noch'])) ?></p>
+      <?php endif; ?>
+      <div class="cc-ktab-rahmen">
+      <table class="cc-ktab">
+        <thead><tr><th scope="col"><?= $h($m($KK['liste'])) ?></th><th scope="col"><?= $h($m($KK['ue_kontakt'])) ?></th><th scope="col"><?= $h($m($KK['z']['anfragen'])) ?></th>
+          <th scope="col"><?= $h($m($KK['z']['kunden'])) ?></th><th scope="col"><?= $h($m($KK['z']['umsatz_cents'])) ?></th><th scope="col"><?= $h($m($KK['z']['provision_cents'])) ?></th></tr></thead>
+        <tbody>
+        <?php foreach ($kU['zeilen'] as $kr): $kk = $kr['k']; $kz = $kr['z']; ?>
+          <tr<?= (int) $kk['id'] === $kU['beste'] ? ' class="beste"' : '' ?>>
+            <th scope="row"><a href="<?= $h($selbst(['cc' => 1, 'kampagne' => (int) $kk['id']])) ?>"><b><?= $h((string) $kk['name']) ?></b></a>
+              <small><?= $h(PartnerKampagne::nummer($kk)) ?> · <span class="cc-status s-<?= $h((string) $kk['status']) ?>"><?= $h($m($KK['status'][(string) $kk['status']])) ?></span></small></th>
+            <td data-l="<?= $h($m($KK['ue_kontakt'])) ?>"><?= (int) ($kz['scans'] ?? 0) + (int) ($kz['klicks'] ?? 0) ?></td>
+            <td data-l="<?= $h($m($KK['z']['anfragen'])) ?>"><?= (int) ($kz['anfragen'] ?? 0) ?></td>
+            <td data-l="<?= $h($m($KK['z']['kunden'])) ?>"><?= (int) ($kz['kunden'] ?? 0) ?></td>
+            <td data-l="<?= $h($m($KK['z']['umsatz_cents'])) ?>"><?= $h(Fmt::geld((int) ($kz['umsatz_cents'] ?? 0))) ?></td>
+            <td data-l="<?= $h($m($KK['z']['provision_cents'])) ?>" class="gold"><?= $h(Fmt::geld((int) ($kz['provision_cents'] ?? 0))) ?></td>
+          </tr>
         <?php endforeach; ?>
+        </tbody>
+        <?php if (count($kU['zeilen']) > 1): $ks = $kU['summe']; ?>
+          <tfoot><tr><th scope="row"><?= $h($m($KK['ue_summe'])) ?></th>
+            <td data-l="<?= $h($m($KK['ue_kontakt'])) ?>"><?= $ks['scans'] + $ks['klicks'] ?></td><td data-l="<?= $h($m($KK['z']['anfragen'])) ?>"><?= $ks['anfragen'] ?></td>
+            <td data-l="<?= $h($m($KK['z']['kunden'])) ?>"><?= $ks['kunden'] ?></td><td data-l="<?= $h($m($KK['z']['umsatz_cents'])) ?>"><?= $h(Fmt::geld($ks['umsatz_cents'])) ?></td>
+            <td data-l="<?= $h($m($KK['z']['provision_cents'])) ?>" class="gold"><?= $h(Fmt::geld($ks['provision_cents'])) ?></td></tr></tfoot>
+        <?php endif; ?>
+      </table>
+      </div>
+      <p class="hilfe" style="margin:8px 0 0"><?= $h($m($KK['ue_hilfe'])) ?></p>
+    <?php endif; ?>
+  </section>
+
+  <?php
+  $klName = PartnerKurzlink::name((int) $p['id']);
+  $klSp = in_array((string) ($_GET['gl'] ?? ''), ['it', 'de', 'en'], true) ? (string) $_GET['gl'] : (in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it');
+  $klMeine = array_values(array_filter((array) ($mPf['branchen'] ?? []), static fn($b) => isset(PartnerKurzlink::SLUGS[$b])));
+  $klZeile = static function (?string $b, string $titel, string $id) use ($p, $klSp, $h, $m, $KK, $selbst): string {
+      $l = (string) PartnerKurzlink::link((int) $p['id'], $b, $klSp);
+      return '<li><span class="n">' . $h($titel) . '</span><div class="cc-kopie"><input id="' . $id . '" type="text" readonly value="' . $h($l) . '" aria-label="' . $h($titel) . '">'
+          . '<button class="knopf" type="button" data-cc-kopie="' . $id . '" data-fertig="' . $h($m($KK['kopiert'])) . '">' . $h($m($KK['kopieren'])) . '</button>'
+          . '<a class="knopf" href="' . $h($selbst(['wmqr' => 'png', 'go' => $b ?? 'haupt', 'gl' => $klSp])) . '" download>QR</a></div></li>';
+  }; ?>
+  <section class="cc-karte cc-kl cc-auf z3" id="kurzlink" aria-labelledby="cc-kl-t" style="margin-top:22px">
+    <h2 class="cc-titel" id="cc-kl-t" style="margin-bottom:4px"><?= $h($m($KK['kl_titel'])) ?></h2>
+    <p class="hilfe" style="margin:0 0 14px"><?= $h($m($KK['kl_satz'])) ?></p>
+    <?php if (($ccMeldung ?? '') === 'kl_gut'): ?><div class="hinweis gut" role="status" style="margin:0 0 14px"><?= $h($m($KK['kl_gut'])) ?></div><?php endif; ?>
+    <?php if (($ccKlFehler ?? '') !== ''): ?><div class="hinweis schlecht" role="alert" style="margin:0 0 14px"><?= $h($m($KK['kl_f'][$ccKlFehler] ?? $KK['kl_f']['form'])) ?></div><?php endif; ?>
+    <?php $klForm = static function (string $wert, string $knopf) use ($h, $m, $KK, $selbst): void { ?>
+      <form method="post" action="<?= $h($selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen'])) ?>" class="cc-kl-form">
+        <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="kurzlink">
+        <label for="cc-kl-name" class="cc-feldname"><?= $h($m($KK['kl_wahl'])) ?></label>
+        <div class="cc-kl-feld"><span aria-hidden="true">vecom-design.it/go/</span>
+          <input id="cc-kl-name" name="name" type="text" required minlength="3" maxlength="30" autocomplete="off" autocapitalize="none" spellcheck="false" value="<?= $h($wert) ?>" aria-describedby="cc-kl-hilfe"></div>
+        <p class="hilfe" id="cc-kl-hilfe"><?= $h($m($KK['kl_hilfe'])) ?></p>
+        <button class="knopf haupt" type="submit"><?= $h($knopf) ?></button>
+      </form>
+    <?php }; ?>
+    <?php if ($klName === null): ?>
+      <?php $klForm((string) ($ccKlWunsch ?? PartnerKurzlink::vorschlag($p)), $m($KK['kl_sichern'])); ?>
+    <?php else: ?>
+      <nav class="cc-kl-sprache" aria-label="<?= $h($m($KK['kl_sprache'])) ?>">
+        <?php foreach (['it' => 'IT', 'de' => 'DE', 'en' => 'EN'] as $l => $wie): ?>
+          <a href="<?= $h($mUrl(['teil' => 'kampagnen', 'gl' => $l]) . '#kurzlink') ?>"<?= $l === $klSp ? ' aria-current="true"' : '' ?>><?= $wie ?></a>
+        <?php endforeach; ?>
+      </nav>
+      <ul class="cc-kl-liste">
+        <?= $klZeile(null, $m($KK['kl_haupt']), 'cc-kl-0') ?>
+        <?php foreach ($klMeine as $i => $b): ?><?= $klZeile($b, PartnerBranche::name($b, $sprache), 'cc-kl-m' . $i) ?><?php endforeach; ?>
       </ul>
+      <details class="cc-kl-alle"><summary><?= $h($m($KK['kl_alle'])) ?></summary>
+        <ul class="cc-kl-liste">
+          <?php foreach (array_keys(PartnerKurzlink::SLUGS) as $i => $b): if (in_array($b, $klMeine, true)) { continue; } ?><?= $klZeile($b, PartnerBranche::name($b, $sprache), 'cc-kl-a' . $i) ?><?php endforeach; ?>
+        </ul></details>
+      <p class="hilfe" style="margin:12px 0 0"><?= $h($m($KK['kl_zaehlt'])) ?></p>
+      <details class="cc-ende"<?= ($ccKlFehler ?? '') !== '' ? ' open' : '' ?>><summary class="knopf stumm"><?= $h($m($KK['kl_aendern'])) ?></summary>
+        <?php $klRest = PartnerKurzlink::rest((int) $p['id']); ?>
+        <p class="hilfe" style="margin:10px 0"><?= $h($klRest > 0 ? $m($KK['kl_aendern_satz'], ['{n}' => (string) $klRest]) : $m($KK['kl_kein_rest'])) ?></p>
+        <?php if ($klRest > 0) { $klForm((string) ($ccKlWunsch ?? $klName), $m($KK['speichern'])); } ?>
+      </details>
     <?php endif; ?>
   </section>
   <nav class="cc-schnell cc-auf z3" style="margin-top:18px">

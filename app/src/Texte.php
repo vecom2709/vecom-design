@@ -3420,6 +3420,12 @@ final class Texte
             'post'      => [['it' => 'Post per Instagram e Facebook', 'de' => 'Beitrag für Instagram und Facebook', 'en' => 'Post for Instagram and Facebook'], ['it' => 'Pronto, con il link della campagna e #ad.', 'de' => 'Fertig, mit Kampagnenlink und #Werbung.', 'en' => 'Ready, with the campaign link and #ad.']],
             'email'     => [['it' => 'E-mail ai contatti di prima', 'de' => 'E-Mail an frühere Kontakte', 'en' => 'E-mail to earlier contacts'], ['it' => 'Oggetto e testo pronti; sostituisca [Nome].', 'de' => 'Betreff und Text fertig; [Name] ersetzen.', 'en' => 'Subject and text ready; replace [Name].']],
             'story'     => [['it' => 'Grafica per storie e status', 'de' => 'Grafik für Story und Status', 'en' => 'Graphic for stories and status'], ['it' => 'Motivo con il suo QR, nell’area Immagini.', 'de' => 'Motiv mit deinem QR-Code, im Bereich Bilder.', 'en' => 'Motif with your QR code, in the Images section.']],
+            // Phase 4 (05.10.2026): Kampagneninhalt komplett
+            'seite'     => [['it' => 'La pagina dietro il link', 'de' => 'Die Seite hinter dem Link', 'en' => 'The page behind the link'], ['it' => 'Così la vede chi clicca o scansiona.', 'de' => 'So sieht sie, wer klickt oder scannt.', 'en' => 'This is what people see when they click or scan.'], ['it' => 'Il link apre una chat WhatsApp con lei, con il messaggio già scritto.', 'de' => 'Der Link öffnet WhatsApp mit einer fertigen Nachricht an dich.', 'en' => 'The link opens WhatsApp with a ready message to you.']],
+            'qr'        => [['it' => 'Codice QR della campagna', 'de' => 'QR-Code der Kampagne', 'en' => 'Campaign QR code'], ['it' => 'Per volantini propri, vetrine e slide. Conta per questa campagna.', 'de' => 'Für eigene Flyer, Schaufenster und Folien. Zählt für diese Kampagne.', 'en' => 'For your own flyers, windows and slides. Counts for this campaign.']],
+            'telegram'  => [['it' => 'Messaggio Telegram', 'de' => 'Telegram-Nachricht', 'en' => 'Telegram message'], ['it' => 'Lo stesso testo, con il link della campagna.', 'de' => 'Derselbe Text, mit dem Kampagnenlink.', 'en' => 'The same text, with the campaign link.']],
+            'selbstdruck' => [['it' => 'Volantino da stampare da sé', 'de' => 'Flyer zum Selbstdrucken', 'en' => 'Flyer to print yourself'], ['it' => 'A5 con il QR della campagna — per la stampante di casa o la copisteria.', 'de' => 'A5 mit dem QR-Code der Kampagne — für den Drucker zu Hause oder den Copyshop.', 'en' => 'A5 with the campaign QR code — for your printer at home or a copy shop.']],
+            'texte'     => [['it' => 'Altri testi e immagini', 'de' => 'Weitere Texte und Bilder', 'en' => 'More texts and images'], ['it' => 'Per {branche}, nella Mediateca — pronti da condividere.', 'de' => 'Für {branche}, in der Mediathek — fertig zum Teilen.', 'en' => 'For {branche}, in the media library — ready to share.']],
             'druck'     => [['it' => '{produkt}', 'de' => '{produkt}', 'en' => '{produkt}'], ['it' => 'da {preis} · il QR conta per questa campagna', 'de' => 'ab {preis} · der QR-Code zählt für diese Kampagne', 'en' => 'from {preis} · the QR code counts for this campaign']],
         ],
         'gestalten'  => ['it' => 'Creare', 'de' => 'Gestalten', 'en' => 'Design'],
@@ -3434,7 +3440,8 @@ final class Texte
         'zahlen'     => ['it' => 'Risultati', 'de' => 'Ergebnis', 'en' => 'Results'],
         'z' => ['scans' => ['it' => 'Scansioni', 'de' => 'Scans', 'en' => 'Scans'], 'klicks' => ['it' => 'Clic sul link', 'de' => 'Klicks auf den Link', 'en' => 'Link clicks'],
                 'besucher' => ['it' => 'Visitatori', 'de' => 'Besucher', 'en' => 'Visitors'], 'anfragen' => ['it' => 'Richieste', 'de' => 'Anfragen', 'en' => 'Enquiries'],
-                'kunden' => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'], 'provision_cents' => ['it' => 'Provvigioni', 'de' => 'Provision', 'en' => 'Commission']],
+                'kunden' => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'], 'umsatz_cents' => ['it' => 'Fatturato (netto)', 'de' => 'Umsatz (netto)', 'en' => 'Revenue (net)'],
+                'provision_cents' => ['it' => 'Provvigioni', 'de' => 'Provision', 'en' => 'Commission']],
         'status' => ['aktiv' => ['it' => 'Attiva', 'de' => 'Aktiv', 'en' => 'Active'], 'pausiert' => ['it' => 'In pausa', 'de' => 'Pausiert', 'en' => 'Paused'], 'beendet' => ['it' => 'Conclusa', 'de' => 'Beendet', 'en' => 'Ended']],
         'pausieren'  => ['it' => 'Mettere in pausa', 'de' => 'Pausieren', 'en' => 'Pause'],
         'fortsetzen' => ['it' => 'Riprendere', 'de' => 'Fortsetzen', 'en' => 'Resume'],
@@ -3461,6 +3468,39 @@ final class Texte
         'qr_alle'    => ['it' => 'Tutti i codici QR', 'de' => 'Alle QR-Codes', 'en' => 'All QR codes'],
         'qr_status'  => ['entwurf' => ['it' => 'Bozza', 'de' => 'Entwurf', 'en' => 'Draft'], 'freigegeben' => ['it' => 'Approvato', 'de' => 'Freigegeben', 'en' => 'Approved'],
                          'ersetzt' => ['it' => 'Sostituito, ancora in giro', 'de' => 'Ersetzt, noch im Umlauf', 'en' => 'Replaced, still in circulation']],
+        // Phase 4 (05.10.2026): Knöpfe im Paket, Übersicht aller Kampagnen, Kurzlink
+        'ansehen'    => ['it' => 'Vedere', 'de' => 'Ansehen', 'en' => 'View'],
+        'qr_png'     => ['it' => 'PNG per il telefono', 'de' => 'PNG fürs Handy', 'en' => 'PNG for phones'],
+        'qr_svg'     => ['it' => 'SVG per la tipografia', 'de' => 'SVG für die Druckerei', 'en' => 'SVG for the printer'],
+        'drucken'    => ['it' => 'Aprire e stampare', 'de' => 'Öffnen und drucken', 'en' => 'Open and print'],
+        'zur_mt'     => ['it' => 'Alla Mediateca', 'de' => 'Zur Mediathek', 'en' => 'To the media library'],
+        'kette_satz' => ['it' => 'Dal primo contatto alla provvigione — solo numeri reali.', 'de' => 'Vom ersten Kontakt bis zur Provision — nur echte Zahlen.', 'en' => 'From first contact to commission — real numbers only.'],
+        'ue_titel'   => ['it' => 'Risultati di tutte le campagne', 'de' => 'Ergebnis aller Kampagnen', 'en' => 'Results of all campaigns'],
+        'ue_summe'   => ['it' => 'Tutte insieme', 'de' => 'Alle zusammen', 'en' => 'All together'],
+        'ue_kontakt' => ['it' => 'Contatti', 'de' => 'Kontakte', 'en' => 'Contacts'],
+        'ue_hilfe'   => ['it' => 'Contatti = scansioni e clic. Fatturato netto dei clienti arrivati da questa campagna, senza nomi.', 'de' => 'Kontakte = Scans und Klicks. Umsatz netto der Kunden, die über diese Kampagne kamen, ohne Namen.', 'en' => 'Contacts = scans and clicks. Net revenue of customers who came through this campaign, without names.'],
+        'beste'      => ['it' => 'La campagna migliore: «{name}» — {kunden} clienti, {umsatz} di fatturato.', 'de' => 'Beste Kampagne: „{name}“ — {kunden} Kunden, {umsatz} Umsatz.', 'en' => 'Best campaign: “{name}” — {kunden} customers, {umsatz} revenue.'],
+        'beste_noch' => ['it' => 'La campagna migliore compare qui appena una porta il primo cliente.', 'de' => 'Die beste Kampagne steht hier, sobald eine den ersten Kunden bringt.', 'en' => 'The best campaign appears here as soon as one brings its first customer.'],
+        'kl_titel'   => ['it' => 'Il suo link breve', 'de' => 'Dein Kurzlink', 'en' => 'Your short link'],
+        'kl_satz'    => ['it' => 'Un link facile da ricordare, per volantini, biglietti e conversazioni. Con il settore porta alla sua pagina con il titolo giusto per quelle attività.', 'de' => 'Ein Link, den man sich merkt — für Flyer, Visitenkarte und Gespräche. Mit Branche führt er auf deine Seite mit der passenden Überschrift für diese Betriebe.', 'en' => 'A link people remember — for flyers, business cards and conversations. With a sector it leads to your page with the right headline for those businesses.'],
+        'kl_wahl'    => ['it' => 'Scelga il suo nome', 'de' => 'Wähle deinen Namen', 'en' => 'Choose your name'],
+        'kl_hilfe'   => ['it' => 'Da 3 a 30 caratteri: lettere, numeri e trattino. Per esempio il suo nome.', 'de' => '3 bis 30 Zeichen: Buchstaben, Ziffern und Bindestrich. Zum Beispiel dein Vorname.', 'en' => '3 to 30 characters: letters, digits and hyphens. Your first name, for example.'],
+        'kl_sichern' => ['it' => 'Salvare il link breve', 'de' => 'Kurzlink sichern', 'en' => 'Save short link'],
+        'kl_haupt'   => ['it' => 'Link principale', 'de' => 'Hauptlink', 'en' => 'Main link'],
+        'kl_meine'   => ['it' => 'I suoi settori', 'de' => 'Deine Branchen', 'en' => 'Your sectors'],
+        'kl_alle'    => ['it' => 'Tutti i settori', 'de' => 'Alle Branchen', 'en' => 'All sectors'],
+        'kl_sprache' => ['it' => 'Lingua del link', 'de' => 'Sprache des Links', 'en' => 'Link language'],
+        'kl_aendern' => ['it' => 'Cambiare il nome', 'de' => 'Namen ändern', 'en' => 'Change name'],
+        'kl_aendern_satz' => ['it' => 'Il vecchio link continua a portare a lei: i QR già stampati restano validi. Può cambiare ancora {n} volte.', 'de' => 'Der alte Link führt weiter zu dir — gedruckte QR-Codes bleiben gültig. Du kannst noch {n}-mal ändern.', 'en' => 'The old link keeps leading to you — printed QR codes stay valid. You can change it {n} more times.'],
+        'kl_kein_rest' => ['it' => 'Altri cambi solo tramite Vecom.', 'de' => 'Weitere Änderungen nur über Vecom.', 'en' => 'Further changes only through Vecom.'],
+        'kl_gut'     => ['it' => 'Il suo link breve è salvato.', 'de' => 'Dein Kurzlink ist gesichert.', 'en' => 'Your short link is saved.'],
+        'kl_zaehlt'  => ['it' => 'Ogni link breve conta per sé in RISULTATI.', 'de' => 'Jeder Kurzlink zählt für sich unter ERGEBNISSE.', 'en' => 'Every short link counts separately under RESULTS.'],
+        'kl_f' => [
+            'form'     => ['it' => 'Da 3 a 30 caratteri: lettere, numeri e trattino, all’inizio una lettera.', 'de' => '3 bis 30 Zeichen: Buchstaben, Ziffern und Bindestrich, am Anfang ein Buchstabe.', 'en' => '3 to 30 characters: letters, digits and hyphens, starting with a letter.'],
+            'gesperrt' => ['it' => 'Questo nome è riservato. Ne scelga un altro.', 'de' => 'Dieser Name ist reserviert. Bitte wähle einen anderen.', 'en' => 'This name is reserved. Please choose another one.'],
+            'belegt'   => ['it' => 'Questo nome è già preso. Ne scelga un altro.', 'de' => 'Diesen Namen gibt es schon. Bitte wähle einen anderen.', 'en' => 'This name is already taken. Please choose another one.'],
+            'zu_oft'   => ['it' => 'Ha già cambiato il nome tre volte. Per un altro cambio scriva a Vecom.', 'de' => 'Du hast den Namen schon dreimal geändert. Für eine weitere Änderung schreib Vecom.', 'en' => 'You have already changed the name three times. Write to Vecom for another change.'],
+        ],
     ];
 
     /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele als kurze Namen — Kampagnenname, Auswahl, Auswertung. Branchen: BRANCHEN_LISTE. */
@@ -4269,6 +4309,44 @@ final class Texte
             'de' => ['titel' => 'Websites für Transport und Logistik in Sizilien', 'lead' => 'Leistungen, Fahrzeuge und Einsatzgebiet klar gezeigt, damit Geschäftskunden schnell anfragen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Leistungen und Einsatzgebiet auf einen Blick.', 'p2' => 'Anfragen kommen direkt zu Ihnen.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
             'en' => ['titel' => 'Websites for transport and logistics in Sicily', 'lead' => 'Services, vehicles and area clearly shown, so business customers get in touch quickly. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Services and area at a glance.', 'p2' => 'Enquiries come straight to you.', 'p3' => 'In Italian, German and English on request.'],
         ],
+        /* Sechs weitere für die Kurzlinks je Branche (Phase 4, 05.10.2026): /go/name/branche zeigt die Seite des
+           Partners mit dieser Überschrift. Ohne eigenes Titelbild — im Gestalter erscheinen sie deshalb nicht als Look. */
+        'handel' => [
+            'name' => ['it' => 'Negozi', 'de' => 'Einzelhandel', 'en' => 'Shops'],
+            'it' => ['titel' => 'Siti web per negozi in Sicilia', 'lead' => 'Orari, assortimento e come arrivare, facili da trovare sul telefono — anche con negozio online, se lo desidera. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Orari e indirizzo subito visibili su Google e sul telefono.', 'p2' => 'I suoi prodotti in belle immagini, con o senza negozio online.', 'p3' => 'Su richiesta in italiano, tedesco e inglese.'],
+            'de' => ['titel' => 'Websites für Geschäfte in Sizilien', 'lead' => 'Öffnungszeiten, Sortiment und Anfahrt, auf dem Handy schnell gefunden — auf Wunsch mit Online-Shop. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Öffnungszeiten und Adresse sofort sichtbar, bei Google und auf dem Handy.', 'p2' => 'Ihre Produkte in guten Bildern, mit oder ohne Online-Shop.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
+            'en' => ['titel' => 'Websites for shops in Sicily', 'lead' => 'Opening hours, range and directions, easy to find on a phone — with an online shop if you like. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Opening hours and address visible at once, on Google and on phones.', 'p2' => 'Your products in good pictures, with or without an online shop.', 'p3' => 'In Italian, German and English on request.'],
+        ],
+        'praxis' => [
+            'name' => ['it' => 'Studi e salute', 'de' => 'Praxis & Gesundheit', 'en' => 'Practice & health'],
+            'it' => ['titel' => 'Siti web per studi medici e professioni sanitarie', 'lead' => 'Prestazioni, orari e come prenotare, chiari e facili da trovare. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Prestazioni e orari spiegati con calma, anche sul telefono.', 'p2' => 'Richiesta di appuntamento direttamente dal sito, se lo desidera.', 'p3' => 'Su richiesta in italiano, tedesco e inglese per i pazienti dall’estero.'],
+            'de' => ['titel' => 'Websites für Praxen und Gesundheitsberufe', 'lead' => 'Leistungen, Sprechzeiten und Terminanfrage, klar erklärt und schnell gefunden. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Leistungen und Sprechzeiten in Ruhe erklärt, auch auf dem Handy.', 'p2' => 'Terminanfrage direkt auf der Website, wenn Sie möchten.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch für Patienten aus dem Ausland.'],
+            'en' => ['titel' => 'Websites for medical practices and health professionals', 'lead' => 'Services, opening hours and appointment requests, clearly explained and easy to find. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Services and hours calmly explained, on phones too.', 'p2' => 'Appointment requests right on the website, if you like.', 'p3' => 'In Italian, German and English for patients from abroad, on request.'],
+        ],
+        'fitness' => [
+            'name' => ['it' => 'Fitness e sport', 'de' => 'Fitness & Sport', 'en' => 'Fitness & sport'],
+            'it' => ['titel' => 'Siti web per palestre e centri sportivi in Sicilia', 'lead' => 'Corsi, orari e prova gratuita in un unico posto, così chi cerca si iscrive da lei. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Corsi e orari sempre aggiornati sul telefono.', 'p2' => 'Richiesta di prova direttamente sul sito.', 'p3' => 'Su richiesta in italiano, tedesco e inglese.'],
+            'de' => ['titel' => 'Websites für Fitnessstudios und Sportanbieter in Sizilien', 'lead' => 'Kurse, Zeiten und Probetraining an einem Ort, damit Interessierte sich bei Ihnen anmelden. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Kurse und Zeiten immer aktuell auf dem Handy.', 'p2' => 'Anfrage für ein Probetraining direkt auf der Website.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
+            'en' => ['titel' => 'Websites for gyms and sports centres in Sicily', 'lead' => 'Classes, times and a free trial in one place, so people looking sign up with you. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Classes and times always up to date on phones.', 'p2' => 'Trial requests right on the website.', 'p3' => 'In Italian, German and English on request.'],
+        ],
+        'immobilien' => [
+            'name' => ['it' => 'Immobiliare', 'de' => 'Immobilien', 'en' => 'Real estate'],
+            'it' => ['titel' => 'Siti web per agenzie immobiliari in Sicilia', 'lead' => 'Immobili con foto grandi, zona e prezzo, e richieste che arrivano direttamente a lei. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Ogni immobile con foto, dati e posizione.', 'p2' => 'Richieste di visita direttamente dal sito.', 'p3' => 'Su richiesta in italiano, tedesco e inglese per gli acquirenti stranieri.'],
+            'de' => ['titel' => 'Websites für Immobilienmakler in Sizilien', 'lead' => 'Objekte mit großen Bildern, Lage und Preis, und Anfragen, die direkt bei Ihnen landen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Jedes Objekt mit Bildern, Daten und Lage.', 'p2' => 'Besichtigungsanfragen direkt über die Website.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch für Käufer aus dem Ausland.'],
+            'en' => ['titel' => 'Websites for estate agents in Sicily', 'lead' => 'Properties with large pictures, location and price, and enquiries that come straight to you. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Every property with pictures, details and location.', 'p2' => 'Viewing requests right through the website.', 'p3' => 'In Italian, German and English for buyers from abroad, on request.'],
+        ],
+        'beratung' => [
+            'name' => ['it' => 'Studi e consulenza', 'de' => 'Kanzlei & Beratung', 'en' => 'Firms & consulting'],
+            'it' => ['titel' => 'Siti web per studi professionali e consulenti', 'lead' => 'Competenze, persone e contatto presentati con serietà, così i nuovi clienti si fidano prima ancora di chiamare. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Ambiti di lavoro spiegati in modo chiaro.', 'p2' => 'Richiesta di primo colloquio direttamente sul sito.', 'p3' => 'Su richiesta in italiano, tedesco e inglese.'],
+            'de' => ['titel' => 'Websites für Kanzleien und Beratung', 'lead' => 'Fachgebiete, Menschen und Kontakt seriös gezeigt, damit neue Mandanten Vertrauen fassen, bevor sie anrufen. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Fachgebiete verständlich erklärt.', 'p2' => 'Anfrage für ein Erstgespräch direkt auf der Website.', 'p3' => 'Auf Wunsch auf Italienisch, Deutsch und Englisch.'],
+            'en' => ['titel' => 'Websites for law firms and consultants', 'lead' => 'Expertise, people and contact shown with care, so new clients trust you before they call. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Areas of practice clearly explained.', 'p2' => 'First-meeting requests right on the website.', 'p3' => 'In Italian, German and English on request.'],
+        ],
+        'tourismus' => [
+            'name' => ['it' => 'Turismo e tempo libero', 'de' => 'Tourismus & Freizeit', 'en' => 'Tourism & leisure'],
+            'it' => ['titel' => 'Siti web per escursioni, tour e tempo libero in Sicilia', 'lead' => 'Esperienze, date e prezzi in tre lingue, così gli ospiti prenotano da lei e non solo dai portali. Realizziamo il suo sito con un prezzo chiaro prima e una persona che la segue.', 'p1' => 'Ogni offerta con foto, durata e prezzo.', 'p2' => 'Richieste e prenotazioni direttamente a lei.', 'p3' => 'In italiano, tedesco e inglese per gli ospiti da tutta Europa.'],
+            'de' => ['titel' => 'Websites für Ausflüge, Touren und Freizeit in Sizilien', 'lead' => 'Erlebnisse, Termine und Preise in drei Sprachen, damit Gäste bei Ihnen buchen und nicht nur über Portale. Wir bauen Ihre Website mit klarem Preis vorher und einem Menschen, der Sie begleitet.', 'p1' => 'Jedes Angebot mit Bildern, Dauer und Preis.', 'p2' => 'Anfragen und Buchungen direkt bei Ihnen.', 'p3' => 'Auf Italienisch, Deutsch und Englisch für Gäste aus ganz Europa.'],
+            'en' => ['titel' => 'Websites for excursions, tours and leisure in Sicily', 'lead' => 'Experiences, dates and prices in three languages, so guests book with you, not only through portals. We build your website with a clear price upfront and a real person guiding you.', 'p1' => 'Every offer with pictures, duration and price.', 'p2' => 'Enquiries and bookings straight to you.', 'p3' => 'In Italian, German and English for guests from all over Europe.'],
+        ],
     ];
 
     public const PARTNER_LANDE = [
@@ -4307,6 +4385,7 @@ final class Texte
     public const PARTNER_WERBUNG = [
         'namen' => [
             '_haupt' => ['it' => 'Link principale', 'de' => 'Hauptlink', 'en' => 'Main link'],
+            'go' => ['it' => 'Link breve', 'de' => 'Kurzlink', 'en' => 'Short link'],
             'whatsapp' => 'WhatsApp', 'telegram' => 'Telegram', 'instagram' => 'Instagram', 'facebook' => 'Facebook', 'tiktok' => 'TikTok',
             'dvk' => ['it' => 'Biglietto da visita digitale', 'de' => 'Digitale Visitenkarte', 'en' => 'Digital business card'],
             'vcard' => ['it' => 'Contatto salvato (vCard)', 'de' => 'Gespeicherter Kontakt (vCard)', 'en' => 'Saved contact (vCard)'],

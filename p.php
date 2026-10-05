@@ -33,7 +33,7 @@ if (!isset($_GET['c']) && preg_match('~^/p/([A-Za-z0-9]{5,16})(?:/([A-Za-z0-9-]{
     if (isset($pfad[2]) && $pfad[2] !== '' && !isset($_GET['k'])) { $_GET['k'] = $pfad[2]; }
 }
 $p = null; $sprache = 'it'; $zaehlen = false;
-if (is_file($konfig)) {
+if (is_file($konfig) || (class_exists('Config', false) && Config::steht())) {   // steht: nur im Kettentest (Kurzlink, Phase 4)
     try {
         foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Texte', 'Sprache', 'Partner', 'PartnerWerbung', 'PartnerSeite', 'PartnerKopf', 'PartnerMarketing'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
         /* Das Foto der Empfehlungsseite (siehe PartnerWerbung). Nur aktive
@@ -199,6 +199,10 @@ header("Content-Security-Policy: default-src 'none'; img-src 'self'; media-src '
 if ($p === null) { header('Location: ' . $ziel, true, 302); exit; }
 
 $g = PartnerSeite::gestaltung($p);
+/* Kurzlink je Branche (Phase 4, 05.10.2026): /go/name/ristoranti kommt hier als Kanal go-gastronomie an.
+   Überschrift, Text und Titelbild der Branche — nur für diesen Aufruf; die Seite des Partners bleibt, wie sie ist. */
+require_once __DIR__ . '/app/src/PartnerKurzlink.php';
+if (($goBranche = PartnerKurzlink::ausKanal(Partner::kanal((string) ($_GET['k'] ?? '')))) !== null) { $g = PartnerKurzlink::gestaltung($g, $goBranche); }
 /* Live-Vorschau im Gestalter (03.10.2026, E3): ungespeicherte Wahlen, geprüft wie beim Speichern —
    nur in der Vorschau (n=1) und nur im eigenen Browser des Partners, nie für Besucher. */
 if (isset($_GET['n'], $_GET['vs']) && strlen((string) $_GET['vs']) < 16000

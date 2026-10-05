@@ -1500,6 +1500,24 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Neuer Code gespeichert. Der alte Link führt ab jetzt nirgends mehr hin.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_kurzlink':
+            case 'partner_kurzlink_sperren':
+                /* Kurzlink (Phase 4, 05.10.2026): Uwe setzt einen Namen (ohne Obergrenze) oder sperrt einen. Gesperrt führt nirgends hin. */
+                require_once __DIR__ . '/src/Partner.php';
+                require_once __DIR__ . '/src/PartnerKurzlink.php';
+                $klId = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'partner_kurzlink') {
+                    $klF = Partner::laden($klId) ? PartnerKurzlink::setzen($klId, (string) ($_POST['name'] ?? ''), true) : 'form';
+                    $_SESSION[$klF === null ? 'gut' : 'fehler'] = $klF === null ? 'Kurzlink gespeichert. Der bisherige Name führt weiter zum Partner.'
+                        : (['form' => '3 bis 30 Zeichen: Buchstaben, Ziffern und Bindestrich, am Anfang ein Buchstabe.', 'gesperrt' => 'Dieser Name ist reserviert.',
+                            'belegt' => 'Diesen Namen hat schon ein anderer Partner (oder er ist gesperrt).'][$klF] ?? 'Nicht gespeichert.');
+                } else {
+                    $klOk = Db::wert('SELECT COUNT(*) FROM partner_kurznamen WHERE name = ? AND partner_id = ?', [(string) ($_POST['name'] ?? ''), $klId], 0) > 0
+                        && PartnerKurzlink::sperren((string) ($_POST['name'] ?? ''));
+                    $_SESSION[$klOk ? 'gut' : 'fehler'] = $klOk ? 'Gesperrt. Der Link führt ab jetzt auf die Startseite, der Name wird nie neu vergeben.' : 'Nicht gesperrt.';
+                }
+                weiter('partner/' . $klId);
+
             case 'bewertung_bitten':
                 require_once __DIR__ . '/src/Firma.php';
                 require_once __DIR__ . '/src/Texte.php';
