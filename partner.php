@@ -34,6 +34,8 @@ header('Referrer-Policy: no-referrer');
 header('Cache-Control: no-store, private');
 header('X-Content-Type-Options: nosniff');
 header('X-Robots-Tag: noindex, nofollow');
+require_once __DIR__ . '/app/src/Csp.php';
+Csp::melden('partner');   // vorerst nur melden (Etappe 0b) — siehe Monitoring in der Verwaltung
 
 /* Offene Migrationen zieht diese Seite selbst nach (27.09.2026). Bis dahin
    nur, wenn die Tabelle partner ganz fehlte -- eine neue SPALTE (083) fehlte

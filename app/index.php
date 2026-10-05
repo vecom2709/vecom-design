@@ -20,6 +20,8 @@ spl_autoload_register(static function (string $klasse): void {
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 Auth::start();
+/* CSP vorerst nur melden (Etappe 0b, 05.10.2026): blockiert nichts, sagt im Monitoring, was blockiert würde. */
+Csp::melden('verwaltung');
 
 $basis = Config::basis();
 $pfad  = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?? '/';

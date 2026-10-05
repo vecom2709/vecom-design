@@ -23445,6 +23445,36 @@ foreach ($trAlt as $trK => $trZ) {
 }
 
 /* ============================================================================
+   CSP vorerst nur melden (Etappe 0b, 05.10.2026)
+   ============================================================================ */
+abschnitt('Sicherheit: CSP melden');
+require_once $wurzel . '/src/Csp.php';
+Db::run('DELETE FROM csp_berichte');
+$cspTok = str_repeat('ab12', 12);
+$cspAlt = json_encode(['csp-report' => ['document-uri' => 'https://vecom-design.it/partner.php?t=' . $cspTok . '#werben', 'violated-directive' => 'script-src-elem',
+    'effective-directive' => 'script-src-elem', 'blocked-uri' => 'https://boese.example/x.js?t=' . $cspTok]]);
+$cspNeu = json_encode([['type' => 'csp-violation', 'body' => ['documentURL' => 'https://vecom-design.it/app/kunden/17?q=x', 'effectiveDirective' => 'script-src-attr', 'blockedURL' => 'inline']]]);
+$cspN = [Csp::bericht($cspAlt, 'partner'), Csp::bericht($cspAlt, 'partner'), Csp::bericht($cspNeu, 'verwaltung'),
+         Csp::bericht($cspAlt, 'fremd'), Csp::bericht('kein json', 'partner'), Csp::bericht(str_repeat('x', Csp::GROESSE + 1), 'partner')];
+$cspAlle = Db::all('SELECT bereich, direktive, quelle, seite, anzahl FROM csp_berichte ORDER BY bereich');
+pruefe('CSP-Meldungen: zusammengefasst (Anzahl), nur Herkunft ohne Pfad und Seite ohne Abfrage — der Partnerschlüssel landet nie in der Tabelle; Fremdes, Unsinn, Übergroßes fällt weg',
+    $cspN === [1, 1, 1, 0, 0, 0] && count($cspAlle) === 2
+    && $cspAlle[0]['quelle'] === 'https://boese.example' && $cspAlle[0]['seite'] === '/partner.php' && (int) $cspAlle[0]['anzahl'] === 2 && $cspAlle[0]['direktive'] === 'script-src-elem'
+    && $cspAlle[1]['quelle'] === 'inline' && $cspAlle[1]['seite'] === '/app/kunden/N' && $cspAlle[1]['direktive'] === 'script-src-attr'
+    && !str_contains(json_encode($cspAlle), $cspTok) && Csp::herkunft('data:image/png;base64,AAAA') === 'data', json_encode($cspAlle));
+$cspIndex = (string) file_get_contents($wurzel . '/index.php');
+$cspPartner = (string) file_get_contents($oben . '/partner.php');
+$cspEnd = (string) file_get_contents($oben . '/csp-bericht.php');
+pruefe('CSP: Verwaltung und Partnerbereich melden (Report-Only, blockiert nichts), vor jeder Ausgabe; keine eval-Erlaubnis; Endpunkt antwortet immer 204 und liest begrenzt',
+    str_contains($cspIndex, "Auth::start();\n/* CSP vorerst nur melden") && str_contains($cspIndex, "Csp::melden('verwaltung');")
+    && strpos($cspPartner, "Csp::melden('partner');") < strpos($cspPartner, 'PartnerGeraet::bekannt($p)')
+    && str_starts_with(Csp::kopf('partner'), 'Content-Security-Policy-Report-Only: ') && str_contains(Csp::kopf('partner'), "script-src 'self';")
+    && str_ends_with(Csp::kopf('partner'), 'report-uri /csp-bericht.php?b=partner') && !str_contains(Csp::REGELN, 'unsafe-eval')
+    && str_contains($cspEnd, 'http_response_code(204);') && str_contains($cspEnd, 'Csp::GROESSE + 1')
+    && str_contains((string) file_get_contents($wurzel . '/views/monitoring.php'), 'Csp::liste(40)'));
+Db::run('DELETE FROM csp_berichte');
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

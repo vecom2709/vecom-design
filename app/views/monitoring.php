@@ -114,7 +114,7 @@
             <button class="knopf">Prüfen</button></form></td>
       </tr>
     <?php endforeach; ?>
-    </tbody></table>
+    </tbody></table></div>
   <?php endif; ?>
 </div>
 
@@ -143,4 +143,25 @@
       <?= $lauf ? 'Zuletzt gelaufen ' . Fmt::h(Fmt::seit((string) $lauf)) . '.' : 'Er ist noch nie gelaufen.' ?>
     </p>
   </div>
+</div>
+
+<?php /* ---------- Sicherheitsregel (CSP), vorerst nur gemeldet (Etappe 0b, 05.10.2026) ---------- */
+$cspListe = Csp::liste(40); ?>
+<div class="block" id="csp">
+  <h2>Sicherheitsregel für Skripte <span class="mehr" style="font-weight:400;color:var(--leise)">nur melden, nichts blockiert</span></h2>
+  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    Verwaltung und Partnerbereich schicken dem Browser eine Regel, welche Skripte, Bilder und Ziele erlaubt sind.
+    Noch blockiert sie nichts — der Browser meldet nur, was er blockieren <i>würde</i>. Steht hier nichts Unbekanntes mehr,
+    kann die Regel scharf geschaltet werden. Gespeichert wird ohne Adresse und ohne Abfrage.</p>
+  <?php if (!$cspListe): ?>
+    <p style="margin:0;color:var(--leise)">Noch keine Meldung.</p>
+  <?php else: ?>
+    <div class="tabellenrahmen"><table><thead><tr><th>Bereich</th><th>Regel</th><th>Herkunft</th><th>Seite</th><th class="r">Anzahl</th><th>Zuletzt</th></tr></thead><tbody>
+    <?php foreach ($cspListe as $c): ?>
+      <tr><td><?= Fmt::h((string) $c['bereich']) ?></td><td><code><?= Fmt::h((string) $c['direktive']) ?></code></td>
+        <td><?= Fmt::h((string) $c['quelle']) ?></td><td><?= Fmt::h((string) $c['seite']) ?></td>
+        <td class="r"><?= (int) $c['anzahl'] ?></td><td><?= Fmt::h(Fmt::seit((string) $c['zuletzt'])) ?></td></tr>
+    <?php endforeach; ?>
+    </tbody></table></div>
+  <?php endif; ?>
 </div>
