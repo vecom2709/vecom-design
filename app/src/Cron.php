@@ -143,9 +143,20 @@ final class Cron
             /* Printful-Druckflächen (nur lesen), höchstens einmal am Tag — Grundlage für neue Gestaltungen. */
             'wm_printful_flaechen' => static function () {
                 require_once __DIR__ . '/Printful.php';
-                $am = Printful::druckflaechen()['am'];
-                if (!Printful::bereit() || ($am !== '' && strtotime($am) > time() - 86400)) { return 0; }
+                $df = Printful::druckflaechen();
+                // Ein neuer Kandidat (T-Shirt, Polo …) ohne Maße wird sofort gemessen, nicht erst nach 24 Stunden.
+                $fehlt = array_diff(array_keys(Printful::KANDIDATEN), array_keys($df['flaechen']));
+                if (!Printful::bereit() || (!$fehlt && $df['am'] !== '' && strtotime($df['am']) > time() - 86400)) { return 0; }
                 return Printful::druckflaechenHolen();
+            },
+            /* @vecom-Adressen (Phase 7a, Uwe: „Mache alles automatisch“): einmal am Tag die vorhandenen Postfächer und
+               Weiterleitungen aus dem KAS LESEN und eindeutige Treffer den Partnern zuordnen — nichts wird im KAS angelegt. */
+            'partner_vecom_adressen' => static function () {
+                require_once __DIR__ . '/PartnerMail.php';
+                $am = PartnerMail::kasAdressen()['am'];
+                if ($am !== '' && strtotime($am) > time() - 86400) { return 0; }
+                PartnerMail::kasLesen();
+                return count(PartnerMail::automatischZuordnen());
             },
             /* Gelato-Artikel für neue Produkte (nur lesen), höchstens einmal am Tag — Grundlage für die Zuordnung (Etappe 6b). */
             'wm_gelato_katalog' => static function () {

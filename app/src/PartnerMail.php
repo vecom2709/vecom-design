@@ -274,6 +274,69 @@ final class PartnerMail
         return array_keys($aus);
     }
 
+    /** Sammeladressen, die nie einem Partner gehören — auch wenn ein Name zufällig passt. */
+    public const NIE_ZUORDNEN = ['info', 'kontakt', 'contact', 'contatti', 'admin', 'noreply', 'no-reply', 'support', 'assistenza', 'office', 'ufficio',
+        'buchhaltung', 'rechnung', 'fatture', 'amministrazione', 'partner', 'team', 'hello', 'ciao', 'mail', 'postmaster', 'webmaster', 'abuse',
+        'akquise', 'vertrieb', 'vendite', 'sales', 'shop', 'news', 'newsletter', 'privacy', 'datenschutz', 'pec', 'test', 'uwe'];
+
+    /** „Chiara Bellini-Rossi“ → chiara, bellini-rossi (klein, ohne Akzente, nur a–z 0–9 und Bindestrich). @return list<string> */
+    private static function namensTeile(string $name): array
+    {
+        $t = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', mb_strtolower(trim($name)));
+        $t = (string) preg_replace('~[^a-z0-9 \-]+~', '', $t === false ? '' : $t);
+        return array_values(array_filter(preg_split('~\s+~', trim($t)) ?: [], static fn($x) => $x !== ''));
+    }
+
+    /**
+     * Adressen von selbst zuordnen (Uwe, 05.10.2026: „Mache alles automatisch“). Nur, was EINDEUTIG ist —
+     * eine falsche Zuordnung hieße, dass jemand im Namen eines anderen schreibt:
+     *   1. Die private E-Mail des Partners IST die @vecom-Adresse, oder
+     *   2. die Adresse heißt genau vorname.nachname@, nachname.vorname@ oder vornamenachname@ —
+     *      und genau EIN Partner passt auf diese Adresse und dieser Partner auf genau EINE Adresse.
+     * Sammeladressen (info@, kontakt@ …) nie; schon vergebene Adressen und Partner mit Adresse bleiben,
+     * wie sie sind. Jede Zuordnung steht in der Prüfspur und als Meldung an Uwe. @return list<array{partner:int, adresse:string}>
+     */
+    public static function automatischZuordnen(): array
+    {
+        $vorhanden = array_keys(self::kasAdressen()['adressen']);
+        if (!$vorhanden) { return []; }
+        $vergeben = array_flip(array_column(Db::all('SELECT vecom_adresse FROM partner WHERE vecom_adresse IS NOT NULL'), 'vecom_adresse'));
+        $frei = array_values(array_filter($vorhanden, static fn($a) => !isset($vergeben[$a]) && self::adresseGueltig($a)
+            && !in_array(strstr($a, '@', true), self::NIE_ZUORDNEN, true)));
+        if (!$frei) { return []; }
+        $treffer = [];   // adresse => [partner_id, …]
+        $jePartner = [];   // partner_id => [adresse, …]
+        foreach (Db::all("SELECT id, name, email FROM partner WHERE status = 'aktiv' AND vecom_adresse IS NULL") as $p) {
+            $pid = (int) $p['id'];
+            $mail = mb_strtolower(trim((string) $p['email']));
+            $teile = self::namensTeile((string) $p['name']);
+            $muster = [];
+            if (count($teile) >= 2) {
+                $vor = $teile[0]; $nach = implode('', array_slice($teile, 1)); $nachP = implode('.', array_slice($teile, 1));
+                $muster = [$vor . '.' . $nachP, $vor . '.' . $nach, $nachP . '.' . $vor, $nach . '.' . $vor, $vor . $nach];
+            }
+            foreach ($frei as $a) {
+                $lokal = (string) strstr($a, '@', true);
+                if ($a === $mail || in_array($lokal, $muster, true)) { $treffer[$a][$pid] = true; $jePartner[$pid][$a] = true; }
+            }
+        }
+        $aus = [];
+        foreach ($treffer as $a => $pids) {
+            if (count($pids) !== 1) { continue; }
+            $pid = (int) array_key_first($pids);
+            if (count($jePartner[$pid] ?? []) !== 1) { continue; }
+            if (self::adresseSetzen($pid, $a) === 'ok') { $aus[] = ['partner' => $pid, 'adresse' => $a]; }
+        }
+        if ($aus) {
+            try {
+                require_once __DIR__ . '/Events.php';
+                Events::melden('partner_vecom_adresse_auto', count($aus) . ' @vecom-Adresse(n) automatisch zugeordnet', 'hinweis',
+                    implode(', ', array_map(static fn($x) => $x['adresse'], $aus)) . ' — eindeutig nach Name oder E-Mail. Ändern oder entfernen in der Partner-Akte.', '/partner');
+            } catch (Throwable $e) { /* die Meldung ist Beiwerk */ }
+        }
+        return $aus;
+    }
+
     /** Zuletzt gelesene Adressen. @return array{am:string, adressen:array<string,string>} */
     public static function kasAdressen(): array
     {

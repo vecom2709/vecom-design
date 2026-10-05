@@ -25015,6 +25015,32 @@ pruefe('Texte E-MAIL: dreisprachig mit denselben Platzhaltern, Deutsch duzt; jed
     $p7Fehlt === [] && $p7Platz === [] && Texte::duzt('PARTNER_MAIL.satz')
     && !array_diff(['ok', 'betreff_leer', 'betreff_kurz', 'betreff_lang', 'betreff_platzhalter', 'keine_adresse', 'empfaenger', 'text', 'gesperrt', 'stunde', 'tag', 'lead', 'fehler', 'csrf'], array_keys(Texte::PARTNER_MAIL['m'])),
     json_encode([$p7Fehlt, $p7Platz]));
+// Automatisch zuordnen (Uwe: „Mache alles automatisch“): nur eindeutige Treffer, nie Sammeladressen, nie Vergebenes.
+$p7A = [];
+foreach ([['Lucía Ferrara', 'lucia.f@partner.example'], ['Marco Rossi', 'marco1@partner.example'], ['Marco Rossi', 'marco2@partner.example'],
+          ['Anna Bianchi', 'anna.bianchi@vecom-design.it'], ['Info Kontakt', 'ik@partner.example'], ['Paolo De Luca', 'paolo@partner.example']] as $i => [$p7N, $p7E]) {
+    $p7A[$i] = (int) Partner::anlegen(['name' => $p7N, 'email' => $p7E, 'code' => 'AUTOZU' . $i, 'sprache' => 'it', 'status' => 'aktiv']);
+}
+$p7Inaktiv = (int) Partner::anlegen(['name' => 'Gino Fermo', 'email' => 'gino@partner.example', 'code' => 'AUTOZU9', 'sprache' => 'it', 'status' => 'pausiert']);
+Db::run("UPDATE partner SET status = 'pausiert' WHERE id = ?", [$p7Inaktiv]);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('vecom_adressen', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [json_encode(['am' => date('Y-m-d H:i'), 'adressen' => [
+    'lucia.ferrara@vecom-design.it' => 'postfach', 'marco.rossi@vecom-design.it' => 'weiterleitung', 'anna.bianchi@vecom-design.it' => 'postfach',
+    'info@vecom-design.it' => 'postfach', 'kontakt@vecom-design.it' => 'postfach', 'paolo.deluca@vecom-design.it' => 'postfach', 'paolo.de.luca@vecom-design.it' => 'weiterleitung',
+    'gino.fermo@vecom-design.it' => 'postfach', 'mia.mail@vecom-design.it' => 'postfach']])]);
+$p7Auto = PartnerMail::automatischZuordnen();
+$p7Adr = static fn(int $id): ?string => Db::wert('SELECT vecom_adresse FROM partner WHERE id = ?', [$id], null);
+pruefe('Automatisch zuordnen: Akzente egal (Lucía → lucia.ferrara), die private E-Mail zählt; zwei gleiche Namen, zwei passende Adressen für einen Partner, Sammeladressen, Pausierte und schon Vergebene bleiben unberührt; Meldung an Uwe',
+    count($p7Auto) === 2 && $p7Adr($p7A[0]) === 'lucia.ferrara@vecom-design.it' && $p7Adr($p7A[3]) === 'anna.bianchi@vecom-design.it'
+    && $p7Adr($p7A[1]) === null && $p7Adr($p7A[2]) === null && $p7Adr($p7A[4]) === null && $p7Adr($p7A[5]) === null && $p7Adr($p7Inaktiv) === null
+    && $p7Adr($p7i) === 'mia.mail@vecom-design.it' && PartnerMail::automatischZuordnen() === []
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_vecom_adresse_auto'", [], 0) === 1, json_encode([$p7Auto, $p7Adr($p7A[5])]));
+$p7Cron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Cron: Adressen einmal am Tag nur LESEN und eindeutig zuordnen; Printful misst neue Kandidaten (T-Shirt, Polo) sofort statt erst nach 24 Stunden',
+    str_contains($p7Cron, "'partner_vecom_adressen' => static function") && str_contains($p7Cron, 'PartnerMail::automatischZuordnen()')
+    && str_contains($p7Cron, '$fehlt = array_diff(array_keys(Printful::KANDIDATEN), array_keys($df[\'flaechen\']));'));
+Db::run("DELETE FROM notifications WHERE type = 'partner_vecom_adresse_auto'");
+Db::run("DELETE FROM settings WHERE skey = 'vecom_adressen'");
+Db::run('DELETE FROM partner WHERE id IN (' . implode(',', array_merge($p7A, [$p7Inaktiv])) . ')');
 Db::run("DELETE FROM akq_sperrliste WHERE wert = 'info@barsole.example'");
 Db::run('DELETE FROM partner_mails WHERE partner_id IN (?, ?)', [$p7i, (int) $p7O['id']]);
 Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id = ?', [$p7i]);

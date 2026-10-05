@@ -1530,7 +1530,9 @@ if ($post) {
                         'belegt' => 'Diese Adresse ist schon einem anderen Partner zugeordnet.', 'partner' => 'Partner nicht gefunden.'][$pmR];
                 } else {
                     $pmN = PartnerMail::kasLesen();
-                    $_SESSION[$pmN > 0 ? 'gut' : 'fehler'] = $pmN > 0 ? $pmN . ' Adressen @' . PartnerMail::DOMAIN . ' gelesen (nur lesen).' : 'Keine Adressen gelesen — KAS-Zugang fehlt oder die Domain liegt unter einem anderen Konto. Die Adresse kann trotzdem von Hand eingetragen werden.';
+                    $pmAuto = $pmN > 0 ? PartnerMail::automatischZuordnen() : [];
+                    $_SESSION[$pmN > 0 ? 'gut' : 'fehler'] = $pmN > 0 ? $pmN . ' Adressen @' . PartnerMail::DOMAIN . ' gelesen (nur lesen)' . ($pmAuto ? ', ' . count($pmAuto) . ' eindeutig zugeordnet: ' . implode(', ', array_column($pmAuto, 'adresse')) : ', keine eindeutig zuzuordnen') . '.'
+                        : 'Keine Adressen gelesen — KAS-Zugang fehlt oder die Domain liegt unter einem anderen Konto. Die Adresse kann trotzdem von Hand eingetragen werden.';
                 }
                 weiter('partner/' . $pmId . '#vecom-adresse');
             case 'partner_kurzlink':
