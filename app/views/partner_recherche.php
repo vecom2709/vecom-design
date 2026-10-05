@@ -69,7 +69,15 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
     }
     return $o . '</div></details>';
 };
-$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf, $kontaktFeld, $sprache): string {
+/* Partner Academy, Etappe 2 (05.10.2026): „Was mache ich jetzt?“ je eigener Reservierung und Anruf —
+   führt zur passenden Lage mit nächstem Schritt. Nur der Stand, nie Daten des Betriebs. */
+require_once dirname(__DIR__) . '/src/Academy.php';
+$akJetzt = static function (?string $lage) use ($h, $selbst, $sprache): string {
+    if ($lage === null) { return ''; }
+    return '<p class="ak-jetzt" style="margin:8px 0 0"><a class="knopf klein-knopf" href="' . $h($selbst(['ak' => 'jetzt', 'lage' => $lage])) . '">'
+        . $h(Texte::h(Texte::ACADEMY['jetzt_kurz'], $sprache)) . ' →</a></p>';
+};
+$firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $datum, $fiOrt, $fiBranche, $p, $mpKnopf, $kontaktFeld, $sprache, $akJetzt): string {
     $o = '<li class="firma"><div class="firma__kopf"><b>' . $h($f['name']) . '</b><span class="chance ' . $h($f['chance']) . '">' . $h($T('fi_chance_' . $f['chance'])) . '</span></div>'
        . '<small>' . $h($f['branche']) . ' · ' . $h(trim($f['adresse'] !== '' ? $f['adresse'] . ', ' . $f['ort'] : $f['ort'], ', ')) . ($f['domain'] !== '' ? ' · ' . $h($f['domain']) : '') . '</small>';
     $o .= '<div class="firma__tat">';
@@ -95,6 +103,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_reserv')) . '</button></form>';
     }
     $o .= '</div>';
+    if ($meine) { $o .= $akJetzt(Academy::lageFirma((int) $p['id'], (int) $f['id'])); }
     if ($meine) { $o .= $kontaktFeld($f); }
     return $o . '</li>';
 };
@@ -225,6 +234,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             <div class="al-knoepfe">
               <a class="knopf haupt" href="tel:<?= $h($alTel) ?>"><?= $h($T('al_anrufen')) ?>: <?= $h((string) $af['telefon']) ?></a>
             </div>
+            <?= $akJetzt(Academy::lageAusZeile(['herkunft' => 'vecom', 'anruf_status' => (string) ($af['anruf_status'] ?? '')])) ?>
             <?php /* Nur der erste Betrieb steht offen — die übrigen zeigen Name, Anrufknopf und Ergebnis, der Rest klappt (03.10.2026). */ ?>
             <details class="al-mehr"<?= $alNr === 1 ? ' open' : '' ?>><summary><?= $h($T('kl_details')) ?></summary>
             <?php /* D1–D4 (29.09.2026): Steckbrief, Öffnungszeiten laut Website, beste Anrufzeit, Ergebnis der Prüfung */

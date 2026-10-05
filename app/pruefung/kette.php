@@ -23913,6 +23913,122 @@ pruefe('Academy: Reiter „Academy“ im Partnerbereich und in der Leiste des Co
     str_contains($akSeite, 'id="academy" data-reiter="academy"') && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), "'academy'")
     && str_contains((string) file_get_contents($wurzel . '/../assets/js/partner-reiter.js'), 'academy:')
     && str_contains($akAnsicht, 'class="ak-hilfe"') && str_contains($akAnsicht, "\$a('intern')"));
+/* ---------- Partner Academy, Etappe 2 (05.10.2026, Uwe: „MACH“) ---------- */
+$ak2Bau = static fn(array $d): array => [
+    array_map(static fn($q) => [$q['k'], $q['typ'], array_keys($q['optionen'])], $d['bedarf'] ?? []),
+    array_map(static fn($q) => [$q['k'], $q['optionen']], $d['finder'] ?? []),
+    array_map(static fn($l) => [$l['slug'], $l['knoepfe'], count($l['schritte'] ?? [])], $d['lagen'] ?? []),
+    array_keys($d['bedarf_grund'] ?? []), array_keys($d['finder_ergebnis'] ?? [])];
+pruefe('Academy 2: Bedarfsfragen, Kundenfinder, Lagen und Gründe in it/de/en gleich gebaut (9 Fragen, 12 Prüfpunkte, 9 Lagen)',
+    $ak2Bau($akD['de']) === $ak2Bau($akD['it']) && $ak2Bau($akD['de']) === $ak2Bau($akD['en'])
+    && count($akD['de']['bedarf']) === 9 && count($akD['de']['finder']) === 12 && count($akD['de']['lagen']) === 9
+    && array_keys($akD['de']['finder_ergebnis']) === ['hoch', 'mittel', 'gering']);
+$ak2Leist = array_column($akD['de']['leistungen'], 'slug');
+$ak2Kaputt = [];
+foreach ($akD['de']['lagen'] as $ak2L) { foreach ($ak2L['knoepfe'] as $ak2K) {
+    [$ak2Art, $ak2Was] = array_pad(explode(':', $ak2K, 2), 2, '');
+    $ak2Ok = match ($ak2Art) {
+        'finder', 'bedarf', 'link', 'notiz', 'einwaende', 'check' => $ak2Was === '',
+        'kontakt' => Academy::eintrag('kontakt', $ak2Was, 'de') !== null,
+        'modul' => in_array($ak2Was, array_column($akD['de']['module'], 'slug'), true),
+        'einwand' => Academy::eintrag('einwand', $ak2Was, 'de') !== null,
+        default => false };
+    if (!$ak2Ok) { $ak2Kaputt[] = $ak2L['slug'] . ':' . $ak2K; }
+} }
+$ak2Optionen = array_unique(array_merge(...array_column($akD['de']['finder'], 'optionen')));
+$ak2TexteFehlen = [];
+foreach (array_merge(array_map(static fn($o) => 'opt_' . $o, $ak2Optionen), array_map(static fn($k) => 'd_kat_' . $k, array_unique(array_column(Academy::DOKUMENTE, 2))),
+        ['d_regeln', 'd_stand', 'bibliothek', 'bedarf', 'finder', 'jetzt', 'jetzt_kurz', 'kn_kontakt', 'kn_modul', 'kn_einwand', 'neu_titel', 'neu_text', 'art_pdf']) as $ak2K) {
+    foreach (['it', 'de', 'en'] as $ak2Sp) { if (trim((string) (Texte::ACADEMY[$ak2K][$ak2Sp] ?? '')) === '') { $ak2TexteFehlen[] = "$ak2K/$ak2Sp"; } }
+}
+pruefe('Academy 2: jeder Knopf einer Lage führt zu einem echten Inhalt, alle Gründe gehören zu Leistungen, alle Texte in drei Sprachen',
+    $ak2Kaputt === [] && array_diff(array_keys($akD['de']['bedarf_grund']), $ak2Leist) === [] && $ak2TexteFehlen === [],
+    implode(', ', array_merge($ak2Kaputt, $ak2TexteFehlen)));
+$ak2B1 = Academy::bedarfAuswerten(['ziel' => ['zeit', 'verkaufen'], 'website' => 'alt', 'ausland' => 'ja', 'material' => ['logo'], 'betreuung' => 'ja']);
+$ak2B2 = Academy::bedarfAuswerten(['website' => 'gut', 'material' => ['logo', 'fotos'], 'unsinn' => 'ja']);
+pruefe('Academy 2: Bedarfsassistent empfiehlt passende Leistungen (Buchung, Shop, Sprachen, Wartung …), nur bekannte, ohne Doppelte',
+    $ak2B1 === ['webdesign', 'mobil', 'buchung', 'shop', 'sprachen', 'wartung', 'hosting'] && $ak2B2 === ['webdesign']
+    && array_diff($ak2B1, $ak2Leist) === [], json_encode([$ak2B1, $ak2B2]));
+$ak2F1 = Academy::finderAuswerten(['website' => 'nein']);
+$ak2F2 = Academy::finderAuswerten(['website' => 'ja', 'modern' => 'ja', 'mobil' => 'ja', 'https' => 'ja', 'kontakt' => 'ja', 'google' => 'ja', 'seo' => 'niedrig']);
+$ak2F3 = Academy::finderAuswerten(['website' => 'ja', 'modern' => 'nein', 'mobil' => 'unklar', 'termine' => 'ja', 'seo' => 'erfunden']);
+pruefe('Academy 2: Kundenfinder — ohne Website hoch, gepflegte Seite gering, Mischung mittel; Unbekanntes zählt nicht',
+    $ak2F1['stufe'] === 'hoch' && $ak2F2['stufe'] === 'gering' && $ak2F2['beantwortet'] === 7 && $ak2F3['stufe'] === 'mittel' && $ak2F3['punkte'] === 4.0,
+    json_encode([$ak2F1, $ak2F2, $ak2F3]));
+pruefe('Academy 2: „Was mache ich jetzt?“ erkennt die Lage aus Reservierung und Anrufliste',
+    Academy::lageAusZeile(['herkunft' => null, 'angeschrieben_am' => null]) === 'reserviert'
+    && Academy::lageAusZeile(['herkunft' => '', 'angeschrieben_am' => date('Y-m-d H:i:s')]) === 'angeschrieben'
+    && Academy::lageAusZeile(['herkunft' => '', 'angeschrieben_am' => date('Y-m-d H:i:s', time() - 5 * 86400)]) === 'nachfassen'
+    && Academy::lageAusZeile(['herkunft' => 'vecom', 'anruf_status' => 'offen']) === 'anrufen'
+    && Academy::lageAusZeile(['herkunft' => 'vecom', 'anruf_status' => 'nicht_erreicht']) === 'nicht-erreicht'
+    && Academy::lageAusZeile(['herkunft' => 'vecom', 'anruf_status' => 'zugestimmt']) === 'interesse');
+Db::run('INSERT INTO partner_reservierungen (firma_id, partner_id, bis) VALUES (987654321, ?, CURDATE() + INTERVAL 5 DAY)', [$akAid]);
+pruefe('Academy 2: Lage nur für eigene Reservierungen — fremde und unbekannte Betriebe liefern nichts',
+    Academy::lageFirma($akAid, 987654321) === 'reserviert' && Academy::lageFirma($akBid, 987654321) === null && Academy::lageFirma($akAid, 987654320) === null);
+Db::run('DELETE FROM partner_reservierungen WHERE firma_id = 987654321');
+
+require_once $wurzel . '/src/AcademyPdf.php';
+$ak2PdfFehl = [];
+foreach (array_keys(Academy::DOKUMENTE) as $ak2Slug) { foreach (['de', 'it', 'en'] as $ak2Sp) {
+    $ak2P = AcademyPdf::erzeugen($ak2Slug, $ak2Sp, $akA);
+    if (!is_string($ak2P) || !str_starts_with($ak2P, '%PDF-') || strlen($ak2P) < 1500 || !str_contains($ak2P, '%%EOF')) { $ak2PdfFehl[] = "$ak2Slug/$ak2Sp"; }
+} }
+pruefe('Academy 2: alle 9 Unterlagen entstehen als PDF in it/de/en; Unbekanntes liefert nichts',
+    $ak2PdfFehl === [] && AcademyPdf::erzeugen('gibt-es-nicht', 'de', $akA) === null && count(Academy::dokumente('de')) === 9, implode(', ', $ak2PdfFehl));
+$ak2Tmp = sys_get_temp_dir() . '/ak2-' . bin2hex(random_bytes(4));
+file_put_contents($ak2Tmp . '.txt', "nur Text, kein PDF\n");
+file_put_contents($ak2Tmp . '.pdf', (string) AcademyPdf::erzeugen('regeln', 'de', $akA));
+$ak2Gross = fopen($ak2Tmp . '-gross.pdf', 'wb'); fwrite($ak2Gross, '%PDF-1.4' . "\n"); ftruncate($ak2Gross, Academy::PDF_MAX + 1); fclose($ak2Gross);
+$ak2U1 = Academy::pdfSpeichern($ak2Tmp . '.txt', 'liste.pdf', 'Liste', 'eigene', 'alle');
+$ak2U2 = Academy::pdfSpeichern($ak2Tmp . '-gross.pdf', 'gross.pdf', 'Groß', 'eigene', 'alle');
+$ak2U3 = Academy::pdfSpeichern($ak2Tmp . '.pdf', '../../böse name.exe', 'Preisliste intern', 'eigene', 'it');
+$ak2U4 = is_int($ak2U3) ? Academy::pdfSpeichern($ak2Tmp . '.pdf', 'neu.pdf', 'Preisliste intern v2', 'kunden', 'it', $ak2U3) : 'x';
+$ak2Zeile = is_int($ak2U3) ? Db::one('SELECT dateiname, version, sprache FROM academy_dokumente WHERE id = ?', [$ak2U3]) : null;
+pruefe('Academy 2: Upload nimmt nur echte PDFs bis 10 MB, säubert den Dateinamen, Ersetzen ergibt Version 2',
+    $ak2U1 === 'kein_pdf' && $ak2U2 === 'zu_gross' && is_int($ak2U3) && $ak2U4 === $ak2U3
+    && $ak2Zeile && (int) $ak2Zeile['version'] === 2 && !str_contains((string) $ak2Zeile['dateiname'], '/') && str_ends_with((string) $ak2Zeile['dateiname'], '.pdf'),
+    json_encode([$ak2U1, $ak2U2, $ak2U3, $ak2U4, $ak2Zeile]));
+$ak2Uslug = 'u' . (int) $ak2U3;
+$ak2Sicht = [in_array($ak2Uslug, array_column(Academy::dokumente('it'), 'slug'), true), in_array($ak2Uslug, array_column(Academy::dokumente('de'), 'slug'), true)];
+Academy::merken($akAid, 'pdf', $ak2Uslug, true);
+Academy::gesehen($akAid, $ak2Uslug); Academy::gesehen($akAid, 'einwaende'); Academy::gesehen($akAid, '../x');
+Academy::pdfArchivieren((int) $ak2U3, true);
+pruefe('Academy 2: eigenes PDF nur in seiner Sprache sichtbar, merkbar, „zuletzt angesehen“ je Partner; archiviert verschwindet es',
+    $ak2Sicht === [true, false] && Academy::gemerkt(Academy::merkliste($akAid), 'pdf', $ak2Uslug)
+    && Academy::zuletzt($akAid) !== [] && count(Academy::zuletzt($akAid, 5)) === 2 && Academy::zuletzt($akBid) === []
+    && !in_array($ak2Uslug, array_column(Academy::dokumente('it'), 'slug'), true) && Academy::eigenesPdf((int) $ak2U3, 'it') === null,
+    json_encode($ak2Sicht));
+Db::run('DELETE FROM academy_dokumente WHERE id = ?', [(int) $ak2U3]);
+Db::run('DELETE FROM academy_gesehen WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
+foreach (['.txt', '.pdf', '-gross.pdf'] as $ak2E) { @unlink($ak2Tmp . $ak2E); }
+
+$ak2Aus = Academy::schalterSetzen('einwaende', false, null, null);
+$ak2Weg = Academy::modul('einwaende', 'de') === null && Academy::dokument('einwaende', 'de') === null && count(Academy::inhalte('it')['module']) === 7;
+Academy::schalterSetzen('zum-auftrag', true, true, 0);
+$ak2Erst = (Academy::inhalte('de')['module'][0]['slug'] ?? '') === 'zum-auftrag' && !empty(Academy::modul('zum-auftrag', 'de')['pflicht']);
+$ak2Fremd = Academy::schalterSetzen('gibt-es-nicht', true, null, null);
+Db::run('DELETE FROM academy_module'); Academy::vergessen();
+pruefe('Academy 2: Verwaltung schaltet Module ab (samt Unterlage), ändert Reihenfolge und Pflicht; Unbekanntes abgelehnt',
+    $ak2Aus && $ak2Weg && $ak2Erst && !$ak2Fremd && count(Academy::inhalte('de')['module']) === 8);
+$ak2M0 = Academy::melden('modul:gibt-es-nicht');
+$ak2M1 = Academy::melden('modul:einwaende');
+pruefe('Academy 2: „Neue Schulung“ nur mit echtem Ziel; Hinweis 14 Tage auf der Startseite',
+    !$ak2M0['ok'] && $ak2M1['ok'] && (Academy::neu()['ziel'] ?? '') === 'modul:einwaende'
+    && (Academy::meldeZiel('modul:einwaende', 'it')['ak']['m'] ?? '') === 'einwaende' && Academy::meldeZiel('pdf:regeln', 'de') !== null);
+Db::run("DELETE FROM settings WHERE skey = 'academy_neu'");
+$ak2Index = (string) file_get_contents($wurzel . '/index.php');
+$ak2Layout = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Academy 2: Verwaltungsseite „Partner Academy“ mit Statistik, Schaltern, Upload; Melden fragt vorher nach (RAUS)',
+    str_contains($ak2Index, "case 'academy':") && str_contains($ak2Index, "ansicht('academy'") && is_file($wurzel . '/views/academy.php')
+    && str_contains($ak2Layout, "['academy', 'Partner Academy', 'academy']")
+    && (Ablauf::TRAGWEITE['academy_melden'][0] ?? '') === Ablauf::RAUS
+    && str_contains((string) file_get_contents($wurzel . '/views/academy.php'), 'enctype="multipart/form-data"'));
+pruefe('Academy 2: „Vecom soll anschreiben“ (ak_vecom) und der Rücksprung ?ak=<Firma> landen nicht in der Academy',
+    str_contains($akSeite, "(!ctype_digit(\$akQ) || (\$akQ === '1' && !isset(\$_GET['m'])))") && str_contains($akSeite, "['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg'], true)")
+    && !str_contains($akSeite, "str_starts_with((string) (\$_POST['tat'] ?? ''), 'ak_')"));
+pruefe('Academy 2: neue Seiten (Bedarf, Kundenfinder, Was mache ich jetzt, Bibliothek) speichern keine Kundendaten und hängen in der Recherche',
+    str_contains($akSeite, "'bedarf', 'finder', 'jetzt', 'bibliothek'") && !preg_match('~INSERT INTO[^;]*(bedarf|finder)~i', $akSeite . (string) file_get_contents($wurzel . '/src/Academy.php'))
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'Academy::lageFirma') && str_contains($akAnsicht, "\$akSeite === 'bibliothek'"));
 Db::run('DELETE FROM academy_fortschritt WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_merkliste WHERE partner_id IN (?, ?)', [$akAid, $akBid]);
 Db::run('DELETE FROM academy_notizen WHERE partner_id IN (?, ?)', [$akAid, $akBid]);

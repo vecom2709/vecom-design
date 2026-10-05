@@ -180,3 +180,56 @@
 .ak .cc-hallo .cc-frage{display:block;color:var(--dim);font-weight:600;font-size:.56em;letter-spacing:-.01em;margin-top:8px}
 .ak .cc-alles{white-space:nowrap;font-size:13.5px;color:var(--dim);text-decoration:none;padding:10px 0 10px 12px;min-height:44px;display:inline-flex;align-items:center;gap:6px}
 .ak .cc-alles:hover{color:var(--text)}
+
+/* ---------- Etappe 2: Bedarfsassistent, Kundenfinder, „Was mache ich jetzt?“, Bibliothek ---------- */
+.ak-fragebogen fieldset{border:0;margin:0 0 18px;padding:0}
+.ak-fragebogen legend{font:700 16.5px/1.4 var(--f-display);margin:0 0 10px;padding:0}
+.ak-fragebogen legend small{font:400 13px/1 var(--f-text);color:var(--dim)}
+.ak-chips{display:flex;flex-wrap:wrap;gap:8px}
+.ak-chip{position:relative;display:inline-flex;cursor:pointer}
+.ak-chip input{position:absolute;opacity:0;inset:0;margin:0;cursor:pointer}
+.ak-chip span{display:inline-flex;align-items:center;min-height:44px;padding:9px 16px;border-radius:999px;border:1px solid var(--linie2);background:rgba(255,255,255,.025);font-size:15px;line-height:1.3;transition:border-color .18s,background .18s,color .18s}
+.ak-chip:hover span{border-color:var(--haar)}
+.ak-chip input:checked + span{border-color:var(--gold);background:rgba(241,211,139,.13);color:var(--text);box-shadow:inset 0 0 0 1px var(--gold)}
+.ak-chip input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
+.ak-ergebnis h2{font:700 clamp(21px,4.6vw,26px)/1.25 var(--f-display);margin:2px 0 10px}
+.ak-ergebnis h3{font:700 14px/1.3 var(--f-text);color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin:18px 0 8px}
+.ak-empf{list-style:none;margin:0 0 6px;padding:0;display:grid;gap:8px;counter-reset:empf}
+.ak-empf details{border:1px solid var(--linie);border-radius:14px;background:rgba(255,255,255,.025)}
+.ak-empf summary{list-style:none;cursor:pointer;display:flex;flex-direction:column;gap:3px;padding:14px 16px 14px 52px;position:relative;counter-increment:empf}
+.ak-empf summary::-webkit-details-marker{display:none}
+.ak-empf summary::before{content:counter(empf);position:absolute;left:14px;top:14px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:rgba(241,211,139,.14);color:var(--gold);font-size:13px;font-weight:800}
+.ak-empf summary b{font-size:16px}
+.ak-empf summary small{color:var(--dim);font-size:14px;line-height:1.45}
+.ak-empf .ak-30{margin:0 14px 14px}
+.ak-empf .ak-30 a{color:var(--gold);font-size:14px}
+.ak-stufe b{display:inline-block;font:800 clamp(24px,6vw,32px)/1.1 var(--f-display);margin:4px 0 8px}
+.ak-stufe-hoch .ak-stufe b{background:var(--metall-text);-webkit-background-clip:text;background-clip:text;color:transparent}
+.ak-stufe-mittel .ak-stufe b{color:var(--gold)}
+.ak-stufe-gering .ak-stufe b{color:var(--dim)}
+.ak-knoepfe{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 0}
+.ak-lagen{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+@media (min-width:700px){.ak-lagen{grid-template-columns:1fr 1fr}}
+.ak-lagen a{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 14px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.025);color:var(--text);text-decoration:none;font-size:15px;line-height:1.35;transition:border-color .18s,background .18s}
+.ak-lagen a:hover,.ak-lagen a[aria-current]{border-color:var(--haar);background:rgba(241,211,139,.06)}
+.ak-lagen a span{flex:none;display:grid;place-items:center;width:28px;height:28px;border-radius:50%;border:1px solid var(--haar);color:var(--gold);font-size:13px;font-weight:800}
+.ak-link{margin:16px 0}
+.ak-link__zeile{display:flex;gap:8px}
+.ak-link input{flex:1;min-width:0;padding:12px 14px;min-height:46px;background:rgba(255,255,255,.03);color:var(--text);border:1px solid var(--linie2);border-radius:12px;font:400 15px/1.4 var(--f-text);box-sizing:border-box}
+.ak-docs{list-style:none;margin:0;padding:0;display:grid;gap:12px}
+@media (min-width:700px){.ak-docs{grid-template-columns:1fr 1fr}}
+.ak-doc{display:flex;flex-direction:column;gap:6px;margin:0}
+.ak-doc h2{font:700 18px/1.3 var(--f-display);margin:0}
+.ak-doc__kat{margin:0;font:700 12px/1 var(--f-text);letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.ak-doc__stand{margin:0;font-size:13.5px;color:var(--dim)}
+.ak-doc .ak-knoepfe{margin:6px 0 4px}
+.ak-doc .ak-merk-form{align-self:flex-start}
+.ak-neu{display:inline-block;margin-left:6px;padding:3px 8px;border-radius:999px;background:linear-gradient(135deg,#b98a31,#f7e6ae);color:#16120b;font-size:11px;letter-spacing:.04em}
+.ak-neu-hinweis{display:flex;align-items:center;gap:12px;margin:0 0 16px;padding:14px 16px;border-radius:14px;border:1px solid var(--haar);background:rgba(241,211,139,.07);color:var(--text);text-decoration:none}
+.ak-neu-hinweis .ak-neu{margin:0}
+.ak-neu-hinweis span:nth-child(2){display:flex;flex-direction:column;gap:2px;flex:1;min-width:0}
+.ak-neu-hinweis small{color:var(--dim);font-size:13px}
+.ak-neu-hinweis b{font-size:16px}
+.ak-neu-hinweis i{font-style:normal;color:var(--gold)}
+@media (pointer:coarse){.ak-nur-pc{display:none!important}}
+.ak-doc .ak-knoepfe{align-items:center}

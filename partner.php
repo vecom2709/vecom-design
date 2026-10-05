@@ -233,11 +233,37 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
    Gesprächshilfen, Leistungen in drei Ebenen, Suche, Merkliste, Notizen. Alles über
    $p['id'] aus Link und Gerät, jede Tat mit CSRF; Inhalte und Slugs nur aus den
    Dateien unter app/data/academy (Academy::gibt). */
-if ($p && (isset($_GET['ak']) || str_starts_with((string) ($_POST['tat'] ?? ''), 'ak_'))) {
+/* Nur die eigenen Taten der Academy (05.10.2026): „ak_vecom“ (Vecom soll anschreiben) und
+   „?m=…&ak=<Firmen-ID>“ (Rücksprung zum Betrieb) gehören der Partnerseite und dürfen hier nicht landen. */
+$akQ = (string) ($_GET['ak'] ?? '');   // „1“ = Academy-Start; der Rücksprung trägt immer auch „m“
+if ($p && (($akQ !== '' && (!ctype_digit($akQ) || ($akQ === '1' && !isset($_GET['m']))))
+    || in_array((string) ($_POST['tat'] ?? ''), ['ak_merken', 'ak_test', 'ak_notiz', 'ak_notiz_weg'], true))) {
     require_once __DIR__ . '/app/src/Academy.php';
+    /* PDF-Bibliothek (Etappe 2): eingebaute Unterlagen entstehen beim Abruf, eigene kommen aus der Datenbank. */
+    if (($_GET['ak'] ?? '') === 'pdf' && $_SERVER['REQUEST_METHOD'] === 'GET') {
+        $akD = (string) ($_GET['d'] ?? '');
+        $akPdf = null;
+        if (isset(Academy::DOKUMENTE[$akD])) {
+            require_once __DIR__ . '/app/src/AcademyPdf.php';
+            $akPdf = AcademyPdf::erzeugen($akD, $sprache, $p);
+        } elseif (preg_match('~^u(\d{1,9})$~', $akD, $akM)) {
+            $akPdf = Academy::eigenesPdf((int) $akM[1], $sprache);
+        }
+        if ($akPdf === null) { header('Location: ' . $start(['ak' => 'bibliothek', 'e' => 'kein']), true, 303); exit; }
+        Academy::zaehlen('pdf', $akD);
+        Academy::gesehen((int) $p['id'], $akD);
+        $akName = 'vecom-academy-' . $akD . '-' . $sprache . '.pdf';
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: ' . (isset($_GET['laden']) ? 'attachment' : 'inline') . '; filename="' . $akName . '"');
+        header('Content-Length: ' . strlen($akPdf));
+        header('Cache-Control: private, no-store');
+        header('X-Content-Type-Options: nosniff');
+        echo $akPdf;
+        exit;
+    }
     $akMeldung = '';
     $akZu = static function (array $q) use ($start): string {
-        $erlaubt = array_intersect_key($q, array_flip(['ak', 'm', 'l', 'e', 'k', 's', 'q']));
+        $erlaubt = array_intersect_key($q, array_flip(['ak', 'm', 'l', 'e', 'k', 's', 'q', 'lage']));
         $erlaubt = array_filter(array_map(static fn($v) => preg_replace('~[^a-z0-9 äöüßàèéìòù-]~iu', '', (string) $v), $erlaubt), static fn($v) => $v !== '');
         return $start(['ak' => $erlaubt['ak'] ?? '1'] + $erlaubt);
     };
@@ -268,7 +294,7 @@ if ($p && (isset($_GET['ak']) || str_starts_with((string) ($_POST['tat'] ?? ''),
         }
         header('Location: ' . $akZu(['ak' => '1']), true, 303); exit;
     }
-    $akSeite = in_array((string) $_GET['ak'], ['modul', 'einwaende', 'kontakt', 'leistungen', 'suche', 'meine'], true) ? (string) $_GET['ak'] : 'start';
+    $akSeite = in_array((string) $_GET['ak'], ['modul', 'einwaende', 'kontakt', 'leistungen', 'suche', 'meine', 'bedarf', 'finder', 'jetzt', 'bibliothek'], true) ? (string) $_GET['ak'] : 'start';
     require __DIR__ . '/app/views/partner_academy.php';
     exit;
 }

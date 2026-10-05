@@ -114,6 +114,10 @@ final class Ablauf
             . '(steht er schon da, wird er nur aktualisiert).',
             'Ja, Menü veröffentlichen'],
         /* Umfragen im Kanal (01.10.2026, Kanal-Vorschlag 6) */
+        'academy_melden' => [self::RAUS,
+            'Alle freigeschalteten Partner bekommen jetzt den Hinweis „Neue Schulung verfügbar“ aufs Handy (wer die App hat). '
+            . 'Auf der Academy-Startseite steht er 14 Tage.',
+            'Ja, an alle Partner melden'],
         'telegram_umfrage' => [self::RAUS,
             'Die Umfrage erscheint sofort im Telegram-Kanal — bei allen Abonnenten. Abgestimmt wird anonym; '
             . 'Frage und Antworten lassen sich danach nicht mehr ändern.',

@@ -36,4 +36,34 @@
     box.classList.add('mit-tabs');
     waehle(0);
   });
+  // Partnerlink kopieren (Etappe 2). Ohne Skript bleibt das Feld zum Markieren.
+  [].forEach.call(document.querySelectorAll('[data-ak-kopie]'), function (b) {
+    var feld = document.querySelector(b.getAttribute('data-ak-kopie'));
+    if (!feld) { return; }
+    b.hidden = false;
+    var vorher = b.textContent;
+    b.addEventListener('click', function () {
+      function ok() { b.textContent = b.getAttribute('data-fertig') || vorher; setTimeout(function () { b.textContent = vorher; }, 1800); }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(feld.value).then(ok, function () { feld.select(); });
+      } else { feld.select(); try { document.execCommand('copy'); ok(); } catch (e) { } }
+    });
+  });
+  // PDF drucken: am Rechner direkt den Druckdialog, am Handy öffnet der Link das PDF.
+  if (!window.matchMedia || !window.matchMedia('(pointer:coarse)').matches) {
+    [].forEach.call(document.querySelectorAll('[data-ak-drucken]'), function (a) {
+      a.addEventListener('click', function (ev) {
+        ev.preventDefault();
+        var alt = document.getElementById('ak-druck'); if (alt) { alt.remove(); }
+        var f = document.createElement('iframe');
+        f.id = 'ak-druck'; f.title = ''; f.setAttribute('aria-hidden', 'true');
+        f.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0';
+        f.onload = function () {
+          try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { window.open(a.href, '_blank', 'noopener'); }
+        };
+        f.src = a.href;
+        document.body.appendChild(f);
+      });
+    });
+  }
 })();

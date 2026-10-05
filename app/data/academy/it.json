@@ -934,5 +934,247 @@
   "niedrig": "Basso",
   "mittel": "Medio",
   "hoch": "Alto"
- }
+ },
+ "bedarf": [
+  {
+   "k": "ziel",
+   "frage": "Che cosa vuole ottenere l'attività con il sito web?",
+   "typ": "mehr",
+   "optionen": {
+    "kunden": "Più nuovi clienti o ospiti",
+    "anfragen": "Più richieste e chiamate",
+    "zeit": "Meno telefonate, risparmiare tempo",
+    "verkaufen": "Vendere prodotti online",
+    "eindruck": "Presentarsi in modo più professionale"
+   }
+  },
+  {
+   "k": "website",
+   "frage": "L'attività ha già un sito web?",
+   "typ": "eins",
+   "optionen": {
+    "nein": "No, non ancora",
+    "alt": "Sì, ma è datato o si vede male sullo smartphone",
+    "gut": "Sì, ed è a posto"
+   }
+  },
+  {
+   "k": "termine",
+   "frage": "L'attività fissa appuntamenti o accetta prenotazioni?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "produkte",
+   "frage": "L'attività vende prodotti che si potrebbero ordinare?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "ausland",
+   "frage": "Arrivano clienti o ospiti dall'estero?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "google",
+   "frage": "Per l'attività è importante essere trovata su Google?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì",
+    "nein": "No / non so"
+   }
+  },
+  {
+   "k": "material",
+   "frage": "Che cosa è già disponibile?",
+   "typ": "mehr",
+   "optionen": {
+    "logo": "Un logo",
+    "fotos": "Buone foto",
+    "texte": "Testi"
+   }
+  },
+  {
+   "k": "zeigen",
+   "frage": "Ci sono prodotti o ambienti da mostrare da ogni lato (auto, mobili, camere)?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "betreuung",
+   "frage": "Dopo il lancio, l'attività preferisce non doversi occupare di nulla?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Sì, l'assistenza sarebbe utile",
+    "nein": "No, se ne occupa da sola"
+   }
+  }
+ ],
+ "bedarf_grund": {
+  "webdesign": "La base di tutto: un sito web proprio, adatto all'attività.",
+  "mobil": "La maggior parte dei clienti guarda dallo smartphone – lì il vecchio sito fa fatica.",
+  "buchung": "Prenotare appuntamenti o tavoli online fa risparmiare telefonate.",
+  "shop": "I prodotti si possono ordinare direttamente sul proprio sito.",
+  "sprachen": "Gli ospiti stranieri leggono il sito nella loro lingua.",
+  "seo": "Una base tecnica pulita, perché Google capisca il sito.",
+  "branding": "Senza logo o un'immagine coerente, l'attività appare meno professionale.",
+  "3d": "Prodotti o ambienti da ruotare e vivere – se è adatto, lo valuta Vecom.",
+  "wartung": "Dopo il lancio qualcuno si occupa della tecnica e delle modifiche.",
+  "hosting": "Il sito è online in modo sicuro e sempre raggiungibile."
+ },
+ "finder_ergebnis": {
+  "hoch": "Potenziale alto: qui un nuovo sito aiuta in modo visibile. Contatti l'attività – con un'osservazione concreta emersa dalla Sua verifica.",
+  "mittel": "Potenziale medio: ci sono spunti. Un rapporto gratuito del controllo rapido è un buon punto di partenza.",
+  "gering": "Potenziale basso: il sito è già ben impostato. Meglio concentrarsi su altre attività – oppure chieda di un'esigenza specifica (ad es. negozio online o prenotazione)."
+ },
+ "lagen": [
+  {
+   "slug": "reserviert",
+   "titel": "Attività riservata, non ancora contattata",
+   "empfehlung": "Si prepari brevemente: guardi il sito sullo smartphone o faccia il controllo rapido. Poi contatti l'attività di persona o al telefono – con un'osservazione concreta, non con un'offerta.",
+   "schritte": [
+    "guardare il sito sullo smartphone o fare il controllo rapido",
+    "annotare un'osservazione",
+    "passare di persona o telefonare",
+    "obiettivo: un piccolo sì (inviare il rapporto o il link)"
+   ],
+   "knoepfe": [
+    "finder",
+    "kontakt:persoenlich",
+    "kontakt:telefon",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "angeschrieben",
+   "titel": "Contattata per iscritto, ancora nessuna risposta",
+   "empfehlung": "Lasci qualche giorno all'attività. Usi il tempo per preparare le domande per il colloquio sulle esigenze.",
+   "schritte": [
+    "attendere 2–3 giorni",
+    "preparare le domande per il colloquio sulle esigenze",
+    "poi ricontattare con cortesia"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "modul:bedarf-erkennen",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "nachfassen",
+   "titel": "È il momento di ricontattare",
+   "empfehlung": "Chieda con cortesia se è arrivato tutto – senza pressione. Basta una frase breve. Se l'attività esita, La aiuta la gestione delle obiezioni.",
+   "schritte": [
+    "chiedere in modo breve e cortese",
+    "chiedere se ci sono domande o dubbi",
+    "proporre un piccolo passo successivo"
+   ],
+   "knoepfe": [
+    "einwaende",
+    "kontakt:whatsapp",
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "anrufen",
+   "titel": "Chiamare un'attività dalla lista chiamate",
+   "empfehlung": "Chiami all'orario migliore indicato nella scheda. Legga con calma il testo nella Sua lista chiamate e alla fine chieda l'indirizzo e-mail – solo con il consenso.",
+   "schritte": [
+    "scegliere l'orario migliore per chiamare",
+    "leggere brevemente scheda e testo",
+    "chiamare, sorridere, essere brevi",
+    "registrare l'esito nella lista chiamate"
+   ],
+   "knoepfe": [
+    "kontakt:telefon",
+    "einwaende",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "nicht-erreicht",
+   "titel": "Non raggiunta",
+   "empfehlung": "Nessun problema – è normale. Riprovi in un altro momento della giornata. Dopo tre tentativi va bene lasciare in sospeso l'attività.",
+   "schritte": [
+    "scegliere un altro momento della giornata",
+    "al massimo tre tentativi",
+    "non vendere nulla in segreteria"
+   ],
+   "knoepfe": [
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "interesse",
+   "titel": "L'attività ha mostrato interesse",
+   "empfehlung": "Ora è il momento giusto per un colloquio sulle esigenze. Scopra che cosa vuole ottenere l'attività – e poi le invii il Suo link al questionario. Lì vedrà subito un prezzo indicativo.",
+   "schritte": [
+    "condurre il colloquio sulle esigenze",
+    "registrare le risposte nell'assistente analisi esigenze",
+    "inviare il Suo link al questionario",
+    "concordare di risentirsi tra 3 giorni"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "link",
+    "modul:gespraech-fuehren",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "fragebogen",
+   "titel": "L'attività ha compilato il questionario",
+   "empfehlung": "Molto bene – l'attività Le è stata assegnata. Vecom si farà sentire con un'offerta precisa. Dopo qualche giorno può chiedere se è tutto chiaro, ma non tratta i prezzi.",
+   "schritte": [
+    "Vecom prepara l'offerta",
+    "dopo qualche giorno chiedere con cortesia",
+    "inoltrare a Vecom le domande sul prezzo"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "angebot",
+   "titel": "L'offerta è presso l'attività",
+   "empfehlung": "Dopo qualche giorno chieda se l'offerta è comprensibile e se ci sono domande. Per obiezioni come «troppo caro» La aiuta l'aiuto rapido. Sugli sconti decide solo Vecom.",
+   "schritte": [
+    "ricontattare dopo 3–5 giorni",
+    "raccogliere le domande e passarle a Vecom",
+    "nessun impegno personale"
+   ],
+   "knoepfe": [
+    "einwand:zu-teuer",
+    "einwand:nachdenken",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "auftrag",
+   "titel": "L'attività ha ordinato",
+   "empfehlung": "Congratulazioni! La Sua provvigione matura non appena il cliente paga. Lo stato lo trova in «Risultati». Più avanti chieda al cliente una testimonianza – aiuta con la prossima attività.",
+   "schritte": [
+    "seguire la provvigione nella sezione «Risultati»",
+    "mantenere un contatto cordiale",
+    "più avanti chiedere una testimonianza"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag"
+   ]
+  }
+ ]
 }

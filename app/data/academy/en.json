@@ -934,5 +934,247 @@
   "niedrig": "Low",
   "mittel": "Medium",
   "hoch": "High"
- }
+ },
+ "bedarf": [
+  {
+   "k": "ziel",
+   "frage": "What does the business want to achieve with the website?",
+   "typ": "mehr",
+   "optionen": {
+    "kunden": "More new customers or guests",
+    "anfragen": "More enquiries and calls",
+    "zeit": "Fewer phone calls, save time",
+    "verkaufen": "Sell products online",
+    "eindruck": "Come across more professionally"
+   }
+  },
+  {
+   "k": "website",
+   "frage": "Does the business already have a website?",
+   "typ": "eins",
+   "optionen": {
+    "nein": "No, not yet",
+    "alt": "Yes, but it’s outdated or poor on a phone",
+    "gut": "Yes, and it’s fine"
+   }
+  },
+  {
+   "k": "termine",
+   "frage": "Does the business take appointments or reservations?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "produkte",
+   "frage": "Does the business sell products that could be ordered?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "ausland",
+   "frage": "Do customers or guests come from abroad?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "google",
+   "frage": "Is it important to the business to be found on Google?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes",
+    "nein": "No / don’t know"
+   }
+  },
+  {
+   "k": "material",
+   "frage": "What is already available?",
+   "typ": "mehr",
+   "optionen": {
+    "logo": "A logo",
+    "fotos": "Good photos",
+    "texte": "Texts"
+   }
+  },
+  {
+   "k": "zeigen",
+   "frage": "Are there products or spaces the business would like to show from every angle (car, furniture, rooms)?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes",
+    "nein": "No"
+   }
+  },
+  {
+   "k": "betreuung",
+   "frage": "Would the business prefer not to have to take care of anything after launch?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Yes, ongoing support would be good",
+    "nein": "No, they’ll handle it themselves"
+   }
+  }
+ ],
+ "bedarf_grund": {
+  "webdesign": "The foundation for everything: a website of its own that suits the business.",
+  "mobil": "Most customers look on their phone – and the old site struggles there.",
+  "buchung": "Booking appointments or tables online saves phone calls.",
+  "shop": "Products can be ordered directly on the business’s own site.",
+  "sprachen": "Guests from abroad can read the site in their own language.",
+  "seo": "A clean technical foundation so Google understands the site.",
+  "branding": "Without a logo or a consistent look, the business seems less professional.",
+  "3d": "Products or spaces to rotate and experience – Vecom will check whether it fits.",
+  "wartung": "Someone takes care of the technology and changes after launch.",
+  "hosting": "The site is online, secure and always reachable."
+ },
+ "finder_ergebnis": {
+  "hoch": "High potential: a new website would make a visible difference here. Approach the business – with a specific observation from your check.",
+  "mittel": "Medium potential: there are starting points. A free quick check report is a good way in.",
+  "gering": "Low potential: the site is already in good shape. Better to focus on other businesses – or ask about a specific need (e.g. a shop or booking)."
+ },
+ "lagen": [
+  {
+   "slug": "reserviert",
+   "titel": "Business reserved, not yet approached",
+   "empfehlung": "Prepare briefly: look at the website on your phone or run the quick check. Then approach the business in person or by phone – with a specific observation, not an offer.",
+   "schritte": [
+    "look at the website on your phone or run the quick check",
+    "note down one observation",
+    "drop by in person or call",
+    "goal: a small yes (send the report or link)"
+   ],
+   "knoepfe": [
+    "finder",
+    "kontakt:persoenlich",
+    "kontakt:telefon",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "angeschrieben",
+   "titel": "Contacted in writing, no reply yet",
+   "empfehlung": "Give the business a few days. Use the time to prepare the questions for the needs conversation.",
+   "schritte": [
+    "wait 2–3 days",
+    "prepare questions for the needs conversation",
+    "then follow up in a friendly way"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "modul:bedarf-erkennen",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "nachfassen",
+   "titel": "Follow-up is due",
+   "empfehlung": "Ask politely whether everything arrived – without pressure. One short sentence is enough. If the business hesitates, objection handling will help you.",
+   "schritte": [
+    "ask briefly and politely",
+    "ask about questions or concerns",
+    "offer a small next step"
+   ],
+   "knoepfe": [
+    "einwaende",
+    "kontakt:whatsapp",
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "anrufen",
+   "titel": "Calling a business from the call list",
+   "empfehlung": "Call at the best time to call shown in the profile. Read the text in your call list calmly and at the end ask for the email address – only with their consent.",
+   "schritte": [
+    "choose the best time to call",
+    "briefly read the profile and text",
+    "call, smile, keep it short",
+    "enter the result in the call list"
+   ],
+   "knoepfe": [
+    "kontakt:telefon",
+    "einwaende",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "nicht-erreicht",
+   "titel": "Not reached",
+   "empfehlung": "No problem – that’s normal. Try again at a different time of day. After three attempts it’s fine to let the business rest.",
+   "schritte": [
+    "choose a different time of day",
+    "no more than three attempts",
+    "don’t try to sell anything on voicemail"
+   ],
+   "knoepfe": [
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "interesse",
+   "titel": "The business has shown interest",
+   "empfehlung": "Now is the right moment for a needs conversation. Find out what the business wants to achieve – and then send them your link to the questionnaire. There they’ll immediately see a price estimate.",
+   "schritte": [
+    "hold the needs conversation",
+    "record the answers in the needs assistant",
+    "send your link to the questionnaire",
+    "agree to follow up in 3 days"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "link",
+    "modul:gespraech-fuehren",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "fragebogen",
+   "titel": "The business has filled in the questionnaire",
+   "empfehlung": "Very good – the business is assigned to you. Vecom will get in touch with a detailed offer. After a few days you can ask whether everything is clear, but you don’t negotiate prices.",
+   "schritte": [
+    "Vecom prepares the offer",
+    "ask politely after a few days",
+    "pass questions about the price on to Vecom"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "angebot",
+   "titel": "The offer is with the business",
+   "empfehlung": "After a few days, ask whether the offer is clear and whether there are any questions. For objections like “too expensive”, the quick help will support you. Only Vecom decides on discounts.",
+   "schritte": [
+    "follow up after 3–5 days",
+    "collect questions and pass them on to Vecom",
+    "make no promises of your own"
+   ],
+   "knoepfe": [
+    "einwand:zu-teuer",
+    "einwand:nachdenken",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "auftrag",
+   "titel": "The business has placed an order",
+   "empfehlung": "Congratulations! Your commission is earned as soon as the customer pays. You can see the status under “Results”. Later, ask the customer for a testimonial – it helps with the next business.",
+   "schritte": [
+    "track your commission in the “Results” section",
+    "keep in friendly contact",
+    "later, ask for a testimonial"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag"
+   ]
+  }
+ ]
 }

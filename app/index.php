@@ -472,6 +472,51 @@ if ($post) {
                     : $wie . ' verwaiste ' . ($wie === 1 ? 'Empfehlung' : 'Empfehlungen') . ' entfernt.';
                 zurueck('empfehlungen');
 
+            /* Partner Academy verwalten (Etappe 2, 05.10.2026): Module schalten, eigene PDFs, „Neue Schulung“. */
+            case 'academy_modul':
+                require_once __DIR__ . '/src/Academy.php';
+                $amR = trim((string) ($_POST['reihe'] ?? ''));
+                $amP = (string) ($_POST['pflicht'] ?? '');
+                $amOk = Academy::schalterSetzen((string) ($_POST['slug'] ?? ''), !empty($_POST['aktiv']),
+                    $amP === '' ? null : $amP === '1', $amR === '' ? null : (int) $amR);
+                $_SESSION[$amOk ? 'gut' : 'fehler'] = $amOk ? 'Modul gespeichert.' : 'Dieses Modul gibt es nicht.';
+                zurueck('academy');
+
+            case 'academy_pdf':
+                require_once __DIR__ . '/src/Academy.php';
+                $apF = $_FILES['datei'] ?? null;
+                if (!is_array($apF) || (int) ($apF['error'] ?? 4) !== UPLOAD_ERR_OK || !is_uploaded_file((string) $apF['tmp_name'])) {
+                    $_SESSION['fehler'] = 'Keine Datei angekommen (höchstens ' . (Academy::PDF_MAX >> 20) . ' MB).';
+                    zurueck('academy');
+                }
+                $apR = Academy::pdfSpeichern((string) $apF['tmp_name'], (string) $apF['name'], (string) ($_POST['titel'] ?? ''),
+                    (string) ($_POST['kategorie'] ?? 'eigene'), (string) ($_POST['sprache'] ?? 'alle'), (int) ($_POST['ersetze'] ?? 0));
+                if (is_int($apR)) {
+                    Events::protokoll('academy_pdf', 'Academy-PDF ' . ((int) ($_POST['ersetze'] ?? 0) > 0 ? 'ersetzt' : 'hochgeladen') . ': ' . mb_substr((string) ($_POST['titel'] ?? ''), 0, 80));
+                    $_SESSION['gut'] = 'PDF gespeichert. Partner sehen es sofort in der Bibliothek.';
+                } else {
+                    $_SESSION['fehler'] = ['zu_gross' => 'Die Datei ist zu groß (höchstens ' . (Academy::PDF_MAX >> 20) . ' MB).', 'kein_pdf' => 'Das ist keine PDF-Datei.',
+                        'titel' => 'Bitte einen Titel angeben.', 'unbekannt' => 'Das Dokument zum Ersetzen gibt es nicht.'][$apR] ?? 'Speichern ging nicht.';
+                }
+                zurueck('academy');
+
+            case 'academy_pdf_archiv':
+                require_once __DIR__ . '/src/Academy.php';
+                Academy::pdfArchivieren((int) ($_POST['id'] ?? 0), !empty($_POST['archiv']));
+                $_SESSION['gut'] = !empty($_POST['archiv']) ? 'PDF archiviert — Partner sehen es nicht mehr.' : 'PDF ist wieder sichtbar.';
+                zurueck('academy');
+
+            case 'academy_melden':
+                require_once __DIR__ . '/src/Academy.php';
+                $amM = Academy::melden((string) ($_POST['ziel'] ?? ''));
+                if ($amM['ok']) {
+                    Events::protokoll('academy_melden', 'Neue Schulung gemeldet: ' . (string) ($_POST['ziel'] ?? '') . ' (' . $amM['partner'] . ' Partner, ' . $amM['push'] . ' Hinweise)');
+                    $_SESSION['gut'] = 'Gemeldet: ' . $amM['partner'] . ' Partner, ' . $amM['push'] . ' Hinweise aufs Handy. Der Hinweis steht 14 Tage auf der Academy-Startseite.';
+                } else {
+                    $_SESSION['fehler'] = 'Dieses Ziel gibt es nicht (oder es ist abgeschaltet).';
+                }
+                zurueck('academy');
+
             case 'empfehlung_zuordnen':
                 require_once __DIR__ . '/src/Empfehlung.php';
                 $kid = (int) ($_POST['kunde'] ?? 0);
@@ -4181,6 +4226,35 @@ switch ($route) {
                LEFT JOIN customers c ON c.id = a.customer_id
               ORDER BY FIELD(a.status,'entwurf','gesendet','angenommen','abgelehnt','abgelaufen','zurueckgezogen'),
                        a.created_at DESC LIMIT 200"), [])]);
+        break;
+
+    case 'academy':
+        /* Partner Academy verwalten (Etappe 2, 05.10.2026): nur Zahlen, keine Namen. */
+        require_once __DIR__ . '/src/Academy.php';
+        /* Ansehen in der Verwaltung: eigenes PDF (auch archiviert) oder eine eingebaute Unterlage mit Standardsatz. */
+        if (isset($_GET['pdf']) || isset($_GET['vorschau'])) {
+            $acPdf = null;
+            if (isset($_GET['pdf'])) {
+                $acPdf = Db::wert('SELECT datei FROM academy_dokumente WHERE id = ?', [(int) $_GET['pdf']], null);
+            } elseif (isset(Academy::DOKUMENTE[(string) $_GET['vorschau']])) {
+                require_once __DIR__ . '/src/AcademyPdf.php';
+                $acPdf = AcademyPdf::erzeugen((string) $_GET['vorschau'], in_array($_GET['sprache'] ?? 'de', Academy::SPRACHEN, true) ? (string) $_GET['sprache'] : 'de', []);
+            }
+            if (!is_string($acPdf)) { http_response_code(404); exit('Nicht gefunden.'); }
+            header('Content-Type: application/pdf');
+            header('Content-Disposition: inline; filename="academy.pdf"');
+            header('Cache-Control: private, no-store');
+            header('X-Content-Type-Options: nosniff');
+            echo $acPdf; exit;
+        }
+        ansicht('academy', [
+            'stat'    => sicher(static fn() => Academy::statistik(30), []),
+            'module'  => Academy::inhalte('de')['alle_module'],
+            'schalter'=> Academy::schalter(),
+            'eigene'  => sicher(static fn() => Db::all('SELECT id, titel, kategorie, sprache, version, dateiname, groesse, archiviert, updated_at FROM academy_dokumente ORDER BY archiviert, updated_at DESC'), []),
+            'docs'    => Academy::dokumente('de'),
+            'neu'     => Academy::neu(),
+        ]);
         break;
 
     case 'empfehlungen':

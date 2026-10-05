@@ -1,6 +1,7 @@
 <?php
 /* ==========================================================================
-   Partner Academy (Etappe 1, 05.10.2026, Academy). Eine eigene Seite neben dem
+   Partner Academy (Etappe 1, 05.10.2026, Academy; Etappe 2: Bedarfsassistent,
+   Kundenfinder, „Was mache ich jetzt?“, PDF-Bibliothek). Eine eigene Seite neben dem
    Command Center: Start mit Fortschritt, Module mit Lektionen und kurzem
    Wissenstest, Einwand-Schnellhilfe, Kontaktwege, Leistungen in drei Ebenen,
    Suche, Merkliste und eigene Notizen.
@@ -61,6 +62,15 @@ $modulStand = static function (array $m) use ($fortschritt): array {
     if ($z['fertig_am'] !== null) { return ['s' => 'fertig', 'p' => 100]; }
     return ['s' => 'begonnen', 'p' => $n > 0 ? (int) round(100 * min(count($m['lektionen'] ?? []), count(Academy::gelesen($z))) / $n) : 0];
 };
+/* Partnerlink zum Kopieren (Bedarfsassistent, „Was mache ich jetzt?“): derselbe Link wie überall. */
+$linkBox = static function () use ($p, $h, $a): string {
+    $url = Partner::link($p);
+    return '<section class="ak-link cc-karte" aria-labelledby="ak-link-t"><h2 class="cc-titel" id="ak-link-t">' . $h($a('bedarf_link')) . '</h2>'
+        . '<p class="hilfe">' . $h($a('bedarf_link_satz')) . '</p><div class="ak-link__zeile">'
+        . '<label class="sr-only" for="ak-link-feld">' . $h($a('bedarf_link')) . '</label>'
+        . '<input id="ak-link-feld" type="text" readonly value="' . $h($url) . '">'
+        . '<button class="knopf" type="button" data-ak-kopie="#ak-link-feld" data-fertig="' . $h($a('kopiert')) . '" hidden>' . $h($a('kopieren')) . '</button></div></section>';
+};
 /* Erste ungelesene Lektion — dort setzt „Training fortsetzen“ an. */
 $weiterBei = static function (array $m) use ($fortschritt): string {
     $g = Academy::gelesen($fortschritt[$m['slug']] ?? []);
@@ -73,6 +83,10 @@ $icon = [
     'leistung' => '<path d="M12 3.5l2.6 5.3 5.9.9-4.3 4.1 1 5.8L12 16.8l-5.2 2.8 1-5.8-4.3-4.1 5.9-.9z"/>',
     'kunden'   => '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
     'meine'    => '<path d="M7 3.5h10a1 1 0 0 1 1 1V21l-6-3.6L6 21V4.5a1 1 0 0 1 1-1z"/>',
+    'bedarf'   => '<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><path d="M8 5.5H6a1 1 0 0 0-1 1V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6.5a1 1 0 0 0-1-1h-2"/><path d="M8.5 12l2 2 4.5-4.5"/><path d="M8.5 17.5h7"/>',
+    'finder'   => '<path d="M4 6.5l1.6 1.6L8.5 5"/><path d="M4 12.5l1.6 1.6 2.9-3.1"/><path d="M4 18.5l1.6 1.6 2.9-3.1"/><path d="M11.5 6.5h8.5"/><path d="M11.5 12.5h8.5"/><path d="M11.5 18.5h8.5"/>',
+    'jetzt'    => '<circle cx="12" cy="12" r="8.5"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+    'pdf'      => '<path d="M6.5 3h7.5l4.5 4.5V20a1 1 0 0 1-1 1h-11a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v4.5h4.5"/><path d="M8.5 13h7"/><path d="M8.5 16.5h5"/>',
     'academy'  => '<path d="M2.5 9.5L12 5l9.5 4.5L12 14z"/><path d="M6.5 11.5v4.2c0 1.5 2.5 3 5.5 3s5.5-1.5 5.5-3v-4.2"/><path d="M21.5 9.5v5"/>',
 ];
 $leiste = [   /* dieselbe Reihe wie im Command Center (Spezifikation Punkt 3), dazu die Academy */
@@ -150,6 +164,10 @@ if ($akSeite === 'start'):
     <div class="cc-hallo cc-auf">
       <h1><?= $h($a('hallo', ['{name}' => $name])) ?><span class="cc-frage"><?= $h($a('lead')) ?></span></h1>
     </div>
+    <?php $akNeu = Academy::neu(); $akNeuZ = $akNeu ? Academy::meldeZiel($akNeu['ziel'], $sprache) : null; if ($akNeuZ): ?>
+      <a class="ak-neu-hinweis cc-auf" href="<?= $h($start($akNeuZ['ak'])) ?>"><span class="ak-neu"><?= $h($a('neu_hinweis')) ?></span>
+        <span><small><?= $h($a('neu_titel')) ?></small><b><?= $h($akNeuZ['titel']) ?></b></span><i aria-hidden="true">→</i></a>
+    <?php endif; ?>
     <div class="cc-raster">
       <section class="cc-heute cc-auf z2" aria-labelledby="ak-stand-t">
         <p class="cc-auge" id="ak-stand-t"><?= $h($a('fortschritt')) ?></p>
@@ -173,6 +191,10 @@ if ($akSeite === 'start'):
               'einwand'  => [$ziel('einwaende'), 's_einwand', 's_einwand_satz'],
               'kontakt'  => [$ziel('kontakt'), 's_kontakt', 's_kontakt_satz'],
               'leistung' => [$ziel('leistungen'), 's_leistung', 's_leistung_satz'],
+              'jetzt'    => [$ziel('jetzt'), 's_jetzt', 's_jetzt_satz'],
+              'bedarf'   => [$ziel('bedarf'), 's_bedarf', 's_bedarf_satz'],
+              'finder'   => [$ziel('finder'), 's_finder', 's_finder_satz'],
+              'pdf'      => [$ziel('bibliothek'), 's_bibliothek', 's_bibliothek_satz'],
               'kunden'   => [$selbst() . '#r-finden', 's_kunden', 's_kunden_satz'],
               'meine'    => [$ziel('meine'), 'merkliste', 'notizen'],
             ] as $sk => [$url, $t1, $t2]): ?>
@@ -441,6 +463,171 @@ elseif ($akSeite === 'suche'):
     </ul>
 
 <?php
+/* =============================== BEDARFSASSISTENT (Etappe 2) =============================== */
+elseif ($akSeite === 'bedarf'):
+  $bA = is_array($_GET['b'] ?? null) ? $_GET['b'] : [];
+  $bFertig = isset($_GET['aus']);
+  $bErg = $bFertig ? Academy::bedarfAuswerten($bA) : [];
+  if ($bFertig) { Academy::zaehlen('werkzeug', 'bedarf'); } ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a></nav>
+    <header class="ak-kopf"><div><h1><?= $h($a('bedarf')) ?></h1><p class="ak-ziel"><?= $h($a('bedarf_satz')) ?></p></div></header>
+    <?php if ($bFertig): ?>
+      <section class="cc-heute ak-ergebnis cc-auf" aria-labelledby="ak-bedarf-erg">
+        <p class="cc-auge" id="ak-bedarf-erg"><?= $h($a('bedarf_ergebnis')) ?></p>
+        <ol class="ak-empf">
+          <?php foreach ($bErg as $sl): $ls = Academy::eintrag('leistung', $sl, $sprache); if (!$ls) { continue; } ?>
+            <li><details><summary><b><?= $h($ls['name']) ?></b><small><?= $h($t((string) ($D['bedarf_grund'][$sl] ?? $ls['kurz']))) ?></small></summary>
+              <div class="ak-30"><p class="cc-auge"><?= $h($a('bedarf_spiegel')) ?></p><p class="ak-gross"><?= $h($t($ls['s30'])) ?></p>
+                <a href="<?= $h($ziel('leistungen', ['s' => $sl]) . '#s-' . $sl) ?>"><?= $h($a('l_aus')) ?> →</a></div></details></li>
+          <?php endforeach; ?>
+        </ol>
+        <p class="ak-warn" role="note"><?= $h($a('bedarf_hinweis')) ?></p>
+      </section>
+      <?= $linkBox() ?>
+      <p class="ak-nav"><a class="knopf stumm" href="<?= $h($ziel('bedarf')) ?>"><?= $h($a('bedarf_neu')) ?></a></p>
+    <?php else: ?>
+      <form class="ak-test ak-fragebogen cc-karte cc-auf" method="get" action="/partner.php">
+        <input type="hidden" name="t" value="<?= $h((string) $p['token']) ?>"><input type="hidden" name="ak" value="bedarf"><input type="hidden" name="aus" value="1">
+        <?php foreach ($D['bedarf'] as $q): $mehr = ($q['typ'] ?? '') === 'mehr'; ?>
+          <fieldset><legend><?= $h($q['frage']) ?><?php if ($mehr): ?> <small>(<?= $h($a('mehrfach')) ?>)</small><?php endif; ?></legend>
+            <div class="ak-chips">
+            <?php foreach ($q['optionen'] as $ow => $ot): ?>
+              <label class="ak-chip"><input type="<?= $mehr ? 'checkbox' : 'radio' ?>" name="b[<?= $h($q['k']) ?>]<?= $mehr ? '[]' : '' ?>" value="<?= $h((string) $ow) ?>"> <span><?= $h($ot) ?></span></label>
+            <?php endforeach; ?>
+            </div>
+          </fieldset>
+        <?php endforeach; ?>
+        <p class="hilfe"><?= $h($a('bedarf_privat')) ?></p>
+        <button class="knopf haupt" type="submit"><?= $h($a('bedarf_los')) ?> →</button>
+      </form>
+    <?php endif; ?>
+
+<?php
+/* =============================== KUNDENFINDER-CHECKLISTE (Etappe 2) =============================== */
+elseif ($akSeite === 'finder'):
+  $fA = is_array($_GET['f'] ?? null) ? array_map('strval', array_filter($_GET['f'], 'is_scalar')) : [];
+  $fFertig = isset($_GET['aus']);
+  $fErg = $fFertig ? Academy::finderAuswerten($fA) : null;
+  if ($fFertig) { Academy::zaehlen('werkzeug', 'finder'); } ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a></nav>
+    <header class="ak-kopf"><div><h1><?= $h($a('finder')) ?></h1><p class="ak-ziel"><?= $h($a('finder_satz')) ?></p></div></header>
+    <?php if ($fErg): ?>
+      <section class="cc-heute ak-ergebnis ak-stufe-<?= $h($fErg['stufe']) ?> cc-auf" aria-labelledby="ak-finder-erg">
+        <p class="cc-auge" id="ak-finder-erg"><?= $h($a('finder_ergebnis')) ?></p>
+        <p class="ak-stufe"><b><?= $h($a('finder_stufe_' . $fErg['stufe'])) ?></b></p>
+        <p class="ak-gross"><?= $h((string) preg_replace('~^[^:]{3,40}:\s*~u', '', $t((string) ($D['finder_ergebnis'][$fErg['stufe']] ?? '')))) ?></p>
+        <?php if ($fErg['beantwortet'] < 6 && ($fA['website'] ?? '') !== 'nein'): ?><p class="ak-warn" role="note"><?= $h($a('finder_wenig')) ?></p><?php endif; ?>
+        <div class="ak-knoepfe">
+          <a class="knopf haupt" href="<?= $h($selbst() . '#schnellcheck') ?>"><?= $h($a('finder_check')) ?> →</a>
+          <a class="knopf" href="<?= $h($ziel('jetzt', ['lage' => 'reserviert'])) ?>"><?= $h($a('jetzt')) ?></a>
+        </div>
+      </section>
+      <p class="ak-nav"><a class="knopf stumm" href="<?= $h($ziel('finder')) ?>"><?= $h($a('finder_neu')) ?></a></p>
+    <?php else: ?>
+      <form class="ak-test ak-fragebogen cc-karte cc-auf" method="get" action="/partner.php">
+        <input type="hidden" name="t" value="<?= $h((string) $p['token']) ?>"><input type="hidden" name="ak" value="finder"><input type="hidden" name="aus" value="1">
+        <?php foreach ($D['finder'] as $q): ?>
+          <fieldset><legend><?= $h($q['frage']) ?></legend>
+            <div class="ak-chips">
+            <?php foreach ($q['optionen'] as $ow): ?>
+              <label class="ak-chip"><input type="radio" name="f[<?= $h($q['k']) ?>]" value="<?= $h((string) $ow) ?>"> <span><?= $h($a('opt_' . $ow)) ?></span></label>
+            <?php endforeach; ?>
+            </div>
+          </fieldset>
+        <?php endforeach; ?>
+        <p class="hilfe"><?= $h($a('finder_privat')) ?></p>
+        <button class="knopf haupt" type="submit"><?= $h($a('finder_los')) ?> →</button>
+      </form>
+    <?php endif; ?>
+
+<?php
+/* =============================== WAS MACHE ICH JETZT? (Etappe 2) =============================== */
+elseif ($akSeite === 'jetzt'):
+  $lg = Academy::eintrag('lage', (string) ($_GET['lage'] ?? ''), $sprache);
+  if ($lg) { Academy::zaehlen('lage', $lg['slug']); } ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a></nav>
+    <header class="ak-kopf"><div><h1><?= $h($a('jetzt')) ?></h1><p class="ak-ziel"><?= $h($a('jetzt_satz')) ?></p></div></header>
+    <?php if ($lg): ?>
+      <section class="cc-heute ak-ergebnis cc-auf" aria-labelledby="ak-lage-t">
+        <p class="cc-auge"><?= $h($a('jetzt_wahl')) ?></p>
+        <h2 id="ak-lage-t"><?= $h($lg['titel']) ?></h2>
+        <p class="ak-gross"><?= $h($t($lg['empfehlung'])) ?></p>
+        <?php if (!empty($lg['schritte'])): ?>
+          <h3><?= $h($a('jetzt_schritte')) ?></h3>
+          <ol class="ak-weg"><?php foreach ($lg['schritte'] as $i => $w): ?><li><span><?= $i + 1 ?></span><?= $h($t($w)) ?></li><?php endforeach; ?></ol>
+        <?php endif; ?>
+      </section>
+      <?php $kn = []; $mitLink = false;
+        foreach (($lg['knoepfe'] ?? []) as $code) {
+          [$art, $was] = array_pad(explode(':', (string) $code, 2), 2, '');
+          if ($art === 'link') { $mitLink = true; continue; }
+          $e = null;
+          $eintrag = match ($art) {
+            'finder' => [$ziel('finder'), $a('kn_finder'), 'kunden'],
+            'bedarf' => [$ziel('bedarf'), $a('kn_bedarf'), 'bedarf'],
+            'notiz' => [$ziel('meine') . '#notizen', $a('kn_notiz'), 'meine'],
+            'einwaende' => [$ziel('einwaende'), $a('kn_einwaende'), 'einwand'],
+            'check' => [$selbst() . '#schnellcheck', $a('kn_check'), 'kunden'],
+            'kontakt' => ($e = Academy::eintrag('kontakt', $was, $sprache)) ? [$ziel('kontakt', ['k' => $was]) . '#k-' . $was, $a('kn_kontakt', ['{name}' => $e['name']]), 'kontakt'] : null,
+            'modul' => ($e = Academy::modul($was, $sprache)) ? [$ziel('modul', ['m' => $was, 'l' => $weiterBei($e)]), $a('kn_modul', ['{name}' => $e['titel']]), 'academy'] : null,
+            'einwand' => ($e = Academy::eintrag('einwand', $was, $sprache)) ? [$ziel('einwaende', ['e' => $was]), $a('kn_einwand', ['{name}' => $aufQ . $e['satz'] . $zuQ]), 'einwand'] : null,
+            default => null,
+          };
+          if ($eintrag) { $kn[] = $eintrag; }
+        } ?>
+      <?php if ($kn): ?>
+      <section class="cc-auf z2" aria-labelledby="ak-hilfe-t">
+        <h2 class="cc-titel" id="ak-hilfe-t"><?= $h($a('jetzt_hilfe')) ?></h2>
+        <ul class="cc-ziele">
+          <?php foreach ($kn as [$url, $txt, $ic]): ?>
+            <li><a class="cc-ziel" href="<?= $h($url) ?>"><i aria-hidden="true"><svg viewBox="0 0 24 24"><?= $icon[$ic] ?? $icon['academy'] ?></svg></i><span><b><?= $h($txt) ?></b></span></a></li>
+          <?php endforeach; ?>
+        </ul>
+      </section>
+      <?php endif; ?>
+      <?php if ($mitLink) { echo $linkBox(); } ?>
+      <h2 class="cc-titel ak-abstand"><?= $h($a('jetzt_andere')) ?></h2>
+    <?php else: ?>
+      <h2 class="cc-titel"><?= $h($a('jetzt_wahl')) ?></h2>
+    <?php endif; ?>
+    <ul class="ak-lagen">
+      <?php foreach ($D['lagen'] as $i => $x): ?>
+        <li><a href="<?= $h($ziel('jetzt', ['lage' => $x['slug']])) ?>"<?= $lg && $lg['slug'] === $x['slug'] ? ' aria-current="true"' : '' ?>><span><?= $i + 1 ?></span><?= $h($x['titel']) ?></a></li>
+      <?php endforeach; ?>
+    </ul>
+
+<?php
+/* =============================== PDF-BIBLIOTHEK (Etappe 2) =============================== */
+elseif ($akSeite === 'bibliothek'):
+  $docs = Academy::dokumente($sprache);
+  $zuletzt = Academy::zuletzt($akPid, 3);
+  $pdfUrl = static fn(string $d, bool $laden = false): string => $start(['ak' => 'pdf', 'd' => $d] + ($laden ? ['laden' => 1] : []));
+  $neuBis = date('Y-m-d', time() - 14 * 86400); ?>
+    <nav class="ak-pfad"><a href="<?= $h($L([])) ?>">Academy</a></nav>
+    <header class="ak-kopf"><div><h1><?= $h($a('bibliothek')) ?></h1><p class="ak-ziel"><?= $h($a('bibliothek_satz')) ?></p></div></header>
+    <?php if (($_GET['e'] ?? '') === 'kein'): ?><p class="hinweis schlecht" role="alert"><?= $h($a('b_kein')) ?></p><?php endif; ?>
+    <?php $zl = array_values(array_filter(array_map(static fn($z) => Academy::dokument($z, $sprache), $zuletzt))); if ($zl): ?>
+      <p class="ak-zuletzt"><?= $h($a('b_zuletzt')) ?>:
+        <?php foreach ($zl as $i => $zd): ?><?= $i ? ' · ' : '' ?><a href="<?= $h($pdfUrl($zd['slug'])) ?>" target="_blank" rel="noopener"><?= $h($zd['titel']) ?></a><?php endforeach; ?></p>
+    <?php endif; ?>
+    <?php if (!$docs): ?><p class="cc-leer"><?= $h($a('b_leer')) ?></p><?php endif; ?>
+    <ul class="ak-docs">
+      <?php foreach ($docs as $dc): ?>
+        <li class="ak-doc cc-karte" id="d-<?= $h($dc['slug']) ?>">
+          <p class="ak-doc__kat"><?= $h($a('d_kat_' . $dc['kategorie']) ?: $dc['kategorie']) ?><?php if ($dc['eigen'] && $dc['stand'] >= $neuBis): ?> <span class="ak-neu"><?= $h($a('neu_hinweis')) ?></span><?php endif; ?></p>
+          <h2><?= $h($dc['titel']) ?></h2>
+          <p class="ak-doc__stand"><?= $dc['eigen'] ? $h($a('b_version') . ' ' . $dc['version']) . ' · ' : '' ?><?= $h($a('d_stand')) ?> <?= $h(Fmt::datum($dc['stand'])) ?> · PDF</p>
+          <div class="ak-knoepfe">
+            <a class="knopf haupt" href="<?= $h($pdfUrl($dc['slug'])) ?>" target="_blank" rel="noopener"><?= $h($a('b_ansehen')) ?></a>
+            <a class="knopf" href="<?= $h($pdfUrl($dc['slug'], true)) ?>"><?= $h($a('b_laden')) ?></a>
+            <a class="knopf stumm ak-nur-pc" href="<?= $h($pdfUrl($dc['slug'])) ?>" target="_blank" rel="noopener" data-ak-drucken><?= $h($a('b_drucken')) ?></a>
+            <?= $merkKnopf('pdf', $dc['slug'], ['ak' => 'bibliothek'], 'd-' . $dc['slug']) ?>
+          </div>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+
+<?php
 /* =============================== MEINE ACADEMY =============================== */
 else: /* meine */
   $alleNotizen = Academy::notizen($akPid); ?>
@@ -451,7 +638,7 @@ else: /* meine */
       <?php foreach ($merk as $mz): $en = Academy::eintrag($mz['art'], $mz['ziel'], $sprache); if (!$en) { continue; }
         $url = match ($mz['art']) {
             'einwand' => $ziel('einwaende', ['e' => $mz['ziel']]), 'leistung' => $ziel('leistungen', ['s' => $mz['ziel']]) . '#s-' . $mz['ziel'],
-            'kontakt' => $ziel('kontakt', ['k' => $mz['ziel']]) . '#k-' . $mz['ziel'], default => $ziel('modul', ['m' => $mz['ziel'], 'l' => $weiterBei($en)]) }; ?>
+            'kontakt' => $ziel('kontakt', ['k' => $mz['ziel']]) . '#k-' . $mz['ziel'], 'pdf' => $start(['ak' => 'pdf', 'd' => $mz['ziel']]), default => $ziel('modul', ['m' => $mz['ziel'], 'l' => $weiterBei($en)]) }; ?>
         <li><a href="<?= $h($url) ?>"><small><?= $h($a('art_' . $mz['art'])) ?></small><b><?= $h($en['satz'] ?? $en['name'] ?? $en['titel']) ?></b></a></li>
       <?php endforeach; ?>
     </ul>

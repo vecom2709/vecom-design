@@ -934,5 +934,247 @@
   "niedrig": "Niedrig",
   "mittel": "Mittel",
   "hoch": "Hoch"
- }
+ },
+ "bedarf": [
+  {
+   "k": "ziel",
+   "frage": "Was möchte der Betrieb mit der Website erreichen?",
+   "typ": "mehr",
+   "optionen": {
+    "kunden": "Mehr neue Kunden oder Gäste",
+    "anfragen": "Mehr Anfragen und Anrufe",
+    "zeit": "Weniger Telefon, Zeit sparen",
+    "verkaufen": "Produkte online verkaufen",
+    "eindruck": "Professioneller auftreten"
+   }
+  },
+  {
+   "k": "website",
+   "frage": "Hat der Betrieb schon eine Website?",
+   "typ": "eins",
+   "optionen": {
+    "nein": "Nein, noch keine",
+    "alt": "Ja, aber veraltet oder schlecht am Handy",
+    "gut": "Ja, und sie ist in Ordnung"
+   }
+  },
+  {
+   "k": "termine",
+   "frage": "Vergibt der Betrieb Termine oder Reservierungen?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja",
+    "nein": "Nein"
+   }
+  },
+  {
+   "k": "produkte",
+   "frage": "Verkauft der Betrieb Produkte, die man bestellen könnte?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja",
+    "nein": "Nein"
+   }
+  },
+  {
+   "k": "ausland",
+   "frage": "Kommen Kunden oder Gäste aus dem Ausland?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja",
+    "nein": "Nein"
+   }
+  },
+  {
+   "k": "google",
+   "frage": "Ist es dem Betrieb wichtig, bei Google gefunden zu werden?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja",
+    "nein": "Nein / weiß nicht"
+   }
+  },
+  {
+   "k": "material",
+   "frage": "Was ist schon vorhanden?",
+   "typ": "mehr",
+   "optionen": {
+    "logo": "Ein Logo",
+    "fotos": "Gute Fotos",
+    "texte": "Texte"
+   }
+  },
+  {
+   "k": "zeigen",
+   "frage": "Gibt es Produkte oder Räume, die man von allen Seiten zeigen möchte (Auto, Möbel, Zimmer)?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja",
+    "nein": "Nein"
+   }
+  },
+  {
+   "k": "betreuung",
+   "frage": "Möchte der Betrieb sich nach dem Start um nichts kümmern müssen?",
+   "typ": "eins",
+   "optionen": {
+    "ja": "Ja, Betreuung wäre gut",
+    "nein": "Nein, macht er selbst"
+   }
+  }
+ ],
+ "bedarf_grund": {
+  "webdesign": "Grundlage für alles: eine eigene Website, die zum Betrieb passt.",
+  "mobil": "Die meisten Kunden schauen am Handy – die alte Seite tut sich dort schwer.",
+  "buchung": "Termine oder Tische online buchen spart Anrufe.",
+  "shop": "Produkte können direkt auf der eigenen Seite bestellt werden.",
+  "sprachen": "Gäste aus dem Ausland lesen die Seite in ihrer Sprache.",
+  "seo": "Saubere technische Grundlage, damit Google die Seite versteht.",
+  "branding": "Ohne Logo oder einheitliches Bild wirkt der Betrieb weniger professionell.",
+  "3d": "Produkte oder Räume zum Drehen und Erleben – ob es passt, klärt Vecom.",
+  "wartung": "Jemand kümmert sich nach dem Start um Technik und Änderungen.",
+  "hosting": "Die Seite liegt sicher und erreichbar im Internet."
+ },
+ "finder_ergebnis": {
+  "hoch": "Hohes Potenzial: Hier hilft eine neue Website sichtbar. Sprich den Betrieb an – mit einer konkreten Beobachtung aus deiner Prüfung.",
+  "mittel": "Mittleres Potenzial: Es gibt Ansatzpunkte. Ein kostenloser Schnellcheck-Bericht ist ein guter Einstieg.",
+  "gering": "Geringes Potenzial: Die Seite ist schon gut aufgestellt. Konzentriere dich lieber auf andere Betriebe – oder frag nach einem bestimmten Wunsch (z. B. Shop oder Buchung)."
+ },
+ "lagen": [
+  {
+   "slug": "reserviert",
+   "titel": "Betrieb reserviert, noch nicht angesprochen",
+   "empfehlung": "Bereite dich kurz vor: Schau dir die Website auf dem Handy an oder mach den Schnellcheck. Dann sprich den Betrieb persönlich oder am Telefon an – mit einer konkreten Beobachtung, nicht mit einem Angebot.",
+   "schritte": [
+    "Website am Handy ansehen oder Schnellcheck machen",
+    "eine Beobachtung notieren",
+    "persönlich vorbeigehen oder anrufen",
+    "Ziel: ein kleines Ja (Bericht oder Link schicken)"
+   ],
+   "knoepfe": [
+    "finder",
+    "kontakt:persoenlich",
+    "kontakt:telefon",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "angeschrieben",
+   "titel": "Angeschrieben, noch keine Antwort",
+   "empfehlung": "Gib dem Betrieb ein paar Tage. Nutze die Zeit, um die Fragen für das Bedarfsgespräch vorzubereiten.",
+   "schritte": [
+    "2–3 Tage warten",
+    "Fragen für das Bedarfsgespräch vorbereiten",
+    "dann freundlich nachfassen"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "modul:bedarf-erkennen",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "nachfassen",
+   "titel": "Nachfassen ist fällig",
+   "empfehlung": "Frag freundlich, ob alles angekommen ist – ohne Druck. Ein kurzer Satz reicht. Wenn der Betrieb zögert, hilft dir die Einwandbehandlung.",
+   "schritte": [
+    "kurz und freundlich nachfragen",
+    "nach Fragen oder Sorgen fragen",
+    "kleinen nächsten Schritt anbieten"
+   ],
+   "knoepfe": [
+    "einwaende",
+    "kontakt:whatsapp",
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "anrufen",
+   "titel": "Betrieb aus der Anrufliste anrufen",
+   "empfehlung": "Ruf zur besten Anrufzeit an, die im Steckbrief steht. Lies den Text in deiner Anrufliste in Ruhe vor und frag am Ende nach der E-Mail-Adresse – nur mit Einverständnis.",
+   "schritte": [
+    "beste Anrufzeit wählen",
+    "Steckbrief und Text kurz lesen",
+    "anrufen, lächeln, kurz bleiben",
+    "Ergebnis in der Anrufliste eintragen"
+   ],
+   "knoepfe": [
+    "kontakt:telefon",
+    "einwaende",
+    "modul:erstkontakt"
+   ]
+  },
+  {
+   "slug": "nicht-erreicht",
+   "titel": "Nicht erreicht",
+   "empfehlung": "Kein Problem – das ist normal. Versuch es zu einer anderen Tageszeit noch einmal. Nach drei Versuchen ist es in Ordnung, den Betrieb ruhen zu lassen.",
+   "schritte": [
+    "andere Tageszeit wählen",
+    "höchstens drei Versuche",
+    "nichts auf den Anrufbeantworter verkaufen"
+   ],
+   "knoepfe": [
+    "kontakt:telefon"
+   ]
+  },
+  {
+   "slug": "interesse",
+   "titel": "Der Betrieb hat Interesse gezeigt",
+   "empfehlung": "Jetzt ist der richtige Moment für ein Bedarfsgespräch. Finde heraus, was der Betrieb erreichen will – und schick ihm danach deinen Link zum Fragebogen. Dort sieht er sofort einen Richtpreis.",
+   "schritte": [
+    "Bedarfsgespräch führen",
+    "Antworten im Bedarfsassistenten festhalten",
+    "deinen Link zum Fragebogen schicken",
+    "Nachfassen in 3 Tagen vereinbaren"
+   ],
+   "knoepfe": [
+    "bedarf",
+    "link",
+    "modul:gespraech-fuehren",
+    "notiz"
+   ]
+  },
+  {
+   "slug": "fragebogen",
+   "titel": "Der Betrieb hat den Fragebogen ausgefüllt",
+   "empfehlung": "Sehr gut – der Betrieb ist dir zugeordnet. Vecom meldet sich mit einem genauen Angebot. Du kannst nach ein paar Tagen fragen, ob alles klar ist, aber du verhandelst keine Preise.",
+   "schritte": [
+    "Vecom macht das Angebot",
+    "nach einigen Tagen freundlich nachfragen",
+    "Fragen zum Preis an Vecom weitergeben"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "angebot",
+   "titel": "Angebot liegt beim Betrieb",
+   "empfehlung": "Frag nach ein paar Tagen, ob das Angebot verständlich ist und ob es Fragen gibt. Bei Einwänden wie „zu teuer“ hilft die Schnellhilfe. Rabatte entscheidet nur Vecom.",
+   "schritte": [
+    "nach 3–5 Tagen nachfragen",
+    "Fragen sammeln und an Vecom geben",
+    "keine eigenen Zusagen"
+   ],
+   "knoepfe": [
+    "einwand:zu-teuer",
+    "einwand:nachdenken",
+    "einwaende"
+   ]
+  },
+  {
+   "slug": "auftrag",
+   "titel": "Der Betrieb hat bestellt",
+   "empfehlung": "Glückwunsch! Deine Provision entsteht, sobald der Kunde bezahlt. Den Stand siehst du unter „Ergebnisse“. Bitte den Kunden später um eine Kundenstimme – das hilft beim nächsten Betrieb.",
+   "schritte": [
+    "Provision im Bereich „Ergebnisse“ verfolgen",
+    "Kontakt freundlich halten",
+    "später um eine Kundenstimme bitten"
+   ],
+   "knoepfe": [
+    "modul:zum-auftrag"
+   ]
+  }
+ ]
 }

@@ -189,6 +189,8 @@ $reiter = [
     ['stimmen', 'Kundenstimmen', 'stimmen'],
     /* Marketing Center (03.10.2026): Werbemittel, die Partner bestellen. */
     ['werbemittel', 'Marketing Center', 'werbemittel'],
+    /* Partner Academy (05.10.2026, Etappe 2): Statistik, Module, PDFs, „Neue Schulung“. */
+    ['academy', 'Partner Academy', 'academy'],
   ],
   /* Growth Engine: die Reiter der Tür „Marketing“ wachsen mit ihren Phasen.
      Marketing-Studio 5 (01.10.2026, Uwe: „Zielgruppe und Recherche sollen eins
