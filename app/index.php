@@ -2037,6 +2037,9 @@ if ($post) {
                 // Dazu die Druckflächen bei Printful (nur lesen) — Grundlage für jede neue Printful-Gestaltung.
                 require_once __DIR__ . '/src/Printful.php';
                 if (Printful::bereit()) { $wmF = Printful::druckflaechenHolen(); $wmZeilen[] = 'Printful-Druckflächen: ' . $wmF . ' Produkte abgefragt.'; }
+                // Und die Gelato-Artikel der neuen Produkte (Poster, nur lesen) — die Nummern kommen so aus Gelato selbst.
+                require_once __DIR__ . '/src/Gelato.php';
+                if (Gelato::bereit()) { Gelato::$letzterGrund = ''; $wmG = Gelato::artikelSuchen(); $wmZeilen[] = 'Gelato-Artikel: ' . $wmG . ' gefunden' . ($wmG === 0 && Gelato::$letzterGrund !== '' ? ' — ' . Gelato::$letzterGrund : '') . '.'; }
                 $_SESSION[$wmGut ? 'gut' : 'fehler'] = $wmZeilen ? implode(' · ', $wmZeilen) : 'Keine Druckerei mit Preis-Schnittstelle angebunden.';
                 zurueck('werbemittel');
 

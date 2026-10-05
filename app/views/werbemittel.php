@@ -79,6 +79,15 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           <td><?= $wmSoll === null ? '—' : ($wmSoll[1] > 0 && $wmFf['h'] > 0 && abs($wmSoll[0] / $wmSoll[1] - $wmFf['b'] / $wmFf['h']) / ($wmFf['b'] / $wmFf['h']) <= 0.01 ? '<span class="marke2 gut">' . $wmSoll[0] . ' × ' . $wmSoll[1] . ' passt</span>' : '<span class="marke2 schlecht">' . $wmSoll[0] . ' × ' . $wmSoll[1] . ' passt nicht</span>') ?></td></tr>
       <?php endforeach; endforeach; ?></tbody></table></div></details>
   <?php endif; ?>
+  <?php $wmGk = Gelato::kandidaten(); if ($wmGk['artikel']): ?>
+    <details style="margin:8px 0 0"><summary style="font-size:13px;color:var(--leise);cursor:pointer">Gelato-Artikel für neue Produkte (gesucht <?= Fmt::h($wmGk['am']) ?>)</summary>
+      <div class="tabellenrahmen"><table id="gelato-kandidaten"><thead><tr><th>Produkt</th><th>Artikelnummer (productUid)</th><th>Merkmale</th><th>liefert nach</th></tr></thead><tbody>
+      <?php foreach ($wmGk['artikel'] as $wmGn => $wmGl): foreach ($wmGl as $wmGa): ?>
+        <tr><td><?= Fmt::h($wmGn) ?></td><td><code style="font-size:12px;word-break:break-all"><?= Fmt::h($wmGa['uid']) ?></code></td>
+          <td style="font-size:12.5px"><?= Fmt::h(implode(' · ', array_map(static fn($k, $v) => $k . ': ' . $v, array_keys((array) $wmGa['merkmale']), (array) $wmGa['merkmale']))) ?></td>
+          <td><?= Fmt::h(implode(', ', (array) $wmGa['laender'])) ?: '—' ?></td></tr>
+      <?php endforeach; endforeach; ?></tbody></table></div></details>
+  <?php endif; ?>
   <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
   <?php $auto = WmBestellung::automatik(); ?>
   <p style="font-size:14px;margin:12px 0 6px"><strong>Automatik:</strong> <?= $auto ? '<span class="marke2 gut">an</span> Nach der Zahlung geht der Auftrag von selbst an die Druckerei der Bestellung (wenn angebunden); die Sendungsnummer kommt von dort, der Partner bekommt die Mail. Je Land gewinnt dann die günstigste <em>angebundene</em> Druckerei.' : '<span class="marke2">aus</span> Du gibst jeden Auftrag selbst frei.' ?></p>

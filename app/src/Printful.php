@@ -104,6 +104,10 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
     public const KANDIDATEN = [
         'visitenkarte' => [724, 18554], 'tasse_11' => [19, 1320], 'notizbuch' => [474, 12141],
         'beutel' => [367, 10457], 'flasche' => [382, 10798], 'untersetzer' => [611, 15662],
+        // Etappe 6b (05.10.2026, Uwe: „Schwarz mit Gold-Druck“): T-Shirt Bella + Canvas 3001 schwarz M und
+        // Polo SOL'S 11362 schwarz M (Brust links als DTF, ohne Stickerei) — GET /products/71 und /products/810,
+        // öffentlich, beide in der EU lieferbar. Die Druckfläche ist je Größe dieselbe Datei; gefragt wird mit M.
+        'tshirt' => [71, 4017], 'polo' => [810, 20610],
     ];
 
     /**

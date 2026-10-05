@@ -147,6 +147,13 @@ final class Cron
                 if (!Printful::bereit() || ($am !== '' && strtotime($am) > time() - 86400)) { return 0; }
                 return Printful::druckflaechenHolen();
             },
+            /* Gelato-Artikel für neue Produkte (nur lesen), höchstens einmal am Tag — Grundlage für die Zuordnung (Etappe 6b). */
+            'wm_gelato_katalog' => static function () {
+                require_once __DIR__ . '/Gelato.php';
+                $am = Gelato::kandidaten()['am'];
+                if (!Gelato::bereit() || ($am !== '' && strtotime($am) > time() - 86400)) { return 0; }
+                return Gelato::artikelSuchen();
+            },
             /* Produktfoto je Gestaltung (Musterdaten), nach und nach — der Partner sieht beim Auswählen das echte Produkt. */
             'wm_printful_vorlagenfotos' => static function () {
                 require_once __DIR__ . '/Printful.php';

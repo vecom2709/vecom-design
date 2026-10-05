@@ -12548,7 +12548,10 @@ pruefe('… steht in der Rückrufliste mit Nummer, Zeitfenster und dem empfehlen
     count($rrListe) === 1 && $rrListe[0]['wer'] === 'Mario Rossi' && str_contains($rrListe[0]['erreichbar'], '25.09.') && str_contains($rrListe[0]['erreichbar'], '12–15')
     && str_contains($rrListe[0]['anliegen'], 'Rita Rueckruf') && str_contains($rrListe[0]['anliegen'], 'RITARR01'), json_encode($rrListe));
 $rrKlar = $rrPost ? json_decode(WebPush::entschluesseln($rrPost[0], $rrPem, $rrPunkt, $rrAuth), true) : null;
-pruefe('… der Partner bekommt einen Hinweis OHNE Namen und Nummer', is_array($rrKlar) && !str_contains(json_encode($rrKlar), 'Mario') && !str_contains(json_encode($rrKlar), '333'));
+// Nach der ganzen Nummer suchen, nicht nach „333“: Der Link im Hinweis trägt ein zufälliges Kürzel, das gelegentlich
+// selbst „333“ enthält — die Prüfung riss deshalb am 05.10.2026 einmal ohne Fehler im Programm.
+pruefe('… der Partner bekommt einen Hinweis OHNE Namen und Nummer', is_array($rrKlar) && !str_contains(json_encode($rrKlar), 'Mario')
+    && !preg_match('~3\D?3\D?3\D?1\D?2\D?3\D?4\D?5\D?6\D?7~', (string) json_encode($rrKlar)));
 for ($i = 1; $i < PartnerRueckruf::JE_TAG; $i++) { PartnerRueckruf::anlegen($rrPa, $rrGut, 'it', $rrJetzt); }
 pruefe('… höchstens ' . PartnerRueckruf::JE_TAG . ' Wünsche je Partner und Tag', PartnerRueckruf::anlegen($rrPa, $rrGut, 'it', $rrJetzt) === 'rr_genug');
 $rrLp = (string) file_get_contents($wurzel . '/../p.php');
@@ -23299,11 +23302,54 @@ $dfN = Printful::druckflaechenHolen();
 $dfD = Printful::druckflaechen();
 pruefe('Druckflächen: je Kandidat und Druckstelle Breite/Höhe/dpi gespeichert, nur für die gewählte Variante; Fehler einzelner Produkte stören nicht',
     $dfN === 1 && ($dfD['flaechen']['tasse_11']['default'] ?? null) === ['b' => 2700, 'h' => 1050, 'dpi' => 300, 'fill' => 'fit', 'drehen' => false]
-    && $dfD['am'] !== '' && !isset($dfD['flaechen']['notizbuch']) && count(Printful::KANDIDATEN) === 6
+    && $dfD['am'] !== '' && !isset($dfD['flaechen']['notizbuch']) && count(Printful::KANDIDATEN) === 8
+    && Printful::KANDIDATEN['tshirt'] === [71, 4017] && Printful::KANDIDATEN['polo'] === [810, 20610]
     && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'id="pf-druckflaechen"')
     && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_printful_flaechen'"));
 Printful::$netz = null;
 Db::run("DELETE FROM settings WHERE skey = 'pf_druckflaechen'");
+
+/* ============================================================================
+   Gelato-Artikel suchen (Etappe 6b, 05.10.2026): nur lesen, Nummern aus Gelato
+   ============================================================================ */
+abschnitt('Marketingcenter: Gelato-Artikel suchen');
+require_once $wurzel . '/src/Gelato.php';
+$gkAuf = [];
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$gkAuf): array {
+    $gkAuf[] = [$m, $u, json_decode((string) $r, true), $k];
+    return ['code' => 200, 'body' => json_encode(['products' => [
+        ['productUid' => 'posters_pf_a3_pt_beispiel_ver', 'attributes' => ['PaperFormat' => 'A3', 'Orientation' => 'ver', 'Liste' => ['x']], 'supportedCountries' => ['DE', 'IT', 'US']],
+        ['productUid' => 'posters_pf_a2_pt_beispiel_ver', 'attributes' => ['PaperFormat' => 'A2', 'Orientation' => 'ver'], 'supportedCountries' => ['US']],
+        ['productUid' => 'kaputt <script>', 'attributes' => []],
+    ], 'hits' => ['attributeHits' => []]])];
+};
+$gkN = Gelato::artikelSuchen();
+$gkK = Gelato::kandidaten();
+pruefe('Gelato-Suche: POST an product.gelatoapis.com/v3/catalogs/posters/products:search mit A3/A2 hoch, Schlüssel nur in der Kopfzeile',
+    count($gkAuf) === 1 && $gkAuf[0][0] === 'POST' && $gkAuf[0][1] === 'https://product.gelatoapis.com/v3/catalogs/posters/products:search'
+    && ($gkAuf[0][2]['attributeFilters'] ?? null) === ['PaperFormat' => ['A3', 'A2'], 'Orientation' => ['ver']] && ($gkAuf[0][2]['limit'] ?? 0) === 100
+    && in_array('X-API-KEY: kette-ersatz', $gkAuf[0][3], true) && !str_contains(json_encode($gkK), 'kette-ersatz'));
+pruefe('Gelato-Suche: gültige Nummern gespeichert, kaputte verworfen, Länder auf IT/DE beschränkt, Listen-Merkmale weggelassen',
+    $gkN === 2 && $gkK['am'] !== '' && count($gkK['artikel']['poster'] ?? []) === 2
+    && $gkK['artikel']['poster'][0] === ['uid' => 'posters_pf_a3_pt_beispiel_ver', 'merkmale' => ['PaperFormat' => 'A3', 'Orientation' => 'ver'], 'laender' => ['IT', 'DE']]
+    && $gkK['artikel']['poster'][1]['laender'] === []);
+Gelato::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 401, 'body' => '{"message":"Unauthorized"}'];
+Gelato::$letzterGrund = '';
+pruefe('Gelato-Suche: Absage ändert nichts am Gespeicherten und nennt den Grund',
+    Gelato::artikelSuchen() === 0 && Gelato::$letzterGrund === 'HTTP 401: Unauthorized' && count(Gelato::kandidaten()['artikel']['poster'] ?? []) === 2);
+Gelato::$netz = static fn(string $m, string $u, array $k, ?string $r): array => ['code' => 200, 'body' => '{}'];
+$gkWeg = (new ReflectionMethod(Gelato::class, 'rufen'));
+$gkWeg->setAccessible(true);
+$gkU = [];
+Gelato::$netz = static function (string $m, string $u, array $k, ?string $r) use (&$gkU): array { $gkU[] = $u; return ['code' => 200, 'body' => '{}']; };
+$gkWeg->invoke(null, 'GET', 'https://boese.example/x?.gelatoapis.com', null);
+$gkWeg->invoke(null, 'GET', '/v4/orders/1', null);
+pruefe('Gelato: fremde Adressen gehen nie mit dem Schlüssel hinaus — nur *.gelatoapis.com unverändert, sonst die Bestell-Schnittstelle davor',
+    $gkU === ['https://order.gelatoapis.comhttps://boese.example/x?.gelatoapis.com', 'https://order.gelatoapis.com/v4/orders/1']
+    && str_contains((string) file_get_contents($wurzel . '/views/werbemittel.php'), 'id="gelato-kandidaten"')
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'wm_gelato_katalog'"));
+Gelato::$netz = null;
+Db::run("DELETE FROM settings WHERE skey = 'gelato_kandidaten'");
 
 /* ============================================================================
    Verwaltung: Rollen und Abmeldung nach Untätigkeit (05.10.2026, Uwe: „Ja“;

@@ -304,6 +304,58 @@ final class Gelato implements DruckereiAnbieter, DruckereiPreise
         return $n;
     }
 
+    /**
+     * Gelato-Artikel für neue Produkte suchen (Etappe 6b, 05.10.2026) — NUR LESEN.
+     * Die Artikelnummern (productUid) der Poster stehen in keiner öffentlichen Doku; die Doku zeigt
+     * nur, wie man sie findet: POST https://product.gelatoapis.com/v3/catalogs/{catalogUid}/products:search
+     * mit attributeFilters, limit ≤ 100 (dashboard.gelato.com/docs/products/product/search, gelesen
+     * 05.10.2026). Darum sucht der Server mit dem eigenen Schlüssel, und die Verwaltung zeigt die
+     * Treffer — die Zuordnung zu den Auflagen entsteht erst danach, aus echten Nummern.
+     * Katalog „posters“ und die Merkmale PaperFormat (A1/A2/A3) und Orientation (hor/ver) laut
+     * GET /v3/catalogs/posters in derselben Doku.
+     */
+    public const SUCHE = [
+        'poster' => ['katalog' => 'posters', 'filter' => ['PaperFormat' => ['A3', 'A2'], 'Orientation' => ['ver']]],
+    ];
+
+    public static function artikelSuchen(): int
+    {
+        if (!self::bereit()) { return 0; }
+        $aus = [];
+        foreach (self::SUCHE as $name => $s) {
+            try {
+                $r = self::rufen('POST', 'https://product.gelatoapis.com/v3/catalogs/' . rawurlencode($s['katalog']) . '/products:search',
+                    ['attributeFilters' => $s['filter'], 'limit' => 100, 'offset' => 0]);
+            } catch (Throwable $e) { self::$letzterGrund = 'keine Antwort: ' . mb_substr($e->getMessage(), 0, 200); continue; }
+            $d = json_decode($r['body'], true);
+            if ($r['code'] !== 200 || !is_array($d) || !isset($d['products'])) {
+                $text = is_array($d) ? (string) ($d['message'] ?? '') : '';
+                self::$letzterGrund = 'HTTP ' . $r['code'] . ($text !== '' ? ': ' . mb_substr(trim($text), 0, 200) : '');
+                continue;
+            }
+            foreach ((array) $d['products'] as $x) {
+                $uid = (string) ($x['productUid'] ?? '');
+                if (!preg_match('~^[a-z0-9_\-]{3,200}$~i', $uid)) { continue; }
+                $merk = [];
+                foreach ((array) ($x['attributes'] ?? []) as $k => $v) { if (is_scalar($v)) { $merk[mb_substr((string) $k, 0, 40)] = mb_substr((string) $v, 0, 80); } }
+                $laender = array_values(array_intersect(['IT', 'DE'], array_map('strval', (array) ($x['supportedCountries'] ?? []))));
+                $aus[$name][] = ['uid' => $uid, 'merkmale' => $merk, 'laender' => $laender];
+            }
+        }
+        if ($aus) {
+            Db::run("INSERT INTO settings (skey, svalue) VALUES ('gelato_kandidaten', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
+                [json_encode(['am' => date('Y-m-d H:i'), 'artikel' => $aus], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)]);
+        }
+        return array_sum(array_map('count', $aus));
+    }
+
+    /** Zuletzt gefundene Gelato-Artikel. @return array{am:string, artikel:array} */
+    public static function kandidaten(): array
+    {
+        $d = (array) json_decode((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'gelato_kandidaten'", [], ''), true);
+        return ['am' => (string) ($d['am'] ?? ''), 'artikel' => (array) ($d['artikel'] ?? [])];
+    }
+
     // ---- intern -----------------------------------------------------------------
 
     private static function fehler(int $id, string $text): void
@@ -369,7 +421,8 @@ final class Gelato implements DruckereiAnbieter, DruckereiPreise
     /** @return array{code:int, body:string} */
     private static function rufen(string $methode, string $weg, ?array $koerper): array
     {
-        $url = self::BASIS . $weg;
+        // Ein voller Gelato-Link (Produkt-Schnittstelle product.gelatoapis.com) geht unverändert, sonst die Bestell-Schnittstelle.
+        $url = str_starts_with($weg, 'https://') && str_ends_with((string) parse_url($weg, PHP_URL_HOST), '.gelatoapis.com') ? $weg : self::BASIS . $weg;
         // Den Schlüssel zeigt keine Meldung und kein Protokoll — er steht nur in dieser Kopfzeile.
         $kopf = ['X-API-KEY: ' . self::schluessel(), 'Content-Type: application/json', 'Accept: application/json'];
         $rumpf = $koerper === null ? null : (string) json_encode($koerper, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
