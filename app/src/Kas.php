@@ -117,6 +117,23 @@ final class Kas
         return (bool) preg_match('~^(add|update|delete)_~', $aktion);
     }
 
+    /**
+     * Was rufen() schreibend an die KAS-API schicken darf (05.10.2026, Spezifikation:
+     * „Keine bestehenden Postfächer löschen. Noch keine Mail-Zugangsdaten verändern.“).
+     * Bisher nahm rufen() jeden Aktionsnamen an, auch delete_*; die Kette prüfte nur,
+     * dass es keine Lösch-METHODE gibt. Jetzt geht nur durch, was der Code wirklich
+     * braucht. delete_* und update_mailaccount (Passwort eines Postfachs) stehen nie
+     * hier. Lesen (get_*) verändert nichts und bleibt frei.
+     */
+    public const SCHREIBEN_ERLAUBT = ['add_account', 'add_domain', 'add_mailaccount', 'add_mailforward', 'add_dns_settings',
+        'add_database', 'add_ftpusers', 'add_cronjob', 'update_account', 'update_dns_settings'];
+
+    public static function erlaubt(string $aktion): bool
+    {
+        if (preg_match('~^get_[a-z_]+$~', $aktion) === 1) { return true; }
+        return in_array($aktion, self::SCHREIBEN_ERLAUBT, true);
+    }
+
     /** Parameter fuers Protokoll: jedes Passwort und jeder Schluessel als ***. */
     public static function ohneGeheimnis(array $params): string
     {
@@ -160,6 +177,13 @@ final class Kas
      */
     public static function rufen(string $aktion, array $params = [], ?array $als = null): array
     {
+        /* DIE ERLAUBNISLISTE -- noch vor dem Probelauf: Was hier hängenbleibt, wird
+           nie ausgeführt, auch nicht, wenn der Probelauf später ausgeschaltet ist. */
+        if (!self::erlaubt($aktion)) {
+            $was = 'Gesperrt: KAS-Aktion „' . mb_substr($aktion, 0, 60) . '“ geht nie über die Verwaltung (Löschen und unbekannte Änderungen).';
+            self::still(static fn() => Events::protokoll('kas_gesperrt', $was), null);
+            return ['ok' => false, 'daten' => null, 'gesperrt' => true, 'text' => $was];
+        }
         /* DER PROBELAUF -- vor allem anderen, auch vor Zugang und Flutbremse:
            Er soll ohne jede Verbindung zeigen, was geschehen WUERDE. Lesen
            geht durch (es veraendert nichts), jedes add_/update_ bleibt hier. */

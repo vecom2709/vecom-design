@@ -13,7 +13,8 @@
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="cron_jetzt">
     <input type="hidden" name="zurueck" value="monitoring">
-    <button class="knopf haupt">Jetzt prüfen</button></form>
+    <button class="knopf haupt">Jetzt prüfen</button>
+    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Erreichbarkeit, Zertifikate, Cockpit-Schutz — der nächtliche Lauf mit Geld und Post startet hier nicht.</span></form>
 </div>
 
 <?php /* ---------- Zustellbarkeit der Absenderdomain ---------- */ ?>

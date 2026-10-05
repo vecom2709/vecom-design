@@ -817,9 +817,12 @@ if ($einfuehrungZeigen): $schritte = Hilfe::EINFUEHRUNG; ?>
     if (!tat) { return null; }
     var schluessel = tat.value;
     /* "projekt_status" ist eine Tat mit mehreren Gesichtern: Das eine
-       verschiebt ein Wort, das andere stellt eine Seite ins Netz. */
+       verschiebt ein Wort, das andere stellt eine Seite ins Netz.
+       Nur dort zählt der Status (05.10.2026) -- vorher hängte jedes Formular
+       mit einem Feld „status“ ihn an, und eine Tat aus der Liste fragte dann
+       nicht. Der Server rechnet genauso (Ablauf::bestaetigt). */
     var st = f.querySelector('[name="status"]');
-    if (st && st.value) { schluessel += ':' + st.value; }
+    if (schluessel === 'projekt_status' && st && st.value) { schluessel += ':' + st.value; }
     return bremse[schluessel] || null;
   }
 
@@ -835,6 +838,14 @@ if ($einfuehrungZeigen): $schritte = Hilfe::EINFUEHRUNG; ?>
     var knopf = e.submitter || f.querySelector('button, input[type=submit]');
     fragen(f, frage, eintrag.ja, function () {
       f.dataset.beantwortet = 'ja';
+      /* Das „Ja“ geht mit (05.10.2026): Der Server führt eine Tat aus der Liste nur
+         mit diesem Feld aus -- es trägt den Namen der Tat (Ablauf::bestaetigt). */
+      var tatFeld = f.querySelector('input[name="tat"]');
+      if (tatFeld) {
+        var ja = f.querySelector('input[name="_bestaetigt"]');
+        if (!ja) { ja = document.createElement('input'); ja.type = 'hidden'; ja.name = '_bestaetigt'; f.appendChild(ja); }
+        ja.value = tatFeld.value;
+      }
       if (f.requestSubmit) { f.requestSubmit(knopf); } else { f.submit(); }
     });
   }, true);

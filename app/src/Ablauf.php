@@ -172,9 +172,7 @@ final class Ablauf
         'fragebogen_erinnern' => [self::RAUS,
             'Jeder Kunde, dessen Fragebogen überfällig ist, bekommt jetzt eine Erinnerung — das können mehrere auf einmal sein.',
             'Ja, alle erinnern'],
-        'cron_jetzt' => [self::RAUS,
-            'Der ganze nächtliche Lauf startet sofort. Dabei gehen Erinnerungen und erste Mahnungen an Kunden raus.',
-            'Ja, jetzt laufen lassen'],
+        // 'cron_jetzt' fragt nicht mehr (05.10.2026): „Jetzt prüfen“ prüft nur noch, es verlässt nichts das Haus.
 
         /* --- Es steht danach in den Büchern ------------------------------ */
         'zahlung_bestaetigen' => [self::SCHWER,
@@ -370,7 +368,7 @@ final class Ablauf
             'Alle auszahlungsbereiten Provisionen werden als ausgezahlt gebucht (Beleg mit Nummer, Mail an den Partner). Nur tun, wenn die Überweisung wirklich raus ist.',
             'Ja, als ausgezahlt buchen'],
         'partner_einstellungen' => [self::SCHWER,
-            'Die Bedingungen gelten für alle künftigen Provisionen. Ist „automatisch auszahlen“ an, überweist Stripe ab jetzt ohne Klick — bis zum Tageslimit.',
+            'Die Bedingungen gelten für alle künftigen Provisionen. Ausgezahlt wird weiterhin nur auf deinen Klick.',
             'Ja, speichern'],
         'partner_provision_streichen' => [self::SCHWER,
             'Die Provision entfällt und wird nicht ausgezahlt. Der Partner sieht sie als entfallen.',
@@ -501,6 +499,23 @@ final class Ablauf
         }
         if ($eintrag === null) { return null; }
         return ['gewicht' => $eintrag[0], 'frage' => $eintrag[1], 'ja' => $eintrag[2]];
+    }
+
+    /**
+     * Wurde die Rückfrage beantwortet? (05.10.2026, Spezifikation 71: Backend-Rechteprüfung
+     * ist Pflicht.) Bisher fragte nur das Skript in layout.php — ein Formular ohne Skript
+     * oder ein direkter POST ging ohne Rückfrage durch. Das Skript setzt nach dem „Ja“ das
+     * Feld „_bestaetigt“ mit dem Namen der Tat; ein Feld für eine andere Tat zählt nicht.
+     *
+     * @return bool true, wenn die Tat keine Rückfrage braucht oder sie beantwortet ist
+     */
+    public static function bestaetigt(array $post): bool
+    {
+        $tat = (string) ($post['tat'] ?? '');
+        if ($tat === '') { return true; }
+        $status = $tat === 'projekt_status' ? (string) ($post['status'] ?? '') : '';
+        if (self::rueckfrage($tat, $status) === null) { return true; }
+        return hash_equals($tat, (string) ($post['_bestaetigt'] ?? ''));
     }
 
     /** Wiegt diese Tat schwer genug fuer eine Rueckfrage? */

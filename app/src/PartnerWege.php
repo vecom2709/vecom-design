@@ -14,10 +14,12 @@ require_once __DIR__ . '/Partner.php';
  * config.local.php) — ein eingeschalteter Weg ohne Zugang wäre ein
  * Versprechen, das beim ersten Partner platzt.
  *
- * WAS VON ALLEIN GEHT UND WAS NICHT
- *  stripe  automatisch (Partner.php, auszahlenStripe)
- *  paypal  automatisch über die Auszahlungs-Schnittstelle von PayPal
- *  wise    wird automatisch angelegt; ob Wise es ohne Bestätigung in der App
+ * WIE AUSGEZAHLT WIRD — SEIT 05.10.2026 NIE OHNE KLICK
+ * (Spezifikation 30/49). „Über Schnittstelle“ heißt: Uwe klickt, die
+ * Schnittstelle führt aus; „von Hand“ heißt: Uwe überweist selbst.
+ *  stripe  über Schnittstelle (Partner.php, auszahlenStripe)
+ *  paypal  über die Auszahlungs-Schnittstelle von PayPal
+ *  wise    wird über die Schnittstelle angelegt; ob Wise es ohne Bestätigung in der App
  *          ausführt, entscheidet Wise (starke Kundenauthentifizierung) —
  *          dann steht die Auszahlung „offen“, bis Uwe sie bestätigt
  *  sepa    nie automatisch: Die Verwaltung baut eine SEPA-Datei, Uwe lädt
@@ -26,8 +28,8 @@ require_once __DIR__ . '/Partner.php';
  *  gutschrift  Verrechnung mit einer offenen Rate des Partners als Kunde —
  *          auf Uwes Klick, weil es die Buchhaltung berührt
  *
- * Für alle gilt dasselbe wie für Stripe: Wartezeit, Mindestbetrag, Tageslimit
- * (für die automatischen), Beleg, und bei späterer Erstattung Rückforderung.
+ * Für alle gilt dasselbe wie für Stripe: Wartezeit, Mindestbetrag, Beleg,
+ * und bei späterer Erstattung Rückforderung.
  */
 final class PartnerWege
 {
@@ -39,7 +41,7 @@ final class PartnerWege
         'gutschrift' => 'Verrechnung',
     ];
 
-    /** Wege, die ohne Klick rausgehen dürfen (Tageslimit gilt). */
+    /** Wege, die die Schnittstelle auf Uwes Klick ausführt (der Name ist historisch: von allein geht seit 05.10.2026 nichts). */
     public const AUTOMATISCH = ['stripe', 'paypal', 'wise'];
 
     /** Nur für die Prüfkette: ersetzt PayPal- und Wise-Aufrufe. @var (Closure(string,string,string,?array):array)|null */
@@ -177,9 +179,9 @@ final class PartnerWege
         if (!$p) { return ['ok' => false, 'text' => 'Partner nicht gefunden.']; }
         $weg = self::weg($p);
         if ($weg === null) { return ['ok' => false, 'text' => 'Kein Auszahlungsweg eingeschaltet.']; }
-        if ($automatisch && !in_array($weg, self::AUTOMATISCH, true)) {
-            return ['ok' => false, 'text' => self::WEGE[$weg] . ' geht nie von allein.'];
-        }
+        /* Kein Weg geht mehr von allein (05.10.2026, Spezifikation 30/49: automatisch auszahlen verboten).
+           AUTOMATISCH heißt seitdem nur noch: Diese Wege zahlt die Schnittstelle aus — auf Uwes Klick. */
+        if ($automatisch) { return ['ok' => false, 'text' => 'Ausgezahlt wird nur per Klick in der Verwaltung.']; }
         if ($weg === 'stripe') { return Partner::auszahlenStripe($partnerId, $automatisch); }
         if ($weg === 'sepa' || $weg === 'gutschrift') {
             return ['ok' => false, 'text' => $weg === 'sepa' ? 'SEPA: über die Datei unter „Partner“ auszahlen.' : 'Verrechnung: eine offene Rate wählen.'];

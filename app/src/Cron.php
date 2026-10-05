@@ -452,15 +452,18 @@ final class Cron
         }
 
         // Einmal am Tag genuegt: alte Pruefungen wegraeumen.
+        /* Eigene Schlüssel (05.10.2026): Mit „meldungen“ und „hosting“ überschrieb dieser
+           Block einmal am Tag die gleichnamigen Aufgaben oben — in diesem Lauf entfielen dann
+           Meldungen::aufraeumen und Hosting::fortsetzen still. */
         if (self::heuteNochNicht('cron_aufraeumen')) {
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
             // Und gelesene Meldungen, die aelter sind als ein Monat. Sonst
             // waechst die Liste ewig — und wo hundert alte Zeilen stehen,
             // sieht niemand mehr die eine neue. Ungelesenes bleibt stehen.
-            $aufgaben['meldungen'] = static fn() => Events::meldungenAufraeumen();
+            $aufgaben['meldungen_alt'] = static fn() => Events::meldungenAufraeumen();
             // Abgelaufene Hosting-Zugangsdaten loeschen: Der verschluesselte
             // Blob existiert nur bis zum einmaligen Abruf oder bis zur Frist.
-            $aufgaben['hosting'] = static function () {
+            $aufgaben['hosting_abgelaufen'] = static function () {
                 require_once __DIR__ . '/Hosting.php';
                 return ['geloescht' => Hosting::aufraeumen()];
             };
@@ -568,6 +571,29 @@ final class Cron
         $bilanz['dauer_ms'] = (int) round((microtime(true) - $anfang) * 1000);
         self::merken('cron_zuletzt', date('Y-m-d H:i:s'));
         self::merken('cron_bilanz', json_encode($bilanz, JSON_UNESCAPED_UNICODE));
+        return $bilanz;
+    }
+
+    /** Was „Jetzt prüfen“ im Monitoring ausführt. */
+    public const JETZT_PRUEFEN = ['websites', 'ssl', 'cockpit'];
+
+    /**
+     * Monitoring › „Jetzt prüfen“ (05.10.2026): nur Erreichbarkeit, Zertifikate und
+     * Cockpit-Schutz. Vorher startete der Knopf den ganzen Lauf — mit Abbuchungen,
+     * Mahnungen, Partner-Provisionen, Posts und Mails an Kunden, während die Rückfrage
+     * nur Erinnerungen nannte. „Letzter Lauf“ bleibt der echte Cron: Diese Prüfung
+     * schreibt cron_zuletzt nicht, sonst sähe ein ausgefallener Cron gesund aus.
+     */
+    public static function jetztPruefen(): array
+    {
+        $bilanz = ['zeit' => date('c')];
+        $tun = ['websites' => static fn() => Monitoring::alle(), 'ssl' => static fn() => Monitoring::sslWarnungen(),
+                'cockpit' => static fn() => self::cockpitPruefen()];
+        foreach (self::JETZT_PRUEFEN as $name) {
+            try { $bilanz[$name] = $tun[$name](); }
+            catch (Throwable $e) { $bilanz[$name] = ['fehler' => mb_substr($e->getMessage(), 0, 200)]; }
+        }
+        self::merken('cron_pruefung_zuletzt', date('Y-m-d H:i:s'));
         return $bilanz;
     }
 

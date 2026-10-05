@@ -3927,6 +3927,16 @@ $kasLoeschend = array_filter(get_class_methods('Kas'),
     static fn(string $m): bool => str_contains(strtolower($m), 'loeschen') || str_starts_with($m, 'delete'));
 pruefe('die Klasse hat weiterhin keine loeschenden Methoden',
     $kasLoeschend === [], implode(', ', $kasLoeschend));
+/* Und auch kein Umweg über rufen() (05.10.2026, Spezifikation: keine Postfächer löschen,
+   keine Mail-Zugangsdaten verändern): Die Erlaubnisliste greift vor Probelauf und Zugang. */
+$kasDel = Kas::rufen('delete_mailaccount', ['mail_login' => 'm0000000']);
+$kasPw = Kas::rufen('update_mailaccount', ['mail_login' => 'm0000000', 'mail_new_password' => 'x']);
+pruefe('rufen() lehnt delete_*, update_mailaccount und Unbekanntes ab, bevor irgendetwas geschieht; Lesen und die gebrauchten Schreib-Aktionen bleiben',
+    !empty($kasDel['gesperrt']) && !empty($kasPw['gesperrt']) && !empty(Kas::rufen('delete_account')['gesperrt'])
+    && !empty(Kas::rufen('irgendwas')['gesperrt']) && !Kas::erlaubt('delete_domain') && !Kas::erlaubt('update_mailaccount')
+    && Kas::erlaubt('get_mailaccounts') && Kas::erlaubt('add_mailforward') && Kas::erlaubt('update_account')
+    && !array_filter(Kas::SCHREIBEN_ERLAUBT, static fn(string $a): bool => str_starts_with($a, 'delete_') || str_contains($a, 'mailaccount') && $a !== 'add_mailaccount'),
+    json_encode([$kasDel, $kasPw], JSON_UNESCAPED_UNICODE));
 
 /* Das Anlegen selbst laesst sich ohne Zugang nur an seinen Riegeln
    pruefen — und die sind das Wichtigste daran. */
@@ -5251,7 +5261,7 @@ pruefe('und jeder Ja-Knopf sagt, wozu man Ja sagt', $rfJaOhneJa === [],
    warum es die Liste ueberhaupt gibt. */
 foreach (['nachricht_senden', 'kunde_nachricht', 'angebot_senden', 'mahnung_schicken',
           'paket_mail', 'abo_anfordern', 'abo_kuendigen', 'hosting_vorschlag',
-          'fragebogen_erinnern', 'cron_jetzt'] as $rfN) {
+          'fragebogen_erinnern'] as $rfN) {
     pruefe("„{$rfN}“ fragt, bevor der Kunde Post bekommt", isset($rfAlle[$rfN]));
 }
 /* Und die, nach denen etwas in den Buechern steht oder endgueltig weg ist. */
@@ -5266,7 +5276,7 @@ foreach (['zahlung_bestaetigen', 'angebot_zusage', 'anfrage_bestellung', 'bestel
 
 /* Was weiterhin schweigt — und schweigen soll. */
 foreach (['kunde_speichern', 'aufgabe_umschalten', 'nachrichten_gelesen', 'merkliste_setzen',
-          'meldung_gelesen', 'bedienung', 'sprache_setzen'] as $rfS) {
+          'meldung_gelesen', 'bedienung', 'sprache_setzen', 'cron_jetzt'] as $rfS) {
     pruefe("„{$rfS}“ fragt weiterhin nicht", Ablauf::wiegt($rfS) === Ablauf::STILL);
 }
 
@@ -5277,6 +5287,23 @@ pruefe('die Rückfragen gehen an den Browser',
     str_contains($rfLayout, 'window.vecomBremse'));
 pruefe('und werden über das Feld „tat“ zugeordnet',
     str_contains($rfLayout, "f.querySelector('input[name=\"tat\"]')"));
+/* Seit 05.10.2026 auch auf dem Server (Spezifikation 71): ohne das „Ja“ keine Tat aus der Liste. */
+$rfIdx = (string) file_get_contents($oben . '/app/index.php');
+$rfSt = array_key_first(Ablauf::TRAGWEITE_STATUS);
+pruefe('Rückfrage serverseitig: eine Tat aus der Liste ohne „_bestaetigt“ wird abgelehnt, mit dem Namen der Tat angenommen, mit fremdem Namen nicht; stille Taten brauchen nichts',
+    !Ablauf::bestaetigt(['tat' => 'partner_auszahlen', 'id' => '1'])
+    && Ablauf::bestaetigt(['tat' => 'partner_auszahlen', '_bestaetigt' => 'partner_auszahlen'])
+    && !Ablauf::bestaetigt(['tat' => 'partner_auszahlen', '_bestaetigt' => 'kunde_speichern'])
+    && !Ablauf::bestaetigt(['tat' => 'partner_auszahlen', '_bestaetigt' => '1'])
+    && Ablauf::bestaetigt(['tat' => 'kunde_speichern']) && Ablauf::bestaetigt([])
+    && !Ablauf::bestaetigt(['tat' => 'projekt_status', 'status' => $rfSt])
+    && Ablauf::bestaetigt(['tat' => 'projekt_status', 'status' => $rfSt, '_bestaetigt' => 'projekt_status'])
+    && Ablauf::bestaetigt(['tat' => 'projekt_status', 'status' => 'kein_status_aus_der_liste']));
+pruefe('Rückfrage serverseitig: index.php prüft vor jeder Route (nach den Rechten), das Skript schickt das „Ja“ mit und hängt den Status nur bei projekt_status an',
+    ($rfP = strpos($rfIdx, 'if ($post && !Ablauf::bestaetigt($_POST))')) !== false && $rfP > strpos($rfIdx, 'Rechte::darfTat(')
+    && $rfP < strpos($rfIdx, "case 'cron_jetzt':") && $rfP < strpos($rfIdx, "case 'partner_auszahlen':")
+    && str_contains($rfLayout, "ja.name = '_bestaetigt';") && str_contains($rfLayout, 'ja.value = tatFeld.value;')
+    && str_contains($rfLayout, "if (schluessel === 'projekt_status' && st && st.value)"));
 
 /* ---------- Die Türen ----------------------------------------------------
    Fünf seit dem 13.09.2026, sechs seit dem 30.09.2026: „Marketing“ (Growth
@@ -9947,25 +9974,37 @@ $paPr2 = Db::one('SELECT * FROM partner_provisionen WHERE payment_id = ?', [$paR
 pruefe('Partner: Steuereinbehalt 20 % wird an der Provision festgehalten',
     (int) $paPr2['einbehalt_cents'] === (int) round((int) $paPr2['provision_cents'] * 0.2));
 $paStripe = [];
+/* Auszahlen nur per Klick (05.10.2026, Spezifikation 30/49): Der Cron zahlt nie aus — auch
+   nicht mit einer alten Datenbank, in der der frühere Schalter noch auf 1 steht. Er meldet
+   einmal am Tag, was zur Freigabe bereitliegt. Der Klick in der Verwaltung zahlt aus. */
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('partner_auto_auszahlen', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
 $paL = Partner::lauf();
-pruefe('Automatik: über dem Tageslimit (10 €) geht nichts raus, Uwe bekommt eine Meldung',
-    $paL['ausgezahlt'] === 0 && $paL['wartet_limit'] === 1 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_limit'", [], 0) === 1);
-Db::run("UPDATE settings SET svalue = '10000000' WHERE skey = 'partner_auto_tageslimit_cents'");
-Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'partner_auto_auszahlen'");
-pruefe('Automatik: ausgeschaltet geht nichts raus', Partner::lauf()['ausgezahlt'] === 0 && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
-Db::run("UPDATE settings SET svalue = '1' WHERE skey = 'partner_auto_auszahlen'");
+$paL2 = Partner::lauf();
+pruefe('Auszahlen nur per Klick: der Cron zahlt nie aus (auch mit altem Schalter auf 1), er meldet die Summe genau einmal am Tag zur Freigabe',
+    $paL['ausgezahlt'] === 0 && $paL['zur_freigabe'] === 1 && $paL2['ausgezahlt'] === 0
+    && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_auszahlbar'", [], 0) === 1
+    && str_contains((string) Db::wert("SELECT body FROM notifications WHERE type = 'partner_auszahlbar' ORDER BY id DESC LIMIT 1", [], ''), 'erst mit deinem Klick'),
+    json_encode([$paL, Db::all("SELECT type, title FROM notifications WHERE type LIKE 'partner\\_%' ORDER BY id DESC LIMIT 3")], JSON_UNESCAPED_UNICODE));
+pruefe('Auszahlen nur per Klick: ein Aufruf „automatisch“ wird an beiden Stellen abgelehnt, die Einstellungen kennen keinen Schalter mehr',
+    PartnerWege::auszahlen($paId, true)['ok'] === false && Partner::auszahlenStripe($paId, true)['ok'] === false
+    && !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
+    && !str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'name="partner_auto_auszahlen"')
+    && !str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), "einstellung('partner_auto_auszahlen')")
+    && Partner::STANDARD['partner_auto_auszahlen'] === '0'
+    && str_contains((string) file_get_contents($wurzel . '/migrations/179_auszahlen_nur_per_klick.sql'), "UPDATE settings SET svalue = '0' WHERE skey = 'partner_auto_auszahlen'"));
 Db::run("UPDATE payments SET status = 'rueckerstattet' WHERE id = ?", [$paR2]);
-Partner::lauf();
-pruefe('Automatik: in letzter Sekunde erstattet — nichts ausgezahlt, Provision entfällt',
+PartnerWege::auszahlen($paId);
+pruefe('Klick: in letzter Sekunde erstattet — nichts ausgezahlt, Provision entfällt',
     !array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers')
     && Db::wert('SELECT status FROM partner_provisionen WHERE payment_id = ?', [$paR2], '') === 'storniert');
 Db::run("UPDATE payments SET status = 'bezahlt' WHERE id = ?", [$paR2]);
 Db::run("UPDATE partner_provisionen SET status = 'bereit', grund = '' WHERE payment_id = ?", [$paR2]);
-$paL = Partner::lauf();
+$paK = PartnerWege::auszahlen($paId);
 $paT = array_values(array_filter($paStripe, static fn($x) => $x[1] === '/v1/transfers'));
-pruefe('Automatik: eingeschaltet, im Limit — ausgezahlt wird Provision minus Einbehalt, als „automatisch“ gebucht',
-    $paL['ausgezahlt'] === 1 && (int) $paT[0][2]['amount'] === (int) $paPr2['provision_cents'] - (int) $paPr2['einbehalt_cents']
-    && (int) Db::wert('SELECT automatisch FROM partner_auszahlungen ORDER BY id DESC LIMIT 1', [], 0) === 1);
+pruefe('Klick in der Verwaltung: ausgezahlt wird Provision minus Einbehalt, als „von Hand ausgelöst“ gebucht (automatisch = 0)',
+    $paK['ok'] && (int) $paT[0][2]['amount'] === (int) $paPr2['provision_cents'] - (int) $paPr2['einbehalt_cents']
+    && (int) Db::wert('SELECT automatisch FROM partner_auszahlungen ORDER BY id DESC LIMIT 1', [], 1) === 0, json_encode($paK, JSON_UNESCAPED_UNICODE));
 $GLOBALS['paRueckGeht'] = false;
 Partner::beiErstattung($paR2, 2000000, 2000000);
 pruefe('Stripe: lässt sich nicht zurückholen → „zurückfordern“ und eine Meldung an Uwe',
@@ -10087,12 +10126,12 @@ Partner::vereinbarungMerken($wgB, 'Probe');
 pruefe('PayPal: ungültige E-Mail abgelehnt', PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'kein-mail']) === 'email_falsch');
 PartnerWege::setzen($wgB, ['weg' => 'paypal', 'paypal_email' => 'Bruno@PayPal.example']);
 $wgBp = $wgProv($wgB, 7000);
-$wgR = PartnerWege::auszahlen($wgB, true);
-pruefe('PayPal: automatisch, genau der Betrag, feste Stapelkennung (doppelt lehnt PayPal ab)',
+$wgR = PartnerWege::auszahlen($wgB);   // seit 05.10.2026 nur per Klick (Spezifikation 30/49)
+pruefe('PayPal: auf Klick über die Schnittstelle, genau der Betrag, feste Stapelkennung (doppelt lehnt PayPal ab)',
     $wgR['ok'] && $wgHttp[0][2]['items'][0]['amount']['value'] === '70.00' && $wgHttp[0][2]['items'][0]['receiver'] === 'bruno@paypal.example'
     && str_starts_with($wgHttp[0][2]['sender_batch_header']['sender_batch_id'], 'vecom-' . $wgB . '-')
     && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgBp], '') === 'ausgezahlt');
-pruefe('PayPal: ein zweiter Lauf zahlt nichts doppelt', PartnerWege::auszahlen($wgB, true)['ok'] === false);
+pruefe('PayPal: ein zweiter Klick zahlt nichts doppelt', PartnerWege::auszahlen($wgB)['ok'] === false);
 
 $wgC = Partner::anlegen(['name' => 'Carla Wise', 'email' => 'carla@partner.example', 'status' => 'aktiv']);
 Partner::vereinbarungMerken($wgC, 'Probe');
@@ -10100,7 +10139,7 @@ PartnerWege::setzen($wgC, ['weg' => 'wise', 'kontoinhaber' => 'Carla Wise', 'iba
 $wgCp = $wgProv($wgC, 8000);
 $GLOBALS['wgWiseDirekt'] = false;
 $wgHttp = [];
-$wgR = PartnerWege::auszahlen($wgC, true);
+$wgR = PartnerWege::auszahlen($wgC);
 pruefe('Wise: verlangt Wise die Bestätigung in der App → angelegt, „offen“, Provision unterwegs, Meldung an Uwe',
     $wgR['ok'] && !empty($wgR['offen']) && Db::wert('SELECT status FROM partner_provisionen WHERE id = ?', [$wgCp], '') === 'unterwegs'
     && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_wise'", [], 0) >= 1

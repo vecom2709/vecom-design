@@ -296,6 +296,15 @@ if ($post && !Rechte::darfTat((string) ($_POST['tat'] ?? ''))) {
     $_SESSION['fehler'] = Rechte::rolle() === 'lesen' ? 'Mit der Rolle „Nur lesen“ lässt sich nichts ändern.' : 'Das darf in deiner Rolle nur ein Admin.';
     zurueck('heute');
 }
+/* ---------- Rückfrage auch auf dem Server (05.10.2026, Spezifikation 71) ----------
+   Jede Tat aus Ablauf::TRAGWEITE braucht das „Ja“ der Rückfrage — nicht nur im Browser.
+   Fehlt es, passiert nichts, und die Seite sagt, warum. */
+require_once __DIR__ . '/src/Ablauf.php';
+if ($post && !Ablauf::bestaetigt($_POST)) {
+    Csrf::pruefen();
+    $_SESSION['fehler'] = 'Nichts ausgeführt: Dieser Schritt braucht deine Bestätigung. Bitte den Knopf noch einmal drücken und die Rückfrage mit „Ja“ beantworten.';
+    zurueck('heute');
+}
 
 /* ---------- Lebenszeichen fuer die laufende Aktualisierung ---------- */
 if ($route === 'puls') {
@@ -3738,9 +3747,10 @@ if ($post) {
                 zurueck($_POST['zurueck'] ?? 'monitoring');
 
             case 'cron_jetzt':
+                // Nur Prüfungen (05.10.2026): kein Geld, keine Mails, keine Posts — siehe Cron::jetztPruefen.
                 require_once __DIR__ . '/src/Cron.php';
-                $b = Cron::laufen(true);
-                $_SESSION['gut'] = 'Lauf erledigt: ' . json_encode($b, JSON_UNESCAPED_UNICODE);
+                $b = Cron::jetztPruefen();
+                $_SESSION['gut'] = 'Prüfung erledigt: ' . json_encode($b, JSON_UNESCAPED_UNICODE);
                 weiter('monitoring');
 
             case 'aufgabe_anlegen':
