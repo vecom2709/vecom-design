@@ -20,7 +20,7 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
   $ccWahlSp = (string) ($ccPost['sprache'] ?? (string) $p['sprache']);
   $ccWahlWeg = (string) ($ccPost['weg'] ?? 'auto');
   $ccWahlBudget = (string) ($ccPost['budget'] ?? ''); ?>
-  <div class="cc-hallo cc-auf"><h1><?= $h($k($K['neu'])) ?><span class="cc-frage"><?= $h($k($K['neu_satz'])) ?></span></h1></div>
+  <div class="cc-hallo cc-auf"><h1><?= $h($k($K['neu'])) ?></h1><p class="cc-lead"><?= $h($k($K['neu_satz'])) ?></p></div>
   <?php if ($ccMeldung === 'k_fehler' || $ccMeldung === 'k_zu_viele'): ?>
     <div class="hinweis schlecht" role="alert" style="margin:0 0 16px"><?= $h($k($K[$ccMeldung === 'k_fehler' ? 'fehler' : 'zu_viele'])) ?></div>
   <?php endif; ?>
@@ -73,6 +73,40 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
       </div>
     </form>
   </section>
+
+<?php elseif ($ccSeite === 'qr'):
+  $ccQr = PartnerKampagne::qrListe((int) $p['id'], $sprache); ?>
+  <div class="cc-hallo cc-auf"><h1><?= $h($k($K['qr_titel'])) ?></h1><p class="cc-lead"><?= $h($k($K['qr_satz'])) ?></p></div>
+  <?php if ($ccMeldung === 'k_gut'): ?><div class="hinweis gut cc-auf" role="status" style="margin:0 0 16px"><?= $h($k($K['gespeichert'])) ?></div><?php endif; ?>
+  <?php if (!$ccQr): ?>
+    <p class="cc-leer"><?= $h($k($K['qr_leer'])) ?></p>
+    <?php if ($ccMc): ?><p style="margin:14px 0 0"><a class="knopf haupt" href="<?= $h($selbst() . '#mc-start') ?>"><?= $h(Texte::h(Texte::PARTNER_CC['e']['material']['knopf'], $sprache)) ?> →</a></p><?php endif; ?>
+  <?php else: ?>
+    <ul class="cc-qr cc-auf z2">
+      <?php foreach ($ccQr as $q): $qid = (int) $q['id']; ?>
+        <li class="cc-teil" id="qr-<?= $qid ?>">
+          <div class="cc-qr-kopf">
+            <div class="cc-teil-kopf"><b><?= $h($q['produkt']) ?> · V<?= (int) $q['version'] ?></b>
+              <small><?= $h($q['marketing_id']) ?> · <?= $h($k($K['qr_status'][$q['status']] ?? [])) ?></small>
+              <small><?php if ($q['kampagne_id']): ?><a href="<?= $h($selbst(['cc' => 1, 'kampagne' => $q['kampagne_id']])) ?>" style="color:var(--gold)"><?= $h($q['kampagne']) ?></a><?php else: ?><?= $h($k($K['qr_ohne'])) ?><?php endif; ?></small></div>
+            <div class="cc-kz"><b><?= (int) $q['scans'] ?></b><small><?= $h($k($K['z']['scans'])) ?></small></div>
+          </div>
+          <form method="post" action="<?= $h($selbst(['cc' => 1, 'qr' => 1])) ?>" class="cc-qr-ziel">
+            <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="qr_ziel"><input type="hidden" name="id" value="<?= $qid ?>">
+            <label for="qr-w-<?= $qid ?>"><?= $h($k($K['qr_fuehrt'], ['{weg}' => $k($K['wege'][$q['wirksam']] ?? $K['wege']['']) ])) ?></label>
+            <div class="cc-kopie">
+              <select id="qr-w-<?= $qid ?>" name="weg">
+                <?php foreach (PartnerKampagne::WEGE as $w): ?>
+                  <option value="<?= $h($w) ?>"<?= $q['weg'] === $w ? ' selected' : '' ?>><?= $h($w === '' && $q['kampagne_id'] ? $k($K['qr_wie']) : $k($K['wege'][$w])) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <button class="knopf" type="submit"><?= $h($k($K['speichern'])) ?></button>
+            </div>
+          </form>
+        </li>
+      <?php endforeach; ?>
+    </ul>
+  <?php endif; ?>
 
 <?php elseif ($ccK):
   $ccKid = (int) $ccK['id'];
@@ -137,7 +171,7 @@ $k = static fn(array $t, array $r = []): string => strtr(Texte::h($t, $sprache),
         <?php endforeach; ?>
       </ul>
       <?php if ($ccMat): ?>
-        <h3 class="cc-titel" style="margin-top:18px"><?= $h($k($K['material'])) ?></h3>
+        <h3 class="cc-titel" style="margin-top:18px"><?= $h($k($K['material'])) ?> · <a href="<?= $h($selbst(['cc' => 1, 'qr' => 1])) ?>" style="color:var(--gold)"><?= $h($k($K['qr_alle'])) ?></a></h3>
         <ul class="cc-mat">
           <?php foreach ($ccMat as $m): ?>
             <li><span><?= $h((string) $m['produkt']) ?> · V<?= (int) $m['version'] ?></span><span><?= (int) $m['scans'] ?> <?= $h($k($K['z']['scans'])) ?></span></li>

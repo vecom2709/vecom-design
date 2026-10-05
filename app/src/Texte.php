@@ -3280,6 +3280,15 @@ final class Texte
         'fuer'       => ['it' => 'Per la campagna «{name}» — il QR di questo materiale conta lì.', 'de' => 'Für die Kampagne „{name}“ — der QR-Code dieses Werbemittels zählt dort.', 'en' => 'For the campaign “{name}” — this material’s QR code counts there.'],
         'material'   => ['it' => 'Materiali di questa campagna', 'de' => 'Werbemittel dieser Kampagne', 'en' => 'Materials in this campaign'],
         'kz'         => ['it' => 'scansioni e clic', 'de' => 'Scans und Klicks', 'en' => 'scans and clicks'],
+        'qr_titel'   => ['it' => 'I suoi codici QR', 'de' => 'Deine QR-Codes', 'en' => 'Your QR codes'],
+        'qr_satz'    => ['it' => 'Ogni materiale ha il suo QR. Qui vede quante volte è stato scansionato e cambia dove porta — senza ristampa.', 'de' => 'Jedes Werbemittel hat seinen eigenen QR-Code. Hier siehst du, wie oft er gescannt wurde, und stellst um, wohin er führt — ohne Neudruck.', 'en' => 'Every material has its own QR code. See how often it was scanned and change where it leads — no reprint.'],
+        'qr_leer'    => ['it' => 'Ancora nessun materiale con un QR proprio. Ne crei prima uno nel Marketing Center.', 'de' => 'Noch kein Werbemittel mit eigenem QR-Code. Gestalte zuerst eines im Marketing Center.', 'en' => 'No material with its own QR code yet. Design one in the Marketing Center first.'],
+        'qr_ohne'    => ['it' => 'senza campagna', 'de' => 'ohne Kampagne', 'en' => 'no campaign'],
+        'qr_wie'     => ['it' => 'Come la campagna', 'de' => 'Wie die Kampagne', 'en' => 'Same as campaign'],
+        'qr_fuehrt'  => ['it' => 'Porta a: {weg}', 'de' => 'Führt zu: {weg}', 'en' => 'Leads to: {weg}'],
+        'qr_alle'    => ['it' => 'Tutti i codici QR', 'de' => 'Alle QR-Codes', 'en' => 'All QR codes'],
+        'qr_status'  => ['entwurf' => ['it' => 'Bozza', 'de' => 'Entwurf', 'en' => 'Draft'], 'freigegeben' => ['it' => 'Approvato', 'de' => 'Freigegeben', 'en' => 'Approved'],
+                         'ersetzt' => ['it' => 'Sostituito, ancora in giro', 'de' => 'Ersetzt, noch im Umlauf', 'en' => 'Replaced, still in circulation']],
     ];
 
     /* Kampagnen der Partner (Etappe 0c, 05.10.2026): Ziele und Branchen als kurze Namen — Kampagnenname, Auswahl, Auswertung. */

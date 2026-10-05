@@ -24,6 +24,7 @@ $ccSeite ??= 'start';
 $ccBereich = static fn(string $anker): string => match ($anker) {
     'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
     'cc:kampagnen'    => $selbst(['cc' => 1]) . '#kampagnen',
+    'cc:qr'           => $selbst(['cc' => 1, 'qr' => 1]),
     default           => $selbst() . '#' . $anker,
 };
 $ccName = trim((string) preg_split('~\s+~u', trim((string) $p['name']))[0]) ?: Partner::anzeigeName($p);
@@ -46,7 +47,7 @@ $ccLeiste = [
 if (!$ccMc) { unset($ccLeiste['werbemittel']); }
 $ccKacheln = [
     'kampagnen'    => [$ccZ['kampagnen'], 'cc:kampagnen', ''],
-    'scans'        => [$ccZ['scans'], $ccMc ? 'mc-erfolge' : 'werben', ''],
+    'scans'        => [$ccZ['scans'], 'cc:qr', ''],
     'leads'        => [$ccZ['leads'], 'besuche', ''],
     'kunden'       => [$ccZ['kunden'], 'empfehlungen', ''],
     'provision'    => [$ccZ['provision'], 'provisionen', $ccZ['provision_wartet'] > 0 ? $c($C['k_wartet'], ['{betrag}' => Fmt::geld($ccZ['provision_wartet'])]) : ''],

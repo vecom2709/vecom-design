@@ -314,6 +314,33 @@ final class PartnerKampagne
     }
 
     /**
+     * QR-Center (Etappe 3, 05.10.2026): alle eigenen Werbemittel mit eigenem QR-Code — Scans, Kampagne,
+     * eingestelltes und tatsächlich wirksames Ziel (wie zielWeg: eigenes vor dem der aktiven Kampagne).
+     * @return list<array{id:int, marketing_id:string, produkt:string, status:string, version:int, scans:int,
+     *                    kampagne_id:?int, kampagne:string, kampagne_status:string, weg:string, wirksam:string}>
+     */
+    public static function qrListe(int $partnerId, string $sprache): array
+    {
+        require_once __DIR__ . '/Werbemittel.php';
+        $sprache = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        $z = Db::all("SELECT e.id, e.created_at, e.status, e.version, e.scans, e.ziel_weg, e.kampagne_id,
+                             COALESCE(NULLIF(w.name_$sprache, ''), w.name_it) AS produkt, k.name AS k_name, k.status AS k_status, k.ziel_weg AS k_weg
+                        FROM wm_entwuerfe e JOIN wm_produkte w ON w.id = e.produkt_id
+                        LEFT JOIN mk_kampagnen k ON k.id = e.kampagne_id AND k.partner_id = e.partner_id
+                       WHERE e.partner_id = ? AND e.status IN ('entwurf','freigegeben','ersetzt')
+                       ORDER BY e.scans DESC, e.id DESC LIMIT 200", [$partnerId]);
+        return array_map(static function (array $r): array {
+            $eigen = (string) $r['ziel_weg'];
+            $wirksam = $eigen !== '' ? $eigen : (($r['k_status'] ?? '') === 'aktiv' ? (string) ($r['k_weg'] ?? '') : '');
+            return ['id' => (int) $r['id'], 'marketing_id' => Werbemittel::marketingId($r), 'produkt' => (string) $r['produkt'],
+                    'status' => (string) $r['status'], 'version' => (int) $r['version'], 'scans' => (int) $r['scans'],
+                    'kampagne_id' => $r['kampagne_id'] !== null && $r['k_name'] !== null ? (int) $r['kampagne_id'] : null,
+                    'kampagne' => (string) ($r['k_name'] ?? ''), 'kampagne_status' => (string) ($r['k_status'] ?? ''),
+                    'weg' => $eigen, 'wirksam' => $wirksam];
+        }, $z);
+    }
+
+    /**
      * Was der Druck mindestens kostet und was ein Budget davon abdeckt (in der Reihenfolge des Pakets).
      * @return array{summe:int, n:int, budget:?int, reicht:bool, deckt:list<string>}
      */

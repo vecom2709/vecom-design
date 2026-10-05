@@ -160,7 +160,7 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    Hinter Gerät und Sperre, vor allem anderen: Die Seite lädt nur, was sie zeigt
    (PartnerCommand), nicht die rund 40 Blöcke des Partnerbereichs. Gespeichert
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
-if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg'], true))) {
+if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel'], true))) {
     require_once __DIR__ . '/app/src/PartnerCommand.php';
     require_once __DIR__ . '/app/src/PartnerKampagne.php';
     $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut'], true) ? (string) $_GET['m'] : '';
@@ -199,6 +199,12 @@ if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_p
             : PartnerKampagne::zielSetzen((int) $p['id'], 'kampagne', $ccId, ($w = (string) ($_POST['weg'] ?? '')) === 'seite' ? '' : $w);
         header('Location: ' . $selbst(['cc' => 1, 'kampagne' => $ccId] + ($ok ? ['m' => 'k_gut'] : [])), true, 303); exit;
     }
+    // QR-Center (Etappe 3): Ziel eines Werbemittels umstellen — nur eigenes, ohne Neudruck.
+    if ($ccCsrf && $ccTat === 'qr_ziel') {
+        $ccId = (int) ($_POST['id'] ?? 0);
+        $ok = PartnerKampagne::zielSetzen((int) $p['id'], 'material', $ccId, (string) ($_POST['weg'] ?? ''));
+        header('Location: ' . $selbst(['cc' => 1, 'qr' => 1] + ($ok ? ['m' => 'k_gut'] : [])) . '#qr-' . $ccId, true, 303); exit;
+    }
     $ccKatalog = [];
     try {
         require_once __DIR__ . '/app/src/Werbemittel.php';
@@ -206,7 +212,8 @@ if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_p
     } catch (Throwable $e) { $ccKatalog = []; }
     $ccMc = (bool) $ccKatalog;
     $ccSeite = 'start'; $ccK = null;
-    if (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
+    if (isset($_GET['qr'])) { $ccSeite = 'qr'; }
+    elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
     elseif (isset($_GET['kampagne'])) {
         $ccK = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kampagne']);   // fremde oder unbekannte → Startseite
         $ccSeite = $ccK ? 'kampagne' : 'start';

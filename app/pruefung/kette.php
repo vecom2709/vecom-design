@@ -23653,6 +23653,32 @@ pruefe('Wege: Anlegen nur mit CSRF und höchstens 20 offenen Kampagnen; Seite, S
     && str_contains($kaWm, "\$wmKamp = PartnerKampagne::laden((int) \$p['id'], (int) \$_GET['kampagne']);")
     && str_contains($kaPr, '<input type="hidden" name="kampagne" value="<?= (int) $wmKamp[\'id\'] ?>">')
     && PartnerKampagne::offen((int) $kaP['id']) === 0 && PartnerKampagne::WEG_STANDARD['check'] === 'check');
+// QR-Center (Etappe 3): alle eigenen Werbemittel, wirksames Ziel wie p.php es auflöst, fremde nie.
+Db::run("UPDATE wm_produkte SET aktiv = 1 WHERE vorlage = 'tasse_11'");
+$qrProd = (int) Db::wert("SELECT id FROM wm_produkte WHERE vorlage = 'tasse_11'", [], 0);
+$qrK = PartnerKampagne::anlegen($kaP, ['ziel' => 'anfragen', 'branche' => 'laden', 'ziel_weg' => 'preis']);
+$qrE1 = Werbemittel::entwurfAnlegen($kaP, $qrProd, ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email', 'kampagne' => $qrK]);
+Db::run("UPDATE wm_entwuerfe SET status = 'freigegeben', freigegeben_am = NOW() WHERE id = ?", [$qrE1]);   // gedruckt und unterwegs
+$qrE2 = Werbemittel::entwurfAnlegen($kaP, $qrProd, ['stil' => 'a', 'sprache' => 'de', 'kontakt' => 'email']);
+Db::run('UPDATE wm_entwuerfe SET scans = 7 WHERE id = ?', [$qrE2]);
+$qrFremd = Partner::laden(Partner::anlegen(['name' => 'Fremd Qr', 'email' => 'fremd.qr@partner.example', 'code' => 'FREMDQR', 'sprache' => 'de']));
+$qrL = PartnerKampagne::qrListe((int) $kaP['id'], 'de');
+$qrJe = array_column($qrL, null, 'id');
+$qrW = [$qrJe[$qrE1]['wirksam'] ?? '?'];
+PartnerKampagne::zielSetzen((int) $kaP['id'], 'material', $qrE1, 'wa');
+$qrW[] = PartnerKampagne::qrListe((int) $kaP['id'], 'de')[1]['wirksam'] ?? '?';
+PartnerKampagne::zielSetzen((int) $kaP['id'], 'material', $qrE1, '');
+PartnerKampagne::statusSetzen((int) $kaP['id'], $qrK, 'pausiert');
+$qrW[] = array_column(PartnerKampagne::qrListe((int) $kaP['id'], 'de'), 'wirksam', 'id')[$qrE1] ?? '?';
+$qrW[] = PartnerKampagne::zielWeg((int) $kaP['id'], 'wm-' . $qrE1);
+pruefe('QR-Center: alle eigenen Werbemittel (meiste Scans zuerst) mit Kampagne und wirksamem Ziel — dasselbe, das p.php nimmt (eigenes vor aktiver Kampagne); fremde sehen nichts und ändern nichts',
+    count($qrL) === 2 && $qrL[0]['id'] === $qrE2 && $qrL[0]['scans'] === 7 && $qrL[0]['kampagne_id'] === null
+    && $qrJe[$qrE1]['kampagne_id'] === $qrK && str_starts_with($qrJe[$qrE1]['marketing_id'], 'VM-')
+    && $qrW === ['preis', 'wa', '', ''] && PartnerKampagne::qrListe((int) $qrFremd['id'], 'de') === []
+    && !PartnerKampagne::zielSetzen((int) $qrFremd['id'], 'material', $qrE1, 'check')
+    && str_contains((string) file_get_contents($oben . '/partner.php'), "if (\$ccCsrf && \$ccTat === 'qr_ziel')"), json_encode($qrW));
+Db::run('DELETE FROM wm_entwuerfe WHERE partner_id = ?', [(int) $kaP['id']]);
+Db::run('DELETE FROM partner WHERE id = ?', [(int) $qrFremd['id']]);
 Db::run('DELETE FROM partner_klicks WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id = ?', [(int) $kaP['id']]);
 Db::run('DELETE FROM partner WHERE id = ?', [(int) $kaP['id']]);
