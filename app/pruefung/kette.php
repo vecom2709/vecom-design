@@ -16599,6 +16599,16 @@ pruefe('Migration 175: Produkttexte duzen den Partner, selbst geänderte Texte b
     && Db::wert("SELECT text_de FROM wm_produkte WHERE vorlage = 'visitenkarte'") === 'Mit deinem Namen, deiner Partner-ID und dem QR-Code zu deiner Seite.'
     && Db::wert("SELECT text_de FROM wm_produkte WHERE vorlage = 'tasse_11'") === 'Uwes eigener Text für Ihre Tasse.', $duVk);
 foreach ($duAlle as $z) { Db::run('UPDATE wm_produkte SET text_de = ? WHERE vorlage = ?', [$z['text_de'], $z['vorlage']]); }
+// Migration 178 (Nachtrag): auch die Produktnamen — nach allen Migrationen steht kein „Ihr“ mehr in Name oder Text.
+$duNamen = Db::all("SELECT vorlage, name_de FROM wm_produkte");
+Db::run("UPDATE wm_produkte SET name_de = 'Mein Becher' WHERE vorlage = 'tasse_11'");
+Db::run("UPDATE wm_produkte SET name_de = 'Notizbuch A5 mit Ihrem QR-Code' WHERE vorlage = 'notizbuch'");
+foreach (array_filter(array_map('trim', preg_split('/;\s*\n/', (string) preg_replace('/^--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/178_produktnamen_du.sql'))))) as $sql) { Db::run($sql); }
+pruefe('Migration 178: Produktnamen duzen (Tasse, Notizbuch, Flasche, Untersetzer, Stofftasche), umbenannte bleiben',
+    !array_filter($duNamen, static fn($z) => preg_match('/\b(Ihr|Ihre|Ihrem|Ihrer|Ihren|Ihnen)\b/u', (string) $z['name_de']))
+    && Db::wert("SELECT name_de FROM wm_produkte WHERE vorlage = 'notizbuch'") === 'Notizbuch A5 mit deinem QR-Code'
+    && Db::wert("SELECT name_de FROM wm_produkte WHERE vorlage = 'tasse_11'") === 'Mein Becher', json_encode(array_column($duNamen, 'name_de'), JSON_UNESCAPED_UNICODE));
+foreach ($duNamen as $z) { Db::run('UPDATE wm_produkte SET name_de = ? WHERE vorlage = ?', [$z['name_de'], $z['vorlage']]); }
 require_once $wurzel . '/src/MkPartnerBeitraege.php';
 pruefe('Partnerbereich ohne Sie auch außerhalb von Texte: 3D-Galerie und fertige Beiträge duzen',
     !preg_match('/\b(Ihr|Ihre|Ihrem|Ihrer|Ihren|Ihnen|Ihres)\b|[a-z] Sie\b/u', implode(' ', array_column(MkMedium::GALERIE_TEXTE, 'de')))
