@@ -279,9 +279,12 @@ final class PartnerBesuche
             $text !== '' ? $text : self::w('push_text', $sp), Partner::portalLink($p) . '#besuche'), 0) > 0;
     }
 
-    /** Kontaktfreigaben nach 90 Tagen löschen. */
+    /** Kontaktfreigaben nach 90 Tagen löschen — und unbearbeitete Leads daraus mit (PartnerLeads, Phase 2). */
     public static function aufraeumen(): int
     {
-        return (int) self::still(static fn() => Db::run('DELETE FROM partner_kontaktfreigaben WHERE created_at < NOW() - INTERVAL ' . self::AUFBEWAHREN_TAGE . ' DAY')->rowCount(), 0);
+        $n = (int) self::still(static fn() => Db::run('DELETE FROM partner_kontaktfreigaben WHERE created_at < NOW() - INTERVAL ' . self::AUFBEWAHREN_TAGE . ' DAY')->rowCount(), 0);
+        require_once __DIR__ . '/PartnerLeads.php';
+        PartnerLeads::freigabenAufraeumen();
+        return $n;
     }
 }

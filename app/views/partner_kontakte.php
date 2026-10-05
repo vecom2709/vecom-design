@@ -2,7 +2,7 @@
 /* Meine Kontakte (28.09.2026, Uwe: Ja). Reiter „Finden“. Die Liste liegt NUR
    im Browser des Partners (localStorage) -- Namen aus seinem Umfeld haben
    auf unserem Server nichts zu suchen. Ohne Skript: nur der Hinweis.
-   Gesetzt: $p, $sprache, $h. */
+   Gesetzt: $p, $sprache, $h, $selbst. */
 $PP = static fn(string $k): string => Texte::h(Texte::PARTNER_PLUS[$k] ?? [], $sprache);
 $mkSaetze = [];
 foreach (PartnerMarketing::BRANCHEN as $bk) { $mkSaetze[$bk] = Texte::h(Texte::PARTNER_BRANCHEN[$bk]['args'][0], $sprache); }
@@ -21,6 +21,10 @@ $mkDaten = [
 <div class="block pt" id="kontakte" data-reiter="finden">
   <h2><?= $h($PP('mk_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('mk_text')) ?></p>
+  <?php /* Phase 2 (05.10.2026): Die Kundenliste mit Stufen steht jetzt unter KUNDEN. Übernommen wird nur auf Klick des
+           Partners (Uwe: „Ja, wie empfohlen“) — der Knopf dazu steht dort, sobald diese Liste etwas enthält. */ ?>
+  <p class="hinweis" style="margin:0 0 12px"><?= $h(Texte::h(Texte::PARTNER_LEADS['mk_hinweis'], $sprache)) ?>
+    <a href="<?= $h($selbst(['cc' => 1, 'kunden' => 1])) ?>"><?= $h(Texte::h(Texte::PARTNER_LEADS['mk_link'], $sprache)) ?> →</a></p>
   <script type="application/json" id="kontakte_daten"><?= json_encode($mkDaten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <form class="pp-mk-neu" id="mk_neu" hidden>
     <div class="pp-mk-zeile">

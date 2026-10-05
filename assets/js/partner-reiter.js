@@ -86,8 +86,9 @@
   reihe.forEach(function (id) {
     var r = daten.reiter[id];
     var a = document.createElement('a');
-    a.href = '#r-' + id;
-    a.dataset.r = id;
+    /* KUNDEN führt seit Phase 2 in die Pipeline des Command Centers (daten.extern). Der Reiter
+       dahinter bleibt über #r-finden, #recherche … erreichbar und markiert dann KUNDEN. */
+    if (daten.extern && daten.extern[id]) { a.href = daten.extern[id]; } else { a.href = '#r-' + id; a.dataset.r = id; }
     a.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ICON[id] + '</svg>'
       + '<span class="k"></span><span class="l"></span>';
     a.querySelector('.k').textContent = r.kurz;

@@ -207,6 +207,153 @@ html{scroll-padding-top:76px}
 .cc-ende > summary{list-style:none;display:inline-flex;cursor:pointer}
 .cc-ende > summary::-webkit-details-marker{display:none}
 
+/* ---------- KUNDEN: Pipeline und Kundenakte (Phase 2, 05.10.2026) ----------
+   Ein Ding je Bildschirm: auf der Liste ist „+ Kontakt“ golden, in der Akte
+   „An Vecom übergeben“ (das bringt die Provision). Alles andere ist ruhig. */
+.cc-seitenkopf{margin:26px 0 20px}
+.cc-seitenkopf h1{display:flex;align-items:center;gap:12px;font:700 clamp(28px,5.6vw,44px)/1.08 var(--f-display);letter-spacing:-.022em;margin:0;text-wrap:balance;overflow-wrap:anywhere}
+.cc-seitenkopf h1 .cc-punkt{width:12px;height:12px}
+.cc-seitenkopf .cc-lead{margin-top:8px}
+.cc-akte .cc-zurueck{margin:10px 0 -12px}
+
+.cc-punkt.blau{background:#6aa8ff;box-shadow:0 0 0 4px rgba(106,168,255,.14)}
+.cc-punkt.grau{background:var(--leise);box-shadow:none}
+
+/* + Kontakt */
+.cc-neu{margin:0 0 18px}
+.cc-neu > summary{list-style:none;min-height:50px;font-size:15.5px;padding:13px 22px}
+.cc-neu > summary::-webkit-details-marker{display:none}
+.cc-neu[open] > summary{background:rgba(255,255,255,.04);color:var(--dim);border-color:var(--linie2);box-shadow:none}
+.cc-neu[open] > .cc-form{margin-top:12px;animation:cc-auf .35s cubic-bezier(.16,1,.3,1) both}
+@media (max-width:560px){.cc-neu > summary{width:100%}}
+.cc-felder{display:grid;gap:12px;margin:0 0 14px}
+@media (min-width:620px){.cc-felder{grid-template-columns:repeat(2,minmax(0,1fr))}.cc-felder > .breit{grid-column:1 / -1}}
+.cc-feld{display:flex;flex-direction:column;gap:6px;min-width:0;margin:0}
+.cc-feld > span{font-size:12.5px;font-weight:600;letter-spacing:.02em;color:var(--dim)}
+.cc-feld select{max-width:none}
+.cc-feld textarea{min-height:76px}
+.cc input[type=date]{width:100%;min-height:46px;padding:10px 12px;background:rgba(255,255,255,.03);color:var(--text);border:1px solid var(--linie2);border-radius:10px;font:400 15px/1.4 var(--f-text);box-sizing:border-box}
+.cc input:focus-visible,.cc select:focus-visible,.cc textarea:focus-visible{outline-color:var(--gold)}
+.cc input:focus,.cc select:focus,.cc textarea:focus{border-color:var(--haar)}
+.cc-dup{margin:0 0 14px;padding:14px 16px;border-radius:14px;border:1px solid rgba(241,200,75,.42);background:rgba(241,200,75,.07);font-size:14.5px;line-height:1.5}
+.cc-dup p{margin:0 0 6px;color:#f4d67a}
+.cc-dup ul{margin:0;padding-left:18px;color:var(--dim)}
+.cc-dup li{margin:4px 0}
+.cc-dup a{color:var(--text);font-weight:600}
+.cc-import{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin:0 0 18px;border-color:var(--haar)}
+.cc-import p{margin:0;flex:1 1 260px;font-size:14.5px;line-height:1.5;color:var(--dim)}
+.cc-import b{color:var(--text)}
+
+/* Stufen: am Handy seitlich wischen, am Rechner alle acht in einer Reihe */
+.cc-pipeline{display:flex;gap:6px;margin:0 -16px 16px;padding:2px 16px 6px;overflow-x:auto;scroll-snap-type:x proximity;scroll-padding-inline:16px;scrollbar-width:none}
+.cc-pipeline::-webkit-scrollbar{display:none}
+@media (min-width:860px){.cc-pipeline{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));margin:0 0 16px;padding:0;overflow:visible}}
+.cc-pipeline a{flex:none;scroll-snap-align:start;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:92px;min-height:60px;padding:10px 12px;border-radius:13px;
+  border:1px solid var(--linie);background:rgba(255,255,255,.02);color:var(--dim);text-decoration:none;transition:border-color .18s,background .18s}
+.cc-pipeline a b{font:700 21px/1.1 var(--f-display);font-variant-numeric:tabular-nums;color:var(--text)}
+.cc-pipeline a span{font-size:12px;line-height:1.25;white-space:nowrap}
+.cc-pipeline a.null b{color:var(--leise)}
+.cc-pipeline a:hover{border-color:var(--haar)}
+.cc-pipeline a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-pipeline a[aria-current]{border-color:rgba(241,211,139,.5);background:rgba(241,211,139,.09);color:var(--gold)}
+.cc-pipeline a[aria-current] b{color:var(--gold-hell)}
+
+/* Stufe als kleines Schild — jede Stufe eine Farbe, gleiche Farbe überall */
+.cc-stufe{flex:none;display:inline-flex;align-items:center;min-height:26px;padding:3px 10px;border-radius:999px;font-size:12px;font-weight:650;letter-spacing:.01em;white-space:nowrap;
+  color:var(--dim);background:rgba(255,255,255,.05);border:1px solid var(--linie2)}
+.cc-stufe.s-kontaktiert{color:#9cc2ff;border-color:rgba(106,168,255,.35);background:rgba(106,168,255,.08)}
+.cc-stufe.s-interesse{color:#f4d67a;border-color:rgba(241,200,75,.38);background:rgba(241,200,75,.08)}
+.cc-stufe.s-termin{color:#f7e6ae;border-color:rgba(241,211,139,.45);background:rgba(241,211,139,.1)}
+.cc-stufe.s-angebot{color:#f0b877;border-color:rgba(232,168,90,.42);background:rgba(232,168,90,.09)}
+.cc-stufe.s-auftrag{color:var(--gut);border-color:rgba(52,211,155,.4);background:var(--gut-grund)}
+.cc-stufe.s-verloren{color:var(--leise);text-decoration:line-through;text-decoration-thickness:1px}
+
+/* Liste: eine Zeile je Betrieb, ganz antippbar; Hörer rechts für den schnellen Anruf */
+.cc-leads{list-style:none;margin:0 0 22px;padding:0;display:grid;gap:8px}
+.cc-leads li{display:flex;align-items:stretch;gap:8px}
+.cc-lead-zeile{flex:1;min-width:0;display:flex;align-items:center;gap:12px;min-height:62px;padding:11px 14px;border-radius:14px;border:1px solid var(--linie);
+  background:rgba(255,255,255,.025);color:var(--text);text-decoration:none;transition:border-color .18s,background .18s}
+.cc-lead-zeile:hover{border-color:var(--haar);background:rgba(241,211,139,.04)}
+.cc-lead-zeile:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-leads li.p-heiss .cc-lead-zeile{border-color:rgba(229,100,78,.38)}
+.cc-lead-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.cc-lead-name b{font-weight:650;font-size:15.5px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-lead-name small{font-size:12.5px;color:var(--leise);line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cc-mini{flex:none;display:grid;place-items:center;width:52px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.025);color:var(--dim)}
+.cc-mini:hover{color:var(--gold);border-color:var(--haar)}
+.cc-mini:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-mini svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.cc-mini.leer{visibility:hidden}
+/* Am Handy: der Name bekommt die ganze Breite, die Stufe rückt unter die Zeile darunter */
+@media (max-width:560px){
+  .cc-lead-zeile{display:grid;grid-template-columns:10px minmax(0,1fr);column-gap:12px;row-gap:7px;align-items:center;padding:12px 14px}
+  .cc-lead-zeile > .cc-punkt{grid-row:1;align-self:start;margin-top:6px}
+  .cc-lead-zeile > .cc-lead-name,.cc-lead-zeile > .cc-stufe{grid-column:2}
+  .cc-lead-zeile > .cc-stufe{justify-self:start}
+  .cc-lead-name b{white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .cc-lead-name small{white-space:normal}
+}
+
+.cc-archiv{margin-top:6px}
+.cc-archivliste{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:6px}
+.cc-archivliste li{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-radius:12px;border:1px solid var(--linie);color:var(--dim);font-size:14.5px}
+.cc-archivliste small{color:var(--leise)}
+.cc-archivliste .knopf{min-height:40px;padding:8px 14px;font-size:13.5px}
+.cc-linkkunden{margin:0 0 24px}
+.cc-lk{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:13px 14px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.02)}
+.cc-lk > span:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.cc-werkzeuge{margin:0 0 24px}
+.cc-werkzeuge .cc-schnell{margin:0}
+
+/* Akte: sechs Schnellfunktionen, am Handy 3 × 2 Kacheln */
+.cc-aktionen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 18px}
+@media (min-width:760px){.cc-aktionen{grid-template-columns:repeat(6,minmax(0,1fr))}}
+.cc-aktionen a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;min-height:76px;padding:10px 6px;border-radius:15px;text-align:center;
+  border:1px solid var(--linie);background:rgba(255,255,255,.03);color:var(--text);text-decoration:none;font-size:12.5px;font-weight:600;line-height:1.2;
+  transition:border-color .18s,background .18s,transform .18s cubic-bezier(.16,1,.3,1)}
+.cc-aktionen a:hover{border-color:var(--haar);background:rgba(241,211,139,.05);transform:translateY(-1px)}
+.cc-aktionen a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-aktionen svg{width:22px;height:22px;fill:none;stroke:var(--gold);stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.cc-aktionen a.aus{opacity:.38;cursor:not-allowed;pointer-events:none}
+.cc-aktionen a.gold{color:#16120b;border-color:transparent;background:linear-gradient(180deg,rgba(255,255,255,.45),rgba(255,255,255,0) 45%,rgba(0,0,0,.08)),var(--metall);
+  box-shadow:0 16px 36px -22px rgba(200,150,62,.9),inset 0 1px 0 rgba(255,255,255,.5)}
+.cc-aktionen a.gold svg{stroke:#16120b}
+.cc-akte .cc-karte > form + form{margin-top:14px;padding-top:14px;border-top:1px solid var(--linie)}
+.cc-zeile{display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap}
+.cc-zeile > .cc-feld{flex:1 1 180px}
+.cc-zeile > .knopf{flex:none}
+.cc-akte form > .cc-feld + .cc-zeile{margin-top:10px}
+.cc-aufgaben{list-style:none;margin:0 0 14px;padding:0;display:grid;gap:8px}
+.cc-aufgaben li{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;border:1px solid var(--linie);background:rgba(255,255,255,.02);font-size:14.5px}
+.cc-aufgaben li > span{display:flex;flex-direction:column;gap:2px;min-width:0}
+.cc-aufgaben small{font-size:12.5px;color:var(--leise)}
+.cc-aufgaben li.spaet{border-color:rgba(229,100,78,.4)}
+.cc-aufgaben li.spaet small{color:#f08a76}
+.cc-aufgaben .knopf{min-height:40px;padding:8px 12px;font-size:13px;white-space:nowrap}
+.cc-nachfassen{margin-top:10px}
+.cc-nachfassen .knopf{min-height:42px;font-size:13.5px}
+
+/* Verlauf: eine Zeitleiste, jüngstes oben */
+.cc-verlauf{list-style:none;margin:0;padding:0 0 0 18px;border-left:1px solid var(--linie2);display:grid;gap:14px}
+.cc-verlauf li{position:relative;display:flex;flex-direction:column;gap:2px;font-size:14.5px;line-height:1.5}
+.cc-verlauf li::before{content:'';position:absolute;left:-23px;top:6px;width:9px;height:9px;border-radius:50%;background:var(--leise);box-shadow:0 0 0 3px var(--grund, #0a0908)}
+.cc-verlauf time{font-size:12px;color:var(--leise);font-variant-numeric:tabular-nums}
+.cc-verlauf b{font-weight:650;font-size:13.5px}
+.cc-verlauf span{color:var(--dim);overflow-wrap:anywhere}
+.cc-verlauf .a-anruf::before,.cc-verlauf .a-whatsapp::before,.cc-verlauf .a-email::before{background:#6aa8ff}
+.cc-verlauf .a-stufe::before,.cc-verlauf .a-aufgabe::before{background:var(--gold)}
+.cc-verlauf .a-uebergabe::before{background:var(--gut)}
+.cc-verlauf .fertig b{text-decoration:line-through;color:var(--leise)}
+
+.cc-klapp > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:28px;font-weight:650;font-size:15px}
+.cc-klapp > summary::-webkit-details-marker{display:none}
+.cc-klapp > summary::after{content:'';flex:none;width:8px;height:8px;border-right:2px solid var(--leise);border-bottom:2px solid var(--leise);transform:rotate(45deg);margin-right:6px;transition:transform .2s}
+.cc-klapp[open] > summary::after{transform:rotate(225deg)}
+.cc-klapp[open] > summary{margin-bottom:14px}
+.cc-klapp#uebergabe{border-color:var(--haar)}
+.cc-haken{display:flex;align-items:flex-start;gap:10px;margin:0 0 14px;font-size:14px;line-height:1.5;color:var(--dim);cursor:pointer}
+.cc-haken input{flex:none;width:20px;height:20px;margin:1px 0 0;accent-color:#c8963e}
+
 /* ---------- Leiste unten (wie die Reiter im Partnerbereich) ---------- */
 .cc-leiste{display:flex;gap:3px;max-width:980px;margin:10px auto 0;position:sticky;top:8px;z-index:30;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px;box-sizing:border-box;background:rgba(11,18,37,.88);
   border:1px solid var(--linie);border-radius:16px}
@@ -279,7 +426,9 @@ html{scroll-padding-top:76px}
   .cc-intro{display:none!important}
   .cc-auf,.cc-heute::before{animation:none}
   .cc-ziel,.cc-zahl,.cc-chip span,.cc-jetzt__knopf,.cc-wliste a{transition:none}
-  .cc-jetzt[open] .cc-heute{animation:none}
+  .cc-jetzt[open] .cc-heute,.cc-neu[open] > .cc-form{animation:none}
+  .cc-lead-zeile,.cc-aktionen a,.cc-pipeline a{transition:none}
+  .cc-aktionen a:hover{transform:none}
 }
 /* Partner Academy im Command Center (05.10.2026) */
 .ak-cc{display:flex;flex-wrap:wrap;gap:14px 20px;align-items:center;justify-content:space-between}

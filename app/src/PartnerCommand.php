@@ -30,7 +30,7 @@ final class PartnerCommand
     /** Schnellwege: Ziel → Anker im Partnerbereich (partner-reiter.js öffnet den Reiter). */
     public const SCHNELLWEGE = ['kunden' => 'recherche', 'anfragen' => 'werbung', 'lokal' => 'mc-start', 'social' => 'kalender', 'check' => 'schnellcheck'];
     /** Wohin die Empfehlung führt. */
-    public const ANKER = ['kontakte' => 'besuche', 'heiss' => 'heiss', 'nachhaken' => 'nachhaken', 'anrufen' => 'anrufliste',
+    public const ANKER = ['kontakte' => 'cc:kunden', 'heiss' => 'heiss', 'nachhaken' => 'nachhaken', 'anrufen' => 'anrufliste',
         'nachrichten' => 'nachrichten', 'zahlen' => 'mc-bestellungen', 'freigeben' => 'mc-designs', 'material' => 'mc-start',
         'anlass' => 'kalender', 'posten' => 'kalender', 'kampagne' => 'cc:kampagne-neu'];
     /** Was in PartnerHeute so dringend ist, dass es vor allem anderen kommt (Reihenfolge von dort). */
@@ -87,9 +87,10 @@ final class PartnerCommand
             'scans'        => $w('SELECT COALESCE(SUM(scans), 0) FROM wm_entwuerfe WHERE partner_id = ?'),
             // Leads: wer über den Link bei Vecom ankam (Zuordnung) und wer seinen Kontakt für den Partner freigab.
             'leads'        => $w('SELECT (SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?) + (SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ?)', [$pid, $pid]),
-            // Neue Leads (Startseite, Spezifikation Punkt 4): dieselben zwei Quellen, nur die letzten 30 Tage.
+            // Neue Leads (Startseite, Spezifikation Punkt 4): neue Kontakte der Pipeline (Phase 2 — darin stehen auch die
+            // Rückruf-Freigaben) und über den Link zugeordnete Kunden, je die letzten 30 Tage.
             'leads_neu'    => $w('SELECT (SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY)
-                                   + (SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY)', [$pid, $pid]),
+                                   + (SELECT COUNT(*) FROM partner_leads WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY)', [$pid, $pid]),
             'kunden'       => $w("SELECT COUNT(DISTINCT customer_id) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')"),
             'provision'    => (int) $f['verdient'],
             'provision_wartet' => (int) $f['wartet'],
@@ -142,8 +143,18 @@ final class PartnerCommand
             if (!isset(self::WICHTIG[$hp['k']])) { continue; }
             $vorlage = Texte::PARTNER_HEUTE['punkte'][$hp['k']][(int) $hp['n'] === 1 ? 0 : 1] ?? null;
             if ($vorlage === null) { continue; }
-            $aus[] = ['k' => $hp['k'], 'n' => (int) $hp['n'], 'anker' => (string) $hp['anker'], 'stufe' => self::WICHTIG[$hp['k']],
+            // Rückruf-Wünsche stehen seit Phase 2 als Leads unter KUNDEN — dorthin, nicht in die alte Besucherliste.
+            $aus[] = ['k' => $hp['k'], 'n' => (int) $hp['n'], 'anker' => $hp['k'] === 'kontakte' ? 'cc:kunden' : (string) $hp['anker'], 'stufe' => self::WICHTIG[$hp['k']],
                       'text' => rtrim(strtr($t($vorlage), ['{n}' => (string) $hp['n'], '{titel}' => (string) $hp['titel']]), ' :')];
+        }
+        // Fällige Aufgaben aus der Pipeline (Phase 2): rot, sobald eine überfällig ist.
+        require_once __DIR__ . '/PartnerLeads.php';
+        $auf = (array) self::still(static fn() => PartnerLeads::faelligeAufgaben((int) $p['id']), []);
+        if ($auf) {
+            $n = count($auf);
+            $spaet = (bool) array_filter($auf, static fn($a) => (string) $a['faellig_am'] < date('Y-m-d'));
+            $aus[] = ['k' => 'aufgaben', 'n' => $n, 'anker' => 'cc:kunden', 'stufe' => $spaet ? 'rot' : 'gelb',
+                      'text' => strtr($t(Texte::PARTNER_LEADS['aufgaben_heute'][$n === 1 ? 0 : 1]), ['{n}' => (string) $n])];
         }
         $E = Texte::PARTNER_CC['e'];
         foreach ($mc ? ['zahlen' => $z['bestellungen_zahlung'], 'freigeben' => $z['designs']] : [] as $k => $n) {

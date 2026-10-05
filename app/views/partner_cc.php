@@ -22,11 +22,13 @@ if ($ccMeldung === 'pf_fehler' && is_array($ccPost ?? null)) {   // Eingaben beh
              'ziel' => (string) ($ccPost['ziel'] ?? ''), 'ort' => (string) ($ccPost['ort'] ?? ''), 'fertig' => false];
 }
 $ccSeite ??= 'start';
+$ccKundenSeite = in_array($ccSeite, ['kunden', 'lead'], true);
 /* Sprungziele: Anker im Partnerbereich — oder, mit „cc:“, Stellen im Command Center selbst (Kampagnen). */
 $ccBereich = static fn(string $anker): string => match ($anker) {
     'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
     'cc:kampagnen'    => $selbst(['cc' => 1]) . '#kampagnen',
     'cc:qr'           => $selbst(['cc' => 1, 'qr' => 1]),
+    'cc:kunden'       => $selbst(['cc' => 1, 'kunden' => 1]),
     default           => $selbst() . '#' . $anker,
 };
 $ccName = trim((string) preg_split('~\s+~u', trim((string) $p['name']))[0]) ?: Partner::anzeigeName($p);
@@ -52,7 +54,7 @@ if (!$ccMc) { unset($ccLeiste['werbemittel']); }
 $ccMehr = ['werbemittel', 'academy', 'profil'];
 /* Die vier Kennzahlen (Punkt 4) — jede führt zu ihren Einzelheiten. */
 $ccKacheln = [
-    'leads'     => [$ccZ['leads_neu'], 'besuche', ''],
+    'leads'     => [$ccZ['leads_neu'], 'cc:kunden', ''],
     'kunden'    => [$ccZ['kunden'], 'zahlen', ''],
     'provision' => [$ccZ['provision'], 'provisionen', $ccZ['provision_wartet'] > 0 ? $c($C['k_wartet'], ['{betrag}' => Fmt::geld($ccZ['provision_wartet'])]) : ''],
     'klicks'    => [$ccZ['klicks'], 'zahlen', ''],
@@ -94,7 +96,8 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : ($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk)) ?>"<?= $lk === 'cc' ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
+      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : 'cc'); /* KUNDEN ist seit Phase 2 eine eigene Seite im Command Center */ ?>
+      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : ($lk === 'finden' ? $selbst(['cc' => 1, 'kunden' => 1]) : ($lk === 'academy' ? $start(['ak' => '1']) : $selbst() . '#r-' . $lk))) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
     <?php /* MEHR am Handy: ohne Skript, als aufklappbare Liste über der Leiste. */ ?>
@@ -108,7 +111,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
     </details>
   </nav>
 
-  <?php if ($ccSeite !== 'start'): require __DIR__ . '/partner_cc_kampagne.php'; else: ?>
+  <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccKundenSeite ? '/partner_cc_kunden.php' : '/partner_cc_kampagne.php'); else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
