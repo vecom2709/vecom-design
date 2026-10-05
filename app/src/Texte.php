@@ -2972,7 +2972,8 @@ final class Texte
         'PARTNER_KAMPAGNE'    => [],
         'PARTNER_GELD'        => [],
         'PARTNER_SHOP'        => [],
-        'PARTNER_MAIL'        => [],   // Vorlage an den Betrieb kommt aus PARTNER_LEADS (mail_betreff, mail_text: Sie)
+        'PARTNER_MAIL'        => [],
+        'PARTNER_SUPPORT'     => [],   // Vorlage an den Betrieb kommt aus PARTNER_LEADS (mail_betreff, mail_text: Sie)
         'PARTNER_START'       => [],
         'PARTNER_HEUTE'       => [],
         'PARTNER_AUTOMATIK'   => [],
@@ -3589,6 +3590,59 @@ final class Texte
             'csrf'                => ['it' => 'La pagina era scaduta. Riprovi.', 'de' => 'Die Seite war abgelaufen. Bitte noch einmal.', 'en' => 'The page had expired. Please try again.'],
         ],
         'mehr_link' => ['it' => 'E-mail', 'de' => 'E-Mails', 'en' => 'Emails'],
+    ];
+
+    /* SUPPORT im Command Center (Phase 7b, 05.10.2026): Tickets mit Thema, Betreff, Stand und Bezug.
+       Uwe: „5 Themen“, „Offen → In Arbeit → Erledigt“. Deutsch duzt. */
+    public const PARTNER_SUPPORT = [
+        'kurz'     => ['it' => 'Assistenza', 'de' => 'Support', 'en' => 'Support'],
+        'titel'    => ['it' => 'Assistenza', 'de' => 'Support', 'en' => 'Support'],
+        'satz'     => ['it' => 'Domande su un cliente, una provvigione o un ordine? Apra una richiesta — risponde Uwe, di solito in giornata.', 'de' => 'Frage zu einem Kunden, einer Provision oder einer Bestellung? Schreib ein Anliegen — Uwe antwortet, meist am selben Tag.', 'en' => 'A question about a customer, a commission or an order? Open a request — Uwe replies, usually the same day.'],
+        'neu'      => ['it' => 'Nuova richiesta', 'de' => 'Neues Anliegen', 'en' => 'New request'],
+        'thema'    => ['it' => 'Argomento', 'de' => 'Thema', 'en' => 'Topic'],
+        'themen'   => [
+            'geld'        => ['it' => 'Provvigione e pagamento', 'de' => 'Provision & Auszahlung', 'en' => 'Commission & payout'],
+            'kunde'       => ['it' => 'Cliente / contatto', 'de' => 'Kunde / Kontakt', 'en' => 'Customer / contact'],
+            'werbemittel' => ['it' => 'Materiali e ordini', 'de' => 'Werbemittel & Bestellung', 'en' => 'Materials & orders'],
+            'technik'     => ['it' => 'Accesso e tecnica', 'de' => 'Zugang & Technik', 'en' => 'Access & technical'],
+            'sonstiges'   => ['it' => 'Altro', 'de' => 'Sonstiges', 'en' => 'Other'],
+        ],
+        'betreff'  => ['it' => 'Oggetto', 'de' => 'Betreff', 'en' => 'Subject'],
+        'text'     => ['it' => 'Il suo messaggio', 'de' => 'Deine Nachricht', 'en' => 'Your message'],
+        'bezug'    => ['it' => 'Riguarda (facoltativo)', 'de' => 'Betrifft (freiwillig)', 'en' => 'Concerns (optional)'],
+        'bezug_kein' => ['it' => '— niente di specifico —', 'de' => '— nichts Bestimmtes —', 'en' => '— nothing specific —'],
+        'bezug_lead' => ['it' => 'Contatto', 'de' => 'Kontakt', 'en' => 'Contact'],
+        'bezug_best' => ['it' => 'Ordine', 'de' => 'Bestellung', 'en' => 'Order'],
+        'senden'   => ['it' => 'Invia richiesta', 'de' => 'Anliegen senden', 'en' => 'Send request'],
+        'antworten' => ['it' => 'Rispondere', 'de' => 'Antworten', 'en' => 'Reply'],
+        'antwort_feld' => ['it' => 'Risposta', 'de' => 'Antwort', 'en' => 'Reply'],
+        'liste'    => ['it' => 'Le sue richieste', 'de' => 'Deine Anliegen', 'en' => 'Your requests'],
+        'leer'     => ['it' => 'Ancora nessuna richiesta.', 'de' => 'Noch kein Anliegen.', 'en' => 'No request yet.'],
+        'frueher'  => ['it' => 'Messaggi precedenti', 'de' => 'Frühere Nachrichten', 'en' => 'Earlier messages'],
+        'zurueck'  => ['it' => 'Tutte le richieste', 'de' => 'Alle Anliegen', 'en' => 'All requests'],
+        'neu_antwort' => ['it' => 'nuova risposta', 'de' => 'neue Antwort', 'en' => 'new reply'],
+        'du'       => ['it' => 'Lei', 'de' => 'Du', 'en' => 'You'],
+        'wir'      => ['it' => 'Vecom Design', 'de' => 'Vecom Design', 'en' => 'Vecom Design'],
+        'wieder_offen' => ['it' => 'Se risponde qui, la richiesta si riapre.', 'de' => 'Schreibst du hier, ist das Anliegen wieder offen.', 'en' => 'If you write here, the request reopens.'],
+        'staende'  => [
+            'offen'     => ['it' => 'Aperta', 'de' => 'Offen', 'en' => 'Open'],
+            'in_arbeit' => ['it' => 'In lavorazione', 'de' => 'In Arbeit', 'en' => 'In progress'],
+            'erledigt'  => ['it' => 'Risolta', 'de' => 'Erledigt', 'en' => 'Resolved'],
+        ],
+        'm' => [
+            'neu_ok'  => ['it' => 'Richiesta inviata. La avvisiamo appena c’è una risposta.', 'de' => 'Anliegen gesendet. Du bekommst Bescheid, sobald eine Antwort da ist.', 'en' => 'Request sent. We will let you know as soon as there is a reply.'],
+            'antw_ok' => ['it' => 'Risposta inviata.', 'de' => 'Antwort gesendet.', 'en' => 'Reply sent.'],
+            'thema'   => ['it' => 'Scelga un argomento.', 'de' => 'Wähl ein Thema.', 'en' => 'Choose a topic.'],
+            'betreff' => ['it' => 'Manca l’oggetto — almeno 3 caratteri.', 'de' => 'Der Betreff fehlt — mindestens 3 Zeichen.', 'en' => 'The subject is missing — at least 3 characters.'],
+            'text'    => ['it' => 'Il messaggio è vuoto.', 'de' => 'Die Nachricht ist leer.', 'en' => 'The message is empty.'],
+            'bezug'   => ['it' => 'Questo riferimento non esiste.', 'de' => 'Diesen Bezug gibt es nicht.', 'en' => 'This reference does not exist.'],
+            'genug'   => ['it' => 'Già 10 richieste in 24 ore. Scriva in una richiesta esistente.', 'de' => 'Schon 10 Anliegen in 24 Stunden. Schreib in ein bestehendes.', 'en' => 'Already 10 requests in 24 hours. Write in an existing one.'],
+            'zuviel'  => ['it' => 'Troppi messaggi in poco tempo — riprovi tra qualche minuto.', 'de' => 'Zu viele Nachrichten in kurzer Zeit — bitte in ein paar Minuten noch einmal.', 'en' => 'Too many messages in a short time — please try again in a few minutes.'],
+            'ticket'  => ['it' => 'Richiesta non trovata.', 'de' => 'Anliegen nicht gefunden.', 'en' => 'Request not found.'],
+            'csrf'    => ['it' => 'La pagina era scaduta. Riprovi.', 'de' => 'Die Seite war abgelaufen. Bitte noch einmal.', 'en' => 'The page had expired. Please try again.'],
+        ],
+        'alt_hinweis' => ['it' => 'I messaggi a Vecom ora passano dall’assistenza: argomento, oggetto e stato in un colpo d’occhio.', 'de' => 'Nachrichten an Vecom laufen jetzt über den Support: Thema, Betreff und Stand auf einen Blick.', 'en' => 'Messages to Vecom now go through Support: topic, subject and status at a glance.'],
+        'zum_support' => ['it' => 'Vai all’assistenza', 'de' => 'Zum Support', 'en' => 'Go to Support'],
     ];
 
     /* ERGEBNISSE im Command Center (Phase 5, 05.10.2026; Spezifikation 28–31 und 55): Geld in vier Stufen,

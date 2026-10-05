@@ -25076,6 +25076,120 @@ Db::run('DELETE FROM partner_leads WHERE partner_id = ?', [$p7i]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p7i, (int) $p7O['id']]);
 
 /* ============================================================================
+   SUPPORT-Tickets (Phase 7b, 05.10.2026, Uwe: „5 Themen“, „Offen → In Arbeit → Erledigt“).
+   Nur eigene Tickets, Bezug nur auf eigene Kontakte/Bestellungen, Partner-Antwort öffnet
+   Erledigtes wieder, nichts schließt von selbst. Die Nachrichten laufen weiter über PartnerPost.
+   ============================================================================ */
+abschnitt('Partner: Support-Tickets');
+require_once $wurzel . '/src/PartnerTicket.php';
+$tkA = Partner::laden(Partner::anlegen(['name' => 'Tina Ticket', 'email' => 'tina@partner.example', 'code' => 'TINATK7', 'sprache' => 'de', 'status' => 'aktiv']));
+$tkB = Partner::laden(Partner::anlegen(['name' => 'Bodo Fremd', 'email' => 'bodo@partner.example', 'code' => 'BODOTK7', 'sprache' => 'de', 'status' => 'aktiv']));
+$tkAi = (int) $tkA['id']; $tkBi = (int) $tkB['id'];
+$tkLeadA = (int) (PartnerLeads::anlegen($tkAi, ['name' => 'Bäckerei <Sonne>', 'email' => 'sonne@kunde.example'])['id'] ?? 0);
+$tkLeadB = (int) (PartnerLeads::anlegen($tkBi, ['name' => 'Fremder Betrieb', 'email' => 'fremd@kunde.example'])['id'] ?? 0);
+$tkBestB = (int) Db::insert('wm_bestellungen', ['nummer' => 'VEC-MKT-KETTE7B-1', 'partner_id' => $tkBi, 'status' => 'versendet', 'summe_cent' => 1000, 'steuer_cent' => 0, 'waehrung' => 'EUR', 'adresse' => '{}', 'sprache' => 'de']);
+$tkF = [
+    PartnerTicket::eroeffnen($tkAi, 'politik', 'Frage', 'Text')['grund'] ?? '',
+    PartnerTicket::eroeffnen($tkAi, 'geld', "  \u{00A0} ", 'Text')['grund'] ?? '',
+    PartnerTicket::eroeffnen($tkAi, 'geld', 'Auszahlung', '   ')['grund'] ?? '',
+    PartnerTicket::eroeffnen($tkAi, 'kunde', 'Fremder Kontakt', 'Text', 'lead', $tkLeadB)['grund'] ?? '',
+    PartnerTicket::eroeffnen($tkAi, 'werbemittel', 'Fremde Bestellung', 'Text', 'bestellung', $tkBestB)['grund'] ?? '',
+    PartnerTicket::eroeffnen($tkAi, 'kunde', 'Unbekannte Art', 'Text', 'kunde', 1)['grund'] ?? '',
+];
+pruefe('Anliegen: Thema nur aus den fünf, Betreff Pflicht (auch unsichtbare Leerzeichen), Text Pflicht, Bezug nur auf EIGENE Kontakte und Bestellungen — nichts angelegt',
+    $tkF === ['thema', 'betreff', 'text', 'bezug', 'bezug', 'bezug'] && (int) Db::wert('SELECT COUNT(*) FROM partner_tickets', [], 0) === 0, json_encode($tkF));
+Db::run("DELETE FROM notifications WHERE type = 'partner_nachricht'");
+$tkR = PartnerTicket::eroeffnen($tkAi, 'kunde', '  Frage zum   Kontakt ', "Was soll ich\r\nder Bäckerei sagen?", 'lead', $tkLeadA);
+$tkId = (int) ($tkR['id'] ?? 0);
+$tkT = PartnerTicket::laden($tkAi, $tkId) ?: [];
+$tkN = Db::all('SELECT * FROM partner_nachrichten WHERE ticket_id = ?', [$tkId]);
+pruefe('Anliegen angelegt: Betreff bereinigt, Stand offen, Bezug gespeichert, erste Nachricht hängt am Ticket; Meldung an Uwe nennt den Betreff',
+    ($tkR['ok'] ?? false) && ($tkT['betreff'] ?? '') === 'Frage zum Kontakt' && ($tkT['stand'] ?? '') === 'offen' && ($tkT['bezug_art'] ?? '') === 'lead' && (int) ($tkT['bezug_id'] ?? 0) === $tkLeadA
+    && count($tkN) === 1 && $tkN[0]['von'] === 'partner' && $tkN[0]['text'] === "Was soll ich\nder Bäckerei sagen?"
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_nachricht' AND title LIKE '%Frage zum Kontakt%'", [], 0) === 1);
+pruefe('Fremde Tickets gibt es nicht: laden, antworten und lesen nur mit der eigenen Partner-ID',
+    PartnerTicket::laden($tkBi, $tkId) === null && PartnerTicket::antworten($tkBi, $tkId, 'Hallo', 'partner') === 'ticket'
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_nachrichten WHERE ticket_id = ?', [$tkId], 0) === 1);
+$tkV = PartnerTicket::antworten($tkAi, $tkId, 'Sag ihr, dass wir zuerst die Website ansehen.', 'vecom', null);
+$tkS1 = PartnerTicket::standSetzen($tkId, 'in_arbeit'); $tkS0 = PartnerTicket::standSetzen($tkId, 'geschlossen');
+$tkListe1 = PartnerTicket::liste($tkAi);
+PartnerTicket::standSetzen($tkId, 'erledigt');
+$tkErl = PartnerTicket::laden($tkAi, $tkId) ?: [];
+$tkP = PartnerTicket::antworten($tkAi, $tkId, 'Danke, noch eine Frage dazu.', 'partner');
+$tkWieder = PartnerTicket::laden($tkAi, $tkId) ?: [];
+pruefe('Stände: Vecom antwortet ohne den Stand zu ändern, „In Arbeit“ und „Erledigt“ setzt nur die Verwaltung (Unbekanntes abgelehnt); schreibt der Partner danach, ist es wieder offen; ungelesene Antwort gezählt',
+    $tkV === 'ok' && $tkS1 && !$tkS0 && (int) ($tkListe1[0]['neu'] ?? 0) === 1 && ($tkErl['stand'] ?? '') === 'erledigt' && ($tkErl['erledigt_am'] ?? null) !== null
+    && $tkP === 'ok' && ($tkWieder['stand'] ?? '') === 'offen' && array_key_exists('erledigt_am', $tkWieder) && $tkWieder['erledigt_am'] === null && count(PartnerTicket::verlauf($tkId)) === 3,
+    json_encode([$tkV, $tkS1, $tkS0, $tkListe1[0]['neu'] ?? null, $tkErl['stand'] ?? null, $tkErl['erledigt_am'] ?? null, $tkP, $tkWieder['stand'] ?? null, $tkWieder['erledigt_am'] ?? 'x', count(PartnerTicket::verlauf($tkId))]));
+$tkR2 = PartnerTicket::eroeffnen($tkAi, 'geld', 'Zweites Anliegen', 'Wann kommt die Auszahlung?');
+PartnerTicket::standSetzen((int) $tkR2['id'], 'erledigt');
+$tkVw = PartnerTicket::fuerVerwaltung($tkAi);
+pruefe('Liste: Erledigtes steht unten; die Verwaltung sieht Partner, Bezug im Klartext und offene zuerst',
+    (int) (PartnerTicket::liste($tkAi)[1]['id'] ?? 0) === (int) $tkR2['id'] && ($tkVw[0]['bezug_name'] ?? '') === 'Bäckerei <Sonne>' && ($tkVw[0]['partner'] ?? '') === 'Tina Ticket'
+    && ($tkVw[1]['stand'] ?? '') === 'erledigt' && PartnerTicket::offenZahl() >= 1);
+for ($i = 0; $i < 8; $i++) { Db::insert('partner_tickets', ['partner_id' => $tkAi, 'thema' => 'sonstiges', 'betreff' => 'Füller ' . $i]); }
+pruefe('Höchstens 10 neue Anliegen in 24 Stunden je Partner (gegen ein hängendes Formular)',
+    (PartnerTicket::eroeffnen($tkAi, 'sonstiges', 'Elftes', 'Text')['grund'] ?? '') === 'genug');
+Db::run("DELETE FROM partner_tickets WHERE partner_id = ? AND betreff LIKE 'Füller %'", [$tkAi]);
+// Die Seite: Liste und Verlauf, Namen escaped, CSRF, eigene Bezüge, kein fremder.
+$tkSeite = static function (int $pid, array $get = [], string $fehler = '', ?array $post = null) use ($wurzel): string {
+    $altGet = $_GET; $_GET = $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $ccSupFehler = $fehler; $ccSupPost = $post;
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_support.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$tkH = $tkSeite($tkAi);
+pruefe('SUPPORT-Seite: neues Anliegen mit fünf Themen, Betreff Pflicht, Bezug nur eigene Kontakte (escaped), Liste mit Stand; CSRF in jedem Formular',
+    substr_count($tkH, '<option value="geld"') + substr_count($tkH, '<option value="kunde"') + substr_count($tkH, '<option value="werbemittel"') + substr_count($tkH, '<option value="technik"') + substr_count($tkH, '<option value="sonstiges"') === 5
+    && preg_match('~name="betreff" required minlength="3"~', $tkH) === 1 && str_contains($tkH, 'value="lead:' . $tkLeadA . '"') && !str_contains($tkH, 'value="lead:' . $tkLeadB . '"')
+    && str_contains($tkH, 'Bäckerei &lt;Sonne&gt;') && !str_contains($tkH, '<Sonne>') && !str_contains($tkH, 'VEC-MKT-KETTE7B-1')
+    && str_contains($tkH, 'Frage zum Kontakt') && str_contains($tkH, 'tk-offen') && str_contains($tkH, 'tk-erledigt')
+    && substr_count($tkH, '<form method="post"') === substr_count($tkH, 'name="_csrf"'));
+$tkH2 = $tkSeite($tkAi, ['ticket' => $tkId]);
+$tkH3 = $tkSeite($tkBi, ['ticket' => $tkId]);
+pruefe('Ticket-Ansicht: Verlauf als Blasen, Antwortfeld mit CSRF; ein fremdes Ticket zeigt nur die eigene Liste; Öffnen markiert die Antworten als gelesen',
+    str_contains($tkH2, 'Sag ihr, dass wir zuerst die Website ansehen.') && str_contains($tkH2, 'cc-blase wir') && str_contains($tkH2, 'value="ticket_antwort"')
+    && !str_contains($tkH3, 'Sag ihr') && str_contains($tkH3, 'Neues Anliegen')
+    && (int) Db::wert("SELECT COUNT(*) FROM partner_nachrichten WHERE ticket_id = ? AND von = 'vecom' AND gelesen_am IS NULL", [$tkId], 1) === 0);
+$tkPp = (string) file_get_contents($oben . '/partner.php');
+$tkCc = (string) file_get_contents($wurzel . '/views/partner_cc.php');
+pruefe('Wege: SUPPORT unter MEIN KONTO (Leiste bleibt nach Punkt 3); Taten nur mit CSRF; das alte Formular wird ein Anliegen statt einer losen Nachricht; Antworten von Vecom führen in den SUPPORT; Verwaltung antwortet und setzt den Stand',
+    str_contains($tkCc, "\$ccMehr = ['werbemittel', 'academy', 'profil'];") && str_contains($tkCc, "'cc:support'      => \$selbst(['cc' => 1, 'support' => 1])")
+    && str_contains($tkPp, "Texte::PARTNER_SUPPORT['zum_support']")
+    && str_contains($tkPp, "elseif (isset(\$_GET['support'])) { \$ccSeite = 'support'; }") && str_contains($tkPp, "if (!\$ccCsrf) { \$ccSupFehler = 'csrf'; }")
+    && str_contains($tkPp, "PartnerTicket::eroeffnen((int) \$p['id'], 'sonstiges'") && !str_contains($tkPp, 'name="tat" value="nachricht"')
+    && PartnerCommand::ANKER['nachrichten'] === 'cc:support'
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_ticket_antwort"')
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_ticket_antwort', $t)));
+$tkFehlt = []; $tkPlatz = [];
+$tkDrei = static function ($w, string $pfad) use (&$tkDrei, &$tkFehlt, &$tkPlatz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { $v = (string) ($w[$l] ?? ''); if (trim($v) === '') { $tkFehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z_]+\}~', $v, $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $tkPlatz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $tkDrei($v, "$pfad.$k"); }
+};
+$tkDrei(Texte::PARTNER_SUPPORT, 'PARTNER_SUPPORT');
+pruefe('Texte SUPPORT: dreisprachig, gleiche Platzhalter, Deutsch duzt; jede Antwort von PartnerTicket hat einen Satz; jedes Thema und jeder Stand hat einen Namen',
+    $tkFehlt === [] && $tkPlatz === [] && Texte::duzt('PARTNER_SUPPORT.satz')
+    && !array_diff(['thema', 'betreff', 'text', 'bezug', 'genug', 'zuviel', 'ticket', 'csrf', 'neu_ok', 'antw_ok'], array_keys(Texte::PARTNER_SUPPORT['m']))
+    && !array_diff(PartnerTicket::THEMEN, array_keys(Texte::PARTNER_SUPPORT['themen'])) && !array_diff(PartnerTicket::STAENDE, array_keys(Texte::PARTNER_SUPPORT['staende'])),
+    json_encode([$tkFehlt, $tkPlatz]));
+Db::run("DELETE FROM notifications WHERE type = 'partner_nachricht'");
+Db::run('DELETE FROM partner_nachrichten WHERE partner_id IN (?, ?)', [$tkAi, $tkBi]);
+Db::run('DELETE FROM partner_tickets WHERE partner_id IN (?, ?)', [$tkAi, $tkBi]);
+Db::run('DELETE FROM wm_bestellungen WHERE id = ?', [$tkBestB]);
+Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id IN (?, ?)', [$tkAi, $tkBi]);
+Db::run('DELETE FROM partner_leads WHERE partner_id IN (?, ?)', [$tkAi, $tkBi]);
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$tkAi, $tkBi]);
+
+/* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).
    Inhalte dreisprachig und gleich gebaut, keine Zusagen in Antworten, Fortschritt
    und Notizen strikt je Partner, nur bekannte Inhalte merkbar, CSRF vor jeder Tat.

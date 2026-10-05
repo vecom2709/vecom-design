@@ -32,7 +32,7 @@ final class PartnerPost
      * @param string $von partner | vecom
      * @return int Nachrichten-ID
      */
-    public static function schreiben(int $partnerId, string $text, string $von, ?int $userId = null): int
+    public static function schreiben(int $partnerId, string $text, string $von, ?int $userId = null, ?int $ticketId = null): int
     {
         $text = trim(str_replace("\r\n", "\n", $text));
         if ($text === '') { throw new InvalidArgumentException('leer'); }
@@ -48,25 +48,28 @@ final class PartnerPost
         $id = (int) Db::insert('partner_nachrichten', [
             'partner_id' => $partnerId, 'von' => $von, 'text' => $text,
             'user_id' => $von === 'vecom' ? $userId : null,
+            'ticket_id' => $ticketId,   // Phase 7b: Rahmen mit Thema, Betreff und Stand (PartnerTicket)
         ]);
+        $tBetreff = $ticketId !== null ? (string) Db::wert('SELECT betreff FROM partner_tickets WHERE id = ?', [$ticketId], '') : '';
 
         if ($von === 'partner') {
             /* Nach innen zuerst: Die Meldung ueberlebt einen stummen Mailserver
                (wie bei Kundennachrichten, Nachricht::vorab). */
-            self::still(static fn() => Events::melden('partner_nachricht', 'Nachricht von Partner ' . $p['name'], 'hinweis',
-                mb_substr($text, 0, 300), '/partner/' . $partnerId));
-            self::still(static function () use ($p, $text, $partnerId) {
+            self::still(static fn() => Events::melden('partner_nachricht', 'Nachricht von Partner ' . $p['name'] . ($tBetreff !== '' ? ': ' . $tBetreff : ''), 'hinweis',
+                mb_substr($text, 0, 300), '/partner/' . $partnerId . ($ticketId !== null ? '#ticket-' . $ticketId : '')));
+            self::still(static function () use ($p, $text, $partnerId, $tBetreff) {
                 require_once __DIR__ . '/Mail.php';
                 require_once __DIR__ . '/Config.php';
                 $wo = rtrim((string) Config::get('website', ''), '/') . Config::basis() . '/partner/' . $partnerId;
-                Mail::senden('partner_nachricht', Mail::eigeneAdresse(), 'Partner ' . $p['name'] . ' schreibt',
+                Mail::senden('partner_nachricht', Mail::eigeneAdresse(), 'Partner ' . $p['name'] . ' schreibt' . ($tBetreff !== '' ? ': ' . $tBetreff : ''),
                     $p['name'] . " (Partner " . $p['code'] . ") schreibt:\n\n" . $text . "\n\nAntworten in der Verwaltung: " . $wo . "\n",
                     ['antwortAn' => (string) $p['email']]);
             });
         } else {
             self::still(static fn() => Partner::schreiben($partnerId, 'partner_antwort', ['text' => $text]));
             $sp = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
-            self::push($partnerId, self::t('push_antw_t', $sp), mb_substr($text, 0, 120), Partner::portalLink($p) . '#nachrichten');
+            self::push($partnerId, self::t('push_antw_t', $sp), mb_substr($text, 0, 120),
+                Partner::portalLink($p) . ($ticketId !== null ? '&cc=1&support=1&ticket=' . $ticketId : '#nachrichten'));
         }
         return $id;
     }

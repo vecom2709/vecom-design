@@ -209,25 +209,51 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<?php require_once dirname(__DIR__) . '/src/PartnerTicket.php';
+      /* Support (Phase 7b, 05.10.2026): Tickets mit Thema, Betreff, Stand und Bezug; offene und in Arbeit aufgeklappt.
+         Antwort und Stand in einem Formular. Nachrichten ohne Ticket (vor 7b) stehen darunter. */
+  $tkListe = $tickets ?? []; $tkAlt = array_values(array_filter($nachrichten ?? [], static fn($n) => empty($n['ticket_id'])));
+  $tkThema = ['geld' => 'Provision & Auszahlung', 'kunde' => 'Kunde / Kontakt', 'werbemittel' => 'Werbemittel & Bestellung', 'technik' => 'Zugang & Technik', 'sonstiges' => 'Sonstiges'];
+  $tkStand = ['offen' => ['warnung', 'offen'], 'in_arbeit' => ['', 'in Arbeit'], 'erledigt' => ['gut', 'erledigt']];
+  $tkBlase = static function (array $n, string $name): string {
+      $vp = $n['von'] === 'partner';
+      return '<div style="max-width:80%;' . ($vp ? 'align-self:flex-start' : 'align-self:flex-end') . ';padding:9px 12px;border-radius:12px;border:1px solid var(--linie);background:'
+          . ($vp ? 'var(--flaeche2)' : 'rgba(241,211,139,.08)') . ';white-space:pre-wrap;font-size:14px;line-height:1.5">' . Fmt::h((string) $n['text'])
+          . '<div style="font-size:11.5px;color:var(--leise);margin-top:4px">' . ($vp ? Fmt::h($name) : 'Vecom') . ' · ' . Fmt::h(date('d.m.Y H:i', strtotime((string) $n['created_at'])))
+          . (!$vp && $n['gelesen_am'] ? ' · gelesen' : '') . '</div></div>';
+  }; ?>
 <div class="block" id="nachrichten">
-  <h2 style="font-size:15px;margin:0 0 10px">Nachrichten<?php $offenN = count(array_filter($nachrichten ?? [], static fn($n) => $n['von'] === 'partner' && $n['gelesen_am'] === null)); ?></h2>
-  <?php if (empty($nachrichten)): ?>
-    <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Noch keine. Der Partner schreibt über seine Seite; deine Antwort bekommt er per Mail und, wenn er die App hat, aufs Handy.</p>
-  <?php else: ?>
-    <div style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin-bottom:12px">
-      <?php foreach ($nachrichten as $n): $vp = $n['von'] === 'partner'; ?>
-        <div style="max-width:80%;<?= $vp ? 'align-self:flex-start' : 'align-self:flex-end' ?>;padding:9px 12px;border-radius:12px;border:1px solid var(--linie);
-                    background:<?= $vp ? 'var(--flaeche2)' : 'rgba(241,211,139,.08)' ?>;white-space:pre-wrap;font-size:14px;line-height:1.5"><?= Fmt::h((string) $n['text']) ?>
-          <div style="font-size:11.5px;color:var(--leise);margin-top:4px"><?= $vp ? Fmt::h($p['name']) : 'Vecom' ?> · <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $n['created_at']))) ?>
-            <?= !$vp && $n['gelesen_am'] ? ' · gelesen' : '' ?></div></div>
-      <?php endforeach; ?>
-    </div>
+  <h2 style="font-size:15px;margin:0 0 10px">Support-Anliegen</h2>
+  <?php if (!$tkListe): ?><p style="color:var(--leise);font-size:13px;margin:0 0 10px">Noch keine. Der Partner schreibt über SUPPORT im Command Center; deine Antwort bekommt er per Mail und, wenn er die App hat, aufs Handy.</p><?php endif; ?>
+  <?php foreach ($tkListe as $tk): [$tkM, $tkW] = $tkStand[$tk['stand']] ?? ['', $tk['stand']]; ?>
+    <details id="ticket-<?= (int) $tk['id'] ?>" style="border:1px solid var(--linie);border-radius:12px;padding:10px 12px;margin:0 0 10px"<?= $tk['stand'] !== 'erledigt' ? ' open' : '' ?>>
+      <summary style="cursor:pointer;font-size:14px"><b><?= Fmt::h((string) $tk['betreff']) ?></b>
+        <span class="marke2 <?= $tkM ?>"><?= Fmt::h($tkW) ?></span><?= (int) $tk['neu'] > 0 ? ' <span class="marke2 warnung">neu</span>' : '' ?>
+        <span style="color:var(--leise);font-size:12.5px"> · <?= Fmt::h($tkThema[$tk['thema']] ?? $tk['thema']) ?><?= $tk['bezug_name'] !== null ? ' · ' . ($tk['bezug_art'] === 'lead' ? 'Kontakt ' : 'Bestellung ') . Fmt::h((string) $tk['bezug_name']) : '' ?> · <?= Fmt::h(date('d.m.Y H:i', strtotime((string) $tk['geaendert_am']))) ?></span></summary>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin:10px 0">
+        <?php foreach (PartnerTicket::verlauf((int) $tk['id']) as $n) { echo $tkBlase($n, (string) $p['name']); } ?>
+      </div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-direction:column;gap:8px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_ticket_antwort"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>"><input type="hidden" name="ticket" value="<?= (int) $tk['id'] ?>">
+        <textarea name="text" rows="3" maxlength="4000" placeholder="Antwort an <?= Fmt::h($p['name']) ?> (leer = nur Stand ändern)"></textarea>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+          <select name="stand" aria-label="Stand"><option value="">Stand lassen (<?= Fmt::h($tkW) ?>)</option>
+            <?php foreach (['offen' => 'offen', 'in_arbeit' => 'in Arbeit', 'erledigt' => 'erledigt'] as $tkS => $tkSw): if ($tkS === $tk['stand']) { continue; } ?><option value="<?= $tkS ?>"><?= $tkSw ?></option><?php endforeach; ?></select>
+          <button class="knopf">Speichern</button></div>
+      </form>
+    </details>
+  <?php endforeach; ?>
+  <?php if ($tkAlt): ?>
+    <details style="margin-top:6px"><summary style="cursor:pointer;font-size:13px;color:var(--leise)">Frühere Nachrichten ohne Ticket (<?= count($tkAlt) ?>)</summary>
+      <div style="display:flex;flex-direction:column;gap:8px;max-height:380px;overflow-y:auto;margin:10px 0">
+        <?php foreach ($tkAlt as $n) { echo $tkBlase($n, (string) $p['name']); } ?>
+      </div>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-direction:column;gap:8px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_nachricht"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <textarea name="text" rows="3" required maxlength="4000" placeholder="Antwort an <?= Fmt::h($p['name']) ?>"></textarea>
+        <div><button class="knopf">Antworten</button></div>
+      </form></details>
   <?php endif; ?>
-  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-direction:column;gap:8px">
-    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_nachricht"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
-    <textarea name="text" rows="3" required maxlength="4000" placeholder="Antwort an <?= Fmt::h($p['name']) ?>"></textarea>
-    <div><button class="knopf">Antworten</button></div>
-  </form>
 </div>
 
 <div class="block">

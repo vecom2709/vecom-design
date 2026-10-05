@@ -255,6 +255,28 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
             $ccFotoOk ? (string) $ccF['tmp_name'] : null, $ccFotoOk ? (int) $ccF['size'] : 0);
         header('Location: ' . $ccZurueck(['ok' => 'problem', 'grund' => 'problem_grund', 'foto' => 'problem_foto'][$ccR] ?? 'problem_grund'), true, 303); exit;
     }
+    /* SUPPORT (Phase 7b, 05.10.2026): Anliegen eröffnen oder beantworten — nur eigene Tickets, Bezug nur auf
+       eigene Kontakte/Bestellungen (PartnerTicket prüft beides). Bei Fehler bleibt das Eingegebene stehen (PRG sonst). */
+    $ccSupFehler = ''; $ccSupPost = null;
+    if (in_array($ccTat, ['ticket_neu', 'ticket_antwort'], true)) {
+        require_once __DIR__ . '/app/src/PartnerTicket.php';
+        $ccTid = (int) ($_POST['ticket'] ?? 0);
+        $ccSupPost = ['thema' => (string) ($_POST['thema'] ?? ''), 'betreff' => mb_substr((string) ($_POST['betreff'] ?? ''), 0, 200),
+                      'text' => mb_substr((string) ($_POST['text'] ?? ''), 0, PartnerPost::MAX_LAENGE), 'bezug' => (string) ($_POST['bezug'] ?? '')];
+        if (!$ccCsrf) { $ccSupFehler = 'csrf'; }
+        elseif ($ccTat === 'ticket_neu') {
+            [$ccBa, $ccBi] = array_pad(explode(':', $ccSupPost['bezug'], 2), 2, '');
+            $ccR = PartnerTicket::eroeffnen((int) $p['id'], $ccSupPost['thema'], $ccSupPost['betreff'], $ccSupPost['text'],
+                in_array($ccBa, ['lead', 'bestellung'], true) ? $ccBa : null, in_array($ccBa, ['lead', 'bestellung'], true) ? (int) $ccBi : null);
+            if ($ccR['ok']) { header('Location: ' . $selbst(['cc' => 1, 'support' => 1, 'ticket' => $ccR['id'], 'm' => 'neu_ok']), true, 303); exit; }
+            $ccSupFehler = (string) $ccR['grund'];
+        } else {
+            $ccSupFehler = PartnerTicket::antworten((int) $p['id'], $ccTid, $ccSupPost['text'], 'partner');
+            if ($ccSupFehler === 'ok') { header('Location: ' . $selbst(['cc' => 1, 'support' => 1, 'ticket' => $ccTid, 'm' => 'antw_ok']) . '#t-ende', true, 303); exit; }
+        }
+        $_GET['support'] = 1;
+        if ($ccTat === 'ticket_antwort') { $_GET['ticket'] = $ccTid; }
+    }
     /* E-MAIL-CENTER (Phase 7a, 05.10.2026): nur mit @vecom-Adresse (PartnerMail::kann). Absender, Grenzen,
        Sperrliste und die Betreff-Pflicht prüft PartnerMail auf dem Server — das Formular prüft nur vorab.
        Bei einem Fehler bleibt alles Eingegebene stehen; nach dem Senden zurück auf die Seite (PRG). */
@@ -347,6 +369,7 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
     }
     elseif (isset($_GET['marketing'])) { $ccSeite = 'marketing'; }
     elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }
+    elseif (isset($_GET['support'])) { $ccSeite = 'support'; }   // SUPPORT (Phase 7b): Tickets
     elseif (isset($_GET['mail']) && (static function () use ($p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann($p); })()) { $ccSeite = 'mail'; }   // E-MAIL (Phase 7a): nur mit @vecom-Adresse
     elseif (isset($_GET['shop']) && $ccMc) { $ccSeite = 'shop'; }   // SHOP (Phase 6a): zwei Druckwege, Bestellungen   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
     elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
@@ -646,11 +669,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 if ($f === null) { header('Location: ' . $selbst(['m' => 'w_gut']) . '#wege', true, 303); exit; }
                 $meldung = $f;
             } elseif ($tat === 'nachricht' && $p) {
-                try {
-                    PartnerPost::schreiben((int) $p['id'], (string) ($_POST['text'] ?? ''), 'partner');
-                    header('Location: ' . $selbst(['m' => 'nachr_danke']) . '#nachrichten', true, 303); exit;
-                } catch (InvalidArgumentException $e) { $meldung = 'nachr_leer'; }
-                  catch (LengthException $e) { $meldung = 'nachr_zuviel'; }
+                /* Altes Formular (vor Phase 7b), z. B. aus einem offenen Tab: wird ein Anliegen „Sonstiges“,
+                   Betreff = Anfang der ersten Zeile — damit nichts ohne Rahmen ankommt. */
+                require_once __DIR__ . '/app/src/PartnerTicket.php';
+                $ntText = (string) ($_POST['text'] ?? '');
+                $ntBetreff = mb_substr(trim((string) strtok(trim($ntText), "\n")), 0, 60);
+                $ntR = PartnerTicket::eroeffnen((int) $p['id'], 'sonstiges', mb_strlen($ntBetreff) >= 3 ? $ntBetreff : 'Nachricht', $ntText);
+                if ($ntR['ok']) { header('Location: ' . $selbst(['cc' => 1, 'support' => 1, 'ticket' => $ntR['id'], 'm' => 'neu_ok']), true, 303); exit; }
+                $meldung = $ntR['grund'] === 'zuviel' ? 'nachr_zuviel' : 'nachr_leer';
             } elseif ($tat === 'profil' && $p) {
                 /* Empfehlungsseite: Satz und (wenn mitgeschickt) Foto. Beides
                    steht öffentlich auf vecom-design.it -- Vecom bekommt eine
@@ -2071,27 +2097,14 @@ if ($p && isset($_GET['karte'])) {
 
   <?php require __DIR__ . '/app/views/partner_kontakte.php'; ?>
 
-  <?php $neuNachr = PartnerPost::gelesen((int) $p['id'], 'partner'); $verlauf = PartnerPost::verlauf((int) $p['id']); ?>
+  <?php /* Seit Phase 7b (05.10.2026) laufen Nachrichten an Vecom über den SUPPORT im Command Center (Thema, Betreff,
+           Stand). Hier bleibt nur der Weg dorthin — ein zweites Formular wäre eine zweite Wahrheit. */
+        require_once __DIR__ . '/app/src/PartnerTicket.php';
+        $neuNachr = (int) Db::wert("SELECT COUNT(*) FROM partner_nachrichten WHERE partner_id = ? AND von = 'vecom' AND gelesen_am IS NULL", [(int) $p['id']], 0); ?>
   <div class="block pt" id="nachrichten" data-reiter="profil"<?= $neuNachr > 0 ? ' data-punkt="1"' : '' ?>>
     <h2><?= $h($T('nachr_titel')) ?></h2>
-    <?php if (($_GET['m'] ?? '') === 'nachr_danke'): ?><div class="hinweis gut" role="status"><?= $h($T('nachr_danke')) ?></div><?php endif; ?>
-    <?php if (in_array($meldung, ['nachr_leer', 'nachr_zuviel'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
-    <p class="klein" style="margin-top:0"><?= $h($T('nachr_text')) ?></p>
-    <?php if ($verlauf): ?>
-      <div class="verlauf" id="verlauf">
-        <?php foreach ($verlauf as $n): $ich = $n['von'] === 'partner'; ?>
-          <div class="blase <?= $ich ? 'ich' : 'wir' ?>"><?= $h((string) $n['text']) ?><small><?= $h(($ich ? $T('nachr_sie') : $T('nachr_wir')) . ' · ' . date('d.m.Y H:i', strtotime((string) $n['created_at']))) ?></small></div>
-        <?php endforeach; ?>
-      </div>
-      <script>(function(){var v=document.getElementById('verlauf'); if(v){v.scrollTop=v.scrollHeight;}})();</script>
-    <?php endif; ?>
-    <form method="post" action="<?= $h($selbst()) ?>#nachrichten">
-      <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
-      <input type="hidden" name="tat" value="nachricht">
-      <label for="n_text"><?= $h($T('nachr_feld')) ?></label>
-      <textarea id="n_text" name="text" rows="3" maxlength="<?= PartnerPost::MAX_LAENGE ?>" required></textarea>
-      <button class="knopf haupt" type="submit"><?= $h($T('nachr_knopf')) ?></button>
-    </form>
+    <p class="klein" style="margin-top:0"><?= $h(Texte::h(Texte::PARTNER_SUPPORT['alt_hinweis'], $sprache)) ?></p>
+    <a class="knopf haupt" href="<?= $h($selbst(['cc' => 1, 'support' => 1])) ?>"><?= $h(Texte::h(Texte::PARTNER_SUPPORT['zum_support'], $sprache)) ?> →</a>
   </div>
 
   <?php $vListe = (static function () use ($p) { try { return PartnerVorab::liste((int) $p['id']); } catch (Throwable $e) { return []; } })();

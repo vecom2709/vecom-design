@@ -31,7 +31,7 @@ final class PartnerCommand
     public const SCHNELLWEGE = ['kunden' => 'recherche', 'anfragen' => 'werbung', 'lokal' => 'mc-start', 'social' => 'kalender', 'check' => 'schnellcheck'];
     /** Wohin die Empfehlung führt. */
     public const ANKER = ['kontakte' => 'cc:kunden', 'heiss' => 'heiss', 'nachhaken' => 'nachhaken', 'anrufen' => 'anrufliste',
-        'nachrichten' => 'nachrichten', 'zahlen' => 'mc-bestellungen', 'freigeben' => 'mc-designs', 'material' => 'mc-start',
+        'nachrichten' => 'cc:support', 'zahlen' => 'mc-bestellungen', 'freigeben' => 'mc-designs', 'material' => 'mc-start',
         'anlass' => 'kalender', 'posten' => 'kalender', 'kampagne' => 'cc:kampagne-neu'];
     /** Was in PartnerHeute so dringend ist, dass es vor allem anderen kommt (Reihenfolge von dort). */
     public const DRINGEND = ['kontakte', 'heiss', 'nachhaken', 'anrufen', 'nachrichten'];
@@ -144,7 +144,8 @@ final class PartnerCommand
             $vorlage = Texte::PARTNER_HEUTE['punkte'][$hp['k']][(int) $hp['n'] === 1 ? 0 : 1] ?? null;
             if ($vorlage === null) { continue; }
             // Rückruf-Wünsche stehen seit Phase 2 als Leads unter KUNDEN — dorthin, nicht in die alte Besucherliste.
-            $aus[] = ['k' => $hp['k'], 'n' => (int) $hp['n'], 'anker' => $hp['k'] === 'kontakte' ? 'cc:kunden' : (string) $hp['anker'], 'stufe' => self::WICHTIG[$hp['k']],
+            // Antworten von Vecom stehen seit Phase 7b im SUPPORT.
+            $aus[] = ['k' => $hp['k'], 'n' => (int) $hp['n'], 'anker' => match ($hp['k']) { 'kontakte' => 'cc:kunden', 'nachrichten' => 'cc:support', default => (string) $hp['anker'] }, 'stufe' => self::WICHTIG[$hp['k']],
                       'text' => rtrim(strtr($t($vorlage), ['{n}' => (string) $hp['n'], '{titel}' => (string) $hp['titel']]), ' :')];
         }
         // Fällige Aufgaben aus der Pipeline (Phase 2): rot, sobald eine überfällig ist.

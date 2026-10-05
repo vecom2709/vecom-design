@@ -27,12 +27,14 @@ $ccKundenSeite = in_array($ccSeite, ['kunden', 'lead', 'mail'], true);   // E-MA
 $ccMarketingSeite = in_array($ccSeite, ['marketing', 'kampagne', 'neu', 'qr'], true);   // Kampagnen und QR gehören zu MARKETING (Phase 3)
 $ccErgebnisSeite = $ccSeite === 'ergebnisse';   // ERGEBNISSE im Command Center (Phase 5)
 $ccShopSeite = $ccSeite === 'shop';   // SHOP im Command Center (Phase 6a)
+$ccSupportSeite = $ccSeite === 'support';   // SUPPORT im Command Center (Phase 7b) — gehört zu MEIN KONTO, keine eigene Leiste (Punkt 3)
 /* Sprungziele: Anker im Partnerbereich — oder, mit „cc:“, Stellen im Command Center selbst (Kampagnen). */
 $ccBereich = static fn(string $anker): string => match ($anker) {
     'cc:kampagne-neu' => $selbst(['cc' => 1, 'kampagne' => 'neu']),
     'cc:kampagnen'    => $selbst(['cc' => 1, 'marketing' => 1, 'teil' => 'kampagnen']),
     'cc:qr'           => $selbst(['cc' => 1, 'qr' => 1]),
     'cc:kunden'       => $selbst(['cc' => 1, 'kunden' => 1]),
+    'cc:support'      => $selbst(['cc' => 1, 'support' => 1]),
     'cc:ergebnisse', 'provisionen' => $selbst(['cc' => 1, 'ergebnisse' => 1]),
     default           => $selbst() . '#' . $anker,
 };
@@ -101,7 +103,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : ($ccMarketingSeite ? 'werben' : ($ccErgebnisSeite ? 'geld' : ($ccShopSeite ? 'werbemittel' : 'cc')))); /* KUNDEN, MARKETING, ERGEBNISSE, SHOP sind eigene Seiten im Command Center */ ?>
+      <?php $ccHier = $lk === ($ccKundenSeite ? 'finden' : ($ccMarketingSeite ? 'werben' : ($ccErgebnisSeite ? 'geld' : ($ccShopSeite ? 'werbemittel' : ($ccSupportSeite ? 'profil' : 'cc'))))); /* KUNDEN, MARKETING, ERGEBNISSE, SHOP sind eigene Seiten im Command Center */ ?>
       <a href="<?= $h(match ($lk) { 'cc' => $selbst(['cc' => 1]), 'finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1]),
                  'geld' => $selbst(['cc' => 1, 'ergebnisse' => 1]),
                  'werbemittel' => $selbst(['cc' => 1, 'shop' => 1]),
@@ -120,7 +122,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </nav>
 
   <?php if ($ccSeite !== 'start'): require __DIR__ . ($ccSeite === 'mail' ? '/partner_cc_mail.php' : ($ccKundenSeite ? '/partner_cc_kunden.php' : ($ccSeite === 'marketing' ? '/partner_cc_marketing.php'
-      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : ($ccShopSeite ? '/partner_cc_shop.php' : '/partner_cc_kampagne.php'))))); else: ?>
+      : ($ccErgebnisSeite ? '/partner_cc_ergebnisse.php' : ($ccShopSeite ? '/partner_cc_shop.php' : ($ccSupportSeite ? '/partner_cc_support.php' : '/partner_cc_kampagne.php')))))); else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
       <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
