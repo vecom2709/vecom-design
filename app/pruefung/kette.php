@@ -22262,6 +22262,9 @@ pruefe('Hintergrund tiefes Nachtblau (#060a16) statt Braun: Website, Verwaltung,
     && str_contains((string) file_get_contents($oben . '/assets/css/app.css'), 'rgba(5,8,18, .96) 0%')
     && str_contains((string) file_get_contents($oben . '/assets/css/erlebnis.css'), '--c-base:#060a16')
     && str_contains((string) file_get_contents($oben . '/assets/js/world/scene.js'), "grund: ['#0c1428', '#070c1a', '#050811']")
+    /* Aufgaben-Karten blau statt goldbraun getönt (auf Nachtblau wurde die Goldtönung schlammig) */
+    && str_contains((string) file_get_contents($oben . '/kunde.php'), '.dran{') && str_contains((string) file_get_contents($oben . '/kunde.php'), 'rgba(52,98,232,.16)')
+    && !str_contains($bwAdmin, 'radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10)')
     && !preg_match('~background[^;}"]*#(0a0908|141311|1f1c18)~i', $bwKunde . $bwAdmin . (string) file_get_contents($oben . '/partner.php')));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
 pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',

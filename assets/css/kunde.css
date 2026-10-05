@@ -179,7 +179,7 @@ input[type=file]{
   border:1px solid var(--linie); background:rgba(255,255,255,.02);
 }
 .nachricht.wir{
-  background:linear-gradient(135deg, rgba(200,150,62,.10), rgba(241,211,139,.05));
+  background:linear-gradient(135deg, rgba(52,98,232,.12), rgba(241,211,139,.05));
   border-color:rgba(241,211,139,.20);
 }
 .nachricht .wer{

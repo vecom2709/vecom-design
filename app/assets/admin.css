@@ -16,8 +16,8 @@
   --r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:radial-gradient(80vw 56vh at 62% -16%,rgba(52,98,232,.20),transparent 66%) fixed,var(--grund);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-  background-image:radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10),transparent 70%);min-height:100vh}
+body{background:var(--grund);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  background-image:radial-gradient(80vw 56vh at 62% -16%,rgba(52,98,232,.20),transparent 66%),radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.05),transparent 70%);background-attachment:fixed;min-height:100vh}
 a{color:inherit;text-decoration:none}
 .huelle{display:flex;min-height:100vh}
 
@@ -172,7 +172,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 
 /* Der naechste Handgriff — das Erste, was auf einer Vorgangsseite steht. */
 .dran{border:1px solid var(--linie2);border-radius:var(--r);padding:15px 17px;margin-bottom:16px;
-  background:linear-gradient(135deg,rgba(200,150,62,.16),rgba(241,211,139,.05))}
+  background:linear-gradient(135deg,rgba(52,98,232,.16),rgba(241,211,139,.05))}
 .dran h2{font-size:13px;font-weight:600;margin-bottom:7px;display:flex;gap:8px;align-items:center}
 .dran p{color:var(--dim);font-size:13.5px;line-height:1.55;margin:0 0 12px}
 .dran.wartet{background:none;border-color:var(--linie)}
@@ -228,7 +228,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .jetzt{
   display:flex; align-items:center; gap:14px; flex-wrap:wrap;
   margin:0 0 18px; padding:12px 16px; border-radius:12px;
-  background:linear-gradient(135deg, rgba(200,150,62,.16), rgba(241,211,139,.07));
+  background:linear-gradient(135deg, rgba(52,98,232,.16), rgba(241,211,139,.07));
   border:1px solid rgba(241,211,139,.28);
 }
 .jetzt--leer{
