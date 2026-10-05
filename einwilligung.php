@@ -129,15 +129,15 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
 <title><?= $h($T['titel']) ?></title>
 <style>
   :root { color-scheme: dark; }
-  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #0a0908; color: #f3eee4;
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; background: #060a16; color: #f3eee4;
          font: 17px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; padding: 16px; }
-  .k { max-width: 520px; width: 100%; background: #131110; border: 1px solid rgba(241,211,139,.18); border-radius: 18px; padding: 28px 24px; }
+  .k { max-width: 520px; width: 100%; background: #0a1123; border: 1px solid rgba(241,211,139,.18); border-radius: 18px; padding: 28px 24px; }
   .m { letter-spacing: .2em; font-weight: 700; font-size: 13px; color: #e6c47e; }
   h1 { font-size: 24px; line-height: 1.25; margin: 10px 0 12px; }
   p { color: #c9c1b3; margin: 0 0 14px; }
   label { display: block; font-size: 14px; color: #c9c1b3; margin: 12px 0 6px; }
   input[type=email], input[type=tel] { width: 100%; box-sizing: border-box; font: inherit; padding: 12px 14px; border-radius: 10px; border: 1px solid rgba(241,211,139,.3);
-         background: #0d0c0b; color: #f3eee4; }
+         background: #080d1b; color: #f3eee4; }
   .haken { display: flex; gap: 10px; align-items: flex-start; font-size: 14.5px; line-height: 1.5; color: #e9e2d5; margin: 14px 0; }
   .haken input { margin-top: 4px; width: 18px; height: 18px; flex: none; }
   button { width: 100%; min-height: 50px; border: 0; border-radius: 12px; font: 650 16px/1 system-ui, sans-serif; color: #16120b; cursor: pointer;
@@ -149,7 +149,7 @@ if (in_array($zustand, ['falsch', 'abgelaufen'], true)) { http_response_code($zu
   a { color: #e6c47e; } .klein { font-size: 13px; color: #8f887c; margin-top: 16px; }
   button:focus-visible, input:focus-visible, a:focus-visible { outline: 3px solid #f1d38b; outline-offset: 2px; }
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

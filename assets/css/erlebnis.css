@@ -21,7 +21,7 @@
    ========================================================================== */
 
 .erlebnis{
-  --c-base:#0a0908; --c-surface:#141311; --c-surface-2:#1F1C18; --c-linie:#2e281d; --c-linie-hell:#473e2c;
+  --c-base:#060a16; --c-surface:#0b1225; --c-surface-2:#101933; --c-linie:#2e281d; --c-linie-hell:#473e2c;
   --c-text:#f7f3ea; --c-dim:#c5bda6; --c-faint:#a29b90;
   --c-blue:#c8963e; --c-cyan:#f1d38b; --c-warm:#ffd9a8;
   --f-display:'Archivo',system-ui,sans-serif;
@@ -85,7 +85,7 @@
 .erlebnis .buehne{
   position:relative; margin:0 auto; overflow:hidden; isolation:isolate;
   width:100%; aspect-ratio:16/9;
-  border-radius:var(--radius); background:#12100e;
+  border-radius:var(--radius); background:#0a1021;
   border:1px solid var(--c-linie);
   touch-action:pan-y;
 }
@@ -123,7 +123,7 @@
   position:absolute; left:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; max-width:calc(100% - 15rem);
   padding:.5rem .8rem; border-radius:999px;
-  background:rgba(10,9,8,.74); backdrop-filter:blur(8px);
+  background:rgba(6,10,22,.74); backdrop-filter:blur(8px);
   font:500 .82rem/1.25 var(--f-text); color:var(--c-text);
   border:1px solid rgba(255,255,255,.08);
 }
@@ -133,12 +133,12 @@
   position:absolute; right:clamp(.6rem,1.6vw,1.1rem); bottom:clamp(.6rem,1.6vw,1.1rem); z-index:5;
   display:inline-flex; align-items:center; gap:.55rem; min-height:44px;
   padding:.6rem 1.05rem; border-radius:999px; cursor:pointer;
-  background:rgba(10,9,8,.74); backdrop-filter:blur(8px);
+  background:rgba(6,10,22,.74); backdrop-filter:blur(8px);
   border:1px solid rgba(241,211,139,.45);
   font:600 .88rem/1 var(--f-text); color:var(--c-text);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
-.erlebnis .bewegen:hover{border-color:var(--c-cyan); background:rgba(26,22,18,.86)}
+.erlebnis .bewegen:hover{border-color:var(--c-cyan); background:rgba(13,21,42,.86)}
 .erlebnis .bewegen__zeichen{
   width:16px; height:16px; border-radius:50%;
   border:2px solid var(--c-cyan); border-right-color:transparent; position:relative;
@@ -325,7 +325,7 @@
 .erlebnis .bd-etikett{
   position:absolute; left:0; top:0; will-change:transform; white-space:nowrap;
   padding:.32rem .65rem; border-radius:999px;
-  background:rgba(10,9,8,.86); border:1px solid rgba(241,211,139,.45);
+  background:rgba(6,10,22,.86); border:1px solid rgba(241,211,139,.45);
   font:600 .84rem/1.1 var(--f-text); color:var(--c-text); letter-spacing:.01em;
 }
 @media (max-width:620px){ .erlebnis .bd-etikett{font-size:.74rem; padding:.24rem .5rem} }
@@ -351,7 +351,7 @@
   position:absolute; left:50%; bottom:.9rem; transform:translateX(-50%);
   display:inline-flex; align-items:center; gap:.5rem;
   padding:.5rem .85rem; border-radius:999px;
-  background:rgba(10,9,8,.78); color:var(--c-text); font:500 .84rem/1 var(--f-text);
+  background:rgba(6,10,22,.78); color:var(--c-text); font:500 .84rem/1 var(--f-text);
   transition:opacity var(--t-move);
 }
 .erlebnis .dreh__hinweis i{width:22px; height:2px; background:var(--c-cyan); position:relative}
@@ -448,7 +448,7 @@
   display:flex; gap:.2rem; width:max-content; max-width:100%;
   margin:clamp(1.4rem,3.5vh,2.2rem) auto 0; padding:.3rem;
   overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain;
-  background:rgba(10,9,8,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+  background:rgba(6,10,22,.8); -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
   border:1px solid var(--c-linie-hell); border-radius:999px;
   transition:top 320ms var(--e-standard);
 }
@@ -523,7 +523,7 @@
   border:1px solid rgba(var(--gold),.42); border-radius:1em;
   background:
     linear-gradient(180deg, rgba(255,240,210,.07) 0%, rgba(255,240,210,0) 22%),
-    linear-gradient(170deg, rgba(34,29,24,.94) 0%, rgba(15,13,11,.97) 55%, rgba(9,8,7,.98) 100%);
+    linear-gradient(170deg, rgba(16,27,53,.94) 0%, rgba(8,13,28,.97) 55%, rgba(6,9,21,.98) 100%);
   box-shadow: inset 0 1px 0 rgba(255,236,200,.18), inset 0 0 0 1px rgba(0,0,0,.4), 0 18px 40px -18px rgba(0,0,0,.9);
   transition:border-color var(--t-ui), box-shadow var(--t-ui);
 }
@@ -537,7 +537,7 @@
 .erlebnis .demo-kachel__bild img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:transform 700ms var(--e-standard)}
 /* Die Kartenfotos sind bereits im selben Abendlicht gerechnet (assets/img/erlebnis/karten, tools/karten-web.py) -- kein CSS-Filter darüber. */
 .erlebnis .demo-kachel__bild::after{content:""; position:absolute; inset:0; pointer-events:none;
-  background:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(8,7,6,.55) 100%), linear-gradient(115deg, rgba(255,240,210,.10) 0%, rgba(255,240,210,0) 38%)}
+  background:linear-gradient(180deg, rgba(0,0,0,0) 55%, rgba(5,9,19,.55) 100%), linear-gradient(115deg, rgba(255,240,210,.10) 0%, rgba(255,240,210,0) 38%)}
 .erlebnis .demo-kachel__text{display:flex; flex-direction:column; gap:.32em; padding:.35em .45em .2em; flex:1}
 .erlebnis .demo-kachel__kopf{display:flex; align-items:center; gap:.5em; color:var(--c-cyan)}
 .erlebnis .demo-kachel__icon{display:inline-flex; flex:none}
@@ -592,7 +592,7 @@
 /* Tiefe: hintere Karten dunkler, nie unscharf */
 .erlebnis .ist-karussell .demos__reihe > li::after{
   content:""; position:absolute; inset:0; border-radius:1em; pointer-events:none; z-index:3;
-  background:#060504; opacity:var(--dunkel,0);
+  background:#040710; opacity:var(--dunkel,0);
 }
 /* warmer Schein unter der vorderen Karte -- wandert mit, blinkt nie */
 .erlebnis .ist-karussell .demos__reihe > li::before{
@@ -616,20 +616,20 @@
   background:
     radial-gradient(closest-side, transparent 0 81.5%, rgba(241,211,139,.5) 81.8%, transparent 82.3% 95.6%, rgba(241,211,139,.85) 95.9%, rgba(241,211,139,.15) 97%, transparent 97.6%),
     radial-gradient(42% 26% at 50% 96%, rgba(241,211,139,.42), rgba(241,211,139,0) 70%),
-    radial-gradient(closest-side, transparent 0 80%, rgba(22,19,15,.97) 80.4% 97.4%, transparent 97.8%);
+    radial-gradient(closest-side, transparent 0 80%, rgba(11,18,38,.97) 80.4% 97.4%, transparent 97.8%);
   -webkit-mask:radial-gradient(closest-side, transparent 0 79.6%, #000 80%); mask:radial-gradient(closest-side, transparent 0 79.6%, #000 80%);
 }
 .erlebnis .ist-karussell .karussell__kante{
   position:absolute; inset:0; border-radius:50%; transform:translateZ(-14px);
   background:radial-gradient(closest-side, transparent 0 96.6%, rgba(241,211,139,.55) 97%, rgba(120,90,40,.25) 98.4%, transparent 99%),
              radial-gradient(40% 24% at 50% 98%, rgba(241,211,139,.3), rgba(241,211,139,0) 70%),
-             radial-gradient(closest-side, transparent 0 80%, rgba(8,7,6,.95) 80.4% 98.6%, transparent 99%);
+             radial-gradient(closest-side, transparent 0 80%, rgba(5,9,19,.95) 80.4% 98.6%, transparent 99%);
 }
 /* Pfeile links und rechts, auf Kartenmitte */
 .erlebnis .ist-karussell .karussell__pfeil{
   position:absolute; top:calc(var(--kh,430px) * .82 + 1rem); z-index:5; transform:translateY(-50%);
   width:56px; height:56px; border-radius:50%; display:grid; place-items:center; cursor:pointer;
-  color:var(--c-cyan); background:radial-gradient(circle at 50% 30%, rgba(40,34,26,.92), rgba(10,9,8,.94));
+  color:var(--c-cyan); background:radial-gradient(circle at 50% 30%, rgba(40,34,26,.92), rgba(6,10,22,.94));
   border:1px solid rgba(241,211,139,.55); box-shadow:inset 0 1px 0 rgba(255,236,200,.18), 0 10px 30px -10px rgba(0,0,0,.9);
   transition:border-color var(--t-ui), background var(--t-ui);
 }
@@ -641,12 +641,12 @@
 .erlebnis .karussell__kategorien{
   display:flex; gap:.4rem; justify-content:safe center; flex-wrap:nowrap; margin:.4rem auto 0; width:max-content; max-width:100%;
   padding:.45rem; border-radius:999px; overflow-x:auto; scrollbar-width:none;
-  background:linear-gradient(180deg, rgba(26,22,18,.72), rgba(10,9,8,.8)); border:1px solid rgba(241,211,139,.16);
+  background:linear-gradient(180deg, rgba(13,21,42,.72), rgba(6,10,22,.8)); border:1px solid rgba(241,211,139,.16);
 }
 .erlebnis .karussell__kategorien::-webkit-scrollbar{display:none}
 .erlebnis .karussell__kat{
   flex:none; display:inline-flex; align-items:center; gap:.55rem; min-height:44px; padding:0 .85rem; border-radius:999px; cursor:pointer;
-  border:1px solid rgba(241,211,139,.28); background:rgba(10,9,8,.55); color:var(--c-text);
+  border:1px solid rgba(241,211,139,.28); background:rgba(6,10,22,.55); color:var(--c-text);
   font:500 .86rem/1 var(--f-text); white-space:nowrap; transition:background var(--t-ui), border-color var(--t-ui), color var(--t-ui);
 }
 .erlebnis .karussell__kat svg{width:19px; height:19px; color:var(--c-cyan)}
@@ -672,7 +672,7 @@
 .erlebnis .demo-zu{
   display:inline-flex; align-items:center; gap:.4rem; min-height:40px; padding:0 1rem; margin:0 0 .9rem;
   position:relative; z-index:2;
-  border:1px solid var(--c-linie-hell); border-radius:999px; background:rgba(10,9,8,.7); cursor:pointer;
+  border:1px solid var(--c-linie-hell); border-radius:999px; background:rgba(6,10,22,.7); cursor:pointer;
   font:500 .9rem/1 var(--f-text); color:var(--c-dim); transition:color var(--t-ui), border-color var(--t-ui);
 }
 .erlebnis .demo-zu:hover{color:var(--c-text); border-color:rgba(241,211,139,.45)}
@@ -700,7 +700,7 @@
 .erlebnis .kp-masse{position:absolute; inset:0; pointer-events:none; overflow:hidden}
 .erlebnis .kp-mass{
   position:absolute; left:0; top:0; padding:.18rem .42rem; border-radius:4px; white-space:nowrap;
-  background:rgba(10,9,8,.8); color:var(--c-text); font:600 .74rem/1.1 var(--f-text); font-variant-numeric:tabular-nums;
+  background:rgba(6,10,22,.8); color:var(--c-text); font:600 .74rem/1.1 var(--f-text); font-variant-numeric:tabular-nums;
   transition:opacity var(--t-ui);
 }
 .erlebnis .kp-mass--summe{background:var(--c-text); color:#0a0908; font-size:.8rem}
@@ -709,7 +709,7 @@
 .erlebnis .kp-ansicht button[disabled]{opacity:.45; cursor:default}
 .erlebnis .kp-hinweis:empty{display:none}
 .erlebnis .kp-hinweis{margin:.4rem 0 0; color:var(--c-warm); font-size:.9rem}
-.erlebnis .kp-plan-box{position:absolute; inset:0; z-index:4; background:#12100e; display:grid; place-items:center; padding:1rem}
+.erlebnis .kp-plan-box{position:absolute; inset:0; z-index:4; background:#0a1021; display:grid; place-items:center; padding:1rem}
 .erlebnis .kp-plan{width:100%; height:100%}
 .erlebnis .chips button .kp-form{width:24px; height:16px; margin-right:.5rem; fill:currentColor; opacity:.9}
 @media (max-width:700px){
@@ -808,7 +808,7 @@
 /* ========================================================== KUNDENABLAUF
    „So sieht es Ihre Kundschaft" -- Vorführung des Endkunden-Schritts. */
 .erlebnis .ka{padding:0; border:0; background:transparent; max-width:min(34rem, calc(100vw - 2rem)); width:100%; color:var(--c-text)}
-.erlebnis .ka::backdrop{background:rgba(8,7,5,.72); backdrop-filter:blur(4px)}
+.erlebnis .ka::backdrop{background:rgba(5,8,19,.72); backdrop-filter:blur(4px)}
 .erlebnis .ka[open]{animation:demo-auf 320ms var(--e-standard)}
 .erlebnis .ka-karte{position:relative; display:flex; flex-direction:column; gap:1rem; padding:clamp(1.2rem,3vw,1.8rem); border-radius:20px; background:var(--c-surface); border:1px solid var(--c-linie-hell); box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .erlebnis .ka-zu{position:absolute; top:.6rem; right:.6rem; width:44px; height:44px; border-radius:50%; border:0; background:transparent; color:var(--c-dim); font-size:1.5rem; cursor:pointer}
@@ -854,6 +854,6 @@
 /* AR (A2) */
 .erlebnis .ar-knopf{align-self:flex-start; display:inline-flex; align-items:center; gap:.5rem}
 .erlebnis .ar-knopf::before{content:""; width:14px; height:14px; border:2px solid currentColor; border-radius:3px; transform:rotate(45deg) scale(.8)}
-.ar-ueber{position:fixed; inset:auto 0 0 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom)); background:rgba(10,9,8,.72); color:#fff; font:500 1rem/1.3 system-ui, sans-serif}
+.ar-ueber{position:fixed; inset:auto 0 0 0; display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1rem 1.2rem calc(1rem + env(safe-area-inset-bottom)); background:rgba(6,10,22,.72); color:#fff; font:500 1rem/1.3 system-ui, sans-serif}
 .ar-ueber p{margin:0}
 .ar-ueber button{min-height:44px; padding:0 1.1rem; border-radius:999px; border:1px solid rgba(255,255,255,.4); background:transparent; color:#fff; font:600 .95rem/1 system-ui, sans-serif}

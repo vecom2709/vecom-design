@@ -23,7 +23,7 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
 if ($p === null) {
     http_response_code(404);
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vecom Design</title>'
-       . '<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#b4ada2;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center">'
+       . '<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#060a16;color:#b4ada2;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center">'
        . '<p>Link non valido · Link ungültig · Invalid link</p></body>';
     exit;
 }
@@ -64,7 +64,7 @@ $hier = '/stimme.php?' . http_build_query(['c' => $p['code'], 's' => (string) $_
   .gut{border:1px solid rgba(52,211,155,.5);border-radius:12px;padding:14px;color:#34d39b}
   .schlecht{border:1px solid rgba(239,107,91,.5);border-radius:12px;padding:12px 14px;color:#ef6b5b}
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>

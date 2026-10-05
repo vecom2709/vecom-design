@@ -30,7 +30,7 @@ if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
 if ($b === null) {
     http_response_code(404);
     echo '<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Vecom Design</title>'
-       . '<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#0a0908;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center">'
+       . '<body style="margin:0;min-height:100vh;display:grid;place-items:center;background:#060a16;color:#c9c1b3;font:17px/1.5 system-ui,sans-serif;padding:16px;text-align:center">'
        . '<p>Questo rapporto non è (più) disponibile. · Dieser Bericht ist nicht (mehr) verfügbar.<br><a style="color:#f1d38b" href="/analisi.php">vecom-design.it/analisi.php</a></p>';
     exit;
 }
@@ -78,7 +78,7 @@ $wb = ['kc' => $b['kc'], 'sprache' => $sprache, 'token' => $b['token'], 'firma' 
 <title><?= $h($T['titel'] . ': ' . (string) ($b['kc']['host'] ?? '')) ?> — Vecom Design</title>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <style>
-  body{margin:0;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#0a0908;color:#f7f3ea;font:16px/1.6 'Inter',system-ui,sans-serif}
+  body{margin:0;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#060a16;color:#f7f3ea;font:16px/1.6 'Inter',system-ui,sans-serif}
   main{max-width:760px;margin:0 auto;padding:28px 16px 56px}
   .marke{display:inline-flex;font:800 14px/1 'Archivo',sans-serif;letter-spacing:.08em;color:#f7f3ea;text-decoration:none;margin-bottom:26px}.marke b{color:#f1d38b}
   h1{font:800 clamp(26px,6vw,38px)/1.12 'Archivo',sans-serif;margin:0 0 6px;overflow-wrap:anywhere}

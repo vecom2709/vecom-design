@@ -92,8 +92,8 @@ $preisLink = '/zugang.php?lang=' . $sprache;
 <meta property="og:image" content="<?= $h($basis) ?>/assets/img/og-image.jpg"><meta property="og:url" content="<?= $h($kanon) ?>">
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <style>
-  html{background:#0a0908}
-  body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#0a0908;color:#f7f3ea;font:17px/1.6 'Inter',system-ui,sans-serif}
+  html{background:#060a16}
+  body{margin:0;min-height:100vh;background:radial-gradient(1200px 600px at 50% -200px,rgba(241,211,139,.09),transparent 70%),#060a16;color:#f7f3ea;font:17px/1.6 'Inter',system-ui,sans-serif}
   main{max-width:780px;margin:0 auto;padding:28px 16px 44px}
   a{color:#f1d38b}
   .marke{display:inline-flex;font:800 14px/1 'Archivo',sans-serif;letter-spacing:.08em;color:#f7f3ea;text-decoration:none;margin-bottom:26px}.marke b{color:#f1d38b}

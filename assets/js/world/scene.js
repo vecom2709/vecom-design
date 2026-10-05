@@ -36,8 +36,11 @@ const DEEP = 0x070605;
    ========================================================================== */
 const THEMEN = {
   dark: {
-    grund: ['#191510', '#0E0C0A', '#070605'],
-    nebelFarbe: 0x070605, nebelDichte: 0.032,
+    /* Nachtblau statt Braun-Schwarz (05.10.2026, Uwe: „edleres Blau, auch auf der Hauptseite“).
+       Nur Hintergrund und Nebel; Umgebung, Lichtpaneele und Boden bleiben warm,
+       damit das Gold des V nicht blaustichig spiegelt. */
+    grund: ['#0c1428', '#070c1a', '#050811'],
+    nebelFarbe: 0x050811, nebelDichte: 0.032,
     envGrund: 0x070605,
     /* [Breite, Hoehe, Farbe, Staerke, Position, Drehung] */
     panels: [

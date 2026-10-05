@@ -107,7 +107,7 @@ $tage = explode(',', $T('tage'));
   .feld{margin:0 0 13px}
   label.t{display:block;font-size:13.5px;color:var(--d);margin:0 0 5px;font-weight:600}
   label.t small{font-weight:400;color:var(--l)}
-  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;min-height:48px;padding:11px 13px;border-radius:11px;border:1px solid var(--li2);background:#0f0d0a;color:var(--t);font:inherit}
+  input[type=text],input[type=email],input[type=tel],select,textarea{width:100%;min-height:48px;padding:11px 13px;border-radius:11px;border:1px solid var(--li2);background:#080d1c;color:var(--t);font:inherit}
   textarea{min-height:80px}
   input:focus,select:focus,textarea:focus{outline:2px solid var(--a);outline-offset:1px;border-color:transparent}
   .zwei{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}
@@ -120,8 +120,8 @@ $tage = explode(',', $T('tage'));
   .reihe{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px}
   @media (max-width:520px){ .zwei{grid-template-columns:1fr} form.karte,.karte{padding:16px 14px} }
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
-  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#141311;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#1f1c18;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  @supports (appearance: base-select) {  select:not([multiple]):not([size]),select:not([multiple]):not([size])::picker(select){appearance:base-select}  select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}  select:not([multiple]):not([size])::picker-icon{color:#b4ada2;transition:rotate .15s}  select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}  ::picker(select){background:#0b1225;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;    box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}  select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;gap:8px;letter-spacing:0;text-transform:none}  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#101933;color:#fff;outline:none}  select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}  select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}  select:not([multiple]):not([size]) option::checkmark{color:currentColor}}
 </style>
 </head>
 <body>

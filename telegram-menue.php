@@ -173,7 +173,7 @@ $knopf = static function (string $text, string $href, bool $haupt = false, bool 
 <title>Vecom Design</title>
 <script src="https://telegram.org/js/telegram-web-app.js?59"></script>
 <style>
-  :root{--grund:#0e0c09;--flaeche:#17140f;--linie:#2c261b;--text:#efe6d2;--leise:#a99a7c;--gold:#d9b46a;--gold2:#f3d79a;--rot:#ef6b5b;--gelb:#e8b84a}
+  :root{--grund:#080d1b;--flaeche:#0c1327;--linie:#2c261b;--text:#efe6d2;--leise:#a99a7c;--gold:#d9b46a;--gold2:#f3d79a;--rot:#ef6b5b;--gelb:#e8b84a}
   *{box-sizing:border-box}
   html,body{margin:0;background:var(--grund);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
   main{max-width:560px;margin:0 auto;padding:18px 16px 40px}
@@ -189,7 +189,7 @@ $knopf = static function (string $text, string $href, bool $haupt = false, bool 
   .text b{color:var(--gold2)}
   form{display:grid;gap:10px;margin:0 0 14px}
   label{font-size:14px;color:var(--leise)}
-  input[type=text],input[type=email],textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--linie);background:#0b0a07;color:var(--text);font:inherit}
+  input[type=text],input[type=email],textarea{width:100%;padding:12px;border-radius:12px;border:1px solid var(--linie);background:#060b17;color:var(--text);font:inherit}
   textarea{min-height:90px;resize:vertical}
   .ds{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;color:var(--leise)} .ds input{margin-top:3px;width:20px;height:20px;flex:0 0 auto}
   .ds a{color:var(--gold)}
@@ -203,7 +203,7 @@ $knopf = static function (string $text, string $href, bool $haupt = false, bool 
   .sprachen a{padding:5px 10px;border-radius:999px;border:1px solid var(--linie);color:var(--leise);text-decoration:none;font-size:13px;font-weight:600}
   .sprachen a.an{color:#16120b;background:var(--gold);border-color:transparent}
   /* Ausgewählt lesbar (04.10.2026, siehe app/assets/admin.css) */
-  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#141311;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
+  :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}select option,select optgroup{background-color:#0b1225;color:#f7f3ea}select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 </style>
 </head>
 <body>
