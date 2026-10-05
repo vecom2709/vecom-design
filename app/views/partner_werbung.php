@@ -136,7 +136,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
 
     <?php /* Check-Knopf (28.09.2026, W2): die kostenlose Analyse auf der Website des Partners. */
           $akW = ['it' => ['Analisi gratuita sul suo sito', 'Inserisca questo pulsante o riquadro sul suo sito (associazione, studio, negozio). Chi lo usa vede subito l’analisi del proprio sito — ed è registrato a suo nome.', 'Pulsante', 'Riquadro'],
-                  'de' => ['Kostenlose Analyse auf Ihrer Website', 'Bauen Sie diesen Knopf oder Kasten auf Ihrer Website ein (Verein, Büro, Geschäft). Wer ihn nutzt, sieht sofort die Analyse seiner eigenen Website — und wird Ihnen zugeordnet.', 'Knopf', 'Kasten'],
+                  'de' => ['Kostenlose Analyse auf deiner Website', 'Bau diesen Knopf oder Kasten auf deiner Website ein (Verein, Büro, Geschäft). Wer ihn nutzt, sieht sofort die Analyse seiner eigenen Website — und wird dir zugeordnet.', 'Knopf', 'Kasten'],
                   'en' => ['Free analysis on your website', 'Put this button or box on your website (club, office, shop). Anyone using it sees the analysis of their own website right away — and is credited to you.', 'Button', 'Box']][$sprache] ?? null;
           if ($akW): foreach (['knopf' => $akW[2], 'kasten' => $akW[3]] as $akArt => $akName): $akCode = PartnerWerbung::analyseKnopf($p, $sprache, $akArt); ?>
       <?php if ($akArt === 'knopf'): ?><h3 style="font-size:15px;margin:20px 0 4px"><?= $h($akW[0]) ?></h3><p class="klein" style="margin:0"><?= $h($akW[1]) ?></p><?php endif; ?>

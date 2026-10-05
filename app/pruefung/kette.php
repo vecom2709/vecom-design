@@ -14138,7 +14138,7 @@ Partner::stripeFehlerMelden($slPanne, $slRx, 'Partner-Konto bei Stripe nicht ein
 $slMeld = (string) Db::wert("SELECT body FROM notifications WHERE type = 'partner_stripe_fehler' ORDER BY id DESC LIMIT 1", [], '');
 pruefe('Technischer Fehler: der Partner liest nur „… konnte nicht gestartet werden …“, Vecom den Grund -- ohne Schlüssel',
     !$slRx['ok'] && Partner::stripeGrundOeffentlich($slRx) === 'konto_start_fehler'
-    && Texte::h(Texte::PARTNER['konto_start_fehler'], 'de') === 'Die Stripe-Verifizierung konnte nicht gestartet werden. Bitte versuchen Sie es erneut.'
+    && Texte::h(Texte::PARTNER['konto_start_fehler'], 'de') === 'Die Stripe-Verifizierung konnte nicht gestartet werden. Bitte versuch es erneut.'
     && str_contains($slMeld, 'Internal error') && !str_contains($slMeld, 'ABCDEF123'), $slMeld);
 
 /* Stand der Verifizierung: Abruf und Webhook */
@@ -14242,9 +14242,9 @@ $slF2 = $slNeu('Greta Gleich', 'de');
 Db::run("UPDATE partner SET land = 'DE', stripe_konto = 'acct_greta', stripe_land = 'DE', stripe_bereit = 1, stripe_fehlt = 0, stripe_status_am = NOW() WHERE id = ?", [(int) $slF2['id']]);
 $slAuf = [];
 $slWg = Partner::landWechseln(Partner::laden((int) $slF2['id']), 'DE', 'x');
-pruefe('… gleiches Land, Konto vollständig → „Das ist bereits das Land Ihres Stripe-Kontos.“, kein Stripe-Aufruf',
+pruefe('… gleiches Land, Konto vollständig → „Das ist bereits das Land deines Stripe-Kontos.“, kein Stripe-Aufruf',
     !$slWg['ok'] && Partner::stripeGrundOeffentlich($slWg) === 'konto_land_gleich' && $slAuf === []
-    && Texte::PARTNER['konto_land_gleich']['de'] === 'Das ist bereits das Land Ihres Stripe-Kontos.');
+    && Texte::PARTNER['konto_land_gleich']['de'] === 'Das ist bereits das Land deines Stripe-Kontos.');
 /* Vecom stellt bewusst um (Akte, 28.09.2026, Uwe: „mache jetzt automatisch“) */
 $slUm = $slNeu('Ulli Umstellen', 'de');
 Db::run("UPDATE partner SET land = NULL, stripe_konto = 'acct_ulli', stripe_land = 'IT', stripe_bereit = 1, stripe_status_am = NOW() WHERE id = ?", [(int) $slUm['id']]);
@@ -16546,24 +16546,66 @@ Telegram::$netz = null;
    Erlaubt bleibt das Du nur dort, wo es ausdrücklich gewählt wird: als
    Antwortmöglichkeit „Mit Du — locker“ (wie der Kunde SEINE Kunden anspricht)
    und in der als „unter Bekannten (du)“ beschrifteten Partnervorlage. */
-abschnitt('Alles auf Sie');
+abschnitt('Alles auf Sie — außer im Partnerbereich');
+/* 05.10.2026, Uwe: „du“ im ganzen Partnerbereich. Welche Texte den Partner selbst
+   ansprechen, steht in Texte::ANREDE_DU; alles andere bleibt gesiezt — auch was der
+   Partner an Betriebe, Besucher und Kunden schickt. Beide Richtungen werden geprüft. */
 $sieDu = '/(?<![\p{L}])(du|Du|dich|Dich|dir|Dir|dein|Dein|deine|Deine|deinen|Deinen|deinem|Deinem|deiner|Deiner|deines|Deines)(?![\p{L}])/u';
+// Höfliches Sie: jede Form von Ihr/Ihnen, „Sie“ mitten im Satz (am Satzanfang kann es „sie“ sein: „Sie schützt die Daten“).
+$duSie = '/(?<![\p{L}])(Ihnen|Ihr|Ihre|Ihren|Ihrem|Ihrer|Ihres)(?![\p{L}])|(?<=[\p{Ll},;)]\s)Sie(?![\p{L}])/u';
 $sieErlaubt = ['Mit Du — locker', 'Kurz, unter Bekannten (du)'];
-$sieFunde = [];
-$sieSuchen = static function ($wert, string $pfad) use (&$sieSuchen, &$sieFunde, $sieDu, $sieErlaubt): void {
+$sieFunde = []; $duFunde = []; $duZahl = 0;
+$sieText = static function (string $t, string $pfad) use (&$sieFunde, &$duFunde, &$duZahl, $sieDu, $duSie, $sieErlaubt): void {
+    $schluessel = (string) preg_replace('/^Texte::/', '', $pfad);
+    if (str_starts_with($pfad, 'Texte::') && Texte::duzt($schluessel)) {
+        $duZahl++;
+        // In Anführungszeichen darf der Partner andere siezen („Wie finden Sie neue Kunden?“).
+        if (preg_match($duSie, (string) preg_replace('/„[^“]*“/u', '„“', $t))) { $duFunde[] = $schluessel; }
+        return;
+    }
+    $bekannte = str_starts_with($t, 'Hallo [Name],') && str_contains($t, 'mein Tipp für deine Website');
+    if (!in_array($t, $sieErlaubt, true) && !$bekannte && preg_match($sieDu, $t)) { $sieFunde[] = $pfad; }
+};
+$sieSuchen = static function ($wert, string $pfad) use (&$sieSuchen, $sieText): void {
     if (is_array($wert)) {
-        if (isset($wert['de']) && is_string($wert['de'])) {
-            $t = $wert['de'];
-            $bekannte = str_starts_with($t, 'Hallo [Name],') && str_contains($t, 'mein Tipp für deine Website');
-            if (!in_array($t, $sieErlaubt, true) && !$bekannte && preg_match($sieDu, $t)) { $sieFunde[] = $pfad; }
+        if (isset($wert['de']) && is_string($wert['de'])) { $sieText($wert['de'], $pfad); }
+        // Mails: 'de' => [Betreff, Text]
+        if (isset($wert['de']) && is_array($wert['de']) && array_is_list($wert['de'])) {
+            foreach ($wert['de'] as $i => $t) { if (is_string($t)) { $sieText($t, $pfad . '.de.' . $i); } }
         }
-        foreach ($wert as $k => $v) { $sieSuchen($v, $pfad . '.' . $k); }
+        foreach ($wert as $k => $v) { if ($k !== 'de' || !array_is_list((array) $v)) { $sieSuchen($v, $pfad . '.' . $k); } }
     }
 };
 foreach (['Texte', 'Fragen', 'Baukasten'] as $kl) {
     foreach ((new ReflectionClass($kl))->getConstants() as $n => $w) { $sieSuchen($w, $kl . '::' . $n); }
 }
-pruefe('Keine deutschen Kundentexte mit Du (außer der ausdrücklichen Du-Wahl)', $sieFunde === [], implode(', ', array_slice($sieFunde, 0, 5)));
+pruefe('Keine deutschen Kundentexte mit Du (außer der ausdrücklichen Du-Wahl und dem Partnerbereich)', $sieFunde === [], implode(', ', array_slice($sieFunde, 0, 5)));
+pruefe('Partnerbereich duzt: kein „Sie/Ihr/Ihnen“ in Texten an den Partner (' . $duZahl . ' Texte)', $duFunde === [] && $duZahl > 1000, implode(', ', array_slice($duFunde, 0, 5)));
+pruefe('Anrede-Liste: Vorlagen an Dritte bleiben gesiezt, Reiter/Mails an den Partner duzen',
+    Texte::duzt('PARTNER_REITER.reiter.start.satz') && Texte::duzt('MARKETINGCENTER.satz') && Texte::duzt('MAILS.partner_verdient.de.1')
+    && Texte::duzt('PARTNER_SEITE.ga_fertig') && Texte::duzt('PARTNER.geraet_text')
+    && !Texte::duzt('PARTNER.w_post1') && !Texte::duzt('PARTNER_SEITE.ablauf.0.0') && !Texte::duzt('PARTNER_WERBUNG.vorlagen.whatsapp.persoenlich.text')
+    && !Texte::duzt('MAILS.partner_vorstellung.de.1') && !Texte::duzt('PARTNER_LANDE.lead') && !Texte::duzt('PARTNER_CHECK.empf')
+    && !Texte::duzt('PARTNER_ERFOLG.k_text') && !Texte::duzt('PARTNER_STIMMEN.lead') && !Texte::duzt('KUNDE.titel'));
+// Migration 175: Produkttexte im Marketing Center duzen — nur der wörtliche alte Satz wird ersetzt.
+$duVk = (string) Db::wert("SELECT text_de FROM wm_produkte WHERE vorlage = 'visitenkarte'", [], '');
+$duAlle = Db::all("SELECT vorlage, text_de FROM wm_produkte");
+Db::run("UPDATE wm_produkte SET text_de = 'Mit Ihrem Namen, Ihrer Partner-ID und dem QR-Code zu Ihrer Seite.' WHERE vorlage = 'visitenkarte'");
+Db::run("UPDATE wm_produkte SET text_de = 'Uwes eigener Text für Ihre Tasse.' WHERE vorlage = 'tasse_11'");
+foreach (array_filter(array_map('trim', preg_split('/;\s*\n/', (string) preg_replace('/^--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/175_partner_du.sql'))))) as $sql) { Db::run($sql); }
+pruefe('Migration 175: Produkttexte duzen den Partner, selbst geänderte Texte bleiben',
+    $duVk === 'Mit deinem Namen, deiner Partner-ID und dem QR-Code zu deiner Seite.'
+    && !array_filter($duAlle, static fn($z) => preg_match('/\b(Ihr|Ihre|Ihrem|Ihrer|Ihren|Ihnen)\b/u', (string) $z['text_de']))
+    && Db::wert("SELECT text_de FROM wm_produkte WHERE vorlage = 'visitenkarte'") === 'Mit deinem Namen, deiner Partner-ID und dem QR-Code zu deiner Seite.'
+    && Db::wert("SELECT text_de FROM wm_produkte WHERE vorlage = 'tasse_11'") === 'Uwes eigener Text für Ihre Tasse.', $duVk);
+foreach ($duAlle as $z) { Db::run('UPDATE wm_produkte SET text_de = ? WHERE vorlage = ?', [$z['text_de'], $z['vorlage']]); }
+require_once $wurzel . '/src/MkPartnerBeitraege.php';
+pruefe('Partnerbereich ohne Sie auch außerhalb von Texte: 3D-Galerie und fertige Beiträge duzen',
+    !preg_match('/\b(Ihr|Ihre|Ihrem|Ihrer|Ihren|Ihnen|Ihres)\b|[a-z] Sie\b/u', implode(' ', array_column(MkMedium::GALERIE_TEXTE, 'de')))
+    && str_contains(implode(' ', array_column(MkPartnerBeitraege::TEXTE, 'de')), 'dein Link steckt schon drin'));
+pruefe('Partner-Mails duzen (de), Vorstellung beim Kunden siezt',
+    str_starts_with(Texte::MAILS['partner_verdient']['de'][1], 'Hallo {name},') && str_contains(Texte::MAILS['partner_verdient']['de'][1], 'Du hast {betrag} Provision verdient')
+    && str_contains(Texte::MAILS['partner_vorstellung']['de'][1], 'dass Sie über eine neue Website nachdenken'));
 $sieMail = (string) file_get_contents($wurzel . '/src/Mail.php');
 pruefe('Die Fußzeile jeder Mail siezt (de) und nutzt Lei (it)',
     str_contains($sieMail, 'Sie erhalten diese E-Mail, weil wir an Ihrem Projekt zusammenarbeiten.') && str_contains($sieMail, 'al suo progetto'));
@@ -22418,9 +22460,10 @@ foreach (Texte::MARKETINGCENTER as $gsK => $gsV) {
     $gsListe = in_array($gsK, ['b', 'bs', 'dig', 'd_status', 'linien', 'linien_s'], true) ? $gsV : [$gsV];
     foreach ($gsListe as $gsT) { foreach (['it', 'de', 'en'] as $gsL) { $gsTexteOk = $gsTexteOk && trim((string) ($gsT[$gsL] ?? '')) !== ''; } }
 }
-pruefe('Alle Texte des Marketingcenters dreisprachig, Leitsatz duzt (Markenclaim), der Rest siezt',
+pruefe('Alle Texte des Marketingcenters dreisprachig, Leitsatz und Rest duzen (seit 05.10.2026 der ganze Partnerbereich)',
     $gsTexteOk && Texte::MARKETINGCENTER['claim']['de'] === 'DEIN MARKETING. DEINE REICHWEITE. DEIN VECOM DESIGN.'
-    && !preg_match('~\b(du|dein|deine|dich|dir)\b~iu', Texte::MARKETINGCENTER['satz']['de'] . Texte::MARKETINGCENTER['bald_satz']['de'] . Texte::MARKETINGCENTER['e_satz']['de']));
+    && !preg_match('~\b(Sie|Ihr|Ihre|Ihnen|Ihren|Ihrem|Ihrer)\b~u', Texte::MARKETINGCENTER['satz']['de'] . Texte::MARKETINGCENTER['bald_satz']['de'] . Texte::MARKETINGCENTER['e_satz']['de'])
+    && str_contains(Texte::MARKETINGCENTER['satz']['de'], 'womit du Vecom Design zeigst'));
 pruefe('Bereich je Produkt: eigene Angabe vor Kategorie, Unbekanntes fällt auf die Kategorie bzw. Print; Roll-up per Migration bei Events',
     Marketingcenter::bereich(null, 'visitenkarten') === 'print' && Marketingcenter::bereich(null, 'aufkleber') === 'pos'
     && Marketingcenter::bereich('event', 'aufsteller') === 'event' && Marketingcenter::bereich('quatsch', 'textil') === 'textil'

@@ -29,7 +29,7 @@ final class MkPartnerBeitraege
     public const TEXTE = [
         'titel'   => ['it' => 'Post pronti di Vecom', 'de' => 'Fertige Beiträge von Vecom', 'en' => 'Ready-made posts from Vecom'],
         'text'    => ['it' => 'Immagine e testo pronti, con il suo link già dentro: li pubblichi o li inoltri così. Ogni clic conta per Lei.',
-                      'de' => 'Bild und Text fertig, Ihr Link steckt schon drin: so posten oder weiterleiten. Jeder Klick zählt für Sie.',
+                      'de' => 'Bild und Text fertig, dein Link steckt schon drin: so posten oder weiterleiten. Jeder Klick zählt für dich.',
                       'en' => 'Image and text ready, your link already inside: post or forward them as they are. Every click counts for you.'],
         'bild'    => ['it' => 'Scarica immagine', 'de' => 'Bild laden', 'en' => 'Download image'],
         'whatsapp' => ['it' => 'Su WhatsApp', 'de' => 'Per WhatsApp', 'en' => 'On WhatsApp'],
