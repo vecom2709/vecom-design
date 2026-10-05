@@ -255,6 +255,12 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
             $ccFotoOk ? (string) $ccF['tmp_name'] : null, $ccFotoOk ? (int) $ccF['size'] : 0);
         header('Location: ' . $ccZurueck(['ok' => 'problem', 'grund' => 'problem_grund', 'foto' => 'problem_foto'][$ccR] ?? 'problem_grund'), true, 303); exit;
     }
+    /* Neu von Vecom (Phase 7b-2): Meldung ausblenden — nur die eigene (PartnerNews prüft die Partner-ID). */
+    if ($ccTat === 'news_weg') {
+        require_once __DIR__ . '/app/src/PartnerNews.php';
+        if ($ccCsrf) { PartnerNews::gelesen((int) $p['id'], (int) ($_POST['news'] ?? 0)); }
+        header('Location: ' . $selbst(['cc' => 1]), true, 303); exit;
+    }
     /* SUPPORT (Phase 7b, 05.10.2026): Anliegen eröffnen oder beantworten — nur eigene Tickets, Bezug nur auf
        eigene Kontakte/Bestellungen (PartnerTicket prüft beides). Bei Fehler bleibt das Eingegebene stehen (PRG sonst). */
     $ccSupFehler = ''; $ccSupPost = null;

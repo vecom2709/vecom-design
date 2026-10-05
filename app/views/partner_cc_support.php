@@ -41,13 +41,53 @@ $suStand = static fn(string $st): string => '<span class="cc-stufe tk-' . htmlsp
     </form>
   </section>
 <?php else: $suListe = PartnerTicket::liste($suPid); $suBez = PartnerTicket::bezugAuswahl($suPid);
+  /* Erst suchen (Phase 7b-2): Academy (Academy::suche) und die häufigsten Fragen. Findet sich nichts,
+     steht die Frage schon als Betreff im Formular darunter. */
+  $suQ = mb_substr(trim((string) ($_GET['frage'] ?? '')), 0, 60);
+  $suFaq = []; $suAk = [];
+  if (mb_strlen($suQ) >= 2) {
+      $suW = array_values(array_filter(preg_split('~\s+~u', mb_strtolower($suQ)) ?: [], static fn($w) => mb_strlen($w) >= 2));
+      foreach (Texte::PARTNER_SUPPORT['faq'] as [$suF, $suA]) {
+          $suT = mb_strtolower(Texte::h($suF, $sprache) . ' ' . Texte::h($suA, $sprache));
+          if ($suW && !array_filter($suW, static fn($w) => !str_contains($suT, $w))) { $suFaq[] = [Texte::h($suF, $sprache), Texte::h($suA, $sprache)]; }
+      }
+      require_once dirname(__DIR__) . '/src/Academy.php';
+      $suAk = array_slice((static function () use ($suQ, $sprache): array { try { return Academy::suche($suQ, $sprache); } catch (Throwable $e) { return []; } })(), 0, 5);
+      if (!$suFaq && !$suAk && ($suPost['betreff'] ?? '') === '') { $suPost['betreff'] = $suQ; }
+  }
+  $suAkLink = static fn(array $tr): string => match ($tr['art']) {
+      'einwand'  => $start(['ak' => 'einwaende', 'e' => $tr['slug']]),
+      'leistung' => $start(['ak' => 'leistungen', 's' => $tr['slug']]) . '#s-' . $tr['slug'],
+      'kontakt'  => $start(['ak' => 'kontakt', 'k' => $tr['slug']]) . '#k-' . $tr['slug'],
+      default    => $start(['ak' => 'modul', 'm' => $tr['slug'], 'l' => (string) (int) ($tr['lektion'] ?? 0)]),
+  };
   $suAlt = Db::all('SELECT von, text, created_at FROM partner_nachrichten WHERE partner_id = ? AND ticket_id IS NULL ORDER BY id DESC LIMIT 30', [$suPid]); ?>
   <div class="cc-hallo cc-auf">
     <h1><?= $h($su($SU['titel'])) ?></h1>
     <p class="cc-lead"><?= $h($su($SU['satz'])) ?></p>
   </div>
   <?php if ($suM !== ''): ?><div class="hinweis <?= $suGut ? 'gut' : 'schlecht' ?>" role="<?= $suGut ? 'status' : 'alert' ?>" style="margin:0 0 14px"><?= $h($su($SU['m'][$suM] ?? $SU['m']['text'])) ?></div><?php endif; ?>
-  <section class="cc-karte cc-auf z2" aria-labelledby="su-neu-t">
+  <section class="cc-auf z2 cc-hilfe" aria-labelledby="su-such-t">
+    <h2 class="cc-titel" id="su-such-t"><?= $h($su($SU['suche'])) ?></h2>
+    <form method="get" action="/partner.php" class="cc-hilfe-suche" role="search">
+      <?php foreach (['t' => (string) $p['token'], 'cc' => '1', 'support' => '1'] as $suK => $suV): ?><input type="hidden" name="<?= $h($suK) ?>" value="<?= $h($suV) ?>"><?php endforeach; ?>
+      <input type="search" name="frage" value="<?= $h($suQ) ?>" maxlength="60" placeholder="<?= $h($su($SU['suche_ph'])) ?>" aria-label="<?= $h($su($SU['suche'])) ?>">
+      <button class="knopf" type="submit"><?= $h($su($SU['suche_knopf'])) ?></button>
+    </form>
+    <?php if (mb_strlen($suQ) >= 2): ?>
+      <?php if ($suFaq || $suAk): ?>
+        <p class="cc-hilfe-kopf"><?= $h($su($SU['suche_treffer'], ['{q}' => $suQ])) ?></p>
+        <?php foreach ($suFaq as [$suF, $suA]): ?><details class="cc-faq" open><summary><?= $h($suF) ?></summary><p><?= $h($suA) ?></p></details><?php endforeach; ?>
+        <?php if ($suAk): ?><p class="cc-hilfe-kopf"><?= $h($su($SU['suche_academy'])) ?></p>
+          <ul class="cc-hilfe-ak"><?php foreach ($suAk as $tr): ?><li><a href="<?= $h($suAkLink($tr)) ?>"><b><?= $h((string) $tr['titel']) ?></b><small><?= $h((string) $tr['auszug']) ?></small></a></li><?php endforeach; ?></ul>
+        <?php endif; ?>
+      <?php else: ?>
+        <p class="hinweis" role="status" style="margin:10px 0 0"><?= $h($su($SU['suche_leer'], ['{q}' => $suQ])) ?></p>
+      <?php endif; ?>
+    <?php endif; ?>
+  </section>
+
+  <section class="cc-karte cc-auf z2" aria-labelledby="su-neu-t" style="margin-top:18px">
     <h2 class="cc-titel" id="su-neu-t"><?= $h($su($SU['neu'])) ?></h2>
     <form method="post" action="<?= $h($selbst(['cc' => 1, 'support' => 1])) ?>">
       <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ticket_neu">

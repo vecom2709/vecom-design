@@ -25190,6 +25190,84 @@ Db::run('DELETE FROM partner_leads WHERE partner_id IN (?, ?)', [$tkAi, $tkBi]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$tkAi, $tkBi]);
 
 /* ============================================================================
+   Neu von Vecom + Hilfe mit Suche (Phase 7b-2, 05.10.2026, Uwe: „Dashboard +
+   Handy-Hinweis“). Zielgruppe alle/Level/Land/neu, Empfänger beim Senden fest,
+   keine Mail; Hilfe sucht in den häufigsten Fragen und der Academy.
+   ============================================================================ */
+abschnitt('Partner: Neu von Vecom und Hilfe mit Suche');
+require_once $wurzel . '/src/PartnerNews.php';
+$nwP = [];
+foreach ([['Nora Neu', 'it', 'IT', '-3 days'], ['Otto Alt', 'de', 'DE', '-200 days'], ['Emma Englisch', 'en', 'IT', '-100 days'], ['Ohne Vereinbarung', 'it', 'IT', null]] as $i => [$nwN, $nwS, $nwL, $nwV]) {
+    $nwP[$i] = (int) Partner::anlegen(['name' => $nwN, 'email' => "news$i@partner.example", 'code' => 'NEWSKT' . $i, 'sprache' => $nwS, 'status' => 'aktiv']);
+    Db::run('UPDATE partner SET land = ?, vereinbarung_am = ?, freigeschaltet_am = NOW(), vereinbarung_klauseln_am = NOW(), vereinbarung_version = ? WHERE id = ?',
+        [$nwL, $nwV !== null ? date('Y-m-d H:i:s', strtotime($nwV)) : null, Partner::VEREINBARUNG_VERSION, $nwP[$i]]);
+}
+$nwIds = static fn(array $l): array => array_values(array_intersect(array_map(static fn($p) => (int) $p['id'], $l), $nwP));
+pruefe('Zielgruppen: nur aktive mit Vereinbarung; Land, neue Partner (30 Tage) und Level wählen richtig aus; Unbekanntes ergibt niemanden',
+    $nwIds(PartnerNews::empfaenger('alle')) === [$nwP[0], $nwP[1], $nwP[2]] && $nwIds(PartnerNews::empfaenger('land', 'DE')) === [$nwP[1]]
+    && $nwIds(PartnerNews::empfaenger('neu')) === [$nwP[0]] && $nwIds(PartnerNews::empfaenger('level', 'starter')) === [$nwP[0], $nwP[1], $nwP[2]]
+    && $nwIds(PartnerNews::empfaenger('level', 'gold')) === [] && PartnerNews::empfaenger('level', 'diamant') === [] && PartnerNews::empfaenger('land', 'Italien') === []
+    && PartnerNews::empfaenger('vip') === []);
+$nwPush = [];
+PartnerNews::$push = static function (int $pid, string $t, string $x, string $l) use (&$nwPush): int { $nwPush[$pid] = [$t, $x, $l]; return 1; };
+$nwF = [
+    PartnerNews::senden(['titel_it' => 'ok', 'text_it' => 'Testo abbastanza lungo', 'ziel' => 'alle'])['grund'] ?? '',
+    PartnerNews::senden(['titel_it' => 'Novità', 'text_it' => 'corto', 'ziel' => 'alle'])['grund'] ?? '',
+    PartnerNews::senden(['titel_it' => 'Novità', 'text_it' => 'Testo abbastanza lungo', 'ziel' => 'level', 'ziel_wert' => 'diamant'])['grund'] ?? '',
+    PartnerNews::senden(['titel_it' => 'Novità', 'text_it' => 'Testo abbastanza lungo', 'ziel' => 'alle', 'link' => 'javascript:alert(1)'])['grund'] ?? '',
+    PartnerNews::senden(['titel_it' => 'Novità', 'text_it' => 'Testo abbastanza lungo', 'ziel' => 'level', 'ziel_wert' => 'platin'])['grund'] ?? '',
+];
+pruefe('Senden: Titel und Text auf Italienisch Pflicht, Zielgruppe gültig, Link nur https:// oder eigener Weg, leere Zielgruppe sendet nichts — nichts gespeichert, kein Push',
+    $nwF === ['titel', 'text', 'ziel', 'link', 'leer'] && (int) Db::wert('SELECT COUNT(*) FROM partner_news', [], 0) === 0 && $nwPush === [], json_encode($nwF));
+$nwR = PartnerNews::senden(['titel_it' => 'Nuovi volantini', 'text_it' => 'Ci sono nuovi volantini nel negozio.', 'titel_de' => 'Neue Flyer', 'text_de' => 'Im Shop gibt es neue Flyer.',
+    'ziel' => 'alle', 'link' => '/partner.php?cc=1&shop=1', 'bis' => '2000-01-01'], 7);
+$nwZ = Db::one('SELECT * FROM partner_news WHERE id = ?', [(int) ($nwR['id'] ?? 0)]) ?: [];
+pruefe('Gesendet: Empfänger festgehalten (ohne den ohne Vereinbarung), Push je Partner in seiner Sprache mit Rückfall auf Italienisch, Link ins Command Center; abgelaufenes Datum wird zum Standard',
+    ($nwR['ok'] ?? false) && ($nwR['an'] ?? 0) >= 3 && isset($nwPush[$nwP[1]]) && $nwPush[$nwP[1]][0] === 'Neue Flyer' && $nwPush[$nwP[2]][0] === 'Nuovi volantini'
+    && !isset($nwPush[$nwP[3]]) && str_ends_with($nwPush[$nwP[0]][2], '&cc=1') && (int) ($nwZ['push_an'] ?? 0) === (int) ($nwR['push'] ?? -1)
+    && ($nwZ['bis'] ?? '') === date('Y-m-d', strtotime('+' . PartnerNews::STANDARD_TAGE . ' days')));
+$nwPa = Partner::laden($nwP[1]); $nwPb = Partner::laden($nwP[2]); $nwPn = Partner::laden($nwP[0]);
+$nwVor = PartnerNews::fuerPartner($nwPa);
+$nwWeg = [PartnerNews::gelesen($nwP[2], (int) $nwR['id']), PartnerNews::gelesen($nwP[3], (int) $nwR['id']), PartnerNews::gelesen($nwP[1], (int) $nwR['id'])];
+pruefe('Startseite: die Meldung steht in der eigenen Sprache da; ausblenden nur die eigene (wer sie nicht bekam, kann nichts ausblenden), danach ist sie weg',
+    count($nwVor) === 1 && $nwVor[0]['titel'] === 'Neue Flyer' && $nwVor[0]['link'] === '/partner.php?cc=1&shop=1'
+    && $nwWeg === [true, false, true] && PartnerNews::fuerPartner($nwPa) === [] && PartnerNews::fuerPartner($nwPb) === []
+    && count(PartnerNews::fuerPartner($nwPn)) === 1);
+$nwZur = PartnerNews::zurueckziehen((int) $nwR['id']);
+Db::run('INSERT INTO partner_news (titel_it, text_it, ziel, bis) VALUES (?, ?, ?, ?)', ['Scaduta', 'Questa è scaduta da tempo.', 'alle', '2001-01-01']);
+Db::run('INSERT INTO partner_news_an (news_id, partner_id) VALUES (LAST_INSERT_ID(), ?)', [$nwP[0]]);
+pruefe('Zurückziehen nimmt sie bei allen von der Startseite; Abgelaufenes erscheint nicht; die Verwaltung sieht An, Handy und Ausgeblendet',
+    $nwZur && PartnerNews::fuerPartner($nwPn) === [] && (int) (PartnerNews::liste()[1]['gelesen'] ?? 0) === 2 && (int) (PartnerNews::liste()[1]['an'] ?? 0) >= 3);
+PartnerNews::$push = null;
+// Hilfe mit Suche: häufige Fragen + Academy; nichts gefunden → Betreff schon ausgefüllt.
+$nwSeite = static function (int $pid, array $get) use ($wurzel): string {
+    $altGet = $_GET; $_GET = $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $ccSupFehler = ''; $ccSupPost = null;
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    $start = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_support.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$nwH1 = $nwSeite($nwP[1], ['frage' => 'Provision auszahlung']);
+$nwH2 = $nwSeite($nwP[1], ['frage' => 'xyzqq <b>']);
+pruefe('Hilfe: Suche findet die passende häufige Frage mit Antwort; ohne Treffer der Hinweis und die Frage schon als Betreff (escaped); Suchformular als GET ohne Schreiben',
+    str_contains($nwH1, 'Wann wird meine Provision ausgezahlt?') && str_contains($nwH1, 'Gefunden zu „Provision auszahlung“') && !str_contains($nwH1, 'Keine Antwort zu')
+    && str_contains($nwH2, 'Keine Antwort zu „xyzqq &lt;b&gt;“') && str_contains($nwH2, 'name="betreff" required minlength="3" maxlength="120" value="xyzqq &lt;b&gt;"') && !str_contains($nwH2, 'xyzqq <b>')
+    && str_contains($nwH1, '<form method="get" action="/partner.php" class="cc-hilfe-suche" role="search">'));
+$nwPp = (string) file_get_contents($oben . '/partner.php');
+pruefe('Wege: Ausblenden nur mit CSRF; Startseite zeigt höchstens zwei Meldungen; Senden in der Verwaltung fragt nach (raus), Zurückziehen ohne; nur für Uwe',
+    str_contains($nwPp, "if (\$ccCsrf) { PartnerNews::gelesen((int) \$p['id'], (int) (\$_POST['news'] ?? 0)); }")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), 'PartnerNews::fuerPartner($p, 2)')
+    && (Ablauf::TRAGWEITE['partner_news_senden'][0] ?? '') === Ablauf::RAUS && !isset(Ablauf::TRAGWEITE['partner_news_zurueck'])
+    && str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'value="partner_news_senden"')
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_news_senden', $t)));
+Db::run('DELETE FROM partner_news_an WHERE partner_id IN (' . implode(',', $nwP) . ')');
+Db::run('DELETE FROM partner_news');
+Db::run('DELETE FROM partner WHERE id IN (' . implode(',', $nwP) . ')');
+
+/* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).
    Inhalte dreisprachig und gleich gebaut, keine Zusagen in Antworten, Fortschritt
    und Notizen strikt je Partner, nur bekannte Inhalte merkbar, CSRF vor jeder Tat.

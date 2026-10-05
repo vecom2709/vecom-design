@@ -1421,6 +1421,22 @@ if ($post) {
                 if ($r['ok'] && !empty($r['ganz'])) { weiter('partner'); }
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_news_senden':
+            case 'partner_news_zurueck':
+                /* Neu von Vecom (Phase 7b-2): an eine Zielgruppe senden (Rückfrage aus Ablauf::TRAGWEITE) oder zurückziehen. */
+                require_once __DIR__ . '/src/PartnerNews.php';
+                if ($tat === 'partner_news_zurueck') {
+                    $_SESSION[PartnerNews::zurueckziehen((int) ($_POST['id'] ?? 0)) ? 'gut' : 'fehler'] = 'Zurückgezogen — die Meldung steht bei keinem Partner mehr auf der Startseite.';
+                    weiter('partner#news');
+                }
+                [$nwZ, $nwW] = array_pad(explode(':', (string) ($_POST['ziel_kombi'] ?? 'alle:'), 2), 2, '');
+                $nwR = PartnerNews::senden(['ziel' => $nwZ, 'ziel_wert' => $nwW] + $_POST, Auth::id());
+                $_SESSION[$nwR['ok'] ? 'gut' : 'fehler'] = $nwR['ok']
+                    ? 'Gesendet an ' . $nwR['an'] . ' Partner (' . $nwR['push'] . ' davon mit Hinweis aufs Handy).'
+                    : (['titel' => 'Der italienische Titel fehlt (mindestens 3 Zeichen).', 'text' => 'Der italienische Text fehlt (mindestens 10 Zeichen).',
+                        'ziel' => 'Unbekannte Zielgruppe.', 'link' => 'Der Link muss mit https:// oder / beginnen.', 'leer' => 'In dieser Zielgruppe ist gerade kein aktiver Partner — nichts gesendet.'][$nwR['grund']] ?? 'Nicht gesendet.');
+                weiter('partner#news');
+
             case 'partner_ticket_antwort':
             case 'partner_ticket_stand':
                 /* Support (Phase 7b, 05.10.2026): in ein Ticket antworten (Mail + Push wie bisher über PartnerPost) und/oder

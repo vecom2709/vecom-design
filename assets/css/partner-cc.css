@@ -655,3 +655,21 @@ html{scroll-padding-top:76px}
 .cc-stufe.tk-erledigt{color:#9fdcb4;border-color:rgba(102,196,136,.38);background:rgba(102,196,136,.08)}
 .cc-ticket-antwort{display:flex;flex-direction:column;gap:10px}
 @media (max-width:560px){.cc-ticket-antwort .knopf{width:100%}}
+
+/* Neu von Vecom (Phase 7b-2): Meldung oben auf der Startseite, bis sie ausgeblendet wird. */
+.cc-news{position:relative;margin:0 0 16px;padding:16px 18px;border-radius:16px;border:1px solid rgba(241,211,139,.38);background:linear-gradient(180deg,rgba(241,211,139,.09),rgba(241,211,139,.03))}
+.cc-news-marke{display:block;font-size:11.5px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-hell);margin:0 0 6px}
+.cc-news b{display:block;font-size:17px;line-height:1.35;margin:0 0 4px}
+.cc-news p{margin:0 0 12px;color:var(--dim);font-size:15px;line-height:1.5;white-space:pre-line}
+.cc-news-knoepfe{display:flex;flex-wrap:wrap;gap:8px}
+/* Hilfe mit Suche (Phase 7b-2) */
+.cc-hilfe-suche{display:flex;gap:8px;flex-wrap:wrap}
+.cc-hilfe-suche input{flex:1 1 220px;min-height:46px}
+.cc-hilfe-kopf{margin:16px 0 8px;font-size:13px;font-weight:650;color:var(--dim);letter-spacing:.02em}
+.cc-faq{border:1px solid var(--linie);border-radius:12px;padding:10px 14px;margin:0 0 8px;background:rgba(255,255,255,.025)}
+.cc-faq summary{cursor:pointer;font-weight:650;font-size:15px}
+.cc-faq p{margin:8px 0 2px;color:var(--dim);font-size:14.5px;line-height:1.5}
+.cc-hilfe-ak{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cc-hilfe-ak a{display:flex;flex-direction:column;gap:2px;padding:10px 14px;border:1px solid var(--linie);border-radius:12px;color:inherit;text-decoration:none}
+.cc-hilfe-ak a:hover b,.cc-hilfe-ak a:focus-visible b{color:var(--gold-hell)}
+.cc-hilfe-ak small{color:var(--leise);font-size:12.5px}

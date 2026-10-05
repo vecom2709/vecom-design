@@ -132,6 +132,22 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 
     <?php if ($ccMeldung === 'pf_gut'): ?><div class="hinweis gut cc-auf" role="status" style="margin:0 0 16px"><?= $h($c($C['pf_gut'])) ?></div><?php endif; ?>
 
+    <?php /* Neu von Vecom (Phase 7b-2): Meldungen mit Zielgruppe, bis der Partner sie ausblendet oder sie ablaufen. */
+      require_once dirname(__DIR__) . '/src/PartnerNews.php';
+      $ccNews = (static function () use ($p): array { try { return PartnerNews::fuerPartner($p, 2); } catch (Throwable $e) { return []; } })(); ?>
+    <?php foreach ($ccNews as $nw): ?>
+      <section class="cc-news cc-auf" aria-label="<?= $h(Texte::h(Texte::PARTNER_SUPPORT['news_titel'], $sprache)) ?>">
+        <span class="cc-news-marke"><?= $h(Texte::h(Texte::PARTNER_SUPPORT['news_titel'], $sprache)) ?></span>
+        <b><?= $h($nw['titel']) ?></b>
+        <p><?= $h($nw['text']) ?></p>
+        <div class="cc-news-knoepfe">
+          <?php if ($nw['link'] !== null): ?><a class="knopf" href="<?= $h($nw['link']) ?>"<?= str_starts_with($nw['link'], 'https://') ? ' target="_blank" rel="noopener"' : '' ?>><?= $h(Texte::h(Texte::PARTNER_SUPPORT['news_mehr'], $sprache)) ?> →</a><?php endif; ?>
+          <form method="post" action="<?= $h($selbst(['cc' => 1])) ?>" style="margin:0"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="news_weg"><input type="hidden" name="news" value="<?= (int) $nw['id'] ?>">
+            <button class="knopf stumm" type="submit"><?= $h(Texte::h(Texte::PARTNER_SUPPORT['news_weg'], $sprache)) ?></button></form>
+        </div>
+      </section>
+    <?php endforeach; ?>
+
     <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>">
       <?php foreach ($ccKacheln as $kk => [$wert, $anker, $zusatz]):
         $txt = $kk === 'provision' ? Fmt::geld($wert) : $ccZahl($wert); ?>
