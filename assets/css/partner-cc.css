@@ -16,14 +16,57 @@ html{scroll-padding-top:76px}
 .cc-marke span{display:flex;flex-direction:column;line-height:1.15}
 .cc-marke b{font:800 13px/1.1 var(--f-display);letter-spacing:.16em;text-transform:uppercase}
 .cc-marke small{font-size:12px;color:var(--dim);letter-spacing:.02em;white-space:nowrap}
-.cc-alles{white-space:nowrap;font-size:13.5px;color:var(--dim);text-decoration:none;padding:10px 0 10px 12px;min-height:44px;display:inline-flex;align-items:center;gap:6px}
-.cc-alles:hover{color:var(--text)}
 
 /* ---------- Begrüßung ---------- */
 .cc-hallo{margin:26px 0 22px}
 .cc-hallo h1{font:700 clamp(30px,6.4vw,52px)/1.06 var(--f-display);letter-spacing:-.025em;margin:0;text-wrap:balance}
 .cc-hallo h1 .name{background:var(--metall-text);-webkit-background-clip:text;background-clip:text;color:transparent}
-.cc-hallo h1 .cc-frage{display:block;color:var(--dim);font-weight:600;font-size:.62em;letter-spacing:-.01em;margin-top:8px}
+.cc-hallo .cc-unter{margin:10px 0 0;color:var(--dim);font-size:clamp(16px,2.6vw,19px);line-height:1.45}
+
+/* ---------- Startseite nach Spezifikation Punkt 4 (05.10.2026) ----------
+   Überschrift → vier Zahlen → Heute wichtig → der eine große Knopf → Schnellzugriff,
+   alles Weitere zugeklappt. Farbpunkte nach Punkt 69: rot dringend, gelb
+   Aufmerksamkeit, grün in Ordnung. */
+.cc-kz4{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 24px}
+@media (min-width:760px){.cc-kz4{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.cc-kz4 .cc-zahl{min-height:104px}
+.cc-wichtig{margin:0 0 22px}
+.cc-wliste{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.cc-wliste a{display:flex;align-items:center;gap:12px;min-height:56px;padding:12px 14px;border-radius:14px;border:1px solid var(--linie);background:rgba(255,255,255,.025);
+  color:var(--text);text-decoration:none;font-size:15px;line-height:1.35;transition:border-color .18s,background .18s}
+.cc-wliste a:hover{border-color:var(--haar);background:rgba(241,211,139,.05)}
+.cc-wliste a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-wliste a > span:first-of-type{flex:1;min-width:0}
+.cc-pfeil{color:var(--gold);font-weight:700}
+.cc-punkt{flex:none;width:10px;height:10px;border-radius:50%;background:var(--leise)}
+.cc-punkt.rot{background:#e5644e;box-shadow:0 0 0 4px rgba(229,100,78,.16)}
+.cc-punkt.gelb{background:#f1c84b;box-shadow:0 0 0 4px rgba(241,200,75,.14)}
+.cc-punkt.gruen{background:#5cc28a;box-shadow:0 0 0 4px rgba(92,194,138,.14)}
+.cc-ruhig{display:flex;align-items:center;gap:12px;margin:0;padding:15px 14px;border-radius:14px;border:1px solid var(--linie);color:var(--dim);font-size:15px}
+.cc-jetzt{margin:0 0 18px}
+.cc-jetzt > summary{list-style:none}
+.cc-jetzt > summary::-webkit-details-marker{display:none}
+.cc-jetzt__knopf{display:flex;align-items:center;justify-content:center;gap:12px;min-height:66px;padding:16px 22px;border-radius:18px;cursor:pointer;user-select:none;
+  font:800 clamp(16px,3.4vw,19px)/1.2 var(--f-display);letter-spacing:.08em;text-transform:uppercase;color:#16120b;
+  background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 45%,rgba(0,0,0,.08)),var(--metall);
+  box-shadow:0 22px 50px -26px rgba(200,150,62,.9), inset 0 1px 0 rgba(255,255,255,.5);transition:transform .18s cubic-bezier(.16,1,.3,1),box-shadow .18s}
+.cc-jetzt__knopf:hover{transform:translateY(-1px);box-shadow:0 26px 56px -24px rgba(200,150,62,1), inset 0 1px 0 rgba(255,255,255,.55)}
+.cc-jetzt__knopf svg{width:22px;height:22px;flex:none;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s}
+.cc-jetzt[open] .cc-jetzt__knopf svg{transform:rotate(180deg)}
+.cc-jetzt__knopf:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.cc-jetzt[open] .cc-heute{margin-top:12px;animation:cc-auf .35s cubic-bezier(.16,1,.3,1) both}
+.cc-schnell{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 22px}
+.cc-schnell a{display:inline-flex;align-items:center;min-height:44px;padding:9px 15px;border-radius:999px;border:1px solid var(--linie2);background:rgba(255,255,255,.03);
+  color:var(--dim);text-decoration:none;font-size:14px}
+.cc-schnell a:hover{color:var(--text);border-color:var(--haar)}
+.cc-schnell a:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.cc-mehrblick{margin:0 0 24px;border-top:1px solid var(--linie);padding-top:4px}
+.cc-mehrblick > summary{list-style:none;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:52px;color:var(--dim);font-weight:600;font-size:14.5px}
+.cc-mehrblick > summary::-webkit-details-marker{display:none}
+.cc-mehrblick > summary::after{content:'';flex:none;width:8px;height:8px;border-right:2px solid var(--leise);border-bottom:2px solid var(--leise);transform:rotate(45deg);margin-right:6px;transition:transform .2s}
+.cc-mehrblick[open] > summary::after{transform:rotate(225deg)}
+.cc-mehrblick > .cc-raster{margin-top:8px}
+.sr-nur{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 
 /* ---------- Raster ---------- */
 .cc-raster{display:grid;gap:18px}
@@ -173,6 +216,22 @@ html{scroll-padding-top:76px}
 .cc-leiste a:hover{color:var(--text);background:rgba(255,255,255,.035)}
 .cc-leiste a[aria-current]{color:var(--gold);background:rgba(241,211,139,.1);box-shadow:inset 0 0 0 1px rgba(241,211,139,.32)}
 .cc-leiste a:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+/* MEHR: nur am Handy (Punkt 3: START · KUNDEN · MARKETING · ERGEBNISSE · MEHR) */
+.cc-mehr{display:none;position:relative}
+.cc-mehr > summary{list-style:none}
+.cc-mehr > summary::-webkit-details-marker{display:none}
+@media (max-width:760px){
+  .cc-leiste a.cc-gross{display:none}
+  .cc-mehr{display:block;flex:1 1 0;min-width:0}
+  .cc-mehr > summary{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;border-radius:11px;
+    color:var(--dim);font-size:11.5px;font-weight:600;cursor:pointer}
+  .cc-mehr > summary svg{width:22px;height:22px;fill:currentColor;stroke:none}
+  .cc-mehr[open] > summary{color:var(--gold)}
+  .cc-mehr > summary:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+  .cc-mehr__liste{position:absolute;right:2px;bottom:calc(100% + 10px);min-width:210px;display:grid;gap:4px;padding:6px;border-radius:16px;
+    border:1px solid var(--linie);background:#100f0d;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
+  .cc-leiste .cc-mehr__liste a{flex-direction:row;justify-content:flex-start;gap:10px;font-size:15px;min-height:50px;padding:10px 12px}
+}
 @media (max-width:760px){
   .cc-leiste{position:fixed;top:auto;left:0;right:0;bottom:0;z-index:30;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;
     padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(12,11,10,.95);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
@@ -219,6 +278,7 @@ html{scroll-padding-top:76px}
 @media (prefers-reduced-motion:reduce){
   .cc-intro{display:none!important}
   .cc-auf,.cc-heute::before{animation:none}
-  .cc-ziel,.cc-zahl,.cc-chip span{transition:none}
+  .cc-ziel,.cc-zahl,.cc-chip span,.cc-jetzt__knopf,.cc-wliste a{transition:none}
+  .cc-jetzt[open] .cc-heute{animation:none}
 }
 :root{color-scheme:dark}::selection{background:#f1d38b;color:#0a0908}

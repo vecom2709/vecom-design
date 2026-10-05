@@ -13,7 +13,7 @@ $wbZeile = static function (array $z) use ($h, $MK): string {
 };
 $wbIchDrin = $wb['ich'] !== null && array_filter($wb['liste'], static fn($z) => $z['ich']);
 ?>
-<div class="block pt" id="wettbewerb" data-reiter="start">
+<div class="block pt" id="wettbewerb" data-reiter="geld">
   <h2><?= $h(strtr($MK('wb_titel'), ['{monat}' => $wbMonat])) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($MK('wb_text')) ?></p>
   <?php if ($wb['teilnehmer'] === 0): ?>

@@ -18,7 +18,7 @@ $msSymbol = [
     'kurs' => '<path d="M3 8l9-4 9 4-9 4z"/><path d="M7 10v5c0 1.6 2.3 3 5 3s5-1.4 5-3v-5"/>',
 ];
 ?>
-<div class="block pt" id="meilensteine" data-reiter="start">
+<div class="block pt" id="meilensteine" data-reiter="geld">
   <div class="pp-kopf"><h2><?= $h($PP('ms_titel')) ?></h2><span class="klein"><?= count(array_filter($msStand)) ?>/<?= count($msStand) ?></span></div>
   <p class="klein" style="margin-top:0"><?= $h($PP('ms_text')) ?></p>
   <ul class="pp-ms">

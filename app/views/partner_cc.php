@@ -1,9 +1,11 @@
 <?php
 /* ==========================================================================
    Command Center des Partners (Etappe 1b, 05.10.2026, PartnerCommand).
-   Eine eigene, schnelle Seite: Begrüßung, genau eine Empfehlung für heute,
-   Schnellwege nach Ziel, sechs echte Kennzahlen, Marketingprofil. Alles
-   Weitere bleibt im Partnerbereich — jede Kachel führt mit einem Tipp dorthin.
+   Eine eigene, schnelle Seite und seit 05.10.2026 die START-Seite des Partners
+   (Spezifikation Punkt 4): „Guten Morgen, Name.“, ein Satz, vier Kennzahlen,
+   „Heute wichtig“ und der große Knopf „Was soll ich jetzt tun?“. Ziele, Weg zur
+   Provision, Kampagnen und Marketingprofil stehen zugeklappt darunter. Alles
+   Weitere liegt in den Bereichen KUNDEN · MARKETING · ERGEBNISSE · SHOP · MEIN KONTO.
 
    Erwartet aus partner.php: $p, $sprache, $h, $selbst, $ccMeldung ('' | pf_gut | pf_fehler),
    $ccMc (Marketing Center vorhanden), $ccPost (bei Fehler: was eingegeben war).
@@ -38,22 +40,23 @@ $ccIcon = [
 ];
 $ccLeiste = [
     'cc'          => ['<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>', Texte::PARTNER_REITER['reiter']['start']['kurz']],
+    'finden'      => ['<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>', Texte::PARTNER_REITER['reiter']['finden']['kurz']],
     'werben'      => ['<path d="M3 10.5v3a1 1 0 0 0 1 1h2.5L12 18.5v-13L6.5 9.5H4a1 1 0 0 0-1 1z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/>', Texte::PARTNER_REITER['reiter']['werben']['kurz']],
+    'geld'        => ['<path d="M4 19.5h16"/><path d="M6.5 16v-4"/><path d="M11 16V8"/><path d="M15.5 16v-6"/><path d="M20 16V5"/>', Texte::PARTNER_REITER['reiter']['geld']['kurz']],
     'werbemittel' => ['<path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>', Texte::PARTNER_REITER['reiter']['werbemittel']['kurz']],
-    'finden'      => ['<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>', Texte::PARTNER_REITER['reiter']['finden']['kurz']],
-    'geld'        => ['<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><path d="M15.5 14.5h2.5"/>', Texte::PARTNER_REITER['reiter']['geld']['kurz']],
     'profil'      => ['<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>', Texte::PARTNER_REITER['reiter']['profil']['kurz']],
 ];
 if (!$ccMc) { unset($ccLeiste['werbemittel']); }
+/* Am Handy höchstens fünf: START · KUNDEN · MARKETING · ERGEBNISSE · MEHR (Punkt 3). */
+$ccMehr = ['werbemittel', 'profil'];
+/* Die vier Kennzahlen (Punkt 4) — jede führt zu ihren Einzelheiten. */
 $ccKacheln = [
-    'kampagnen'    => [$ccZ['kampagnen'], 'cc:kampagnen', ''],
-    'scans'        => [$ccZ['scans'], 'cc:qr', ''],
-    'leads'        => [$ccZ['leads'], 'besuche', ''],
-    'kunden'       => [$ccZ['kunden'], 'empfehlungen', ''],
-    'provision'    => [$ccZ['provision'], 'provisionen', $ccZ['provision_wartet'] > 0 ? $c($C['k_wartet'], ['{betrag}' => Fmt::geld($ccZ['provision_wartet'])]) : ''],
-    'bestellungen' => [$ccZ['bestellungen'], $ccMc ? 'mc-bestellungen' : 'werben', $ccZ['bestellungen_zahlung'] > 0 ? $c($C['k_zahlung'], ['{n}' => (string) $ccZ['bestellungen_zahlung']]) : ''],
+    'leads'     => [$ccZ['leads_neu'], 'besuche', ''],
+    'kunden'    => [$ccZ['kunden'], 'zahlen', ''],
+    'provision' => [$ccZ['provision'], 'provisionen', $ccZ['provision_wartet'] > 0 ? $c($C['k_wartet'], ['{betrag}' => Fmt::geld($ccZ['provision_wartet'])]) : ''],
+    'klicks'    => [$ccZ['klicks'], 'zahlen', ''],
 ];
-if (!$ccMc && $ccZ['bestellungen'] === 0) { unset($ccKacheln['bestellungen']); }
+$ccWichtig = PartnerCommand::wichtig($p, $sprache, $ccZ, $ccMc);
 $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array) $ccPf[$liste], true);
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
@@ -87,29 +90,64 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <img src="/assets/img/vecom-v.svg" alt="" width="42" height="34">
       <span><b>Vecom</b><small><?= $h($c($C['titel'])) ?></small></span>
     </a>
-    <a class="cc-alles" href="<?= $h($selbst()) ?>"><?= $h($c($C['bereich'])) ?> <span aria-hidden="true">→</span></a>
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
-      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : $selbst() . '#r-' . $lk) ?>"<?= $lk === 'cc' ? ' aria-current="page"' : '' ?>>
+      <a href="<?= $h($lk === 'cc' ? $selbst(['cc' => 1]) : $selbst() . '#r-' . $lk) ?>"<?= $lk === 'cc' ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
+    <?php /* MEHR am Handy: ohne Skript, als aufklappbare Liste über der Leiste. */ ?>
+    <details class="cc-mehr">
+      <summary aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache)) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span><?= $h(Texte::h(Texte::PARTNER_REITER['mehr'], $sprache)) ?></span></summary>
+      <div class="cc-mehr__liste">
+        <?php foreach ($ccMehr as $lk): if (!isset($ccLeiste[$lk])) { continue; } [$svg, $wort] = $ccLeiste[$lk]; ?>
+          <a href="<?= $h($selbst() . '#r-' . $lk) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
+        <?php endforeach; ?>
+      </div>
+    </details>
   </nav>
 
   <?php if ($ccSeite !== 'start'): require __DIR__ . '/partner_cc_kampagne.php'; else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
-      <?php $ccGruss = PartnerCommand::gruss(); /* morgen | tag | abend */
-        [$vor, $nach] = array_pad(explode('{name}', $c($C[$ccGruss === 'tag' ? 'hallo' : 'hallo_' . $ccGruss]), 2), 2, ''); /* Name in Gold, der Gruß drumherum aus Texte */ ?>
-      <h1><?= $h($vor) ?><span class="name"><?= $h($ccName) ?></span><?= $h($nach) ?>
-        <span class="cc-frage"><?= $h($c($C['frage'])) ?></span></h1>
+      <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['gruss'][PartnerCommand::gruss()]), 2), 2, ''); /* morgen | tag | abend; Name in Gold */ ?>
+      <h1><?= $h($vor) ?><span class="name"><?= $h($ccName) ?></span><?= $h($nach) ?></h1>
+      <p class="cc-unter"><?= $h($c($C['ueberblick'])) ?></p>
     </div>
 
     <?php if ($ccMeldung === 'pf_gut'): ?><div class="hinweis gut cc-auf" role="status" style="margin:0 0 16px"><?= $h($c($C['pf_gut'])) ?></div><?php endif; ?>
 
-    <div class="cc-raster">
-      <section class="cc-heute cc-auf z2" aria-labelledby="cc-heute-t">
-        <p class="cc-auge"><?= $h($c($C['heute'])) ?></p>
+    <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>">
+      <?php foreach ($ccKacheln as $kk => [$wert, $anker, $zusatz]):
+        $txt = $kk === 'provision' ? Fmt::geld($wert) : $ccZahl($wert); ?>
+        <a class="cc-zahl<?= $kk === 'provision' && $wert > 0 ? ' gold' : '' ?><?= $wert === 0 ? ' null' : '' ?>" href="<?= $h($ccBereich($anker)) ?>" data-cc-zahl="<?= $h($kk) ?>">
+          <span class="l"><?= $h($c($C['kz4'][$kk][0])) ?></span>
+          <b><?= $h($txt) ?></b>
+          <small><?= $h($zusatz !== '' ? $zusatz : $c($C['kz4'][$kk][1])) ?></small>
+        </a>
+      <?php endforeach; ?>
+    </section>
+
+    <section class="cc-wichtig cc-auf z2" aria-labelledby="cc-wichtig-t">
+      <h2 class="cc-titel" id="cc-wichtig-t"><?= $h($c($C['wichtig_titel'])) ?></h2>
+      <?php if (!$ccWichtig): ?>
+        <p class="cc-ruhig"><i class="cc-punkt gruen" aria-hidden="true"></i><?= $h($c($C['wichtig_leer'])) ?></p>
+      <?php else: ?>
+        <ul class="cc-wliste">
+          <?php foreach ($ccWichtig as $w): ?>
+            <li><a href="<?= $h($ccBereich($w['anker'])) ?>" data-cc-wichtig="<?= $h($w['k']) ?>">
+              <i class="cc-punkt <?= $h($w['stufe']) ?>" aria-hidden="true"></i>
+              <span><?= $h($w['text']) ?><small class="sr-nur"> — <?= $h($c($C['wichtig_stufe'][$w['stufe']])) ?></small></span>
+              <span class="cc-pfeil" aria-hidden="true">→</span></a></li>
+          <?php endforeach; ?>
+        </ul>
+      <?php endif; ?>
+    </section>
+
+    <?php /* Der große Knopf (Punkt 4): Erst auf Tippen zeigt er die eine beste nächste Aktion — ohne Skript, als <details>. */ ?>
+    <details class="cc-jetzt cc-auf z3" id="jetzt">
+      <summary class="cc-jetzt__knopf"><span><?= $h($c($C['jetzt'])) ?></span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></summary>
+      <section class="cc-heute" aria-labelledby="cc-heute-t">
         <?php if ($ccE['wenig']): ?>
           <p class="cc-wenig"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.6v.2"/></svg><span><?= $h($c($C['wenig'])) ?></span></p>
         <?php endif; ?>
@@ -117,7 +155,20 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         <p class="cc-warum"><b><?= $h($c($C['warum'])) ?>:</b> <?= $h($ccE['warum']) ?></p>
         <a class="knopf haupt" href="<?= $h($ccBereich($ccE['anker'])) ?>" data-cc-empfehlung="<?= $h($ccE['k']) ?>"><?= $h($ccE['knopf']) ?> <span aria-hidden="true">→</span></a>
       </section>
+    </details>
 
+    <nav class="cc-schnell cc-auf z3" aria-label="<?= $h($c($C['schnell_aria'])) ?>">
+      <a href="<?= $h($selbst(['cc' => 1, 'kampagne' => 'neu'])) ?>">+ <?= $h($c($C['schnell']['kampagne_neu'])) ?></a>
+      <a href="<?= $h($selbst(['cc' => 1]) . '#kampagnen') ?>"><?= $h($c($C['schnell']['kampagnen'], ['{n}' => (string) $ccZ['kampagnen']])) ?></a>
+      <a href="<?= $h($selbst(['cc' => 1, 'qr' => 1])) ?>"><?= $h($c($C['schnell']['qr'])) ?></a>
+      <a href="<?= $h($selbst(['cc' => 1]) . '#profil') ?>"><?= $h($c($C['schnell']['profil'])) ?></a>
+    </nav>
+
+    <?php /* Darunter, zugeklappt: was es vorher auf dieser Seite gab. Offen, wenn das Profil gerade bearbeitet wird. */
+          $ccOffen = $ccMeldung === 'pf_fehler' || $ccMeldung === 'pf_gut' || isset($_GET['profil']); ?>
+    <details class="cc-mehrblick cc-auf z4" id="mehr"<?= $ccOffen ? ' open' : '' ?>>
+      <summary><?= $h($c($C['mehr_ueberblick'])) ?></summary>
+    <div class="cc-raster">
       <section class="cc-auf z3" aria-labelledby="cc-ziele-t">
         <h2 class="cc-titel" id="cc-ziele-t"><?= $h($c($C['ziele_titel'])) ?></h2>
         <ul class="cc-ziele">
@@ -127,20 +178,6 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
               <span><b><?= $h($c($C['ziele'][$zk][0])) ?></b><small><?= $h($c($C['ziele'][$zk][1])) ?></small></span></a></li>
           <?php endforeach; ?>
         </ul>
-      </section>
-
-      <section class="cc-breit cc-auf z3" aria-labelledby="cc-zahlen-t">
-        <h2 class="cc-titel" id="cc-zahlen-t"><?= $h($c($C['zahlen_titel'])) ?></h2>
-        <div class="cc-zahlen">
-          <?php foreach ($ccKacheln as $kk => [$wert, $anker, $zusatz]):
-            $txt = $kk === 'provision' ? Fmt::geld($wert) : $ccZahl($wert); ?>
-            <a class="cc-zahl<?= $kk === 'provision' && $wert > 0 ? ' gold' : '' ?><?= $wert === 0 ? ' null' : '' ?>" href="<?= $h($ccBereich($anker)) ?>" data-cc-zahl="<?= $h($kk) ?>">
-              <span class="l"><?= $h($c($C['k'][$kk][0])) ?></span>
-              <b><?= $h($txt) ?></b>
-              <small><?= $h($zusatz !== '' ? $zusatz : ($kk === 'kampagnen' && $wert > 0 ? '' : $c($C['k'][$kk][1]))) ?></small>
-            </a>
-          <?php endforeach; ?>
-        </div>
       </section>
 
       <?php $ccTr = PartnerCommand::trichter($p); ?>
@@ -226,6 +263,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         <?php endif; ?>
       </section>
     </div>
+    </details>
   </main>
   <?php endif; ?>
 

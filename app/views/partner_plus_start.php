@@ -13,7 +13,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
     . ($ja ? '<circle cx="10" cy="10" r="9"/><path d="M6 10.4l2.6 2.6L14 7.6"/>' : '<circle cx="10" cy="10" r="8.5"/>') . '</svg>';
 ?>
 <?php if ($ppAktion): $ppAkB = PartnerMarketing::aktionBeitrag($p, $ppAktion, $sprache); ?>
-<div class="block pt pp-aktion" id="aktion" data-reiter="start">
+<div class="block pt pp-aktion" id="aktion" data-reiter="werben">
   <p class="pp-marke"><?= $h($PP('ak_titel')) ?> · <b><?= $h(PartnerMarketing::aktionRest($ppAktion, $sprache)) ?></b></p>
   <h2><?= $h(PartnerMarketing::aktionText($ppAktion, $sprache)) ?></h2>
   <p class="klein" style="margin:6px 0 4px"><?= $h($PP('ak_beitrag')) ?></p>
@@ -27,7 +27,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
 <?php endif; ?>
 
 <?php if ($ppHeiss): ?>
-<div class="block pt pp-heiss" id="heiss" data-reiter="start" data-punkt="1">
+<div class="block pt pp-heiss" id="heiss" data-reiter="finden" data-punkt="1">
   <h2><?= $h($PP('hk_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('hk_text')) ?></p>
   <ul class="pp-liste">
@@ -41,7 +41,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
 <?php endif; ?>
 
 <?php if ($ppNach): ?>
-<div class="block pt" id="nachhaken" data-reiter="start" data-punkt="1">
+<div class="block pt" id="nachhaken" data-reiter="finden" data-punkt="1">
   <h2><?= $h($PP('nf_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('nf_text')) ?></p>
   <?php foreach (array_slice($ppNach, 0, 8) as $i => $nf):
@@ -67,7 +67,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
 <?php endif; ?>
 
 <?php if (!$ppKurs['fertig']): ?>
-<div class="block pt" id="kurs" data-reiter="start">
+<div class="block pt" id="kurs" data-reiter="werben">
   <div class="pp-kopf"><h2><?= $h($PP('ku_titel')) ?></h2><span class="klein"><?= $h(strtr($PP('ku_stand'), ['{n}' => (string) $ppKurs['n']])) ?></span></div>
   <p class="klein" style="margin-top:0"><?= $h($PP('ku_text')) ?></p>
   <div class="es__balken" aria-hidden="true"><i style="width:<?= (int) round(100 * $ppKurs['n'] / PartnerMarketing::KURS_TAGE) ?>%"></i></div>
@@ -97,7 +97,7 @@ $ppHaken = static fn(bool $ja): string => '<svg class="pp-i" viewBox="0 0 20 20"
 <?php /* Vecom auf Telegram (02.10.2026, Uwe: Kanal schnell auf 100 bringen) — nur, wenn der Kanal verbunden ist. */
 $ppTg = (static function (): string { try { require_once dirname(__DIR__) . '/src/TelegramWachstum.php'; return Telegram::kanal()['link'] !== '' ? TelegramWachstum::kanalOrtLink('partner') : ''; } catch (Throwable $e) { return ''; } })();
 if ($ppTg !== ''): $ppTgMsg = strtr($PP('tg_msg'), ['{link}' => $ppTg]); ?>
-<div class="block pt" id="telegram" data-reiter="start">
+<div class="block pt" id="telegram" data-reiter="profil">
   <h2><?= $h($PP('tg_titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($PP('tg_text')) ?></p>
   <textarea id="pp_tg" readonly rows="3"><?= $h($ppTgMsg) ?></textarea>

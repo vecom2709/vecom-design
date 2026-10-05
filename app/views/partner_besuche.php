@@ -27,7 +27,7 @@ $pbZeile = static function (array $b) use ($pbW, $pbZeit, $pbDauer, $h): string 
     return $o . '</li>';
 };
 ?>
-<div class="block pt" id="besuche" data-reiter="start"<?= $pbKontakte ? ' data-punkt="1"' : '' ?>>
+<div class="block pt" id="besuche" data-reiter="finden"<?= $pbKontakte ? ' data-punkt="1"' : '' ?>>
   <h2><?= $h($pbW('titel')) ?></h2>
   <p class="klein" style="margin-top:0"><?= $h($pbW('text')) ?></p>
 

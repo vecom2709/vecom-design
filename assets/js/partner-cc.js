@@ -20,6 +20,24 @@
     return;
   }
 
+  /* Sprungziele im Zugeklappten (Startseite nach Punkt 4, 05.10.2026): #kampagnen und
+     #profil stehen unter „Ziele, Weg zur Provision und Kampagnen“. Zeigt der Anker
+     dorthin, klappt alles darüber auf — beim Laden und beim Tippen auf einen Schnellzugriff. */
+  var aufklappen = function () {
+    var id = (window.location.hash || '').slice(1);
+    var ziel = id && /^[A-Za-z0-9_-]{1,80}$/.test(id) ? document.getElementById(id) : null;
+    if (!ziel) { return; }
+    for (var e = ziel.parentElement; e; e = e.parentElement) { if (e.tagName === 'DETAILS') { e.open = true; } }
+    ziel.scrollIntoView({ block: 'start' });
+  };
+  aufklappen();
+  window.addEventListener('hashchange', aufklappen);
+  /* MEHR in der Leiste: ein Tipp daneben schließt die Liste wieder. */
+  var mehr = document.querySelector('.cc-mehr');
+  if (mehr) {
+    document.addEventListener('click', function (e) { if (mehr.open && !mehr.contains(e.target)) { mehr.open = false; } });
+  }
+
   var ruhig = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- 1. Signature-Moment ---------- */

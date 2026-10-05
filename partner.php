@@ -927,8 +927,10 @@ if ($p && isset($_GET['karte'])) {
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
   .zum-cc{display:inline-block;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--gold,#c9a24b);text-decoration:none;padding:6px 0}
-  .wortmarke.mit-cc{padding-top:10px}
   .zum-cc:hover,.zum-cc:focus-visible{text-decoration:underline}
+  /* Mit Skript führt START in der Leiste zurück — dann braucht es die Zeile nicht (05.10.2026). */
+  body:not(.mit-reitern) .wortmarke.mit-cc{padding-top:10px}
+  .mit-reitern .zum-cc{display:none}
   .pt{max-width:640px;margin:0 auto}
   .pt h1{font-size:clamp(24px,5vw,30px);margin:0 0 10px;line-height:1.2}
   .pt h2{font-size:17px;margin:0 0 10px}
@@ -1259,7 +1261,7 @@ if ($p && isset($_GET['karte'])) {
   /* Reiter wie eine App (27.09.2026). Ohne Skript gibt es sie nicht -- dann steht alles untereinander. */
   .sr-nur{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
   .app-reiter{display:none}
-  .mit-reitern .app-reiter{display:flex;position:sticky;top:8px;z-index:30;gap:3px;max-width:640px;margin:0 auto 18px;box-sizing:border-box;padding:5px;background:rgba(20,19,17,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--linie);border-radius:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
+  .mit-reitern .app-reiter{display:flex;position:sticky;top:8px;z-index:30;gap:3px;max-width:760px;margin:0 auto 18px;box-sizing:border-box;padding:5px;background:rgba(20,19,17,.88);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border:1px solid var(--linie);border-radius:16px;box-shadow:0 10px 30px -18px rgba(0,0,0,.8)}
   .app-reiter a{flex:1 1 auto;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:8px 6px;border-radius:11px;color:var(--dim);text-decoration:none;font-size:13.5px;font-weight:600;position:relative;transition:color .18s cubic-bezier(.16,1,.3,1),background-color .18s cubic-bezier(.16,1,.3,1);white-space:nowrap}
   .app-reiter a svg{width:19px;height:19px;flex:none;fill:none;stroke:currentColor;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
   .app-reiter a .k{display:none}
@@ -1273,7 +1275,21 @@ if ($p && isset($_GET['karte'])) {
   .app-kopf h2:focus,.pt h1:focus{outline:none}
   .app-kopf p{margin:0;color:var(--dim);font-size:14.5px;line-height:1.5;max-width:56ch}
   .app-kopf[hidden],.mit-reitern [data-reiter][hidden]{display:none!important}
+  /* MEHR (Spezifikation Punkt 3): nur am Handy; dort stehen SHOP und MEIN KONTO in einer kleinen Liste. */
+  .app-mehr,.app-mehr-liste{display:none}
+  .app-oben .hinweis{margin:0 0 14px}
   @media (max-width:760px){
+    .app-reiter a.app-gross{display:none}
+    .app-mehr{display:flex;flex:1 1 auto;min-width:0;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 2px;border-radius:12px;
+      background:none;border:0;color:var(--dim);font:600 11.5px/1.2 var(--f-text,inherit);cursor:pointer}
+    .app-mehr svg{width:22px;height:22px;fill:currentColor;stroke:none}
+    .app-mehr.aktiv,.app-mehr[aria-expanded=true]{color:#f1d38b}
+    .app-mehr:focus-visible{outline:2px solid #f1d38b;outline-offset:1px}
+    .app-mehr-liste:not([hidden]){display:grid;gap:4px;position:absolute;right:4px;bottom:calc(100% + 10px);min-width:210px;padding:6px;border-radius:16px;
+      border:1px solid var(--linie);background:#100f0d;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
+    .app-reiter .app-mehr-liste a{flex-direction:row;justify-content:flex-start;gap:10px;font-size:15px;min-height:50px;padding:10px 12px}
+    .app-reiter .app-mehr-liste a .k{display:none}
+    .app-reiter .app-mehr-liste a .l{display:block}
     .mit-reitern .app-reiter{position:fixed;top:auto;bottom:0;left:0;right:0;max-width:none;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(12,11,10,.95)}
     .app-reiter a{flex-direction:column;gap:3px;font-size:11.5px;font-weight:600;min-height:54px;padding:6px 2px;border-radius:12px}
     .app-reiter a svg{width:22px;height:22px}
@@ -1359,7 +1375,11 @@ if ($p && isset($_GET['karte'])) {
   <script type="application/json" id="reiter_daten"><?= json_encode([
       'aria' => Texte::h(Texte::PARTNER_REITER['aria'], $sprache),
       'neu' => ['it' => 'novità', 'de' => 'neu', 'en' => 'new'][$sprache] ?? 'new',
-      'reihe' => array_keys(Texte::PARTNER_REITER['reiter']),
+      // Reihenfolge nach Spezifikation Punkt 3; START ist ein Link ins Command Center, kein Reiter (05.10.2026).
+      'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'profil'],
+      'start' => ['url' => $selbst(['cc' => 1]), 'kurz' => Texte::h(Texte::PARTNER_REITER['reiter']['start']['kurz'], $sprache)],
+      'mehr' => Texte::h(Texte::PARTNER_REITER['mehr'], $sprache), 'mehr_aria' => Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache),
+      'mehr_ids' => ['werbemittel', 'profil'],
       'so' => Texte::h(Texte::PARTNER_REITER['so'], $sprache), 'suche' => Texte::h(Texte::PARTNER_REITER['suche'], $sprache),
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [
@@ -1370,13 +1390,20 @@ if ($p && isset($_GET['karte'])) {
       'reiter' => array_map(static fn(array $r) => array_map(static fn(array $t) => Texte::h($t, $sprache), $r), Texte::PARTNER_REITER['reiter']),
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
   <script src="/assets/js/partner-reiter.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-reiter.js') ?>" defer></script>
-  <div class="block pt" id="start" data-reiter="start">
-    <h1><?= $h($T('p_titel')) ?></h1>
-    <p class="lead"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
+  <?php /* NAVIGATION NACH SPEZIFIKATION PUNKT 3 (05.10.2026): START ist das Command Center.
+     Der frühere Reiter „Start“ ist aufgeteilt — Meldungen und der Seitentitel stehen über
+     jedem Bereich; „Heute zu tun“ zeigt die Startseite („Heute wichtig“); Erste Schritte und
+     Vereinbarung stehen unter MEIN KONTO (Anker #start bleibt dort); Link und Teilen unter
+     MARKETING (#link); Zahlen, Wettbewerb, Meilensteine, Empfehlungen unter ERGEBNISSE;
+     Besuche, heiß und nachhaken unter KUNDEN. Jede Sprungmarke bleibt gültig. */ ?>
+  <div class="pt app-oben" id="oben">
+    <h1 class="sr-nur"><?= $h($T('p_titel')) ?> — <?= $h($p['name']) ?></h1>
     <?php $wegFehler = in_array($meldung, ['iban_falsch', 'inhaber_fehlt', 'email_falsch', 'konto_fehler', 'konto_land_bereit'], true); ?>
     <?php if ($meldung !== '' && !$wegFehler && !str_starts_with($meldung, 'fe_') && !in_array($meldung, Partner::STRIPE_MELDUNGEN, true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
     <?php if ($p['status'] === 'pausiert'): ?><div class="hinweis"><?= $h($T('pausiert')) ?></div><?php endif; ?>
-    <?php require __DIR__ . '/app/views/partner_heute.php'; /* „Heute zu tun“ und Fortschritt (03.10.2026) */ ?>
+  </div>
+  <div class="block pt" id="start" data-reiter="profil">
+    <p class="lead" style="margin-top:0"><?= $h($p['name']) ?> · <?= $h($bedingungen) ?></p>
     <?php
       /* Der eine nächste Schritt — was der Partner jetzt tun muss, nicht alles auf einmal. */
       $nWeg = PartnerWege::weg($p);
@@ -1413,8 +1440,10 @@ if ($p && isset($_GET['karte'])) {
     <?php /* Die angenommene Vereinbarung, jederzeit nachzulesen (30.09.2026, PartnerSchutz) */ ?>
     <details class="klein" style="margin:0 0 14px"><summary style="cursor:pointer;color:var(--cyan)"><?= $h(strtr($T('sp_ihre'), ['{fassung}' => (string) $p['vereinbarung_version'], '{datum}' => date($sprache === 'de' ? 'd.m.Y' : 'd/m/Y', strtotime((string) ($p['vereinbarung_klauseln_am'] ?: $p['vereinbarung_am'])))])) ?></summary>
       <pre><?= $h((string) $p['vereinbarung_text']) ?></pre></details>
+  </div>
 
-    <label for="p_link"><?= $h($T('p_link')) ?></label>
+  <div class="block pt" id="link" data-reiter="werben">
+    <h2><label for="p_link"><?= $h($T('p_link')) ?></label></h2>
     <div class="kopie"><input id="p_link" type="text" readonly value="<?= $h($link) ?>">
       <button class="knopf" type="button" onclick="var f=document.getElementById('p_link');f.select();navigator.clipboard&&navigator.clipboard.writeText(f.value);this.textContent='✓'"><?= $h($T('kopieren')) ?></button></div>
     <p class="klein" style="margin-top:6px"><?= $h($T('p_code')) ?>: <b><?= $h($p['code']) ?></b></p>
@@ -1434,7 +1463,7 @@ if ($p && isset($_GET['karte'])) {
 
   <?php require __DIR__ . '/app/views/partner_plus_start.php'; ?>
 
-  <div class="block pt" id="zahlen" data-reiter="start">
+  <div class="block pt" id="zahlen" data-reiter="geld">
     <div class="zahlen">
       <div class="zahl"><b><?= (int) $k['klicks'] ?></b><span><?= $h($T('klicks')) ?></span><small><?= $h($T('z_klicks')) ?></small></div>
       <div class="zahl"><b><?= (int) $k['kunden'] ?></b><span><?= $h($T('kunden')) ?></span><small><?= $h($T('z_kunden')) ?></small></div>
@@ -1504,7 +1533,7 @@ if ($p && isset($_GET['karte'])) {
   <?php require __DIR__ . '/app/views/partner_meilensteine.php'; ?>
 
   <?php $emp = PartnerPost::empfehlungen((int) $p['id']); if ($emp): ?>
-  <div class="block pt" id="empfehlungen" data-reiter="start">
+  <div class="block pt" id="empfehlungen" data-reiter="geld">
     <h2><?= $h($T('emp_titel')) ?></h2>
     <p class="klein" style="margin-top:0"><?= $h($T('emp_text')) ?></p>
     <table class="emp"><tbody>

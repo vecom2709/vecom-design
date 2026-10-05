@@ -73,7 +73,7 @@ final class PartnerCommand
 
     /**
      * Die sechs Kennzahlen. Alles ganze Zahlen, Geld in Cent.
-     * @return array{kampagnen:int, scans:int, leads:int, kunden:int, provision:int, provision_wartet:int,
+     * @return array{kampagnen:int, scans:int, leads:int, leads_neu:int, kunden:int, provision:int, provision_wartet:int,
      *               bestellungen:int, bestellungen_zahlung:int, klicks:int, designs:int, freigegeben:int}
      */
     public static function zahlen(array $p): array
@@ -87,6 +87,9 @@ final class PartnerCommand
             'scans'        => $w('SELECT COALESCE(SUM(scans), 0) FROM wm_entwuerfe WHERE partner_id = ?'),
             // Leads: wer über den Link bei Vecom ankam (Zuordnung) und wer seinen Kontakt für den Partner freigab.
             'leads'        => $w('SELECT (SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ?) + (SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ?)', [$pid, $pid]),
+            // Neue Leads (Startseite, Spezifikation Punkt 4): dieselben zwei Quellen, nur die letzten 30 Tage.
+            'leads_neu'    => $w('SELECT (SELECT COUNT(*) FROM partner_zuordnungen WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY)
+                                   + (SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ? AND created_at >= NOW() - INTERVAL 30 DAY)', [$pid, $pid]),
             'kunden'       => $w("SELECT COUNT(DISTINCT customer_id) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')"),
             'provision'    => (int) $f['verdient'],
             'provision_wartet' => (int) $f['wartet'],
@@ -118,6 +121,37 @@ final class PartnerCommand
             'kunden'    => $w("SELECT COUNT(DISTINCT customer_id) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')"),
             'provision' => (int) (self::still(static fn() => PartnerHeute::fortschritt($p), ['verdient' => 0])['verdient'] ?? 0),
         ];
+    }
+
+    /** Was auf der Startseite unter „Heute wichtig“ steht: nur, was Menschen gerade wollen oder Geld bewegt. */
+    public const WICHTIG = ['kontakte' => 'rot', 'heiss' => 'rot', 'nachrichten' => 'rot', 'nachhaken' => 'gelb', 'anrufen' => 'gelb', 'vorbeigehen' => 'gelb'];
+
+    /**
+     * „Heute wichtig“ (Spezifikation Punkt 4: „Nur wirklich relevante Dinge.“) — aus denselben
+     * Quellen wie „Heute zu tun“ (PartnerHeute), ohne den Beitrag des Tages, den Kurs und die
+     * Medien; dazu Bestellungen, die auf Zahlung warten, und Entwürfe, die nur ein Ja brauchen.
+     * Farbe nach Punkt 69: rot = dringend, gelb = Aufmerksamkeit.
+     * @return list<array{k:string, n:int, text:string, anker:string, stufe:string}>
+     */
+    public static function wichtig(array $p, string $sprache, array $z, bool $mc): array
+    {
+        require_once __DIR__ . '/PartnerHeute.php';
+        $t = static fn(array $x): string => Texte::h($x, $sprache);
+        $aus = [];
+        foreach ((array) self::still(static fn() => PartnerHeute::punkte($p, $sprache), []) as $hp) {
+            if (!isset(self::WICHTIG[$hp['k']])) { continue; }
+            $vorlage = Texte::PARTNER_HEUTE['punkte'][$hp['k']][(int) $hp['n'] === 1 ? 0 : 1] ?? null;
+            if ($vorlage === null) { continue; }
+            $aus[] = ['k' => $hp['k'], 'n' => (int) $hp['n'], 'anker' => (string) $hp['anker'], 'stufe' => self::WICHTIG[$hp['k']],
+                      'text' => rtrim(strtr($t($vorlage), ['{n}' => (string) $hp['n'], '{titel}' => (string) $hp['titel']]), ' :')];
+        }
+        $E = Texte::PARTNER_CC['e'];
+        foreach ($mc ? ['zahlen' => $z['bestellungen_zahlung'], 'freigeben' => $z['designs']] : [] as $k => $n) {
+            if ($n <= 0) { continue; }
+            $titel = isset($E[$k]['titel'][0]) ? $E[$k]['titel'][$n === 1 ? 0 : 1] : $E[$k]['titel'];
+            $aus[] = ['k' => $k, 'n' => $n, 'anker' => self::ANKER[$k], 'stufe' => 'gelb', 'text' => strtr($t($titel), ['{n}' => (string) $n])];
+        }
+        return $aus;
     }
 
     /** Gibt es schon genug, um aus Zahlen etwas zu empfehlen? Ohne Besuch, Scan, Lead oder Material: nein. */

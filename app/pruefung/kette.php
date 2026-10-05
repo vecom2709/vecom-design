@@ -12825,10 +12825,11 @@ pruefe('Reiter: die Sprungmarken der ersten Schritte zeigen auf vorhandene Blöc
 $prFehlt = [];
 foreach (Texte::PARTNER_REITER['reiter'] as $prK => $prR) {
     foreach (['kurz', 'titel', 'satz'] as $prF) { foreach (['it', 'de', 'en'] as $prL) { if (trim((string) ($prR[$prF][$prL] ?? '')) === '') { $prFehlt[] = "$prK.$prF.$prL"; } } }
-    if (mb_strlen((string) $prR['kurz']['it']) > 9 || mb_strlen((string) $prR['kurz']['de']) > 9 || mb_strlen((string) $prR['kurz']['en']) > 9) { $prFehlt[] = "$prK.kurz zu lang fürs Handy"; }
+    // Seit 05.10.2026 fünf Plätze statt sechs (START · KUNDEN · MARKETING · ERGEBNISSE · MEHR): zehn Zeichen passen („Ergebnisse“, gemessen bei 390 px).
+    if (mb_strlen((string) $prR['kurz']['it']) > 10 || mb_strlen((string) $prR['kurz']['de']) > 10 || mb_strlen((string) $prR['kurz']['en']) > 10) { $prFehlt[] = "$prK.kurz zu lang fürs Handy"; }
 }
 /* Marketing Center (03.10.2026): sechster Reiter nach „Werben“; erscheint nur mit Katalog. */
-pruefe('Reiter: Start · Werben · Marketing Center · Kunden finden · Geld · Profil, dreisprachig, kurze Namen passen in die Handyleiste',
+pruefe('Reiter: Start · Kunden · Marketing · Ergebnisse · Shop · Mein Konto (Spezifikation Punkt 3), dreisprachig, kurze Namen passen in die Handyleiste',
     array_keys(Texte::PARTNER_REITER['reiter']) === ['start', 'werben', 'werbemittel', 'finden', 'geld', 'profil'] && $prFehlt === [], implode(', ', $prFehlt));
 $prJs = (string) @file_get_contents($wurzel . '/../assets/js/partner-reiter.js');
 $prSeite = (string) file_get_contents($wurzel . '/../partner.php');
@@ -15576,7 +15577,7 @@ preg_match_all("~'ids' => \[([^\]]+)\]~", $htPhp, $htOrd);
 $htOrdFehlt = [];
 foreach ($htOrd[1] as $htL) { foreach (array_map(static fn($x) => trim($x, " '"), explode(',', $htL)) as $htId) { if (!str_contains($htQuellen, 'id="' . $htId . '"')) { $htOrdFehlt[] = $htId; } } }
 pruefe('Werben geordnet (Fertig zum Teilen / Selbst gestalten): jede genannte Sprungmarke gibt es, Suche öffnet zugeklappte Listen, Handy-Vorschau baut nur Text',
-    count($htOrd[1]) === 2 && $htOrdFehlt === [] && str_contains($htPhp, "require __DIR__ . '/app/views/partner_heute.php';")
+    count($htOrd[1]) === 2 && $htOrdFehlt === [] && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), 'PartnerCommand::wichtig(')
     && str_contains($htJs, "daten.ordnung") && str_contains($htJs, "if (x.tagName === 'DETAILS') { x.open = true; }") && str_contains($htJs, "role', 'search'")
     && str_contains($htJs, 'blase.appendChild(document.createTextNode(teil))') && !str_contains($htJs, 'blase.innerHTML')
     && substr_count((string) file_get_contents($wurzel . '/views/partner_kalender.php') . (string) file_get_contents($wurzel . '/views/partner_werbung.php'), 'data-handy=') >= 2,
@@ -23638,8 +23639,9 @@ pruefe('Startseite: Link, App-Start, Sprachwahl und utm-Anhängsel öffnen das C
 pruefe('Gruß nach Tageszeit: Guten Morgen bis 11 Uhr, Guten Abend ab 18 Uhr, sonst Hallo — in allen drei Sprachen',
     PartnerCommand::gruss(strtotime('2026-10-05 08:00:00')) === 'morgen' && PartnerCommand::gruss(strtotime('2026-10-05 14:00:00')) === 'tag'
     && PartnerCommand::gruss(strtotime('2026-10-05 20:30:00')) === 'abend' && PartnerCommand::gruss(strtotime('2026-10-05 02:00:00')) === 'abend'
-    && Texte::h(Texte::PARTNER_CC['hallo_morgen'], 'de') === 'Guten Morgen, {name},' && Texte::h(Texte::PARTNER_CC['hallo_abend'], 'it') === 'Buonasera {name},'
-    && str_contains($ccView, 'PartnerCommand::gruss()'));
+    && Texte::h(Texte::PARTNER_CC['gruss']['morgen'], 'de') === 'Guten Morgen, {name}.' && Texte::h(Texte::PARTNER_CC['gruss']['abend'], 'it') === 'Buonasera, {name}.'
+    && Texte::h(Texte::PARTNER_CC['ueberblick'], 'de') === 'Hier ist dein heutiger Überblick.'
+    && str_contains($ccView, "\$C['gruss'][PartnerCommand::gruss()]"));
 $ccLoc = [];
 preg_match_all('~header\(\'Location: \' \. ([^;]+);~', substr($ccSeite, (int) strpos($ccSeite, 'Die Partnerseite als App')), $ccLocM);
 foreach ($ccLocM[1] as $ccL) { if (!str_starts_with($ccL, '$selbst(') && !str_starts_with($ccL, '$r[\'url\']') && !str_starts_with($ccL, '$wmUrl')) { $ccLoc[] = $ccL; } }
@@ -23657,6 +23659,48 @@ pruefe('Alte Sprunglinks (Mails, Push: …#nachrichten, #wege): Anker, den es im
     && str_contains($ccJs, "!document.getElementById(anker)") && str_contains($ccJs, "window.location.replace(voll + '#' + anker);")
     && strpos($ccJs, 'window.location.replace(voll') < strpos($ccJs, "getElementById('cc-intro')")
     && str_contains($ccJs, '/^[A-Za-z0-9_-]{1,80}$/.test(anker)'));
+/* Phase 1 (05.10.2026, Spezifikation Punkt 3/4): Navigation START · KUNDEN · MARKETING · ERGEBNISSE ·
+   SHOP · MEIN KONTO, am Handy vier und MEHR; Startseite mit vier Zahlen, „Heute wichtig“ und dem Knopf. */
+$ccW = PartnerCommand::wichtig($ccA, 'de', PartnerCommand::zahlen($ccA), true);
+$ccW0 = PartnerCommand::wichtig($ccB, 'it', PartnerCommand::zahlen($ccB), false);
+pruefe('Heute wichtig: nur Dringendes (Kontakte, heiß, Nachrichten rot; nachhaken, anrufen, vorbeigehen, Zahlung, Freigabe gelb) — nie der Beitrag des Tages, der Kurs oder Medien',
+    !array_filter($ccW, static fn($w) => in_array($w['k'], ['posten', 'kurs', 'medien'], true))
+    && !array_filter(array_merge($ccW, $ccW0), static fn($w) => !in_array($w['stufe'], ['rot', 'gelb'], true) || $w['text'] === '' || str_contains($w['text'], '{'))
+    && array_column($ccW0, 'k') === array_values(array_filter(array_column($ccW0, 'k'), static fn($k) => isset(PartnerCommand::WICHTIG[$k]))),
+    json_encode([$ccW, $ccW0], JSON_UNESCAPED_UNICODE));
+Db::run("INSERT INTO partner_kontaktfreigaben (partner_id, name, telefon, einwilligung, created_at) VALUES (?, 'Alt', '+39 333 3', 'ja', NOW() - INTERVAL 40 DAY), (?, 'Neu', '+39 333 4', 'ja', NOW())", [(int) $ccB['id'], (int) $ccB['id']]);
+$ccZB = PartnerCommand::zahlen($ccB);
+$ccWB = PartnerCommand::wichtig($ccB, 'it', $ccZB, false);
+pruefe('Neue Leads: nur die letzten 30 Tage (alle Leads zählen weiter für den Trichter); ein neuer Kontakt steht rot unter „Heute wichtig“, auf Italienisch mit „lei“',
+    $ccZB['leads_neu'] === $ccZB['leads'] - 1 && ($ccWB[0]['k'] ?? '') === 'kontakte' && $ccWB[0]['stufe'] === 'rot' && str_contains($ccWB[0]['text'], 'da lei'),
+    json_encode([$ccZB, $ccWB], JSON_UNESCAPED_UNICODE));
+$ccR = (string) file_get_contents($oben . '/assets/js/partner-reiter.js');
+pruefe('Startseite nach Punkt 4: Gruß, Satz, genau vier Zahlen (Neue Leads, Kunden, Provision, Klicks), Heute wichtig, der große Knopf als <details> (geht ohne Skript), Rest zugeklappt',
+    preg_match("~\\\$ccKacheln = \[\s*'leads'\s*=> \[\\\$ccZ\['leads_neu'\][^;]*'kunden'[^;]*'provision'[^;]*'klicks'[^;]*\];~s", $ccView) === 1
+    && substr_count(substr($ccView, (int) strpos($ccView, '$ccKacheln = ['), (int) strpos($ccView, '];', (int) strpos($ccView, '$ccKacheln = [')) - (int) strpos($ccView, '$ccKacheln = [')), "=> [\$ccZ[") === 4
+    && str_contains($ccView, '<details class="cc-jetzt') && str_contains($ccView, "\$h(\$c(\$C['jetzt']))") && str_contains($ccView, '<details class="cc-mehrblick')
+    && strpos($ccView, '<section class="cc-kz4') < strpos($ccView, '<section class="cc-wichtig') && strpos($ccView, '<section class="cc-wichtig') < strpos($ccView, '<details class="cc-jetzt')
+    && Texte::h(Texte::PARTNER_CC['jetzt'], 'de') === 'Was soll ich jetzt tun?' && !isset(Texte::PARTNER_CC['frage']));
+pruefe('Navigation nach Punkt 3: START (Command Center) · KUNDEN · MARKETING · ERGEBNISSE · SHOP · MEIN KONTO; am Handy SHOP und MEIN KONTO hinter MEHR — im Command Center und im vollen Bereich',
+    Texte::h(Texte::PARTNER_REITER['reiter']['finden']['kurz'], 'de') === 'Kunden' && Texte::h(Texte::PARTNER_REITER['reiter']['werben']['kurz'], 'de') === 'Marketing'
+    && Texte::h(Texte::PARTNER_REITER['reiter']['geld']['kurz'], 'de') === 'Ergebnisse' && Texte::h(Texte::PARTNER_REITER['reiter']['werbemittel']['kurz'], 'de') === 'Shop'
+    && Texte::h(Texte::PARTNER_REITER['reiter']['profil']['kurz'], 'de') === 'Mein Konto' && Texte::h(Texte::PARTNER_REITER['mehr'], 'it') === 'Altro'
+    && str_contains($ccSeite, "'reihe' => ['finden', 'werben', 'geld', 'werbemittel', 'profil'],") && str_contains($ccSeite, "'mehr_ids' => ['werbemittel', 'profil'],")
+    && array_keys(array_slice((static function () use ($ccView): array { preg_match_all("~^    '([a-z]+)'\s+=> \['<~m", $ccView, $m); return array_flip($m[1]); })(), 0, 6)) === ['cc', 'finden', 'werben', 'geld', 'werbemittel', 'profil']
+    && str_contains($ccView, "\$ccMehr = ['werbemittel', 'profil'];") && str_contains($ccView, '<details class="cc-mehr">')
+    && str_contains($ccR, "st.className = 'app-start';") && str_contains($ccR, "mehrKnopf.className = 'app-mehr';") && !str_contains($ccR, 'if (id === reihe[0]) { return; }'));
+$ccBl = '';
+foreach (array_merge(glob($wurzel . '/views/partner_*.php'), [$oben . '/partner.php']) as $ccF) { $ccBl .= (string) file_get_contents($ccF); }
+preg_match_all('~id="([a-z0-9-]+)"[^>]*data-reiter="([a-z]+)"~', $ccBl, $ccBm, PREG_SET_ORDER);
+$ccWo = []; foreach ($ccBm as $m) { $ccWo[$m[1]] = $m[2]; }
+pruefe('Der alte Reiter „Start“ ist aufgeteilt, jede Sprungmarke bleibt: Zahlen/Wettbewerb/Meilensteine/Empfehlungen → Ergebnisse, Besuche/heiß/nachhaken → Kunden, Link/Aktion/Kurs → Marketing, Erste Schritte (#start)/Telegram → Mein Konto; Meldungen über jedem Bereich',
+    !in_array('start', $ccWo, true)
+    && ($ccWo['zahlen'] ?? '') === 'geld' && ($ccWo['wettbewerb'] ?? '') === 'geld' && ($ccWo['meilensteine'] ?? '') === 'geld' && ($ccWo['empfehlungen'] ?? '') === 'geld'
+    && ($ccWo['besuche'] ?? '') === 'finden' && ($ccWo['heiss'] ?? '') === 'finden' && ($ccWo['nachhaken'] ?? '') === 'finden'
+    && ($ccWo['link'] ?? '') === 'werben' && ($ccWo['aktion'] ?? '') === 'werben' && ($ccWo['kurs'] ?? '') === 'werben'
+    && ($ccWo['start'] ?? '') === 'profil' && ($ccWo['telegram'] ?? '') === 'profil'
+    && str_contains($ccSeite, '<div class="pt app-oben" id="oben">') && !str_contains($ccSeite, "require __DIR__ . '/app/views/partner_heute.php';")
+    && PartnerStart::ANKER['vereinbarung'] === 'start', json_encode($ccWo));
 Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);

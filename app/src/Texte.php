@@ -3097,11 +3097,32 @@ final class Texte
        Deutsch duzt (Texte::ANREDE_DU), Italienisch bleibt bei „Lei“ wie der übrige Partnerbereich. */
     public const PARTNER_CC = [
         'titel'     => ['it' => 'Command Center', 'de' => 'Command Center', 'en' => 'Command Center'],
-        'hallo'     => ['it' => 'Buongiorno {name},', 'de' => 'Hallo {name},', 'en' => 'Hello {name},'],
-        // Nach Tageszeit (PartnerCommand::gruss), „Guten Morgen, [Partnername]“ aus der Spezifikation.
-        'hallo_morgen' => ['it' => 'Buongiorno {name},', 'de' => 'Guten Morgen, {name},', 'en' => 'Good morning, {name},'],
-        'hallo_abend'  => ['it' => 'Buonasera {name},', 'de' => 'Guten Abend, {name},', 'en' => 'Good evening, {name},'],        'frage'     => ['it' => 'cosa vuole ottenere oggi?', 'de' => 'was möchtest du heute erreichen?', 'en' => 'what would you like to achieve today?'],
-        'heute'     => ['it' => 'Cosa faccio oggi?', 'de' => 'Was soll ich heute machen?', 'en' => 'What should I do today?'],
+        // Startseite nach Spezifikation Punkt 4 (05.10.2026): Gruß nach Tageszeit (PartnerCommand::gruss), ein Satz, vier Zahlen.
+        'gruss' => [
+            'morgen' => ['it' => 'Buongiorno, {name}.', 'de' => 'Guten Morgen, {name}.', 'en' => 'Good morning, {name}.'],
+            'tag'    => ['it' => 'Buongiorno, {name}.', 'de' => 'Hallo, {name}.', 'en' => 'Hello, {name}.'],
+            'abend'  => ['it' => 'Buonasera, {name}.', 'de' => 'Guten Abend, {name}.', 'en' => 'Good evening, {name}.'],
+        ],
+        'ueberblick' => ['it' => 'Ecco il suo quadro di oggi.', 'de' => 'Hier ist dein heutiger Überblick.', 'en' => 'Here is your overview for today.'],
+        'kz4' => [
+            'leads'     => [['it' => 'Nuovi contatti', 'de' => 'Neue Leads', 'en' => 'New leads'], ['it' => 'ultimi 30 giorni', 'de' => 'letzte 30 Tage', 'en' => 'last 30 days']],
+            'kunden'    => [['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'], ['it' => 'hanno acquistato', 'de' => 'haben gekauft', 'en' => 'who bought']],
+            'provision' => [['it' => 'Provvigione', 'de' => 'Provision', 'en' => 'Commission'], ['it' => 'guadagnata', 'de' => 'verdient', 'en' => 'earned']],
+            'klicks'    => [['it' => 'Clic', 'de' => 'Klicks', 'en' => 'Clicks'], ['it' => 'sul suo link', 'de' => 'auf deinen Link', 'en' => 'on your link']],
+        ],
+        'kz4_aria'      => ['it' => 'I suoi numeri', 'de' => 'Deine Zahlen', 'en' => 'Your numbers'],
+        'wichtig_titel' => ['it' => 'Oggi importante', 'de' => 'Heute wichtig', 'en' => 'Important today'],
+        'wichtig_leer'  => ['it' => 'Oggi non c’è niente di urgente.', 'de' => 'Heute ist nichts dringend.', 'en' => 'Nothing urgent today.'],
+        'wichtig_stufe' => ['rot' => ['it' => 'urgente', 'de' => 'dringend', 'en' => 'urgent'], 'gelb' => ['it' => 'da fare', 'de' => 'Aufmerksamkeit', 'en' => 'needs attention']],
+        'jetzt'         => ['it' => 'Cosa faccio adesso?', 'de' => 'Was soll ich jetzt tun?', 'en' => 'What should I do now?'],
+        'schnell_aria'  => ['it' => 'Accesso rapido', 'de' => 'Schnellzugriff', 'en' => 'Quick access'],
+        'schnell' => [
+            'kampagne_neu' => ['it' => 'Nuova campagna', 'de' => 'Neue Kampagne', 'en' => 'New campaign'],
+            'kampagnen'    => ['it' => 'Campagne ({n})', 'de' => 'Kampagnen ({n})', 'en' => 'Campaigns ({n})'],
+            'qr'           => ['it' => 'Codici QR', 'de' => 'QR-Codes', 'en' => 'QR codes'],
+            'profil'       => ['it' => 'Profilo di marketing', 'de' => 'Marketingprofil', 'en' => 'Marketing profile'],
+        ],
+        'mehr_ueberblick' => ['it' => 'Obiettivi, percorso e campagne', 'de' => 'Ziele, Weg zur Provision und Kampagnen', 'en' => 'Goals, path to commission and campaigns'],
         'warum'     => ['it' => 'Perché', 'de' => 'Warum', 'en' => 'Why'],
         'wenig'     => ['it' => 'Ancora pochi dati per un consiglio basato sui suoi numeri. Quindi prima questo:', 'de' => 'Noch zu wenig Daten für eine Empfehlung aus deinen Zahlen. Darum zuerst das:', 'en' => 'Not enough data yet for a recommendation from your numbers. So first this:'],
         'start_warum' => ['it' => 'È il prossimo dei primi passi — dopo, i consigli arrivano dai suoi numeri.', 'de' => 'Das ist der nächste der ersten Schritte — danach kommen die Empfehlungen aus deinen Zahlen.', 'en' => 'It is the next of your first steps — after that, recommendations come from your numbers.'],
@@ -3167,15 +3188,6 @@ final class Texte
             'social'   => [['it' => 'Pubblicare sui social', 'de' => 'Auf Social Media posten', 'en' => 'Post on social media'], ['it' => 'Il post del giorno e immagini 3D.', 'de' => 'Der Beitrag des Tages und 3D-Bilder.', 'en' => 'Today’s post and 3D images.']],
             'check'    => [['it' => 'Inviare una verifica del sito', 'de' => 'Website-Check verschicken', 'en' => 'Send a website check'], ['it' => 'Il modo più facile per iniziare a parlare.', 'de' => 'Der leichteste Gesprächseinstieg.', 'en' => 'The easiest way to start a conversation.']],
         ],
-        'zahlen_titel' => ['it' => 'I suoi numeri', 'de' => 'Deine Zahlen', 'en' => 'Your numbers'],
-        'k' => [
-            'kampagnen'    => [['it' => 'Campagne attive', 'de' => 'Aktive Kampagnen', 'en' => 'Active campaigns'], ['it' => 'Ne avvii una con l’assistente.', 'de' => 'Starte eine mit dem Assistenten.', 'en' => 'Start one with the assistant.']],
-            'scans'        => [['it' => 'Scansioni', 'de' => 'Scans', 'en' => 'Scans'], ['it' => 'dei suoi QR stampati', 'de' => 'deiner gedruckten QR-Codes', 'en' => 'of your printed QR codes']],
-            'leads'        => [['it' => 'Contatti', 'de' => 'Leads', 'en' => 'Leads'], ['it' => 'richieste dal suo link e contatti per lei', 'de' => 'Anfragen über deinen Link und Kontakte für dich', 'en' => 'enquiries via your link and contacts for you']],
-            'kunden'       => [['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'], ['it' => 'hanno acquistato tramite lei', 'de' => 'haben über dich gekauft', 'en' => 'bought through you']],
-            'provision'    => [['it' => 'Provvigioni', 'de' => 'Provision', 'en' => 'Commission'], ['it' => 'guadagnate finora', 'de' => 'bisher verdient', 'en' => 'earned so far']],
-            'bestellungen' => [['it' => 'Ordini aperti', 'de' => 'Offene Bestellungen', 'en' => 'Open orders'], ['it' => 'in lavorazione o in viaggio', 'de' => 'in Arbeit oder unterwegs', 'en' => 'in progress or on the way']],
-        ],
         'weg_titel' => ['it' => 'Dal contatto alla provvigione', 'de' => 'Vom Kontakt zur Provision', 'en' => 'From contact to commission'],
         'weg_satz'  => ['it' => 'Solo numeri, mai nomi — così prevede l’accordo.', 'de' => 'Nur Zahlen, keine Namen — so steht es in der Vereinbarung.', 'en' => 'Numbers only, never names — as the agreement says.'],
         'weg' => [
@@ -3186,7 +3198,6 @@ final class Texte
             'provision' => ['it' => 'Provvigione', 'de' => 'Provision', 'en' => 'Commission'],
         ],
         'k_wartet'  => ['it' => 'di cui {betrag} nel periodo di recesso', 'de' => 'davon {betrag} in der Widerrufsfrist', 'en' => '{betrag} of it still in the withdrawal period'],
-        'k_zahlung' => ['it' => '{n} in attesa di pagamento', 'de' => '{n} warten auf die Zahlung', 'en' => '{n} waiting for payment'],
         'pf_titel'  => ['it' => 'Il suo profilo marketing', 'de' => 'Dein Marketingprofil', 'en' => 'Your marketing profile'],
         'pf_text'   => ['it' => 'Quattro domande, un minuto. Servono a proporle ciò che fa per lei.', 'de' => 'Vier Fragen, eine Minute. Damit passt, was wir dir vorschlagen.', 'en' => 'Four questions, one minute. So that what we suggest fits you.'],
         'pf_branchen' => ['it' => 'A quali attività si rivolge? (fino a 3)', 'de' => 'Welche Betriebe sprichst du an? (bis zu 3)', 'en' => 'Which businesses do you approach? (up to 3)'],
@@ -3210,7 +3221,6 @@ final class Texte
             'druck'       => ['it' => 'Volantini e biglietti', 'de' => 'Flyer und Karten', 'en' => 'Flyers and cards'],
             'email'       => ['it' => 'E-mail', 'de' => 'E-Mail', 'en' => 'E-mail'],
         ],
-        'bereich'     => ['it' => 'Area partner', 'de' => 'Partnerbereich', 'en' => 'Partner area'],
         'intro_weg'   => ['it' => 'Saltare', 'de' => 'Überspringen', 'en' => 'Skip'],
     ];
 
@@ -5180,6 +5190,10 @@ final class Texte
         kurz = untere Leiste am Handy, titel = Leiste am Rechner und Kopf des Reiters. */
     public const PARTNER_REITER = [
         'aria' => ['it' => 'Sezioni della pagina partner', 'de' => 'Bereiche der Partnerseite', 'en' => 'Partner page sections'],
+        // Handy: START · KUNDEN · MARKETING · ERGEBNISSE · MEHR (Spezifikation Punkt 3); hinter MEHR Shop und Mein Konto.
+        'mehr' => ['it' => 'Altro', 'de' => 'Mehr', 'en' => 'More'],
+        'mehr_aria' => ['it' => 'Altre sezioni', 'de' => 'Weitere Bereiche', 'en' => 'More sections'],
+        'seite_titel' => ['it' => 'Area partner', 'de' => 'Partnerbereich', 'en' => 'Partner area'],
         /* So geht's je Reiter und Schnellsuche (03.10.2026, Uwe: Ja zu D2) */
         'so'         => ['it' => 'Come funziona', 'de' => 'So geht’s', 'en' => 'How it works'],
         'suche'      => ['it' => 'Cerca: volantino, video, pagamento …', 'de' => 'Suchen: Flyer, Video, Auszahlung …', 'en' => 'Search: flyer, video, payout …'],
@@ -5199,18 +5213,20 @@ final class Texte
                 'so2'   => ['it' => 'Ogni giorno: sbrighi «Da fare oggi» qui in alto.', 'de' => 'Jeden Tag: „Heute zu tun“ hier oben abarbeiten.', 'en' => 'Every day: work through “To do today” up here.'],
                 'so3'   => ['it' => 'Se qualcuno compra tramite lei, lo vede qui e sotto Guadagni.', 'de' => 'Kauft jemand über dich, siehst du es hier und unter „Geld“.', 'en' => 'If someone buys through you, you see it here and under “Money”.'],
             ],
+            // Namen nach Spezifikation Punkt 3 (05.10.2026): START · KUNDEN · MARKETING · ERGEBNISSE · SHOP · MEIN KONTO.
+            // Die Schlüssel (werben, finden, geld …) bleiben: an ihnen hängen Sprungmarken wie #r-geld.
             'werben' => [
-                'kurz'  => ['it' => 'Promuovi', 'de' => 'Werben', 'en' => 'Promote'],
-                'titel' => ['it' => 'Promuovere', 'de' => 'Werben', 'en' => 'Promote'],
-                'satz'  => ['it' => 'Testi, immagini e video pronti da condividere.', 'de' => 'Fertige Texte, Bilder und Videos zum Teilen.', 'en' => 'Ready-made texts, images and videos to share.'],
+                'kurz'  => ['it' => 'Marketing', 'de' => 'Marketing', 'en' => 'Marketing'],
+                'titel' => ['it' => 'Marketing', 'de' => 'Marketing', 'en' => 'Marketing'],
+                'satz'  => ['it' => 'Il suo link, post pronti e tutto da condividere.', 'de' => 'Dein Link, fertige Beiträge und alles zum Teilen.', 'en' => 'Your link, ready-made posts and everything to share.'],
                 'so1'   => ['it' => 'Sotto «Pubblichi oggi» copi il post già pronto.', 'de' => 'Unter „Heute posten“ den fertigen Beitrag kopieren.', 'en' => 'Under “Post today”, copy the ready-made post.'],
                 'so2'   => ['it' => 'Salvi l’immagine o il video — il suo link è già dentro.', 'de' => 'Bild oder Video dazu speichern — dein Link steckt schon drin.', 'en' => 'Save the image or video — your link is already in it.'],
                 'so3'   => ['it' => 'Lo condivida nello stato WhatsApp, su Instagram o Facebook.', 'de' => 'Im WhatsApp-Status, auf Instagram oder Facebook teilen.', 'en' => 'Share it in your WhatsApp status, on Instagram or Facebook.'],
             ],
             /* Marketing Center (03.10.2026, Phase 1): erscheint erst, wenn Uwe ein Produkt freigeschaltet hat. */
             'werbemittel' => [
-                'kurz'  => ['it' => 'Materiali', 'de' => 'Material', 'en' => 'Materials'],
-                'titel' => ['it' => 'Marketing Center', 'de' => 'Marketing Center', 'en' => 'Marketing Center'],
+                'kurz'  => ['it' => 'Shop', 'de' => 'Shop', 'en' => 'Shop'],
+                'titel' => ['it' => 'Shop', 'de' => 'Shop', 'en' => 'Shop'],
                 'satz'  => ['it' => 'Materiali stampati con il suo nome, il suo codice e il suo QR.', 'de' => 'Druckfertige Werbemittel mit deinem Namen, deiner ID und deinem QR-Code.', 'en' => 'Print-ready materials with your name, your ID and your QR code.'],
                 'so1'   => ['it' => 'Guardi come appaiono i suoi materiali con i suoi dati.', 'de' => 'Ansehen, wie deine Werbemittel mit deinen Daten aussehen.', 'en' => 'See how your materials look with your details.'],
                 'so2'   => ['it' => 'Scarichi il suo QR per stampe proprie.', 'de' => 'Deinen QR-Code für eigene Drucksachen herunterladen.', 'en' => 'Download your QR code for your own prints.'],
@@ -5218,24 +5234,24 @@ final class Texte
             ],
             'finden' => [
                 'kurz'  => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
-                'titel' => ['it' => 'Trovare clienti', 'de' => 'Kunden finden', 'en' => 'Find customers'],
-                'satz'  => ['it' => 'Attività vicine, il check del sito da mostrare e clienti da segnalare.', 'de' => 'Betriebe in der Nähe, der Website-Check zum Vorzeigen und Kunden direkt melden.', 'en' => 'Businesses nearby, the website check to show and customers to report.'],
+                'titel' => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
+                'satz'  => ['it' => 'Chi si è fatto vivo, visite calde, attività vicine e il check del sito da mostrare.', 'de' => 'Wer sich gemeldet hat, heiße Besuche, Betriebe in der Nähe und der Website-Check zum Vorzeigen.', 'en' => 'Who got in touch, hot visits, businesses nearby and the website check to show.'],
                 'so1'   => ['it' => 'Chiami le attività scelte da Vecom o visiti quelle vicine.', 'de' => 'Die Anrufliste von Vecom abtelefonieren oder Betriebe in der Nähe besuchen.', 'en' => 'Call the list from Vecom or visit businesses nearby.'],
                 'so2'   => ['it' => 'Faccia il check del sito e lo mostri al titolare.', 'de' => 'Den Website-Check machen und dem Inhaber zeigen.', 'en' => 'Run the website check and show it to the owner.'],
                 'so3'   => ['it' => 'Interessato? Lo segnali — il cliente è suo.', 'de' => 'Interessiert? Melden — der Kunde gehört dir.', 'en' => 'Interested? Report it — the customer is yours.'],
             ],
             'geld' => [
-                'kurz'  => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
-                'titel' => ['it' => 'Guadagni', 'de' => 'Geld', 'en' => 'Money'],
-                'satz'  => ['it' => 'Provvigioni, pagamenti e come arrivano i soldi.', 'de' => 'Provisionen, Auszahlungen und wie das Geld zu dir kommt.', 'en' => 'Commissions, payouts and how the money reaches you.'],
+                'kurz'  => ['it' => 'Risultati', 'de' => 'Ergebnisse', 'en' => 'Results'],
+                'titel' => ['it' => 'Risultati', 'de' => 'Ergebnisse', 'en' => 'Results'],
+                'satz'  => ['it' => 'I suoi numeri, le provvigioni e i pagamenti — prima il quadro, poi i dettagli.', 'de' => 'Deine Zahlen, Provisionen und Auszahlungen — erst der Überblick, dann die Einzelheiten.', 'en' => 'Your numbers, commissions and payouts — overview first, details after.'],
                 'so1'   => ['it' => 'Scelga una volta come ricevere i soldi.', 'de' => 'Einmal festlegen, wie das Geld zu dir kommt.', 'en' => 'Choose once how the money reaches you.'],
                 'so2'   => ['it' => 'Ogni provvigione attende il periodo di recesso, poi diventa libera.', 'de' => 'Jede Provision wartet die Widerrufsfrist ab, dann wird sie frei.', 'en' => 'Each commission waits out the withdrawal period, then it is released.'],
                 'so3'   => ['it' => 'Raggiunto l’importo minimo, paghiamo — le ricevute sono qui.', 'de' => 'Ist der Mindestbetrag erreicht, zahlen wir aus — die Belege stehen hier.', 'en' => 'Once the minimum is reached, we pay out — the receipts are here.'],
             ],
             'profil' => [
-                'kurz'  => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
-                'titel' => ['it' => 'Profilo', 'de' => 'Profil', 'en' => 'Profile'],
-                'satz'  => ['it' => 'La sua foto, la sua pagina, i messaggi e l’app sul telefono.', 'de' => 'Dein Foto, deine eigene Seite, Nachrichten und die App aufs Handy.', 'en' => 'Your photo, your own page, messages and the app on your phone.'],
+                'kurz'  => ['it' => 'Account', 'de' => 'Mein Konto', 'en' => 'Account'],
+                'titel' => ['it' => 'Il mio account', 'de' => 'Mein Konto', 'en' => 'My account'],
+                'satz'  => ['it' => 'Primi passi, profilo, la sua pagina, i messaggi e l’app sul telefono.', 'de' => 'Erste Schritte, Profil, deine eigene Seite, Nachrichten und die App aufs Handy.', 'en' => 'First steps, profile, your own page, messages and the app on your phone.'],
                 'so1'   => ['it' => 'Aggiunga una foto e una frase — le persone si fidano dei volti.', 'de' => 'Foto und einen Satz hinzufügen — Menschen vertrauen Gesichtern.', 'en' => 'Add a photo and a sentence — people trust faces.'],
                 'so2'   => ['it' => 'Adatti colori e testi della sua pagina.', 'de' => 'Farben und Texte deiner Seite anpassen.', 'en' => 'Adjust the colours and texts of your page.'],
                 'so3'   => ['it' => 'Installi l’app sul telefono, così riceve subito gli avvisi.', 'de' => 'Die App aufs Handy holen, dann kommen Hinweise sofort.', 'en' => 'Put the app on your phone so alerts arrive right away.'],
@@ -5387,7 +5403,7 @@ final class Texte
         'e_kunden'    => ['it' => 'Clienti', 'de' => 'Kunden', 'en' => 'Customers'],
         'e_quote'     => ['it' => 'Richieste ogni 100 scansioni: {q}', 'de' => 'Anfragen je 100 Scans: {q}', 'en' => 'Enquiries per 100 scans: {q}'],
         'e_beste'     => ['it' => 'Funzionano meglio', 'de' => 'Am besten wirken', 'en' => 'Working best'],
-        'e_hinweis'   => ['it' => 'Scansioni e richieste restano per sempre, i visitatori per 90 giorni. Biglietti e volantini più vecchi, senza Marketing-ID, li trova sotto «Promuovere».', 'de' => 'Scans und Anfragen bleiben dauerhaft, Besucher 90 Tage. Ältere Karten und Flyer ohne Marketing-ID findest du unter „Werben“.', 'en' => 'Scans and enquiries are kept permanently, visitors for 90 days. Older cards and flyers without a Marketing ID are under “Promote”.'],
+        'e_hinweis'   => ['it' => 'Scansioni e richieste restano per sempre, i visitatori per 90 giorni. Biglietti e volantini più vecchi, senza Marketing-ID, li trova sotto «Marketing».', 'de' => 'Scans und Anfragen bleiben dauerhaft, Besucher 90 Tage. Ältere Karten und Flyer ohne Marketing-ID findest du unter „Marketing“.', 'en' => 'Scans and enquiries are kept permanently, visitors for 90 days. Older cards and flyers without a Marketing ID are under “Marketing”.'],
     ];
 
     public const PARTNER_WERBEMITTEL = [

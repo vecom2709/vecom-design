@@ -1,8 +1,9 @@
 /* Reiter der Partnerseite wie in einer App (27.09.2026, Uwe: „Reiter wie eine App“).
  *
- * Die Seite war eine lange Rolle aus sechzehn Blöcken. Jetzt fünf Bereiche:
- * Start · Werben · Kunden finden · Geld · Profil -- am Rechner als Leiste oben,
- * am Handy als Leiste unten wie in einer App.
+ * Die Seite war eine lange Rolle aus sechzehn Blöcken. Seit 05.10.2026 nach
+ * Spezifikation Punkt 3: START (das Command Center, ein Link) · KUNDEN ·
+ * MARKETING · ERGEBNISSE · SHOP · MEIN KONTO -- am Rechner als Leiste oben, am
+ * Handy unten mit START · KUNDEN · MARKETING · ERGEBNISSE · MEHR.
  *
  * Nichts wurde umgebaut: Jeder Block trägt nur data-reiter="…", dieses Skript
  * blendet ein und aus. Ohne Skript steht alles untereinander wie bisher.
@@ -21,9 +22,9 @@
   var ICON = {
     start:  '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
     werben: '<path d="M3 10.5v3a1 1 0 0 0 1 1h2.5L12 18.5v-13L6.5 9.5H4a1 1 0 0 0-1 1z"/><path d="M15.5 9a4 4 0 0 1 0 6"/><path d="M18.5 6.5a8 8 0 0 1 0 11"/>',
-    finden: '<circle cx="11" cy="11" r="6.5"/><path d="M20 20l-4.2-4.2"/>',
+    finden: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7"/><path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5"/>',
     werbemittel: '<path d="M5 8h14l-1.2 11.2a1.5 1.5 0 0 1-1.5 1.3H7.7a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/>',
-    geld:   '<rect x="3" y="6" width="18" height="13" rx="2.5"/><path d="M3 10h18"/><path d="M15.5 14.5h2.5"/>',
+    geld:   '<path d="M4 19.5h16"/><path d="M6.5 16v-4"/><path d="M11 16V8"/><path d="M15.5 16v-6"/><path d="M20 16V5"/>',
     profil: '<circle cx="12" cy="8.5" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/>'
   };
   var SPEICHER = 'vd_partner_reiter';
@@ -33,7 +34,11 @@
    * eine Sprungleiste. Umgestellt wird nur im Browser -- die Blöcke selbst und
    * ihre Sprungmarken bleiben, wie sie sind. */
   Object.keys(daten.ordnung || {}).forEach(function (rid) {
-    var erst = document.querySelector('[data-reiter="' + rid + '"]');
+    /* Die Gruppen beginnen beim ersten Block, der zu einer Gruppe gehört (05.10.2026):
+       Was davor steht -- „Dein Link“, die Aktion, der Kurs --, bleibt oben im Bereich. */
+    var inGruppe = {};
+    daten.ordnung[rid].forEach(function (g) { g.ids.forEach(function (id) { inGruppe[id] = true; }); });
+    var erst = [].filter.call(document.querySelectorAll('[data-reiter="' + rid + '"]'), function (b) { return inGruppe[b.id]; })[0];
     if (!erst) { return; }
     var marke = document.createComment('ordnung'), mutter = erst.parentNode;
     mutter.insertBefore(marke, erst);
@@ -66,6 +71,16 @@
   nav.className = 'app-reiter';
   nav.setAttribute('aria-label', daten.aria);
   var links = {}, koepfe = {};
+  /* START führt ins Command Center -- ein Link, kein Reiter (er lädt die schnelle Startseite). */
+  if (daten.start && daten.start.url) {
+    var st = document.createElement('a');
+    st.href = daten.start.url;
+    st.className = 'app-start';
+    st.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + ICON.start + '</svg><span class="k"></span><span class="l"></span>';
+    st.querySelector('.k').textContent = daten.start.kurz;
+    st.querySelector('.l').textContent = daten.start.kurz;
+    nav.appendChild(st);
+  }
 
   reihe.forEach(function (id) {
     var r = daten.reiter[id];
@@ -86,10 +101,8 @@
     nav.appendChild(a);
     links[id] = a;
 
-    // Kopf des Reiters: Titel und ein Satz, wozu er da ist. Der erste Reiter
-    // hat schon die Überschrift der Seite -- zwei Überschriften übereinander
-    // sähen aus wie ein Versehen.
-    if (id === reihe[0]) { return; }
+    // Kopf des Reiters: Titel und ein Satz, wozu er da ist -- seit 05.10.2026 für
+    // jeden Bereich (die Überschrift der Seite ist nur noch für Vorleser da).
     var erster = bloecke.filter(function (b) { return b.dataset.reiter === id; })[0];
     var kopf = document.createElement('div');
     kopf.className = 'app-kopf';
@@ -112,6 +125,38 @@
     koepfe[id] = kopf;
   });
 
+  /* MEHR am Handy (Punkt 3): SHOP und MEIN KONTO stehen dort in einer kleinen Liste.
+     Am Rechner ist die Leiste breit genug -- dann bleibt der Knopf unsichtbar (CSS). */
+  var mehrIds = (daten.mehr_ids || []).filter(function (id) { return links[id]; });
+  var mehrKnopf = null, mehrListe = null;
+  if (mehrIds.length) {
+    mehrKnopf = document.createElement('button');
+    mehrKnopf.type = 'button';
+    mehrKnopf.className = 'app-mehr';
+    mehrKnopf.setAttribute('aria-expanded', 'false');
+    mehrKnopf.setAttribute('aria-label', daten.mehr_aria || daten.mehr);
+    mehrKnopf.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span class="k"></span>';
+    mehrKnopf.querySelector('.k').textContent = daten.mehr;
+    mehrListe = document.createElement('div');
+    mehrListe.className = 'app-mehr-liste';
+    mehrListe.hidden = true;
+    mehrIds.forEach(function (id) {
+      links[id].classList.add('app-gross');
+      var a = links[id].cloneNode(true);
+      a.classList.remove('app-gross');
+      mehrListe.appendChild(a);
+    });
+    var schliessenMehr = function () { mehrListe.hidden = true; mehrKnopf.setAttribute('aria-expanded', 'false'); };
+    mehrKnopf.addEventListener('click', function () {
+      mehrListe.hidden = !mehrListe.hidden;
+      mehrKnopf.setAttribute('aria-expanded', mehrListe.hidden ? 'false' : 'true');
+    });
+    mehrListe.addEventListener('click', schliessenMehr);
+    document.addEventListener('click', function (e) { if (!mehrListe.hidden && !nav.contains(e.target)) { schliessenMehr(); } });
+    nav.appendChild(mehrKnopf);
+    nav.appendChild(mehrListe);
+  }
+
   var wortmarke = document.querySelector('.wortmarke');
   (wortmarke && wortmarke.parentNode ? wortmarke : bloecke[0]).insertAdjacentElement(wortmarke ? 'afterend' : 'beforebegin', nav);
   document.body.classList.add('mit-reitern');
@@ -124,6 +169,7 @@
       if (koepfe[r]) { koepfe[r].hidden = r !== id; }
       if (r === id) { links[r].setAttribute('aria-current', 'page'); } else { links[r].removeAttribute('aria-current'); }
     });
+    if (mehrKnopf) { mehrKnopf.classList.toggle('aktiv', mehrIds.indexOf(id) !== -1); }
     if (aktiv !== null && aktiv !== id) { links[id].classList.remove('punkt'); }
     aktiv = id;
     try { sessionStorage.setItem(SPEICHER, id); } catch (e) { }
