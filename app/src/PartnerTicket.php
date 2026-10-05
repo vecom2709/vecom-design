@@ -136,6 +136,18 @@ final class PartnerTicket
             $partnerId !== null ? [$partnerId] : []);
     }
 
+    /** Partner › Support (Phase 9): '' = offen und in Arbeit, 'erledigt' = erledigt in 30 Tagen, 'alle'. */
+    public static function verwaltungListe(string $filter = ''): array
+    {
+        $wo = match ($filter) { 'erledigt' => "WHERE t.stand = 'erledigt' AND t.geaendert_am >= NOW() - INTERVAL 30 DAY", 'alle' => '', default => "WHERE t.stand <> 'erledigt'" };
+        return Db::all("SELECT t.*, p.name AS partner, p.code,
+                               (SELECT COUNT(*) FROM partner_nachrichten n WHERE n.ticket_id = t.id AND n.von = 'partner' AND n.gelesen_am IS NULL) AS neu,
+                               CASE t.bezug_art WHEN 'lead' THEN (SELECT l.name FROM partner_leads l WHERE l.id = t.bezug_id)
+                                                WHEN 'bestellung' THEN (SELECT b.nummer FROM wm_bestellungen b WHERE b.id = t.bezug_id) END AS bezug_name
+                          FROM partner_tickets t JOIN partner p ON p.id = t.partner_id $wo
+                         ORDER BY FIELD(t.stand, 'offen', 'in_arbeit', 'erledigt'), t.geaendert_am DESC LIMIT 200");
+    }
+
     /** Wie viele Tickets warten auf Vecom (offen)? */
     public static function offenZahl(): int
     {

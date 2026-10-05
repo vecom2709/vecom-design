@@ -1451,7 +1451,7 @@ if ($post) {
                 require_once __DIR__ . '/src/PartnerNews.php';
                 if ($tat === 'partner_news_zurueck') {
                     $_SESSION[PartnerNews::zurueckziehen((int) ($_POST['id'] ?? 0)) ? 'gut' : 'fehler'] = 'Zurückgezogen — die Meldung steht bei keinem Partner mehr auf der Startseite.';
-                    weiter('partner#news');
+                    weiter('partner-meldungen');
                 }
                 [$nwZ, $nwW] = array_pad(explode(':', (string) ($_POST['ziel_kombi'] ?? 'alle:'), 2), 2, '');
                 $nwR = PartnerNews::senden(['ziel' => $nwZ, 'ziel_wert' => $nwW] + $_POST, Auth::id());
@@ -1459,7 +1459,7 @@ if ($post) {
                     ? 'Gesendet an ' . $nwR['an'] . ' Partner (' . $nwR['push'] . ' davon mit Hinweis aufs Handy).'
                     : (['titel' => 'Der italienische Titel fehlt (mindestens 3 Zeichen).', 'text' => 'Der italienische Text fehlt (mindestens 10 Zeichen).',
                         'ziel' => 'Unbekannte Zielgruppe.', 'link' => 'Der Link muss mit https:// oder / beginnen.', 'leer' => 'In dieser Zielgruppe ist gerade kein aktiver Partner — nichts gesendet.'][$nwR['grund']] ?? 'Nicht gesendet.');
-                weiter('partner#news');
+                weiter('partner-meldungen');
 
             case 'partner_ticket_antwort':
             case 'partner_ticket_stand':
@@ -1566,7 +1566,7 @@ if ($post) {
                    Partner über PartnerWege::auszahlen — mit allen Prüfungen dort. Beides mit Rückfrage (Ablauf::TRAGWEITE). */
                 require_once __DIR__ . '/src/PartnerGeld.php';
                 $laufIds = array_map('intval', (array) ($_POST['partner'] ?? []));
-                if (!$laufIds) { $_SESSION['fehler'] = 'Kein Partner gewählt.'; weiter('partner/auszahlungslauf'); }
+                if (!$laufIds) { $_SESSION['fehler'] = 'Kein Partner gewählt.'; weiter('auszahlungen'); }
                 if ($tat === 'partner_lauf_freigeben') {
                     $laufN = PartnerGeld::sammelFreigabe($laufIds);
                     $_SESSION['gut'] = $laufN . ' Provision' . ($laufN === 1 ? '' : 'en') . ' freigegeben.';
@@ -1575,7 +1575,7 @@ if ($post) {
                     $laufOk = count(array_filter($_SESSION['lauf_ergebnis'], static fn($r) => $r['ok']));
                     $_SESSION[$laufOk > 0 ? 'gut' : 'fehler'] = $laufOk . ' von ' . count($_SESSION['lauf_ergebnis']) . ' Auszahlungen angestoßen — Einzelheiten unten.';
                 }
-                weiter('partner/auszahlungslauf');
+                weiter('auszahlungen');
 
             case 'partner_vecom_adresse':
             case 'vecom_adressen_lesen':
@@ -4540,6 +4540,28 @@ switch ($route) {
         ]);
         break;
 
+    /* TÜR „PARTNER“ (Phase 9, 06.10.2026, Uwe: „Eigene Tür Partner“): eigene Reiter für Auszahlungen,
+       Support und Meldungen — vorher Unterseiten und Kästen der Partnerliste. */
+    case 'auszahlungen':   // Auszahlungslauf mit Sammelfreigabe (Phase 5) — nur Admin (Rechte::SEITEN)
+        require_once __DIR__ . '/src/Partner.php';
+        require_once __DIR__ . '/src/PartnerGeld.php';
+        ansicht('partner_auszahlungslauf', ['lauf' => PartnerGeld::lauf(), 'ergebnis' => $_SESSION['lauf_ergebnis'] ?? null,
+            'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
+                                                           WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
+        unset($_SESSION['lauf_ergebnis']);
+        break;
+
+    case 'partner-support':
+        require_once __DIR__ . '/src/PartnerTicket.php';
+        $psStand = in_array($_GET['stand'] ?? '', ['erledigt', 'alle'], true) ? (string) $_GET['stand'] : '';
+        ansicht('partner_support', ['tickets' => sicher(static fn() => PartnerTicket::verwaltungListe($psStand), []), 'stand' => $psStand]);
+        break;
+
+    case 'partner-meldungen':
+        require_once __DIR__ . '/src/Partner.php';
+        ansicht('partner_meldungen', []);
+        break;
+
     case 'partner':
         require_once __DIR__ . '/src/Partner.php';
         if ($unter === 'vorlagen') {
@@ -4547,14 +4569,11 @@ switch ($route) {
             ansicht('partner_vorlagen', ['katalog' => PartnerVorlagen::katalog()]);
             break;
         }
-        if ($unter === 'auszahlungslauf') {   // Auszahlungslauf mit Sammelfreigabe (Phase 5)
-            require_once __DIR__ . '/src/PartnerGeld.php';
-            ansicht('partner_auszahlungslauf', ['lauf' => PartnerGeld::lauf(), 'ergebnis' => $_SESSION['lauf_ergebnis'] ?? null,
-                'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
-                                                               WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
-            unset($_SESSION['lauf_ergebnis']);
-            break;
+        /* Phase 9: Beträge, Belege und Auszahlungen nur für den Admin (Uwe: „Partner ja, Geld nein“). */
+        if (!Rechte::geld() && ($unter === 'auszahlungslauf' || isset($_GET['beleg']))) {
+            http_response_code(403); $_SESSION['fehler'] = 'Provisionen und Auszahlungen sieht nur der Admin.'; weiter('partner');
         }
+        if ($unter === 'auszahlungslauf') { weiter('auszahlungen'); }   // alte Adresse (Phase 9: eigener Reiter)
         if ($unter === 'mediathek') {   // Mediathek der Partner (Phase 3)
             require_once __DIR__ . '/src/PartnerMediathek.php';
             if (isset($_GET['bild'])) {   // Vorschau auch für Entwürfe — nur in der Verwaltung
@@ -5525,6 +5544,16 @@ switch ($route) {
     case 'akquise':
         require __DIR__ . '/akquise_route.php';
         exit;
+
+    case 'pruefspur':
+        /* Prüfspur (Phase 9): nur der Admin (nicht in Rechte::SEITEN). Nur lesen, Geheimes geschwärzt. */
+        require_once __DIR__ . '/src/Pruefspur.php';
+        $psF = ['wer' => mb_substr((string) ($_GET['wer'] ?? ''), 0, 80), 'tat' => mb_substr(preg_replace('~[^a-z0-9_]~', '', (string) ($_GET['tat'] ?? '')) ?? '', 0, 60),
+                'objekt' => mb_substr(preg_replace('~[^a-z0-9_]~', '', (string) ($_GET['objekt'] ?? '')) ?? '', 0, 40), 'objekt_id' => max(0, (int) ($_GET['objekt_id'] ?? 0)),
+                'von' => (string) ($_GET['von'] ?? ''), 'bis' => (string) ($_GET['bis'] ?? '')];
+        ansicht('pruefspur', ['f' => $psF, 'spur' => sicher(static fn() => Pruefspur::lesen($psF + ['vor' => max(0, (int) ($_GET['vor'] ?? 0))]), ['zeilen' => [], 'weiter' => null]),
+                              'auswahl' => sicher(static fn() => Pruefspur::auswahl(), ['wer' => [], 'objekt' => []])]);
+        break;
 
     case 'automationen':
         /* Automation Center (Phase 8): alle Regeln nach Bereich, Schalter, Not-Aus, Probelauf (nur lesen). */

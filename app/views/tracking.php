@@ -12,7 +12,7 @@
  * $live, $partnerListe, $detail (null|array), $journey (null|array), $einst.
  */
 [$von, $bis, $zk] = $z;
-$geld = static fn(int $c): string => Fmt::geld($c);
+$geld = static fn(int $c): string => Rechte::betrag($c);   // Phase 9: Mitarbeit sieht keine Beträge
 $pz = static fn(float $x): string => number_format($x, 2, ',', '.') . ' %';
 $datumKurz = static fn(string $d): string => date('d.m.', strtotime($d));
 $uhr = static fn(string $d): string => date('H:i', strtotime($d));

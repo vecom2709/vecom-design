@@ -31,6 +31,8 @@ final class Rechte
         'marketing', 'zahlen', 'zielgruppen', 'recherche', 'freigabe', 'inhalte', 'kampagnen', 'kanaele', 'kanal-karte',
         'medien', 'demo', 'tiktok', 'verzeichnisse', 'ausfuellen', 'statistiken', 'seite-vorschau', 'bewertung-karte',
         'werkstatt', 'onboarding', 'standard', 'muster', 'dateien', 'monitoring', 'automationen',
+        // Phase 9: Tür „Partner“ — Support und Meldungen ja, „auszahlungen“ bewusst nicht (Geld nur Admin).
+        'partner-support', 'partner-meldungen',
     ];
 
     /** Taten (Anfang des Namens), die Mitarbeit ausführen darf. Alles mit Geld, Preisen, Zugängen, Hosting fehlt bewusst. */
@@ -61,6 +63,16 @@ final class Rechte
         $r = self::rolle();
         if ($r === 'admin') { return true; }
         return $r !== '' && in_array($route, self::SEITEN, true);
+    }
+
+    /** Teamrollen (Phase 9, Uwe: „Partner ja, Geld nein“): Beträge, Provisionen und Auszahlungen sieht nur der Admin. */
+    public static function geld(): bool { return self::rolle() === 'admin'; }
+
+    /** Ein Betrag für die Anzeige — für alle außer dem Admin verborgen, nicht nur ausgegraut. */
+    public static function betrag(int $cents): string
+    {
+        require_once __DIR__ . '/Fmt.php';
+        return self::geld() ? Fmt::geld($cents) : '•••';
     }
 
     public static function darfTat(string $tat): bool

@@ -5307,19 +5307,20 @@ pruefe('Rückfrage serverseitig: index.php prüft vor jeder Route (nach den Rech
 
 /* ---------- Die Türen ----------------------------------------------------
    Fünf seit dem 13.09.2026, sechs seit dem 30.09.2026: „Marketing“ (Growth
-   Engine, Uwe: „Alles ja“) steht zwischen „Kunden“ und „Geld“. */
+   Engine, Uwe: „Alles ja“) steht zwischen „Kunden“ und „Geld“. Sieben seit dem
+   06.10.2026: „Partner“ (Phase 9, Uwe: „Eigene Tür Partner“) nach „Kunden“. */
 preg_match('~\$menue = \[(.*?)\n\];~s', $rfLayout, $mM);
 $mText = $mM[1] ?? '';
 preg_match_all("~^  \['([a-z]+)', '([^']+)'~m", $mText, $mT);
 $mTueren = $mT[2] ?? [];
-pruefe('es sind sechs Türen', count($mTueren) === 6, implode(' · ', $mTueren));
+pruefe('es sind sieben Türen', count($mTueren) === 7, implode(' · ', $mTueren));
 pruefe('und sie heißen nach dem, was man tut',
-    $mTueren === ['Heute', 'Kunden', 'Marketing', 'Geld', 'Bauen', 'Einstellungen'],
+    $mTueren === ['Heute', 'Kunden', 'Partner', 'Marketing', 'Geld', 'Bauen', 'Einstellungen'],
     implode(' · ', $mTueren));
 
 /* Jede Seite, die es vorher im Menue gab, muss hinter genau einer Tuer
    liegen -- sonst ist sie still verschwunden. */
-preg_match_all("~'([a-z]+)', '[^']+', '[a-z]+'~", $mText, $mZ);
+preg_match_all("~'([a-z-]+)', '[^']+', '[a-z-]+'~", $mText, $mZ);   // Phase 9: auch Ziele mit Bindestrich (partner-support)
 $mZiele = array_values(array_unique($mZ[1] ?? []));
 $mFrueher = ['heute', 'vorgaenge', 'nachrichten', 'werkstatt', 'bedarf', 'angebote',
              'rechnungen', 'empfehlungen', 'anfragen', 'standard', 'muster', 'onboarding',
@@ -5340,7 +5341,7 @@ $mOhneRoute = [];
 foreach ($mZiele as $mZ2) {
     if (!in_array($mZ2, $rfRouten ?? [], true)) { $mOhneRoute[] = $mZ2; }
 }
-preg_match_all("~^    case '([a-z_]+)':~m", $rfQuelle, $mR);
+preg_match_all("~^    case '([a-z_-]+)':~m", $rfQuelle, $mR);
 $mRouten = $mR[1] ?? [];
 $mOhneRoute = array_values(array_diff($mZiele, $mRouten));
 pruefe('jeder Menüpunkt hat einen Fall im Verteiler', $mOhneRoute === [],
@@ -5361,7 +5362,7 @@ pruefe('kein Menüpunkt heißt wie ein Ordner unter app/', $mKollision === [],
    die es im Menü gibt, sonst wären alle ihre Seiten weg. */
 preg_match('~\$reiter = \[(.*?)\n\];~s', $rfLayout, $mRe);
 preg_match_all("~^  '([a-z]+)' => \[~m", $mRe[1] ?? '', $mRg);
-preg_match_all("~\['([a-z]+)', '[^']+', '[a-z]+'\]~", $mRe[1] ?? '', $mRz);
+preg_match_all("~\['([a-z-]+)', '[^']+', '[a-z-]+'\]~", $mRe[1] ?? '', $mRz);
 $mReiterZiele = $mRz[1] ?? [];
 pruefe('jede Reitergruppe hängt an einer Menüzeile, die es gibt',
     ($mRg[1] ?? []) !== [] && array_diff($mRg[1], $mZiele) === [], implode(', ', array_diff($mRg[1] ?? [], $mZiele)));
@@ -17180,7 +17181,7 @@ pruefe('Tracking: Widerruf-Link auf der Datenschutzseite', str_contains((string)
 $spIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Tracking: Verwaltung — eigener Bereich (Reiter unter Partner), Live als Teil, Einstellungen; nur hinter der Anmeldung',
     str_contains($spIdx, "case 'tracking':") && str_contains($spIdx, "case 'tracking_einstellungen':") && strpos($spIdx, "case 'tracking':") > strpos($spIdx, 'Auth::nurAdmin()')
-    && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['tracking', 'Partner-Tracking', 'tracking']")
+    && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['tracking', 'Tracking', 'tracking']")   // seit Phase 9 Reiter der Tür „Partner“
     && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), 'Aktuelle Partner-Besucher') === false && str_contains((string) file_get_contents($wurzel . '/views/tracking_live.php'), 'Aktuelle Partner-Besucher'));
 pruefe('Tracking: Cron fasst täglich zusammen und kürzt die Zähldateien', str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "\$aufgaben['spur']"));
 pruefe('Tracking: Geo-Daten liegen geschützt unter app/data (nicht aus dem Netz abrufbar), mit Quellenangabe',
@@ -25272,7 +25273,7 @@ pruefe('Wege: Ausblenden nur mit CSRF; Startseite zeigt höchstens zwei Meldunge
     str_contains($nwPp, "if (\$ccCsrf) { PartnerNews::gelesen((int) \$p['id'], (int) (\$_POST['news'] ?? 0)); }")
     && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), 'PartnerNews::fuerPartner($p, 2)')
     && (Ablauf::TRAGWEITE['partner_news_senden'][0] ?? '') === Ablauf::RAUS && !isset(Ablauf::TRAGWEITE['partner_news_zurueck'])
-    && str_contains((string) file_get_contents($wurzel . '/views/partner.php'), 'value="partner_news_senden"')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_meldungen.php'), 'value="partner_news_senden"')   // seit Phase 9 eigene Seite
     && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_news_senden', $t)));
 Db::run('DELETE FROM partner_news_an WHERE partner_id IN (' . implode(',', $nwP) . ')');
 Db::run('DELETE FROM partner_news');
@@ -25708,6 +25709,79 @@ Db::run("DELETE FROM automationen");
 Db::run("DELETE FROM settings WHERE skey LIKE 'auto\\_notaus%'");
 Db::run("DELETE FROM notifications WHERE type IN ('automation_notaus', 'automation_fehler')");
 Automation::vergessen();
+
+/* ============================================================================
+   Admin-Kommandozentrale 9a (Phase 9, 06.10.2026, Uwe: „Eigene Tür Partner“,
+   „Partner ja, Geld nein“). Tür „Partner“ mit Reitern, Prüfspur-Ansicht,
+   Beträge nur für den Admin.
+   ============================================================================ */
+abschnitt('Admin-Kommandozentrale: Tür Partner, Prüfspur, Teamrollen');
+require_once $wurzel . '/src/Pruefspur.php';
+require_once $wurzel . '/src/PartnerTicket.php';
+$p9Rolle = $_SESSION['rolle'] ?? null;
+$p9R = [];
+foreach (['admin', 'mitarbeit', 'lesen'] as $p9Ro) {
+    $_SESSION['rolle'] = $p9Ro;
+    $p9R[$p9Ro] = [Rechte::geld(), Rechte::betrag(12345), Rechte::darfSeite('auszahlungen'), Rechte::darfSeite('partner-support'), Rechte::darfSeite('partner-meldungen'),
+                   Rechte::darfSeite('pruefspur'), Rechte::darfSeite('partner'), Rechte::darfTat('partner_news_senden')];
+}
+if ($p9Rolle === null) { unset($_SESSION['rolle']); } else { $_SESSION['rolle'] = $p9Rolle; }
+pruefe('Teamrollen: Beträge, Auszahlungen und Prüfspur nur für den Admin; Mitarbeit und Lesen sehen Partner, Support und Meldungen',
+    $p9R['admin'][0] === true && $p9R['admin'][1] === Fmt::geld(12345) && $p9R['admin'][2] && $p9R['admin'][5]
+    && $p9R['mitarbeit'] === [false, '•••', false, true, true, false, true, false] && $p9R['lesen'] === [false, '•••', false, true, true, false, true, false], json_encode($p9R));
+$p9Akte = (string) file_get_contents($wurzel . '/views/partner_akte.php');
+$p9Liste = (string) file_get_contents($wurzel . '/views/partner.php');
+$p9Idx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Teamrollen: Partnerliste, Akte und Tracking zeigen Beträge nur über Rechte::betrag; Geldblöcke und Belege nur für den Admin',
+    !str_contains($p9Akte, 'Fmt::geld(') && !str_contains($p9Liste, 'Fmt::geld(') && str_contains((string) file_get_contents($wurzel . '/views/tracking.php'), 'Rechte::betrag($c)')
+    && str_contains($p9Akte, "<?php if (\$bereit > 0 && Rechte::geld()): ?>") && str_contains($p9Akte, '<?php if (Rechte::geld()): /* Phase 9: Provisionen und Auszahlungen')
+    && str_contains($p9Akte, "<?php if (Rechte::geld() && !in_array(\$p['status']") && str_contains($p9Liste, 'if (Rechte::geld() && ($sepa || $verr || $offeneAuszahlungen))')
+    && str_contains($p9Liste, '<?php if (Rechte::geld()): /* Phase 9: Auszahlungswege und Bedingungen')
+    && str_contains($p9Idx, "if (!Rechte::geld() && (\$unter === 'auszahlungslauf' || isset(\$_GET['beleg'])))"));
+preg_match("~'partner' => \[\n(.*?)\n  \],~s", substr($rfLayout = (string) file_get_contents($wurzel . '/views/layout.php'), (int) strpos($rfLayout, '$reiter = [')), $p9Rt);
+preg_match_all("~\['([a-z-]+)', '([^']+)'~", $p9Rt[1] ?? '', $p9Rz);
+pruefe('Tür Partner: sieben Reiter in dieser Reihenfolge; unter Weiterempfehlung bleiben Empfehlungen und Kundenstimmen; Reiter, die die Rolle nicht öffnen darf, fehlen',
+    ($p9Rz[1] ?? []) === ['partner', 'partner-support', 'partner-meldungen', 'auszahlungen', 'tracking', 'werbemittel', 'academy']
+    && str_contains($rfLayout, "'empfehlungen' => [\n    ['empfehlungen', 'Empfehlungen', 'empfehlungen'],\n    ['stimmen', 'Kundenstimmen', 'stimmen'],\n  ],")
+    && str_contains($rfLayout, 'if (!Rechte::darfSeite($rZiel)) { continue; }') && str_contains($rfLayout, "\$summe = \$ziel === 'partner' ? \$reiterZahl('partner')")
+    && str_contains($p9Idx, "case 'partner-support':") && str_contains($p9Idx, "case 'partner-meldungen':") && str_contains($p9Idx, "case 'auszahlungen':")
+    && str_contains($p9Idx, "if (\$unter === 'auszahlungslauf') { weiter('auszahlungen'); }") && !str_contains($p9Idx, "weiter('partner#news')")
+    && !str_contains($p9Liste, 'partner_news_senden'), json_encode($p9Rz[1] ?? []));
+
+/* Support-Liste: offen/in Arbeit, erledigt (30 Tage), alle. */
+$p9P = (int) Partner::anlegen(['name' => 'Beispiel Support', 'email' => 'p9support@partner.example', 'code' => 'P9SUPPORT', 'sprache' => 'it', 'status' => 'aktiv']);
+$p9T = [];
+foreach (['offen', 'in_arbeit', 'erledigt'] as $p9St) {
+    $p9T[$p9St] = (int) Db::insert('partner_tickets', ['partner_id' => $p9P, 'thema' => 'technik', 'betreff' => 'Beispiel ' . $p9St, 'stand' => $p9St]);
+}
+$p9Ids = static fn(array $l): array => array_values(array_intersect(array_map(static fn($t) => (int) $t['id'], $l), $p9T));
+pruefe('Support-Liste: offene und in Arbeit zuerst, Erledigte getrennt, „Alle“ zeigt alle drei',
+    $p9Ids(PartnerTicket::verwaltungListe('')) === [$p9T['offen'], $p9T['in_arbeit']] && $p9Ids(PartnerTicket::verwaltungListe('erledigt')) === [$p9T['erledigt']]
+    && count($p9Ids(PartnerTicket::verwaltungListe('alle'))) === 3);
+Db::run('DELETE FROM partner_tickets WHERE partner_id = ?', [$p9P]);
+Db::run('DELETE FROM partner WHERE id = ?', [$p9P]);
+
+/* Prüfspur: lesen, filtern, blättern, schwärzen. */
+$p9Vor = (int) Db::wert('SELECT COALESCE(MAX(id), 0) FROM audit_log', [], 0);
+Events::pruefspur('p9_test_aendern', 'p9objekt', 7, ['name' => 'Alt', 'passwort' => 'geheim123', 'gleich' => 'x'],
+    ['name' => 'Neu', 'passwort' => 'nochgeheimer', 'gleich' => 'x', 'brevo' => 'xkeysib-0123456789abcdef0123456789', 'tiefe' => ['api_key' => 'abc', 'farbe' => 'rot']]);
+for ($p9i = 0; $p9i < Pruefspur::JE_SEITE + 2; $p9i++) { Events::pruefspur('p9_test_menge', 'p9objekt', 8); }
+$p9L = Pruefspur::lesen(['tat' => 'p9_test_aendern']);
+$p9A = array_column($p9L['zeilen'][0]['aenderung'] ?? [], null, 'feld');
+$p9M1 = Pruefspur::lesen(['objekt' => 'p9objekt', 'objekt_id' => 8]);
+$p9M2 = Pruefspur::lesen(['objekt' => 'p9objekt', 'objekt_id' => 8, 'vor' => (int) $p9M1['weiter']]);
+pruefe('Prüfspur: filtert nach Tat und Objekt, zeigt nur Geändertes, schwärzt Passwörter, Schlüssel und verschachtelte Geheimnisse',
+    count($p9L['zeilen']) === 1 && ($p9A['name']['vorher'] ?? '') === 'Alt' && ($p9A['name']['nachher'] ?? '') === 'Neu' && !isset($p9A['gleich'])
+    && ($p9A['passwort']['vorher'] ?? '') === '••• (geschwärzt)' && ($p9A['passwort']['nachher'] ?? '') === '••• (geschwärzt)'
+    && ($p9A['brevo']['nachher'] ?? '') === '••• (geschwärzt)' && ($p9A['tiefe.api_key']['nachher'] ?? '') === '••• (geschwärzt)' && ($p9A['tiefe.farbe']['nachher'] ?? '') === 'rot'
+    && !str_contains(json_encode($p9L), 'geheim123') && !str_contains(json_encode($p9L), 'xkeysib-'), json_encode($p9A));
+pruefe('Prüfspur: hundert je Seite, „Ältere“ blättert ohne Lücke und ohne Doppelte',
+    count($p9M1['zeilen']) === Pruefspur::JE_SEITE && $p9M1['weiter'] !== null && count($p9M2['zeilen']) === 2 && $p9M2['weiter'] === null
+    && !array_intersect(array_column($p9M1['zeilen'], 'id'), array_column($p9M2['zeilen'], 'id')));
+pruefe('Prüfspur: Seite nur für den Admin (nicht in Rechte::SEITEN), im Menü unter Einstellungen, Filter nur aus erlaubten Zeichen',
+    !in_array('pruefspur', Rechte::SEITEN, true) && str_contains($rfLayout, "['pruefspur', 'Prüfspur', 'pruefspur']") && str_contains($p9Idx, "case 'pruefspur':")
+    && str_contains($p9Idx, "preg_replace('~[^a-z0-9_]~', '', (string) (\$_GET['tat'] ?? ''))") && Pruefspur::siehtGeheimAus('sk_live_abcdefghijklmnop') && !Pruefspur::siehtGeheimAus('Mario Rossi'));
+Db::run('DELETE FROM audit_log WHERE id > ? AND entity = ?', [$p9Vor, 'p9objekt']);
 
 /* ============================================================================
    Aufräumen und Bilanz

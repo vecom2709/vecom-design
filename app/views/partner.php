@@ -22,43 +22,6 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     Erstattet der Kunde, entfällt sie.</p>
 </div>
 
-<?php /* Neu von Vecom (Phase 7b-2, 05.10.2026, Uwe: „Dashboard + Handy-Hinweis“): Meldung an eine Zielgruppe —
-         steht auf der Startseite des Command Centers und geht einmal als Push. Keine Mail. */
-  require_once dirname(__DIR__) . '/src/PartnerNews.php';
-  $nwListe = []; try { $nwListe = PartnerNews::liste(10); } catch (Throwable $ex) { $nwListe = []; }
-  $nwZiel = static fn(array $n): string => match ($n['ziel']) { 'level' => 'Level ' . ucfirst((string) $n['ziel_wert']), 'land' => 'Land ' . $n['ziel_wert'], 'neu' => 'neue Partner (' . PartnerNews::NEU_TAGE . ' Tage)', default => 'alle' }; ?>
-<details class="block" id="news">
-  <summary style="cursor:pointer"><h2 style="display:inline;font-size:15px">Neu von Vecom — Meldung an Partner</h2></summary>
-  <p style="color:var(--leise);font-size:12.5px;margin:8px 0 12px">Steht oben auf der Startseite der Partner, bis sie sie ausblenden oder das Datum vorbei ist, und geht einmal als Hinweis aufs Handy (wer die App hat). Keine Mail. Italienisch ist Pflicht; ohne Deutsch oder Englisch sehen diese Partner den italienischen Text.</p>
-  <form method="post" action="<?= Fmt::h(url('')) ?>">
-    <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_news_senden">
-    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-      <div class="feld" style="flex:0 0 220px"><label for="nw-ziel">Zielgruppe</label><select id="nw-ziel" name="ziel_kombi">
-        <option value="alle:">Alle aktiven Partner</option>
-        <?php foreach (PartnerNews::LEVEL as $nwL): ?><option value="level:<?= $nwL ?>">Level <?= ucfirst($nwL) ?></option><?php endforeach; ?>
-        <option value="land:IT">Land Italien</option><option value="land:DE">Land Deutschland</option>
-        <option value="neu:">Neue Partner (letzte <?= PartnerNews::NEU_TAGE ?> Tage)</option></select></div>
-      <div class="feld" style="flex:0 0 170px"><label for="nw-bis">Sichtbar bis</label><input id="nw-bis" type="date" name="bis" value="<?= date('Y-m-d', strtotime('+' . PartnerNews::STANDARD_TAGE . ' days')) ?>"></div>
-      <div class="feld" style="flex:1 1 260px"><label for="nw-link">Link (freiwillig, https:// oder /…)</label><input id="nw-link" name="link" maxlength="300" placeholder="https://… oder /partner.php?…"></div>
-    </div>
-    <?php foreach (['it' => 'Italienisch (Pflicht)', 'de' => 'Deutsch', 'en' => 'Englisch'] as $nwS => $nwW): ?>
-      <div style="display:flex;gap:12px;flex-wrap:wrap">
-        <div class="feld" style="flex:1 1 260px"><label for="nw-t-<?= $nwS ?>">Titel <?= $nwW ?></label><input id="nw-t-<?= $nwS ?>" name="titel_<?= $nwS ?>" maxlength="<?= PartnerNews::TITEL_MAX ?>"<?= $nwS === 'it' ? ' required minlength="3"' : '' ?>></div>
-        <div class="feld" style="flex:2 1 380px"><label for="nw-x-<?= $nwS ?>">Text <?= $nwW ?></label><textarea id="nw-x-<?= $nwS ?>" name="text_<?= $nwS ?>" rows="2" maxlength="<?= PartnerNews::TEXT_MAX ?>"<?= $nwS === 'it' ? ' required minlength="10"' : '' ?>></textarea></div>
-      </div>
-    <?php endforeach; ?>
-    <button class="knopf haupt">Meldung senden</button>
-  </form>
-  <?php if ($nwListe): ?>
-    <div class="tabellenrahmen" style="margin-top:14px"><table id="news-liste"><thead><tr><th>Wann</th><th>Titel</th><th>Zielgruppe</th><th class="num">An</th><th class="num">Handy</th><th class="num">Ausgeblendet</th><th></th></tr></thead><tbody>
-    <?php foreach ($nwListe as $nw): ?>
-      <tr><td><?= Fmt::h(Fmt::datum((string) $nw['created_at'])) ?></td><td><?= Fmt::h((string) $nw['titel_it']) ?><?= $nw['zurueck_am'] ? ' <span class="marke2">zurückgezogen</span>' : '' ?></td>
-        <td><?= Fmt::h($nwZiel($nw)) ?></td><td class="num"><?= (int) $nw['an'] ?></td><td class="num"><?= (int) $nw['push_an'] ?></td><td class="num"><?= (int) $nw['gelesen'] ?></td>
-        <td><?php if (!$nw['zurueck_am']): ?><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_news_zurueck"><input type="hidden" name="id" value="<?= (int) $nw['id'] ?>"><button class="knopf" style="min-height:30px;padding:4px 10px;font-size:12.5px">Zurückziehen</button></form><?php endif; ?></td></tr>
-    <?php endforeach; ?></tbody></table></div>
-  <?php endif; ?>
-</details>
-
 <?php /* Zentrale Aktion (28.09.2026, Uwe: Ja): einmal hier, dann auf allen
          Partnerseiten, im Partnerbereich und im Posting-Kalender, mit Countdown. */
   require_once dirname(__DIR__) . '/src/PartnerMarketing.php';
@@ -101,12 +64,12 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 
 <?php $sepa = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'sepa'));
       $verr = array_values(array_filter($handarbeit, static fn($h) => $h['weg'] === 'gutschrift'));
-      if ($sepa || $verr || $offeneAuszahlungen): ?>
+      if (Rechte::geld() && ($sepa || $verr || $offeneAuszahlungen)): /* Phase 9: Geld nur für den Admin */ ?>
 <div class="block" style="border-color:rgba(255,159,90,.35)">
   <h2 style="font-size:15px;margin:0 0 8px">Auszahlungen von Hand</h2>
   <?php if ($sepa): ?>
     <p style="font-size:13.5px;margin:0 0 8px"><?= count($sepa) ?> SEPA-Überweisung<?= count($sepa) === 1 ? '' : 'en' ?> fällig:
-      <?= Fmt::h(implode(', ', array_map(static fn($h) => $h['partner']['name'] . ' ' . Fmt::geld($h['summe']), $sepa))) ?></p>
+      <?= Fmt::h(implode(', ', array_map(static fn($h) => $h['partner']['name'] . ' ' . Rechte::betrag($h['summe']), $sepa))) ?></p>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-bottom:10px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_sepa">
       <button class="knopf haupt">SEPA-Datei herunterladen</button>
@@ -115,13 +78,13 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <?php endif; ?>
   <?php if ($verr): ?>
     <p style="font-size:13.5px;margin:0 0 8px">Verrechnung möglich:
-      <?php foreach ($verr as $h): ?><a href="<?= Fmt::h(url('partner/' . (int) $h['partner']['id'])) ?>"><?= Fmt::h($h['partner']['name']) ?></a> <?= Fmt::h(Fmt::geld($h['summe'])) ?> <?php endforeach; ?></p>
+      <?php foreach ($verr as $h): ?><a href="<?= Fmt::h(url('partner/' . (int) $h['partner']['id'])) ?>"><?= Fmt::h($h['partner']['name']) ?></a> <?= Fmt::h(Rechte::betrag($h['summe'])) ?> <?php endforeach; ?></p>
   <?php endif; ?>
   <?php if ($offeneAuszahlungen): ?>
     <div class="tabellenrahmen"><table><thead><tr><th>Beleg</th><th>Partner</th><th>Weg</th><th style="text-align:right">Betrag</th><th></th></tr></thead><tbody>
     <?php foreach ($offeneAuszahlungen as $a): ?>
       <tr><td><?= Fmt::h($a['nummer']) ?></td><td><?= Fmt::h($a['name']) ?></td><td><?= Fmt::h(PartnerWege::WEGE[$a['weg']] ?? $a['weg']) ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'])) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $a['betrag_cents'])) ?></td>
           <td style="white-space:nowrap">
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="partner_auszahlung_bestaetigen"><input type="hidden" name="auszahlung" value="<?= (int) $a['id'] ?>">
@@ -161,8 +124,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
           <td><code><?= Fmt::h($p['code']) ?></code></td>
           <td style="text-align:right"><?= (int) $p['klicks'] ?></td>
           <td style="text-align:right"><?= (int) $p['kunden'] ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $p['offen'])) ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $p['ausgezahlt'])) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $p['offen'])) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $p['ausgezahlt'])) ?></td>
           <?php /* Land und Stripe (28.09.2026): Ampel aus der Datenbank, ohne Stripe zu fragen. */ $amp = Partner::stripeAmpel($p); ?>
           <td><?= !empty($p['land']) ? Fmt::h((string) $p['land']) : '<span style="color:var(--leise)">—</span>' ?></td>
           <td><?php if (empty($p['stripe_konto'])): ?>—<?php else: ?><span class="marke2 <?= Fmt::h($amp['farbe']) ?>"><?= Fmt::h($amp['wort']) ?></span>
@@ -174,8 +137,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <p style="color:var(--leise);font-size:12.5px;margin-top:10px"><?= count($geloescht) ?> gelöschte<?= count($geloescht) === 1 ? 'r' : '' ?> Partner, deren Belege aufbewahrt werden:
       <?php foreach ($geloescht as $g): ?><a href="<?= Fmt::h(url('partner/' . (int) $g['id'])) ?>"><?= Fmt::h($g['name']) ?></a> <?php endforeach; ?></p>
   <?php endif; ?>
-  <?php if ($einbehaltMonat > 0): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Steuereinbehalt im Vormonat: <b><?= Fmt::h(Fmt::geld($einbehaltMonat)) ?></b> — per F24 abführen.</p>
+  <?php if ($einbehaltMonat > 0 && Rechte::geld()): ?>
+    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Steuereinbehalt im Vormonat: <b><?= Fmt::h(Rechte::betrag($einbehaltMonat)) ?></b> — per F24 abführen.</p>
   <?php endif; ?>
 </div>
 
@@ -188,7 +151,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
     <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a>
     <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Mediathek</a>
-    <a class="knopf" href="<?= Fmt::h(url('partner/auszahlungslauf')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a></h2>
+    <a class="knopf" href="<?= Fmt::h(url('auszahlungen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a></h2>
   <div class="tabellenrahmen"><table>
     <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>
                <th style="text-align:right"><?= $sortLink('kunden', 'Kunden') ?></th><th style="text-align:right"><?= $sortLink('umsatz', 'Umsatz (netto)') ?></th>
@@ -202,7 +165,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
             <?php if ($z['status'] === 'pausiert'): ?><span class="marke2 warnung" style="margin-left:4px">pausiert</span><?php endif; ?>
             <?php if ($z['still']): ?><span class="marke2 warnung" style="margin-left:4px" title="<?= $z['weckruf_am'] ? 'Weckruf zuletzt ' . Fmt::h(Fmt::datum((string) $z['weckruf_am'])) : ($z['push'] ? 'Weckruf kommt automatisch' : 'Hinweise aus — kein Weckruf möglich') ?>">still</span><?php endif; ?></td>
           <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['klicks30'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['umsatz'])) ?></td><td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['provision'])) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['umsatz'])) ?></td><td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['provision'])) ?></td>
           <td style="font-size:12.5px;color:var(--dim);white-space:nowrap"><?= $z['letzte'] ? Fmt::h(Fmt::datum((string) $z['letzte'])) : '—' ?></td>
           <td style="font-size:12px;color:var(--dim)"><?= Fmt::h(implode(' · ', array_map(static fn($k) => $k['kanal'] . ' ' . $k['klicks'] . '/' . $k['kunden'], $z['kanaele']))) ?: '—' ?></td></tr>
     <?php endforeach; ?></tbody></table></div>
@@ -231,6 +194,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   </form>
 </div>
 
+<?php if (Rechte::geld()): /* Phase 9: Auszahlungswege und Bedingungen (Sätze, Grenzen) nur für den Admin */ ?>
 <?php $an = array_map('trim', explode(',', Partner::einstellung('partner_wege'))); ?>
 <div class="block" id="wege">
   <h2 style="font-size:15px;margin:0 0 6px">Auszahlungswege</h2>
@@ -338,6 +302,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     „Überweisungen (Recipient)“ für Italien/EU freischalten. Ob ein Steuereinbehalt (Ritenuta) nötig ist, sagt dein
     Commercialista — Standard ist 0 %. Die Vereinbarung ist ein Entwurf: bitte einmal rechtlich lesen lassen.</p>
 </div>
+<?php endif; /* Rechte::geld */ ?>
 
 <?php /* Schutz der Vecom-Unterlagen (30.09.2026, Uwe: ja) */
   require_once dirname(__DIR__) . '/src/PartnerSchutz.php';

@@ -173,7 +173,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <?php foreach (['klicks' => 'Klicks', 'sitzungen' => 'Besucher', 'rechner_gestartet' => 'Preisrechner', 'fragebogen' => 'Fragebögen', 'anfragen' => 'Anfragen', 'kunden' => 'Kunden'] as $trS => $trW): ?>
       <div><b style="font-size:20px"><?= (int) $trK[$trS] ?></b><br><span style="color:var(--leise)"><?= $trW ?></span></div>
     <?php endforeach; ?>
-    <div><b style="font-size:20px"><?= Fmt::h(Fmt::geld((int) $trK['umsatz'])) ?></b><br><span style="color:var(--leise)">Umsatz</span></div>
+    <div><b style="font-size:20px"><?= Fmt::h(Rechte::betrag((int) $trK['umsatz'])) ?></b><br><span style="color:var(--leise)">Umsatz</span></div>
   </div>
 </div>
 
@@ -184,18 +184,18 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <div><b style="font-size:20px"><?= (int) $zahlen['verkaeufe'] ?></b><br><span style="color:var(--leise)">Verkäufe</span></div>
     <?php foreach (['wartet' => 'wartet', 'freigabe' => 'zur Freigabe', 'bereit' => 'bereit', 'ausgezahlt' => 'ausgezahlt', 'rueckforderung' => 'zurückfordern'] as $k => $w):
       if ($summen[$k] > 0 || in_array($k, ['bereit', 'ausgezahlt'], true)): ?>
-      <div><b style="font-size:20px"><?= Fmt::h(Fmt::geld($summen[$k])) ?></b><br><span style="color:var(--leise)"><?= $w ?></span></div>
+      <div><b style="font-size:20px"><?= Fmt::h(Rechte::betrag($summen[$k])) ?></b><br><span style="color:var(--leise)"><?= $w ?></span></div>
     <?php endif; endforeach; ?>
   </div>
-  <?php if ($bereit > 0): ?>
+  <?php if ($bereit > 0 && Rechte::geld()): ?>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-top:14px;border-top:1px solid var(--linie);padding-top:14px">
       <?php if ($weg !== null && in_array($weg, PartnerWege::AUTOMATISCH, true) && PartnerWege::bereit($p, $weg) && $p['vereinbarung_am']): ?>
-        <?= $hin('partner_auszahlen', 'Jetzt ' . Fmt::geld($bereit) . ' über ' . PartnerWege::WEGE[$weg] . ' auszahlen', true) ?>
+        <?= $hin('partner_auszahlen', 'Jetzt ' . Rechte::betrag($bereit) . ' über ' . PartnerWege::WEGE[$weg] . ' auszahlen', true) ?>
       <?php elseif ($weg === 'gutschrift' && $offeneRaten && $p['vereinbarung_am']): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_verrechnen"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
           <div class="feld" style="margin:0"><label>Mit offener Rate verrechnen</label>
-            <select name="zahlung"><?php foreach ($offeneRaten as $r): ?><option value="<?= (int) $r['id'] ?>"><?= Fmt::h($r['bezeichnung'] . ' — ' . Fmt::geld((int) $r['amount_cents'])) ?></option><?php endforeach; ?></select></div>
+            <select name="zahlung"><?php foreach ($offeneRaten as $r): ?><option value="<?= (int) $r['id'] ?>"><?= Fmt::h($r['bezeichnung'] . ' — ' . Rechte::betrag((int) $r['amount_cents'])) ?></option><?php endforeach; ?></select></div>
           <button class="knopf haupt">Verrechnen</button></form>
       <?php elseif ($weg === 'sepa'): ?>
         <span style="font-size:13px">SEPA: kommt in die nächste <a href="<?= Fmt::h(url('partner')) ?>">SEPA-Datei</a>.</span>
@@ -204,7 +204,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_auszahlen_hand"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
         <div class="feld" style="margin:0"><label>Von Hand überwiesen (Referenz)</label><input name="referenz" placeholder="z. B. Bonifico 12.10."></div>
         <button class="knopf">Als ausgezahlt buchen</button></form>
-      <?php if ($bereit < $min): ?><span style="color:var(--leise);font-size:12.5px">Unter dem Mindestbetrag (<?= Fmt::h(Fmt::geld($min)) ?>) — automatisch geht es erst ab dann.</span><?php endif; ?>
+      <?php if ($bereit < $min): ?><span style="color:var(--leise);font-size:12.5px">Unter dem Mindestbetrag (<?= Fmt::h(Rechte::betrag($min)) ?>) — automatisch geht es erst ab dann.</span><?php endif; ?>
     </div>
   <?php endif; ?>
 </div>
@@ -256,6 +256,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<?php if (Rechte::geld()): /* Phase 9: Provisionen und Auszahlungen nur für den Admin */ ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 10px">Provisionen</h2>
   <?php if (!$provisionen): ?><p style="color:var(--leise);font-size:13px">Noch keine.</p><?php else: ?>
@@ -265,9 +266,9 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
       <tr><td style="font-size:12.5px"><?= Fmt::h(Fmt::datum((string) $z['created_at'])) ?></td>
           <td><a href="<?= Fmt::h(url('kunden/' . (int) $z['customer_id'])) ?>"><?= Fmt::h(Fmt::name($z['kunde'] ?? '')) ?></a></td>
           <td><?= Fmt::h($z['art']) ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['basis_cents'])) ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['basis_cents'])) ?></td>
           <td style="font-size:12.5px"><?= Fmt::h($z['satz']) ?></td>
-          <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $z['provision_cents'])) ?><?= (int) $z['einbehalt_cents'] > 0 ? '<div style="font-size:11.5px;color:var(--leise)">− ' . Fmt::h(Fmt::geld((int) $z['einbehalt_cents'])) . ' Einbehalt</div>' : '' ?></td>
+          <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['provision_cents'])) ?><?= (int) $z['einbehalt_cents'] > 0 ? '<div style="font-size:11.5px;color:var(--leise)">− ' . Fmt::h(Rechte::betrag((int) $z['einbehalt_cents'])) . ' Einbehalt</div>' : '' ?></td>
           <td><span class="marke2 <?= $m ?>"><?= Fmt::h($w) ?></span>
             <?php if ($z['status'] === 'wartet'): ?><div style="font-size:11.5px;color:var(--leise)">frei ab <?= Fmt::h(Fmt::datum((string) $z['frei_ab'])) ?></div><?php endif; ?>
             <?php if ($z['grund'] !== ''): ?><div style="font-size:11.5px;color:var(--leise)"><?= Fmt::h($z['grund']) ?></div><?php endif; ?></td>
@@ -293,12 +294,13 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <tr><td><?= Fmt::h($a['nummer']) ?></td><td style="font-size:12.5px"><?= Fmt::h(Fmt::datum((string) $a['created_at'])) ?></td>
         <td><?= Fmt::h(PartnerWege::WEGE[$a['weg']] ?? 'von Hand') ?><?= $a['automatisch'] ? ' (automatisch)' : '' ?><?= $a['weg'] === 'hand' ? ' · ' . Fmt::h($a['referenz']) : '' ?>
           <?= $a['status'] === 'offen' ? '<span class="marke2 warnung">offen</span>' : ($a['status'] === 'abgebrochen' ? '<span class="marke2">abgebrochen</span>' : '') ?></td>
-        <td style="text-align:right"><?= Fmt::h(Fmt::geld((int) $a['betrag_cents'])) ?></td>
+        <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $a['betrag_cents'])) ?></td>
         <td><a href="<?= Fmt::h(url('partner/' . (int) $p['id']) . '?beleg=' . (int) $a['id']) ?>" target="_blank">Beleg</a></td></tr>
   <?php endforeach; ?>
   </tbody></table></div>
 </div>
 <?php endif; ?>
+<?php endif; /* Rechte::geld */ ?>
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Kunden über diesen Partner</h2>
@@ -437,7 +439,7 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
 </div>
 <?php endif; ?>
 
-<?php if (!in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
+<?php if (Rechte::geld() && !in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Eigene Bedingungen</h2>
   <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">Leer = es gilt der Standard (derzeit <?= Fmt::h(Partner::satzWort(Partner::satzFuer([]))) ?>). Gilt für künftige Provisionen.</p>

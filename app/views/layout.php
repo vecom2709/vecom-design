@@ -16,6 +16,8 @@ $navZahlen = [
   'benachrichtigungen' => (int) Db::wert(
       "SELECT COUNT(*) FROM notifications WHERE read_at IS NULL AND level IN ('warnung','schlecht')"),
   'bestellungen'=> (int) Db::wert("SELECT COUNT(*) FROM orders WHERE status IN ('neu','zahlung_ausstehend')"),
+  /* Phase 9: offene Anliegen der Partner (wartet auf Vecom). */
+  'partner-support' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM partner_tickets WHERE stand = 'offen'", [], 0), 0),
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
@@ -136,6 +138,11 @@ $menue = [
     ['empfehlungen', 'Weiterempfehlung', 'empfehlungen'],
   ]],
 
+  /* PARTNER (Phase 9, 06.10.2026, Uwe: „Eigene Tür Partner“): die siebte Tür. Hier wird Geld
+     bewegt und mit Partnern gesprochen — das stand vorher als Reiter unter Kunden › Weiterempfehlung.
+     Die Zahl an der Tür ist die Summe der Reiter (Bewerbungen, Freigaben, offene Anliegen). */
+  ['partner', 'Partner', 'partner', []],
+
   /* MARKETING (30.09.2026, Uwe: „Alles ja“ zur Growth Engine)
      Die sechste Tuer, und bewusst eine eigene: „Kunden“ ist, wer schon da
      ist oder gerade gefunden wird; „Marketing“ ist die Frage davor --
@@ -166,6 +173,8 @@ $menue = [
     ['bereit', 'Damit alles läuft', 'bereit'],
     /* Phase 8 (06.10.2026): alle Automationen an einer Stelle, mit Schalter, Not-Aus und Probelauf. */
     ['automationen', 'Automationen', 'automationen'],
+    /* Phase 9: wer hat wann was getan (audit_log) — nur Admin. */
+    ['pruefspur', 'Prüfspur', 'pruefspur'],
     ['pakete', 'Preise', 'pakete'],
     ['telefon', 'Telefonassistentin', 'telefon'],
   ]],
@@ -186,9 +195,14 @@ $reiter = [
   ],
   'empfehlungen' => [
     ['empfehlungen', 'Empfehlungen', 'empfehlungen'],
-    ['partner', 'Partner', 'partner'],
-    ['tracking', 'Partner-Tracking', 'tracking'],
     ['stimmen', 'Kundenstimmen', 'stimmen'],
+  ],
+  'partner' => [
+    ['partner', 'Partner', 'partner'],
+    ['partner-support', 'Support', 'partner-support'],
+    ['partner-meldungen', 'Meldungen', 'partner-meldungen'],
+    ['auszahlungen', 'Auszahlungen', 'auszahlungen'],
+    ['tracking', 'Tracking', 'tracking'],
     /* Marketing Center (03.10.2026): Werbemittel, die Partner bestellen. */
     ['werbemittel', 'Marketing Center', 'werbemittel'],
     /* Partner Academy (05.10.2026, Etappe 2): Statistik, Module, PDFs, „Neue Schulung“. */
@@ -249,7 +263,8 @@ if (class_exists('Rechte') && Rechte::rolle() !== 'admin') {
 }
 foreach ($menue as $i => $tuer) {
     [$ziel, , $schl, $unter] = $tuer;
-    $summe = (int) ($navZahlen[$schl] ?? 0);
+    /* Die Tür „Partner“ hat keine Unterpunkte, nur Reiter — ihre Zahl ist deren Summe (Phase 9). */
+    $summe = $ziel === 'partner' ? $reiterZahl('partner') : (int) ($navZahlen[$schl] ?? 0);
     $offen = $aktiv === $ziel;
     foreach ($unter as [$uZiel, , $uSchl]) {
         $summe += isset($reiter[$uZiel]) ? $reiterZahl($uZiel) : (int) ($navZahlen[$uSchl] ?? 0);
@@ -595,7 +610,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       </style>
     <?php elseif (isset($reiter[$aktivMenue])): ?>
       <nav class="reiter" aria-label="Bereich">
-        <?php foreach ($reiter[$aktivMenue] as [$rZiel, $rWort, $rSchl]): $rn = (int) ($navZahlen[$rSchl] ?? 0); ?>
+        <?php foreach ($reiter[$aktivMenue] as [$rZiel, $rWort, $rSchl]): if (!Rechte::darfSeite($rZiel)) { continue; } /* Phase 9: keine Reiter, die die Rolle nicht öffnen darf */ $rn = (int) ($navZahlen[$rSchl] ?? 0); ?>
           <a href="<?= Fmt::h(url($rZiel)) ?>" class="<?= $aktiv === $rZiel ? 'an' : '' ?>" <?= $aktiv === $rZiel ? 'aria-current="page"' : '' ?>><?= Fmt::h($rWort) ?><?php if ($rn > 0): ?> <span class="zahl warn"><?= $rn ?></span><?php endif; ?></a>
         <?php endforeach; ?>
       </nav>
