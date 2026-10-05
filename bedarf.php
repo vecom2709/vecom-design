@@ -425,7 +425,7 @@ $geld = static function (int $cents) use ($sprache): string {
     font-size:13.5px;color:var(--dim)}
   /* Live-Richtpreis: unten angeheftet, damit er bei jedem Klick sichtbar bleibt */
   .livepreis{position:sticky;bottom:0;z-index:5;margin:14px -4px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
-    border:1px solid rgba(192,136,24,.45);border-radius:14px 14px 0 0;background:rgba(14,12,9,.96);
+    border:1px solid rgba(192,136,24,.45);border-radius:14px 14px 0 0;background:rgba(8,13,27,.96);
     box-shadow:0 -10px 30px rgba(0,0,0,.45);display:grid;gap:2px}
   .livepreis .lp-t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
   .livepreis .lp-z{font-size:clamp(22px,6vw,28px);font-weight:600;line-height:1.2;color:var(--text);transition:color .3s}

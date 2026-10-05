@@ -22,7 +22,7 @@ $mcSt = static fn(string $s): string => Texte::h(Texte::MARKETINGCENTER['d_statu
   .mc-s-freigegeben{border-color:rgba(120,200,140,.55);color:#9fe0b0}
   .mc-s-entwurf{border-color:rgba(241,211,139,.55);color:#f1d38b}
   .mc-zahlen{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:6px 0 14px}
-  .mc-zahlen div{border:1px solid rgba(227,194,122,.18);border-radius:12px;padding:12px;background:linear-gradient(165deg,#1b1713,#121010)}
+  .mc-zahlen div{border:1px solid rgba(227,194,122,.18);border-radius:12px;padding:12px;background:linear-gradient(165deg,#0d162c,#0a1021)}
   .mc-zahlen b{display:block;font-size:24px;color:#f3ede2;font-variant-numeric:tabular-nums}
   .mc-zahlen span{font-size:12.5px;color:var(--leise)}
   @media (max-width:520px){ .mc-zahlen{grid-template-columns:1fr 1fr} .mc-zeile{grid-template-columns:1fr} .mc-zeile .mc-tun{justify-content:flex-start} }

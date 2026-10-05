@@ -58,7 +58,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .druckliste .knopf{justify-content:flex-start;text-align:left}
   .vk-raster{list-style:none;margin:8px 0 6px;padding:0;display:grid;gap:14px}
   .vk-karte{display:grid;gap:8px;border:1px solid var(--linie);border-radius:14px;padding:10px}
-  .vk-karte img{width:100%;height:auto;border-radius:8px;display:block;background:#0d0b08}
+  .vk-karte img{width:100%;height:auto;border-radius:8px;display:block;background:#070c19}
   .vk-karte b{font-size:14.5px;color:var(--text);font-weight:600}
   .vk-knoepfe{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
   .vk-knoepfe .knopf{min-height:42px;justify-content:center;font-size:13.5px;padding:6px 10px}
@@ -75,7 +75,7 @@ $knopf = PartnerWerbung::websiteKnopf($p, $sprache);
   .fl-neu{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:#f1d38b;font-weight:600}
   .fl-raster{list-style:none;margin:0 0 6px;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px}
   .fl-karte{display:flex;flex-direction:column;gap:7px;border:1px solid var(--linie);border-radius:12px;padding:8px;min-width:0}
-  .fl-karte img{width:100%;height:auto;aspect-ratio:5/8;object-fit:contain;border-radius:7px;background:#0d0b08;display:block}
+  .fl-karte img{width:100%;height:auto;aspect-ratio:5/8;object-fit:contain;border-radius:7px;background:#070c19;display:block}
   .fl-karte b{font-size:14px;line-height:1.3;color:var(--text);font-weight:600}
   .fl-knoepfe{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:auto}
   .fl-knoepfe .knopf{min-height:40px;padding:6px 8px;font-size:13.5px;justify-content:center}

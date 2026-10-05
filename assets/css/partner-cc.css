@@ -208,7 +208,7 @@ html{scroll-padding-top:76px}
 .cc-ende > summary::-webkit-details-marker{display:none}
 
 /* ---------- Leiste unten (wie die Reiter im Partnerbereich) ---------- */
-.cc-leiste{display:flex;gap:3px;max-width:980px;margin:10px auto 0;position:sticky;top:8px;z-index:30;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px;box-sizing:border-box;background:rgba(20,19,17,.88);
+.cc-leiste{display:flex;gap:3px;max-width:980px;margin:10px auto 0;position:sticky;top:8px;z-index:30;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);padding:5px;box-sizing:border-box;background:rgba(11,18,37,.88);
   border:1px solid var(--linie);border-radius:16px}
 .cc-leiste a{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;gap:7px;min-height:46px;padding:8px 6px;border-radius:11px;
   color:var(--dim);text-decoration:none;font-size:13.5px;font-weight:600}
@@ -229,12 +229,12 @@ html{scroll-padding-top:76px}
   .cc-mehr[open] > summary{color:var(--gold)}
   .cc-mehr > summary:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
   .cc-mehr__liste{position:absolute;right:2px;bottom:calc(100% + 10px);min-width:210px;display:grid;gap:4px;padding:6px;border-radius:16px;
-    border:1px solid var(--linie);background:#100f0d;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
+    border:1px solid var(--linie);background:#090f1f;box-shadow:0 20px 50px -20px rgba(0,0,0,.85)}
   .cc-leiste .cc-mehr__liste a{flex-direction:row;justify-content:flex-start;gap:10px;font-size:15px;min-height:50px;padding:10px 12px}
 }
 @media (max-width:760px){
   .cc-leiste{position:fixed;top:auto;left:0;right:0;bottom:0;z-index:30;margin:0;gap:0;border-radius:18px 18px 0 0;border-width:1px 0 0;
-    padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(12,11,10,.95);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
+    padding:5px 4px calc(5px + env(safe-area-inset-bottom));background:rgba(7,12,25,.95);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}
   .cc-leiste a{flex-direction:column;gap:3px;font-size:11.5px;min-height:54px;padding:6px 2px}
   .cc-leiste a svg{width:22px;height:22px}
   body.cc{padding-bottom:calc(84px + env(safe-area-inset-bottom))}

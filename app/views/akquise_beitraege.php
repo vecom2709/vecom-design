@@ -19,7 +19,7 @@ $btWort = ['entwurf' => 'wartet auf dich', 'gepostet' => 'gepostet', 'fehler' =>
 <style>
   .bt-liste{display:grid;gap:14px}
   .bt{display:grid;grid-template-columns:220px 1fr;gap:16px;align-items:start}
-  .bt img{width:220px;height:220px;border-radius:12px;border:1px solid var(--linie);display:block;background:#0b0a09}
+  .bt img{width:220px;height:220px;border-radius:12px;border:1px solid var(--linie);display:block;background:#070b18}
   .bt textarea{width:100%;min-height:190px;font:inherit;line-height:1.5}
   .bt .zeile{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
   .bt-neu{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.bt-neu select{width:auto;min-width:0}

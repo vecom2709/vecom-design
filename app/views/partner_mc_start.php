@@ -35,7 +35,7 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
 ?>
 <style>
   /* Markenfarben: Schwarz, sehr dunkles Braun, Anthrazit, warmes Gold (kein Gelb). */
-  .mc-start{background:radial-gradient(120% 140% at 0% 0%,rgba(201,162,75,.10),transparent 55%),linear-gradient(160deg,#17130f,#0d0c0b 70%);border-color:rgba(227,194,122,.22)}
+  .mc-start{background:radial-gradient(120% 140% at 0% 0%,rgba(201,162,75,.10),transparent 55%),linear-gradient(160deg,#0b1226,#080d1b 70%);border-color:rgba(227,194,122,.22)}
   .mc-held{display:grid;grid-template-columns:auto 1fr;gap:18px;align-items:center;margin-bottom:6px}
   .mc-held img{width:60px;height:47px;display:block}
   .mc-claim{margin:0;font-size:clamp(19px,3.2vw,28px);line-height:1.18;letter-spacing:.06em;font-weight:800;color:#f3ede2}
@@ -45,7 +45,7 @@ $mcSaetze = array_map('trim', explode('.', rtrim($MC('claim'), '. ')));
   .mc-kurz{margin:10px 0 0;font-size:13px;color:#e3c27a;letter-spacing:.02em}
   .mc-karten{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:10px;margin-top:18px}
   .mc-karte{position:relative;display:grid;gap:4px;align-content:start;min-height:112px;padding:14px 14px 12px;border-radius:14px;text-decoration:none;
-    background:linear-gradient(165deg,#1b1713,#121010);border:1px solid rgba(227,194,122,.14);color:var(--text);transition:border-color .2s,transform .2s,box-shadow .2s}
+    background:linear-gradient(165deg,#0d162c,#0a1021);border:1px solid rgba(227,194,122,.14);color:var(--text);transition:border-color .2s,transform .2s,box-shadow .2s}
   .mc-karte svg{width:26px;height:26px;fill:none;stroke:#e3c27a;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;margin-bottom:4px}
   .mc-karte b{font-size:14.5px;line-height:1.25}
   .mc-karte small{font-size:12px;color:var(--leise);line-height:1.35}

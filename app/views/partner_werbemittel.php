@@ -89,7 +89,7 @@ if ($mcEigen) {
   .wm-knoepfe{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
   .wm-kat{margin:18px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#f1d38b}
   .wm-produkt{border:1px solid var(--linie);border-radius:14px;padding:14px;display:grid;gap:12px;margin-bottom:12px}
-  .wm-produkt img{width:100%;height:auto;border-radius:8px;display:block;background:#15130f}
+  .wm-produkt img{width:100%;height:auto;border-radius:8px;display:block;background:#0b1225}
   .wm-produkt h3{margin:0;font-size:17px}
   .wm-produkt .wm-text{margin:4px 0 0;color:var(--dim);font-size:14.5px;line-height:1.5}
   .wm-meta{font-size:12.5px;color:var(--leise);margin-top:6px}
@@ -141,7 +141,7 @@ if ($mcEigen) {
   @media (max-width:520px){ .wm-neu{grid-template-columns:1fr} }
   @media (max-width:520px){ .wm-kopf{grid-template-columns:1fr} .wm-qr{margin:0 auto} }
   /* Produkt in drei Schritten (04.10.2026) */
-  .mc-produkt{gap:14px;padding:16px;background:linear-gradient(170deg,#181512,#100f0d);border-color:rgba(227,194,122,.16)}
+  .mc-produkt{gap:14px;padding:16px;background:linear-gradient(170deg,#0c1429,#090f1f);border-color:rgba(227,194,122,.16)}
   .mc-produktkopf{display:flex;gap:12px;justify-content:space-between;align-items:flex-start;flex-wrap:wrap}
   .mc-produktkopf h3{font-size:19px}
   .mc-ab{color:#f1d38b;font-weight:600}
@@ -175,8 +175,8 @@ if ($mcEigen) {
   /* Die Vorschau bleibt beim Scrollen durch die Schritte oben stehen — man sieht sofort, was ein Tipp ändert. */
   .mc-produkt{container-type:inline-size}
   .mc-vorschau{margin:0 -6px;padding:6px 6px 6px;display:grid;gap:4px;align-content:start;position:sticky;top:8px;z-index:3;
-    background:#100f0d;box-shadow:0 14px 14px -8px #100f0d;border-radius:12px}
-  .mc-vorschau img{width:100%;height:auto;max-height:38vh;object-fit:contain;border-radius:10px;background:#15130f;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+    background:#090f1f;box-shadow:0 14px 14px -8px #100f0d;border-radius:12px}
+  .mc-vorschau img{width:100%;height:auto;max-height:38vh;object-fit:contain;border-radius:10px;background:#0b1225;box-shadow:0 10px 30px rgba(0,0,0,.45)}
   .mc-vorschau figcaption{font-size:12px;color:var(--leise);text-align:center}
   .mc-schritte{display:grid;gap:12px;min-width:0}
   .mc-schritt{border:1px solid var(--linie);border-radius:14px;padding:14px;display:grid;gap:8px;background:rgba(255,255,255,.015)}
@@ -190,9 +190,9 @@ if ($mcEigen) {
   .mc-gruppen button[aria-pressed="true"]{border-color:rgba(227,194,122,.8);color:var(--text);background:rgba(227,194,122,.1)}
   .mc-kacheln{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px}
   .mc-branchen{max-height:430px;overflow-y:auto;padding:2px 4px 2px 2px;scrollbar-width:thin}
-  .wm-gestalten label.mc-kachel{display:grid;gap:6px;align-content:start;min-height:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);font-size:12px;line-height:1.3;color:var(--dim);position:relative;background:#141210}
+  .wm-gestalten label.mc-kachel{display:grid;gap:6px;align-content:start;min-height:0;padding:6px;border-radius:12px;border:1px solid var(--linie2);font-size:12px;line-height:1.3;color:var(--dim);position:relative;background:#0b1124}
   .wm-gestalten label.mc-kachel input{position:absolute;opacity:0;pointer-events:none}
-  .wm-gestalten label.mc-kachel img{width:100%;height:auto;aspect-ratio:260/368;object-fit:cover;border-radius:7px;display:block;background:#1d1a15}
+  .wm-gestalten label.mc-kachel img{width:100%;height:auto;aspect-ratio:260/368;object-fit:cover;border-radius:7px;display:block;background:#0f1830}
   .wm-gestalten label.mc-kachel.mc-quer img{aspect-ratio:260/168}
   .wm-gestalten label.mc-kachel:has(input:checked){border-color:#e3c27a;background:rgba(227,194,122,.1);color:var(--text);box-shadow:0 0 0 1px rgba(227,194,122,.5)}
   .wm-gestalten label.mc-kachel:has(input:checked)::after{content:"✓";position:absolute;top:10px;right:10px;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#e3c27a;color:#1a140b;font-weight:800;font-size:13px}

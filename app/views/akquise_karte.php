@@ -12,7 +12,7 @@ foreach ($punkte as $pk) { $zahl[$pk['f']]++; }
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <link rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css">
 <style>
-  #akq_karte{height:min(70vh,680px);border-radius:14px;border:1px solid var(--linie);background:#0f0d0a}
+  #akq_karte{height:min(70vh,680px);border-radius:14px;border:1px solid var(--linie);background:#080d1c}
   .akq-legende{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
   .akq-legende label{display:inline-flex;gap:6px;align-items:center;font-size:13px;padding:5px 11px;border:1px solid var(--linie);border-radius:999px;cursor:pointer;white-space:nowrap;margin:0;width:auto}
   .akq-legende input{width:auto;min-height:0;margin:0;padding:0}

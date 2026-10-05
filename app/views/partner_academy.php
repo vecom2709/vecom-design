@@ -115,7 +115,7 @@ if ($akMc) {
 <meta name="robots" content="noindex, nofollow">
 <meta name="referrer" content="no-referrer">
 <title><?= $h($akTitel) ?> — Vecom Design</title>
-<meta name="theme-color" content="#0a0908">
+<meta name="theme-color" content="#060a16">
 <link rel="manifest" href="<?= $h($selbst(['manifest' => 1])) ?>">
 <link rel="icon" href="/assets/img/favicon-96.png" sizes="96x96">
 <link rel="apple-touch-icon" href="/assets/img/app-icon-192.png">

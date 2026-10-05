@@ -75,9 +75,9 @@ $daumen = static fn(string $datei): string => '/assets/img/' . (str_contains($da
   .ga-reihe .ga-pfeil:disabled{opacity:.35;cursor:default}
   .ga-unten{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
   .ga-vorschau-dlg{border:0;padding:0;background:transparent;max-width:none;max-height:none}
-  .ga-vorschau-dlg::backdrop{background:rgba(5,4,3,.8)}
+  .ga-vorschau-dlg::backdrop{background:rgba(4,6,15,.8)}
   .ga-vorschau-dlg .hv-rahmen{width:min(390px,92vw);height:min(760px,84vh);padding:10px}
-  .ga-vorschau-dlg iframe{border:0;width:100%;height:100%;border-radius:30px;background:#0b0a09}
+  .ga-vorschau-dlg iframe{border:0;width:100%;height:100%;border-radius:30px;background:#070b18}
   .gs-vorschau{margin-top:16px;border:1px solid var(--linie);border-radius:16px;overflow:hidden;background:var(--flaeche2);height:560px;position:relative}
   .gs-vorschau iframe{border:0;width:390px;height:1120px;transform:scale(.5);transform-origin:0 0;position:absolute;left:calc(50% - 97.5px);top:0}
   @media (min-width:700px){.gs-vorschau iframe{transform:scale(.6);left:calc(50% - 117px)}.gs-vorschau{height:660px}}

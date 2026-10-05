@@ -22245,9 +22245,19 @@ pruefe('jede öffentliche Seite mit Sprachweiche läuft durch — kein Abbruch, 
 $w7Liste = [];
 foreach (['app/assets/admin.css', 'assets/css/app.css', 'assets/css/kunde.css', 'partner.php', 'termin.php', 'website-check.php'] as $w7Css) {
     $w7T = (string) @file_get_contents($oben . '/' . $w7Css);
-    if (!str_contains($w7T, '@supports (appearance: base-select)') || !preg_match('~::picker\(select\)\{background:#141311~', $w7T)) { $w7Liste[] = $w7Css; }
+    if (!str_contains($w7T, '@supports (appearance: base-select)') || !preg_match('~::picker\(select\)\{background:#(141311|0b1225)~', $w7T)) { $w7Liste[] = $w7Css; }
 }
 pruefe('aufgeklappte Auswahllisten zeichnen wir selbst (dunkel, Gold für den gewählten Eintrag), wo der Browser es kann', $w7Liste === [], implode(', ', $w7Liste));
+/* 05.10.2026, Uwe: „dieses Blau wie auf der Visitenkarte für den Hintergrund anstatt Braun, überall im Partner sowie
+   Verwaltung“, danach „viel dunkler, leuchtend, edleres Blau“: tiefes Nachtblau #060a16 mit blauem Lichtschein. Grund
+   der Verwaltung, der Kunden- und Partnerseiten und der Standardvorlage „gold“; kein Braun-Schwarz mehr als Grund oder Fläche. */
+$bwKunde = (string) file_get_contents($oben . '/assets/css/kunde.css');
+$bwAdmin = (string) file_get_contents($oben . '/app/assets/admin.css');
+pruefe('Hintergrund tiefes Nachtblau (#060a16) statt Braun: Verwaltung, Kunden- und Partnerseiten, Standardvorlage der Empfehlungsseite',
+    preg_match('~--grund:\s*#060a16~', $bwKunde) === 1 && preg_match('~--flaeche:\s*#0b1225~', $bwKunde) === 1
+    && preg_match('~--grund:#060a16~', $bwAdmin) === 1 && preg_match('~--flaeche:#0b1225~', $bwAdmin) === 1
+    && PartnerSeite::VORLAGEN['gold']['grund'] === '#060a16'
+    && !preg_match('~background[^;}"]*#(0a0908|141311|1f1c18)~i', $bwKunde . $bwAdmin . (string) file_get_contents($oben . '/partner.php')));
 pruefe('kein Ordner unter app/ verdeckt eine Seite gleichen Namens (sonst 403 statt Seite)', $w7Verdeckt === [], implode(', ', $w7Verdeckt));
 pruefe('der Altordner app/werbemittel/ leitet nur weiter und enthält keine Vorlagen mehr',
     (glob($wurzel . '/werbemittel/*') ?: []) === [] && str_contains((string) @file_get_contents($wurzel . '/werbemittel/.htaccess'), 'RewriteRule ^ /app/index.php'));

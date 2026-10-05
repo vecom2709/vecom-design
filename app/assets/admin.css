@@ -7,7 +7,7 @@
      Akzentfarbe: Sie heißt genau eine Sache — das, was die Führung meint.
      Warnungen sind deshalb nicht mehr gelb, sondern orange: Gelb neben
      Gold wäre nicht mehr zu unterscheiden. */
-  --grund:#0a0908; --flaeche:#141311; --flaeche2:#1f1c18;
+  --grund:#060a16; --flaeche:#0b1225; --flaeche2:#101933;
   --text:#f7f3ea; --dim:#b4ada2; --leise:#9e978b;
   --linie:rgba(224,206,156,.13); --linie2:rgba(224,206,156,.26);
   --cyan:#f1d38b; --blau:#c8963e; --gruen:#4ade80; --rot:#ff8a8a; --gelb:#ff9f5a;
@@ -16,7 +16,7 @@
   --r:14px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--grund);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+body{background:radial-gradient(80vw 56vh at 62% -16%,rgba(52,98,232,.20),transparent 66%) fixed,var(--grund);color:var(--text);font:15px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
   background-image:radial-gradient(60% 40% at 50% 0%,rgba(200,150,62,.10),transparent 70%);min-height:100vh}
 a{color:inherit;text-decoration:none}
 .huelle{display:flex;min-height:100vh}
@@ -383,7 +383,7 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 /* Die Großansicht liegt über der Seite. Der Grund ist dunkel genug, dass das
    Bild für sich steht, und hell genug, dass man sieht, wo man ist. */
 .dgross{position:fixed;inset:0;z-index:80;display:flex;align-items:center;justify-content:center;
-  background:rgba(10,9,8,.92);padding:64px 18px 24px}
+  background:rgba(6,10,22,.92);padding:64px 18px 24px}
 /* display:flex schlaegt das hidden-Attribut des Browsers. Ohne diese Zeile
    liegt die zugeklappte Großansicht unsichtbar ueber der ganzen Seite und
    faengt jeden Klick ab — die Dateiliste waere unbedienbar gewesen. */
@@ -391,11 +391,11 @@ form.leiste input,form.leiste select{width:auto;min-width:150px}
 .dgross img{max-width:100%;max-height:100%;object-fit:contain;border-radius:10px;
   background:var(--flaeche2)}
 .dgross__kopf{position:absolute;top:0;left:0;right:0;display:flex;align-items:center;gap:12px;
-  padding:14px 18px;background:linear-gradient(180deg,rgba(10,9,8,.85),transparent)}
+  padding:14px 18px;background:linear-gradient(180deg,rgba(6,10,22,.85),transparent)}
 .dgross__name{font-size:14px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .dgross__zahl{font-size:12.5px;color:var(--leise);white-space:nowrap;margin-left:auto}
 .dgross__pfeil{position:absolute;top:50%;transform:translateY(-50%);width:46px;height:46px;
-  border-radius:50%;border:1px solid var(--linie2);background:rgba(20,19,17,.8);color:var(--text);
+  border-radius:50%;border:1px solid var(--linie2);background:rgba(11,18,37,.8);color:var(--text);
   font-size:26px;line-height:1;cursor:pointer;transition:.18s var(--e)}
 .dgross__pfeil:hover{background:var(--flaeche2);border-color:var(--cyan)}
 .dgross__pfeil:focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
@@ -677,7 +677,7 @@ details.spaeter>summary .mehr{margin-left:8px}
 /* Ein Satz, wozu die Seite da ist (26.09.2026) */
 .seitensatz{margin:0 0 14px;color:var(--leise);font-size:13px;line-height:1.55;max-width:72ch}
 /* Einführung beim ersten Anmelden */
-dialog.einfuehrung{border:1px solid var(--linie);border-radius:14px;background:var(--flaeche,#141210);color:var(--text);
+dialog.einfuehrung{border:1px solid var(--linie);border-radius:14px;background:var(--flaeche,#0b1124);color:var(--text);
   padding:22px 24px;max-width:460px;width:calc(100% - 32px);box-shadow:0 30px 80px rgba(0,0,0,.6)}
 dialog.einfuehrung::backdrop{background:rgba(0,0,0,.6)}
 .einfuehrung h2{margin:4px 0 8px;font-size:19px}
@@ -701,7 +701,7 @@ dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}
 @media(max-width:900px){
   .nav{display:none}
   body.menue-auf .nav{display:flex;flex-wrap:wrap}
-  .unten{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(14,13,11,.96);
+  .unten{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:50;background:rgba(8,13,28,.96);
     backdrop-filter:blur(8px);border-top:1px solid var(--linie);padding:4px 4px calc(4px + env(safe-area-inset-bottom))}
   .unten a,.unten button{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
     color:var(--dim);text-decoration:none;font-size:12.5px;background:none;border:0;border-radius:10px;position:relative;font:inherit;font-size:12.5px;cursor:pointer}
@@ -737,7 +737,7 @@ dialog.einfuehrung{margin:auto;position:fixed;inset:0;height:fit-content}
    schlägt Chromes eigene Auswahlfarbe auf <option>. */
 :root{color-scheme:dark}
 ::selection{background:#f1d38b;color:#0a0908}
-select option,select optgroup{background-color:#141311;color:#f7f3ea}
+select option,select optgroup{background-color:#0b1225;color:#f7f3ea}
 select option:checked{background:#c8963e linear-gradient(0deg,#c8963e,#c8963e);color:#0a0908}
 select option:disabled{color:#9e978b}
 
@@ -753,10 +753,10 @@ select option:disabled{color:#9e978b}
   select:not([multiple]):not([size]){display:flex;align-items:center;gap:8px;cursor:pointer}
   select:not([multiple]):not([size])::picker-icon{color:var(--dim);transition:rotate .15s}
   select:not([multiple]):not([size]):open::picker-icon{rotate:180deg}
-  ::picker(select){background:#141311;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;
+  ::picker(select){background:#0b1225;color:#f7f3ea;border:1px solid rgba(224,206,156,.26);border-radius:12px;padding:6px;
     box-shadow:0 18px 40px rgba(0,0,0,.55);margin-top:4px;max-height:min(60vh,420px)}
   select:not([multiple]):not([size]) option{padding:8px 12px;border-radius:8px;background:transparent;color:#f7f3ea;font-size:14px;gap:8px}
-  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#1f1c18;color:#fff;outline:none}
+  select:not([multiple]):not([size]) option:hover,select:not([multiple]):not([size]) option:focus-visible{background:#101933;color:#fff;outline:none}
   select:not([multiple]):not([size]) option:checked{background:#c8963e;color:#0a0908;font-weight:600}
   select:not([multiple]):not([size]) option:checked:hover{background:#d6a849;color:#0a0908}
   select:not([multiple]):not([size]) option::checkmark{color:currentColor}
