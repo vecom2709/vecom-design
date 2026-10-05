@@ -236,6 +236,13 @@ $reiterZahl = static function (string $gruppe) use ($reiter, $navZahlen): int {
    Unterpunkte ihre eigenen Zahlen, und die Summe oben waere eine Doppelung.
    Sie bleibt trotzdem stehen, damit die Zahl beim Auf- und Zuklappen nicht
    springt. */
+/* Rollen (05.10.2026): Was die Rolle nicht sehen darf, steht gar nicht erst im Menü. */
+if (class_exists('Rechte') && Rechte::rolle() !== 'admin') {
+    $menue = array_values(array_filter(array_map(static function (array $t): array {
+        $t[3] = array_values(array_filter($t[3], static fn(array $u): bool => Rechte::darfSeite((string) $u[0])));
+        return $t;
+    }, $menue), static fn(array $t): bool => Rechte::darfSeite((string) $t[0])));
+}
 foreach ($menue as $i => $tuer) {
     [$ziel, , $schl, $unter] = $tuer;
     $summe = (int) ($navZahlen[$schl] ?? 0);
@@ -338,7 +345,8 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
       ['vorgaenge', 'Kunden', $untenZahl('vorgaenge')],
       ['rechnungen', 'Geld', $untenZahl('rechnungen')],
       ['telefon', 'Telefon', (int) ($navZahlen['telefon'] ?? 0)],
-  ]; ?>
+  ];
+  if (class_exists('Rechte') && Rechte::rolle() !== 'admin') { $unten = array_values(array_filter($unten, static fn(array $u): bool => Rechte::darfSeite($u[0]))); } ?>
   <nav class="unten" aria-label="Schnellwahl">
     <?php /* Hervorgehoben wird die Tür, in der man steht -- „Anfragen“ liegt
              unter „Kunden“. Telefon ist eigene Taste, auch wenn es im Menü

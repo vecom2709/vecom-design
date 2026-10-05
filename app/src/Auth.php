@@ -5,6 +5,8 @@ final class Auth
 {
     public const ADMIN = 'admin';
     public const KUNDE = 'kunde';
+    /** Rollen mit Zugang zur Verwaltung (siehe Rechte.php). */
+    public const VERWALTUNG = ['admin', 'mitarbeit', 'lesen'];
 
     public static function start(): void
     {
@@ -36,13 +38,29 @@ final class Auth
             self::fehlversuch($email);
             return false;
         }
-        session_regenerate_id(true);
+        self::ganz($u);
+        return true;
+    }
+
+    /** Abmeldung nach so vielen Sekunden ohne Klick (05.10.2026, Uwe: „Ja“). */
+    public const LEERLAUF = 3600;
+    /** Spätestens nach so vielen Sekunden neu anmelden, auch bei Betrieb. */
+    public const HOECHSTENS = 43200;
+
+    /** Der Lebenszeichen-Abruf (Route „puls“) zählt nicht als Klick — sonst liefe eine offene Seite nie ab. */
+    public static bool $nurPuls = false;
+
+    private static function ganz(array $u): void
+    {
+        $_SESSION = [];
+        if (session_status() === PHP_SESSION_ACTIVE) { session_regenerate_id(true); }
         $_SESSION['uid']  = (int) $u['id'];
         $_SESSION['rolle']= $u['role'];
         $_SESSION['name'] = $u['name'];
         $_SESSION['kunde']= $u['customer_id'] !== null ? (int) $u['customer_id'] : null;
+        $_SESSION['seit'] = time();
+        $_SESSION['zuletzt'] = time();
         Db::update('users', (int) $u['id'], ['last_login_at' => date('Y-m-d H:i:s')]);
-        return true;
     }
 
     /* ------------------------------------------------------------------
@@ -113,6 +131,14 @@ final class Auth
     }
 
     public static function angemeldet(): bool { return !empty($_SESSION['uid']); }
+
+    /** Zu lange nichts getan oder zu lange insgesamt angemeldet? Sitzungen von vor dem 05.10.2026 haben keine Zeiten → gelten als abgelaufen. */
+    public static function abgelaufen(?int $jetzt = null): bool
+    {
+        $jetzt ??= time();
+        $seit = (int) ($_SESSION['seit'] ?? 0); $zuletzt = (int) ($_SESSION['zuletzt'] ?? 0);
+        return $seit === 0 || $zuletzt === 0 || $jetzt - $zuletzt > self::LEERLAUF || $jetzt - $seit > self::HOECHSTENS;
+    }
     public static function rolle(): ?string   { return $_SESSION['rolle'] ?? null; }
     public static function name(): string     { return (string) ($_SESSION['name'] ?? ''); }
     public static function id(): ?int         { return isset($_SESSION['uid']) ? (int) $_SESSION['uid'] : null; }
@@ -121,11 +147,29 @@ final class Auth
     /** Riegel vor jeder Admin-Seite. */
     public static function nurAdmin(): void
     {
+        if (self::angemeldet() && self::abgelaufen()) {
+            self::abmelden();
+            header('Location: ' . Config::basis() . '/anmelden?zeit=1');
+            exit;
+        }
         if (!self::angemeldet()) {
             header('Location: ' . Config::basis() . '/anmelden');
             exit;
         }
-        if (!self::istAdmin()) {
+        if (!self::$nurPuls) { $_SESSION['zuletzt'] = time(); }
+        // Rolle und Zustand bei jedem Aufruf frisch aus der Datenbank (05.10.2026): Ein abgeschalteter
+        // Zugang oder eine geänderte Rolle gilt sofort — nicht erst nach der nächsten Anmeldung.
+        try {
+            $frisch = Db::one('SELECT role, active FROM users WHERE id = ?', [(int) self::id()]);
+            if (!$frisch || (int) $frisch['active'] !== 1) {
+                self::abmelden();
+                header('Location: ' . Config::basis() . '/anmelden');
+                exit;
+            }
+            $_SESSION['rolle'] = (string) $frisch['role'];
+        } catch (PDOException $e) { /* ohne Datenbank zeigt die Seite ihren eigenen Fehler */ }
+        // Rollen (05.10.2026): admin, mitarbeit, lesen kommen hinein — was sie dort dürfen, sagt Rechte.php.
+        if (!in_array(self::rolle(), self::VERWALTUNG, true)) {
             http_response_code(403);
             exit('Kein Zugriff.');
         }

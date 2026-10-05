@@ -1,12 +1,17 @@
 <div class="block">
   <h2>Zugänge</h2>
-  <table style="margin-bottom:18px"><thead><tr><th>Name</th><th>E-Mail</th><th>Zuletzt angemeldet</th><th></th></tr></thead><tbody>
+  <table style="margin-bottom:18px"><thead><tr><th>Name</th><th>E-Mail</th><th>Rolle</th><th>Zuletzt angemeldet</th><th></th></tr></thead><tbody>
   <?php foreach ($zugaenge as $u): ?>
     <tr style="<?= (int) $u['active'] === 1 ? '' : 'opacity:.5' ?>">
       <td><?= Fmt::h($u['name']) ?>
         <?php if ((int) $u['id'] === Auth::id()): ?><span class="marke2" style="margin-left:6px">du</span><?php endif; ?>
         <?php if ((int) $u['active'] !== 1): ?><span class="marke2 schlecht" style="margin-left:6px">abgeschaltet</span><?php endif; ?></td>
       <td><?= Fmt::h($u['email']) ?></td>
+      <td><?php if ((int) $u['id'] === Auth::id()): ?><?= Fmt::h(Rechte::ROLLEN[$u['role']] ?? $u['role']) ?><?php else: ?>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="zugang_rolle"><input type="hidden" name="zurueck" value="einstellungen?b=zugaenge"><input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+          <select name="rolle" aria-label="Rolle von <?= Fmt::h($u['name']) ?>"><?php foreach (Rechte::ROLLEN as $rk => $rw): ?><option value="<?= $rk ?>"<?= $u['role'] === $rk ? ' selected' : '' ?>><?= Fmt::h($rw) ?></option><?php endforeach; ?></select>
+          <button class="knopf stumm" style="padding:2px 8px;font-size:12px">Speichern</button></form><?php endif; ?></td>
       <td style="color:var(--leise)"><?= Fmt::h($u['last_login_at'] ? Fmt::seit($u['last_login_at']) : 'noch nie') ?></td>
       <td style="text-align:right"><?php if ((int) $u['id'] !== Auth::id()): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -39,9 +44,10 @@
         <div class="feld"><label>Name</label><input name="name" required></div>
         <div class="feld"><label>E-Mail</label><input type="email" name="email" required></div>
         <div class="feld"><label>Passwort</label><input type="password" name="passwort" autocomplete="new-password" minlength="10" required></div>
+        <div class="feld"><label>Rolle</label><select name="rolle"><?php foreach (Rechte::ROLLEN as $rk => $rw): ?><option value="<?= $rk ?>"<?= $rk === 'mitarbeit' ? ' selected' : '' ?>><?= Fmt::h($rw) ?></option><?php endforeach; ?></select></div>
         <button class="knopf">Zugang anlegen</button></form>
       <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
-        Ein Zugang sieht alles, was du siehst. Gib ihn nur an jemanden, dem du deine Bücher zeigen würdest.</p>
+        Mitarbeit sieht Kunden, Akquise, Marketing und Bauen — nichts mit Geld, Preisen, Zugängen oder Einstellungen.</p>
     </div>
   </div>
 </div>

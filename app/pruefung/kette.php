@@ -23180,6 +23180,52 @@ Printful::$netz = null;
 Db::run("DELETE FROM settings WHERE skey = 'pf_druckflaechen'");
 
 /* ============================================================================
+   Verwaltung: Rollen und Abmeldung nach Untätigkeit (05.10.2026, Uwe: „Ja“;
+   zweiter Faktor auf Uwes Wunsch nicht: „Verwaltung ohne 2 Faktor“)
+   ============================================================================ */
+abschnitt('Verwaltung: Rollen und Abmeldung');
+require_once $wurzel . '/src/Rechte.php';
+$rvMail = 'rollen@pruefung.example';
+$rvUid = (int) Db::insert('users', ['email' => $rvMail, 'password_hash' => password_hash('richtig-richtig-rv', PASSWORD_DEFAULT), 'name' => 'Rolle Prüfung', 'role' => 'mitarbeit', 'active' => 1]);
+$_SESSION = [];
+$rvA = Auth::anmelden($rvMail, 'richtig-richtig-rv');
+pruefe('Anmeldung wie bisher mit E-Mail und Passwort (kein zweiter Faktor); die Sitzung merkt Beginn und letzten Klick; Mitarbeit kommt in die Verwaltung',
+    $rvA && Auth::angemeldet() && Auth::rolle() === 'mitarbeit' && !Auth::abgelaufen() && in_array('mitarbeit', Auth::VERWALTUNG, true)
+    && !is_file($wurzel . '/src/ZweiterFaktor.php') && !str_contains((string) file_get_contents($wurzel . '/views/anmelden.php'), 'name="code"'));
+$_SESSION = ['uid' => $rvUid, 'rolle' => 'admin', 'seit' => time() - 100, 'zuletzt' => time() - 100];
+$rvFrisch = !Auth::abgelaufen();
+$_SESSION['zuletzt'] = time() - Auth::LEERLAUF - 1; $rvLeer = Auth::abgelaufen();
+$_SESSION['zuletzt'] = time(); $_SESSION['seit'] = time() - Auth::HOECHSTENS - 1; $rvLang = Auth::abgelaufen();
+unset($_SESSION['seit']); $rvOhne = Auth::abgelaufen();
+pruefe('Abmeldung nach einer Stunde ohne Klick und nach zwölf Stunden insgesamt; alte Sitzungen ohne Zeiten gelten als abgelaufen; der Lebenszeichen-Abruf zählt nicht als Klick',
+    $rvFrisch && $rvLeer && $rvLang && $rvOhne && str_contains((string) file_get_contents($wurzel . '/index.php'), "Auth::\$nurPuls = \$route === 'puls';")
+    && str_contains((string) file_get_contents($wurzel . '/views/anmelden.php'), '$hinweis'));
+$rvR = [];
+foreach (['admin', 'mitarbeit', 'lesen', 'kunde'] as $rvRolle) {
+    $_SESSION = ['uid' => $rvUid, 'rolle' => $rvRolle];
+    $rvR[$rvRolle] = [Rechte::darfSeite('kunden'), Rechte::darfSeite('zahlungen'), Rechte::darfSeite('einstellungen'), Rechte::darfSeite('gibtsnicht'),
+        Rechte::darfTat('akq_notiz'), Rechte::darfTat('anfrage_erledigt'), Rechte::darfTat('zugang_anlegen'), Rechte::darfTat('wm_standard'),
+        Rechte::darfTat('rechnung_erzeugen'), Rechte::darfTat('partner_auszahlen'), Rechte::darfTat('hosting_anlegen')];
+}
+pruefe('Rollen: Admin alles; Mitarbeit Kunden/Akquise ja, Geld/Zugänge/Preise/Rechnung/Auszahlung/Hosting nein; Lesen nur ansehen; Kunde nichts',
+    $rvR['admin'] === array_fill(0, 11, true)
+    && $rvR['mitarbeit'] === [true, false, false, false, true, true, false, false, false, false, false]
+    && $rvR['lesen'] === [true, false, false, false, false, false, false, false, false, false, false]
+    && $rvR['kunde'] === array_fill(0, 11, false), json_encode($rvR));
+$rvIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Rollen greifen vor allen Seiten und Taten (vor Akquise und dem großen Verteiler), neue Zugänge bekommen eine Rolle (Vorgabe Mitarbeit), eigene Rolle ändert nur ein anderer Admin, Rolle und Abschalten gelten sofort, Menü blendet Gesperrtes aus',
+    strpos($rvIdx, 'if (!Rechte::darfSeite($route))') < strpos($rvIdx, "if (\$route === 'akquise' && \$post)")
+    && strpos($rvIdx, "if (\$post && !Rechte::darfTat((string) (\$_POST['tat'] ?? '')))") < strpos($rvIdx, '/* ---------- Schreibende Vorgaenge ---------- */')
+    && str_contains($rvIdx, "if (!isset(Rechte::ROLLEN[\$rolle])) { throw new RuntimeException('Rolle unbekannt.'); }")
+    && str_contains($rvIdx, "throw new RuntimeException('Die eigene Rolle ändert ein anderer Admin.');")
+    && str_contains((string) file_get_contents($wurzel . '/views/einstellungen/zugaenge.php'), "\$rk === 'mitarbeit' ? ' selected' : ''")
+    && substr_count((string) file_get_contents($wurzel . '/views/layout.php'), "Rechte::rolle() !== 'admin'") === 2
+    && str_contains((string) file_get_contents($wurzel . '/src/Auth.php'), "\$frisch = Db::one('SELECT role, active FROM users WHERE id = ?', [(int) self::id()]);")
+    && !in_array('kunde', Auth::VERWALTUNG, true));
+$_SESSION = [];
+Db::run('DELETE FROM users WHERE id = ?', [$rvUid]);
+
+/* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
 abschnitt('Bilanz');

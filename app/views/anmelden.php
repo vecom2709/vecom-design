@@ -12,6 +12,7 @@
   <div class="marke" style="justify-content:center;font-size:18px"><b>VECOM</b>&nbsp;Verwaltung</div>
   <div class="block">
     <?php if (!empty($fehler)): ?><div class="hinweis schlecht"><?= Fmt::h($fehler) ?></div><?php endif; ?>
+    <?php if (!empty($hinweis) && empty($fehler)): ?><div class="hinweis"><?= Fmt::h($hinweis) ?></div><?php endif; ?>
     <form method="post">
       <?= Csrf::feld() ?>
       <div class="feld"><label>E-Mail</label><input type="email" name="email" autocomplete="username" required autofocus></div>

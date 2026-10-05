@@ -238,6 +238,7 @@ function paketTexte(array $post): array {
 /* ---------- Anmeldung ---------- */
 if ($route === 'anmelden') {
     $fehler = null;
+    $hinweis = isset($_GET['zeit']) ? 'Aus Sicherheitsgründen abgemeldet — eine Stunde ohne Klick oder zwölf Stunden insgesamt.' : null;
     if ($post) {
         Csrf::pruefen();
         $email = (string) ($_POST['email'] ?? '');
@@ -255,6 +256,7 @@ if ($route === 'anmelden') {
 }
 if ($route === 'abmelden') { Auth::abmelden(); weiter('anmelden'); }
 
+Auth::$nurPuls = $route === 'puls';
 Auth::nurAdmin();
 
 /* Die Datenbank bringt sich beim Oeffnen selbst auf Stand: offene
@@ -277,6 +279,20 @@ if ($einrichtung['beispiele'] > 0) {
 }
 if ($einrichtung['fehler'] !== null) {
     $_SESSION['fehler'] = 'Die Datenbank konnte nicht vollständig aktualisiert werden: ' . $einrichtung['fehler'];
+}
+
+/* ---------- Rollen (05.10.2026): Seite und Tat gegen Rechte.php ----------
+   Steht vor allen Seiten und allen schreibenden Vorgängen; für Admins ändert sich nichts. */
+require_once __DIR__ . '/src/Rechte.php';
+if (!Rechte::darfSeite($route)) {
+    http_response_code(403);
+    $_SESSION['fehler'] = 'Diese Seite ist für deine Rolle nicht freigegeben.';
+    weiter('heute');
+}
+if ($post && !Rechte::darfTat((string) ($_POST['tat'] ?? ''))) {
+    Csrf::pruefen();
+    $_SESSION['fehler'] = Rechte::rolle() === 'lesen' ? 'Mit der Rolle „Nur lesen“ lässt sich nichts ändern.' : 'Das darf in deiner Rolle nur ein Admin.';
+    zurueck('heute');
 }
 
 /* ---------- Lebenszeichen fuer die laufende Aktualisierung ---------- */
@@ -3298,9 +3314,11 @@ if ($post) {
                 if (Db::one('SELECT id FROM users WHERE email = ?', [$mail])) {
                     throw new RuntimeException('Diese Adresse hat schon einen Zugang.');
                 }
+                $rolle = (string) ($_POST['rolle'] ?? 'mitarbeit');
+                if (!isset(Rechte::ROLLEN[$rolle])) { throw new RuntimeException('Rolle unbekannt.'); }
                 $uid = Db::insert('users', [
                     'email' => $mail, 'password_hash' => password_hash($pass, PASSWORD_DEFAULT),
-                    'name' => $name, 'role' => 'admin', 'active' => 1,
+                    'name' => $name, 'role' => $rolle, 'active' => 1,
                 ]);
                 Events::protokoll('zugang', 'Zugang angelegt: ' . $name);
                 Events::pruefspur('anlegen', 'user', $uid, [], ['email' => $mail]);
@@ -3322,6 +3340,23 @@ if ($post) {
                 Events::pruefspur($an ? 'aktivieren' : 'abschalten', 'user', $uid);
                 $_SESSION['gut'] = $an ? 'Zugang wieder aktiv.' : 'Zugang abgeschaltet.';
                 weiter('einstellungen');
+
+            /* Rollen (05.10.2026): nur für andere Zugänge — die eigene Rolle ändert ein anderer Admin. */
+            case 'zugang_rolle':
+                $uid = (int) ($_POST['id'] ?? 0);
+                $rolle = (string) ($_POST['rolle'] ?? '');
+                if ($uid === Auth::id()) { throw new RuntimeException('Die eigene Rolle ändert ein anderer Admin.'); }
+                if (!isset(Rechte::ROLLEN[$rolle])) { throw new RuntimeException('Rolle unbekannt.'); }
+                $u = Db::one('SELECT * FROM users WHERE id = ?', [$uid]);
+                if (!$u) { throw new RuntimeException('Zugang nicht gefunden.'); }
+                if ($rolle !== 'admin' && $u['role'] === 'admin' && (int) $u['active'] === 1
+                    && (int) Db::wert("SELECT COUNT(*) FROM users WHERE active = 1 AND role = 'admin'") <= 1) {
+                    throw new RuntimeException('Das ist der letzte aktive Admin — der bleibt Admin.');
+                }
+                Db::update('users', $uid, ['role' => $rolle]);
+                Events::pruefspur('rolle', 'user', $uid, ['role' => $u['role']], ['role' => $rolle]);
+                $_SESSION['gut'] = 'Rolle von ' . $u['name'] . ' geändert — gilt sofort.';
+                zurueck('einstellungen?b=zugaenge');
 
             case 'firma_speichern':
                 require_once __DIR__ . '/src/Firma.php';
