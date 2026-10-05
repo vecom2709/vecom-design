@@ -621,8 +621,12 @@ if (class_exists('Ablauf')) {
    über „Einführung ansehen“. Fünf Schritte in einem Fenster über der Seite --
    kein Umbau der Seiten, keine Daten verändert. Gemerkt wird sie beim
    Schließen, ob fertig gelesen oder übersprungen: Wer sie wegklickt, will
-   sie nicht bei jedem Anmelden wieder. */
-$einfuehrungZeigen = isset($_GET['einfuehrung']) || (Auth::id() !== null && !Hilfe::gesehen((int) Auth::id()));
+   sie nicht bei jedem Anmelden wieder. Seit 05.10.2026 zusätzlich ein Keks im
+   Browser: Er hält die Tour auch dann zu, wenn das Merken auf dem Server einmal
+   nicht ankommt -- eine Tour, die sich nicht schließen lässt, sperrt die Seite. */
+$efKeks = 'vd_einfuehrung_' . (int) Auth::id();
+$einfuehrungZeigen = isset($_GET['einfuehrung'])
+    || (Auth::id() !== null && !isset($_COOKIE[$efKeks]) && !Hilfe::gesehen((int) Auth::id()));
 if ($einfuehrungZeigen): $schritte = Hilfe::EINFUEHRUNG; ?>
 <dialog class="einfuehrung" id="einfuehrung" aria-labelledby="ef_titel">
   <form method="post" action="<?= Fmt::h(url('')) ?>">
@@ -657,6 +661,19 @@ if ($einfuehrungZeigen): $schritte = Hilfe::EINFUEHRUNG; ?>
     document.getElementById('ef_fertig').hidden = n !== s.length - 1; }
   document.getElementById('ef_weiter').onclick = function () { zeig(i + 1); };
   document.getElementById('ef_zurueck').onclick = function () { zeig(i - 1); };
+  /* Zu ist zu: jeder Weg hinaus merkt sich die Tour -- Knopf, Esc und der
+     Klick daneben. Esc und Klick daneben bleiben auf der Seite und melden
+     es leise an den Server; die Knöpfe schicken das Formular wie bisher. */
+  var f = d.querySelector('form');
+  function merken() { document.cookie = <?= json_encode($efKeks) ?> + '=1; path=/; max-age=31536000; SameSite=Lax'; }
+  function leise() {
+    merken(); if (d.open) { d.close(); }
+    var daten = new FormData(f); daten.set('ueberspringen', '1'); daten.delete('zurueck');
+    try { fetch(f.action, { method: 'POST', body: daten, credentials: 'same-origin', redirect: 'manual' }); } catch (e) {}
+  }
+  f.addEventListener('submit', merken);
+  d.addEventListener('cancel', function (e) { e.preventDefault(); leise(); });
+  d.addEventListener('click', function (e) { if (e.target === d) { leise(); } });
   d.showModal();
 })();
 </script>

@@ -40,6 +40,11 @@ final class Rechte
         'fragebogen_', 'stimme_', 'werkstatt_', 'muster_', 'datei_', 'kunde_notiz', 'vorher_', 'woche_',
     ];
 
+    /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):
+        Ohne sie liess sich die Einführung als Mitarbeit oder Nur lesen nicht schließen --
+        das Merken wurde abgewiesen, und sie begann bei jedem Laden wieder von vorn. */
+    public const TATEN_PERSOENLICH = ['einfuehrung_gesehen'];
+
     public static function rolle(): string
     {
         $r = (string) (Auth::rolle() ?? '');
@@ -60,6 +65,7 @@ final class Rechte
     {
         $r = self::rolle();
         if ($r === 'admin') { return true; }
+        if ($r !== '' && in_array($tat, self::TATEN_PERSOENLICH, true)) { return true; }
         if ($r !== 'mitarbeit' || $tat === '') { return false; }
         // Was den Kunden schwer trifft (Rechnung, Abnahme, Betreuung …), bleibt beim Admin.
         require_once __DIR__ . '/Ablauf.php';

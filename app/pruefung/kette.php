@@ -10599,6 +10599,16 @@ $veLayout = (string) file_get_contents($oben . '/app/views/layout.php');
 pruefe('Einführung: Schließen merkt sie ebenso wie Fertig, und „Einführung ansehen“ holt sie zurück',
     str_contains($veLayout, 'value="einfuehrung_gesehen"') && str_contains($veLayout, "isset(\$_GET['einfuehrung'])")
     && str_contains((string) file_get_contents($oben . '/app/index.php'), "case 'einfuehrung_gesehen':"));
+require_once $wurzel . '/src/Rechte.php';
+$veRolle = $_SESSION['rolle'] ?? null;
+$veRollen = [];
+foreach (['admin', 'mitarbeit', 'lesen'] as $veR2) { $_SESSION['rolle'] = $veR2; $veRollen[$veR2] = Rechte::darfTat('einfuehrung_gesehen'); }
+$_SESSION['rolle'] = $veRolle;
+pruefe('Einführung: jede Rolle darf sie schließen -- sonst beginnt sie bei jedem Laden von vorn',
+    !in_array(false, $veRollen, true), json_encode($veRollen));
+pruefe('Einführung: Esc und Klick daneben merken sie ebenso, und ein Keks hält sie zu, falls der Server das Merken verpasst',
+    str_contains($veLayout, "addEventListener('cancel'") && str_contains($veLayout, 'e.target === d')
+    && str_contains($veLayout, '!isset($_COOKIE[$efKeks])') && str_contains($veLayout, "f.addEventListener('submit', merken)"));
 
 require_once $wurzel . '/src/Meldungen.php';
 Db::run("DELETE FROM notifications WHERE type IN ('anfrage_neu','partner_stripe_connect','nachricht_rein','strato_zugang')");
