@@ -39,6 +39,32 @@ final class PartnerCommand
     /** Profilziele: die ersten fünf Kampagnenziele — dieselben Schlüssel wie im Kampagnen-Assistenten. */
     public const PROFIL_ZIELE = ['neue_kunden', 'anfragen', 'bekanntheit', 'lokal', 'social'];
     public const HOECHSTENS_BRANCHEN = 3;
+    /** Parameter eines schlichten Aufrufs: Link, App-Start, Sprachwahl, Werbe-Anhängsel (utm_*). */
+    public const STARTSEITE_PARAMETER = ['t', 'lang', 'app', 'fbclid', 'gclid'];
+
+    /**
+     * Öffnet dieser Aufruf das Command Center? (Startseite live, 05.10.2026)
+     * Ja bei „cc“ und bei einem schlichten Aufruf. Alles mit eigenem Parameter —
+     * Downloads (beleg, druck, karte …), Stripe-Rückweg, Bestellung, Manifest und
+     * „voll“ — bleibt im vollen Partnerbereich, ebenso jedes POST.
+     */
+    public static function startseite(string $methode, array $get): bool
+    {
+        if (isset($get['cc'])) { return true; }
+        if (strtoupper($methode) !== 'GET' || isset($get['voll'])) { return false; }
+        foreach (array_keys($get) as $k) {
+            $k = (string) $k;
+            if (!in_array($k, self::STARTSEITE_PARAMETER, true) && !str_starts_with($k, 'utm_')) { return false; }
+        }
+        return true;
+    }
+
+    /** Gruß nach Tageszeit: „morgen“ bis 11 Uhr, „abend“ ab 18 Uhr, sonst „tag“ (Zeitzone der Seite). */
+    public static function gruss(?int $jetzt = null): string
+    {
+        $stunde = (int) date('G', $jetzt ?? time());
+        return $stunde >= 4 && $stunde < 11 ? 'morgen' : ($stunde >= 18 || $stunde < 4 ? 'abend' : 'tag');
+    }
 
     private static function still(callable $f, mixed $sonst): mixed
     {

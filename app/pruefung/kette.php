@@ -23575,7 +23575,7 @@ $ccView = (string) file_get_contents($wurzel . '/views/partner_cc.php');
 $ccCss = (string) file_get_contents($oben . '/assets/css/partner-cc.css');
 $ccJs = (string) file_get_contents($oben . '/assets/js/partner-cc.js');
 $ccSvg = (string) file_get_contents($oben . '/assets/img/vecom-v.svg');
-$ccPos = strpos($ccSeite, "isset(\$_GET['cc'])");
+$ccPos = strpos($ccSeite, 'PartnerCommand::startseite(');
 pruefe('Seite: hinter Gerät und Sperre, vor allem anderen; Profil nur mit CSRF; Zahlen und Empfehlung nur aus PartnerCommand',
     $ccPos !== false && $ccPos > strpos($ccSeite, 'PartnerSchutz::freigeschaltet($p)') && $ccPos > strpos($ccSeite, 'PartnerGeraet::bekannt($p)')
     && $ccPos < strpos($ccSeite, "isset(\$_GET['manifest'])")
@@ -23586,6 +23586,38 @@ pruefe('Signature-V: Originalkontur in Gold, höchstens 2 s, überspringbar, nur
     && str_contains($ccCss, 'animation:cc-intro-weg 2s') && preg_match('~prefers-reduced-motion:reduce\)\{\s*\.cc-intro\{display:none!important\}~', $ccCss) === 1
     && str_contains($ccJs, "localStorage.getItem(MERK) === '1'") && str_contains($ccJs, 'setTimeout(zu, 2100)') && str_contains($ccJs, "addEventListener('click', zu)")
     && str_contains($ccView, 'id="cc-intro" hidden'));
+/* Startseite live (05.10.2026, Uwe: „Startseite live“): Der schlichte Link öffnet das Command
+   Center, alles mit eigenem Parameter bleibt im vollen Bereich — und der volle Bereich trägt
+   „voll=1“ in jeder eigenen Adresse, sonst landeten Formulare, Rückwege und Sprachwahl vorn. */
+$ccSt = static fn(string $m, array $g): bool => PartnerCommand::startseite($m, $g);
+pruefe('Startseite: Link, App-Start, Sprachwahl und utm-Anhängsel öffnen das Command Center; voll, Downloads, Stripe-Rückweg, Bestellung, Manifest und jedes POST nicht',
+    $ccSt('GET', ['t' => 'x']) && $ccSt('GET', ['t' => 'x', 'lang' => 'de']) && $ccSt('GET', ['app' => '1']) && $ccSt('GET', ['t' => 'x', 'utm_source' => 'wa', 'fbclid' => 'z'])
+    && $ccSt('get', ['t' => 'x']) && $ccSt('POST', ['cc' => '1']) && $ccSt('GET', ['t' => 'x', 'cc' => '1', 'kampagne' => '4'])
+    && !$ccSt('GET', ['t' => 'x', 'voll' => '1']) && !$ccSt('POST', ['t' => 'x']) && !$ccSt('HEAD', ['t' => 'x'])
+    && !$ccSt('GET', ['t' => 'x', 'druck' => 'mappe']) && !$ccSt('GET', ['t' => 'x', 'beleg' => '7']) && !$ccSt('GET', ['t' => 'x', 'stripe' => 'zurueck'])
+    && !$ccSt('GET', ['t' => 'x', 'wm' => 'danke']) && !$ccSt('GET', ['t' => 'x', 'manifest' => '1']) && !$ccSt('GET', ['t' => 'x', 'kampagne' => '4']));
+pruefe('Gruß nach Tageszeit: Guten Morgen bis 11 Uhr, Guten Abend ab 18 Uhr, sonst Hallo — in allen drei Sprachen',
+    PartnerCommand::gruss(strtotime('2026-10-05 08:00:00')) === 'morgen' && PartnerCommand::gruss(strtotime('2026-10-05 14:00:00')) === 'tag'
+    && PartnerCommand::gruss(strtotime('2026-10-05 20:30:00')) === 'abend' && PartnerCommand::gruss(strtotime('2026-10-05 02:00:00')) === 'abend'
+    && Texte::h(Texte::PARTNER_CC['hallo_morgen'], 'de') === 'Guten Morgen, {name},' && Texte::h(Texte::PARTNER_CC['hallo_abend'], 'it') === 'Buonasera {name},'
+    && str_contains($ccView, 'PartnerCommand::gruss()'));
+$ccLoc = [];
+preg_match_all('~header\(\'Location: \' \. ([^;]+);~', substr($ccSeite, (int) strpos($ccSeite, 'Die Partnerseite als App')), $ccLocM);
+foreach ($ccLocM[1] as $ccL) { if (!str_starts_with($ccL, '$selbst(') && !str_starts_with($ccL, '$r[\'url\']') && !str_starts_with($ccL, '$wmUrl')) { $ccLoc[] = $ccL; } }
+$ccMappe = (string) file_get_contents($wurzel . '/views/partner_mappe.php') . (string) file_get_contents($wurzel . '/views/partner_druck.php');
+pruefe('Voller Bereich: $selbst() trägt voll=1 (außer mit cc), jede Weiterleitung dort geht über $selbst oder zum Anbieter, Sprachwahl und Rückwege aus Mappe/Druck bleiben im Bereich, Weg zurück zum Command Center',
+    str_contains($ccSeite, "\$selbst = static fn(array \$extra = []) => \$start((\$p && !isset(\$extra['cc'])) ? ['voll' => 1] + \$extra : \$extra);")
+    && count($ccLocM[1]) >= 20 && $ccLoc === []
+    && str_contains($ccSeite, "\$h(\$p ? \$selbst(['lang' => \$l])") && str_contains($ccSeite, 'class="zum-cc" href="<?= $h($selbst([\'cc\' => 1])) ?>"')
+    && substr_count($ccMappe, "http_build_query(['t' => \$p['token'], 'voll' => 1])") === 2
+    // Gerät bestätigt / zugestimmt → zur Startseite, nicht in den vollen Bereich
+    && str_contains($ccSeite, "codePruefen(\$p, (string) (\$_POST['code'] ?? ''))) { header('Location: ' . \$start(), true, 303)")
+    && str_contains($ccSeite, "if (\$r === 'ok') { header('Location: ' . \$start(), true, 303); exit; }"), json_encode([count($ccLocM[1]), $ccLoc]));
+pruefe('Alte Sprunglinks (Mails, Push: …#nachrichten, #wege): Anker, den es im Command Center nicht gibt, führt mit demselben Anker in den vollen Bereich — vor dem Intro',
+    str_contains($ccView, '<body class="cc" data-cc-voll="<?= $h($selbst()) ?>">')
+    && str_contains($ccJs, "!document.getElementById(anker)") && str_contains($ccJs, "window.location.replace(voll + '#' + anker);")
+    && strpos($ccJs, 'window.location.replace(voll') < strpos($ccJs, "getElementById('cc-intro')")
+    && str_contains($ccJs, '/^[A-Za-z0-9_-]{1,80}$/.test(anker)'));
 Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);

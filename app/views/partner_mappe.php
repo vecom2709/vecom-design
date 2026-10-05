@@ -28,7 +28,7 @@ $qr = QrBild::svg($link, 220, 1);
 $foto = PartnerWerbung::fotoAdresse($p);
 $satz = trim((string) ($p['profil_satz'] ?? ''));
 $stimme = PartnerSeite::stimmen($p, $ms, 1)[0] ?? null;
-$zurueck = '/partner.php?' . http_build_query(['t' => $p['token']]) . '#recherche';
+$zurueck = '/partner.php?' . http_build_query(['t' => $p['token'], 'voll' => 1]) . '#recherche';   // voll: der schlichte Link öffnet das Command Center
 $hier = static fn(string $l): string => '/partner.php?' . http_build_query(array_filter(['t' => $p['token'], 'druck' => 'mappe',
     'ck' => $mappe['art'] === 'check' ? $mappe['token'] : null, 'firma' => $mappe['art'] === 'firma' ? $mappe['id'] : null, 'sp' => $l]));
 $ersetze = static fn(string $t): string => strtr($t, ['{name}' => $name]);

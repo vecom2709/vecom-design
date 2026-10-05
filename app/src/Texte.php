@@ -3098,7 +3098,9 @@ final class Texte
     public const PARTNER_CC = [
         'titel'     => ['it' => 'Command Center', 'de' => 'Command Center', 'en' => 'Command Center'],
         'hallo'     => ['it' => 'Buongiorno {name},', 'de' => 'Hallo {name},', 'en' => 'Hello {name},'],
-        'frage'     => ['it' => 'cosa vuole ottenere oggi?', 'de' => 'was möchtest du heute erreichen?', 'en' => 'what would you like to achieve today?'],
+        // Nach Tageszeit (PartnerCommand::gruss), „Guten Morgen, [Partnername]“ aus der Spezifikation.
+        'hallo_morgen' => ['it' => 'Buongiorno {name},', 'de' => 'Guten Morgen, {name},', 'en' => 'Good morning, {name},'],
+        'hallo_abend'  => ['it' => 'Buonasera {name},', 'de' => 'Guten Abend, {name},', 'en' => 'Good evening, {name},'],        'frage'     => ['it' => 'cosa vuole ottenere oggi?', 'de' => 'was möchtest du heute erreichen?', 'en' => 'what would you like to achieve today?'],
         'heute'     => ['it' => 'Cosa faccio oggi?', 'de' => 'Was soll ich heute machen?', 'en' => 'What should I do today?'],
         'warum'     => ['it' => 'Perché', 'de' => 'Warum', 'en' => 'Why'],
         'wenig'     => ['it' => 'Ancora pochi dati per un consiglio basato sui suoi numeri. Quindi prima questo:', 'de' => 'Noch zu wenig Daten für eine Empfehlung aus deinen Zahlen. Darum zuerst das:', 'en' => 'Not enough data yet for a recommendation from your numbers. So first this:'],

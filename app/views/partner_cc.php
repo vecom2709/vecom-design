@@ -72,7 +72,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/kunde.css') ?>">
 <link rel="stylesheet" href="/assets/css/partner-cc.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/partner-cc.css') ?>">
 </head>
-<body class="cc">
+<body class="cc" data-cc-voll="<?= $h($selbst()) ?>">
 <?php if ($ccSeite === 'start'): ?>
 <div class="cc-intro" id="cc-intro" hidden aria-hidden="true">
   <div class="cc-intro__schein"></div>
@@ -99,7 +99,8 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   <?php if ($ccSeite !== 'start'): require __DIR__ . '/partner_cc_kampagne.php'; else: ?>
   <main id="cc-start" tabindex="-1">
     <div class="cc-hallo cc-auf">
-      <?php [$vor, $nach] = array_pad(explode('{name}', $c($C['hallo']), 2), 2, ''); /* Name in Gold, der Gruß drumherum aus Texte */ ?>
+      <?php $ccGruss = PartnerCommand::gruss(); /* morgen | tag | abend */
+        [$vor, $nach] = array_pad(explode('{name}', $c($C[$ccGruss === 'tag' ? 'hallo' : 'hallo_' . $ccGruss]), 2), 2, ''); /* Name in Gold, der Gruß drumherum aus Texte */ ?>
       <h1><?= $h($vor) ?><span class="name"><?= $h($ccName) ?></span><?= $h($nach) ?>
         <span class="cc-frage"><?= $h($c($C['frage'])) ?></span></h1>
     </div>

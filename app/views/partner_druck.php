@@ -20,7 +20,7 @@ $kanal = ['visitenkarten' => 'karte', 'flyer' => 'flyer', 'aufsteller' => 'flyer
 $link = PartnerWerbung::link($p, $kanal);
 $kurz = preg_replace('~^https?://~', '', Partner::link($p));
 $qr = QrBild::svg($link, 200, 1);
-$zurueck = '/partner.php?' . http_build_query(['t' => $p['token']]) . '#medien';
+$zurueck = '/partner.php?' . http_build_query(['t' => $p['token'], 'voll' => 1]) . '#medien';   // voll: der schlichte Link öffnet das Command Center
 $umschalten = '/partner.php?' . http_build_query(array_filter(['t' => $p['token'], 'druck' => $art, 'hell' => $hell ? null : 1]));
 $seite = ['visitenkarten' => 'A4', 'flyer' => 'A5', 'aufsteller' => 'A4 landscape', 'aufkleber' => 'A4'][$art];
 $logo = '<span class="wort"><img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="40" height="32"><b>VECOM</b> DESIGN</span>';

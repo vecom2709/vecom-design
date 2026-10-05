@@ -7,6 +7,19 @@
    3. Kopieren-Knöpfe für Link und fertige Texte. */
 (function () {
   'use strict';
+
+  /* ---------- 0. Alte Sprunglinks (Startseite live, 05.10.2026) ----------
+     Der schlichte Partnerlink öffnet jetzt das Command Center. Mails, Push-Hinweise
+     und Lesezeichen mit Anker (…#nachrichten, #wege, #r-geld) meinten den vollen
+     Bereich — der Anker erreicht den Server nie. Gibt es ihn hier nicht, geht es
+     mit demselben Anker dorthin weiter, bevor irgendetwas anderes passiert. */
+  var voll = document.body.getAttribute('data-cc-voll');
+  var anker = (window.location.hash || '').slice(1);
+  if (voll && anker && /^[A-Za-z0-9_-]{1,80}$/.test(anker) && !document.getElementById(anker)) {
+    window.location.replace(voll + '#' + anker);
+    return;
+  }
+
   var ruhig = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   /* ---------- 1. Signature-Moment ---------- */

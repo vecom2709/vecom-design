@@ -79,8 +79,13 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
 $basis = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/');
 /* Mit Schlüssel ohne lang: Sonst hielte jede Formularadresse die Sprache
    dieser Seite fest und zählte als „gewählt“. */
-$selbst = static fn(array $extra = []) => '/partner.php?' . http_build_query(array_merge(
+$start = static fn(array $extra = []) => '/partner.php?' . http_build_query(array_merge(
     $p ? ['t' => $p['token']] : ['lang' => $sprache], $extra));
+/* STARTSEITE (05.10.2026, Uwe: „Startseite live“): Der schlichte Partnerlink öffnet das
+   Command Center. Der volle Bereich trägt deshalb „voll=1“ in jeder eigenen Adresse —
+   ein Anker wie #r-geld erreicht den Server nie und könnte allein nicht sagen, wohin.
+   Adressen mit „cc“ meinen das Command Center selbst und bleiben ohne. */
+$selbst = static fn(array $extra = []) => $start(($p && !isset($extra['cc'])) ? ['voll' => 1] + $extra : $extra);
 
 $meldung = ''; $gut = false;
 
@@ -98,9 +103,9 @@ $gPost = $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals((string) $_SESSION
 $gTat = $gPost ? (string) ($_POST['tat'] ?? '') : '';
 $gGeraet = PartnerGeraet::bezeichnung((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
 if ($p && !PartnerGeraet::bekannt($p)) {
-    $gModus = 'geraet'; $gSchritt = 'start'; $gStand = ''; $gMail = $gMaske((string) $p['email']); $gZiel = $selbst();
+    $gModus = 'geraet'; $gSchritt = 'start'; $gStand = ''; $gMail = $gMaske((string) $p['email']); $gZiel = $start();
     if ($gTat === 'geraet_code') {
-        if (PartnerGeraet::codePruefen($p, (string) ($_POST['code'] ?? ''))) { header('Location: ' . $selbst(), true, 303); exit; }
+        if (PartnerGeraet::codePruefen($p, (string) ($_POST['code'] ?? ''))) { header('Location: ' . $start(), true, 303); exit; }
         $gSchritt = 'code'; $gStand = 'falsch';
     } elseif ($gTat === 'geraet_neu') {
         $gStand = PartnerGeraet::codeSenden($p, $sprache, $gGeraet);
@@ -146,7 +151,7 @@ if ($p && !PartnerSchutz::freigeschaltet($p)) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'schutz_zustimmen'
         && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? '')) && PartnerSchutz::stand($p) === 'zustimmen') {
         $r = PartnerSchutz::zustimmen($p, $sprache, !empty($_POST['ganz']), !empty($_POST['klauseln']), (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
-        if ($r === 'ok') { header('Location: ' . $selbst(), true, 303); exit; }
+        if ($r === 'ok') { header('Location: ' . $start(), true, 303); exit; }
         $meldung = $r;
     }
     $stand = PartnerSchutz::stand($p);
@@ -160,8 +165,9 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    Hinter Gerät und Sperre, vor allem anderen: Die Seite lädt nur, was sie zeigt
    (PartnerCommand), nicht die rund 40 Blöcke des Partnerbereichs. Gespeichert
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
-if ($p && (isset($_GET['cc']) || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel'], true))) {
-    require_once __DIR__ . '/app/src/PartnerCommand.php';
+require_once __DIR__ . '/app/src/PartnerCommand.php';
+if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $_GET)
+           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel'], true))) {
     require_once __DIR__ . '/app/src/PartnerKampagne.php';
     $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut'], true) ? (string) $_GET['m'] : '';
     $ccPost = null;
@@ -920,6 +926,9 @@ if ($p && isset($_GET['karte'])) {
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <style>
+  .zum-cc{display:inline-block;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--gold,#c9a24b);text-decoration:none;padding:6px 0}
+  .wortmarke.mit-cc{padding-top:10px}
+  .zum-cc:hover,.zum-cc:focus-visible{text-decoration:underline}
   .pt{max-width:640px;margin:0 auto}
   .pt h1{font-size:clamp(24px,5vw,30px);margin:0 0 10px;line-height:1.2}
   .pt h2{font-size:17px;margin:0 0 10px}
@@ -1282,7 +1291,10 @@ if ($p && isset($_GET['karte'])) {
 </head>
 <body>
 <div class="seite">
-  <div class="wortmarke">
+  <?php if ($p): /* Zurück zur Startseite (Command Center) — seit 05.10.2026 der Ort, an dem der Link öffnet. Eigene Zeile: neben der Wortmarke überdeckte er auf dem Handy das V. */ ?>
+    <a class="zum-cc" href="<?= $h($selbst(['cc' => 1])) ?>"><span aria-hidden="true">←</span> <?= $h(Texte::h(Texte::PARTNER_CC['titel'], $sprache)) ?></a>
+  <?php endif; ?>
+  <div class="wortmarke<?= $p ? ' mit-cc' : '' ?>">
     <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
   </div>
@@ -1962,7 +1974,7 @@ if ($p && isset($_GET['karte'])) {
 
   <div class="sprachen">
     <?php foreach (['it' => 'Italiano', 'de' => 'Deutsch', 'en' => 'English'] as $l => $wie): ?>
-      <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h('/partner.php?' . http_build_query(array_merge($p ? ['t' => $p['token']] : [], ['lang' => $l]))) ?>"><?= $h($wie) ?></a>
+      <a class="<?= $l === $sprache ? 'jetzt' : '' ?>" href="<?= $h($p ? $selbst(['lang' => $l]) : '/partner.php?' . http_build_query(['lang' => $l])) ?>"><?= $h($wie) ?></a>
     <?php endforeach; ?>
   </div>
 </div>
