@@ -23549,8 +23549,8 @@ pruefe('Command Center, neuer Partner: alle Zahlen 0 (nichts erfunden), „zu we
 Db::run("INSERT INTO partner_kontaktfreigaben (partner_id, name, telefon, einwilligung) VALUES (?, 'Ada', '+39 333 1', 'ja'), (?, 'Ugo', '+39 333 2', 'ja')", [(int) $ccA['id'], (int) $ccB['id']]);
 $ccZ1 = PartnerCommand::zahlen($ccA);
 $ccE1 = PartnerCommand::empfehlung($ccA, 'de', $ccZ1, true, $ccJuli);
-pruefe('Empfehlung aus echten Daten: wer vom Partner hören will, kommt zuerst (dieselbe Quelle wie „Heute zu tun“); fremde Kontakte zählen nicht',
-    $ccE1['k'] === 'kontakte' && $ccE1['n'] === 1 && $ccE1['titel'] === '1 Person möchte von dir hören' && $ccE1['anker'] === 'besuche' && !$ccE1['wenig']
+pruefe('Empfehlung aus echten Daten: wer vom Partner hören will, kommt zuerst (dieselbe Quelle wie „Heute zu tun“) und führt seit Phase 2 zu KUNDEN; fremde Kontakte zählen nicht',
+    $ccE1['k'] === 'kontakte' && $ccE1['n'] === 1 && $ccE1['titel'] === '1 Person möchte von dir hören' && $ccE1['anker'] === 'cc:kunden' && !$ccE1['wenig']
     && $ccZ1['leads'] === 1 && PartnerCommand::zahlen($ccB)['leads'] === 1, json_encode($ccE1, JSON_UNESCAPED_UNICODE));
 Db::run('UPDATE partner_kontaktfreigaben SET erledigt_am = NOW() WHERE partner_id = ?', [(int) $ccA['id']]);
 foreach ([['CC-1', 'offen'], ['CC-2', 'beim_drucker'], ['CC-3', 'versendet'], ['CC-4', 'storniert']] as [$ccNr, $ccSt]) {
@@ -23672,6 +23672,8 @@ pruefe('Heute wichtig: nur Dringendes (Kontakte, heiß, Nachrichten rot; nachhak
     && array_column($ccW0, 'k') === array_values(array_filter(array_column($ccW0, 'k'), static fn($k) => isset(PartnerCommand::WICHTIG[$k]))),
     json_encode([$ccW, $ccW0], JSON_UNESCAPED_UNICODE));
 Db::run("INSERT INTO partner_kontaktfreigaben (partner_id, name, telefon, einwilligung, created_at) VALUES (?, 'Alt', '+39 333 3', 'ja', NOW() - INTERVAL 40 DAY), (?, 'Neu', '+39 333 4', 'ja', NOW())", [(int) $ccB['id'], (int) $ccB['id']]);
+require_once $wurzel . '/src/PartnerLeads.php';
+PartnerLeads::abgleich((int) $ccB['id']);   // Phase 2: die Freigaben werden Leads — mit ihrem eigenen Datum, die alte zählt nicht als neu
 $ccZB = PartnerCommand::zahlen($ccB);
 $ccWB = PartnerCommand::wichtig($ccB, 'it', $ccZB, false);
 pruefe('Neue Leads: nur die letzten 30 Tage (alle Leads zählen weiter für den Trichter); ein neuer Kontakt steht rot unter „Heute wichtig“, auf Italienisch mit „lei“',
@@ -23705,12 +23707,330 @@ pruefe('Der alte Reiter „Start“ ist aufgeteilt, jede Sprungmarke bleibt: Zah
     && str_contains($ccSeite, '<div class="pt app-oben" id="oben">') && !str_contains($ccSeite, "require __DIR__ . '/app/views/partner_heute.php';")
     && PartnerStart::ANKER['vereinbarung'] === 'start', json_encode($ccWo));
 Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+Db::run('DELETE FROM partner_leads WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_bestellungen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM wm_entwuerfe WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM partner_provisionen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
 Db::run('DELETE FROM customers WHERE id = ?', [$ccKunde]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [(int) $ccA['id'], (int) $ccB['id']]);
+
+/* ============================================================================
+   Kunden & Leads (Phase 2, 05.10.2026, Uwe: „Ja, wie empfohlen“): EINE Liste
+   mit sieben Stufen, Dubletten als Hinweis, Priorität automatisch oder von Hand,
+   Verlauf, Übergabe an Vecom. Die Verwaltung sieht Name und Stufe, nie Notizen.
+   ============================================================================ */
+abschnitt('Partner: Kunden & Leads');
+require_once $wurzel . '/src/PartnerLeads.php';
+require_once $wurzel . '/src/Akquise.php';
+$plA = Partner::laden(Partner::anlegen(['name' => 'Lena Lead', 'email' => 'lena.lead@partner.example', 'code' => 'LENALD', 'sprache' => 'de', 'status' => 'aktiv']));
+$plB = Partner::laden(Partner::anlegen(['name' => 'Marco Altro', 'email' => 'marco.altro@partner.example', 'code' => 'MARCOAL', 'sprache' => 'it', 'status' => 'aktiv']));
+$plAi = (int) $plA['id']; $plBi = (int) $plB['id'];
+$plFirma = static fn(string $k, string $n, string $ort, ?string $url = null, ?string $tel = null): int => (int) Db::insert('akq_firmen', ['kennung' => $k, 'name' => $n,
+    'name_norm' => Akquise::normName($n), 'land' => 'IT', 'stadt' => $ort, 'branche' => 'restaurant', 'url' => $url,
+    'domain' => $url !== null ? PartnerLeads::domainAus($url) : null, 'telefon' => $tel]);
+
+// --- Migration 182: Übernahme aus Reservierungen, Freigaben und Vorab; wiederholbar ---
+$plF1 = $plFirma('PL00000001', 'Trattoria Uno', 'Favara', 'https://www.trattoria-uno.example', '0922 111111');
+$plF2 = $plFirma('PL00000002', 'Pizzeria Due', 'Favara');
+$plF3 = $plFirma('PL00000003', 'Bar Abgelaufen', 'Favara');
+Db::insert('partner_reservierungen', ['firma_id' => $plF1, 'partner_id' => $plAi, 'bis' => date('Y-m-d', strtotime('+10 days')), 'herkunft' => 'vecom',
+    'anruf_status' => 'zugestimmt', 'anruf_am' => date('Y-m-d H:i:s', strtotime('-1 day')), 'created_at' => date('Y-m-d H:i:s', strtotime('-3 days'))]);
+Db::insert('partner_reservierungen', ['firma_id' => $plF2, 'partner_id' => $plAi, 'bis' => date('Y-m-d', strtotime('+10 days')),
+    'angeschrieben_am' => date('Y-m-d H:i:s', strtotime('-2 days')), 'created_at' => date('Y-m-d H:i:s', strtotime('-4 days'))]);
+Db::insert('partner_reservierungen', ['firma_id' => $plF3, 'partner_id' => $plAi, 'bis' => date('Y-m-d', strtotime('-1 day'))]);
+$plK1 = (int) Db::insert('partner_kontaktfreigaben', ['partner_id' => $plAi, 'name' => 'Gina Rückruf', 'telefon' => '+39 333 7654321', 'einwilligung' => 'ja']);
+$plV1 = (int) Db::insert('partner_vorab', ['partner_id' => $plAi, 'token' => str_repeat('a', 40), 'bezeichnung' => '', 'preis_cents' => 90000, 'status' => 'offen']);
+$plMig = static function () use ($wurzel): void {
+    foreach (array_filter(array_map('trim', preg_split('/;\s*\n/', (string) preg_replace('/^--.*$/m', '', (string) file_get_contents($wurzel . '/migrations/182_partner_leads.sql'))))) as $sql) { Db::run($sql); }
+};
+$plMax = (int) Db::wert('SELECT COALESCE(MAX(id), 0) FROM partner_leads', [], 0);
+$plMig(); $plMig();
+$plM = Db::all('SELECT quelle, stufe, firma_id, freigabe_id, vorab_id, name, created_at FROM partner_leads WHERE partner_id = ? ORDER BY id', [$plAi]);
+$plMq = array_column($plM, 'stufe', 'quelle');
+pruefe('Migration 182 übernimmt laufende Reservierungen (Anruf zugestimmt → Interesse, angeschrieben → kontaktiert), offene Rückruf-Bitten (neu) und Vorab (Angebot) — abgelaufene nicht, zweimal laufen lassen verdoppelt nichts',
+    count($plM) === 4 && ($plMq['anrufliste'] ?? '') === 'interesse' && ($plMq['finder'] ?? '') === 'kontaktiert' && ($plMq['landingpage'] ?? '') === 'neu'
+    && ($plMq['vorab'] ?? '') === 'angebot' && !in_array($plF3, array_map('intval', array_column($plM, 'firma_id')), true)
+    && in_array('Festpreis ' . $plV1, array_column($plM, 'name'), true)
+    && (string) Db::wert('SELECT created_at FROM partner_leads WHERE firma_id = ?', [$plF1]) === date('Y-m-d H:i:s', strtotime('-3 days'))
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'partner_leads' AND INDEX_NAME = 'uq_pl_firma'") === 2,
+    json_encode($plM, JSON_UNESCAPED_UNICODE));
+Db::run('DELETE FROM partner_leads WHERE id > ?', [$plMax]);   // auch, was die Übernahme aus Resten früherer Abschnitte machte
+
+// --- Abgleich: was die alten Wege seitdem erzeugt haben, kommt mit dem Datum seines Ursprungs ---
+$plG1 = PartnerLeads::abgleich($plAi); $plG2 = PartnerLeads::abgleich($plAi);
+$plL1 = (int) Db::wert('SELECT id FROM partner_leads WHERE partner_id = ? AND firma_id = ?', [$plAi, $plF1], 0);
+$plL2 = (int) Db::wert('SELECT id FROM partner_leads WHERE partner_id = ? AND firma_id = ?', [$plAi, $plF2], 0);
+$plLk = (int) Db::wert('SELECT id FROM partner_leads WHERE freigabe_id = ?', [$plK1], 0);
+$plLv = (int) Db::wert('SELECT id FROM partner_leads WHERE vorab_id = ?', [$plV1], 0);
+pruefe('Abgleich: vier Leads aus vier Wegen, das Anrufergebnis von gestern gilt für den heute angelegten Lead (Datum der Reservierung), zweiter Lauf legt nichts an',
+    $plG1['neu'] === 4 && $plG2 === ['neu' => 0, 'stufen' => 0] && $plL1 > 0 && $plL2 > 0 && $plLk > 0 && $plLv > 0
+    && PartnerLeads::laden($plAi, $plL1)['stufe'] === 'interesse' && PartnerLeads::laden($plAi, $plL1)['quelle'] === 'anrufliste'
+    && PartnerLeads::laden($plAi, $plL2)['stufe'] === 'kontaktiert' && PartnerLeads::laden($plAi, $plL2)['quelle'] === 'finder'
+    && PartnerLeads::laden($plAi, $plLv)['stufe'] === 'angebot' && PartnerLeads::laden($plAi, $plLk)['quelle'] === 'landingpage'
+    && (string) PartnerLeads::laden($plAi, $plL1)['created_at'] === date('Y-m-d H:i:s', strtotime('-3 days')),
+    json_encode([$plG1, $plG2, Db::all('SELECT id, quelle, stufe, created_at FROM partner_leads WHERE partner_id = ?', [$plAi])], JSON_UNESCAPED_UNICODE));
+// Spätere Hand-Entscheidung schlägt ein älteres Anrufergebnis; ein neueres gilt.
+PartnerLeads::stufeSetzen($plAi, $plL1, 'termin');
+Db::run("UPDATE partner_reservierungen SET anruf_status = 'kein_interesse', anruf_am = NOW() - INTERVAL 1 HOUR WHERE firma_id = ?", [$plF1]);
+PartnerLeads::abgleich($plAi);
+$plStA = PartnerLeads::laden($plAi, $plL1)['stufe'];
+Db::run('UPDATE partner_leads SET stufe_am = NOW() - INTERVAL 2 HOUR WHERE id = ?', [$plL1]);
+PartnerLeads::abgleich($plAi);
+$plStB = PartnerLeads::laden($plAi, $plL1)['stufe'];
+Db::run("UPDATE partner_vorab SET status = 'zurueckgezogen' WHERE id = ?", [$plV1]);
+PartnerLeads::abgleich($plAi);
+pruefe('Abgleich: ein älteres „kein Interesse“ überschreibt die spätere Hand-Stufe nicht, ein neueres schon; Vorab zurückgezogen → verloren',
+    $plStA === 'termin' && $plStB === 'verloren' && PartnerLeads::laden($plAi, $plLv)['stufe'] === 'verloren', json_encode([$plStA, $plStB]));
+
+// --- Nur der eigene Partner: ein fremder Lead ist „nicht vorhanden“ ---
+$plN = PartnerLeads::eintrag($plAi, $plL2, 'notiz', 'Geheimnis: Chef heißt Toni, mag keine Anrufe vor 11');
+$plAuf = PartnerLeads::eintrag($plAi, $plL2, 'aufgabe', 'Angebot nachfassen', date('Y-m-d', strtotime('-1 day')));
+pruefe('Fremder Partner: lesen, ändern, Stufe, Notiz, Aufgabe abhaken, Kontakt, Archiv und Übergabe greifen nicht — und der Lead bleibt unverändert',
+    $plN > 0 && $plAuf > 0
+    && PartnerLeads::laden($plBi, $plL2) === null && PartnerLeads::verlauf($plBi, $plL2) === []
+    && !PartnerLeads::aendern($plBi, $plL2, ['name' => 'Gekapert']) && !PartnerLeads::stufeSetzen($plBi, $plL2, 'verloren')
+    && PartnerLeads::eintrag($plBi, $plL2, 'notiz', 'fremd') === 0 && !PartnerLeads::aufgabeErledigt($plBi, $plAuf)
+    && !PartnerLeads::kontakt($plBi, $plL2, 'anruf') && !PartnerLeads::archivieren($plBi, $plL2) && !PartnerLeads::prioritaetSetzen($plBi, $plL2, 'heiss')
+    && !PartnerLeads::naechsterSchritt($plBi, $plL2, 'x', null)
+    && PartnerLeads::uebergeben($plBi, $plL2, ['email' => 'x@y.example', 'einverstanden' => '1'], 'it') === ['ok' => false, 'grund' => 'panne']
+    && PartnerLeads::laden($plAi, $plL2)['name'] === 'Pizzeria Due' && PartnerLeads::laden($plAi, $plL2)['stufe'] === 'kontaktiert'
+    && PartnerLeads::laden($plAi, $plL2)['prioritaet'] === null && PartnerLeads::laden($plAi, $plL2)['archiviert_am'] === null);
+
+// --- Dubletten: Hinweis, nie Zusammenführen; fremd reserviert = „betreut“ ohne Namen ---
+$plR = PartnerLeads::anlegen($plAi, ['name' => 'Bar Rossi', 'ort' => 'Favara', 'telefon' => '+39 333 1234567', 'email' => 'Info@Bar-Rossi.example',
+    'website' => 'www.bar-rossi.example', 'branche' => 'bar_cafe', 'quelle' => 'messe', 'notiz' => 'Auf der Messe getroffen']);
+$plRid = (int) ($plR['id'] ?? 0);
+$plZahl = static fn(): int => (int) Db::wert('SELECT COUNT(*) FROM partner_leads WHERE partner_id = ?', [$plAi], 0);
+$plVor = $plZahl();
+$plD1 = PartnerLeads::anlegen($plAi, ['name' => 'Bar Rossi S.r.l.', 'ort' => 'favara']);
+$plD2 = PartnerLeads::anlegen($plAi, ['name' => 'Caffè Nuovo', 'telefon' => '0039 333 123 4567']);
+$plD3 = PartnerLeads::anlegen($plAi, ['name' => 'Altro Nome', 'website' => 'https://bar-rossi.example/kontakt']);
+$plD4 = PartnerLeads::anlegen($plAi, ['name' => 'Altro Bar', 'email' => 'info@bar-rossi.example']);
+$plD5 = PartnerLeads::anlegen($plAi, ['name' => 'Bar Rossi', 'ort' => 'Agrigento']);          // gleicher Name, anderer Ort: kein Hinweis
+$plFb = $plFirma('PL00000004', 'Pizzeria Betreut', 'Licata', 'https://pizzeria-betreut.example');
+Db::insert('partner_reservierungen', ['firma_id' => $plFb, 'partner_id' => $plBi, 'bis' => date('Y-m-d', strtotime('+5 days'))]);
+$plD6 = PartnerLeads::anlegen($plAi, ['name' => 'Irgendwas', 'website' => 'pizzeria-betreut.example']);
+$plD7 = PartnerLeads::anlegen($plAi, ['name' => 'Bar Rossi', 'ort' => 'Favara'], true);   // „trotzdem anlegen“
+pruefe('Dubletten (Punkt 9): Name+Ort (Rechtsform egal), Telefon (Vorwahl egal), Domain, E-Mail — Hinweis mit eigenem Lead, NICHTS angelegt; anderer Ort ist keine Dublette; „trotzdem“ legt einen zweiten an, nichts wird zusammengeführt',
+    $plR['ok'] && $plRid > 0
+    && $plD1['ok'] === false && $plD1['dubletten'][0] === ['art' => 'eigen', 'grund' => 'name', 'id' => $plRid, 'name' => 'Bar Rossi']
+    && ($plD2['dubletten'][0]['grund'] ?? '') === 'telefon' && ($plD3['dubletten'][0]['grund'] ?? '') === 'domain' && ($plD4['dubletten'][0]['grund'] ?? '') === 'email'
+    && $plD5['ok'] === true
+    && $plD7['ok'] === true && (int) $plD7['id'] !== $plRid && $plZahl() === $plVor + 2
+    && PartnerLeads::laden($plAi, $plRid)['email'] === 'info@bar-rossi.example' && PartnerLeads::laden($plAi, $plRid)['domain'] === 'bar-rossi.example'
+    && PartnerLeads::laden($plAi, $plRid)['telefon_norm'] === '331234567' && PartnerLeads::laden($plAi, $plRid)['quelle'] === 'messe',
+    json_encode([$plD1, $plD2, $plD3, $plD4, $plD5], JSON_UNESCAPED_UNICODE));
+pruefe('Fremd reserviert: „wird schon betreut“ — ohne Namen des Betriebs und ohne den anderen Partner',
+    $plD6['ok'] === false && $plD6['dubletten'] === [['art' => 'betreut', 'grund' => 'reserviert']]
+    && !str_contains(json_encode($plD6, JSON_UNESCAPED_UNICODE), 'Betreut') && !str_contains(json_encode($plD6), 'Marco'), json_encode($plD6, JSON_UNESCAPED_UNICODE));
+Db::run('DELETE FROM partner_leads WHERE id = ?', [(int) $plD5['id']]);
+
+// --- Stufen: von Hand frei, von Systemwegen nur vorwärts ---
+$plS = (int) $plD7['id'];
+PartnerLeads::stufeSetzen($plAi, $plS, 'termin');
+$plS1 = PartnerLeads::stufeMindestens($plAi, $plS, 'kontaktiert', 'anrufliste');
+$plS2 = PartnerLeads::stufeMindestens($plAi, $plS, 'angebot', 'vorab');
+PartnerLeads::stufeSetzen($plAi, $plS, 'auftrag');
+$plS3 = PartnerLeads::stufeMindestens($plAi, $plS, 'verloren', 'anrufliste');
+PartnerLeads::stufeSetzen($plAi, $plS, 'kontaktiert');           // der Partner darf zurück
+$plSv = array_column(PartnerLeads::verlauf($plAi, $plS), 'text');
+pruefe('Stufen: Systemwege nur vorwärts (Termin bleibt Termin, ein Auftrag geht nie von allein verloren), der Partner darf frei wechseln; jeder Wechsel steht im Verlauf, unbekannte Stufen nicht',
+    !$plS1 && $plS2 && !$plS3 && PartnerLeads::laden($plAi, $plS)['stufe'] === 'kontaktiert' && !PartnerLeads::stufeSetzen($plAi, $plS, 'gewonnen')
+    && in_array('angebot→auftrag', $plSv, true) && in_array('termin→angebot (vorab)', $plSv, true) && $plSv[0] === 'auftrag→kontaktiert', json_encode($plSv, JSON_UNESCAPED_UNICODE));
+
+// --- Priorität (Punkt 8): automatisch aus Daten, von Hand überschreibbar ---
+$plJ = strtotime('2026-10-05 12:00:00');
+$plP = static fn(array $x) => PartnerLeads::prioritaet($x + ['prioritaet' => null, 'stufe' => 'neu', 'freigabe_id' => null, 'created_at' => '2026-09-01 10:00:00',
+    'domain' => '', 'kontakt_am' => null, 'aufgabe_am' => null, 'naechster_am' => null], ['heiss-domain.example' => true], $plJ);
+pruefe('Priorität automatisch: Interesse/Termin, frische Rückruf-Bitte (48 h) und geöffneter Website-Check heiß; Kontakt in 7 Tagen oder Fälliges warm; fern oder fertig später; sonst normal — von Hand gesetzt gewinnt',
+    $plP(['stufe' => 'interesse']) === 'heiss' && $plP(['stufe' => 'termin']) === 'heiss'
+    && $plP(['freigabe_id' => 5, 'created_at' => '2026-10-04 13:00:00']) === 'heiss' && $plP(['freigabe_id' => 5, 'created_at' => '2026-10-02 10:00:00']) === 'normal'
+    && $plP(['domain' => 'heiss-domain.example']) === 'heiss'
+    && $plP(['kontakt_am' => '2026-10-01 09:00:00']) === 'warm' && $plP(['aufgabe_am' => '2026-10-05']) === 'warm'
+    && $plP(['naechster_am' => '2026-10-30']) === 'spaeter' && $plP(['stufe' => 'auftrag']) === 'spaeter' && $plP(['stufe' => 'verloren']) === 'spaeter'
+    && $plP([]) === 'normal' && $plP(['stufe' => 'interesse', 'prioritaet' => 'spaeter']) === 'spaeter');
+$plP1 = PartnerLeads::prioritaetSetzen($plAi, $plRid, 'heiss');
+$plP2 = PartnerLeads::prioritaetSetzen($plAi, $plRid, 'super');
+$plPr1 = PartnerLeads::laden($plAi, $plRid)['prioritaet'];
+PartnerLeads::prioritaetSetzen($plAi, $plRid, null);
+$plListe = PartnerLeads::liste($plAi);
+pruefe('Priorität von Hand setzen und wieder auf automatisch; Unbekanntes abgelehnt; die Liste sortiert offene vor fertigen und heiß zuerst',
+    $plP1 && !$plP2 && $plPr1 === 'heiss' && PartnerLeads::laden($plAi, $plRid)['prioritaet'] === null
+    && $plListe[0]['prio'] === 'heiss' && in_array(end($plListe)['stufe'], ['auftrag', 'verloren'], true)
+    && !array_filter($plListe, static fn($l) => !in_array($l['prio'], PartnerLeads::PRIO, true)), json_encode(array_map(static fn($l) => [$l['name'], $l['stufe'], $l['prio']], $plListe), JSON_UNESCAPED_UNICODE));
+
+// --- Schnellfunktionen: Kontakt einmal vermerken, aus NEU wird KONTAKTIERT ---
+$plKn = (int) PartnerLeads::anlegen($plAi, ['name' => 'Ottica Vista', 'telefon' => '0922 999888'])['id'];
+PartnerLeads::kontakt($plAi, $plKn, 'anruf'); PartnerLeads::kontakt($plAi, $plKn, 'anruf'); PartnerLeads::kontakt($plAi, $plKn, 'whatsapp');
+$plKv = array_column(PartnerLeads::verlauf($plAi, $plKn), 'art');
+pruefe('Anrufen/WhatsApp/E-Mail angetippt: je Art höchstens ein Eintrag in 10 Minuten, letzter Kontakt gesetzt, neu → kontaktiert; unbekannte Art nicht',
+    count(array_keys($plKv, 'anruf', true)) === 1 && count(array_keys($plKv, 'whatsapp', true)) === 1 && in_array('stufe', $plKv, true)
+    && PartnerLeads::laden($plAi, $plKn)['stufe'] === 'kontaktiert' && PartnerLeads::laden($plAi, $plKn)['kontakt_am'] !== null
+    && !PartnerLeads::kontakt($plAi, $plKn, 'fax'), json_encode($plKv));
+
+// --- Aufgaben: fällig steht auf der Startseite unter „Heute wichtig“ ---
+$plW = PartnerCommand::wichtig($plA, 'de', PartnerCommand::zahlen($plA), false);
+$plWa = array_values(array_filter($plW, static fn($w) => $w['k'] === 'aufgaben'));
+$plOk = PartnerLeads::aufgabeErledigt($plAi, $plAuf);
+$plW2 = array_filter(PartnerCommand::wichtig($plA, 'de', PartnerCommand::zahlen($plA), false), static fn($w) => $w['k'] === 'aufgaben');
+pruefe('Fällige Aufgabe: rot unter „Heute wichtig“ (überfällig), führt zu KUNDEN; abgehakt ist sie weg — und nur einmal abhakbar',
+    count($plWa) === 1 && $plWa[0]['stufe'] === 'rot' && $plWa[0]['anker'] === 'cc:kunden' && $plWa[0]['text'] === '1 Aufgabe ist fällig'
+    && $plOk && $plW2 === [] && !PartnerLeads::aufgabeErledigt($plAi, $plAuf), json_encode($plW, JSON_UNESCAPED_UNICODE));
+
+// --- An Vecom übergeben: einverstanden + E-Mail Pflicht, derselbe Weg wie „Melden“ ---
+$plAnf = static fn(): int => (int) Db::wert("SELECT COUNT(*) FROM anfragen WHERE LOWER(email) = 'rossi@bar-rossi.example'", [], 0);
+$plU0 = $plAnf();
+$plU1 = PartnerLeads::uebergeben($plAi, $plRid, ['email' => 'rossi@bar-rossi.example'], 'de');
+$plU2 = PartnerLeads::uebergeben($plAi, $plRid, ['email' => 'kaputt', 'einverstanden' => '1'], 'de');
+$plU3 = PartnerLeads::uebergeben($plAi, $plRid, ['ansprechpartner' => 'Mario Rossi', 'email' => 'rossi@bar-rossi.example', 'telefon' => '333 1234567',
+    'anliegen' => 'Will eine neue Website', 'einverstanden' => '1'], 'de');
+$plU4 = PartnerLeads::uebergeben($plAi, $plRid, ['email' => 'rossi@bar-rossi.example', 'einverstanden' => '1'], 'de');
+pruefe('Übergabe (Punkt 27): ohne Haken „einverstanden“ nicht, ohne gültige E-Mail nicht; dann EINE Anfrage bei Vecom, Lead merkt sich nur DASS — ein zweites Mal legt nichts an',
+    $plU1 === ['ok' => false, 'grund' => 'm_einverstanden'] && $plU2 === ['ok' => false, 'grund' => 'angaben']
+    && $plU3 === ['ok' => true] && $plU4 === ['ok' => true] && $plAnf() === $plU0 + 1
+    && PartnerLeads::laden($plAi, $plRid)['uebergeben_am'] !== null && in_array('uebergabe', array_column(PartnerLeads::verlauf($plAi, $plRid), 'art'), true),
+    json_encode([$plU1, $plU2, $plU3, $plAnf()]));
+
+// --- „Meine Kontakte“ aus dem Browser: nur auf Klick, gleiche Namen übersprungen ---
+$plI = PartnerLeads::importieren($plAi, [['name' => 'Pizzeria Mamma', 'branche' => 'gastro', 'status' => 'angeschrieben', 'notiz' => 'Cugino di Toni'],
+    ['name' => 'bar rossi'], ['name' => 'x'], 'kaputt', ['name' => 'Hotel Sole', 'branche' => 'unterkunft', 'status' => 'kunde'], ['name' => 'Laden Ohne', 'branche' => 'mond', 'status' => 'quatsch']]);
+$plIm = Db::one("SELECT * FROM partner_leads WHERE partner_id = ? AND name = 'Pizzeria Mamma'", [$plAi]) ?? [];
+pruefe('Import: alte Status → Stufe (angeschrieben → kontaktiert, Kunde → Auftrag, Unbekanntes → neu), Branche übersetzt oder leer, Notiz in den Verlauf, Doppelte und Kaputtes übersprungen',
+    $plI === ['neu' => 3, 'schon' => 1] && ($plIm['stufe'] ?? '') === 'kontaktiert' && ($plIm['branche'] ?? '') === 'restaurant'
+    && Db::wert("SELECT stufe FROM partner_leads WHERE partner_id = ? AND name = 'Hotel Sole'", [$plAi]) === 'auftrag'
+    && Db::wert("SELECT branche FROM partner_leads WHERE partner_id = ? AND name = 'Hotel Sole'", [$plAi]) === 'hotel'
+    && Db::wert("SELECT CONCAT(stufe, '|', branche) FROM partner_leads WHERE partner_id = ? AND name = 'Laden Ohne'", [$plAi]) === 'neu|'
+    && array_column(PartnerLeads::verlauf($plAi, (int) ($plIm['id'] ?? 0)), 'text') === ['Cugino di Toni']
+    && PartnerLeads::importieren($plAi, array_fill(0, 60, ['name' => 'Gleich'])) === ['neu' => 1, 'schon' => PartnerLeads::IMPORT_HOECHSTENS - 1], json_encode([$plI, $plIm], JSON_UNESCAPED_UNICODE));
+
+// --- Tagesgrenze nur für Selbsteingetragenes; Systemwege kommen immer durch ---
+Db::run("UPDATE partner_leads SET created_at = NOW() - INTERVAL 1 DAY WHERE partner_id = ?", [$plBi]);
+for ($i = 0; $i < PartnerLeads::NEU_JE_TAG; $i++) { Db::insert('partner_leads', ['partner_id' => $plBi, 'name' => 'Viel ' . $i, 'name_norm' => 'viel ' . $i, 'quelle' => 'eigen']); }
+$plG = PartnerLeads::anlegen($plBi, ['name' => 'Einer zu viel']);
+$plKb = (int) Db::insert('partner_kontaktfreigaben', ['partner_id' => $plBi, 'name' => 'Sara Rückruf', 'telefon' => '+39 333 5550001', 'einwilligung' => 'ja',
+    'created_at' => date('Y-m-d H:i:s', strtotime('-40 days'))]);
+$plGb = PartnerLeads::ausFreigabe($plBi, $plKb);
+pruefe('Tagesgrenze: ab 60 eigenen Einträgen am Tag „genug“ — eine Rückruf-Bitte kommt trotzdem an, mit ihrem eigenen Datum (zählt nicht als neuer Lead)',
+    $plG === ['ok' => false, 'grund' => 'genug'] && $plGb > 0 && PartnerLeads::ausFreigabe($plBi, $plKb) === $plGb
+    && (string) PartnerLeads::laden($plBi, $plGb)['created_at'] === date('Y-m-d H:i:s', strtotime('-40 days')) && PartnerLeads::ausFreigabe($plAi, $plKb) === 0,
+    json_encode($plG));
+Db::run("DELETE FROM partner_leads WHERE partner_id = ? AND name LIKE 'Viel %'", [$plBi]);
+
+// --- Datenschutz: nie bearbeitete Rückruf-Leads gehen mit der Freigabe ---
+$plK2 = (int) Db::insert('partner_kontaktfreigaben', ['partner_id' => $plAi, 'name' => 'Paolo Bearbeitet', 'telefon' => '+39 333 5550002', 'einwilligung' => 'ja']);
+PartnerLeads::abgleich($plAi);
+$plLk2 = (int) Db::wert('SELECT id FROM partner_leads WHERE freigabe_id = ?', [$plK2], 0);
+PartnerLeads::eintrag($plAi, $plLk2, 'notiz', 'Ruft Montag zurück');
+Db::run('DELETE FROM partner_kontaktfreigaben WHERE id IN (?, ?)', [$plK1, $plK2]);
+$plAuf1 = PartnerLeads::freigabenAufraeumen(); $plAuf2 = PartnerLeads::freigabenAufraeumen();
+$plLkA = PartnerLeads::laden($plAi, $plLk);
+pruefe('Freigabe gelöscht (90 Tage): unbearbeiteter Lead verliert Name, Telefon, E-Mail und wird archiviert; ein bearbeiteter bleibt; zweiter Lauf tut nichts',
+    $plAuf1 === 1 && $plAuf2 === 0 && $plLkA['name'] === '—' && $plLkA['telefon'] === '' && $plLkA['telefon_norm'] === '' && $plLkA['archiviert_am'] !== null
+    && PartnerLeads::laden($plAi, $plLk2)['name'] === 'Paolo Bearbeitet' && PartnerLeads::laden($plAi, $plLk2)['archiviert_am'] === null
+    && str_contains((string) file_get_contents($wurzel . '/src/PartnerBesuche.php'), 'PartnerLeads::freigabenAufraeumen()'));
+
+// --- Verwaltung: Name, Stufe, letzter Schritt — nie Notiztext ---
+PartnerLeads::archivieren($plAi, $plKn);
+$plVw = PartnerLeads::fuerVerwaltung($plAi);
+$plVwJ = json_encode($plVw, JSON_UNESCAPED_UNICODE);
+$plAkte = (string) file_get_contents($wurzel . '/views/partner_akte.php');
+pruefe('Verwaltung (Partnerakte): alle Leads mit Name, Stufe, Quelle und ART des letzten Schritts — kein Text aus Notizen oder Aufgaben; archivierte gekennzeichnet; nur lesen',
+    count($plVw) === (int) Db::wert('SELECT COUNT(*) FROM partner_leads WHERE partner_id = ?', [$plAi])
+    && !str_contains($plVwJ, 'Geheimnis') && !str_contains($plVwJ, 'Cugino') && !str_contains($plVwJ, 'Ruft Montag')
+    && in_array('notiz', array_column($plVw, 'letzter'), true) && in_array(true, array_column($plVw, 'archiviert'), true)
+    && !array_diff(array_keys($plVw[0]), ['name', 'stufe', 'quelle', 'created_at', 'letzter', 'letzter_am', 'uebergeben_am', 'archiviert'])
+    && str_contains($plAkte, 'PartnerLeads::fuerVerwaltung((int) $p[\'id\'])') && !preg_match('~partner_lead_verlauf|PartnerLeads::verlauf~', $plAkte)
+    && !preg_match('~tat" value="lead_~', $plAkte), $plVwJ);
+
+// --- Texte: dreisprachig, gleiche Platzhalter, Partner geduzt, Betrieb gesiezt; Mail nie ohne Betreff ---
+$plFehlt = []; $plPlatz = [];
+$plDrei = static function ($w, string $pfad) use (&$plDrei, &$plFehlt, &$plPlatz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) {
+            if (trim((string) ($w[$l] ?? '')) === '') { $plFehlt[] = "$pfad.$l"; }
+            preg_match_all('~\{[a-z]+\}~', (string) ($w[$l] ?? ''), $m); sort($m[0]); $ph[$l] = implode(',', $m[0]);
+        }
+        if (count(array_unique($ph)) > 1) { $plPlatz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $plDrei($v, "$pfad.$k"); }
+};
+$plDrei(Texte::PARTNER_LEADS, 'PARTNER_LEADS');
+$plT = Texte::PARTNER_LEADS;
+pruefe('Texte KUNDEN: alles dreisprachig mit denselben Platzhaltern; alle Stufen, Prioritäten, Quellen und Verlaufsarten benannt; Partner geduzt, Nachrichten an den Betrieb gesiezt; die E-Mail hat in jeder Sprache einen Betreff',
+    $plFehlt === [] && $plPlatz === []
+    && array_keys($plT['stufen']) === PartnerLeads::STUFEN && array_keys($plT['prio']) === PartnerLeads::PRIO
+    && !array_diff(PartnerLeads::QUELLEN, array_keys($plT['quellen'])) && !array_diff(PartnerLeads::ARTEN, array_keys($plT['arten']))
+    && !array_diff(['name', 'genug', 'angaben', 'm_einverstanden', 'm_genug', 'panne'], array_keys($plT['fehler']))
+    && Texte::duzt('PARTNER_LEADS.titel') && Texte::duzt('PARTNER_LEADS.ue_text') && !Texte::duzt('PARTNER_LEADS.mail_text') && !Texte::duzt('PARTNER_LEADS.wa_text')
+    && mb_strlen(trim(Texte::h($plT['mail_betreff'], 'it'))) >= 5 && mb_strlen(trim(Texte::h($plT['mail_betreff'], 'de'))) >= 5 && mb_strlen(trim(Texte::h($plT['mail_betreff'], 'en'))) >= 5
+    && preg_match('~(?<![\p{L}])(Sie|Ihnen|Ihren?)(?![\p{L}])~u', Texte::h($plT['mail_text'], 'de')) === 1, json_encode([$plFehlt, $plPlatz]));
+
+// --- Seiten: KUNDEN-Liste und Akte rendern, alles escaped, jedes Formular mit CSRF, keine Kundennamen aus dem Link ---
+$plKunde = (int) Db::insert('customers', ['name' => 'Kunde Geheimname', 'email' => 'geheim@kunde.example', 'city' => 'Sciacca']);
+Db::insert('partner_zuordnungen', ['customer_id' => $plKunde, 'partner_id' => $plAi, 'quelle' => 'link']);
+$plX = (int) PartnerLeads::anlegen($plAi, ['name' => 'Bar <b>Fett</b> "Q"', 'telefon' => '333 4445556', 'email' => 'fett@bar.example', 'ort' => 'Favara'], true)['id'];
+$plSeite = static function (string $seite, ?array $lead, array $get = []) use ($wurzel, $plA): string {
+    $altGet = $_GET; $_GET = $get; $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden((int) $plA['id']); $sprache = 'de'; $ccSeite = $seite; $ccLead = $lead; $ccLeadMeldung = ''; $ccLeadPost = null; $ccLeadDup = [];
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_kunden.php'; } finally { $aus = (string) ob_get_clean(); $_GET = $altGet; }
+    return $aus;
+};
+$plH1 = $plSeite('kunden', null);
+$plH2 = $plSeite('lead', PartnerLeads::laden($plAi, $plX));
+$plH3 = $plSeite('kunden', null, ['stufe' => 'auftrag']);
+preg_match('~href="mailto:[^"?]+\?subject=([^&"]*)~', $plH2, $plMt);
+pruefe('KUNDEN-Seite: + Kontakt, Stufen mit Zahlen, Liste; Namen escaped; „Über deinen Link“ ohne Kundennamen; Import-Kasten mit dem Speicher von „Meine Kontakte“; jedes Formular trägt CSRF',
+    str_contains($plH1, 'id="neu"') && str_contains($plH1, 'class="cc-pipeline') && substr_count($plH1, 'class="s-') === 7
+    && str_contains($plH1, 'Bar &lt;b&gt;Fett&lt;/b&gt; &quot;Q&quot;') && !str_contains($plH1, '<b>Fett</b>')
+    && str_contains($plH1, 'Empfehlung 1') && str_contains($plH1, 'Sciacca') && !str_contains($plH1, 'Geheimname')
+    && str_contains($plH1, 'data-cc-import="vecom_kontakte_' . strtolower((string) $plA['code']) . '"') && str_contains((string) file_get_contents($wurzel . '/views/partner_kontakte.php'), "'speicher' => 'vecom_kontakte_' . strtolower((string) \$p['code'])")
+    && substr_count($plH1, '<form') === substr_count($plH1, 'name="_csrf"') && substr_count($plH1, '<form') >= 3
+    && str_contains($plH3, 'Hotel Sole') && !str_contains($plH3, 'Pizzeria Mamma'));
+pruefe('Akte: sechs Schnellfunktionen (Anrufen, WhatsApp mit Text, E-Mail MIT Betreff, Notiz, Aufgabe, Übergeben), Stufe/Priorität, Aufgaben, Verlauf, Daten, Archiv — escaped, jedes Formular mit CSRF',
+    substr_count(substr($plH2, (int) strpos($plH2, '<nav class="cc-aktionen'), (int) strpos($plH2, '</nav>', (int) strpos($plH2, '<nav class="cc-aktionen')) - (int) strpos($plH2, '<nav class="cc-aktionen')), '<a ') === 6
+    && str_contains($plH2, 'href="tel:3334445556"') && str_contains($plH2, 'https://wa.me/39333') && rawurldecode($plMt[1] ?? '') !== '' && rawurldecode($plMt[1] ?? '') === Texte::h($plT['mail_betreff'], PartnerAnschreiben::spracheZurAdresse('bar.example', 'de'))
+    && str_contains($plH2, 'data-cc-kontakt="anruf"') && str_contains($plH2, 'data-cc-kontakt="whatsapp"') && str_contains($plH2, 'data-cc-kontakt="email"')
+    && str_contains($plH2, 'name="tat" value="lead_stufe"') && str_contains($plH2, 'name="tat" value="lead_uebergeben"') && str_contains($plH2, 'name="einverstanden" value="1" required')
+    && str_contains($plH2, '<h1>') && !str_contains($plH2, '<b>Fett</b>') && substr_count($plH2, '<form') === substr_count($plH2, 'name="_csrf"'),
+    'mailto-Betreff: ' . ($plMt[1] ?? '—'));
+
+// --- Seite und Navigation: KUNDEN im Command Center, Taten nur mit CSRF, Rückweg nach dem Speichern ---
+$plSeiteP = (string) file_get_contents($oben . '/partner.php');
+$plView = (string) file_get_contents($wurzel . '/views/partner_cc.php');
+$plJs = (string) file_get_contents($oben . '/assets/js/partner-cc.js');
+$plRj = (string) file_get_contents($oben . '/assets/js/partner-reiter.js');
+$plBlock = substr($plSeiteP, (int) strpos($plSeiteP, "if (str_starts_with(\$ccTat, 'lead_')) {"), 9000);
+preg_match_all("~case '(lead_[a-z_]+)':~", $plBlock, $plCases);
+pruefe('partner.php: lead_-Taten öffnen das Command Center, ohne CSRF passiert nichts (Weiterleitung bzw. 204), jede Tat endet mit Weiterleitung oder zeigt die Seite neu; KUNDEN-Reiter des vollen Bereichs führt zur Pipeline',
+    str_contains($plSeiteP, "|| str_starts_with((string) (\$_POST['tat'] ?? ''), 'lead_')")
+    && strpos($plBlock, 'if (!$ccCsrf) {') < strpos($plBlock, 'switch ($ccTat)')
+    && $plCases[1] === ['lead_kontakt', 'lead_neu', 'lead_import', 'lead_daten', 'lead_stufe', 'lead_prio', 'lead_naechster', 'lead_notiz', 'lead_aufgabe', 'lead_aufgabe_ok', 'lead_uebergeben', 'lead_archiv', 'lead_wieder']
+    && substr_count($plBlock, "header('Location: ") >= 12
+    && str_contains($plSeiteP, "'extern' => ['finden' => \$selbst(['cc' => 1, 'kunden' => 1])]") && str_contains($plRj, 'daten.extern && daten.extern[id]')
+    && str_contains($plView, "'cc:kunden'       => \$selbst(['cc' => 1, 'kunden' => 1]),") && PartnerCommand::ANKER['kontakte'] === 'cc:kunden'
+    && Texte::h(Texte::PARTNER_REITER['reiter']['finden']['titel'], 'de') === 'Neue Kunden gewinnen');
+pruefe('partner-cc.js: Stufe/Priorität speichern beim Wählen, Schnellfunktionen per sendBeacon mit CSRF, Import nur auf Klick (Kasten erst sichtbar, wenn im Browser etwas liegt)',
+    str_contains($plJs, "querySelectorAll('form[data-cc-auto]')") && str_contains($plJs, "d.append('tat', 'lead_kontakt'); d.append('_csrf', csrf.value);")
+    && str_contains($plJs, 'navigator.sendBeacon(ziel, d)') && str_contains($plJs, "imp.hidden = false;")
+    && preg_match('~imp\.querySelector\(\'form\'\);[^}]*\.value = JSON\.stringify\(rein\);~s', $plJs) === 1);
+
+Db::run('DELETE FROM partner_zuordnungen WHERE customer_id = ?', [$plKunde]);
+Db::run('DELETE FROM customers WHERE id = ?', [$plKunde]);
+Db::run('DELETE FROM partner_lead_verlauf WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
+Db::run('DELETE FROM partner_leads WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
+Db::run('DELETE FROM partner_reservierungen WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
+Db::run('DELETE FROM partner_kontaktfreigaben WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
+Db::run('DELETE FROM partner_vorab WHERE partner_id IN (?, ?)', [$plAi, $plBi]);
+Db::run("DELETE FROM akq_firmen WHERE kennung LIKE 'PL0000000%'");
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$plAi, $plBi]);
 
 /* ============================================================================
    Kampagnen-Assistent (Etappe 2, 05.10.2026): Strategie in Sätzen, Paket aus

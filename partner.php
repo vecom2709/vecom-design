@@ -167,7 +167,8 @@ if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
    wird hier nur das Marketingprofil — mit CSRF, nur in die eigene Zeile. */
 require_once __DIR__ . '/app/src/PartnerCommand.php';
 if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'GET'), $_GET)
-           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel'], true))) {
+           || in_array((string) ($_POST['tat'] ?? ''), ['cc_profil', 'kampagne_neu', 'kampagne_status', 'kampagne_weg', 'qr_ziel'], true)
+           || str_starts_with((string) ($_POST['tat'] ?? ''), 'lead_'))) {
     require_once __DIR__ . '/app/src/PartnerKampagne.php';
     $ccMeldung = in_array((string) ($_GET['m'] ?? ''), ['pf_gut', 'k_erstellt', 'k_gut'], true) ? (string) $_GET['m'] : '';
     $ccPost = null;
@@ -211,6 +212,71 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         $ok = PartnerKampagne::zielSetzen((int) $p['id'], 'material', $ccId, (string) ($_POST['weg'] ?? ''));
         header('Location: ' . $selbst(['cc' => 1, 'qr' => 1] + ($ok ? ['m' => 'k_gut'] : [])) . '#qr-' . $ccId, true, 303); exit;
     }
+    /* Kunden & Leads (Phase 2, 05.10.2026): jede Tat nur für eigene Leads — PartnerLeads prüft die Partner-ID
+       in jeder Abfrage, ein fremder Lead ist „nicht vorhanden“. Nach dem Speichern zurück in die Akte (PRG). */
+    require_once __DIR__ . '/app/src/PartnerLeads.php';
+    $ccLeadMeldung = ''; $ccLeadPost = null; $ccLeadDup = []; $ccLead = null;
+    $ccM = (string) ($_GET['m'] ?? '');
+    if (in_array($ccM, ['angelegt', 'gespeichert', 'ue_gut'], true) || preg_match('~^import:\d{1,3}:\d{1,3}$~', $ccM)) { $ccLeadMeldung = $ccM; }
+    if (str_starts_with($ccTat, 'lead_')) {
+        $ccPid = (int) $p['id']; $ccLid = (int) ($_POST['id'] ?? 0);
+        $ccAkte = static fn(int $id, string $m = 'gespeichert', string $anker = '') => $selbst(['cc' => 1, 'lead' => $id] + ($m !== '' ? ['m' => $m] : [])) . $anker;
+        if (!$ccCsrf) {
+            if ($ccTat === 'lead_kontakt') { http_response_code(204); exit; }
+            header('Location: ' . $selbst(['cc' => 1, 'kunden' => 1]), true, 303); exit;
+        }
+        switch ($ccTat) {
+            case 'lead_kontakt':      // Schnellfunktion angetippt (sendBeacon) — still, ohne Seite
+                PartnerLeads::kontakt($ccPid, $ccLid, (string) ($_POST['art'] ?? ''));
+                http_response_code(204); exit;
+            case 'lead_neu':
+                $ccR = PartnerLeads::anlegen($ccPid, $_POST, !empty($_POST['trotzdem']));
+                if ($ccR['ok']) { header('Location: ' . $ccAkte((int) $ccR['id'], 'angelegt'), true, 303); exit; }
+                $ccLeadMeldung = (string) ($ccR['grund'] === 'dublette' ? '' : $ccR['grund']); $ccLeadPost = $_POST; $ccLeadDup = $ccR['dubletten'] ?? [];
+                $_GET['kunden'] = 1; unset($_GET['lead']);
+                break;
+            case 'lead_import':
+                $ccListe = json_decode((string) ($_POST['kontakte'] ?? ''), true);
+                $ccI = PartnerLeads::importieren($ccPid, is_array($ccListe) ? $ccListe : []);
+                header('Location: ' . $selbst(['cc' => 1, 'kunden' => 1, 'm' => 'import:' . $ccI['neu'] . ':' . $ccI['schon']]), true, 303); exit;
+            case 'lead_daten':
+                PartnerLeads::aendern($ccPid, $ccLid, $_POST);
+                header('Location: ' . $ccAkte($ccLid), true, 303); exit;
+            case 'lead_stufe':
+                PartnerLeads::stufeSetzen($ccPid, $ccLid, (string) ($_POST['stufe'] ?? ''));
+                header('Location: ' . $ccAkte($ccLid), true, 303); exit;
+            case 'lead_prio':
+                $ccPr = (string) ($_POST['prio'] ?? '');
+                PartnerLeads::prioritaetSetzen($ccPid, $ccLid, $ccPr === '' ? null : $ccPr);
+                header('Location: ' . $ccAkte($ccLid), true, 303); exit;
+            case 'lead_naechster':
+                PartnerLeads::naechsterSchritt($ccPid, $ccLid, (string) ($_POST['text'] ?? ''), (string) ($_POST['datum'] ?? '') ?: null);
+                header('Location: ' . $ccAkte($ccLid), true, 303); exit;
+            case 'lead_notiz':
+                PartnerLeads::eintrag($ccPid, $ccLid, 'notiz', (string) ($_POST['text'] ?? ''));
+                header('Location: ' . $ccAkte($ccLid, 'gespeichert', '#verlauf'), true, 303); exit;
+            case 'lead_aufgabe':
+                PartnerLeads::eintrag($ccPid, $ccLid, 'aufgabe', (string) ($_POST['text'] ?? ''), (string) ($_POST['faellig'] ?? '') ?: null);
+                header('Location: ' . $ccAkte($ccLid, 'gespeichert', '#aufgabe'), true, 303); exit;
+            case 'lead_aufgabe_ok':
+                PartnerLeads::aufgabeErledigt($ccPid, (int) ($_POST['eintrag'] ?? 0));
+                header('Location: ' . $ccAkte($ccLid, 'gespeichert', '#aufgabe'), true, 303); exit;
+            case 'lead_uebergeben':
+                $ccR = PartnerLeads::uebergeben($ccPid, $ccLid, $_POST, $sprache);
+                if ($ccR['ok']) { header('Location: ' . $ccAkte($ccLid, 'ue_gut'), true, 303); exit; }
+                $ccLeadMeldung = (string) ($ccR['grund'] ?? 'panne'); $ccLeadPost = $_POST;
+                $_GET['lead'] = $ccLid; unset($_GET['kunden']);
+                break;
+            case 'lead_archiv':
+                PartnerLeads::archivieren($ccPid, $ccLid);
+                header('Location: ' . $selbst(['cc' => 1, 'kunden' => 1, 'm' => 'gespeichert']), true, 303); exit;
+            case 'lead_wieder':
+                PartnerLeads::archivieren($ccPid, $ccLid, true);
+                header('Location: ' . $ccAkte($ccLid), true, 303); exit;
+            default:
+                header('Location: ' . $selbst(['cc' => 1, 'kunden' => 1]), true, 303); exit;
+        }
+    }
     $ccKatalog = [];
     try {
         require_once __DIR__ . '/app/src/Werbemittel.php';
@@ -218,12 +284,18 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
     } catch (Throwable $e) { $ccKatalog = []; }
     $ccMc = (bool) $ccKatalog;
     $ccSeite = 'start'; $ccK = null;
-    if (isset($_GET['qr'])) { $ccSeite = 'qr'; }
+    if (isset($_GET['kunden'])) { $ccSeite = 'kunden'; PartnerLeads::abgleich((int) $p['id']); }
+    elseif (isset($_GET['lead'])) {
+        $ccLead = PartnerLeads::laden((int) $p['id'], (int) $_GET['lead']);   // fremde oder unbekannte → Kundenliste
+        $ccSeite = $ccLead ? 'lead' : 'kunden';
+    }
+    elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
     elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
     elseif (isset($_GET['kampagne'])) {
         $ccK = PartnerKampagne::laden((int) $p['id'], (int) $_GET['kampagne']);   // fremde oder unbekannte → Startseite
         $ccSeite = $ccK ? 'kampagne' : 'start';
     }
+    if ($ccSeite === 'start') { PartnerLeads::abgleich((int) $p['id']); }   // „Neue Leads“ und Aufgaben stimmen schon auf der Startseite
     require __DIR__ . '/app/views/partner_cc.php';
     exit;
 }
@@ -1451,6 +1523,8 @@ if ($p && isset($_GET['karte'])) {
       'start' => ['url' => $selbst(['cc' => 1]), 'kurz' => Texte::h(Texte::PARTNER_REITER['reiter']['start']['kurz'], $sprache)],
       'mehr' => Texte::h(Texte::PARTNER_REITER['mehr'], $sprache), 'mehr_aria' => Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache),
       'mehr_ids' => ['werbemittel', 'academy', 'profil'],
+      // KUNDEN ist seit Phase 2 die Pipeline im Command Center; der Reiter „finden“ (Neue Kunden gewinnen) bleibt über Sprungmarken erreichbar.
+      'extern' => ['finden' => $selbst(['cc' => 1, 'kunden' => 1])],
       'so' => Texte::h(Texte::PARTNER_REITER['so'], $sprache), 'suche' => Texte::h(Texte::PARTNER_REITER['suche'], $sprache),
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [

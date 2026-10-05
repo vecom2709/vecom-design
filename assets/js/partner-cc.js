@@ -112,6 +112,45 @@
     zeigen(0, false);
   });
 
+  /* ---------- 4. KUNDEN (Phase 2, 05.10.2026) ----------
+     a) Stufe und Priorität speichern beim Wählen — ohne Skript steht ein Knopf daneben.
+     b) Anrufen, WhatsApp, E-Mail: der Tipp öffnet das Telefon wie immer und schreibt
+        nebenbei „kontaktiert“ in den Verlauf (sendBeacon, die Seite wartet nicht).
+     c) „Meine Kontakte“ aus diesem Browser übernehmen: nur auf Klick des Partners. */
+  [].forEach.call(document.querySelectorAll('form[data-cc-auto]'), function (f) {
+    f.addEventListener('change', function () { if (f.requestSubmit) { f.requestSubmit(); } else { f.submit(); } });
+  });
+  var csrf = document.querySelector('input[name=_csrf]');
+  document.addEventListener('click', function (e) {
+    var a = e.target.closest('[data-cc-kontakt]');
+    if (!a || !csrf || !a.dataset.id) { return; }
+    var d = new FormData();
+    d.append('tat', 'lead_kontakt'); d.append('_csrf', csrf.value); d.append('id', a.dataset.id); d.append('art', a.dataset.ccKontakt);
+    var ziel = window.location.pathname + window.location.search;
+    if (navigator.sendBeacon) { navigator.sendBeacon(ziel, d); }
+    else { fetch(ziel, { method: 'POST', body: d, credentials: 'same-origin', keepalive: true }).catch(function () { }); }
+  }, true);
+  var imp = document.querySelector('[data-cc-import]');
+  if (imp) {
+    var schluessel = imp.getAttribute('data-cc-import'), liste = [], schon = false;
+    try {
+      liste = JSON.parse(localStorage.getItem(schluessel) || '[]');
+      schon = localStorage.getItem(schluessel + '_uebernommen') === String(liste.length);
+    } catch (e) { liste = []; }
+    if (Array.isArray(liste) && liste.length && !schon) {
+      var rein = liste.slice(0, 40).map(function (k) {
+        return { name: String(k.name || '').slice(0, 60), branche: String(k.branche || ''), notiz: String(k.notiz || '').slice(0, 120), status: String(k.status || 'neu') };
+      });
+      var tx = imp.querySelector('[data-cc-import-text]');
+      if (tx) { tx.textContent = (tx.dataset.vorlage || '').replace('{n}', String(rein.length)); }
+      var form = imp.querySelector('form');
+      form.querySelector('input[name=kontakte]').value = JSON.stringify(rein);
+      // Gemerkt wird die Anzahl: kommt im Browser ein Kontakt dazu, erscheint der Kasten wieder (der Server lässt Doppelte weg).
+      form.addEventListener('submit', function () { try { localStorage.setItem(schluessel + '_uebernommen', String(liste.length)); } catch (e) { } });
+      imp.hidden = false;
+    }
+  }
+
   /* ---------- 3. Kopieren ---------- */
   document.addEventListener('click', function (e) {
     var k = e.target.closest('[data-cc-kopie]');

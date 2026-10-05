@@ -294,6 +294,31 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
   <?php endif; ?>
 </div>
 
+<?php /* Kunden & Leads des Partners (Phase 2, 05.10.2026, Uwe: „Ja, wie empfohlen“): Name, Stufe und die ART des
+         letzten Schritts — nie der Text seiner Notizen oder Aufgaben. Nur lesen: Die Liste gehört dem Partner. */
+  require_once dirname(__DIR__) . '/src/PartnerLeads.php';
+  $pLeads = [];
+  try { $pLeads = PartnerLeads::fuerVerwaltung((int) $p['id']); } catch (Throwable $e) { $pLeads = []; }
+  $plStufe = static fn(string $s): string => Texte::h(Texte::PARTNER_LEADS['stufen'][$s] ?? [], 'de', $s);
+  $plQuelle = static fn(string $q): string => Texte::h(Texte::PARTNER_LEADS['quellen'][$q] ?? [], 'de', $q);
+  $plArt = static fn(string $a): string => $a === '' ? '—' : Texte::h(Texte::PARTNER_LEADS['arten'][$a] ?? [], 'de', $a); ?>
+<div class="block" id="leads">
+  <h2 style="font-size:15px;margin:0 0 6px">Kunden &amp; Leads des Partners<?php if ($pLeads): ?> <span style="color:var(--leise);font-weight:400">(<?= count(array_filter($pLeads, static fn($l) => !$l['archiviert'])) ?> aktiv)</span><?php endif; ?></h2>
+  <p style="color:var(--leise);font-size:12px;margin:0 0 10px">Seine eigene Liste im Command Center. Notizen und Aufgaben sieht nur er — hier steht nur, was zuletzt passiert ist.</p>
+  <?php if (!$pLeads): ?><p style="color:var(--leise);font-size:13px">Noch keine.</p><?php else: ?>
+  <div class="tabellenrahmen"><table>
+    <thead><tr><th>Betrieb</th><th>Stufe</th><th>Quelle</th><th>Letzter Schritt</th><th>Angelegt</th></tr></thead><tbody>
+    <?php foreach ($pLeads as $l): ?>
+      <tr<?= $l['archiviert'] ? ' style="opacity:.5"' : '' ?>><td><?= Fmt::h($l['name']) ?><?= $l['uebergeben_am'] ? ' <span class="marke2 gut">übergeben ' . Fmt::h(Fmt::datum((string) $l['uebergeben_am'])) . '</span>' : '' ?><?= $l['archiviert'] ? ' <span style="font-size:11.5px;color:var(--leise)">archiviert</span>' : '' ?></td>
+          <td><?= Fmt::h($plStufe($l['stufe'])) ?></td>
+          <td style="font-size:12.5px"><?= Fmt::h($plQuelle($l['quelle'])) ?></td>
+          <td style="font-size:12.5px"><?= Fmt::h($plArt($l['letzter'])) ?><?= $l['letzter_am'] ? ' · ' . Fmt::h(Fmt::datum((string) $l['letzter_am'])) : '' ?></td>
+          <td style="font-size:12.5px"><?= Fmt::h(Fmt::datum($l['created_at'])) ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+  <?php endif; ?>
+</div>
+
 <?php if ($p['status'] !== 'geloescht' && (!empty($p['foto_am']) || (string) ($p['profil_satz'] ?? '') !== '')): require_once dirname(__DIR__) . '/src/PartnerWerbung.php'; $pf = PartnerWerbung::fotoAdresse($p); ?>
 <div class="block" id="profil">
   <h2 style="font-size:15px;margin:0 0 6px">Empfehlungsseite</h2>
