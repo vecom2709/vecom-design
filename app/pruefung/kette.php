@@ -10493,11 +10493,28 @@ $abSt = static function (int $n) use ($abP, $abK1): void {
             'basis_cents' => 5000, 'provision_cents' => 500, 'status' => 'wartet', 'frei_ab' => date('Y-m-d H:i:s', strtotime('+14 days'))]);
     }
 };
-pruefe('Stufen: am Anfang Bronze = Standard 10 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'bronze' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1000);
+pruefe('Stufen: am Anfang Starter = Standard 10 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'starter' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1000);
 $abSt(5);
 pruefe('Stufen: ab 5 Verkäufen Silber 12 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'silber' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1200);
 $abSt(5);
 pruefe('Stufen: ab 10 Verkäufen Gold 15 %', Partner::satzFuer(Partner::laden($abP))['stufe'] === 'gold' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1500);
+$abGs = Partner::stufeStand(Partner::laden($abP));
+$abVorPlatin = (int) Db::wert('SELECT MAX(id) FROM partner_provisionen', [], 0);
+$abSt(10);
+$abPs = Partner::stufeStand(Partner::laden($abP));
+pruefe('Level (Phase 5): ab 20 Verkäufen PLATIN — Satz wie Gold (Uwe: „Platin ohne mehr %“), Gold zeigt den Weg dorthin ohne „dann X %“, Platin ist oben',
+    $abGs['naechste'] === 'platin' && $abGs['naechster_satz'] === null && $abGs['fehlen'] === 10
+    && Partner::satzFuer(Partner::laden($abP))['stufe'] === 'platin' && Partner::satzFuer(Partner::laden($abP))['wert'] === 1500
+    && $abPs['naechste'] === null && $abPs['anteil'] === 100
+    && Partner::einstellungenSetzen(['partner_standard_wert' => '10', 'partner_mindest_cents' => '50', 'partner_auto_tageslimit_cents' => '100',
+        'partner_silber_ab' => '5', 'partner_silber_bp' => '12', 'partner_gold_ab' => '10', 'partner_gold_bp' => '15', 'partner_platin_ab' => '9']) === 'Platin muss bei mehr Verkäufen beginnen als Gold.',
+    json_encode([$abGs, $abPs]));
+// Die zehn Platin-Verkäufe wieder weg — die Auswertung weiter unten rechnet mit den zehn bis Gold.
+foreach (Db::all('SELECT payment_id, order_id FROM partner_provisionen WHERE id > ? AND partner_id = ?', [$abVorPlatin, $abP]) as $abX) {
+    Db::run('DELETE FROM partner_provisionen WHERE payment_id = ?', [(int) $abX['payment_id']]);
+    Db::run('DELETE FROM payments WHERE id = ? OR order_id = ?', [(int) $abX['payment_id'], (int) $abX['order_id']]);
+    Db::run('DELETE FROM orders WHERE id = ?', [(int) $abX['order_id']]);
+}
 Db::run("UPDATE partner SET provision_art = 'prozent', provision_wert = 1100 WHERE id = ?", [$abP]);
 pruefe('Stufen: eigene Bedingungen gehen vor', Partner::satzFuer(Partner::laden($abP))['wert'] === 1100 && Partner::satzFuer(Partner::laden($abP))['stufe'] === null);
 Db::run('UPDATE partner SET provision_art = NULL, provision_wert = NULL WHERE id = ?', [$abP]);
@@ -12915,7 +12932,7 @@ pruefe('Wettbewerb: Zustimmung per Häkchen auf der Partnerseite, Standard aus (
 // Stufen: Fortschritt bis zur nächsten
 $mkSt = Partner::stufeStand(Partner::laden($mkW2));
 pruefe('Stufe: Balken von der eigenen Schwelle zur nächsten, mit dem Satz der nächsten Stufe',
-    Partner::einstellung('partner_stufen_an') !== '1' || ($mkSt['stufe'] === 'bronze' && $mkSt['naechste'] === 'silber' && $mkSt['anteil'] === 0
+    Partner::einstellung('partner_stufen_an') !== '1' || ($mkSt['stufe'] === 'starter' && $mkSt['naechste'] === 'silber' && $mkSt['anteil'] === 0
     && ($mkSt['naechster_satz']['wert'] ?? 0) >= Partner::zahl('partner_silber_bp')), json_encode($mkSt));
 
 // Mappe zum Vorbeibringen
@@ -24545,6 +24562,134 @@ Db::run('DELETE FROM partner_klicks WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi])
 Db::run('DELETE FROM partner_kurznamen WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
 Db::run('DELETE FROM mk_kampagnen WHERE partner_id IN (?, ?)', [$p4Ai, $p4Bi]);
 Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p4Ai, $p4Bi]);
+
+/* ============================================================================
+   Provisionen (Phase 5, 05.10.2026; Spezifikation 28–31, 55): Geld in vier
+   Stufen ohne zweite Rechnung, ERWARTET aus offenen Angeboten (voraussichtlich,
+   mit den Regeln der echten Provision), Level bis PLATIN, Auszahlungslauf mit
+   Sammelfreigabe nur auf Klick mit Rückfrage. Nie ein Kundenname.
+   ============================================================================ */
+abschnitt('Partner: Ergebnisse und Provisionen');
+require_once $wurzel . '/src/PartnerGeld.php';
+$p5 = Partner::laden(Partner::anlegen(['name' => 'Greta Geld', 'email' => 'greta.geld@partner.example', 'code' => 'GRETA5', 'sprache' => 'de', 'status' => 'aktiv']));
+$p5i = (int) $p5['id'];
+$p5F = Partner::laden(Partner::anlegen(['name' => 'Fritz Fremd', 'email' => 'fritz.fremd@partner.example', 'code' => 'FRITZ5', 'sprache' => 'de', 'status' => 'aktiv']));
+$p5K = [];
+foreach (['eins' => 'link', 'zwei' => 'anruf', 'alt' => 'link', 'ohne' => null] as $kn => $q) {
+    $p5K[$kn] = (int) Db::insert('customers', ['name' => 'Geheimkunde ' . ucfirst($kn), 'email' => "p5-$kn@kunde.example"]);
+    if ($q !== null) { Db::run('INSERT INTO partner_zuordnungen (customer_id, partner_id, quelle, kanal) VALUES (?, ?, ?, ?)', [$p5K[$kn], $p5i, $q, 'flyer']); }
+}
+Db::run('UPDATE partner_zuordnungen SET created_at = NOW() - INTERVAL 14 MONTH WHERE customer_id = ?', [$p5K['alt']]);
+$p5Ang = static function (int $kunde, string $status, int $summe, array $extra = []): int {
+    return (int) Db::insert('angebote', ['nummer' => 'P5-' . bin2hex(random_bytes(4)), 'customer_id' => $kunde, 'status' => $status, 'summe_cents' => $summe,
+        'token' => bin2hex(random_bytes(24)), 'gesendet_am' => date('Y-m-d H:i:s', strtotime('-3 days')), 'titel' => 'Website'] + $extra);
+};
+$p5Ang($p5K['eins'], 'gesendet', 100000);                                                    // 10 % → 100,00 €
+$p5Ang($p5K['zwei'], 'gesendet', 50000);                                                     // am Telefon gewonnen → mindestens 15 % → 75,00 €
+$p5Ang($p5K['eins'], 'gesendet', 70000, ['gueltig_bis' => date('Y-m-d', strtotime('-1 day'))]);   // abgelaufen
+$p5Ang($p5K['alt'], 'gesendet', 90000);                                                      // Zuordnung älter als 12 Monate
+$p5Ang($p5K['ohne'], 'gesendet', 90000);                                                     // nicht sein Kunde
+$p5Ang($p5K['eins'], 'gesendet', 90000, ['demo' => 1]);                                      // Beispiel
+$p5Ang($p5K['eins'], 'abgelehnt', 90000);
+$p5Order = 990950;
+$p5Ang($p5K['eins'], 'angenommen', 80000, ['order_id' => $p5Order, 'angenommen_am' => date('Y-m-d H:i:s', strtotime('-1 day'))]);   // Anzahlung schon bezahlt
+$p5Prov = static function (string $status, int $cents, array $extra = []) use ($p5i, $p5K): void {
+    static $n = 990960;
+    Db::insert('partner_provisionen', ['partner_id' => $p5i, 'customer_id' => $p5K['eins'], 'payment_id' => $n++, 'art' => 'website', 'basis_cents' => $cents * 10,
+        'provision_cents' => $cents, 'status' => $status, 'satz' => '10 %', 'frei_ab' => date('Y-m-d H:i:s', strtotime('+10 days'))] + $extra);
+};
+$p5Prov('wartet', 4000, ['order_id' => $p5Order]); $p5Prov('freigabe', 1000); $p5Prov('bereit', 2000, ['einbehalt_cents' => 200]);
+$p5Prov('unterwegs', 3000); $p5Prov('ausgezahlt', 5000); $p5Prov('storniert', 9999);
+$p5E = PartnerGeld::erwartet($p5);
+$p5U = PartnerGeld::uebersicht($p5);
+pruefe('ERWARTET: nur offene (gesendet, gültig) oder angenommene Angebote seiner Kunden mit laufender Zuordnung, netto mal heutigem Satz, am Telefon mindestens 15 %, schon bezahlte Teile abgezogen; Beispiele, abgelehnte, fremde und abgelaufene nie',
+    count($p5E) === 3 && array_sum(array_column($p5E, 'cents')) === 21500 && !array_diff([4000, 10000, 7500], array_column($p5E, 'cents'))
+    && count(array_filter($p5E, static fn($e) => $e['status'] === 'angenommen')) === 1,
+    json_encode($p5E));
+pruefe('Vier Stufen ohne zweite Rechnung: bestätigt = wartet + Freigabe, auszahlbar = bereit (nach Einbehalt eigens), ausgezahlt = unterwegs + ausgezahlt; Storniertes ist kein Geld des Partners; nächste Freigabe mit Datum',
+    $p5U['stufen']['erwartet'] === ['cents' => 21500, 'n' => 3] && $p5U['stufen']['bestaetigt'] === ['cents' => 5000, 'n' => 2]
+    && $p5U['stufen']['auszahlbar'] === ['cents' => 2000, 'n' => 1] && $p5U['netto_auszahlbar'] === 1800 && $p5U['stufen']['ausgezahlt'] === ['cents' => 8000, 'n' => 2]
+    && $p5U['storniert_cents'] === 9999 && $p5U['naechste_frei'] !== null && $p5U['weg'] === PartnerWege::weg($p5) && $p5U['automatisch'] === false
+    && array_keys($p5U['stufen']) === PartnerGeld::STUFEN, json_encode($p5U));
+$p5L = PartnerGeld::liste($p5i);
+$p5UF = PartnerGeld::uebersicht($p5F);
+Db::run("UPDATE partner SET status = 'pausiert' WHERE id = ?", [$p5i]);
+$p5Pause = PartnerGeld::erwartet(Partner::laden($p5i));
+Db::run("UPDATE partner SET status = 'aktiv' WHERE id = ?", [$p5i]);
+pruefe('Liste: sechs Provisionen mit Nummer PV-Jahr-…, Stufe je Status, storniert ohne Stufe; ein fremder Partner sieht null; ein pausierter Partner erwartet nichts',
+    count($p5L) === 6 && preg_match('~^PV-\d{4}-\d{5}$~', $p5L[0]['nr']) === 1 && $p5L[0]['stufe'] === '' && $p5L[5]['stufe'] === 'bestaetigt'
+    && array_sum(array_map(static fn($s) => $s['cents'], $p5UF['stufen'])) === 0 && $p5Pause === [], json_encode([$p5L[0], $p5UF['stufen']]));
+
+// --- Auszahlungslauf: freigeben nur „freigabe“ → „bereit“, auszahlen nur über den Weg des Partners ---
+$p5Lauf = array_values(array_filter(PartnerGeld::lauf(), static fn($z) => $z['id'] === $p5i))[0] ?? [];
+$p5Frei1 = PartnerGeld::sammelFreigabe([$p5i, 0, (int) $p5F['id']]);
+$p5Frei2 = PartnerGeld::sammelFreigabe([$p5i]);
+$p5Aus = PartnerGeld::sammelAuszahlung([$p5i]);
+pruefe('Auszahlungslauf: je Partner Freigabe und Bereit mit Summe (netto nach Einbehalt), Weg und Mindestbetrag; Sammelfreigabe gibt nur „freigabe“ frei und nur einmal; ohne sofortigen Weg (SEPA) und unter dem Mindestbetrag geht nichts raus',
+    ($p5Lauf['freigabe_n'] ?? 0) === 1 && ($p5Lauf['freigabe_cents'] ?? 0) === 1000 && ($p5Lauf['bereit_n'] ?? 0) === 1 && ($p5Lauf['netto_cents'] ?? 0) === 1800
+    && ($p5Lauf['weg'] ?? 'x') === PartnerWege::weg($p5) && !in_array($p5Lauf['weg'] ?? '', PartnerWege::AUTOMATISCH, true) && ($p5Lauf['mindest_ok'] ?? true) === false
+    && $p5Frei1 === 1 && $p5Frei2 === 0 && (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE partner_id = ? AND status = 'bereit'", [$p5i], 0) === 2
+    && count($p5Aus) === 1 && $p5Aus[0]['ok'] === false && (int) Db::wert("SELECT COUNT(*) FROM partner_provisionen WHERE partner_id = ? AND status = 'unterwegs'", [$p5i], 0) === 1,
+    json_encode([$p5Lauf, $p5Frei1, $p5Frei2, $p5Aus]));
+$p5Idx = (string) file_get_contents($wurzel . '/index.php');
+$p5Vw = (string) file_get_contents($wurzel . '/views/partner_auszahlungslauf.php');
+pruefe('Sammelfreigabe und Sammelauszahlung: nur Admin, je mit Rückfrage SCHWER (auch serverseitig), jedes Formular mit CSRF; die automatische Auszahlung bleibt Uwes Ausnahme',
+    (Ablauf::TRAGWEITE['partner_lauf_freigeben'][0] ?? '') === Ablauf::SCHWER && (Ablauf::TRAGWEITE['partner_lauf_auszahlen'][0] ?? '') === Ablauf::SCHWER
+    && !Ablauf::bestaetigt(['tat' => 'partner_lauf_auszahlen']) && Ablauf::bestaetigt(['tat' => 'partner_lauf_auszahlen', '_bestaetigt' => 'partner_lauf_auszahlen'])
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_lauf_', $t))
+    && str_contains($p5Idx, "case 'partner_lauf_freigeben':") && str_contains($p5Idx, "if (\$unter === 'auszahlungslauf')")
+    && substr_count($p5Vw, '<form method="post"') === 2 && substr_count($p5Vw, 'Csrf::feld()') === 2
+    && Partner::STANDARD['partner_auto_auszahlen'] === '1');
+
+// --- ERGEBNISSE-Seite: vier Stufen in Reihenfolge, Level-Leiter, keine Namen ---
+Db::run('UPDATE partner SET mk_profil = NULL WHERE id = ?', [$p5i]);
+$p5Seite = static function (int $pid) use ($wurzel): string {
+    $_SESSION['csrf'] = $_SESSION['csrf'] ?? 'kette-csrf';
+    $p = Partner::laden($pid); $sprache = 'de'; $C = Texte::PARTNER_CC;
+    $c = static fn(array $t, array $r = []): string => strtr(Texte::h($t, 'de'), $r);
+    $h = static fn($s): string => htmlspecialchars((string) $s, ENT_QUOTES, 'UTF-8');
+    $selbst = static fn(array $x = []): string => '/partner.php?' . http_build_query(['t' => 'tok'] + $x);
+    $ccZahl = static fn(int $n): string => (string) $n;
+    $ccBereich = static fn(string $a): string => '#' . $a;
+    $ccKacheln = ['leads' => [0, 'cc:kunden', ''], 'kunden' => [1, 'zahlen', ''], 'provision' => [18000, 'provisionen', ''], 'klicks' => [3, 'zahlen', '']];
+    ob_start();
+    try { require $wurzel . '/views/partner_cc_ergebnisse.php'; } finally { $aus = (string) ob_get_clean(); }
+    return $aus;
+};
+$p5H = $p5Seite($p5i);
+$p5Pos = array_map(static fn($w) => strpos($p5H, '<span class="l">' . $w . '</span>'), ['Erwartet', 'Bestätigt', 'Auszahlbar', 'Ausgezahlt']);
+pruefe('ERGEBNISSE: vier Geldstufen in dieser Reihenfolge mit Betrag (Erwartet 215,00 €, voraussichtlich gekennzeichnet), Level-Leiter Starter bis Platin mit Platin-Vorteilen, Provisionen und Rückweg zu Zahlen und Auszahlungsweg — kein Kundenname',
+    !in_array(false, $p5Pos, true) && $p5Pos === array_values(array_unique($p5Pos)) && $p5Pos[0] < $p5Pos[1] && $p5Pos[1] < $p5Pos[2] && $p5Pos[2] < $p5Pos[3]
+    && str_contains($p5H, '215,00') && str_contains($p5H, 'voraussichtlich') && str_contains($p5H, 'Platin-Vorteile')
+    && substr_count($p5H, '<ol class="cc-lv-leiter">') === 1 && str_contains($p5H, '<li aria-current="true"><b>Starter</b>')
+    && str_contains($p5H, 'PV-') && !str_contains($p5H, 'Geheimkunde') && str_contains($p5H, '#wege'), mb_substr(strip_tags($p5H), 0, 400));
+$p5Pp = (string) file_get_contents($oben . '/partner.php');
+$p5Cc = (string) file_get_contents($wurzel . '/views/partner_cc.php');
+pruefe('Wege: ERGEBNISSE in der Leiste und im vollen Bereich führt ins Command Center; die Partnerseite zeigt PLATIN als Abzeichen',
+    str_contains($p5Pp, "elseif (isset(\$_GET['ergebnisse'])) { \$ccSeite = 'ergebnisse'; }") && str_contains($p5Pp, "'geld' => \$selbst(['cc' => 1, 'ergebnisse' => 1])")
+    && str_contains($p5Cc, "'geld' => \$selbst(['cc' => 1, 'ergebnisse' => 1]),") && str_contains((string) file_get_contents($oben . '/p.php'), "Partner::satzFuer(\$p)['stufe'] === 'platin'")
+    && Texte::h(Texte::PARTNER_SEITE['platin'], 'de') === 'Vecom Platin-Partner');
+$p5Fehlt = []; $p5Platz = [];
+$p5Drei = static function ($w, string $pfad) use (&$p5Drei, &$p5Fehlt, &$p5Platz): void {
+    if (!is_array($w)) { return; }
+    if (array_key_exists('it', $w) || array_key_exists('de', $w)) {
+        $ph = [];
+        foreach (['it', 'de', 'en'] as $l) { if (trim((string) ($w[$l] ?? '')) === '') { $p5Fehlt[] = "$pfad.$l"; } preg_match_all('~\{[a-z]+\}~', (string) ($w[$l] ?? ''), $m); sort($m[0]); $ph[] = implode(',', $m[0]); }
+        if (count(array_unique($ph)) > 1) { $p5Platz[] = $pfad; }
+        return;
+    }
+    foreach ($w as $k => $v) { $p5Drei($v, "$pfad.$k"); }
+};
+$p5Drei(Texte::PARTNER_GELD, 'PARTNER_GELD');
+pruefe('Texte ERGEBNISSE: dreisprachig mit denselben Platzhaltern, Deutsch duzt, jede Stufe benannt; Level-Namen Starter und Platin',
+    $p5Fehlt === [] && $p5Platz === [] && Texte::duzt('PARTNER_GELD.satz') && array_keys(Texte::PARTNER_GELD['stufen']) === PartnerGeld::STUFEN
+    && Texte::h(Texte::PARTNER['st_starter'], 'de') === 'Starter' && Texte::h(Texte::PARTNER['st_platin'], 'it') === 'Platino', json_encode([$p5Fehlt, $p5Platz]));
+
+Db::run('DELETE FROM partner_provisionen WHERE partner_id = ?', [$p5i]);
+Db::run('DELETE FROM angebote WHERE customer_id IN (' . implode(',', $p5K) . ')');
+Db::run('DELETE FROM partner_zuordnungen WHERE customer_id IN (' . implode(',', $p5K) . ')');
+Db::run('DELETE FROM customers WHERE id IN (' . implode(',', $p5K) . ')');
+Db::run('DELETE FROM partner WHERE id IN (?, ?)', [$p5i, (int) $p5F['id']]);
 
 /* ============================================================================
    Vecom Partner Academy, Etappe 1 (05.10.2026, Uwe: „Ja, Etappe 1 bauen“).

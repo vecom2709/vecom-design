@@ -553,3 +553,50 @@ html{scroll-padding-top:76px}
 .cc-kl-alle{margin-top:12px}
 .cc-kl-alle > summary{cursor:pointer;color:var(--gold);font-size:14px;font-weight:600;padding:6px 0}
 .cc-kl-alle[open] > summary{margin-bottom:8px}
+
+/* ---------- Phase 5: ERGEBNISSE (05.10.2026) ---------- */
+/* Das Geld in vier Stufen: am Handy zwei Spalten, am Rechner eine Reihe; die Ziffer zeigt den Weg. */
+.cc-geld{list-style:none;margin:22px 0 0;padding:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+@media (min-width:860px){.cc-geld{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.cc-geld li{position:relative;display:flex;flex-direction:column;gap:3px;padding:15px 14px 14px;border-radius:16px;border:1px solid var(--linie);background:linear-gradient(180deg,var(--flaeche),var(--grund2))}
+.cc-geld .nr{position:absolute;top:12px;right:13px;width:22px;height:22px;border-radius:50%;border:1px solid var(--linie2);display:grid;place-items:center;font-size:11.5px;color:var(--leise);font-weight:650}
+.cc-geld .l{font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.cc-geld b{font:700 clamp(22px,5.4vw,28px)/1.15 var(--f-display);font-variant-numeric:tabular-nums;margin:4px 0 2px}
+.cc-geld small{font-size:12.5px;color:var(--leise);line-height:1.45}
+.cc-geld .knopf{margin-top:8px;align-self:flex-start;min-height:36px;padding:6px 12px;font-size:13px}
+.cc-geld li.null b{color:var(--leise)}
+.cc-geld-erwartet{border-style:dashed!important}
+.cc-geld-erwartet b{color:var(--dim)}
+.cc-geld-auszahlbar:not(.null){border-color:var(--haar)!important;background:linear-gradient(180deg,rgba(241,211,139,.08),var(--grund2))!important}
+.cc-geld-auszahlbar:not(.null) b{color:var(--gold-hell)}
+/* Level */
+.cc-level{display:flex;flex-direction:column;gap:6px}
+.cc-lv-name{font:800 clamp(26px,6vw,34px)/1.1 var(--f-display);margin:0;letter-spacing:.02em}
+.lv-silber .cc-lv-name{color:#d9dde6}
+.lv-gold .cc-lv-name{color:var(--gold-hell)}
+.lv-platin .cc-lv-name{background:linear-gradient(100deg,#e9edf5,#b9c6dc 45%,#f4f6fb 60%,#aab7cf);-webkit-background-clip:text;background-clip:text;color:transparent}
+.cc-lv-satz{margin:0;font-size:14.5px;color:var(--dim);line-height:1.5}
+.cc-lv-balken{height:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;margin:8px 0 2px}
+.cc-lv-balken i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,var(--gold),var(--gold-hell))}
+.cc-lv-leiter{list-style:none;margin:10px 0 0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px}
+.cc-lv-leiter li{display:flex;flex-direction:column;gap:2px;padding:9px 8px;border-radius:12px;border:1px solid var(--linie);font-size:11.5px;color:var(--leise);text-align:center}
+.cc-lv-leiter b{font-size:13px;color:var(--dim)}
+.cc-lv-leiter li[aria-current]{border-color:var(--gold);background:rgba(241,211,139,.07)}
+.cc-lv-leiter li[aria-current] b{color:var(--gold-hell)}
+.cc-lv-vorteile{margin-top:10px;padding:11px 13px;border-radius:12px;border:1px dashed var(--linie2);font-size:13px;color:var(--leise)}
+.cc-lv-vorteile.an{border-style:solid;border-color:#b9c6dc;color:var(--dim)}
+.cc-lv-vorteile p{margin:0 0 4px}
+.cc-lv-vorteile ul{margin:0;padding-left:18px;line-height:1.55}
+/* Provisionen */
+.cc-pvtab small{display:block;font-size:11.5px;color:var(--leise);font-weight:400;margin-top:2px}
+.cc-pvtab td.r{text-align:right}
+.cc-stufe{display:inline-block;padding:2px 9px;border-radius:99px;border:1px solid var(--linie2);font-size:12px;font-weight:650;white-space:nowrap}
+.cc-pvtab tr.st-auszahlbar .cc-stufe{border-color:var(--gold);color:var(--gold-hell)}
+.cc-pvtab tr.st-ausgezahlt .cc-stufe{border-color:rgba(108,214,160,.5);color:#8ee0b6}
+.cc-pvtab tr.weg{opacity:.55}
+.cc-pvtab tr.weg b{text-decoration:line-through}
+@media (max-width:640px){.cc-pvtab td.r{text-align:left}}
+.cc-geld + .cc-raster{margin-top:22px}
+.cc-mat li b{white-space:nowrap}
+@media (max-width:640px){.cc-pvtab td{align-items:flex-start}}
+.cc-pvtab td:first-of-type{text-align:left}

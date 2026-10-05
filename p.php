@@ -358,6 +358,8 @@ $wegIcon = [
   .lp-aktion b{font-size:16px;line-height:1.4}
   .lp-aktion span{font-size:13.5px;color:var(--dim)}
   .lp-kopf span{display:block;color:var(--dim);font-size:14.5px;margin-top:3px}
+  .lp-kopf .lp-platin{display:inline-block;margin-top:7px;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;letter-spacing:.04em;color:#0b1225;
+    background:linear-gradient(100deg,#e9edf5,#b9c6dc 45%,#f4f6fb 60%,#aab7cf)}
   .ld blockquote{margin:0 0 20px;padding:12px 16px;border-left:2px solid rgba(241,211,139,.6);font-size:16px;line-height:1.6;color:var(--text)}
   .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
   .lp-sprache{border:0;padding:0;margin:2px 0 2px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -605,7 +607,10 @@ $wegIcon = [
     <div class="lp-kopf">
       <?php if ($foto): ?><img class="bild" src="<?= $h($foto) ?>" alt="<?= $h($L('foto_alt')) ?>" width="96" height="96">
       <?php else: ?><span class="bild" aria-hidden="true"><?= $h($initialen) ?></span><?php endif; ?>
-      <div><b><?= $h($name) ?></b><span>★ <?= $h($S($PS['empfiehlt'])) ?></span></div>
+      <?php /* Platin-Abzeichen (Phase 5, 05.10.2026): einer der Platin-Vorteile — Uwe: „Platin ohne mehr %“. */
+        $lpPlatin = (static function () use ($p): bool { try { return Partner::satzFuer($p)['stufe'] === 'platin'; } catch (Throwable $e) { return false; } })(); ?>
+      <div><b><?= $h($name) ?></b><span>★ <?= $h($S($PS['empfiehlt'])) ?></span>
+        <?php if ($lpPlatin): ?><span class="lp-platin"><?= $h($S($PS['platin'])) ?></span><?php endif; ?></div>
     </div>
     <?php if ($gruss): ?><div class="lp-gruss"><span><?= $h($S($PS['gruss_titel'])) ?></span><audio controls preload="none" src="<?= $h($gruss) ?>"></audio></div><?php endif; ?>
     <?php if ($satz !== ''): ?><blockquote><?= $h($zit($satz)) ?></blockquote><?php endif; ?>

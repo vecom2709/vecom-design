@@ -150,7 +150,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <div class="block" id="rangliste">
   <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
     <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a>
-    <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Mediathek</a></h2>
+    <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Mediathek</a>
+    <a class="knopf" href="<?= Fmt::h(url('partner/auszahlungslauf')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a></h2>
   <div class="tabellenrahmen"><table>
     <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>
                <th style="text-align:right"><?= $sortLink('kunden', 'Kunden') ?></th><th style="text-align:right"><?= $sortLink('umsatz', 'Umsatz (netto)') ?></th>
@@ -158,6 +159,9 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <?php foreach ($rangliste as $z): ?>
       <tr<?= $z['still'] ? ' style="background:rgba(255,159,90,.05)"' : '' ?>>
           <td><a href="<?= Fmt::h(url('partner/' . (int) $z['id'])) ?>"><?= Fmt::h($z['name']) ?></a>
+            <?php /* Level (Phase 5): Platin bekommt neue Anfragen aus seiner Gegend zuerst — hier sichtbar. */
+              $zLv = ($zP = Partner::laden((int) $z['id'])) ? Partner::satzFuer($zP)['stufe'] : null;
+              if (in_array($zLv, ['gold', 'platin'], true)): ?><span class="marke2<?= $zLv === 'platin' ? ' gut' : '' ?>" style="margin-left:4px"><?= $zLv === 'platin' ? 'Platin' : 'Gold' ?></span><?php endif; ?>
             <?php if ($z['status'] === 'pausiert'): ?><span class="marke2 warnung" style="margin-left:4px">pausiert</span><?php endif; ?>
             <?php if ($z['still']): ?><span class="marke2 warnung" style="margin-left:4px" title="<?= $z['weckruf_am'] ? 'Weckruf zuletzt ' . Fmt::h(Fmt::datum((string) $z['weckruf_am'])) : ($z['push'] ? 'Weckruf kommt automatisch' : 'Hinweise aus — kein Weckruf möglich') ?>">still</span><?php endif; ?></td>
           <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['klicks30'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
@@ -276,6 +280,8 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
         <div class="feld" style="flex:0 0 120px"><label>Silber (%)</label><input name="partner_silber_bp" value="<?= Fmt::h($pz((int) $e('partner_silber_bp'))) ?>"></div>
         <div class="feld" style="flex:0 0 150px"><label>Gold ab (Verkäufe)</label><input name="partner_gold_ab" type="number" min="2" value="<?= (int) $e('partner_gold_ab') ?>"></div>
         <div class="feld" style="flex:0 0 120px"><label>Gold (%)</label><input name="partner_gold_bp" value="<?= Fmt::h($pz((int) $e('partner_gold_bp'))) ?>"></div>
+        <div class="feld" style="flex:0 0 150px"><label>Platin ab (Verkäufe)</label><input name="partner_platin_ab" type="number" min="3" value="<?= (int) $e('partner_platin_ab') ?>"></div>
+        <p style="flex:1 1 220px;color:var(--leise);font-size:12px;margin:0 0 6px">Platin: Satz wie Gold, dazu Vorteile — Anfragen aus seiner Gegend zuerst, Abzeichen auf seiner Seite, direkter Draht zu dir.</p>
       </div>
     </div>
     <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin-bottom:12px">

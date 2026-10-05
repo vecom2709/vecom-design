@@ -313,6 +313,7 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         $ccSeite = $ccLead ? 'lead' : 'kunden';
     }
     elseif (isset($_GET['marketing'])) { $ccSeite = 'marketing'; }
+    elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
     elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
     elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }
     elseif (isset($_GET['kampagne'])) {
@@ -1633,7 +1634,7 @@ if ($p && isset($_GET['karte'])) {
       'mehr_ids' => ['werbemittel', 'academy', 'profil'],
       // KUNDEN (Phase 2) und MARKETING (Phase 3) sind Seiten im Command Center; die alten Reiter „finden“ und „werben“
       // bleiben über Sprungmarken erreichbar (Mediathek-Karten, Werkzeuge, Verkaufshilfe).
-      'extern' => ['finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1])],
+      'extern' => ['finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1]), 'geld' => $selbst(['cc' => 1, 'ergebnisse' => 1])],
       'so' => Texte::h(Texte::PARTNER_REITER['so'], $sprache), 'suche' => Texte::h(Texte::PARTNER_REITER['suche'], $sprache),
       'suche_aria' => Texte::h(Texte::PARTNER_REITER['suche_aria'], $sprache), 'suche_leer' => Texte::h(Texte::PARTNER_REITER['suche_leer'], $sprache),
       'ordnung' => ['werben' => [

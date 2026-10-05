@@ -1500,6 +1500,23 @@ if ($post) {
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? 'Neuer Code gespeichert. Der alte Link führt ab jetzt nirgends mehr hin.';
                 weiter('partner/' . (int) ($_POST['id'] ?? 0));
 
+            case 'partner_lauf_freigeben':
+            case 'partner_lauf_auszahlen':
+                /* Auszahlungslauf (Phase 5): nur die gewählten Partner. Freigeben ändert nur den Status, Auszahlen geht je
+                   Partner über PartnerWege::auszahlen — mit allen Prüfungen dort. Beides mit Rückfrage (Ablauf::TRAGWEITE). */
+                require_once __DIR__ . '/src/PartnerGeld.php';
+                $laufIds = array_map('intval', (array) ($_POST['partner'] ?? []));
+                if (!$laufIds) { $_SESSION['fehler'] = 'Kein Partner gewählt.'; weiter('partner/auszahlungslauf'); }
+                if ($tat === 'partner_lauf_freigeben') {
+                    $laufN = PartnerGeld::sammelFreigabe($laufIds);
+                    $_SESSION['gut'] = $laufN . ' Provision' . ($laufN === 1 ? '' : 'en') . ' freigegeben.';
+                } else {
+                    $_SESSION['lauf_ergebnis'] = PartnerGeld::sammelAuszahlung($laufIds);
+                    $laufOk = count(array_filter($_SESSION['lauf_ergebnis'], static fn($r) => $r['ok']));
+                    $_SESSION[$laufOk > 0 ? 'gut' : 'fehler'] = $laufOk . ' von ' . count($_SESSION['lauf_ergebnis']) . ' Auszahlungen angestoßen — Einzelheiten unten.';
+                }
+                weiter('partner/auszahlungslauf');
+
             case 'partner_kurzlink':
             case 'partner_kurzlink_sperren':
                 /* Kurzlink (Phase 4, 05.10.2026): Uwe setzt einen Namen (ohne Obergrenze) oder sperrt einen. Gesperrt führt nirgends hin. */
@@ -4382,6 +4399,14 @@ switch ($route) {
         if ($unter === 'vorlagen') {
             require_once __DIR__ . '/src/PartnerVorlagen.php';
             ansicht('partner_vorlagen', ['katalog' => PartnerVorlagen::katalog()]);
+            break;
+        }
+        if ($unter === 'auszahlungslauf') {   // Auszahlungslauf mit Sammelfreigabe (Phase 5)
+            require_once __DIR__ . '/src/PartnerGeld.php';
+            ansicht('partner_auszahlungslauf', ['lauf' => PartnerGeld::lauf(), 'ergebnis' => $_SESSION['lauf_ergebnis'] ?? null,
+                'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
+                                                               WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
+            unset($_SESSION['lauf_ergebnis']);
             break;
         }
         if ($unter === 'mediathek') {   // Mediathek der Partner (Phase 3)

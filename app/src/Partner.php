@@ -73,6 +73,8 @@ final class Partner
         'partner_bewerbung_offen' => '1', 'partner_einbehalt_bp' => '0',
         'partner_stufen_an' => '1', 'partner_silber_ab' => '5', 'partner_silber_bp' => '1200',
         'partner_gold_ab' => '10', 'partner_gold_bp' => '1500',
+        /* PLATIN (Phase 5, 05.10.2026, Uwe: „Platin ohne mehr %“): ab 20 Verkäufen, Satz wie Gold, dafür Vorteile. */
+        'partner_platin_ab' => '20',
         /* Anrufliste (29.09.2026, Uwe: Ja zu T4): Kauft ein Betrieb, der beim
            Anruf des Partners zugestimmt hat, gilt mindestens dieser Satz. */
         'partner_anruf_bp' => '1500',
@@ -123,6 +125,8 @@ final class Partner
             $neu['partner_' . $st . '_bp'] = (string) $bp;
         }
         if ((int) $neu['partner_gold_ab'] <= (int) $neu['partner_silber_ab']) { return 'Gold muss bei mehr Verkäufen beginnen als Silber.'; }
+        $neu['partner_platin_ab'] = (string) (int) ($d['partner_platin_ab'] ?? self::zahl('partner_platin_ab'));
+        if ((int) $neu['partner_platin_ab'] <= (int) $neu['partner_gold_ab']) { return 'Platin muss bei mehr Verkäufen beginnen als Gold.'; }
         $lim = self::centsAusEingabe((string) ($d['partner_auto_tageslimit_cents'] ?? ''));
         if ($lim === null) { return 'Das Tageslimit ist keine gültige Zahl.'; }
         $neu['partner_auto_tageslimit_cents'] = (string) $lim;
@@ -178,9 +182,12 @@ final class Partner
            als der Standard. */
         if (!$eigen && $s['art'] === 'prozent' && self::einstellung('partner_stufen_an') === '1' && (int) ($p['id'] ?? 0) > 0) {
             $n = self::verkaeufeJahr((int) $p['id']);
-            if ($n >= self::zahl('partner_gold_ab'))       { $s['wert'] = max($s['wert'], self::zahl('partner_gold_bp'));   $s['stufe'] = 'gold'; }
+            /* Level STARTER bis PLATIN (Phase 5, 05.10.2026): „bronze“ heißt jetzt „starter“; PLATIN hat den Satz von
+               Gold und dafür Vorteile (bevorzugte Anfragen, Abzeichen, direkter Draht) — Uwe: „Platin ohne mehr %“. */
+            if ($n >= self::zahl('partner_platin_ab'))     { $s['wert'] = max($s['wert'], self::zahl('partner_gold_bp'));   $s['stufe'] = 'platin'; }
+            elseif ($n >= self::zahl('partner_gold_ab'))   { $s['wert'] = max($s['wert'], self::zahl('partner_gold_bp'));   $s['stufe'] = 'gold'; }
             elseif ($n >= self::zahl('partner_silber_ab')) { $s['wert'] = max($s['wert'], self::zahl('partner_silber_bp')); $s['stufe'] = 'silber'; }
-            else { $s['stufe'] = 'bronze'; }
+            else { $s['stufe'] = 'starter'; }
         }
         return $s;
     }
@@ -200,14 +207,15 @@ final class Partner
     {
         $s = self::satzFuer($p);
         $n = (int) ($p['id'] ?? 0) > 0 ? self::verkaeufeJahr((int) $p['id']) : 0;
-        $naechste = match ($s['stufe']) { 'bronze' => 'silber', 'silber' => 'gold', default => null };
+        $naechste = match ($s['stufe']) { 'starter' => 'silber', 'silber' => 'gold', 'gold' => 'platin', default => null };
         $fehlen = $naechste !== null ? max(0, self::zahl('partner_' . $naechste . '_ab') - $n) : 0;
         /* Für den Fortschrittsbalken (27.09.2026): von der Schwelle der
            eigenen Stufe bis zur nächsten, und was die nächste bringt. */
-        $von = match ($s['stufe']) { 'silber' => self::zahl('partner_silber_ab'), 'gold' => self::zahl('partner_gold_ab'), default => 0 };
+        $von = match ($s['stufe']) { 'silber' => self::zahl('partner_silber_ab'), 'gold' => self::zahl('partner_gold_ab'), 'platin' => self::zahl('partner_platin_ab'), default => 0 };
         $bis = $naechste !== null ? self::zahl('partner_' . $naechste . '_ab') : $von;
         $anteil = $naechste === null ? 100 : (int) round(100 * max(0, min(1, ($n - $von) / max(1, $bis - $von))));
-        $naechsterSatz = $naechste !== null ? ['art' => 'prozent', 'wert' => max((int) $s['wert'], self::zahl('partner_' . $naechste . '_bp'))] : null;
+        // PLATIN bringt keinen höheren Satz — dann kein „dann X %“, sondern die Vorteile (Texte).
+        $naechsterSatz = $naechste !== null && $naechste !== 'platin' ? ['art' => 'prozent', 'wert' => max((int) $s['wert'], self::zahl('partner_' . $naechste . '_bp'))] : null;
         return ['stufe' => $s['stufe'], 'verkaeufe' => $n, 'naechste' => $naechste, 'fehlen' => $fehlen,
                 'anteil' => $anteil, 'naechster_satz' => $naechsterSatz];
     }
