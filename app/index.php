@@ -3623,6 +3623,28 @@ if ($post) {
                 $_SESSION['gut'] = $an ? 'Zugang wieder aktiv.' : 'Zugang abgeschaltet.';
                 weiter('einstellungen');
 
+            /* Zugang löschen (05.10.2026, Uwe: „Zugänge können auch gelöscht werden in Verwaltung“).
+               Nie der eigene, nie der letzte aktive Admin. Eine Telegram-Verbindung dieses Zugangs
+               wird vorher getrennt, offene Telegram-Codes verfallen. Die Prüfspur bleibt stehen. */
+            case 'zugang_loeschen':
+                $uid = (int) ($_POST['id'] ?? 0);
+                if ($uid === Auth::id()) { throw new RuntimeException('Den eigenen Zugang kannst du nicht löschen.'); }
+                $u = Db::one('SELECT * FROM users WHERE id = ?', [$uid]);
+                if (!$u) { throw new RuntimeException('Zugang nicht gefunden.'); }
+                if ($u['role'] === 'admin' && (int) $u['active'] === 1
+                    && (int) Db::wert("SELECT COUNT(*) FROM users WHERE active = 1 AND role = 'admin'") <= 1) {
+                    throw new RuntimeException('Das ist der letzte aktive Admin — der bleibt.');
+                }
+                try { require_once __DIR__ . '/src/TelegramAdmin.php'; TelegramAdmin::trennen($uid); } catch (Throwable $e) { }
+                Db::transaktion(static function () use ($uid): void {
+                    Db::run('UPDATE telegram_chats SET admin_verbunden = NULL WHERE admin_verbunden = ?', [$uid]);
+                    Db::run('DELETE FROM telegram_codes WHERE user_id = ? AND benutzt_am IS NULL', [$uid]);
+                    Db::run('DELETE FROM users WHERE id = ?', [$uid]);
+                }, 3);
+                Events::pruefspur('loeschen', 'user', $uid, ['name' => $u['name'], 'email' => $u['email'], 'role' => $u['role']], []);
+                $_SESSION['gut'] = 'Zugang von ' . $u['name'] . ' gelöscht.';
+                zurueck('einstellungen?b=zugaenge');
+
             /* Rollen (05.10.2026): nur für andere Zugänge — die eigene Rolle ändert ein anderer Admin. */
             case 'zugang_rolle':
                 $uid = (int) ($_POST['id'] ?? 0);

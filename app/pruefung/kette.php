@@ -23398,6 +23398,14 @@ pruefe('Rollen: Admin alles; Mitarbeit Kunden/Akquise ja, Geld/Zugänge/Preise/R
     && $rvR['lesen'] === [true, false, false, false, false, false, false, false, false, false, false]
     && $rvR['kunde'] === array_fill(0, 11, false), json_encode($rvR));
 $rvIdx = (string) file_get_contents($wurzel . '/index.php');
+$_SESSION = ['uid' => $rvUid, 'rolle' => 'mitarbeit']; $rvLoeM = Rechte::darfTat('zugang_loeschen');
+$_SESSION = ['uid' => $rvUid, 'rolle' => 'admin']; $rvLoeA = Rechte::darfTat('zugang_loeschen');
+$rvLoeT = substr($rvIdx, (int) strpos($rvIdx, "case 'zugang_loeschen':"), 1800);
+pruefe('Zugang löschen: nur Admin, mit Rückfrage (schwer), nie der eigene und nie der letzte aktive Admin, Telegram wird getrennt, offene Codes verfallen, Prüfspur bleibt, Knopf in der Liste',
+    !$rvLoeM && $rvLoeA && (Ablauf::TRAGWEITE['zugang_loeschen'][0] ?? '') === Ablauf::SCHWER
+    && str_contains($rvLoeT, '$uid === Auth::id()') && str_contains($rvLoeT, "role = 'admin'") && str_contains($rvLoeT, 'TelegramAdmin::trennen($uid)')
+    && str_contains($rvLoeT, 'DELETE FROM telegram_codes WHERE user_id = ? AND benutzt_am IS NULL') && str_contains($rvLoeT, "Events::pruefspur('loeschen', 'user'")
+    && str_contains((string) file_get_contents($wurzel . '/views/einstellungen/zugaenge.php'), 'value="zugang_loeschen"'));
 pruefe('Rollen greifen vor allen Seiten und Taten (vor Akquise und dem großen Verteiler), neue Zugänge bekommen eine Rolle (Vorgabe Mitarbeit), eigene Rolle ändert nur ein anderer Admin, Rolle und Abschalten gelten sofort, Menü blendet Gesperrtes aus',
     strpos($rvIdx, 'if (!Rechte::darfSeite($route))') < strpos($rvIdx, "if (\$route === 'akquise' && \$post)")
     && strpos($rvIdx, "if (\$post && !Rechte::darfTat((string) (\$_POST['tat'] ?? '')))") < strpos($rvIdx, '/* ---------- Schreibende Vorgaenge ---------- */')

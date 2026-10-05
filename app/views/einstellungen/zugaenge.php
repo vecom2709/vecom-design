@@ -19,6 +19,11 @@
           <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
           <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
           <button class="knopf"><?= (int) $u['active'] === 1 ? 'Abschalten' : 'Wieder anschalten' ?></button></form>
+        <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:6px 0 0">
+          <?= Csrf::feld() ?><input type="hidden" name="tat" value="zugang_loeschen">
+          <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
+          <input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
+          <button class="knopf stumm" style="color:var(--rot)" aria-label="Zugang von <?= Fmt::h($u['name']) ?> löschen">Löschen</button></form>
       <?php endif; ?></td>
     </tr>
   <?php endforeach; ?>

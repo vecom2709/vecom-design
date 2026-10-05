@@ -90,6 +90,10 @@ final class Ablauf
         'rechnung_schicken' => [self::SCHWER,
             'Die Rechnung geht als Beleg an den Kunden.',
             'Ja, Rechnung schicken'],
+        'zugang_loeschen' => [self::SCHWER,
+            'Der Zugang wird endgültig gelöscht. Wer ihn hatte, kommt nicht mehr in die Verwaltung; '
+            . 'eine Telegram-Verbindung dieses Zugangs wird getrennt. Nur abschalten lässt sich rückgängig machen.',
+            'Ja, Zugang löschen'],
         'abo_anlegen' => [self::SCHWER,
             'Die Betreuung beginnt zu laufen und wird ab jetzt regelmäßig abgerechnet.',
             'Ja, Betreuung anlegen'],
