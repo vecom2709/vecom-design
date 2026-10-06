@@ -65,13 +65,14 @@ $prOffen = count(array_filter($reservierungen, static fn($r) => ($r['signal']['s
 
 <div class="block">
   <h2>Partner im Vergleich</h2>
-  <p class="akq-klein" style="margin:-4px 0 10px">Funnel aus den Leads der Partner (wer im Angebot steht, zählt auch als kontaktiert und interessiert). Reaktionszeit: Median der Stunden zwischen positiver Antwort und der ersten Aktivität des Partners danach, letzte 90 Tage.</p>
+  <p class="akq-klein" style="margin:-4px 0 10px">Funnel aus den Leads der Partner (wer im Angebot steht, zählt auch als kontaktiert und interessiert). Angebote, Umsatz (bezahlt, seit der Zuordnung) und Provision aus den zugeordneten Kunden. Reaktionszeit: Median der Stunden zwischen positiver Antwort und der ersten Aktivität des Partners danach, letzte 90 Tage.</p>
   <?php if (!$auswertung): ?><div class="leer">Noch keine aktiven Partner.</div><?php else: ?>
   <div class="pr-wrap"><table class="pr-tab">
-    <thead><tr><th>Partner</th><th class="z">Reserviert</th><th class="z">Kontaktiert</th><th class="z">Interesse</th><th class="z">Angebot</th><th class="z">Kunde</th><th class="z">Reaktion</th><th class="z">Warnungen</th></tr></thead>
+    <thead><tr><th>Partner</th><th class="z">Reserviert</th><th class="z">Kontaktiert</th><th class="z">Interesse</th><th class="z">Angebot</th><th class="z">Kunde</th><th class="z">Angebote gesendet</th><th class="z">Umsatz</th><th class="z">Provision</th><th class="z">Reaktion</th><th class="z">Warnungen</th></tr></thead>
     <tbody><?php foreach ($auswertung as $a): ?>
       <tr><td><?= $prH($a['name']) ?></td><td class="z"><?= (int) $a['reserviert'] ?></td><td class="z"><?= (int) $a['kontaktiert'] ?></td><td class="z"><?= (int) $a['interesse'] ?></td>
-        <td class="z"><?= (int) $a['angebot'] ?></td><td class="z"><?= (int) $a['kunde'] ?></td><td class="z"><?= $a['reaktion_h'] === null ? '—' : (int) $a['reaktion_h'] . ' h' ?></td>
+        <td class="z"><?= (int) $a['angebot'] ?></td><td class="z"><?= (int) $a['kunde'] ?></td>
+        <td class="z"><?= (int) $a['angebote_gesendet'] ?></td><td class="z"><?= Fmt::geld((int) $a['umsatz']) ?></td><td class="z"><?= Fmt::geld((int) $a['provision']) ?></td><td class="z"><?= $a['reaktion_h'] === null ? '—' : (int) $a['reaktion_h'] . ' h' ?></td>
         <td class="z"><?= (int) $a['warnungen'] > 0 ? '<b style="color:#ff9b9b">' . (int) $a['warnungen'] . '</b>' : '0' ?></td></tr>
     <?php endforeach; ?></tbody>
   </table></div>

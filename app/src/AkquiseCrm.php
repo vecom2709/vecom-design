@@ -369,6 +369,8 @@ final class AkquiseCrm
         if (ctype_digit((string) ($filter['partner'] ?? ''))) {
             $wo[] = 'EXISTS (SELECT 1 FROM partner_reservierungen r WHERE r.firma_id = f.id AND r.bis >= CURDATE() AND r.partner_id = ?)'; $par[] = (int) $filter['partner'];
         }
+        /* Modul H: nur die Betriebe einer Kampagne. */
+        if ((int) ($filter['kampagne'] ?? 0) > 0) { $wo[] = 'f.id IN (SELECT firma_id FROM akq_kampagne_firmen WHERE kampagne_id = ?)'; $par[] = (int) $filter['kampagne']; }
         $innen = 'SELECT f.id, f.name, f.stadt, f.branche, f.prio_score, f.prio_stufe, f.prio_gruende, f.score, f.naechster_am, f.letzter_kontakt_am, '
             . self::spalteSql() . ' AS spalte FROM akq_firmen f WHERE ' . implode(' AND ', $wo);
         $aus = array_fill_keys(array_keys(self::SPALTEN), ['n' => 0, 'zeilen' => []]);
@@ -426,33 +428,36 @@ final class AkquiseCrm
      * Die Kacheln für „Heute“ — je Kachel Zahl und die ersten Betriebe.
      * @return array<string,array{titel:string, ton:string, n:int, zeilen:list<array<string,mixed>>}>
      */
-    public static function heute(int $je = 6): array
+    public static function heute(int $je = 6, ?int $kampagne = null): array
     {
+        /* Modul H: auf eine Kampagne eingegrenzt — dieselben Kacheln, nur ihre Betriebe. */
+        require_once __DIR__ . '/AkquiseKampagne.php';
+        $kf = AkquiseKampagne::bedingung($kampagne);
         $pos = "'" . implode("','", ['INTERESTED', 'MORE_INFO', 'CALL_REQUEST', 'PRICE_REQUEST']) . "'";
         $felder = 'f.id, f.name, f.stadt, f.branche, f.prio_score, f.prio_stufe, f.prio_gruende, f.score, f.naechster_am, f.wiedervorlage_am, f.letzter_kontakt_am, f.kontakt_status';
         $k = [];
         $k['heiss'] = ['titel' => 'Heiße Antworten — warten auf dich', 'ton' => 'schlecht', 'sql' => "SELECT $felder, MIN(a.created_at) AS seit FROM akq_firmen f JOIN akq_antworten a ON a.firma_id = f.id
-            WHERE a.klasse IN ($pos) AND a.erledigt = 0 AND f.gesperrt = 0 GROUP BY f.id ORDER BY seit"];
+            WHERE a.klasse IN ($pos) AND a.erledigt = 0 AND f.gesperrt = 0$kf GROUP BY f.id ORDER BY seit"];
         $k['antworten'] = ['titel' => 'Offene Antworten', 'ton' => 'warnung', 'sql' => "SELECT $felder, MIN(a.created_at) AS seit FROM akq_firmen f JOIN akq_antworten a ON a.firma_id = f.id
-            WHERE a.klasse NOT IN ($pos) AND a.klasse NOT IN ('OUT_OF_OFFICE','INVALID_ADDRESS','DO_NOT_CONTACT','NOT_INTERESTED') AND a.erledigt = 0 AND f.gesperrt = 0 GROUP BY f.id ORDER BY seit"];
+            WHERE a.klasse NOT IN ($pos) AND a.klasse NOT IN ('OUT_OF_OFFICE','INVALID_ADDRESS','DO_NOT_CONTACT','NOT_INTERESTED') AND a.erledigt = 0 AND f.gesperrt = 0$kf GROUP BY f.id ORDER BY seit"];
         $k['faellig'] = ['titel' => 'Wiedervorlagen & Follow-ups fällig', 'ton' => 'warnung', 'sql' => "SELECT $felder, LEAST(COALESCE(f.naechster_am, '9999-12-31'), COALESCE(f.wiedervorlage_am, '9999-12-31')) AS seit
-            FROM akq_firmen f WHERE " . self::ANSPRECHBAR . " AND (f.naechster_am <= CURDATE() OR f.wiedervorlage_am <= CURDATE()) ORDER BY seit"];
+            FROM akq_firmen f WHERE " . self::ANSPRECHBAR . " AND (f.naechster_am <= CURDATE() OR f.wiedervorlage_am <= CURDATE())$kf ORDER BY seit"];
         /* Modul E: Nachfassen Tag 3 / Tag 7 ohne Antwort — Erinnerung mit fertigem Entwurf, gesendet wird von Hand (AkquiseAntwort::nachfassen). */
         $k['nachfassen'] = ['titel' => 'Nachfassen fällig (Tag 3 / Tag 7)', 'ton' => 'warnung', 'sql' => "SELECT $felder, v.erste AS seit FROM akq_firmen f
             JOIN (SELECT firma_id, COUNT(*) AS n, MIN(created_at) AS erste, MAX(created_at) AS letzte FROM akq_versand WHERE kanal = 'email' AND status IN ('gesendet','von_hand') GROUP BY firma_id) v ON v.firma_id = f.id
             WHERE f.gesperrt = 0 AND f.kontakt_status NOT IN ('kunde','abgelehnt','gesperrt','geantwortet') AND v.letzte <= NOW() - INTERVAL 2 DAY
               AND ((v.n = 1 AND v.erste <= NOW() - INTERVAL 3 DAY) OR (v.n = 2 AND v.erste <= NOW() - INTERVAL 7 DAY))
               AND NOT EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.eingang_am >= v.erste)
-              AND NOT EXISTS (SELECT 1 FROM akq_folgen fo WHERE fo.firma_id = f.id AND fo.status IN ('laeuft','pausiert'))
+              AND NOT EXISTS (SELECT 1 FROM akq_folgen fo WHERE fo.firma_id = f.id AND fo.status IN ('laeuft','pausiert'))$kf
             ORDER BY v.erste"];
         $k['ohne_schritt'] = ['titel' => 'Interessenten ohne nächsten Schritt', 'ton' => 'warnung', 'sql' => "SELECT $felder, NULL AS seit FROM akq_firmen f
             WHERE f.gesperrt = 0 AND f.kontakt_status NOT IN ('kunde','abgelehnt','gesperrt') AND f.naechster_am IS NULL AND (f.wiedervorlage_am IS NULL OR f.wiedervorlage_am < CURDATE())
-              AND (f.pipeline IN ('angebot','verhandlung') OR EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.klasse IN ($pos) AND a.erledigt = 1))
+              AND (f.pipeline IN ('angebot','verhandlung') OR EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.klasse IN ($pos) AND a.erledigt = 1))$kf
             ORDER BY f.prio_score DESC"];
         $k['jetzt'] = ['titel' => '🔥 Hohe Priorität, noch nicht angesprochen', 'ton' => 'gut', 'sql' => "SELECT $felder, NULL AS seit FROM akq_firmen f WHERE " . self::ANSPRECHBAR . "
-            AND f.prio_stufe = 'jetzt' AND f.kontakt_status IN ('neu','qualifiziert','vorlage','freigegeben') ORDER BY f.prio_score DESC"];
+            AND f.prio_stufe = 'jetzt' AND f.kontakt_status IN ('neu','qualifiziert','vorlage','freigegeben')$kf ORDER BY f.prio_score DESC"];
         $k['reservierung'] = ['titel' => 'Partner-Reservierungen laufen ab (5 Tage)', 'ton' => '', 'sql' => "SELECT $felder, r.bis AS seit, p.name AS partner FROM akq_firmen f
-            JOIN partner_reservierungen r ON r.firma_id = f.id JOIN partner p ON p.id = r.partner_id WHERE r.bis BETWEEN CURDATE() AND CURDATE() + INTERVAL 5 DAY ORDER BY r.bis"];
+            JOIN partner_reservierungen r ON r.firma_id = f.id JOIN partner p ON p.id = r.partner_id WHERE r.bis BETWEEN CURDATE() AND CURDATE() + INTERVAL 5 DAY$kf ORDER BY r.bis"];
         $aus = [];
         foreach ($k as $schl => $x) {
             try {
@@ -477,9 +482,11 @@ final class AkquiseCrm
      * @param list<int> $ueberspringen  in dieser Sitzung schon angesehene/übersprungene
      * @return array{id:int, grund:string}|null
      */
-    public static function naechster(array $ueberspringen = []): ?array
+    public static function naechster(array $ueberspringen = [], ?int $kampagne = null): ?array
     {
         $ohne = $ueberspringen ? ' AND f.id NOT IN (' . implode(',', array_map('intval', array_slice($ueberspringen, -200))) . ')' : '';
+        require_once __DIR__ . '/AkquiseKampagne.php';
+        $ohne .= AkquiseKampagne::bedingung($kampagne);   // Modul H: nur innerhalb der gewählten Kampagne
         $pos = "'" . implode("','", ['INTERESTED', 'MORE_INFO', 'CALL_REQUEST', 'PRICE_REQUEST']) . "'";
         $wege = [
             ['Antwort mit Interesse wartet', "SELECT f.id FROM akq_firmen f JOIN akq_antworten a ON a.firma_id = f.id WHERE a.klasse IN ($pos) AND a.erledigt = 0 AND f.gesperrt = 0$ohne ORDER BY a.created_at LIMIT 1"],

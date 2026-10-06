@@ -34,6 +34,7 @@ $warteText = ['gelb' => 'seit über 24 h', 'rot' => 'seit über 48 h', 'admin' =
 <div class="kopf"><div><h1>Akquise · Heute</h1>
   <p style="color:var(--leise);font-size:13px;margin-top:6px"><?= $offen > 0 ? $offen . ' Dinge warten auf dich.' : 'Nichts Dringendes offen.' ?> Nachrichten gehen nie ungeprüft raus — jede Ansprache folgt den Regeln unter „Regeln & Versand“.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
+<?php $kwZiel = 'akquise/heute'; $kampagne = $kampagne ?? null; $kampagnen = $kampagnen ?? []; require __DIR__ . '/akquise_kampagnenwahl.php'; /* Modul H */ ?>
 
 <div class="crm-start" id="naechster">
   <div>

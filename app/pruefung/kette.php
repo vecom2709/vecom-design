@@ -26528,6 +26528,80 @@ foreach ([$gF, $gN, $gV, $gW, $gO] as $gX) {
     Db::run('DELETE FROM akq_firmen WHERE id = ?', [$gX]);
 }
 Db::run('DELETE FROM angebote WHERE customer_id = ?', [$gOk]); Db::run('DELETE FROM bedarf WHERE id = ?', [$gBed]);
+
+/* Modul H: Kampagnen (feste Gruppe aus Filter), Trichter bis zum Umsatz, Arbeitsfilter, Partner mit Angebot/Umsatz/Provision */
+abschnitt('Akquise-CRM: Kampagnen und Auswertung (Modul H)');
+require_once $wurzel . '/src/AkquiseKampagne.php';
+$hOrt = 'Beispielort H';
+$h1 = $crF('CR00000021', 'Beispiel H Trattoria Uno', ['stadt' => $hOrt]);
+$h2 = $crF('CR00000022', 'Beispiel H Trattoria Due', ['stadt' => $hOrt]);
+$h3 = $crF('CR00000023', 'Beispiel H Hotel', ['stadt' => $hOrt, 'branche' => 'hotel']);
+$h4 = $crF('CR00000024', 'Beispiel H Gesperrt', ['stadt' => $hOrt, 'gesperrt' => 1]);
+/* Ein Versand VOR der Aufnahme zählt nicht für die Kampagne */
+Db::insert('akq_versand', ['firma_id' => $h2, 'kanal' => 'email', 'status' => 'von_hand', 'compliance' => 'ok', 'created_at' => date('Y-m-d H:i:s', time() - 10 * 86400)] + (Db::one("SHOW COLUMNS FROM akq_versand LIKE 'sprache'") ? ['sprache' => 'it'] : []));
+$hE1 = AkquiseKampagne::anlegen('', ['branche' => 'restaurant'], 'Kette');
+$hE2 = AkquiseKampagne::anlegen('Beispiel ohne Filter', [], 'Kette');
+$hE3 = AkquiseKampagne::anlegen('Beispiel leer', ['stadt' => 'Gibt es nicht'], 'Kette');
+$hK = AkquiseKampagne::anlegen('Beispiel Restaurants H', ['branche' => 'restaurant', 'stadt' => $hOrt, 'unbekannt' => 'x'], 'Kette');
+$hKid = (int) ($hK['id'] ?? 0);
+$hMit = array_map('intval', array_column(Db::all('SELECT firma_id FROM akq_kampagne_firmen WHERE kampagne_id = ? ORDER BY firma_id', [$hKid]), 'firma_id'));
+pruefe('Kampagne = feste Gruppe aus Filter: übernimmt nur passende, nie gesperrte Betriebe; ohne Name, ohne Filter oder ohne Treffer nichts; Prüfspur',
+    !$hE1['ok'] && !$hE2['ok'] && !$hE3['ok'] && $hK['ok'] && $hK['n'] === 2 && $hMit === [$h1, $h2]
+    && json_decode((string) Db::wert('SELECT filter_json FROM akq_kampagnen WHERE id = ?', [$hKid], ''), true) === ['branche' => 'restaurant', 'stadt' => $hOrt]
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_kampagne_neu' AND entity_id = ?", [$hKid], 0) === 1,
+    json_encode([$hE1, $hE2, $hE3, $hK, $hMit]));
+/* Was danach geschieht: Mail, Interesse, Angebot gesendet, Bestellung, Zahlung */
+Db::insert('akq_versand', ['firma_id' => $h1, 'kanal' => 'email', 'status' => 'von_hand', 'compliance' => 'ok'] + (Db::one("SHOW COLUMNS FROM akq_versand LIKE 'sprache'") ? ['sprache' => 'it'] : []));
+Db::insert('akq_antworten', ['firma_id' => $h1, 'eingang_am' => date('Y-m-d H:i:s'), 'text' => 'Beispiel: interessiert', 'klasse' => 'INTERESTED', 'klasse_quelle' => 'hand']);
+$hA = AkquiseKunde::angebotAnlegen($h1, 100000);
+$hKu = (int) ($hA['kunde'] ?? 0);
+Db::run("UPDATE angebote SET status = 'gesendet', gesendet_am = NOW() WHERE id = ?", [(int) ($hA['angebot'] ?? 0)]);
+$hO = (int) Db::insert('orders', ['order_no' => 'KT-H-' . $hKu, 'customer_id' => $hKu, 'package_name' => 'Beispiel Website', 'price_cents' => 100000, 'status' => 'neu']);
+Partner::zuordnen($hKu, $fpB, 'hand');
+Db::insert('payments', ['order_id' => $hO, 'amount_cents' => 50000, 'status' => 'bezahlt', 'paid_at' => date('Y-m-d H:i:s', time() + 1)]);
+$hW = AkquiseKampagne::kennzahlen(AkquiseKampagne::zeilen($hKid));
+$hG = $hW['gesamt'];
+pruefe('Trichter bis zum Umsatz, je Betrieb ab Aufnahme: 2 Betriebe → 1 kontaktiert (der alte Versand zählt nicht) → Antwort → Interesse → Angebot → gewonnen; Auftragswert und Bezahlt; je Kanal',
+    $hG['betriebe'] === 2 && $hG['kontaktiert'] === 1 && $hG['antwort'] === 1 && $hG['interesse'] === 1 && $hG['angebot'] === 1 && $hG['gewonnen'] === 1
+    && $hG['auftragswert'] === 100000 && $hG['bezahlt'] === 50000 && $hG['provision'] === 0 && ($hW['kanal']['email']['kontaktiert'] ?? 0) === 1
+    && ($hW['variante']['ohne Variante']['gewonnen'] ?? 0) === 1 && AkquiseKampagne::anteil(1, 2) === '50 %' && AkquiseKampagne::anteil(1, 0) === '—',
+    json_encode($hW));
+/* Von Hand dazu/heraus, beenden */
+$hH1 = AkquiseKampagne::hinzu($hKid, $h3); $hN3 = count(AkquiseKampagne::zeilen($hKid));
+$hH2 = AkquiseKampagne::weg($hKid, $h3); $hN2 = count(AkquiseKampagne::zeilen($hKid));
+$hK2 = AkquiseKampagne::anlegen('Beispiel Hotels H', ['branche' => 'hotel', 'stadt' => $hOrt], 'Kette'); $hK2id = (int) $hK2['id'];
+AkquiseKampagne::beenden($hK2id); $hH3 = AkquiseKampagne::hinzu($hK2id, $h1); AkquiseKampagne::beenden($hK2id, true);
+pruefe('Von Hand: aufnehmen und herausnehmen (der Betrieb bleibt, Verlauf), in eine beendete Kampagne nicht; die Firmenakte kennt ihre Kampagnen',
+    $hH1 && $hN3 === 3 && $hH2 && $hN2 === 2 && !$hH3 && Db::one('SELECT id FROM akq_firmen WHERE id = ?', [$h3]) !== null
+    && array_column(AkquiseKampagne::vonFirma($h1), 'id') === [$hKid] && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND schritt = 'kampagne'", [$h3], 0) === 2,
+    json_encode([$hH1, $hN3, $hH2, $hN2, $hH3]));
+/* Arbeitsfilter: Pipeline, Heute, Nächster bester Kontakt */
+$hPl = array_sum(array_column(AkquiseCrm::pipeline(['kampagne' => $hKid]), 'n'));
+$hPl2 = array_sum(array_column(AkquiseCrm::pipeline(['kampagne' => $hK2id]), 'n'));
+$hHe = AkquiseCrm::heute(6, $hKid); $hHe2 = AkquiseCrm::heute(6, $hK2id);
+$hNa = AkquiseCrm::naechster([], $hKid); $hNa2 = AkquiseCrm::naechster([], $hK2id);
+$hGet = $_GET; $_GET = ['kampagne' => (string) $hKid]; $hAf1 = AkquiseKampagne::arbeitsfilter(); $_GET = []; $hAf2 = AkquiseKampagne::arbeitsfilter();
+$_GET = ['kampagne' => '0']; $hAf3 = AkquiseKampagne::arbeitsfilter(); $_GET = $hGet;
+pruefe('Kampagne als Arbeitsfilter: Pipeline, „Heute“ und „Nächster bester Kontakt“ nur mit ihren Betrieben; der Filter bleibt in der Sitzung, „0“ hebt ihn auf',
+    $hPl === 2 && $hPl2 === 1 && in_array($h1, array_map('intval', array_column($hHe['heiss']['zeilen'], 'id')), true) && $hHe2['heiss']['n'] === 0
+    && ($hNa['id'] ?? 0) === $h1 && ($hNa2['id'] ?? 0) !== $h1 && $hAf1 === $hKid && $hAf2 === $hKid && $hAf3 === null,
+    json_encode([$hPl, $hPl2, $hHe['heiss']['n'], $hHe2['heiss']['n'], $hNa, $hNa2, $hAf1, $hAf2, $hAf3]));
+/* Partner im Vergleich: Angebote, Umsatz, Provision */
+$hPg = AkquisePartner::geld($fpB);
+$hAus = array_column(AkquisePartner::auswertung(), null, 'id');
+$hViews = (string) file_get_contents($wurzel . '/views/partner_reservierungen.php') . (string) file_get_contents($wurzel . '/views/akquise_kampagnen.php') . (string) file_get_contents($wurzel . '/views/akquise_kampagne.php');
+pruefe('Partner im Vergleich zeigt gesendete Angebote, bezahlten Umsatz seit der Zuordnung und Provision; Kampagnen-Reiter, Geld in Kampagnen nur mit Rechte::geld',
+    $hPg === ['angebote_gesendet' => 1, 'umsatz' => 50000, 'provision' => 0] && ($hAus[$fpB]['umsatz'] ?? -1) === 50000
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_reiter.php'), "'kampagnen' => 'Kampagnen'")
+    && str_contains($hViews, "\$a['umsatz']") && substr_count($hViews, '$kaGeld = Rechte::geld()') === 2,
+    json_encode([$hPg, $hAus[$fpB] ?? null]));
+Db::run('DELETE FROM payments WHERE order_id = ?', [$hO]); Db::run('DELETE FROM orders WHERE id = ?', [$hO]);
+Db::run('DELETE FROM partner_zuordnungen WHERE customer_id = ?', [$hKu]); Db::run('DELETE FROM angebote WHERE customer_id = ?', [$hKu]);
+foreach ([$hKid, $hK2id] as $hX) { Db::run('DELETE FROM akq_kampagne_firmen WHERE kampagne_id = ?', [$hX]); Db::run('DELETE FROM akq_kampagnen WHERE id = ?', [$hX]); }
+foreach ([$h1, $h2, $h3, $h4] as $hX) {
+    foreach (['akq_versand', 'akq_antworten', 'akq_protokoll'] as $hT) { Db::run("DELETE FROM `$hT` WHERE firma_id = ?", [$hX]); }
+    Db::run('DELETE FROM akq_firmen WHERE id = ?', [$hX]);
+}
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

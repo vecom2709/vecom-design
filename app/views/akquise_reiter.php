@@ -4,7 +4,7 @@
    merkt, dass etwas schieflaeuft, soll nicht erst suchen muessen. */
 $akqTeil = $akqTeil ?? '';
 $akqG = AkquiseGate::grenzen();
-$reiter = ['heute' => 'Heute', '' => 'Betriebe', 'pipeline' => 'Pipeline', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'beitraege' => 'Beiträge', 'anzeigen' => 'Anzeigen & Branchen-Seiten', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
+$reiter = ['heute' => 'Heute', '' => 'Betriebe', 'pipeline' => 'Pipeline', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'kampagnen' => 'Kampagnen', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'beitraege' => 'Beiträge', 'anzeigen' => 'Anzeigen & Branchen-Seiten', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
 if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgeschaltet (27.09.2026)
 ?>
 <style>

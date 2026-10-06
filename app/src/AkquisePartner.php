@@ -202,9 +202,28 @@ final class AkquisePartner
                 'interesse' => $ab(['interesse', 'termin', 'angebot', 'auftrag']),
                 'angebot' => $ab(['angebot', 'auftrag']), 'kunde' => $st['auftrag'] ?? 0,
                 'reaktion_h' => self::reaktionszeit($pid), 'warnungen' => $warn[$pid] ?? 0,
-            ];
+            ] + self::geld($pid);
         }
         return $aus;
+    }
+
+    /**
+     * Modul H (06.10.2026, Uwe: „Plus Angebot, Umsatz, Provision“): was aus den zugeordneten Kunden wurde —
+     * gesendete Angebote, bezahlter Umsatz seit der Zuordnung und gebuchte Provision. Nur für den Admin.
+     * @return array{angebote_gesendet:int, umsatz:int, provision:int}
+     */
+    public static function geld(int $pid): array
+    {
+        $w = static fn(string $sql): int => (int) Db::wert($sql, [$pid], 0);
+        try {
+            return [
+                'angebote_gesendet' => $w("SELECT COUNT(*) FROM angebote a JOIN partner_zuordnungen z ON z.customer_id = a.customer_id
+                                             WHERE z.partner_id = ? AND a.gesendet_am IS NOT NULL AND COALESCE(a.demo, 0) = 0"),
+                'umsatz' => $w("SELECT COALESCE(SUM(p.amount_cents), 0) FROM payments p JOIN orders o ON o.id = p.order_id JOIN partner_zuordnungen z ON z.customer_id = o.customer_id
+                                 WHERE z.partner_id = ? AND p.status = 'bezahlt' AND COALESCE(p.demo, 0) = 0 AND p.paid_at >= z.created_at"),
+                'provision' => $w("SELECT COALESCE(SUM(provision_cents), 0) FROM partner_provisionen WHERE partner_id = ? AND status NOT IN ('storniert','abgelehnt','zurueckgeholt','rueckforderung')"),
+            ];
+        } catch (Throwable $e) { return ['angebote_gesendet' => 0, 'umsatz' => 0, 'provision' => 0]; }
     }
 
     /** Median der Stunden zwischen Signal (positive Antwort) und erster Partner-Aktivität danach, letzte 90 Tage. */

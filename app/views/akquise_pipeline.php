@@ -59,8 +59,9 @@ $karte = static function (array $z, string $sp) use ($ziele): string {
     <?php foreach ($werte['stadt'] as $o): ?><option<?= $gewaehlt('stadt', (string) $o) ?>><?= Fmt::h((string) $o) ?></option><?php endforeach; ?></select></div>
   <div class="feld"><label for="pl-prio">Priorität</label><select id="pl-prio" name="prio"><option value="">alle</option>
     <?php foreach (AkquisePrio::STUFEN as $k => [$z, $w]): ?><option value="<?= $k ?>"<?= $gewaehlt('prio', $k) ?>><?= $z . ' ' . Fmt::h($w) ?></option><?php endforeach; ?></select></div>
+  <?php $kwInForm = true; $kampagne = $kampagne ?? null; $kampagnen = $kampagnen ?? []; require __DIR__ . '/akquise_kampagnenwahl.php'; /* Modul H */ ?>
   <button class="knopf">Filtern</button>
-  <?php if (array_filter($filter)): ?><a class="knopf" href="<?= Fmt::h(url('akquise/pipeline')) ?>">Zurücksetzen</a><?php endif; ?>
+  <?php if (array_filter($filter) || !empty($kampagne)): ?><a class="knopf" href="<?= Fmt::h(url('akquise/pipeline?kampagne=0')) ?>">Zurücksetzen</a><?php endif; ?>
 </form>
 
 <?php /* Ein Formular für das Ziehen: Das Skript setzt Firma und Ziel und schickt es ab — die Rückfrage aus dem Rahmen greift wie bei jedem Formular. */ ?>

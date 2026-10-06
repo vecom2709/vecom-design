@@ -149,6 +149,27 @@ $hart = in_array((string) ($f['sperr_art'] ?? ''), AkquiseCrm::SPERR_HART, true)
   </div>
   <?php endif; ?>
 
+  <?php /* Modul H: Kampagnen dieses Betriebs — dazunehmen und herausnehmen. */
+    require_once dirname(__DIR__) . '/src/AkquiseKampagne.php';
+    $pfKa = AkquiseKampagne::vonFirma($fid); $pfKaIds = array_map('intval', array_column($pfKa, 'id'));
+    $pfKaFrei = array_filter(AkquiseKampagne::liste(true), static fn($k) => !in_array((int) $k['id'], $pfKaIds, true)); ?>
+  <?php if ($pfKa || $pfKaFrei): ?>
+  <div class="block" id="kampagnen">
+    <h2>Kampagnen</h2>
+    <?php foreach ($pfKa as $k): ?>
+      <div style="display:flex;gap:8px;align-items:center;margin:0 0 6px;font-size:14px"><a href="<?= Fmt::h(url('akquise/kampagnen/' . (int) $k['id'])) ?>"><?= Fmt::h((string) $k['name']) ?></a>
+        <?= $k['status'] !== 'aktiv' ? '<span class="akq-klein">beendet</span>' : '' ?>
+        <?= $post('akq_kampagne_weg', '<input type="hidden" name="kampagne" value="' . (int) $k['id'] . '"><input type="hidden" name="zurueck" value="akquise/' . $fid . '?ansicht=profil#kampagnen"><button class="knopf klein">Herausnehmen</button>', ' style="margin-left:auto"') ?></div>
+    <?php endforeach; ?>
+    <?php if (!$pfKa): ?><p class="akq-klein" style="margin:0 0 8px">In keiner Kampagne.</p><?php endif; ?>
+    <?php if ($pfKaFrei): ?>
+      <?= $post('akq_kampagne_hinzu', '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select name="kampagne" aria-label="Kampagne">'
+          . implode('', array_map(static fn($k) => '<option value="' . (int) $k['id'] . '">' . Fmt::h((string) $k['name']) . '</option>', $pfKaFrei))
+          . '</select><input type="hidden" name="zurueck" value="akquise/' . $fid . '?ansicht=profil#kampagnen"><button class="knopf klein">Aufnehmen</button></div>') ?>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
   <div class="block" id="sperre">
     <h2>Sperrstatus</h2>
     <?php if ((string) ($f['sperr_art'] ?? '') !== ''): ?>

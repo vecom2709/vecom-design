@@ -731,6 +731,29 @@ if ($post) {
                 require_once __DIR__ . '/src/AkquiseCrm.php';
                 AkquiseCrm::kanalSetzen($fid, (string) ($_POST['kanal'] ?? ''), (string) ($_POST['was'] ?? ''), (string) ($_POST['datum'] ?? '') ?: null);
                 $zurueck('akquise/' . $fid . '?ansicht=profil#kanaele');
+            /* ---------------- Akquise-CRM Modul H (06.10.2026): Kampagnen ---------------- */
+            case 'akq_kampagne_neu':
+                require_once __DIR__ . '/src/AkquiseKampagne.php';
+                $kaR = AkquiseKampagne::anlegen((string) ($_POST['name'] ?? ''), $_POST, Auth::name() ?: 'Verwaltung');
+                if (!$kaR['ok']) { $_SESSION['fehler'] = $kaR['fehler']; $zu('kampagnen'); }
+                $_SESSION['gut'] = 'Kampagne angelegt: ' . (int) $kaR['n'] . ' Betriebe übernommen. Verschickt wird dadurch nichts.';
+                $zu('kampagnen/' . (int) $kaR['id']);
+            case 'akq_kampagne_hinzu':
+            case 'akq_kampagne_weg':
+                require_once __DIR__ . '/src/AkquiseKampagne.php';
+                $kaId = (int) ($_POST['kampagne'] ?? 0);
+                $kaOk = $tat === 'akq_kampagne_hinzu' ? AkquiseKampagne::hinzu($kaId, $fid) : AkquiseKampagne::weg($kaId, $fid);
+                $_SESSION[$kaOk ? 'gut' : 'fehler'] = $kaOk ? ($tat === 'akq_kampagne_hinzu' ? 'In die Kampagne aufgenommen.' : 'Aus der Kampagne genommen.') : 'Kampagne nicht gefunden oder beendet.';
+                $zurueck('akquise/' . $fid);
+            case 'akq_kampagne_beenden':
+            case 'akq_kampagne_wieder':
+                require_once __DIR__ . '/src/AkquiseKampagne.php';
+                $kaId = (int) ($_POST['kampagne'] ?? 0);
+                if (!AkquiseKampagne::laden($kaId)) { throw new RuntimeException('Kampagne nicht gefunden.'); }
+                AkquiseKampagne::beenden($kaId, $tat === 'akq_kampagne_wieder');
+                if ($tat === 'akq_kampagne_beenden' && (int) ($_SESSION['akq_kampagne'] ?? 0) === $kaId) { unset($_SESSION['akq_kampagne']); }
+                $_SESSION['gut'] = $tat === 'akq_kampagne_beenden' ? 'Kampagne beendet — die Zahlen bleiben.' : 'Kampagne wieder aktiv.';
+                $zu('kampagnen/' . $kaId);
             case 'akq_stufe':
                 /* Pipeline (Modul C): Ziehen oder „Verschieben nach“. */
                 require_once __DIR__ . '/src/AkquiseCrm.php';
@@ -908,22 +931,45 @@ if ($teil === 'protokoll') {
     exit;
 }
 
+/* Akquise-CRM Modul H (06.10.2026): Kampagnen — Übersicht, eine Kampagne im Detail. */
+if ($teil === 'kampagnen') {
+    require_once __DIR__ . '/src/AkquiseKampagne.php';
+    $akqKid = (int) ($teile[2] ?? 0);
+    if ($akqKid > 0) {
+        $akqKa = AkquiseKampagne::laden($akqKid);
+        if (!$akqKa) { $_SESSION['fehler'] = 'Diese Kampagne gibt es nicht.'; weiter('akquise/kampagnen'); }
+        $akqZ = AkquiseKampagne::zeilen($akqKid);
+        ansicht('akquise_kampagne', ['k' => $akqKa, 'zeilen' => $akqZ, 'w' => AkquiseKampagne::kennzahlen($akqZ)]);
+        exit;
+    }
+    ansicht('akquise_kampagnen', ['uebersicht' => AkquiseKampagne::uebersicht(), 'branchen' => Akquise::branchen(), 'werte' => Akquise::filterWerte(),
+        'kampagne' => (int) ($_SESSION['akq_kampagne'] ?? 0)]);
+    exit;
+}
+
 /* Akquise-CRM Modul C (06.10.2026): der Arbeitsplatz „Heute“ und „Nächster bester Kontakt“. */
 if ($teil === 'heute') {
     require_once __DIR__ . '/src/AkquiseCrm.php';
     require_once __DIR__ . '/src/AkquisePrio.php';
-    ansicht('akquise_heute', ['kacheln' => AkquiseCrm::heute(), 'naechster' => AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []))]);
+    require_once __DIR__ . '/src/AkquiseKampagne.php';
+    $akqK = AkquiseKampagne::arbeitsfilter();   // Modul H: Kampagne als Arbeitsfilter
+    ansicht('akquise_heute', ['kacheln' => AkquiseCrm::heute(6, $akqK), 'naechster' => AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []), $akqK),
+        'kampagne' => $akqK, 'kampagnen' => AkquiseKampagne::liste(true)]);
     exit;
 }
 if ($teil === 'pipeline') {
     require_once __DIR__ . '/src/AkquiseCrm.php';
+    require_once __DIR__ . '/src/AkquiseKampagne.php';
     $plF = array_intersect_key($_GET, array_flip(['branche', 'stadt', 'q', 'prio', 'partner']));
-    ansicht('akquise_pipeline', ['spalten' => AkquiseCrm::pipeline($plF), 'filter' => $plF, 'werte' => Akquise::filterWerte(), 'branchen' => Akquise::branchen()]);
+    $akqK = AkquiseKampagne::arbeitsfilter();   // Modul H: Kampagne als Arbeitsfilter (bleibt in der Sitzung)
+    ansicht('akquise_pipeline', ['spalten' => AkquiseCrm::pipeline($plF + ['kampagne' => $akqK]), 'filter' => $plF, 'werte' => Akquise::filterWerte(), 'branchen' => Akquise::branchen(),
+        'kampagne' => $akqK, 'kampagnen' => AkquiseKampagne::liste(true)]);
     exit;
 }
 if ($teil === 'naechster') {
     require_once __DIR__ . '/src/AkquiseCrm.php';
-    $crmN = AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []));
+    require_once __DIR__ . '/src/AkquiseKampagne.php';
+    $crmN = AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []), AkquiseKampagne::arbeitsfilter());
     if ($crmN === null) {
         $_SESSION['gut'] = 'Für heute ist alles bearbeitet — kein weiterer Kontakt mit hoher Priorität.';
         unset($_SESSION['akq_uebersprungen']);
