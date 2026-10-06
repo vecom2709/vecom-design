@@ -11227,9 +11227,13 @@ pruefe('für eine gesperrte Firma gibt es keinen nächsten Schritt', Akquise::na
 pruefe('der goldene Knopf zeigt nie auf eine Tat, die es nicht gibt',
     str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_vorlage_regel'"));
 
-$akVb2 = AkquiseVersand::regelVorlage($akE['id'], 'it');
+$akVbM = AkquiseVersand::regelVorlage($akE['id'], 'it');   // 06.10.2026: mit E-Mail-Adresse öffnet der Text im eigenen Mailprogramm
+$akVbMk = (string) Db::wert('SELECT kanal FROM akq_vorlagen WHERE id = ?', [$akVbM], '');
+Db::run("UPDATE akq_vorlagen SET status = 'verworfen' WHERE id = ?", [$akVbM]);
+$akVb2 = AkquiseVersand::regelVorlage($akE['id'], 'it', 'brief');
 $akVbZ = Db::one('SELECT * FROM akq_vorlagen WHERE id = ?', [$akVb2]);
-pruefe('ohne Kanalangabe und ohne Einwilligung entsteht ein BRIEF, keine E-Mail', $akVbZ['kanal'] === 'brief', (string) $akVbZ['kanal']);
+pruefe('ohne Kanalangabe entsteht bei bekannter E-Mail-Adresse eine E-Mail (fürs eigene Mailprogramm), ohne Adresse ein Brief',
+    $akVbZ['kanal'] === 'brief' && $akVbMk === (AkquiseMail::kann(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akE['id']]))['senden'] ? 'email' : 'brief'), $akVbMk);
 pruefe('der Brief nennt den QR-Code und den Weg „keine Post mehr" per Nachricht an Vecom',
     str_contains((string) $akVbZ['text'], 'codice QR') && str_contains((string) $akVbZ['text'], 'kontakt@vecom-design.it'));
 pruefe('der Brief-Text besteht die Textprüfung', !json_decode((string) ($akVbZ['pruefhinweise'] ?? '[]'), true), (string) $akVbZ['pruefhinweise']);
@@ -15592,6 +15596,22 @@ pruefe('Erste E-Mail (06.10.2026, Uwe): keine erfundene Vorgeschichte, ehrliche 
     && !preg_match('~d.accordo|besprochen|as discussed~iu', $ahH['email']['text'] . $ahH['email']['betreff'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahP2['email']['text'] . $ahP2['whatsapp']['text'])
     && !preg_match(AkquiseWerkstatt::VERTRAUEN, $ahH['email']['text'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahB['whatsapp']['text'] . $ahP2['email']['text'])
     && !preg_match('/\{[a-z_]+\}/', $ahH['email']['text'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahB['whatsapp']['text']), $ahH['email']['text'] . "\n----\n" . $ahB['email']['text']);
+$ahSessAlt = $_SESSION ?? []; $_SESSION = ['uid' => 1, 'rolle' => 'admin', 'name' => 'Uwe Admin'];
+$ahMo = []; $ahMl = [];
+foreach ([['Bar Mailprobe Ohne', '', 'INFO@Mailprobe-Ohne.example; chef@mailprobe-ohne.example'], ['Bar Mailprobe Web', 'https://www.mailprobe-web.example/', 'mailto:info@mailprobe-web.example']] as $i => [$ahN, $ahU, $ahE]) {
+    $ahId = (int) Db::insert('akq_firmen', ['kennung' => 'AHM0000' . $i, 'name' => $ahN, 'name_norm' => mb_strtolower($ahN), 'land' => 'IT', 'branche' => 'bar_cafe', 'stadt' => 'Favara', 'url' => $ahU, 'email' => $ahE, 'quelle' => 'ahm-kette-' . $i]);
+    $ahPk = AkquiseAnsprechen::paket(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ahId]), [], null, '');
+    try { $ahMl[] = AkquiseMail::mailtoErzeugen($ahId, $ahPk['email']['betreff'], $ahPk['email']['text'], true)['link']; } catch (RuntimeException $e) { $ahMo[] = $ahN . ': ' . $e->getMessage(); }
+    Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id = ?', [$ahId]);
+}
+$_SESSION = $ahSessAlt;
+pruefe('Jeder Betrieb mit E-Mail öffnet im Mailprogramm (06.10.2026): der fertige Erstkontakt-Text — mit und ohne Website — hat kein ⛔; unsaubere Adressen („mailto:“, Großbuchstaben, zwei Adressen) werden zur ersten gültigen',
+    $ahMo === [] && count($ahMl) === 2 && str_starts_with($ahMl[0], 'mailto:info%40mailprobe-ohne.example?subject=') && str_starts_with($ahMl[1], 'mailto:info%40mailprobe-web.example?subject=')
+    && Akquise::normEmail('info [at] bar.example') === 'info@bar.example' && Akquise::normEmail('Kontakt: info@bar.example.') === 'info@bar.example'
+    && Akquise::normEmail('info@bäckerei.example') === 'info@xn--bckerei-5wa.example' && Akquise::normEmail('keine') === null && Akquise::normEmail('a@b') === null, json_encode($ahMo, JSON_UNESCAPED_UNICODE));
+$ahFv = (string) file_get_contents($wurzel . '/views/akquise_firma.php');
+pruefe('„Text für den automatischen Versand“: kein Versand über den Server mehr — der freigegebene Text öffnet im Mailprogramm (mailto), Text gilt danach als benutzt',
+    str_contains($ahFv, 'data-fk-mailto') && !str_contains($ahFv, "\$post('akq_senden'") && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "UPDATE akq_vorlagen SET status = 'gesendet' WHERE id = ? AND firma_id = ? AND kanal = 'email'"));
 pruefe('K2: Öffnen von Mail/WhatsApp wird einmal als „selbst gemacht“ vermerkt (nicht doppelt binnen 30 Minuten)',
     AkquiseAnsprechen::vermerken($ahF, 'email') && !AkquiseAnsprechen::vermerken($ahF, 'email') && AkquiseAnsprechen::vermerken($ahF, 'whatsapp')
     && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'von_hand'", [$ahF], 0) === 2 && !AkquiseAnsprechen::vermerken($ahF, 'brief'));

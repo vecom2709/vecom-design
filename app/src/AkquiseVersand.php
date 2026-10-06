@@ -94,12 +94,19 @@ final class AkquiseVersand
      * Brief. Ein E-Mail-Entwurf fuer eine Firma, die man nicht anschreiben
      * darf, waere eine Einladung zum Fehler (26.09.2026).
      */
+    /** Mit E-Mail-Adresse öffnet der Text im eigenen Mailprogramm (06.10.2026) — außer bei „Nicht kontaktieren“ oder Partner. */
+    private static function mailOffen(array $f): bool
+    {
+        require_once __DIR__ . '/AkquiseMail.php';
+        return AkquiseMail::kann($f)['senden'];
+    }
+
     public static function regelVorlage(int $firmaId, ?string $sprache = null, ?string $kanal = null): int
     {
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);
         if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
         $kanal = in_array($kanal, ['email', 'brief'], true) ? $kanal
-            : (AkquiseGate::ampel($f)['farbe'] === 'gruen' ? 'email' : 'brief');
+            : (AkquiseGate::ampel($f)['farbe'] === 'gruen' || self::mailOffen($f) ? 'email' : 'brief');
         if ($kanal === 'brief' && !AkquiseGate::briefAn()) {
             throw new RuntimeException('Briefe sind ausgeschaltet. Eine E-Mail geht nur mit Einwilligung — die entsteht über den Website-Check oder einen Einwilligungs-Link nach einem Gespräch.');
         }

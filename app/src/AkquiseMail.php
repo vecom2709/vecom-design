@@ -384,6 +384,7 @@ final class AkquiseMail
         $f = self::firma($firmaId);
         $k = self::kann($f);
         if (!$k['senden']) { throw new RuntimeException('Senden geht hier nicht: ' . ($k['grund'] ?? 'kein Versandgrund dokumentiert') . '.'); }
+        $an = (string) Akquise::normEmail((string) $f['email']);   // bereinigt: erste gültige Adresse, ohne „mailto:“ o. Ä.
         $betreff = trim(mb_substr(strip_tags($betreff), 0, 200));
         $text = trim(str_replace("\r\n", "\n", strip_tags($text)));
         if ($betreff === '') { throw new RuntimeException('Bitte einen Betreff eintragen.'); }
@@ -397,15 +398,15 @@ final class AkquiseMail
         $abmelden = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/widerspruch.php?t=' . $token;
         $voll = $text . "\n\n" . (['de' => 'Keine weiteren Nachrichten: ', 'it' => 'Non ricevere altri messaggi: ', 'en' => 'No further messages: '][$sp] ?? '') . $abmelden;
         $id = (int) Db::insert('akq_versand', [
-            'firma_id' => $firmaId, 'kanal' => 'email', 'an' => $f['email'], 'status' => 'von_hand',
+            'firma_id' => $firmaId, 'kanal' => 'email', 'an' => $an, 'status' => 'von_hand',
             'compliance' => (string) $f['compliance_status'], 'abmelde_token' => $token, 'actor' => self::bearbeiter(),
             'grund' => mb_substr('mailto-Link erzeugt · ' . ($k['freigabe'] ? (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung') : 'ohne dokumentierten Versandgrund (Hinweis bestätigt)'), 0, 255),
         ]);
         Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet']
             + (in_array((string) $f['kontakt_status'], ['neu', 'qualifiziert', 'vorlage', 'freigegeben'], true) ? ['kontakt_status' => 'kontaktiert'] : []));
         Akquise::protokoll($firmaId, 'versand', 'E-Mail im eigenen Mailprogramm geöffnet (mailto-Link erzeugt von ' . self::bearbeiter() . ')', ['versand' => $id]);
-        Events::pruefspur('akquise_mailto', 'akq_versand', $id, [], ['an' => $f['email'], 'erzeugt' => date('Y-m-d H:i:s')]);
-        $link = 'mailto:' . rawurlencode((string) $f['email']) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($voll);
+        Events::pruefspur('akquise_mailto', 'akq_versand', $id, [], ['an' => $an, 'erzeugt' => date('Y-m-d H:i:s')]);
+        $link = 'mailto:' . rawurlencode($an) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($voll);
         return ['id' => $id, 'link' => $link, 'lang' => strlen($link) > self::MAILTO_LANG, 'text' => $voll];
     }
 

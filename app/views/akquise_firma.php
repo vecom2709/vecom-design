@@ -21,6 +21,7 @@ $stufeNr = (int) array_search($stufeJetzt, $stufenReihe, true);
 $score = $f['score'] !== null ? (int) $f['score'] : null;
 
 /* Die aktuelle Vorlage: die juengste, die noch zaehlt. Aeltere stehen im Verlauf. */
+require_once dirname(__DIR__) . '/src/AkquiseMail.php';
 $aktiv = null;
 foreach ($vorlagen as $v) { if (in_array($v['status'], ['entwurf', 'freigegeben'], true)) { $aktiv = $v; break; } }
 $kontaktiert = in_array($stufeJetzt, ['kontaktiert', 'antwort'], true) || (bool) array_filter($versand, static fn($v) => in_array($v['status'], ['gesendet', 'von_hand'], true));
@@ -210,16 +211,17 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
       <?php elseif ($kontaktiert && !$aktiv): ?>
         <p class="akq-klein">Schon kontaktiert. Was verschickt wurde, steht im <a href="<?= Fmt::h($reiterUrl('verlauf')) ?>" style="text-decoration:underline">Verlauf</a>.</p>
       <?php elseif (!$aktiv): ?>
-        <?php if ($audit && $audit['status'] === 'fertig' && !AkquiseGate::briefAn() && $ampel['farbe'] !== 'gruen'): ?>
+        <?php $fkMail = AkquiseMail::kann($f)['senden']; /* 06.10.2026: mit E-Mail-Adresse immer über das eigene Mailprogramm */ ?>
+        <?php if ($audit && $audit['status'] === 'fertig' && !AkquiseGate::briefAn() && $ampel['farbe'] !== 'gruen' && !$fkMail): ?>
           <p class="akq-klein">Briefe sind ausgeschaltet, und eine E-Mail geht hier nur mit Einwilligung. Die entsteht über den
             <a href="/website-check.php" target="_blank" rel="noopener" style="text-decoration:underline">Website-Check</a> oder einen Einwilligungs-Link nach einem Gespräch (unten bei „Einwilligung“).
             <?= $telefonGeht ? 'Ein Anruf ist nach Prüfung möglich — siehe Anrufzettel.' : '' ?></p>
         <?php elseif ($audit && $audit['status'] === 'fertig'): ?>
           <p class="akq-klein" style="margin-bottom:10px">
-            <?= $ampel['farbe'] === 'gruen' ? 'E-Mail ist hier erlaubt.' : 'E-Mail ohne Einwilligung ist nicht erlaubt — der Brief ist der Weg.' ?>
+            <?= $ampel['farbe'] === 'gruen' ? 'E-Mail ist hier erlaubt.' : ($fkMail ? 'Die E-Mail öffnest du in deinem eigenen Mailprogramm — ohne dokumentierten Versandgrund mit Hinweis, den du bestätigst.' : 'Ohne E-Mail-Adresse ist der Brief der Weg.') ?>
             Der Text entsteht aus den geprüften Befunden; du liest ihn, bevor irgendetwas passiert.</p>
           <?= $post('akq_vorlage_regel', '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-            <button class="knopf akq-los">' . ($ampel['farbe'] === 'gruen' ? 'E-Mail schreiben' : 'Brief schreiben') . '</button>
+            <button class="knopf akq-los">' . ($ampel['farbe'] === 'gruen' || $fkMail ? 'E-Mail schreiben' : 'Brief schreiben') . '</button>
             <details><summary class="akq-klein" style="cursor:pointer">anders …</summary><div style="display:flex;gap:8px;margin-top:8px">
               <select name="sprache" style="width:auto">' . implode('', array_map(static fn($k, $w) => '<option value="' . $k . '"' . ($k === $spracheText ? ' selected' : '') . '>' . $w . '</option>', array_keys(AkquiseText::SPRACHEN), AkquiseText::SPRACHEN)) . '</select>
               <select name="kanal" style="width:auto"><option value="">passend</option>' . (AkquiseGate::briefAn() ? '<option value="brief">Brief</option>' : '') . '<option value="email">E-Mail</option></select>
@@ -288,15 +290,30 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
               <label class="akq-haken"><input type="checkbox" name="bestaetigt" value="1" required>
                 Brief ist eingeworfen. Mir ist kein Werbewiderspruch dieses Betriebs bekannt, und der Hinweis „keine Nachricht mehr gewünscht“ steht im Brief.</label>
               <button class="knopf">Als verschickt vermerken</button>', ' style="margin-top:14px;border-top:1px solid var(--linie);padding-top:12px"') ?>
-          <?php else: $g = $gates['email']; ?>
-            <?php if (in_array($g['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true)): ?>
-              <?php if ($sperre !== null): ?><p class="akq-klein" style="color:var(--gelb)">Gerade nicht möglich: <?= Fmt::h($sperre) ?></p><?php endif; ?>
-              <?= $post('akq_senden', '<input type="hidden" name="vorlage" value="' . (int) $v['id'] . '">'
-                  . ($g['status'] === AkquiseGate::PRUEFEN ? '<div class="feld"><label>Was hast du geprüft? (Pflicht)</label><input name="pruefvermerk" required minlength="15"></div>' : '')
-                  . '<button class="knopf akq-los"' . ($sperre !== null || empty($f['email']) ? ' disabled' : '') . '>E-Mail senden an ' . Fmt::h((string) ($f['email'] ?: '—')) . '</button>',
-                  ' style="margin-top:12px" data-frage="' . Fmt::h('Diese E-Mail geht jetzt an ' . (string) $f['email'] . ' (' . (string) $f['name'] . '). Eine zweite Ansprache ist danach gesperrt.') . '" data-ja="Ja, jetzt senden"') ?>
+          <?php else: $fkK = AkquiseMail::kann($f); ?>
+            <?php /* 06.10.2026, Uwe: „Alle Betriebe, wo E-Mail vorhanden ist, soll der Text im E-Mail-Programm öffnen.“ —
+                     kein Versand über den Server mehr, sondern der mailto-Link wie unter „Ansprechen“. */ ?>
+            <?php if ($fkK['senden']): $fkHin = !$fkK['freigabe']; ?>
+              <form method="post" action="<?= Fmt::h(url('akquise')) ?>" data-fk-mailto style="margin-top:12px"><?= Csrf::feld() ?>
+                <input type="hidden" name="tat" value="akq_mail_mailto"><input type="hidden" name="firma" value="<?= $fid ?>"><input type="hidden" name="vorlage" value="<?= (int) $v['id'] ?>">
+                <input type="hidden" name="betreff" value="<?= Fmt::h((string) $v['betreff']) ?>"><textarea name="text" hidden><?= Fmt::h((string) $v['text']) ?></textarea>
+                <?php if ($fkHin): ?><label class="akq-haken"><input type="checkbox" name="hinweise_gelesen" value="1" required>
+                  Kein Versandgrund dokumentiert — ich sende aus meinem eigenen Programm und entscheide selbst.</label><?php else: ?><input type="hidden" name="hinweise_gelesen" value="1"><?php endif; ?>
+                <button class="knopf akq-los">Im Mailprogramm öffnen — an <?= Fmt::h((string) Akquise::normEmail((string) $f['email'])) ?></button>
+                <span class="akq-klein" data-fk-status></span>
+              </form>
+              <script>
+              (function () { var f = document.querySelector('[data-fk-mailto]'); if (!f || !window.fetch) return;
+                f.addEventListener('submit', function (e) { e.preventDefault(); var st = f.querySelector('[data-fk-status]'), d = new FormData(f); d.append('js', '1');
+                  fetch(f.getAttribute('action'), { method: 'POST', body: d, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (j) { if (!j.ok) { st.textContent = '⛔ ' + (j.fehler || 'Nicht möglich.'); return; }
+                      if (j.lang && navigator.clipboard) { navigator.clipboard.writeText(j.text).catch(function () {}); }
+                      st.textContent = '✓ Mailprogramm geöffnet — dort selbst auf Senden drücken.'; window.location.href = j.link; })
+                    .catch(function () { f.submit(); }); }); })();
+              </script>
             <?php else: ?>
-              <p class="akq-klein" style="margin-top:10px">E-Mail ist hier nicht erlaubt (<?= Fmt::h(AkquiseGate::STATUS[$g['status']]) ?>). Verwirf den Text und schreib einen Brief.</p>
+              <p class="akq-klein" style="margin-top:10px">Öffnen im Mailprogramm geht hier nicht: <?= Fmt::h((string) $fkK['grund']) ?></p>
             <?php endif; ?>
           <?php endif; ?>
         <?php endif; ?>

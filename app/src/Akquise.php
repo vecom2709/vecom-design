@@ -371,7 +371,21 @@ final class Akquise
     public static function normEmail(?string $e): ?string
     {
         $e = mb_strtolower(trim((string) $e));
-        return filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : null;
+        if ($e === '') { return null; }
+        if (filter_var($e, FILTER_VALIDATE_EMAIL)) { return $e; }
+        /* Tolerant (06.10.2026, Uwe: „alle Betriebe, wo E-Mail vorhanden ist, sollen im Mailprogramm öffnen — es gibt noch
+           einige, wo es nicht geht“): „mailto:“, Leerzeichen, „[at]“/„(at)“, mehrere Adressen („a@x.it; b@x.it“ → die erste),
+           Satzzeichen am Rand und Umlaut-Domains (bäckerei.de → xn--…) werden aufgelöst. */
+        $e = (string) preg_replace(['~^mailto:~u', '~\s*[\[(]\s*(at|chiocciola)\s*[\])]\s*~u', '~\s*[\[(]\s*(dot|punto|punkt)\s*[\])]\s*~u'], ['', '@', '.'], $e);
+        if (!preg_match('~[^\s<>()\[\],;:"\'/]+@[^\s<>()\[\],;:"\'/]+\.[^\s<>()\[\],;:"\'/]+~u', $e, $m)) { return null; }
+        $e = rtrim($m[0], '.-_');
+        if (filter_var($e, FILTER_VALIDATE_EMAIL)) { return $e; }
+        [$lokal, $domain] = explode('@', $e, 2) + ['', ''];
+        if (function_exists('idn_to_ascii') && $domain !== '' && preg_match('~[^\x00-\x7f]~', $domain)) {
+            $ascii = idn_to_ascii($domain, IDNA_DEFAULT, INTL_IDNA_VARIANT_UTS46);
+            if (is_string($ascii) && filter_var($lokal . '@' . $ascii, FILTER_VALIDATE_EMAIL)) { return $lokal . '@' . $ascii; }
+        }
+        return null;
     }
 
     /* ==================================================================

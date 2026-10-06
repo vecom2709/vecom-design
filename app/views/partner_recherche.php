@@ -46,7 +46,7 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
     foreach (['it', 'de', 'en'] as $l) {
         $t = PartnerAnschreiben::texte($p, $f, $l, $check);
         $waLink = 'https://wa.me/' . $wa . '?text=' . rawurlencode($t['wa']);
-        $mailLink = 'mailto:' . rawurlencode($f['email']) . '?subject=' . rawurlencode($t['betreff']) . '&body=' . rawurlencode($t['mail']);
+        $mailLink = 'mailto:' . rawurlencode(class_exists('Akquise') ? (Akquise::normEmail((string) $f['email']) ?? (string) $f['email']) : (string) $f['email']) . '?subject=' . rawurlencode($t['betreff']) . '&body=' . rawurlencode($t['mail']);
         $o .= '<div class="ak-text" data-ak-text="' . $id . '-' . $l . '"' . ($l === $spB ? '' : ' hidden') . '>'
             . '<textarea id="ak_' . $id . '_' . $l . '_wa" readonly rows="6">' . $h($t['wa']) . '</textarea>'
             . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '" data-angeschrieben="' . $id . '">' . $h($AK('wa')) . '</a>'

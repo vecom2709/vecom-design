@@ -190,6 +190,9 @@ if ($post) {
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 try {
                     $r = AkquiseMail::mailtoErzeugen($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), !empty($_POST['hinweise_gelesen']));
+                    if ((int) ($_POST['vorlage'] ?? 0) > 0) {   // freigegebener Text aus „Text für den automatischen Versand“ — gilt damit als benutzt
+                        Db::run("UPDATE akq_vorlagen SET status = 'gesendet' WHERE id = ? AND firma_id = ? AND kanal = 'email'", [(int) $_POST['vorlage'], $fid]);
+                    }
                     if ((int) ($_POST['antwort'] ?? 0) > 0) {   // Modul E: aus „Antwort vorbereiten“ — die Antwort gilt als beantwortet
                         require_once __DIR__ . '/src/AkquiseAntwort.php';
                         AkquiseAntwort::erledigen($fid, (int) $_POST['antwort'], 'beantwortet');

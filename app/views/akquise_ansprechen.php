@@ -94,7 +94,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
                 require __DIR__ . '/akquise_werkstatt.php'; /* Modul D: Prüfliste auch im Entwurf */ ?>
           <div class="an-knoepfe">
             <button class="knopf" type="button" data-an-kopieren="text-email">Text kopieren</button>
-            <span class="akq-klein">an <?= $anH((string) $f['email']) ?></span>
+            <span class="akq-klein">an <?= $anH((string) (Akquise::normEmail((string) $f['email']) ?? $f['email'])) ?></span>
           </div>
         <?php elseif (!$frei): ?>
           <div class="an-zu"><b>Erst nach seiner Zustimmung.</b> Eine Werbe-<?= $k === 'email' ? 'Mail' : 'Nachricht' ?> ohne Zustimmung ist in Italien und Deutschland verboten — auch von Hand.
@@ -123,7 +123,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
             <a class="knopf haupt" data-an-oeffnen="whatsapp" href="<?= $anH((string) $x['link']) ?>" target="_blank" rel="noopener noreferrer">In WhatsApp öffnen</a>
             <?php endif; ?>
             <button class="knopf" type="button" data-an-kopieren="text-<?= $k ?>">Text kopieren</button>
-            <span class="akq-klein" data-an-status="<?= $k ?>"><?= $k === 'email' ? 'an ' . $anH((string) $f['email']) : 'an ' . $anH((string) $f['whatsapp']) ?></span>
+            <span class="akq-klein" data-an-status="<?= $k ?>"><?= $k === 'email' ? 'an ' . $anH((string) (Akquise::normEmail((string) $f['email']) ?? $f['email'])) : 'an ' . $anH((string) $f['whatsapp']) ?></span>
           </div>
           <p class="akq-klein" style="margin-top:8px">Beim Öffnen wird der Zeitpunkt im Verlauf vermerkt. Antwortet er „STOP“: oben bei „E-Mail“ „Nicht kontaktieren“ setzen.</p>
         <?php endif; ?>
