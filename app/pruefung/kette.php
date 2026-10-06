@@ -4588,13 +4588,73 @@ $b7Fremd = BauAuftrag::anlegen($wsProjekt, 'review', 'Uwe', '', ['version_id' =>
 $_SESSION['rolle'] = 'mitarbeit'; $b7Rechte = [Rechte::darfTat('bau_auftrag'), Rechte::darfTat('version_review')];
 pruefe('Nach drei Runden baut Claude nicht weiter — Uwe entscheidet; fremde Fassung abgelehnt; Bauen anstoßen darf Mitarbeit, Review je Fassung nur Admin; nur startbare Arten über den Knopf',
     $b7NachDrei === 0 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE body LIKE '%nach 3 Runde(n) noch Mängel%'", [], 0) >= 1 && is_string($b7Fremd)
-    && $b7Rechte === [true, false] && str_contains((string) file_get_contents($wurzel . '/index.php'), 'BauAuftrag::STARTBAR'),
+    && $b7Rechte === [true, false] && str_contains((string) file_get_contents($wurzel . '/index.php'), 'BauAuftrag::KNOPF'),
     json_encode([$b7NachDrei, $b7Fremd, $b7Rechte], JSON_UNESCAPED_UNICODE));
 pruefe('Tests im Detail: Pfade aus der Lieferung (kein .., kein Punkt-Ordner, keine PHP), Links auflösen, fremde Skripte erkannt',
     BauPruefung::pfadOk('css/stil.css') === 'css/stil.css' && BauPruefung::pfadOk('../x.html') === null && BauPruefung::pfadOk('.git/config') === null && BauPruefung::pfadOk('x.php') === null
     && BauPruefung::aufloesen('seiten/a.html', '../index.html') === 'index.html' && BauPruefung::aufloesen('index.html', '../../x') === null && BauPruefung::aufloesen('a/b.html', '/') === ''
     && !BauPruefung::bestanden(BauPruefung::pruefen(['index.html' => $b7Seite('<h1>X</h1>', 'ok') . '<script src="https://cdn.example.net/x.js"></script>', 'css/stil.css' => '', 'privacy.html' => $b7Seite('<h1>P</h1>', 'ok')]))
     && BauPruefung::bestanden(BauPruefung::pruefen(['index.html' => $b7Seite('<h1>X</h1>', 'ok'), 'css/stil.css' => '', 'privacy.html' => $b7Seite('<h1>P</h1>', 'ok')])));
+/* AutoBuild Phase 8 (06.10.2026): Kundenwünsche — einordnen (Scope), umsetzen, Kundenvorschau. */
+require_once $wurzel . '/src/Wunsch.php';
+Db::run("UPDATE bau_auftraege SET status = 'abgebrochen' WHERE project_id = ? AND status IN ('wartet','laeuft')", [$wsProjekt]);
+$w8a = Wunsch::erfassen($wsProjekt, 'Bitte das Logo größer', 'kunde');
+$w8b = Wunsch::erfassen($wsProjekt, 'Können wir einen Online-Shop dazunehmen?', 'kunde');
+$w8Auf = BauAuftrag::anlegen($wsProjekt, 'wuensche', 'Mia Mitarbeit');
+$w8H = BauAuftrag::holen()['auftrag'] ?? [];
+BauAuftrag::melden(['id' => $w8Auf, 'ok' => true, 'text' => 'Zwei Wünsche eingeordnet: einer im Umfang, einer Zusatz.', 'vorschlaege' => [
+    ['id' => $w8a, 'einordnung' => 'im_umfang', 'grund' => 'Kleine Korrektur.', 'aufwand' => 'unter 1 Stunde'], ['id' => $w8b, 'einordnung' => 'zusatz', 'grund' => 'Ein Shop steht unter „Nicht enthalten“.'], ['id' => 999999, 'einordnung' => 'im_umfang', 'grund' => 'x']]]);
+$w8A = Wunsch::laden($w8a); $w8B = Wunsch::laden($w8b);
+pruefe('Wünsche: Kundenwunsch wird Eintrag „neu“ mit Meldung; Claude bekommt die neuen Wünsche und darf nur VORSCHLAGEN — eingeordnet ist danach noch nichts; fremde Ids ignoriert',
+    $w8A['status'] === 'neu' && $w8B['status'] === 'neu' && $w8A['vorschlag'] === 'im_umfang' && $w8B['vorschlag'] === 'zusatz' && ($w8H['art'] ?? '') === 'wuensche' && count((array) ($w8H['wuensche'] ?? [])) === 2
+    && str_contains((string) $w8H['regel'], 'Nur vorschlagen') && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title LIKE 'Neuer Wunsch:%'", [], 0) >= 1
+    && str_contains((string) file_get_contents(dirname($wurzel) . '/kunde.php'), "Wunsch::erfassen((int) \$pid, \$text, 'kunde'"),
+    json_encode([$w8A, $w8B, array_keys($w8H)], JSON_UNESCAPED_UNICODE));
+$w8Falsch = 'durch'; try { Wunsch::einordnen($w8b, 'zusatz_angenommen', 'Uwe Admin'); } catch (RuntimeException $e) { $w8Falsch = 'nein'; }
+Wunsch::einordnen($w8a, 'im_umfang', 'Uwe Admin');
+Wunsch::einordnen($w8b, 'zusatz', 'Uwe Admin');
+$w8Baubar1 = count(Wunsch::baubar($wsProjekt));
+$w8Grund = (string) Wunsch::laden($w8b)['grund'];
+Wunsch::einordnen($w8b, 'zusatz_angenommen', 'Uwe Admin');
+$w8U = Wunsch::umsetzen($wsProjekt, 'Uwe Admin');
+$w8UA = BauAuftrag::laden((int) $w8U);
+$w8Gesperrt = 'durch'; try { Wunsch::einordnen($w8a, 'abgelehnt', 'Uwe Admin'); } catch (RuntimeException $e) { $w8Gesperrt = 'nein'; }
+pruefe('Scope-Schutz: „Zusatz angenommen“ nur nach „Zusatz“; ein Zusatz wird nicht gebaut, bis der Kunde annimmt; „umsetzen“ gibt genau die baubaren Wünsche in EINEN Bau-Auftrag auf der neuesten Fassung — dann gesperrt',
+    $w8Falsch === 'nein' && $w8Baubar1 === 1 && $w8Grund !== '' && is_int($w8U) && $w8UA['art'] === 'bauen'
+    && (json_decode((string) $w8UA['parameter'], true)['wunsch_ids'] ?? []) == [$w8a, $w8b] && (int) (json_decode((string) $w8UA['parameter'], true)['version_id'] ?? 0) === (int) Versionen::neueste($wsProjekt)['id']
+    && Wunsch::anzeige(Wunsch::laden($w8a)) === 'in_arbeit' && $w8Gesperrt === 'nein' && Wunsch::baubar($wsProjekt) === [],
+    json_encode([$w8Falsch, $w8Baubar1, $w8U, $w8UA['parameter'] ?? null], JSON_UNESCAPED_UNICODE));
+$w8HB = BauAuftrag::holen()['auftrag'] ?? [];
+BauAuftrag::melden(['id' => (int) $w8U, 'ok' => true, 'text' => 'Logo größer, Shop-Seite ergänzt.', 'dateien' => [
+    ['pfad' => 'index.html', 'inhalt' => $b7Seite('<h1>Bar Prova</h1>', 'Logo grande.') . '<a href="menu.html">Menü</a>'], ['pfad' => 'css/stil.css', 'inhalt' => 'body{margin:0}'],
+    ['pfad' => 'menu.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Menü', $b7Seite('<h1>Menü</h1>', 'Caffè.'))],
+    ['pfad' => 'privacy.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Privacy', $b7Seite('<h1>Privacy</h1>', 'Informativa.'))]]]);
+$w8V = Versionen::neueste($wsProjekt);
+pruefe('Builder bekommt die Wünsche und die Ausgangsfassung; nach der Lieferung sind beide Wünsche „umgesetzt in Vn“, das Review steht an; der Kunde sieht den Stand in seinen Worten',
+    count((array) ($w8HB['wuensche'] ?? [])) === 2 && isset($w8HB['fassung']['dateien']) && (int) $w8HB['versuch'] === 1
+    && Wunsch::laden($w8a)['status'] === 'umgesetzt' && (int) Wunsch::laden($w8b)['version_id'] === (int) $w8V['id']
+    && (int) Db::wert("SELECT COUNT(*) FROM bau_auftraege WHERE project_id = ? AND art = 'review' AND status = 'wartet'", [$wsProjekt], 0) === 1
+    && count(Wunsch::fuerKunde(0, $wsProjekt)) === 2 && str_contains(Wunsch::kundeText('zusatz', 'de'), 'Angebot') && str_contains(Wunsch::kundeText('umgesetzt', 'it'), 'anteprima'),
+    json_encode([array_keys($w8HB), Wunsch::laden($w8a)], JSON_UNESCAPED_UNICODE));
+$w8c = Wunsch::erfassen($wsProjekt, 'Telefonnummer korrigieren', 'vecom'); Wunsch::einordnen($w8c, 'im_umfang', 'Uwe Admin');
+$w8U2 = Wunsch::umsetzen($wsProjekt, 'Uwe Admin');
+$w8Ab = BauAuftrag::abbrechen((int) $w8U2, 'Uwe Admin');
+$w8Zurueck = Wunsch::baubar($wsProjekt);
+$w8K1 = Versionen::alsKundenvorschau((int) $w8V['id'], 'Uwe Admin');
+Versionen::stagingEintragen((int) $w8V['id'], 'bar-prova-v' . (int) $w8V['nummer'] . '.netlify.app', 'Uwe Admin'); Versionen::geprueft((int) $w8V['id'], 'Uwe Admin');
+$w8Alt = Db::one('SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt]);
+Db::run('UPDATE projects SET vorschau_frei_am = NOW() WHERE id = ?', [$wsProjekt]);   // schon frei: nur die Adresse wechselt, keine E-Mail
+$w8K2 = Versionen::alsKundenvorschau((int) $w8V['id'], 'Uwe Admin');
+$w8Url = (string) Db::wert('SELECT preview_url FROM projects WHERE id = ?', [$wsProjekt], '');
+Db::run('UPDATE projects SET preview_url = ?, vorschau_frei_am = ? WHERE id = ?', [$w8Alt['preview_url'], $w8Alt['vorschau_frei_am'], $wsProjekt]);
+$_SESSION['rolle'] = 'mitarbeit'; $w8Rechte = array_map(static fn($t) => Rechte::darfTat($t), ['wunsch_neu', 'wunsch_einordnen', 'wunsch_umsetzen', 'version_vorschau']);
+pruefe('Abgebrochener Wunsch-Auftrag gibt die Wünsche zurück; Kundenvorschau nur für geprüfte Fassungen — dann Vorschau-Adresse gesetzt und freigeschaltet; Rechte: eintragen Mitarbeit, einordnen/umsetzen/zeigen nur Admin; Rückfragen',
+    $w8Ab === null && count($w8Zurueck) === 1 && (int) $w8Zurueck[0]['id'] === $w8c && !$w8K1['ok'] && $w8K2['ok']
+    && $w8Url === 'https://bar-prova-v' . (int) $w8V['nummer'] . '.netlify.app' && str_contains($w8K2['text'], 'keine neue E-Mail')
+    && str_contains((string) file_get_contents($wurzel . '/src/Versionen.php'), 'Nachricht::vorschauFreischalten($pid)')
+    && $w8Rechte === [true, false, false, false] && Ablauf::wiegt('version_vorschau') === Ablauf::RAUS && Ablauf::wiegt('wunsch_umsetzen') === Ablauf::RAUS,
+    json_encode([$w8Ab, $w8Zurueck, $w8K1, $w8K2, $w8Rechte], JSON_UNESCAPED_UNICODE));
+Db::run('DELETE FROM projekt_wuensche WHERE project_id = ?', [$wsProjekt]);
 foreach (Db::all('SELECT f.id, f.stored_name FROM projekt_versionen v JOIN files f ON f.id = v.file_id WHERE v.project_id = ?', [$wsProjekt]) as $b7F) { @unlink(Ablage::ordner() . '/' . $b7F['stored_name']); Db::run('DELETE FROM files WHERE id = ?', [(int) $b7F['id']]); }
 Db::run('DELETE FROM projekt_versionen WHERE project_id = ?', [$wsProjekt]);
 Db::run('DELETE FROM bau_auftraege WHERE project_id = ?', [$wsProjekt]);

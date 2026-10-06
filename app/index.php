@@ -2541,6 +2541,7 @@ if ($post) {
             case 'version_staging':
             case 'version_geprueft':
             case 'version_review':
+            case 'version_vorschau':
                 require_once __DIR__ . '/src/Versionen.php';
                 $vrV = Versionen::laden((int) ($_POST['version'] ?? 0));
                 $vrPid = (int) ($_POST['id'] ?? 0);
@@ -2551,6 +2552,9 @@ if ($post) {
                 } elseif ($tat === 'version_staging') {
                     Versionen::stagingEintragen((int) $vrV['id'], (string) ($_POST['url'] ?? ''), Auth::name());
                     $_SESSION['gut'] = 'Testadresse für V' . (int) $vrV['nummer'] . ' eingetragen — ansehen, dann „geprüft“.';
+                } elseif ($tat === 'version_vorschau') {   // Phase 8: geprüfte Fassung wird die Kundenvorschau
+                    $vrK = Versionen::alsKundenvorschau((int) $vrV['id'], Auth::name());
+                    $_SESSION[$vrK['ok'] ? 'gut' : 'fehler'] = $vrK['text'];
                 } elseif ($tat === 'version_review') {   // Phase 7: Review von Hand für eine Fassung
                     $vrR = Versionen::reviewAnstossen((int) $vrV['id'], Auth::name());
                     $_SESSION[is_int($vrR) ? 'gut' : 'fehler'] = is_int($vrR) ? 'Review für V' . (int) $vrV['nummer'] . ' wartet auf deinen PC.' : $vrR;
@@ -2897,6 +2901,26 @@ if ($post) {
                 };
                 weiter($bsPid > 0 ? 'projekte/' . $bsPid : 'projekte');
 
+            /* AutoBuild Phase 8 (06.10.2026): Kundenwünsche — erfassen, einordnen (Scope), umsetzen lassen. */
+            case 'wunsch_neu':
+            case 'wunsch_einordnen':
+            case 'wunsch_umsetzen':
+                require_once __DIR__ . '/src/Wunsch.php';
+                $wuPid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'wunsch_neu') {
+                    Wunsch::erfassen($wuPid, (string) ($_POST['text'] ?? ''), 'vecom');
+                    $_SESSION['gut'] = 'Wunsch eingetragen — jetzt einordnen.';
+                } elseif ($tat === 'wunsch_einordnen') {
+                    $wuW = Wunsch::laden((int) ($_POST['wunsch'] ?? 0));
+                    if (!$wuW || (int) $wuW['project_id'] !== $wuPid) { throw new RuntimeException('Wunsch gehört nicht zu diesem Projekt.'); }
+                    Wunsch::einordnen((int) $wuW['id'], (string) ($_POST['status'] ?? ''), Auth::name(), (string) ($_POST['grund'] ?? ''));
+                    $_SESSION['gut'] = 'Eingeordnet: ' . (Wunsch::STATUS[(string) $_POST['status']] ?? '') . '. Der Kunde sieht den neuen Stand auf seiner Seite.';
+                } else {
+                    $wuE = Wunsch::umsetzen($wuPid, Auth::name());
+                    $_SESSION[is_int($wuE) ? 'gut' : 'fehler'] = is_int($wuE) ? 'Die Wünsche gehen an Claude — eine neue Fassung mit Tests und Review folgt.' : $wuE;
+                }
+                weiter('projekte/' . $wuPid . '#wuensche');
+
             /* AutoBuild Phase 5 (06.10.2026): Bau-Warteschlange — Analyse und Pflichtenheft über den PC. */
             case 'bau_auftrag':
             case 'bau_auftrag_abbrechen':
@@ -2905,7 +2929,7 @@ if ($post) {
                 $baPid = (int) ($_POST['id'] ?? 0);
                 if ($tat === 'bau_auftrag') {
                     $baArt = (string) ($_POST['art'] ?? '');
-                    $baErg = in_array($baArt, BauAuftrag::STARTBAR, true) ? BauAuftrag::anlegen($baPid, $baArt, Auth::name(), (string) ($_POST['hinweis'] ?? '')) : 'Diese Auftragsart lässt sich hier nicht anstoßen.';
+                    $baErg = in_array($baArt, BauAuftrag::KNOPF, true) ? BauAuftrag::anlegen($baPid, $baArt, Auth::name(), (string) ($_POST['hinweis'] ?? '')) : 'Diese Auftragsart lässt sich hier nicht anstoßen.';
                     if (is_string($baErg)) { $_SESSION['fehler'] = $baErg; zurueck('projekte/' . $baPid . '#bauen'); }
                     $_SESSION['gut'] = BauAuftrag::name((string) $_POST['art']) . ' wartet auf deinen PC — er holt den Auftrag innerhalb von fünf Minuten ab.';
                 } elseif ($tat === 'bau_auftrag_abbrechen') {

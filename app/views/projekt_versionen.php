@@ -51,6 +51,11 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
             <?= $pvForm('version_geprueft', (int) $pv['id'], '<button class="knopf klein">Angesehen — geprüft</button>') ?>
           <?php endif; ?>
         <?php endif; ?>
+        <?php if (!empty($pv['geprueft_am']) && !empty($pv['staging_url']) && (string) ($p['preview_url'] ?? '') !== (string) $pv['staging_url']): ?>
+          <?= $pvForm('version_vorschau', (int) $pv['id'], '<button class="knopf klein">Dem Kunden als Vorschau zeigen</button>') ?>
+        <?php elseif (!empty($pv['staging_url']) && (string) ($p['preview_url'] ?? '') === (string) $pv['staging_url']): ?>
+          <span class="akq-klein" style="color:var(--gruen, #2e7d32)">👁 Das sieht der Kunde als Vorschau.</span>
+        <?php endif; ?>
         <?php if ($pvSt && $pvSt['auftrag'] && $pvSt['bereit'] && !$pvIstLive): ?>
           <?= $pvForm('veroeffentlichen', (int) $pv['id'], '<button class="knopf klein">' . (!empty($pv['live_am']) ? '↩ Diese Fassung wieder veröffentlichen' : 'V' . (int) $pv['nummer'] . ' veröffentlichen') . '</button>') ?>
           <?php if (!empty($pv['live_am'])): ?><span class="akq-klein" style="color:var(--leise)">Vorher wird gesichert. Dateien, die es nur in neueren Fassungen gibt, bleiben liegen.</span><?php endif; ?>

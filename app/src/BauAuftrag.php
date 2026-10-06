@@ -28,7 +28,11 @@ final class BauAuftrag
         /* AutoBuild Phase 7 (06.10.2026): Builder und Reviewer. */
         'bauen'         => ['Website bauen', 'Claude baut aus dem übernommenen Pflichtenheft eine neue Fassung — danach Tests und Review automatisch.'],
         'review'        => ['Review', 'Ein zweiter Claude-Lauf prüft eine Fassung gegen Pflichtenheft und Tests.'],
+        /* AutoBuild Phase 8 (06.10.2026): Vorschlag zur Einordnung der Kundenwünsche — entschieden wird von Hand. */
+        'wuensche'      => ['Wünsche einordnen', 'Claude schlägt für jeden neuen Kundenwunsch vor: im Umfang, Zusatz oder unklar — entscheiden tust du.'],
     ];
+    /** Was sich in der Verwaltung von Hand anstoßen lässt (Karte + Wunschliste). */
+    public const KNOPF = ['analyse', 'pflichtenheft', 'bauen', 'wuensche'];
     /** Diese Arten stehen als Knopf auf der Karte; „review“ läuft nach jedem Bau von selbst (oder je Fassung). */
     public const STARTBAR = ['analyse', 'pflichtenheft', 'bauen'];
     /** Arten, die bauen oder ändern — brauchen Annahme + Anzahlung (Bausperre). */
@@ -70,6 +74,10 @@ final class BauAuftrag
             $pv = Versionen::laden((int) $parameter['version_id']);
             if (!$pv || (int) $pv['project_id'] !== $pid) { return 'Diese Fassung gehört nicht zu diesem Projekt.'; }
         } elseif ($art === 'review') { return 'Welche Fassung soll geprüft werden?'; }
+        if ($art === 'wuensche') {
+            require_once __DIR__ . '/Wunsch.php';
+            if (!Wunsch::neue($pid)) { return 'Es gibt keine neuen Wünsche zum Einordnen.'; }
+        }
         self::aufraeumen();
         $offen = Db::one("SELECT status FROM bau_auftraege WHERE project_id = ? AND art = ? AND status IN ('wartet','laeuft') LIMIT 1", [$pid, $art]);
         if ($offen) { return self::name($art) . ($offen['status'] === 'laeuft' ? ' läuft gerade schon.' : ' wartet schon auf deinen PC.'); }
@@ -92,6 +100,8 @@ final class BauAuftrag
     {
         $n = Db::run("UPDATE bau_auftraege SET status = 'abgebrochen', fertig_am = NOW() WHERE id = ? AND status = 'wartet'", [$id])->rowCount();
         if ($n === 0) { return 'Nur wartende Aufträge lassen sich abbrechen.'; }
+        require_once __DIR__ . '/Wunsch.php';
+        Wunsch::zurueck($id);   // Phase 8: Wünsche zurück in die Liste
         Events::pruefspur('bau_auftrag_abbruch', 'bau_auftraege', $id, ['status' => 'wartet'], ['status' => 'abgebrochen', 'von' => $wer]);
         return null;
     }
@@ -138,6 +148,8 @@ final class BauAuftrag
             $bs = Bausperre::darfBauen((int) $a['project_id']);
             if ($bs['stopp'] || (in_array($a['art'], self::BAUEN, true) && !$bs['ok'])) {
                 Db::run("UPDATE bau_auftraege SET status = 'abgebrochen', fertig_am = NOW(), fehler = ? WHERE id = ? AND status = 'wartet'", [mb_substr($bs['grund'], 0, 1000), (int) $a['id']]);
+                require_once __DIR__ . '/Wunsch.php';
+                Wunsch::zurueck((int) $a['id']);
                 continue;
             }
             $n = Db::run("UPDATE bau_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
@@ -175,6 +187,12 @@ final class BauAuftrag
                     'tests' => json_decode((string) ($v['tests'] ?? ''), true) ?: [], 'review' => (string) ($v['review_text'] ?? '')];
             }
         }
+        if ($a['art'] === 'wuensche' || !empty($param['wunsch_ids'])) {
+            require_once __DIR__ . '/Wunsch.php';
+            $zusatz['wuensche'] = $a['art'] === 'wuensche' ? Wunsch::neue($pid)
+                : array_map(static fn($w) => ['id' => (int) $w['id'], 'text' => (string) $w['text']],
+                    Db::all('SELECT id, text FROM projekt_wuensche WHERE project_id = ? AND id IN (' . implode(',', array_map('intval', (array) $param['wunsch_ids'])) . ')', [$pid]));
+        }
         if ($a['art'] === 'bauen') {
             /* Die Website zeigt die Geschäftskontakte des Kunden — nur beim Bauen, nie beim Planen. */
             $zusatz['kontakt'] = ['telefon' => (string) ($k['phone'] ?? ''), 'email' => (string) ($k['email'] ?? ''),
@@ -183,6 +201,7 @@ final class BauAuftrag
         $regel = match ((string) $a['art']) {
             'bauen'  => 'Baue die Website als statische Dateien und liefere sie zurück. Nichts veröffentlichen, nichts hochladen, niemanden kontaktieren — die Verwaltung legt eine neue Fassung an, testet sie, und erst ein Mensch schaltet sie frei.',
             'review' => 'Nur lesen und beurteilen. Nichts ändern, nichts veröffentlichen.',
+            'wuensche' => 'Nur vorschlagen. Du ordnest nichts verbindlich ein — das entscheidet ein Mensch, weil davon abhängt, ob der Kunde zahlt.',
             default  => 'Nur lesen, analysieren und planen. Nichts bauen, nichts an einer Website ändern, nichts veröffentlichen, niemanden kontaktieren.',
         };
         return $zusatz + [
@@ -253,7 +272,8 @@ final class BauAuftrag
         $art = (string) $a['art'];
         $meldung = 'Entwurf von Claude — bitte lesen und übernehmen.';
         $link = 'projekte/' . (int) $p['id'] . '#bauen';
-        $mindest = in_array($art, ['bauen'], true) ? 20 : 200;
+        $mindest = in_array($art, ['bauen', 'wuensche'], true) ? 20 : 200;
+        $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
         if ($ok && mb_strlen($text) < $mindest) { $ok = false; $d['fehler'] = 'Claude hat zu wenig geliefert (unter ' . $mindest . ' Zeichen).'; }
 
         /* Phase 7: Der Builder liefert Dateien → neue Fassung, Tests, Review von selbst. */
@@ -269,9 +289,15 @@ final class BauAuftrag
                 self::anlegen((int) $p['id'], 'review', 'Claude (automatisch)', '', ['version_id' => $vid], (int) $a['versuch'], true);
             }
         }
+        /* Phase 8: Vorschläge zur Einordnung der Wünsche — nur Vorschläge. */
+        if ($ok && $art === 'wuensche') {
+            require_once __DIR__ . '/Wunsch.php';
+            $nv = Wunsch::vorschlaegeSpeichern((int) $p['id'], is_array($d['vorschlaege'] ?? null) ? $d['vorschlaege'] : []);
+            $meldung = $nv . ' Wünsche mit Vorschlag — bitte selbst einordnen.';
+            $link = 'projekte/' . (int) $p['id'] . '#wuensche';
+        }
         /* Phase 7: Der Reviewer urteilt — bei Mängeln baut Claude nach, höchstens MAX_VERSUCHE Runden. */
         if ($ok && $art === 'review') {
-            $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             require_once __DIR__ . '/Versionen.php';
             $v = Versionen::laden((int) ($param['version_id'] ?? 0));
             if (!$v) { $ok = false; $d['fehler'] = 'Fassung nicht mehr da.'; }
@@ -285,8 +311,10 @@ final class BauAuftrag
                 if ($urteil === 'bestanden') {
                     $meldung = 'V' . (int) $v['nummer'] . ': Tests und Review bestanden — jetzt auf die Testfassung und selbst ansehen.';
                 } elseif ((int) $a['versuch'] < self::MAX_VERSUCHE && (int) $v['auftrag_id'] > 0) {
+                    /* Wünsche, die in dieser Runde gebaut wurden, laufen mit (Phase 8). */
+                    $wIds = (array) ((json_decode((string) Db::wert('SELECT parameter FROM bau_auftraege WHERE id = ?', [(int) $v['auftrag_id']], ''), true) ?: [])['wunsch_ids'] ?? []);
                     $nach = self::anlegen((int) $p['id'], 'bauen', 'Claude (automatisch)', mb_substr("Nachbessern (Runde " . ((int) $a['versuch'] + 1) . "):\n- " . implode("\n- ", array_slice($maengel, 0, 12)), 0, 500),
-                        ['version_id' => (int) $v['id']], (int) $a['versuch'] + 1, true);
+                        ['version_id' => (int) $v['id']] + ($wIds ? ['wunsch_ids' => array_map('intval', $wIds)] : []), (int) $a['versuch'] + 1, true);
                     $meldung = 'V' . (int) $v['nummer'] . ': Review fand ' . count($maengel) . ' Mängel — Claude bessert nach' . (is_int($nach) ? ' (Runde ' . ((int) $a['versuch'] + 1) . ').' : ': ' . $nach);
                 } else {
                     $meldung = 'V' . (int) $v['nummer'] . ': nach ' . (int) $a['versuch'] . ' Runde(n) noch Mängel — bitte selbst ansehen und entscheiden.';
@@ -299,6 +327,7 @@ final class BauAuftrag
         } else {
             $f = mb_substr(trim(strip_tags((string) ($d['fehler'] ?? $d['text'] ?? ''))) ?: 'Nicht geklappt.', 0, 1000);
             Db::update('bau_auftraege', $id, ['status' => 'fehler', 'fehler' => $f, 'fertig_am' => date('Y-m-d H:i:s')]);
+            if ($art === 'bauen' && !empty($param['wunsch_ids'])) { require_once __DIR__ . '/Wunsch.php'; Wunsch::zurueck($id); }
         }
         self::still(static fn() => Events::melden('bau_auftrag_fertig',
             ($ok ? self::name($art) . ' fertig: ' : self::name($art) . ' nicht geklappt: ') . (string) $p['name'],
@@ -353,6 +382,7 @@ final class BauAuftrag
         } finally { @unlink($zip); }
         $vid = Versionen::erfassen($pid, $fid, 'ki', mb_substr('Runde ' . (int) $a['versuch'] . ': ' . preg_replace('~\s+~', ' ', $zusammenfassung), 0, 300));
         Db::update('projekt_versionen', $vid, ['tests' => json_encode($tests, JSON_UNESCAPED_UNICODE), 'tests_ok' => BauPruefung::bestanden($tests) ? 1 : 0, 'auftrag_id' => (int) $a['id']]);
+        if (!empty($param['wunsch_ids'])) { require_once __DIR__ . '/Wunsch.php'; Wunsch::fassungGebaut((array) $param['wunsch_ids'], $vid, $pid); }
         return $vid;
     }
 

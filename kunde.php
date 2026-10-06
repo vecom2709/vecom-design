@@ -201,6 +201,10 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                     // dasselbe Feld.
                     if ($pid) { Nachricht::schreiben((int) $pid, $text, 'kunde'); }
                     else       { Nachricht::vorab((int) $kunde['id'], $text, 'kunde'); }
+                    /* AutoBuild Phase 8: Ein Änderungswunsch wird ein Eintrag, den Vecom einordnet (im Umfang / Zusatz). */
+                    if ($tat === 'aenderung' && $pid) {
+                        sicherLesen(static function () use ($pid, $text, $kunde) { require_once __DIR__ . '/app/src/Wunsch.php'; return Wunsch::erfassen((int) $pid, $text, 'kunde', (int) $kunde['id']); }, null);
+                    }
 
                     // Ein Aenderungswunsch am fertigen Entwurf schiebt das
                     // Projekt zurueck auf "Aenderungen" — bei einer Seite, die
@@ -1496,6 +1500,25 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <button class="knopf"><?= $h($T('hochladen')) ?></button>
     </form>
   </details>
+
+  <?php /* ---------- Änderungswünsche (AutoBuild Phase 8) ----------
+       Was er geschrieben hat, und was daraus wird — in seinen Worten.
+       Ein Zusatz wird hier angekündigt, nie stillschweigend gebaut. */
+  $wuensche = sicherLesen(static function () use ($kunde, $seite) { require_once __DIR__ . '/app/src/Wunsch.php';
+      return Wunsch::fuerKunde((int) $kunde['id'], isset($seite['vorgang']['projekt_id']) ? (int) $seite['vorgang']['projekt_id'] : null); }, []);
+  if ($wuensche): ?>
+    <details id="wuensche" class="klapp" open>
+      <summary><?= $h(Wunsch::kundeText('titel', $sprache)) ?> (<?= count($wuensche) ?>)</summary>
+      <?php foreach ($wuensche as $wu): $wuSt = Wunsch::anzeige($wu); ?>
+        <div style="padding:10px 0;border-top:1px solid var(--linie)">
+          <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.55"><?= $h(mb_strimwidth((string) $wu['text'], 0, 400, '…')) ?></div>
+          <div class="mini" style="margin-top:4px"><b><?= $h(Wunsch::kundeText($wuSt, $sprache)) ?></b>
+            <?= in_array($wuSt, ['zusatz', 'abgelehnt'], true) && (string) $wu['grund'] !== '' ? ' — ' . $h((string) $wu['grund']) : '' ?>
+            · <?= $h(Fmt::datum((string) $wu['created_at'])) ?></div>
+        </div>
+      <?php endforeach; ?>
+    </details>
+  <?php endif; ?>
 
   <?php /* ---------- Gespräch ----------
        In der Entwurfsphase ist dieser Kasten der Aenderungsweg: Der Knopf

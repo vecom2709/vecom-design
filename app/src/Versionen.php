@@ -181,6 +181,30 @@ final class Versionen
         Events::pruefspur('version_geprueft', 'projekt_versionen', $id, [], ['nummer' => (int) $v['nummer'], 'von' => $wer]);
     }
 
+    /**
+     * Phase 8: Diese geprüfte Fassung wird die Vorschau des Kunden. War die
+     * Vorschau schon frei, sieht er ab sofort die neue Adresse (keine E-Mail);
+     * sonst wird sie freigeschaltet — mit genau einer E-Mail (Nachricht::vorschauFreischalten).
+     * @return array{ok:bool, text:string}
+     */
+    public static function alsKundenvorschau(int $id, string $wer): array
+    {
+        $v = self::laden($id);
+        if (!$v) { return ['ok' => false, 'text' => 'Fassung nicht gefunden.']; }
+        $pid = (int) $v['project_id'];
+        Bausperre::pruefenStopp($pid);
+        if (empty($v['staging_url']) || empty($v['geprueft_am'])) { return ['ok' => false, 'text' => 'Erst auf die Testfassung und als geprüft markieren — der Kunde sieht nur, was du selbst angesehen hast.']; }
+        $p = Db::one('SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$pid]) ?: [];
+        Db::update('projects', $pid, ['preview_url' => mb_substr((string) $v['staging_url'], 0, 255)]);
+        Events::pruefspur('version_kundenvorschau', 'projekt_versionen', $id, ['preview_url' => $p['preview_url'] ?? null], ['preview_url' => $v['staging_url'], 'von' => $wer]);
+        if (($p['vorschau_frei_am'] ?? null) !== null) {
+            return ['ok' => true, 'text' => 'V' . (int) $v['nummer'] . ' ist jetzt die Vorschau des Kunden — er sieht sie ab sofort (keine neue E-Mail).'];
+        }
+        require_once __DIR__ . '/Nachricht.php';
+        $r = Nachricht::vorschauFreischalten($pid);
+        return ['ok' => true, 'text' => 'V' . (int) $v['nummer'] . ' ist die Vorschau des Kunden. ' . (string) ($r['text'] ?? '')];
+    }
+
     /** Nach erfolgreicher Veröffentlichung (Veroeffentlichung ruft das auf). */
     public static function liveGesetzt(int $id): void
     {

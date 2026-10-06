@@ -46,6 +46,8 @@ final class Rechte
         'bau_stopp',
         // AutoBuild Phase 5: Analyse/Pflichtenheft anstoßen und wartende abbrechen (bau_auftrag, bau_auftrag_abbrechen) — übernehmen nur der Admin.
         'bau_auftrag',
+        // AutoBuild Phase 8: einen Kundenwunsch eintragen (z. B. vom Telefon) — einordnen und umsetzen nur Admin (Geld).
+        'wunsch_neu',
     ];
 
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):

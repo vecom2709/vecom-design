@@ -16,7 +16,8 @@ import { log } from '../log.js';
 
 export type Datei = { pfad: string; inhalt: string };
 export type BauAuftrag = {
-  id: number; art: 'analyse' | 'pflichtenheft' | 'bauen' | 'review'; projekt: number; beschreibung: string; titel: string;
+  id: number; art: 'analyse' | 'pflichtenheft' | 'bauen' | 'review' | 'wuensche'; projekt: number;
+  wuensche?: { id: number; text: string; datum?: string }[]; beschreibung: string; titel: string;
   versuch?: number; max_versuche?: number;
   grenzen?: { dateien: number; bytes: number; endungen: string[] };
   kontakt?: { telefon: string; email: string; adresse: string };
@@ -54,6 +55,51 @@ export const SCHEMA_REVIEW = {
   },
 };
 
+/* AutoBuild Phase 8: Vorschläge zur Einordnung der Kundenwünsche. */
+export const SCHEMA_WUENSCHE = {
+  type: 'object',
+  required: ['vorschlaege', 'markdown'],
+  properties: {
+    vorschlaege: { type: 'array', items: { type: 'object', required: ['id', 'einordnung', 'grund'], properties: {
+      id: { type: 'integer' }, einordnung: { type: 'string', enum: ['im_umfang', 'zusatz', 'unklar'] },
+      grund: { type: 'string', description: '1–2 Sätze, sachlich, so dass Uwe sie dem Kunden zeigen könnte' },
+      aufwand: { type: 'string', description: 'grobe Schätzung, z. B. „unter 1 Stunde“, „halber Tag“' } } } },
+    markdown: { type: 'string', description: 'Kurze Übersicht auf Deutsch für Uwe' },
+  },
+};
+
+export function wuenscheText(a: BauAuftrag): string {
+  const liste = (a.wuensche ?? []).map((w) => `#${w.id}${w.datum ? ' (' + w.datum + ')' : ''}: ${w.text}`).join('\n');
+  return `Du hilfst Vecom Design (Webdesign, Uwe Vetter), Änderungswünsche eines Kunden einzuordnen.
+AUFTRAG #${a.id}: ${a.beschreibung}
+
+${a.regel}
+
+Für JEDEN Wunsch: Liegt er im vereinbarten Umfang (Leistungsumfang + Pflichtenheft), ist er ein Zusatz (neue Seite, neue Funktion, mehr Sprachen, Shop, Buchung, Texte/Fotos, die nicht vereinbart waren, grundlegende Neugestaltung) oder unklar (Wunsch nicht eindeutig — dann sagen, was nachzufragen ist)?
+Kleine Korrekturen (Texte, Farben, Reihenfolge, Tippfehler, Bilder tauschen innerhalb vereinbarter Seiten) sind im Umfang. Was unter „Nicht enthalten“ steht, ist immer Zusatz.
+Sachlich und freundlich formulieren — keine Unterstellungen. Nichts erfinden. Nur das JSON.
+
+WÜNSCHE
+${liste || '(keine)'}
+
+LEISTUNGSUMFANG (ohne Preise)
+${a.umfang.map((u) => '- ' + (u.menge > 1 ? u.menge + '× ' : '') + u.bezeichnung + (u.beschreibung ? ' — ' + u.beschreibung : '')).join('\n') || '(kein Angebot im System — dann vorsichtig „unklar“)'}
+
+PFLICHTENHEFT
+${a.pflichtenheft.slice(0, 30000) || '(noch keins übernommen — vorsichtig „unklar“)'}`;
+}
+
+export function wuenscheLesen(innen: any, ids: number[]): { vorschlaege: { id: number; einordnung: string; grund: string; aufwand: string }[]; markdown: string } {
+  if (!innen || !Array.isArray(innen.vorschlaege)) throw new Error('Claude hat keine Vorschläge geliefert.');
+  const erlaubt = new Set(ids);
+  const vorschlaege = innen.vorschlaege
+    .filter((v: any) => erlaubt.has(Number(v?.id)))
+    .map((v: any) => ({ id: Number(v.id), einordnung: ['im_umfang', 'zusatz'].includes(v.einordnung) ? v.einordnung : 'unklar', grund: String(v.grund ?? '').slice(0, 500), aufwand: String(v.aufwand ?? '').slice(0, 120) }));
+  if (vorschlaege.length === 0) throw new Error('Kein Vorschlag passt zu den Wünschen.');
+  const markdown = String(innen.markdown ?? '').trim() || `${vorschlaege.length} Vorschläge.`;
+  return { vorschlaege, markdown: markdown.length < 20 ? markdown + ' — Vorschläge stehen bei den Wünschen.' : markdown };
+}
+
 const SPRACHE: Record<string, string> = { it: 'Italienisch', de: 'Deutsch', en: 'Englisch' };
 
 const GLIEDERUNG = {
@@ -88,10 +134,13 @@ function quelltextBlock(d: Datei[]): string {
 export function bauenText(a: BauAuftrag): string {
   const umfang = a.umfang.length ? a.umfang.map((u) => `- ${u.menge > 1 ? u.menge + '× ' : ''}${u.bezeichnung}${u.beschreibung ? ' — ' + u.beschreibung : ''}`).join('\n') : '(kein Angebot im System)';
   const g = a.grenzen ?? { dateien: 120, bytes: 1_500_000, endungen: ['html', 'css', 'js', 'svg', 'txt', 'xml', 'json', 'webmanifest'] };
-  const nach = a.fassung ? `\nNACHBESSERN — RUNDE ${a.versuch ?? 2} VON ${a.max_versuche ?? 3}
+  const repar = (a.versuch ?? 1) > 1;
+  const nach = a.fassung ? (repar ? `\nNACHBESSERN — RUNDE ${a.versuch} VON ${a.max_versuche ?? 3}
 Ausgangsfassung ist V${a.fassung.nummer}. Behebe die Mängel unten, ändere sonst nur, was dafür nötig ist, und liefere wieder ALLE Textdateien vollständig.
 MÄNGEL:\n${a.hinweis || '(siehe Review)'}
-${a.fassung.review ? `REVIEW DER AUSGANGSFASSUNG:\n${a.fassung.review.slice(0, 15000)}\n` : ''}
+${a.fassung.review ? `REVIEW DER AUSGANGSFASSUNG:\n${a.fassung.review.slice(0, 15000)}\n` : ''}` : `\nÄNDERUNG AUF BASIS VON V${a.fassung.nummer}
+Behalte Gestaltung, Aufbau und Inhalte von V${a.fassung.nummer}; ändere nur, was die Wünsche bzw. der Hinweis verlangen, und liefere wieder ALLE Textdateien vollständig.
+${a.hinweis ? `HINWEIS: ${a.hinweis}\n` : ''}`) + `
 QUELLTEXT V${a.fassung.nummer}:\n${quelltextBlock(a.fassung.dateien)}\n` : (a.hinweis ? `\nZUSATZWUNSCH VON UWE: ${a.hinweis}\n` : '');
   return `Du baust für Vecom Design (Webdesign, Uwe Vetter) die Website eines Kunden — als statische Dateien.
 AUFTRAG #${a.id}: ${a.beschreibung}
@@ -123,7 +172,7 @@ Betrieb: ${a.kunde.firma || '(unbekannt)'} · Branche: ${a.kunde.branche || '(un
 Bisherige Website: ${a.kunde.website || '(keine bekannt)'}
 Geschäftskontakt für die Seite: Telefon ${a.kontakt?.telefon || '(keins)'} · E-Mail ${a.kontakt?.email || '(keine)'} · Adresse ${a.kontakt?.adresse || '(keine)'}
 ${nach}
-LEISTUNGSUMFANG (ohne Preise)
+${(a.wuensche ?? []).length ? `UMZUSETZENDE KUNDENWÜNSCHE (verbindlich — genau diese, sonst nichts verändern; vorher eingeordnet als im Umfang oder bezahlter Zusatz)\n${(a.wuensche ?? []).map((w) => `- #${w.id}: ${w.text}`).join('\n')}\nNenne in der Zusammenfassung je Wunsch, was du geändert hast.\n\n` : ''}LEISTUNGSUMFANG (ohne Preise)
 ${umfang}
 
 ÜBERNOMMENES PFLICHTENHEFT
@@ -264,6 +313,14 @@ export async function bauLauf(w: Werkzeug): Promise<boolean> {
       const e = bauenLesen(w.lesen(roh), a.grenzen);
       await api('bau_auftrag_melden', { id: a.id, ok: true, text: e.zusammenfassung, dateien: e.dateien });
       log.info('bau', `Auftrag #${a.id}: ${e.dateien.length} Dateien geliefert — Tests und Review folgen`);
+      return true;
+    }
+    if (a.art === 'wuensche') {   // Phase 8: nur Vorschläge, ohne Werkzeuge
+      const roh = await w.ausfuehren(wuenscheText(a), ordner, SCHEMA_WUENSCHE, '');
+      writeFileSync(join(ordner, `auftrag-${a.id}.json`), roh);
+      const e = wuenscheLesen(w.lesen(roh), (a.wuensche ?? []).map((x) => x.id));
+      await api('bau_auftrag_melden', { id: a.id, ok: true, text: e.markdown, vorschlaege: e.vorschlaege });
+      log.info('bau', `Auftrag #${a.id}: ${e.vorschlaege.length} Vorschläge zur Einordnung`);
       return true;
     }
     if (a.art === 'review') {   // Phase 7: Reviewer, ohne Werkzeuge

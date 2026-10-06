@@ -268,6 +268,12 @@ final class Ablauf
         'bau_weiter_alle' => [self::RAUS,
             'Automatische Builds sind danach wieder für alle Projekte erlaubt (der Not-Aus einzelner Projekte bleibt).',
             'Ja, wieder erlauben'],
+        'version_vorschau' => [self::RAUS,
+            'Diese geprüfte Fassung wird die Vorschau des Kunden. War seine Vorschau noch gesperrt, wird sie freigeschaltet und er bekommt eine E-Mail.',
+            'Ja, dem Kunden zeigen'],
+        'wunsch_umsetzen' => [self::RAUS,
+            'Claude baut eine neue Fassung mit den Wünschen „im Umfang“ und „Zusatz angenommen“. Live geht davon nichts ohne Testfassung und deinen Klick.',
+            'Ja, umsetzen lassen'],
         'veroeffentlichen' => [self::RAUS,
             'Die fertige Seite geht auf die Domain des Kunden — öffentlich, für jeden sichtbar. '
             . 'Was dort bisher liegt, wird vorher gesichert; gelöscht wird nichts.',

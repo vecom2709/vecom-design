@@ -77,3 +77,18 @@ test('Reviewer: Tests und Quelltext im Auftrag, Urteil nur bestanden/nachbessern
   assert.throws(() => reviewLesen({ urteil: 'nachbessern', markdown: md, maengel: [] }), /ohne Mängel/);
   assert.throws(() => reviewLesen({ urteil: 'bestanden', markdown: 'kurz', maengel: [] }), /zu kurz/);
 });
+
+/* Phase 8: Wünsche einordnen und umsetzen */
+import { wuenscheText, wuenscheLesen } from '../src/ki/bau.js';
+test('Wünsche: nur Vorschläge, Nicht enthalten = Zusatz, nur bekannte Ids; Builder baut genau die Wünsche', () => {
+  const w = { ...b, art: 'wuensche' as const, regel: 'Nur vorschlagen.', wuensche: [{ id: 7, text: 'Logo größer' }, { id: 8, text: 'Online-Shop dazu' }] };
+  const t = wuenscheText(w);
+  assert.match(t, /#7: Logo größer/);
+  assert.match(t, /Nicht enthalten“ steht, ist immer Zusatz/);
+  const e = wuenscheLesen({ vorschlaege: [{ id: 7, einordnung: 'im_umfang', grund: 'Kleine Korrektur.' }, { id: 99, einordnung: 'zusatz', grund: 'x' }, { id: 8, einordnung: 'quatsch', grund: 'Shop' }], markdown: '' }, [7, 8]);
+  assert.deepEqual(e.vorschlaege.map((v) => [v.id, v.einordnung]), [[7, 'im_umfang'], [8, 'unklar']]);
+  assert.throws(() => wuenscheLesen({ vorschlaege: [{ id: 1, einordnung: 'zusatz', grund: '' }], markdown: 'x' }, [7]), /Kein Vorschlag/);
+  const bt = bauenText({ ...b, wuensche: [{ id: 7, text: 'Logo größer' }] });
+  assert.match(bt, /UMZUSETZENDE KUNDENWÜNSCHE/);
+  assert.match(bt, /- #7: Logo größer/);
+});

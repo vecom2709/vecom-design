@@ -97,3 +97,4 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
     <?php if ($pbAdmin): ?><?= $pbForm('bau_weiter_alle', '<button class="knopf klein">Alle Builds wieder erlauben</button>') ?><?php endif; ?>
   <?php endif; ?>
 </div>
+<?php require __DIR__ . '/projekt_wuensche.php'; /* AutoBuild Phase 8: Kundenwünsche */ ?>
