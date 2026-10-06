@@ -605,6 +605,15 @@ if ($post) {
                                                         : 'Partner angelegt — die Willkommensmail ging NICHT raus. Postausgang prüfen.';
                 weiter('partner/' . $pid);
 
+            /* Admins schauen ins Partner-Dashboard, ohne Code (06.10.2026, Uwe): Einmal-Ticket, partner.php öffnet nur zum Lesen. */
+            case 'partner_ansehen':
+                if (!Auth::istAdmin()) { throw new RuntimeException('Nur Admins können ins Partner-Dashboard schauen.'); }
+                require_once __DIR__ . '/src/Partner.php';
+                require_once __DIR__ . '/src/PartnerAdminBlick.php';
+                $abT = PartnerAdminBlick::ticket((int) ($_POST['id'] ?? 0), (int) ($_SESSION['uid'] ?? 0), Auth::name());
+                header('Location: /partner.php?admin=' . $abT, true, 303);
+                exit;
+
             case 'partner_annehmen':
             case 'partner_pausieren':
             case 'partner_aktivieren':

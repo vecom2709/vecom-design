@@ -44,12 +44,43 @@ Csp::melden('partner');   // vorerst nur melden (Etappe 0b) — siehe Monitoring
    glob und eine Abfrage; die Sperre in selbsttaetig() verhindert doppelte Läufe. */
 try { require_once __DIR__ . '/app/src/Einrichtung.php'; Einrichtung::selbsttaetig(false); } catch (Throwable $e) { }
 
+/* Admin-Ansicht (06.10.2026, Uwe: „Admins können ins Partner-Dashboard schauen ohne Code“): Einmal-Ticket aus der
+   Partnerakte einlösen, dann 2 Stunden nur lesen. Das Ticket verschwindet sofort aus der Adresse. */
+require_once __DIR__ . '/app/src/PartnerAdminBlick.php';
+if (isset($_GET['admin_ende'])) { PartnerAdminBlick::beenden(); header('Location: /partner.php', true, 303); exit; }
+if (isset($_GET['admin'])) {
+    $abZ = PartnerAdminBlick::einloesen((string) $_GET['admin']);
+    if ($abZ === null) { http_response_code(403); exit('Dieser Ansichts-Link ist abgelaufen oder schon benutzt. Bitte in der Verwaltung beim Partner erneut „Dashboard ansehen“ klicken.'); }
+    session_regenerate_id(true);
+    PartnerAdminBlick::merken($abZ);
+    header('Location: /partner.php?voll=1', true, 303); exit;
+}
+$adminBlick = PartnerAdminBlick::aktiv();
 $token = (string) ($_GET['t'] ?? $_POST['t'] ?? '');
-$p = $token !== '' ? Partner::ausToken($token) : null;
-/* Ohne Link, aber auf einem bestätigten Gerät (App vom Startbildschirm, 05.10.2026): der zuletzt benutzte Partner. */
-if (!$p && $token === '' && !isset($_GET['anmelden'])) {
-    $p = PartnerGeraet::partnerVomGeraet();
-    if ($p) { $token = (string) $p['token']; }
+$p = null;
+if ($adminBlick !== null) {
+    $abP = Partner::laden((int) $adminBlick['partner_id']);
+    /* Gilt für jede Seite dieses Partners — auch wenn ein Link den Schlüssel mitträgt. Ein fremder Schlüssel beendet die Ansicht nicht, öffnet aber nicht den Admin-Modus. */
+    if ($abP && ($token === '' || hash_equals((string) $abP['token'], $token))) { $p = $abP; $token = (string) $abP['token']; }
+    else { $adminBlick = null; }
+}
+if ($adminBlick === null) {
+    $p = $token !== '' ? Partner::ausToken($token) : null;
+    /* Ohne Link, aber auf einem bestätigten Gerät (App vom Startbildschirm, 05.10.2026): der zuletzt benutzte Partner. */
+    if (!$p && $token === '' && !isset($_GET['anmelden'])) {
+        $p = PartnerGeraet::partnerVomGeraet();
+        if ($p) { $token = (string) $p['token']; }
+    }
+}
+if ($adminBlick !== null) {
+    /* Nur lesen: keine Formulare, keine Abrufe, die etwas ändern. */
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+        http_response_code(403);
+        if (str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'json') || !empty($_POST['js'])) { header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'fehler' => 'Admin-Ansicht: nur lesen.'], JSON_UNESCAPED_UNICODE); exit; }
+        exit('Admin-Ansicht: nur lesen — hier wird nichts geändert oder gesendet.');
+    }
+    $abLeiste = PartnerAdminBlick::leiste($adminBlick, (string) $p['name']);
+    ob_start(static fn(string $html): string => preg_match('~<body[^>]*>~i', $html) ? (string) preg_replace('~(<body[^>]*>)~i', '$1' . $abLeiste, $html, 1) : $html);
 }
 /* DIE SPRACHE DES PARTNERS GEWINNT (Uwe, 26.09.2026: „ständig auf Englisch“)
    Auf der Partnerseite gilt die Sprache, die am Partner steht — nicht der
@@ -57,7 +88,9 @@ if (!$p && $token === '' && !isset($_GET['anmelden'])) {
    „English“ geklickt hat, sah seine Partnerseite danach immer englisch).
    Nur ein Klick auf die Sprachwahl unten ändert sie — und dann für immer,
    auch für seine Mails. */
-if ($p) {
+if ($p && $adminBlick !== null) {
+    $sprache = Sprache::waehlen((string) $p['sprache']);   // Admin-Ansicht: Sprache des Partners, nichts wird gespeichert, kein Keks
+} elseif ($p) {
     /* Die eigenen Aufrufe der Empfehlungsseite zählen nicht als Besuch
        (27.09.2026, Uwe: Ja zu „Echte Besucher zählen“): Ein Keks in dem
        Browser, in dem der Partner seinen Bereich öffnet. Nur der Code. */
@@ -102,7 +135,7 @@ $gMaske = static function (string $m): string {
 $gPost = $_SERVER['REQUEST_METHOD'] === 'POST' && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''));
 $gTat = $gPost ? (string) ($_POST['tat'] ?? '') : '';
 $gGeraet = PartnerGeraet::bezeichnung((string) ($_SERVER['HTTP_USER_AGENT'] ?? ''));
-if ($p && !PartnerGeraet::bekannt($p)) {
+if ($p && $adminBlick === null && !PartnerGeraet::bekannt($p)) {   // Admin-Ansicht: kein Gerätecode, der Partner bekommt nichts
     $gModus = 'geraet'; $gSchritt = 'start'; $gStand = ''; $gMail = $gMaske((string) $p['email']); $gZiel = $start();
     if ($gTat === 'geraet_code') {
         if (PartnerGeraet::codePruefen($p, (string) ($_POST['code'] ?? ''))) { header('Location: ' . $start(), true, 303); exit; }
@@ -147,7 +180,7 @@ if (!$p && (isset($_GET['anmelden']) || isset($_GET['app']))) {
    nicht mit beiden Haken zugestimmt hat oder Uwe ihn nicht freigeschaltet
    hat, gibt es hier NUR die Sperrseite: keine Zahlen, keine Betriebe, keine
    Downloads, keine anderen Formulare. Der Empfehlungslink (p.php) zählt weiter. */
-if ($p && !PartnerSchutz::freigeschaltet($p)) {
+if ($p && $adminBlick === null && !PartnerSchutz::freigeschaltet($p)) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['tat'] ?? '') === 'schutz_zustimmen'
         && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? '')) && PartnerSchutz::stand($p) === 'zustimmen') {
         $r = PartnerSchutz::zustimmen($p, $sprache, !empty($_POST['ganz']), !empty($_POST['klauseln']), (string) ($_SERVER['REMOTE_ADDR'] ?? ''));
@@ -452,7 +485,7 @@ if ($p && (($akQ !== '' && (!ctype_digit($akQ) || ($akQ === '1' && !isset($_GET[
         }
         if ($akPdf === null) { header('Location: ' . $start(['ak' => 'bibliothek', 'e' => 'kein']), true, 303); exit; }
         Academy::zaehlen('pdf', $akD);
-        Academy::gesehen((int) $p['id'], $akD);
+        if ($adminBlick === null) { Academy::gesehen((int) $p['id'], $akD); }
         $akName = 'vecom-academy-' . $akD . '-' . $sprache . '.pdf';
         header('Content-Type: application/pdf');
         header('Content-Disposition: ' . (isset($_GET['laden']) ? 'attachment' : 'inline') . '; filename="' . $akName . '"');

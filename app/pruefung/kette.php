@@ -10045,6 +10045,31 @@ foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 
 /* ============================================================================
    Partner: Auszahlungswege (26.09.2026) — SEPA, PayPal, Wise, Verrechnung
    ============================================================================ */
+/* Admin-Ansicht ohne Code (06.10.2026, Uwe: „Admins können ins Partner-Dashboard schauen ohne Code“) */
+require_once $wurzel . '/src/PartnerAdminBlick.php';
+$abSess = $_SESSION ?? [];
+$abP = Partner::laden(Partner::anlegen(['name' => 'Bea Blick', 'email' => 'bea@partner-blick.example', 'status' => 'aktiv']));
+$abT = PartnerAdminBlick::ticket((int) $abP['id'], 1, 'Uwe Admin');
+$abZ1 = PartnerAdminBlick::einloesen($abT);
+$abZ2 = PartnerAdminBlick::einloesen($abT);
+$abT3 = PartnerAdminBlick::ticket((int) $abP['id'], 1, 'Uwe Admin');
+Db::run('UPDATE partner_admin_blick SET gueltig_bis = DATE_SUB(NOW(), INTERVAL 1 MINUTE) WHERE ticket_hash = ?', [hash('sha256', $abT3)]);
+$abZ3 = PartnerAdminBlick::einloesen($abT3);
+$_SESSION = []; PartnerAdminBlick::merken($abZ1 ?? []); $abAktiv = PartnerAdminBlick::aktiv();
+$_SESSION['admin_blick']['bis'] = time() - 1; $abAus = PartnerAdminBlick::aktiv();
+$_SESSION = $abSess;
+$abPs = (string) file_get_contents(dirname($wurzel) . '/partner.php'); $abIx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Admin-Ansicht: Einmal-Ticket (nur Hash gespeichert, 2 Minuten), genau einmal einlösbar, abgelaufen nie; 2 Stunden in der Partner-Sitzung; Prüfspur',
+    $abZ1 !== null && $abZ1['partner_id'] === (int) $abP['id'] && $abZ2 === null && $abZ3 === null && strlen($abT) === 48
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_admin_blick WHERE ticket_hash = ?', [$abT], 0) === 0
+    && $abAktiv !== null && $abAktiv['bis'] > time() + 7000 && $abAus === null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'partner_admin_blick' AND entity_id = ?", [(int) $abP['id']], 0) >= 1);
+pruefe('Admin-Ansicht: nur Admins (Knopf und Tat), nur lesen (POST abgewiesen), kein Gerätecode an den Partner, keine Sprache/Keks/gelesen-Markierung',
+    str_contains($abIx, "case 'partner_ansehen':") && str_contains($abIx, "if (!Auth::istAdmin()) { throw new RuntimeException('Nur Admins")
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_ansehen"')
+    && str_contains($abPs, "Admin-Ansicht: nur lesen") && str_contains($abPs, 'if ($p && $adminBlick === null && !PartnerGeraet::bekannt($p))')
+    && str_contains($abPs, "if (\$adminBlick === null) { Academy::gesehen(") && str_contains($abPs, 'session_regenerate_id(true)'));
+
 abschnitt('Partner: Auszahlungswege');
 require_once $wurzel . '/src/PartnerWege.php';
 foreach (['partner_provisionen', 'partner_auszahlungen', 'partner_zuordnungen', 'partner_klicks', 'partner'] as $t) { Db::run("DELETE FROM $t"); }
@@ -16989,7 +17014,7 @@ pruefe('Schutz: Hinweis zur neuen Vereinbarung genau einmal, nur an Partner ohne
 
 // Sperrseite: vor allem anderen in partner.php
 $scSeite = (string) file_get_contents($wurzel . '/../partner.php');
-$scTor = strpos($scSeite, 'if ($p && !PartnerSchutz::freigeschaltet($p)) {');
+$scTor = strpos($scSeite, 'if ($p && $adminBlick === null && !PartnerSchutz::freigeschaltet($p)) {');
 pruefe('Schutz: partner.php sperrt vor Manifest, Formularen, Downloads und Seite; nur die Zustimmung geht durch',
     $scTor !== false && $scTor < strpos($scSeite, "isset(\$_GET['manifest'])") && $scTor < strpos($scSeite, '---------- Formulare')
     && $scTor < strpos($scSeite, "isset(\$_GET['fl'])") && $scTor < strpos($scSeite, "isset(\$_GET['karte'])") && $scTor < strpos($scSeite, '?><!doctype html>')
@@ -23665,9 +23690,9 @@ pruefe('Anmelden ohne Link: E-Mail ohne Groß/Klein, nur aktive oder pausierte P
     && PartnerGeraet::bezeichnung('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 Version/17.0 Mobile/15E148 Safari/604.1') === 'Safari · iPhone'
     && PartnerGeraet::bezeichnung('Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/128.0 Mobile Safari/537.36') === 'Chrome · Android');
 $pgSeite = (string) file_get_contents($oben . '/partner.php');
-$pgTor = strpos($pgSeite, 'if ($p && !PartnerGeraet::bekannt($p)) {');
+$pgTor = strpos($pgSeite, 'if ($p && $adminBlick === null && !PartnerGeraet::bekannt($p)) {');
 pruefe('partner.php: Gerät-Tor vor Sperrseite, Manifest, Formularen und Seite; Code nur auf Klick (Mail-Prüfer öffnen Links); Manifest ohne Schlüssel; Sitzungs-Kekse gehärtet (auch kunde.php)',
-    $pgTor !== false && $pgTor < strpos($pgSeite, 'if ($p && !PartnerSchutz::freigeschaltet($p)) {') && $pgTor < strpos($pgSeite, "isset(\$_GET['manifest'])")
+    $pgTor !== false && $pgTor < strpos($pgSeite, 'if ($p && $adminBlick === null && !PartnerSchutz::freigeschaltet($p)) {') && $pgTor < strpos($pgSeite, "isset(\$_GET['manifest'])")
     && $pgTor < strpos($pgSeite, '---------- Formulare') && substr_count($pgSeite, 'PartnerGeraet::codeSenden(') === 3
     && str_contains($pgSeite, "} elseif (\$gTat === 'geraet_neu') {") && str_contains($pgSeite, "'start_url' => '/partner.php?app=1'") && !str_contains($pgSeite, "'start_url' => '/partner.php?t='")
     && str_contains($pgSeite, "session_set_cookie_params(['lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',")

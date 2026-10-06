@@ -35,6 +35,10 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <p style="color:var(--dim);font-size:13px;line-height:1.6;margin:12px 0 0"><?= Fmt::h($p['kanal']) ?><?= (string) $p['bewerbung_text'] !== '' ? '<br>' . nl2br(Fmt::h((string) $p['bewerbung_text'])) : '' ?></p>
   <?php endif; ?>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+    <?php if (Auth::istAdmin() && !in_array($p['status'], ['bewerbung', 'abgelehnt', 'geloescht'], true)): /* 06.10.2026: ohne Code, nur lesen */ ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" target="_blank" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_ansehen"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
+        <button class="knopf" title="Öffnet das Dashboard dieses Partners in einem neuen Tab — nur lesen, ohne Partner-Link und Code">👁 Dashboard ansehen</button></form>
+    <?php endif; ?>
     <?php if ($p['status'] === 'bewerbung'): ?>
       <?= $hin('partner_annehmen', 'Annehmen', true) ?> <?= $hin('partner_ablehnen', 'Ablehnen') ?>
     <?php elseif ($p['status'] === 'aktiv'): ?>

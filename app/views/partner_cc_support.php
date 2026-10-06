@@ -19,7 +19,7 @@ $suDatum = static fn(string $d): string => date($sprache === 'en' ? 'd/m/Y H:i' 
 $suStand = static fn(string $st): string => '<span class="cc-stufe tk-' . htmlspecialchars($st, ENT_QUOTES) . '">' . htmlspecialchars(Texte::h(Texte::PARTNER_SUPPORT['staende'][$st] ?? ['it' => $st], $sprache), ENT_QUOTES) . '</span>';
 ?>
 <main id="cc-start" tabindex="-1">
-<?php if ($suT): $suV = PartnerTicket::verlauf((int) $suT['id']); PartnerTicket::gelesen($suPid, (int) $suT['id'], 'partner'); ?>
+<?php if ($suT): $suV = PartnerTicket::verlauf((int) $suT['id']); if (empty($adminBlick)) { PartnerTicket::gelesen($suPid, (int) $suT['id'], 'partner'); }   // Admin-Ansicht markiert nichts als gelesen ?>
   <p class="cc-zurueck"><a href="<?= $h($selbst(['cc' => 1, 'support' => 1])) ?>">← <?= $h($su($SU['zurueck'])) ?></a></p>
   <div class="cc-hallo cc-auf">
     <h1><?= $h((string) $suT['betreff']) ?></h1>
