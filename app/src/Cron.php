@@ -486,6 +486,11 @@ final class Cron
                 require_once __DIR__ . '/AkquisePrio.php';
                 return AkquisePrio::lauf();
             },
+            /* Akquise-CRM (06.10.2026, Modul F): Partner reagiert nicht auf ein heißes Signal — 48 h Hinweis, 72 h Meldung an Uwe. */
+            'partner_warnungen' => static function () {
+                require_once __DIR__ . '/AkquisePartner.php';
+                return AkquisePartner::warnen();
+            },
             /* Website-Checks: persönliche Felder nach der Frist leeren (einmal am Tag). */
             'akquise_checks' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseCheck'] as $k) { require_once __DIR__ . "/$k.php"; }

@@ -25898,8 +25898,8 @@ pruefe('Teamrollen: Partnerliste, Akte und Tracking zeigen Beträge nur über Re
     && str_contains($p9Idx, "if (!Rechte::geld() && (\$unter === 'auszahlungslauf' || isset(\$_GET['beleg'])))"));
 preg_match("~'partner' => \[\n(.*?)\n  \],~s", substr($rfLayout = (string) file_get_contents($wurzel . '/views/layout.php'), (int) strpos($rfLayout, '$reiter = [')), $p9Rt);
 preg_match_all("~\['([a-z-]+)', '([^']+)'~", $p9Rt[1] ?? '', $p9Rz);
-pruefe('Tür Partner: sieben Reiter in dieser Reihenfolge; unter Weiterempfehlung bleiben Empfehlungen und Kundenstimmen; Reiter, die die Rolle nicht öffnen darf, fehlen',
-    ($p9Rz[1] ?? []) === ['partner', 'partner-support', 'partner-meldungen', 'auszahlungen', 'tracking', 'werbemittel', 'academy']
+pruefe('Tür Partner: acht Reiter in dieser Reihenfolge (seit Akquise-CRM F mit „Reservierungen“); unter Weiterempfehlung bleiben Empfehlungen und Kundenstimmen; Reiter, die die Rolle nicht öffnen darf, fehlen',
+    ($p9Rz[1] ?? []) === ['partner', 'partner-support', 'partner-meldungen', 'partner-reservierungen', 'auszahlungen', 'tracking', 'werbemittel', 'academy']
     && str_contains($rfLayout, "'empfehlungen' => [\n    ['empfehlungen', 'Empfehlungen', 'empfehlungen'],\n    ['stimmen', 'Kundenstimmen', 'stimmen'],\n  ],")
     && str_contains($rfLayout, 'if (!Rechte::darfSeite($rZiel)) { continue; }') && str_contains($rfLayout, "\$summe = \$ziel === 'partner' ? \$reiterZahl('partner')")
     && str_contains($p9Idx, "case 'partner-support':") && str_contains($p9Idx, "case 'partner-meldungen':") && str_contains($p9Idx, "case 'auszahlungen':")
@@ -26350,6 +26350,78 @@ pruefe('Antworten-Oberfläche: im Überblick über „E-Mail“; Senden über ma
 foreach (['akq_versand', 'akq_antworten', 'akq_protokoll'] as $awT) { Db::run("DELETE FROM `$awT` WHERE firma_id = ?", [$awN]); }
 Db::run('DELETE FROM akq_firmen WHERE id = ?', [$awN]);
 Db::run('DELETE FROM akq_antworten WHERE firma_id = ?', [$wsId]);
+/* Modul F: Partner — Reservierung 30 Tage + einmal verlängern, Warnungen 24/48/72 h, Entscheidungen mit Provision, Auswertung */
+abschnitt('Akquise-CRM: Partner-Reservierungen (Modul F)');
+require_once $wurzel . '/src/AkquisePartner.php';
+require_once $wurzel . '/src/PartnerRecherche.php';
+require_once $wurzel . '/src/PartnerHeute.php';
+require_once $wurzel . '/src/Partner.php';
+$fpA = Partner::anlegen(['name' => 'Beispiel Partner Reaktion', 'email' => 'reaktion@partner.example', 'status' => 'aktiv']);
+$fpB = Partner::anlegen(['name' => 'Beispiel Partner Neu', 'email' => 'neu-zuweisung@partner.example', 'status' => 'aktiv']);
+$fpF = $crF('CR00000011', 'Beispiel Reserviert Bar', ['email' => 'info@reserviert-bar.example', 'telefon' => '+39 0922 987650']);   // Nummer, die kein Kette-Kunde hat
+$fpR = PartnerRecherche::reservieren($fpA, $fpF);
+$fpBis = (string) Db::wert('SELECT bis FROM partner_reservierungen WHERE firma_id = ?', [$fpF], '');
+$fpV1 = AkquisePartner::verlaengern($fpA, $fpF);
+Db::run('UPDATE partner_reservierungen SET bis = CURDATE() + INTERVAL 5 DAY WHERE firma_id = ?', [$fpF]);
+$fpV2 = AkquisePartner::verlaengern($fpB, $fpF);
+$fpV3 = AkquisePartner::verlaengern($fpA, $fpF);
+$fpBis2 = (string) Db::wert('SELECT bis FROM partner_reservierungen WHERE firma_id = ?', [$fpF], '');
+$fpV4 = AkquisePartner::verlaengern($fpA, $fpF);
+pruefe('Reservierung: neu 30 Tage (vorher 60); verlängern geht nur einmal, nur in den letzten 7 Tagen, nur die eigene (+30 Tage); Texte sagen 30 Tage',
+    $fpR === 'ok' && PartnerRecherche::TAGE === 30 && $fpBis === date('Y-m-d', strtotime('+30 days')) && $fpV1 === 'zu_frueh' && $fpV2 === 'nicht_deine' && $fpV3 === 'ok'
+    && $fpBis2 === date('Y-m-d', strtotime('+35 days')) && $fpV4 === 'schon' && !str_contains(json_encode(Texte::PARTNER['fi_text'], JSON_UNESCAPED_UNICODE), '60'),
+    json_encode([$fpR, $fpBis, $fpV1, $fpV2, $fpV3, $fpBis2, $fpV4]));
+/* Signal: positive Antwort nach der Reservierung, Partner reagiert nicht */
+Db::run('UPDATE partner_reservierungen SET created_at = NOW() - INTERVAL 5 DAY WHERE firma_id = ?', [$fpF]);
+$fpAid = (int) Db::insert('akq_antworten', ['firma_id' => $fpF, 'eingang_am' => date('Y-m-d H:i:s', time() - 30 * 3600), 'text' => 'Mi interessa', 'klasse' => 'INTERESTED', 'klasse_quelle' => 'hand']);
+$fpS1 = AkquisePartner::signale($fpA);
+$fpHeute = array_column(PartnerHeute::punkte((array) Partner::laden($fpA), 'de'), 'n', 'k');
+$fpW0 = AkquisePartner::warnen();
+Db::run('UPDATE akq_antworten SET eingang_am = NOW() - INTERVAL 50 HOUR WHERE id = ?', [$fpAid]);
+$fpW1 = AkquisePartner::warnen();
+$fpW1b = AkquisePartner::warnen();
+Db::run('UPDATE akq_antworten SET eingang_am = NOW() - INTERVAL 80 HOUR WHERE id = ?', [$fpAid]);
+Db::run('DELETE FROM partner_warnungen WHERE firma_id = ?', [$fpF]);
+$fpW2 = AkquisePartner::warnen();
+$fpW2b = AkquisePartner::warnen();
+$fpMeld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'partner_warnung' AND title LIKE ?", ['%Beispiel Reserviert Bar%'], 0);
+$fpS2 = AkquisePartner::signale($fpA);
+pruefe('Warnungen: 24 h gelb (Punkt in „Heute zu tun“ des Partners), 48 h Hinweis an den Partner, 72 h Meldung an Uwe — je Signal nur einmal',
+    count($fpS1) === 1 && $fpS1[0]['stufe'] === 'gelb' && $fpS1[0]['art'] === 'antwort' && ($fpHeute['reagieren'] ?? 0) === 1 && $fpW0 === ['push' => 0, 'uwe' => 0]
+    && $fpW1 === ['push' => 1, 'uwe' => 0] && $fpW1b === ['push' => 0, 'uwe' => 0] && $fpW2 === ['push' => 1, 'uwe' => 1] && $fpW2b === ['push' => 0, 'uwe' => 0]
+    && $fpMeld === 1 && $fpS2[0]['stufe'] === 'admin', json_encode([$fpS1, $fpHeute, $fpW0, $fpW1, $fpW1b, $fpW2, $fpW2b, $fpMeld]));
+/* Reaktion des Partners: Lead mit Kontakt nach dem Signal → kein offenes Signal mehr */
+$fpLead = (int) Db::insert('partner_leads', ['partner_id' => $fpA, 'name' => 'Beispiel Reserviert Bar', 'firma_id' => $fpF, 'quelle' => 'finder', 'stufe' => 'kontaktiert', 'kontakt_am' => date('Y-m-d H:i:s')]);
+$fpS3 = AkquisePartner::signale($fpA);
+Db::insert('partner_lead_verlauf', ['lead_id' => $fpLead, 'partner_id' => $fpA, 'art' => 'anruf', 'text' => 'Beispiel: angerufen', 'created_at' => date('Y-m-d H:i:s', time() - 70 * 3600)]);
+$fpAusw = array_column(AkquisePartner::auswertung(), null, 'id');
+pruefe('Reaktion: ein Kontakt des Partners nach dem Signal räumt die Warnung weg; die Auswertung zeigt Funnel (reserviert → kontaktiert) und Reaktionszeit in Stunden',
+    $fpS3 === [] && ($fpAusw[$fpA]['reserviert'] ?? 0) === 1 && ($fpAusw[$fpA]['kontaktiert'] ?? 0) === 1 && ($fpAusw[$fpA]['kunde'] ?? -1) === 0
+    && ($fpAusw[$fpA]['reaktion_h'] ?? null) === 10 && isset($fpAusw[$fpB]), json_encode($fpAusw[$fpA] ?? null));
+/* Entscheiden mit Provision */
+$fpE1 = AkquisePartner::entscheiden($fpF, 'neu_zugewiesen', '', 'x', 'Uwe Admin', $fpB);
+$fpE2 = AkquisePartner::entscheiden($fpF, 'neu_zugewiesen', 'bleibt', 'x', 'Uwe Admin', $fpA);
+$fpVm0 = (int) Db::wert('SELECT COUNT(*) FROM partner_vormerkungen WHERE partner_id = ?', [$fpA], 0);
+$fpE3 = AkquisePartner::entscheiden($fpF, 'neu_zugewiesen', 'bleibt', 'Beispiel: reagiert nicht', 'Uwe Admin', $fpB);
+$fpRes = Db::one('SELECT partner_id, bis, verlaengert_am FROM partner_reservierungen WHERE firma_id = ?', [$fpF]);
+$fpVm1 = (int) Db::wert('SELECT COUNT(*) FROM partner_vormerkungen WHERE partner_id = ?', [$fpA], 0);
+$fpE4 = AkquisePartner::entscheiden($fpF, 'uebernommen', 'entfaellt', 'Beispiel', 'Uwe Admin');
+$fpE5 = AkquisePartner::entscheiden($fpF, 'geloest', 'entfaellt', '', 'Uwe Admin');
+pruefe('Entscheiden: ohne Provisionswahl oder an denselben Partner nicht; neu zuweisen gibt dem neuen 30 Tage, „Provision bleibt“ merkt den Betrieb dem bisherigen vor; übernehmen beendet die Reservierung; alles in Prüfspur und Verlauf',
+    !$fpE1['ok'] && !$fpE2['ok'] && $fpE3['ok'] && (int) $fpRes['partner_id'] === $fpB && $fpRes['bis'] === date('Y-m-d', strtotime('+30 days')) && $fpRes['verlaengert_am'] === null
+    && $fpVm1 === $fpVm0 + 1 && $fpE4['ok'] && !$fpE5['ok'] && Db::one('SELECT 1 FROM partner_reservierungen WHERE firma_id = ?', [$fpF]) === null
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_entscheide WHERE firma_id = ?', [$fpF], 0) === 2
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action IN ('partner_reservierung_neu_zugewiesen','partner_reservierung_uebernommen') AND entity_id = ?", [$fpF], 0) === 2,
+    json_encode([$fpE1, $fpE2, $fpE3, $fpRes, $fpVm0, $fpVm1, $fpE4, $fpE5]));
+$fpLay = (string) file_get_contents($wurzel . '/views/layout.php');
+pruefe('Partner-Reservierungen: eigener Reiter nur für den Admin; Entscheiden mit Rückfrage (schwer), Erinnern als „geht raus“; Cron-Regel im Automation Center; Partner sieht „Verlängern“',
+    str_contains($fpLay, "['partner-reservierungen', 'Reservierungen', 'partner-reservierungen']") && !in_array('partner-reservierungen', Rechte::SEITEN, true)
+    && (Ablauf::TRAGWEITE['partner_res_entscheiden'][0] ?? '') === Ablauf::SCHWER && (Ablauf::TRAGWEITE['partner_res_erinnern'][0] ?? '') === Ablauf::RAUS
+    && isset(Automation::REGELN['partner_warnungen']) && str_contains((string) file_get_contents($wurzel . '/views/partner_recherche.php'), 'value="fi_verl"')
+    && str_contains((string) file_get_contents(dirname($wurzel) . '/partner.php'), "\$tat === 'fi_verl'"));
+foreach (['partner_warnungen', 'partner_entscheide', 'partner_reservierungen', 'akq_antworten', 'akq_protokoll'] as $fpT) { Db::run("DELETE FROM `$fpT` WHERE firma_id = ?", [$fpF]); }
+Db::run('DELETE FROM partner_lead_verlauf WHERE lead_id = ?', [$fpLead]); Db::run('DELETE FROM partner_leads WHERE id = ?', [$fpLead]);
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$fpF]);
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

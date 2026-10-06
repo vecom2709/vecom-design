@@ -744,6 +744,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     header('Location: ' . $selbst() . '#heute', true, 303); exit;
                 }
                 $meldung = 'fi_ort';
+            } elseif ($tat === 'fi_verl' && $p) {
+                /* Akquise-CRM F (06.10.2026): eigene Reservierung einmal um 30 Tage verlängern */
+                require_once __DIR__ . '/app/src/AkquisePartner.php';
+                if (AkquisePartner::verlaengern((int) $p['id'], (int) ($_POST['firma'] ?? 0)) === 'ok') {
+                    PartnerSchutz::protokoll((int) $p['id'], 'verlaengert', (int) ($_POST['firma'] ?? 0));
+                    header('Location: ' . $selbst(['fi_nz' => 1]) . '#recherche', true, 303); exit;   // das neue Datum steht an der Karte
+                }
+                $meldung = 'fi_verl_nein';
             } elseif (($tat === 'fi_reserv' || $tat === 'fi_frei') && $p) {
                 $fid = (int) ($_POST['firma'] ?? 0);
                 $f = 'ok';

@@ -1472,6 +1472,21 @@ if ($post) {
                     : 'Unbekannte Automation.';
                 weiter('automationen#' . rawurlencode($amRegel));
 
+            case 'partner_res_entscheiden':
+            case 'partner_res_erinnern':
+                /* Akquise-CRM F (06.10.2026): Reservierung übernehmen / neu zuweisen / lösen — immer mit Provisionsentscheidung (Uwe: „Sie entscheiden je Fall“). */
+                require_once __DIR__ . '/src/AkquisePartner.php';
+                $prF = (int) ($_POST['firma'] ?? 0);
+                if ($tat === 'partner_res_erinnern') {
+                    $prOk = AkquisePartner::erinnern($prF);
+                    $_SESSION[$prOk ? 'gut' : 'fehler'] = $prOk ? 'Erinnerung ist raus — als Hinweis aufs Handy des Partners (wenn er die App hat).' : 'Dieser Betrieb ist bei keinem Partner reserviert.';
+                    weiter('partner-reservierungen');
+                }
+                $prR = AkquisePartner::entscheiden($prF, (string) ($_POST['aktion'] ?? ''), (string) ($_POST['provision'] ?? ''), (string) ($_POST['grund'] ?? ''), Auth::name(),
+                    (int) ($_POST['neu_partner'] ?? 0) ?: null);
+                $_SESSION[$prR['ok'] ? 'gut' : 'fehler'] = $prR['ok'] ? 'Erledigt — steht im Verlauf des Betriebs und in der Prüfspur.' : $prR['fehler'];
+                weiter('partner-reservierungen');
+
             case 'partner_news_senden':
             case 'partner_news_zurueck':
                 /* Neu von Vecom (Phase 7b-2): an eine Zielgruppe senden (Rückfrage aus Ablauf::TRAGWEITE) oder zurückziehen. */
@@ -4592,6 +4607,18 @@ switch ($route) {
     case 'partner-meldungen':
         require_once __DIR__ . '/src/Partner.php';
         ansicht('partner_meldungen', []);
+        break;
+
+    case 'partner-reservierungen':
+        /* Akquise-CRM F (06.10.2026): alle aktiven Reservierungen mit Ampel, Funnel + Reaktionszeit je Partner. */
+        require_once __DIR__ . '/src/AkquisePartner.php';
+        ansicht('partner_reservierungen', [
+            'reservierungen' => sicher(static fn() => AkquisePartner::reservierungen(), []),
+            'auswertung' => sicher(static fn() => AkquisePartner::auswertung(), []),
+            'partner' => sicher(static fn() => Db::all("SELECT id, name FROM partner WHERE status = 'aktiv' AND COALESCE(test, 0) = 0 ORDER BY name"), []),
+            'entscheide' => sicher(static fn() => Db::all('SELECT e.*, f.name AS firma, p.name AS partner, n.name AS neu FROM partner_entscheide e JOIN akq_firmen f ON f.id = e.firma_id
+                JOIN partner p ON p.id = e.partner_id LEFT JOIN partner n ON n.id = e.neu_partner_id ORDER BY e.id DESC LIMIT 20'), []),
+        ]);
         break;
 
     case 'partner':

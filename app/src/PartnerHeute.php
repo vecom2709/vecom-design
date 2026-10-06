@@ -47,6 +47,9 @@ final class PartnerHeute
 
         // Wer sich vom Partner melden lassen will (03.10.2026, K2) — vor allem anderen.
         $dazu('kontakte', (int) self::still(static fn() => Db::wert('SELECT COUNT(*) FROM partner_kontaktfreigaben WHERE partner_id = ? AND erledigt_am IS NULL', [$pid], 0), 0), 'besuche');
+        /* Akquise-CRM F (06.10.2026): eigene Reservierung mit heißem Signal, 24 h ohne Reaktion (AkquisePartner) — noch vor „heiß“. */
+        $dazu('reagieren', count(array_filter(self::still(static function () use ($pid): array { require_once __DIR__ . '/AkquisePartner.php'; return AkquisePartner::signale($pid); }, []),
+            static fn($s) => $s['stufe'] !== '')), 'recherche');
         $dazu('heiss', count(self::still(static fn() => PartnerMarketing::heisse($pid), [])), 'heiss');
         $dazu('nachhaken', count(self::still(static fn() => PartnerMarketing::faellig($pid), [])), 'nachhaken');
         $dazu('anrufen', count(self::still(static fn() => PartnerAnrufliste::liste($pid), [])), 'anrufliste');

@@ -86,7 +86,11 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
             . '<span class="ck-knoepfe"><a class="knopf klein-knopf" target="_blank" rel="noopener" href="' . $h(PartnerMappe::link($p, ['firma' => (int) $f['id']])) . '">' . $h($mpKnopf) . '</a>'
             . '<form method="post" action="' . $h($selbst(['fi_ort' => $fiOrt, 'fi_branche' => $fiBranche, 'fi_nz' => 1])) . '#recherche">'
             . '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="fi_frei">'
-            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_frei')) . '</button></form></span>';
+            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_frei')) . '</button></form>'
+            /* Akquise-CRM F (06.10.2026): einmal +30 Tage, nur in den letzten sieben Tagen */
+            . (!empty($f['verlaengerbar']) ? '<form method="post" action="' . $h($selbst(['fi_nz' => 1])) . '#recherche"><input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '">'
+                . '<input type="hidden" name="tat" value="fi_verl"><input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_verl')) . '</button></form>' : '')
+            . '</span>';
         /* W2 (28.09.2026): der Flyer zur Branche dieses Betriebs, mit eigenem QR-Code -- zum Mitnehmen */
         if ($meine) {
             require_once dirname(__DIR__) . '/src/PartnerFlyer.php';

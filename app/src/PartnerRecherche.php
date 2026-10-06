@@ -21,7 +21,8 @@ require_once __DIR__ . '/Akquise.php';
  */
 final class PartnerRecherche
 {
-    public const TAGE = 60;
+    /** Akquise-CRM F (06.10.2026, Uwe: „Neue 30 Tage, alte bleiben“) — vorher 60; einmal verlängerbar (AkquisePartner). */
+    public const TAGE = 30;
     public const MAX_AKTIV = 25;
     public const SUCHEN_JE_TAG = 30;
     public const TREFFER = 30;
@@ -167,10 +168,17 @@ final class PartnerRecherche
             'telefon' => trim((string) ($z['telefon'] ?? '')), 'email' => trim((string) ($z['email'] ?? '')),
             'url' => trim((string) ($z['url'] ?? '')), 'land' => (string) ($z['land'] ?? 'IT'), 'stadt' => (string) ($z['stadt'] ?? ''),
             'plz' => (string) ($z['plz'] ?? ''), 'branche_key' => (string) ($z['branche'] ?? ''),
-        ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis
+            'verlaengerbar' => self::verlaengerbar($z),   // Akquise-CRM F: einmal +30 Tage in den letzten sieben
+        ], Db::all('SELECT f.id, f.name, f.stadt, f.plz, f.adresse, f.branche, f.url, f.domain, f.score, f.telefon, f.email, f.land, r.bis, r.verlaengert_am
                       FROM partner_reservierungen r JOIN akq_firmen f ON f.id = r.firma_id
                      WHERE r.partner_id = ? AND r.bis >= CURDATE() AND (r.herkunft IS NULL OR r.herkunft <> \'vecom\' OR r.anruf_status = \'zugestimmt\')
                      ORDER BY r.bis', [$partnerId])));
+    }
+
+    private static function verlaengerbar(array $z): bool
+    {
+        require_once __DIR__ . '/AkquisePartner.php';
+        return AkquisePartner::kannVerlaengern($z);
     }
 
     /** Für AkquiseGate: Reserviert gerade ein Partner diese Firma? Dann Name und Datum. */

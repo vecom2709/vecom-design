@@ -201,6 +201,8 @@ $reiter = [
     ['partner', 'Partner', 'partner'],
     ['partner-support', 'Support', 'partner-support'],
     ['partner-meldungen', 'Meldungen', 'partner-meldungen'],
+    /* Akquise-CRM F (06.10.2026): Reservierungen mit Ampel 24/48/72 h, Funnel und Reaktionszeit je Partner — nur Admin. */
+    ['partner-reservierungen', 'Reservierungen', 'partner-reservierungen'],
     ['auszahlungen', 'Auszahlungen', 'auszahlungen'],
     ['tracking', 'Tracking', 'tracking'],
     /* Marketing Center (03.10.2026): Werbemittel, die Partner bestellen. */

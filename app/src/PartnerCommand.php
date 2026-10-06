@@ -125,7 +125,7 @@ final class PartnerCommand
     }
 
     /** Was auf der Startseite unter „Heute wichtig“ steht: nur, was Menschen gerade wollen oder Geld bewegt. */
-    public const WICHTIG = ['kontakte' => 'rot', 'heiss' => 'rot', 'nachrichten' => 'rot', 'nachhaken' => 'gelb', 'anrufen' => 'gelb', 'vorbeigehen' => 'gelb'];
+    public const WICHTIG = ['kontakte' => 'rot', 'reagieren' => 'rot', 'heiss' => 'rot', 'nachrichten' => 'rot', 'nachhaken' => 'gelb', 'anrufen' => 'gelb', 'vorbeigehen' => 'gelb'];
 
     /**
      * „Heute wichtig“ (Spezifikation Punkt 4: „Nur wirklich relevante Dinge.“) — aus denselben
