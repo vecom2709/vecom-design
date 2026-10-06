@@ -11356,6 +11356,80 @@ pruefe('Knopf „Aussortieren“ löscht den Altbestand ohne Kontaktweg — Gesp
     && (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE id = ?', [(int) $asGes['id']]) === 1
     && ($asParPid === 0 || (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE id = ?', [(int) $asPar['id']]) === 1)
     && $asId('osm:node/61') > 0 && $asId('osm:node/62') > 0, json_encode([$asZahl, $asWeg, $asParPid]));
+/* Kommunikationsstatus E-Mail (06.10.2026, Uwe: „Keine pauschale Sperre mehr … Kommunikationsstatus“) */
+require_once $wurzel . '/src/AkquiseMail.php';
+require_once $wurzel . '/src/AkquiseAnsprechen.php';
+$msSess = $_SESSION;
+$_SESSION = ['uid' => 1, 'rolle' => 'mitarbeit', 'name' => 'Mia Mitarbeit'];
+$msA = Akquise::firmaMelden(['name' => 'Bar Statusprobe', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'info@statusprobe.example', 'quelle' => 'osm:node/70']);
+$msId = (int) $msA['id'];
+$msF = static fn(): array => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$msId]) ?? [];
+$msK = AkquiseMail::kann($msF());
+pruefe('E-Mail-Status 1: Adresse gefunden, angezeigt und für Entwürfe nutzbar — Versand und Werbung nicht; Quelle steht dabei',
+    $msK['status'] === AkquiseMail::KEINE && $msK['gefunden'] && $msK['anzeigen'] && $msK['entwurf'] && !$msK['senden'] && !$msK['werbung']
+    && str_contains((string) $msF()['email_source'], 'OpenStreetMap') && (int) $msF()['email_found'] === 1 && $msF()['email_contact_status'] === AkquiseMail::KEINE
+    && !AkquiseAnsprechen::frei($msF(), 'email'), json_encode($msK));
+$msFehler = [];
+foreach ([['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => '', 'notiz' => 'Test'],
+          ['grund' => 'anfrage', 'datum' => date('Y-m-d', time() + 86400 * 3), 'quelle' => 'Mail vom heute', 'notiz' => 'Test'],
+          ['grund' => 'erfunden', 'datum' => date('Y-m-d'), 'quelle' => 'Mail', 'notiz' => 'Test'],
+          ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Mail vom heute', 'notiz' => '']] as $msE) {
+    try { AkquiseMail::grundDokumentieren($msId, $msE); $msFehler[] = 'durch'; } catch (RuntimeException $e) { $msFehler[] = 'nein'; }
+}
+pruefe('Versandgrund: Grund, Datum (nicht in der Zukunft), Quelle/Nachweis und Notiz sind Pflicht', $msFehler === ['nein', 'nein', 'nein', 'nein'], json_encode($msFehler));
+$msR = AkquiseMail::grundDokumentieren($msId, ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail vom heute', 'notiz' => 'Will ein Angebot']);
+$msK = AkquiseMail::kann($msF());
+pruefe('Status 3 bei „konkrete Anfrage“: Versand von Hand frei, Werbung nicht; Bearbeiter, Verlauf und Prüfspur stehen fest',
+    $msR['status'] === AkquiseMail::FREI && $msK['senden'] && !$msK['werbung'] && AkquiseAnsprechen::frei($msF(), 'email')
+    && $msF()['email_legal_basis'] === 'anfrage' && $msF()['email_legal_basis_by'] === 'Mia Mitarbeit' && $msF()['email_contact_status'] === AkquiseMail::FREI
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_mail_grundlagen WHERE firma_id = ? AND art = 'grund' AND freigabe = 1", [$msId]) === 1
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_versandgrund' AND entity_id = ?", [$msId]) === 1);
+AkquiseMail::grundDokumentieren($msId, ['grund' => 'bestandskunde', 'datum' => date('Y-m-d'), 'quelle' => 'Rechnung 2026-12', 'notiz' => 'Website 2025', 'haken' => ['verkauf' => 1, 'aehnlich' => 1]]);
+$msB1 = AkquiseMail::status($msF());
+AkquiseMail::grundDokumentieren($msId, ['grund' => 'bestandskunde', 'datum' => date('Y-m-d'), 'quelle' => 'Rechnung 2026-12', 'notiz' => 'Website 2025', 'haken' => ['verkauf' => 1, 'aehnlich' => 1, 'kein_nein' => 1, 'hinweis' => 1]]);
+$msB2 = AkquiseMail::kann($msF());
+AkquiseMail::grundDokumentieren($msId, ['grund' => 'sonstiges', 'datum' => date('Y-m-d'), 'quelle' => 'Messe', 'notiz' => 'Visitenkarte', 'freigeben' => 1]);
+$msS1 = AkquiseMail::status($msF());
+$_SESSION['rolle'] = 'admin'; $_SESSION['name'] = 'Uwe Admin';
+AkquiseMail::grundDokumentieren($msId, ['grund' => 'sonstiges', 'datum' => date('Y-m-d'), 'quelle' => 'Messe', 'notiz' => 'Visitenkarte, Werbung ausdrücklich erbeten', 'freigeben' => 1]);
+$msS2 = AkquiseMail::kann($msF());
+pruefe('Freigabe hängt am Grund: Bestandskunde nur mit allen vier Punkten (dann auch Werbung), sonstiger Grund nur durch einen Admin und ohne Werbung',
+    $msB1 === AkquiseMail::PRUEFEN && $msB2['status'] === AkquiseMail::FREI && $msB2['werbung']
+    && $msS1 === AkquiseMail::PRUEFEN && $msS2['status'] === AkquiseMail::FREI && !$msS2['werbung'], json_encode([$msB1, $msB2, $msS1, $msS2]));
+$_SESSION['rolle'] = 'mitarbeit'; $_SESSION['name'] = 'Mia Mitarbeit';
+AkquiseMail::nichtKontaktierenSetzen($msId, 'widerspruch', 'Antwort STOP');
+$msK = AkquiseMail::kann($msF());
+$msDok = 'durch'; try { AkquiseMail::grundDokumentieren($msId, ['grund' => 'einwilligung', 'datum' => date('Y-m-d'), 'quelle' => 'x-x-x', 'notiz' => 'x-x']); } catch (RuntimeException $e) { $msDok = 'nein'; }
+pruefe('Status 4 „Nicht kontaktieren“: Adresse bleibt sichtbar, kein Entwurf, kein Versand, Sperrliste gesetzt, kein neuer Versandgrund möglich',
+    $msK['status'] === AkquiseMail::NICHT && $msK['anzeigen'] && !$msK['entwurf'] && !$msK['senden'] && $msDok === 'nein'
+    && (int) $msF()['gesperrt'] === 1 && (int) Db::wert('SELECT COUNT(*) FROM akq_sperrliste WHERE firma_id = ?', [$msId]) > 0
+    && $msF()['email_dnc_reason'] === 'widerspruch' && !AkquiseAnsprechen::frei($msF(), 'email'));
+$msAuf = [];
+try { AkquiseMail::nichtKontaktierenAufheben($msId, 'Versehentlich eingetragen'); $msAuf[] = 'durch'; } catch (RuntimeException $e) { $msAuf[] = 'nein'; }
+$_SESSION['rolle'] = 'admin'; $_SESSION['name'] = 'Uwe Admin';
+try { AkquiseMail::nichtKontaktierenAufheben($msId, 'kurz'); $msAuf[] = 'durch'; } catch (RuntimeException $e) { $msAuf[] = 'nein'; }
+AkquiseMail::nichtKontaktierenAufheben($msId, 'Widerspruch war von einem anderen Betrieb, versehentlich hier eingetragen');
+$msAl = Db::one("SELECT * FROM audit_log WHERE action = 'akquise_nicht_kontaktieren_aufgehoben' AND entity_id = ? ORDER BY id DESC LIMIT 1", [$msId]);
+pruefe('„Nicht kontaktieren“ aufheben: nur Admin, nur mit Begründung; alter Stand samt Sperrliste und Begründung in der Prüfspur',
+    $msAuf === ['nein', 'nein'] && AkquiseMail::status($msF()) !== AkquiseMail::NICHT && (int) $msF()['gesperrt'] === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_sperrliste WHERE firma_id = ?', [$msId]) === 0
+    && $msAl && str_contains((string) $msAl['before_json'], 'sperrliste') && str_contains((string) $msAl['after_json'], 'versehentlich'), json_encode($msAuf));
+pruefe('eine alte Einwilligung (Anruf, Besuch, Double-Opt-in) zählt als Freigabe; Sperre über das Gate setzt Status 4',
+    AkquiseMail::status(['email' => 'a@b.example', 'einwilligung' => 'Am Telefon …']) === AkquiseMail::FREI
+    && AkquiseMail::status(['email' => 'a@b.example', 'einwilligung' => 'Am Telefon …', 'gesperrt' => 1]) === AkquiseMail::NICHT);
+$msSp = Akquise::firmaMelden(['name' => 'Bar Gatesperre', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'x@gatesperre.example', 'quelle' => 'osm:node/71']);
+AkquiseGate::sperren((int) $msSp['id'], 'Telefon: nie wieder');
+pruefe('… und AkquiseGate::sperren schreibt „Nicht kontaktieren“ in die getrennten Felder',
+    Db::wert('SELECT email_contact_status FROM akq_firmen WHERE id = ?', [(int) $msSp['id']], '') === AkquiseMail::NICHT
+    && (int) Db::wert('SELECT email_do_not_contact FROM akq_firmen WHERE id = ?', [(int) $msSp['id']], 0) === 1);
+$msSpalten = array_column(Db::all('SHOW COLUMNS FROM akq_firmen'), 'Field');
+$msTexte = implode("\n", array_map(static fn($d) => (string) file_get_contents($wurzel . $d), ['/src/AkquiseMail.php', '/views/akquise_mail.php', '/views/akquise_ansprechen.php', '/views/akquise.php']));
+pruefe('fünf Dinge, getrennte Felder (gefunden, bestätigt, Status, Versand, Werbung, Grund, Datum, Quelle, Nicht kontaktieren); keine Zusicherung wie „rechtssicher“; Aufheben mit Rückfrage',
+    !array_diff(['email_found', 'email_verified', 'email_contact_status', 'email_send_allowed', 'email_marketing_consent', 'email_legal_basis', 'email_legal_basis_date', 'email_source', 'email_do_not_contact'], $msSpalten)
+    && !preg_match('~rechtssicher|garantiert zul|abmahnsicher~iu', $msTexte)
+    && (Ablauf::TRAGWEITE['akq_mail_nicht_aufheben'][0] ?? '') === Ablauf::SCHWER
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_mail.php'"));
+$_SESSION = $msSess;
 $asView = (string) file_get_contents($wurzel . '/views/akquise.php');
 pruefe('Liste zeigt E-Mail und WhatsApp je Betrieb (ohne mailto, Anschreiben erst nach Zustimmung); Aussortieren nur mit Rückfrage (schwer)',
     str_contains($asView, 'class="akq-kontakt"') && str_contains($asView, 'Akquise::whatsappNummer($z)') && !str_contains($asView, 'href="mailto:<?= Fmt::h($akqMail)')

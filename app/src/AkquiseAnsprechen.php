@@ -31,7 +31,8 @@ final class AkquiseAnsprechen
         if ((int) ($f['gesperrt'] ?? 0) === 1 || in_array((string) ($f['kontakt_status'] ?? ''), ['abgelehnt', 'gesperrt'], true)) {
             return ['farbe' => 'rot', 'wort' => 'Nicht ansprechen', 'schreiben' => false];
         }
-        $mail = AkquiseGate::einwilligungDeckt($f, 'email');
+        require_once __DIR__ . '/AkquiseMail.php';
+        $mail = AkquiseGate::einwilligungDeckt($f, 'email') || AkquiseMail::status($f) === AkquiseMail::FREI;
         $wa = AkquiseGate::einwilligungDeckt($f, 'whatsapp');
         if ($mail || $wa || (int) ($f['bestandskunde'] ?? 0) === 1) {
             return ['farbe' => 'gruen', 'wort' => 'Darf ' . ($mail && $wa ? 'per Mail und WhatsApp' : ($wa ? 'per WhatsApp' : 'per Mail')), 'schreiben' => true];
@@ -46,6 +47,13 @@ final class AkquiseAnsprechen
     public static function frei(array $f, string $kanal): bool
     {
         if ($kanal === 'email' && Akquise::normEmail((string) ($f['email'] ?? '')) === null) { return false; }
+        /* E-Mail (06.10.2026): frei, wenn ein Versandgrund dokumentiert und freigegeben ist -- oder das Gate es ohnehin erlaubt. */
+        if ($kanal === 'email') {
+            require_once __DIR__ . '/AkquiseMail.php';
+            $k = AkquiseMail::kann($f);
+            if ($k['status'] === AkquiseMail::NICHT) { return false; }
+            if ($k['senden']) { return true; }
+        }
         if ($kanal === 'whatsapp' && strlen((string) preg_replace('~\D~', '', (string) ($f['whatsapp'] ?? ''))) < 8) { return false; }
         return in_array(AkquiseGate::pruefen($f, $kanal)['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true);
     }
@@ -352,7 +360,7 @@ final class AkquiseAnsprechen
             return false;
         }
         require_once __DIR__ . '/AkquiseVersand.php';
-        AkquiseVersand::vonHand($firmaId, $kanal, 'Von Hand ' . ($kanal === 'email' ? 'per E-Mail' : 'per WhatsApp') . ' aus dem eigenen Programm geschrieben (Zustimmung liegt vor)');
+        AkquiseVersand::vonHand($firmaId, $kanal, 'Von Hand ' . ($kanal === 'email' ? 'per E-Mail' : 'per WhatsApp') . ' aus dem eigenen Programm geschrieben (' . ($kanal === 'email' ? 'Versandgrund dokumentiert' : 'Zustimmung liegt vor') . ')');
         return true;
     }
 }

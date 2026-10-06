@@ -124,6 +124,12 @@ final class AkquiseGate
         Db::update('akq_firmen', $firmaId, [
             'gesperrt' => 1, 'kontakt_status' => 'gesperrt', 'compliance_status' => self::NICHT,
         ]);
+        /* „Nicht kontaktieren“ auch im Kommunikationsstatus (06.10.2026). */
+        try {
+            Db::run("UPDATE akq_firmen SET email_do_not_contact = 1, email_send_allowed = 0, email_marketing_consent = 0,
+                            email_dnc_reason = COALESCE(email_dnc_reason, 'sperre'), email_dnc_note = COALESCE(email_dnc_note, ?),
+                            email_dnc_at = COALESCE(email_dnc_at, NOW()), email_contact_status = 'nicht_kontaktieren' WHERE id = ?", [$grund, $firmaId]);
+        } catch (Throwable $e) { }
         // Offene Entwuerfe duerfen nach einem Widerspruch nicht mehr freigegeben werden.
         Db::run("UPDATE akq_vorlagen SET status = 'verworfen' WHERE firma_id = ? AND status IN ('entwurf','freigegeben')", [$firmaId]);
         Akquise::protokoll($firmaId, 'gesperrt', 'Auf DO_NOT_CONTACT gesetzt: ' . $grund, ['quelle' => $quelle]);
@@ -333,6 +339,8 @@ final class AkquiseGate
             Akquise::protokoll($firmaId, 'compliance', 'Compliance geprüft: ' . self::STATUS[$p['status']],
                 ['gruende' => $p['gruende']]);
         }
+        /* Kommunikationsstatus E-Mail (06.10.2026) mitziehen -- vor Migration 192 fehlt die Spalte. */
+        try { require_once __DIR__ . '/AkquiseMail.php'; AkquiseMail::statusSchreiben($firmaId); } catch (Throwable $e) { }
         return $p['status'];
     }
 

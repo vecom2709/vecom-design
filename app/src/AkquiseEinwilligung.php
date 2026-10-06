@@ -190,6 +190,9 @@ final class AkquiseEinwilligung
         $neu = ['einwilligung' => $beleg, 'email' => $e['email'], 'einwilligung_kanaele' => implode(',', array_values(array_unique($kanaele))),
                 'whatsapp' => !empty($e['whatsapp']) ? $e['whatsapp'] : ($f['whatsapp'] ?? null)];
         Db::update('akq_firmen', (int) $f['id'], $neu);
+        /* Adresse durch den Klick bestätigt (06.10.2026, Kommunikationsstatus). */
+        try { Db::update('akq_firmen', (int) $f['id'], ['email_verified' => 1]
+            + ((string) $f['email'] !== (string) $e['email'] || empty($f['email_source']) ? ['email_source' => 'Vom Betrieb selbst eingetragen und per Double-Opt-in bestätigt'] : [])); } catch (Throwable $x) { }
         Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', (int) $f['id'], $alt, $neu);
         Akquise::protokoll((int) $f['id'], 'einwilligung', 'Einwilligung bestätigt: ' . $e['email'] . (!empty($e['whatsapp']) ? ' und WhatsApp ' . $e['whatsapp'] : ''));
         AkquiseGate::statusSpeichern((int) $f['id']);
@@ -270,6 +273,10 @@ final class AkquiseEinwilligung
              + (trim((string) ($f['ansprechpartner'] ?? '')) === '' && ($ap = trim(explode(',', $person)[0])) !== ''
                 && !preg_match('~^(der |die |la |il |the )?(inhaber|inhaberin|chef|chefin|titolare|proprietari[oa]|owner|manager)~iu', $ap) ? ['ansprechpartner' => $ap] : []);
         Db::update('akq_firmen', $firmaId, $neu);
+        if ($mail !== null) {   // vom Betrieb genannt (06.10.2026, Kommunikationsstatus)
+            try { Db::update('akq_firmen', $firmaId, ['email_verified' => 1]
+                + ((string) $f['email'] !== $mail || empty($f['email_source']) ? ['email_source' => 'Vom Betrieb genannt (' . ($weg === 'anruf' ? 'Anruf' : 'Besuch') . ' am ' . date('d.m.Y') . ')'] : [])); } catch (Throwable $x) { }
+        }
         Events::pruefspur('akquise_rechtsgrundlage', 'akq_firmen', $firmaId, $alt, $neu);
         Akquise::protokoll($firmaId, 'einwilligung', 'Zustimmung ' . ($weg === 'anruf' ? 'am Telefon' : 'beim Besuch') . ': ' . $person . ' — ' . $wege);
         require_once __DIR__ . '/AkquiseVersand.php';

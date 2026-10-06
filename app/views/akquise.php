@@ -8,6 +8,7 @@
    zwischen Uwe und der Frage „wen spreche ich heute an?“. */
 $akqTeil = '';
 require_once dirname(__DIR__) . '/src/AkquiseAnsprechen.php';
+require_once dirname(__DIR__) . '/src/AkquiseMail.php';
 $wert = static fn(string $k): string => (string) ($filter[$k] ?? '');
 $gewaehlt = static fn(string $k, string $v): string => (($filter[$k] ?? '') === $v) ? ' selected' : '';
 $seitenUrl = static function (int $s) use ($filter): string {
@@ -244,10 +245,12 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
         <td><label class="akq-wahl"><?php if ($akqPartner && $stand['farbe'] === 'grau' && trim((string) ($z['telefon'] ?? '')) !== ''): ?><input type="checkbox" name="firmen[]" value="<?= (int) $z['id'] ?>" aria-label="<?= Fmt::h((string) $z['name']) ?> auswählen"><?php endif; ?>
           <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a></label>
           <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
-          <?php /* E-Mail und WhatsApp in jeder Zeile (06.10.2026, Uwe). Anschreiben erst nach Zustimmung -- deshalb kein mailto. */
-            $akqMail = trim((string) ($z['email'] ?? '')); $akqWa = Akquise::whatsappNummer($z); ?>
+          <?php /* E-Mail und WhatsApp in jeder Zeile (06.10.2026, Uwe). Die Adresse steht immer da; anklickbar (→ Versand von Hand
+                   auf der Firmenseite) nur mit dokumentiertem Versandgrund. Daneben der Kommunikationsstatus. */
+            $akqMail = trim((string) ($z['email'] ?? '')); $akqWa = Akquise::whatsappNummer($z);
+            $akqMs = AkquiseMail::status($z); [$akqMsZ, , $akqMsW] = AkquiseMail::STATUS[$akqMs]; ?>
           <div class="akq-kontakt">
-            <?php if ($akqMail !== ''): ?><span title="E-Mail — anschreiben erst nach Zustimmung">✉ <?= Fmt::h($akqMail) ?></span><?php endif; ?>
+            <?php if ($akqMail !== ''): ?><span title="<?= Fmt::h($akqMsW) ?>">✉ <?php if ($akqMs === AkquiseMail::FREI): ?><a href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . '#mailstatus') ?>"><?= Fmt::h($akqMail) ?></a><?php else: ?><?= Fmt::h($akqMail) ?><?php endif; ?> <span aria-label="<?= Fmt::h($akqMsW) ?>"><?= $akqMsZ ?></span></span><?php endif; ?>
             <?php if ($akqWa !== null): ?><span title="<?= trim((string) ($z['whatsapp'] ?? '')) !== '' ? 'WhatsApp-Nummer' : 'Handynummer — WhatsApp wahrscheinlich' ?>">WhatsApp <?= Fmt::h($akqWa) ?></span><?php endif; ?>
             <?php if ($akqMail === '' && $akqWa === null): ?><span class="akq-klein"><?= in_array((string) $z['audit_status'], ['offen', 'laeuft'], true) ? 'E-Mail wird auf der Website gesucht …' : 'Keine E-Mail, kein WhatsApp' ?></span><?php endif; ?>
           </div>

@@ -6,6 +6,7 @@
    Programm -- frei erst nach einer Zustimmung (Gate). Ohne Zustimmung führt
    der Kasten zu Anruf oder Besuch und darunter zu „Hat zugestimmt“. */
 require_once dirname(__DIR__) . '/src/AkquiseAnsprechen.php';
+require_once dirname(__DIR__) . '/src/AkquiseMail.php';
 $anFid = (int) $f['id'];
 $anAnalyse = '';
 foreach ($analysen as $x) { if ((int) $x['aktiv'] === 1) { $anAnalyse = AkquiseAnalyse::adresse($x); break; } }
@@ -62,7 +63,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
   <?php else: ?>
     <p class="an-hilfe"><?= $an['frei']['email'] || $an['frei']['whatsapp']
       ? 'Er hat zugestimmt: E-Mail oder WhatsApp öffnen, lesen, selbst senden. Die Folge-Mails laufen danach automatisch.'
-      : 'Noch keine Zustimmung für E-Mail und WhatsApp. Also zuerst <b>anrufen oder vorbeigehen</b> — der Text dafür steht bereit. Sagt er Ja, trägst du es unten ein: Dann sind Mail und WhatsApp sofort frei.' ?></p>
+      : 'Noch kein Versandgrund für E-Mail und keine Zustimmung für WhatsApp. Der E-Mail-Entwurf steht trotzdem bereit (bearbeiten, kopieren). Zum Senden oben bei „E-Mail“ den Versandgrund dokumentieren — oder <b>anrufen bzw. vorbeigehen</b> und eine Zustimmung unten eintragen.' ?></p>
     <div class="an-kopf" style="margin:0 0 8px">
       <span class="akq-klein">Texte auf <?= $anH(AkquiseText::SPRACHEN[$an['sprache']]) ?></span>
       <nav class="an-sprache" aria-label="Sprache der Texte">
@@ -82,7 +83,18 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
 
     <?php foreach (['email', 'whatsapp'] as $k): $frei = $an['frei'][$k]; ?>
       <div role="tabpanel" id="an-p-<?= $k ?>" aria-labelledby="an-t-<?= $k ?>"<?= $k === $anStart ? '' : ' hidden' ?>>
-        <?php if (!$frei): ?>
+        <?php if (!$frei && $k === 'email' && AkquiseMail::kann($f)['entwurf']): $x = $an['email']; ?>
+          <?php /* Entwurf immer (06.10.2026): bearbeiten und kopieren ja, Öffnen/Senden erst mit dokumentiertem Versandgrund. */ ?>
+          <div class="an-zu" style="margin-bottom:10px"><b>Entwurf — noch kein Versand.</b> Du kannst den Text bearbeiten und kopieren.
+            Senden geht erst, wenn oben bei „E-Mail“ ein Versandgrund dokumentiert und freigegeben ist. <a href="#versandgrund">Versandgrund dokumentieren</a></div>
+          <div class="an-feld"><label for="an-betreff">Betreff</label><input id="an-betreff" value="<?= $anH($x['betreff']) ?>" data-an="betreff"></div>
+          <div class="an-feld"><label for="an-text-email">Text — Entwurf</label>
+            <textarea id="an-text-email" class="an-text" data-an="text-email" rows="16"><?= $anH($x['text']) ?></textarea></div>
+          <div class="an-knoepfe">
+            <button class="knopf" type="button" data-an-kopieren="text-email">Text kopieren</button>
+            <span class="akq-klein">an <?= $anH((string) $f['email']) ?></span>
+          </div>
+        <?php elseif (!$frei): ?>
           <div class="an-zu"><b>Erst nach seiner Zustimmung.</b> Eine Werbe-<?= $k === 'email' ? 'Mail' : 'Nachricht' ?> ohne Zustimmung ist in Italien und Deutschland verboten — auch von Hand.
             Ruf an oder geh vorbei (Reiter „Anruf“ oder „Besuch“). Sagt er Ja, unten „Hat zugestimmt“ ausfüllen: Dann steht hier der fertige Text zum Öffnen.
             <?php if ($k === 'whatsapp' && AkquiseGate::einwilligungDeckt($f, 'email')): ?><br><span class="akq-klein">Für E-Mail hat er schon zugestimmt — für WhatsApp noch nicht.</span><?php endif; ?></div>

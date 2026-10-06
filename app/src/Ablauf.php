@@ -446,6 +446,10 @@ final class Ablauf
         'akq_zugestimmt' => [self::SCHWER,
             'Die Zustimmung wird mit Datum, Name, Weg und Wortlaut als Nachweis gespeichert. Danach sind E-Mail und WhatsApp frei, und die Folge-Mails laufen automatisch.',
             'Ja, er hat zugestimmt'],
+        'akq_mail_nicht_aufheben' => [self::SCHWER,
+            '„Nicht kontaktieren“ wird aufgehoben, die Sperrlisten-Einträge dieses Betriebs werden gelöscht. '
+            . 'Alter Stand und deine Begründung stehen danach in der Prüfspur.',
+            'Ja, aufheben'],
         'akq_aussortieren' => [self::SCHWER,
             'Alle Betriebe ohne E-Mail und ohne WhatsApp (auch ohne Handynummer) werden endgültig gelöscht — samt Prüfberichten. '
             . 'Gesperrte, angesprochene und Betriebe bei Partnern bleiben. Wer nur Festnetz hat, fällt damit auch aus der Anrufliste.',

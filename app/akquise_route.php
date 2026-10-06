@@ -177,6 +177,39 @@ if ($post) {
                                           : 'Nichts zu löschen — jeder Betrieb in der Liste hat E-Mail oder WhatsApp, oder wartet noch auf die Prüfung seiner Website.';
                 weiter('akquise');
 
+            /* Kommunikationsstatus E-Mail (06.10.2026, Uwe): dokumentieren statt pauschal sperren. */
+            case 'akq_mail_grund':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                $r = AkquiseMail::grundDokumentieren($fid, $_POST);
+                $_SESSION['gut'] = 'Versandgrund dokumentiert. Status: ' . AkquiseMail::STATUS[$r['status']][2]
+                    . ($r['freigabe'] ? ($r['werbung'] ? ' — einzelner Versand von Hand möglich, auch Werbung.' : ' — einzelne Nachricht von Hand möglich, keine Werbung.') : ' — eine Freigabe braucht noch eine Prüfung.');
+                weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_pruefung':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                AkquiseMail::pruefungAnfordern($fid, (string) ($_POST['notiz'] ?? ''));
+                $_SESSION['gut'] = 'Zur Prüfung markiert.';
+                weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_zurueck':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                AkquiseMail::freigabeZuruecknehmen($fid, (string) ($_POST['notiz'] ?? ''));
+                $_SESSION['gut'] = 'Versandfreigabe zurückgenommen.';
+                weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_geprueft':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                AkquiseMail::adresseGeprueft($fid, !empty($_POST['ja']));
+                $_SESSION['gut'] = !empty($_POST['ja']) ? 'Adresse als bestätigt markiert.' : 'Bestätigung entfernt.';
+                weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_nicht':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                AkquiseMail::nichtKontaktierenSetzen($fid, (string) ($_POST['grund'] ?? ''), (string) ($_POST['notiz'] ?? ''));
+                $_SESSION['gut'] = '„Nicht kontaktieren“ gesetzt. Werbeversand bleibt auf allen Wegen blockiert.';
+                weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_nicht_aufheben':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                AkquiseMail::nichtKontaktierenAufheben($fid, (string) ($_POST['begruendung'] ?? ''));
+                $_SESSION['gut'] = '„Nicht kontaktieren“ aufgehoben und protokolliert.';
+                weiter('akquise/' . $fid . '#mailstatus');
+
             case 'akq_an_partner':
                 require_once __DIR__ . '/src/PartnerAnrufliste.php';
                 $r = PartnerAnrufliste::uebergeben((array) ($_POST['firmen'] ?? []), (int) ($_POST['partner'] ?? 0), (string) ($_POST['vermerk'] ?? ''), Auth::name() ?: 'Uwe');
@@ -224,6 +257,10 @@ if ($post) {
                 if (isset(AkquiseText::SPRACHEN[$sp])) { $neu['sprache'] = $sp; }
                 $ks = (string) ($_POST['kontakt_status'] ?? '');
                 if (isset(Akquise::KONTAKT_STATUS[$ks]) && $ks !== 'gesperrt' && (int) $f['gesperrt'] === 0) { $neu['kontakt_status'] = $ks; }
+                if ($neu['email'] !== null && $neu['email'] !== ($f['email'] ?? null)) {   // Herkunft der Adresse (06.10.2026)
+                    $neu['email_source'] = 'Von Hand eingetragen von ' . (Auth::name() ?: 'Verwaltung') . ' am ' . date('d.m.Y');
+                    $neu['email_verified'] = 0;
+                }
                 Db::update('akq_firmen', $fid, $neu);
                 // Einwilligung und Bestandskunde veraendern die Rechtslage -- das gehoert in die Pruefspur.
                 if (($f['einwilligung'] ?? null) !== $neu['einwilligung'] || (int) $f['bestandskunde'] !== $neu['bestandskunde']) {

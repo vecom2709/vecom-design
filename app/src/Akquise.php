@@ -526,6 +526,24 @@ final class Akquise
         }
     }
 
+    /** Herkunft einer gefundenen Adresse (06.10.2026). */
+    public static function mailQuelle(?string $quelle): string
+    {
+        require_once __DIR__ . '/AkquiseMail.php';
+        return mb_substr(AkquiseMail::quelleAus($quelle), 0, 255);
+    }
+
+    /** Schreiben mit email_source -- vor Migration 192 fehlt die Spalte: dann ohne. */
+    public static function mitMailQuelle(callable $mit, array $daten, callable $ohne): void
+    {
+        try { $mit(); }
+        catch (PDOException $e) {
+            if (!array_key_exists('email_source', $daten) || !str_contains($e->getMessage(), 'email_source')) { throw $e; }
+            unset($daten['email_source']);
+            $ohne($daten);
+        }
+    }
+
     /** L-XXXXXXXX aus einem Alphabet ohne 0/O und 1/I -- am Telefon buchstabierbar. */
     public static function neueKennung(): string
     {
@@ -657,13 +675,15 @@ final class Akquise
                         $neu[$feld] = $wert;
                     }
                 }
-                if ($neu) { Db::update('akq_firmen', $id, $neu); }
+                if (isset($neu['email'])) { $neu['email_source'] = self::mailQuelle($d['quelle']); }
+                if ($neu) { self::mitMailQuelle(static fn() => Db::update('akq_firmen', $id, $neu), $neu, static fn($n) => Db::update('akq_firmen', $id, $n)); }
                 self::protokoll($id, 'dublette', 'Erneut gefunden (' . $grund . ') — nur leere Felder ergänzt',
                     ['ergaenzt' => array_keys($neu)], $laufId);
                 return ['id' => $id, 'neu' => false, 'grund' => $grund, 'gesperrt' => (int) ($alt['gesperrt'] ?? 0) === 1];
             }
 
             $d['kennung'] = self::neueKennung();
+            if ($d['email'] !== null) { $d['email_source'] = self::mailQuelle($d['quelle']); }
             if ($d['url'] === null) {
                 $d['audit_status'] = 'keine_website';
             } elseif ($plattform) {
@@ -878,7 +898,8 @@ final class Akquise
                   : (in_array($feld, ['telefon', 'whatsapp'], true) ? self::normTelefon($e[$feld] ?? null, (string) $firma['land']) : self::kurz($e[$feld] ?? null, $max));
             if ($wert !== null && ($firma[$feld] ?? null) === null) { $upd[$feld] = $wert; }
         }
-        Db::update('akq_firmen', $firmaId, $upd);
+        if (isset($upd['email'])) { $upd['email_source'] = 'Website: ' . mb_substr((string) ($e['geprueft_url'] ?? $firma['url'] ?? ''), 0, 200); }
+        self::mitMailQuelle(static fn() => Db::update('akq_firmen', $firmaId, $upd), $upd, static fn($n) => Db::update('akq_firmen', $firmaId, $n));
 
         self::protokoll($firmaId, 'audit', 'Audit abgeschlossen (' . self::AUDIT_STATUS[$status] . ')',
             ['audit_id' => $auditId, 'seiten' => (int) ($e['seiten'] ?? 0)]);
