@@ -29,6 +29,10 @@ final class AkquiseWerkstatt
     /** Zusicherungen, die Vecom nicht geben darf (Uwe: kein „rechtssicher“, kein „abmahnsicher“). */
     private const ZUSICHERUNG = '~\b(rechtssicher\w*|abmahnsicher\w*|dsgvo[- ]konform garantiert|100\s*%\s*(legal|rechtskonform|sicher)|a norma di legge garantit\w*|legally compliant guaranteed)\b~iu';
 
+    /** Wörter, die zwischen Unternehmern Vertrauen kosten (06.10.2026, Uwe: „ZWINGEND: Lass Wörter wie Provision,
+        Werbung oder Verkauf komplett weg … Wir kommunizieren auf Augenhöhe von Unternehmer zu Unternehmer.“) */
+    public const VERTRAUEN = '~\\b(provision\\w*|werbung\\w*|werbe\\w*|verkauf\\w*|verkäuf\\w*|provvigion\\w*|pubblicit\\w*|vendit\\w*|commission\\w*|advertis\\w*|sales|selling)\\b~iu';
+
     /** Was nach einer Vorlage aussieht, die nicht ausgefüllt wurde. */
     private const PLATZHALTER = '~(\[[^\]\n]{1,40}\]|\{\{[^}]*\}\}|<\s*(name|firma|betrieb|nome|azienda)\s*>|\bX{3,}\b|\bTODO\b)~iu';
 
@@ -73,6 +77,11 @@ final class AkquiseWerkstatt
         if (preg_match(self::ZUSICHERUNG, $betreff . "\n" . $text, $m)) {
             $neu(self::STOPP, 'Zusicherung, die Vecom nicht geben darf: „' . $m[0] . '“.');
         }
+
+        /* Augenhöhe: keine Verkäufer-Wörter */
+        if (preg_match(self::VERTRAUEN, $betreff . "\n" . self::ohneLinks($text), $m)) {
+            $neu(self::STOPP, 'Wort „' . $m[0] . '“ — Provision, Werbung oder Verkauf haben in einer Nachricht von Unternehmer zu Unternehmer nichts zu suchen. Bitte umformulieren.');
+        } elseif ($text !== '') { $neu(self::OK, 'Keine Verkäufer-Wörter (Provision, Werbung, Verkauf).'); }
 
         /* Was AkquiseText schon prüft — hier nur eingestuft. */
         $erst = self::erstkontakt($f);

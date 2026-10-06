@@ -13165,8 +13165,17 @@ pruefe('Kontakt: WhatsApp-Nummern mit Landesvorwahl, Sprache des Betriebs',
 $akT = PartnerAnschreiben::texte($akP, ['name' => 'Bar Kontakt', 'url' => ''], 'it', null);
 $akT2 = PartnerAnschreiben::texte($akP, ['name' => 'Bar Kontakt', 'url' => 'https://x.example'], 'de', 'https://vecom-design.it/check.php?t=abc');
 pruefe('Kontakt: Vorlagen nennen den Betrieb, siezen, tragen den Link mit Kanal „anschreiben“ und den Schnellcheck, wenn es ihn gibt',
-    str_contains($akT['wa'], 'Bar Kontakt') && str_contains($akT['wa'], Partner::link($akP) . '/anschreiben') && str_contains($akT['betreff'], 'Bar Kontakt')
-    && str_contains($akT2['mail'], 'check.php?t=abc') && str_contains($akT2['mail'], 'Ihnen') && !preg_match('/\{[a-z]+\}/', $akT['wa'] . $akT['mail'] . $akT2['wa']));
+    str_contains($akT['wa'], Partner::link($akP) . '/anschreiben') && str_contains($akT['betreff'], 'Bar Kontakt')
+    && str_contains($akT2['mail'], 'check.php?t=abc') && str_contains($akT2['mail'], 'Sie ') && !preg_match('/\{[a-z]+\}/', $akT['wa'] . $akT['mail'] . $akT2['wa'] . $akT2['mail']));
+require_once $wurzel . '/src/AkquiseWerkstatt.php';
+$akT3 = PartnerAnschreiben::texte($akP, ['name' => 'Falegnameria Kontakt', 'url' => '', 'branche' => 'handwerk', 'stadt' => 'ARAGONA'], 'de', null);
+pruefe('Kontakt (06.10.2026): erste Nachricht ohne Vorgeschichte — ehrliche Beobachtung, Frage auf Augenhöhe, Vecom Design, Link und WhatsApp; nie Provision/Werbung/Verkauf; STOPP-Satz',
+    str_contains($akT3['mail'], 'ich war auf der Suche nach einem Betrieb in der Gegend von Aragona und mir ist aufgefallen, dass Sie online gar keine Webseite haben.')
+    && str_contains($akT3['mail'], 'nehmen Aufträge an, oder verzichten Sie ganz bewusst auf eine Homepage?') && str_contains($akT3['mail'], 'Handwerksbetrieben wie Ihrem')
+    && str_contains($akT3['mail'], 'ich arbeite mit Vecom Design zusammen') && str_contains($akT3['mail'], 'per WhatsApp: https://wa.me/') && str_contains($akT3['mail'], '„STOPP“')
+    && str_contains($akT2['mail'], 'bin dabei auf Ihre Webseite x.example gestoßen') && str_contains($akT2['mail'], 'Kümmern Sie sich selbst noch um die Seite')
+    && !preg_match(AkquiseWerkstatt::VERTRAUEN, $akT['wa'] . $akT['mail'] . $akT2['mail'] . $akT3['mail'] . $akT3['wa'])
+    && !preg_match('~d.accordo|besprochen|as discussed~iu', $akT['mail'] . $akT['betreff'] . $akT2['mail'] . $akT3['wa']), $akT3['mail']);
 $akFirma = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$akF]);
 $akG0 = AkquiseGate::pruefen($akFirma, 'brief');
 pruefe('Kontakt: ohne Wunsch sperrt die Reservierung Vecom aus', $akG0['status'] === AkquiseGate::NICHT && str_contains(implode(' ', $akG0['gruende']), 'kümmert sich'));
@@ -15571,6 +15580,18 @@ pruefe('K3: gespeichert mit Nachweis (wer, wann, Weg, Wortlaut) — danach Mail 
     && str_starts_with((string) $ahP2['email']['link'], 'mailto:maria%40forno.example?subject=') && str_starts_with((string) $ahP2['whatsapp']['link'], 'https://wa.me/393471112223?text=')
     && str_contains($ahP2['email']['text'], 'Buongiorno Maria Rossi,') && str_contains($ahP2['email']['text'], 'https://vecom-design.it/analisi/x') && str_contains($ahP2['email']['text'], '«STOP»')
     && str_contains($ahP2['whatsapp']['text'], 'https://vecom-design.it/analisi/x'), json_encode([$ahR, $ahP2['frei']]));
+$ahH = AkquiseAnsprechen::paket(['name' => 'Falegnameria Hand', 'land' => 'IT', 'branche' => 'handwerk', 'stadt' => 'ARAGONA', 'url' => '', 'email' => 'f@hand.example'], [], null, '');
+$ahB = AkquiseAnsprechen::paket(['name' => 'Bar Hand', 'land' => 'DE', 'branche' => 'bar_cafe', 'stadt' => '', 'url' => 'https://www.bar-hand.example/', 'email' => 'b@hand.example'], [], null, '');
+pruefe('Erste E-Mail (06.10.2026, Uwe): keine erfundene Vorgeschichte, ehrliche Beobachtung, Frage auf Augenhöhe, wer schreibt, Link + WhatsApp; nie Provision/Werbung/Verkauf',
+    $ahH['email']['betreff'] === 'Una domanda veloce per Falegnameria Hand'
+    && str_contains($ahH['email']['text'], 'cercavo un’attività in zona Aragona e ho notato che online non avete un sito.')
+    && str_contains($ahH['email']['text'], 'Siete ancora attivi e prendete lavori, o rinunciate di proposito a un sito?') && str_contains($ahH['email']['text'], 'agli artigiani come voi')
+    && str_contains($ahH['email']['text'], 'bedarf.php?lang=it') && str_contains($ahH['email']['text'], 'su WhatsApp: https://wa.me/') && str_contains($ahH['email']['text'], '«STOP»')
+    && str_contains($ahB['email']['text'], 'in der Region und bin dabei auf Ihre Webseite bar-hand.example gestoßen.') && str_contains($ahB['email']['text'], 'Betrieben wie Ihrem')
+    && str_contains($ahP2['email']['text'], 'https://vecom-design.it/analisi/x')
+    && !preg_match('~d.accordo|besprochen|as discussed~iu', $ahH['email']['text'] . $ahH['email']['betreff'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahP2['email']['text'] . $ahP2['whatsapp']['text'])
+    && !preg_match(AkquiseWerkstatt::VERTRAUEN, $ahH['email']['text'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahB['whatsapp']['text'] . $ahP2['email']['text'])
+    && !preg_match('/\{[a-z_]+\}/', $ahH['email']['text'] . $ahH['whatsapp']['text'] . $ahB['email']['text'] . $ahB['whatsapp']['text']), $ahH['email']['text'] . "\n----\n" . $ahB['email']['text']);
 pruefe('K2: Öffnen von Mail/WhatsApp wird einmal als „selbst gemacht“ vermerkt (nicht doppelt binnen 30 Minuten)',
     AkquiseAnsprechen::vermerken($ahF, 'email') && !AkquiseAnsprechen::vermerken($ahF, 'email') && AkquiseAnsprechen::vermerken($ahF, 'whatsapp')
     && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND status = 'von_hand'", [$ahF], 0) === 2 && !AkquiseAnsprechen::vermerken($ahF, 'brief'));
@@ -26204,6 +26225,9 @@ $wsF1 = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$wsId]);
 $wsL0 = AkquiseWerkstatt::pruefliste($wsF1, 'email', '', $wsGut, true);
 $wsL1 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', "Buongiorno [Nome],\nsiamo rechtssicher e il vostro Score è basso. Il 73% dei clienti va via.\nvecom-design.it", false);
 $wsL2 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', $wsGut, false);
+$wsVt = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', "Buongiorno,\nper ogni contratto ricevo una provvigione.\nCordiali saluti", false);
+pruefe('Werkstatt: „Provision“, „Werbung“, „Verkauf“ (auch provvigione, pubblicità, vendita) halten die Nachricht an ⛔ — ein sauberer Text hat den ✅',
+    str_contains($wsSt($wsVt, 'stopp'), 'provvigione') && str_contains($wsSt($wsL2, 'ok'), 'Keine Verkäufer-Wörter'), json_encode($wsVt, JSON_UNESCAPED_UNICODE));
 pruefe('Werkstatt: ohne Betreff, mit Platzhalter, mit Zusicherung („rechtssicher“) oder internem Wort ⛔; unbelegte Zahl ⚠; ohne Versandgrund ist Senden und Entwurf nur ⚠ (Uwe 06.10.: Mailprogramm öffnet unabhängig von der Zustimmung); ein sauberer Text hat kein ⛔',
     str_contains($wsSt($wsL0, 'stopp'), 'Der Betreff fehlt') && str_contains($wsSt($wsL0, 'hinweis'), 'Kein Versandgrund dokumentiert') && !str_contains($wsSt($wsL0, 'stopp'), 'Versandgrund')
     && str_contains($wsSt($wsL1, 'stopp'), 'Platzhalter nicht ausgefüllt: „[Nome]“') && str_contains($wsSt($wsL1, 'stopp'), 'rechtssicher')

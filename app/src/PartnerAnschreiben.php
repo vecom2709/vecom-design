@@ -60,13 +60,46 @@ final class PartnerAnschreiben
      */
     public static function texte(array $p, array $f, string $sprache, ?string $check): array
     {
+        require_once __DIR__ . '/AkquiseAnsprechen.php';
+        require_once __DIR__ . '/PartnerDaten.php';
         $N = Texte::PARTNER_ANSCHREIBEN['nachricht'];
+        $h = static fn(string $k): string => Texte::h($N[$k], $sprache);
         $firma = (string) $f['name'];
-        $aufhaenger = $check !== null ? strtr(Texte::h($N['mit_check'], $sprache), ['{check}' => $check])
-            : strtr(Texte::h(trim((string) ($f['url'] ?? '')) === '' ? $N['ohne_web'] : $N['mit_web'], $sprache), ['{firma}' => $firma]);
-        $w = ['{name}' => Partner::anzeigeName($p), '{firma}' => $firma, '{link}' => PartnerWerbung::link($p, self::KANAL), '{aufhaenger}' => $aufhaenger];
-        return ['wa' => strtr(Texte::h($N['wa'], $sprache), $w), 'betreff' => strtr(Texte::h($N['betreff'], $sprache), $w),
-                'mail' => strtr(Texte::h($N['mail'], $sprache), $w)];
+        $url = trim((string) ($f['url'] ?? ''));
+        $hatWeb = $url !== '';
+        $handwerk = in_array((string) ($f['branche'] ?? ''), AkquiseAnsprechen::HANDWERK, true);
+        $stadt = trim((string) ($f['stadt'] ?? ''));
+        $domain = (string) preg_replace('~^www\.~i', '', (string) (parse_url((preg_match('~^https?://~i', $url) ? '' : 'https://') . $url, PHP_URL_HOST) ?? ''));
+        $wa = self::eigeneWa($p);
+        $w = ['{name}' => Partner::anzeigeName($p), '{firma}' => $firma, '{link}' => PartnerWerbung::link($p, self::KANAL),
+              '{zona}' => $stadt !== '' ? strtr($h('zona'), ['{stadt}' => mb_convert_case(mb_strtolower($stadt), MB_CASE_TITLE)]) : $h('zona_x'),
+              '{domain}' => $domain, '{check}' => (string) $check, '{wa}' => $wa];
+        $w['{wem}'] = $h($handwerk ? 'wem_h' : 'wem');
+        $t = static fn(string $k): string => trim((string) preg_replace('~ {2,}~u', ' ', strtr($h($k), $w)));
+        $gross = static fn(string $x): string => mb_strtoupper(mb_substr($x, 0, 1)) . mb_substr($x, 1);
+        $beob = $t($hatWeb ? 'mit_web' : 'ohne_web');
+        $frage = $t($hatWeb ? 'frage_web' : ($handwerk ? 'frage_ohne_h' : 'frage_ohne'));
+
+        $m = [$h('hallo'), '', $beob];
+        if ($hatWeb && $check !== null) { $m[] = $t('mit_check'); }
+        $m[] = ''; $m[] = $frage; $m[] = ''; $m[] = $t('wir'); $m[] = ''; $m[] = $t('link');
+        if ($wa !== '') { $m[] = $t('wa_cta'); }
+        $m[] = ''; $m[] = $h('gruss'); $m[] = Partner::anzeigeName($p); $m[] = ''; $m[] = $h('stopp');
+
+        $z = [$t('wa_hallo') . ' ' . $gross($beob) . ' ' . $frage, ''];
+        if ($hatWeb && $check !== null) { $z[] = $t('mit_check'); }
+        $z[] = $t('wa_kurz'); $z[] = $t('wa_link'); $z[] = ''; $z[] = $h('stopp');
+        return ['wa' => implode("\n", $z), 'betreff' => $t('betreff'), 'mail' => implode("\n", $m)];
+    }
+
+    /** WhatsApp-Link des Partners (Partnerseite, sonst sein Handy); ohne eigene Nummer die von Vecom (Uwe, 06.10.2026). */
+    public static function eigeneWa(array $p): string
+    {
+        require_once __DIR__ . '/AkquiseAnsprechen.php';
+        require_once __DIR__ . '/PartnerDaten.php';
+        $d = PartnerDaten::fuer($p);
+        $nr = self::waNummer((string) ($d['whatsapp'] !== '' ? $d['whatsapp'] : $d['telefon']), (string) ($d['land'] !== '' ? $d['land'] : 'IT'));
+        return strlen($nr) >= 8 ? 'https://wa.me/' . $nr : AkquiseAnsprechen::waLink();
     }
 
     /** Eigener Schnellcheck zur Domain des Betriebs, falls es einen gibt. */

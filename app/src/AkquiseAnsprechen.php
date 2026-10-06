@@ -58,23 +58,46 @@ final class AkquiseAnsprechen
         return in_array(AkquiseGate::pruefen($f, $kanal)['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true);
     }
 
+    /** Branchen, bei denen die Frage nach „Aufträgen“ passt (Handwerk, Bau, Werkstatt). */
+    public const HANDWERK = ['handwerk', 'bau', 'werkstatt'];
+
+    /** Domain des Betriebs, sonst der Host aus der Adresse (ohne www). */
+    private static function domain(array $f): string
+    {
+        $d = trim((string) ($f['domain'] ?? ''));
+        if ($d === '') { $d = (string) (parse_url((preg_match('~^https?://~i', (string) ($f['url'] ?? '')) ? '' : 'https://') . trim((string) ($f['url'] ?? '')), PHP_URL_HOST) ?? ''); }
+        return (string) preg_replace('~^www\.~i', '', $d);
+    }
+
+    /** Uwes WhatsApp für die erste E-Mail (Einstellung „wa_anzeige“, sonst seine Nummer). */
+    public static function waLink(): string
+    {
+        $nr = (string) preg_replace('~\D~', '', AkquiseGate::einstellung('wa_anzeige', ''));
+        return 'https://wa.me/' . (strlen($nr) >= 8 ? $nr : '393801907017');
+    }
+
     /** Die Satzbausteine je Sprache. Anweisungen an Uwe stehen in [eckigen Klammern] und auf Deutsch. */
     private const W = [
         'it' => [
             'hallo' => 'Buongiorno', 'gruss' => 'Cordiali saluti',
-            'betreff_a' => '{firma}: l’analisi del vostro sito, come d’accordo', 'betreff_o' => '{firma}: la proposta per il vostro sito, come d’accordo',
-            'einstieg_a' => 'come d’accordo, le mando l’analisi del sito di {firma}:', 'einstieg_o' => 'come d’accordo, le scrivo due righe per {firma}.',
-            'einstieg_x' => 'come d’accordo, le mando due o tre spunti per il sito di {firma}.',
-            'gefunden' => 'Cosa abbiamo notato:',
-            'ohne_web' => 'Oggi chi cerca {branche} {in} su Google trova soprattutto chi ha un sito. Un sito tipico per {mz} parte da {preis}; il prezzo indicativo esatto lo vede in 90 secondi, senza impegno:',
-            'ohne_web_x' => 'Oggi chi cerca {branche} {in} su Google trova soprattutto chi ha un sito. Il prezzo indicativo per il suo sito lo vede in 90 secondi, senza impegno:',
-            'richt_web' => 'Il prezzo indicativo per un sito nuovo lo vede in 90 secondi, senza impegno:',
-            'bereich' => 'Nel suo spazio personale su Vecom Design trova tutto in un posto: analisi, prezzo indicativo e i prossimi passi.',
-            'fragen' => 'Per qualsiasi domanda risponda pure a questa e-mail{tel}.', 'tel' => ' o mi chiami al {telefon}',
+            'betreff' => 'Una domanda veloce per {firma}',
+            'zona' => 'in zona {stadt}', 'zona_x' => 'in zona',
+            'e_ohne' => 'cercavo un’attività {zona} e ho notato che online non avete un sito.',
+            'e_web' => 'cercavo un’attività {zona} e sono capitato sul vostro sito {domain}.',
+            'e_analyse' => 'L’ho guardato con calma: qui trova un’analisi gratuita di cosa funziona già e cosa si può migliorare: {analyse}',
+            'e_analyse_ohne' => 'Ho preparato per voi una breve panoramica gratuita: {analyse}',
+            'e_punkte' => 'Mi hanno colpito due cose:',
+            'frage_ohne_h' => 'Siete ancora attivi e prendete lavori, o rinunciate di proposito a un sito?',
+            'frage_ohne' => 'Siete ancora attivi e aperti ai clienti, o rinunciate di proposito a un sito?',
+            'frage_web' => 'Il sito lo seguite ancora voi, o se ne occupa già qualcuno?',
+            'wem_h' => 'agli artigiani come voi', 'wem' => 'alle attività come la vostra',
+            'wir' => 'Sono {inhaber} di {absender}. Togliamo proprio questo pensiero {wem} – senza che dobbiate trovare tempo o combattere con la tecnica. Ci dite in due parole cosa vi serve, al resto pensiamo noi.',
+            'link' => 'Come funziona lo vede qui in due minuti: {link}',
+            'wa_cta' => 'Oppure mi scriva semplicemente su WhatsApp: {wa}',
+            'wa_hallo' => 'Buongiorno, sono {inhaber} di {absender}.',
+            'wa_kurz' => 'Togliamo proprio questo pensiero {wem}: niente tempo perso, niente stress con la tecnica.',
+            'wa_link' => 'Come funziona: {link}',
             'stopp' => 'Se non desidera altri messaggi, risponda semplicemente «STOP».',
-            'wa_hallo' => 'Buongiorno, sono {inhaber} di {absender} – come d’accordo le scrivo qui.',
-            'wa_analyse' => 'Ecco l’analisi del sito di {firma}: {link}', 'wa_ohne' => 'Il prezzo indicativo per il sito di {firma} lo vede in 90 secondi: {link}',
-            'wa_punkt' => 'La cosa più importante: {punkt}',
             'wa_stopp' => 'Se non desidera più messaggi, risponda semplicemente «STOP».',
             'a_hallo' => 'Buongiorno, sono {inhaber} di {absender}, web designer qui in provincia di Agrigento. Parlo con il titolare di {firma}?',
             'a_problem2' => 'E ancora: {punkt}',
@@ -108,19 +131,24 @@ final class AkquiseAnsprechen
         ],
         'de' => [
             'hallo' => 'Guten Tag', 'gruss' => 'Viele Grüße',
-            'betreff_a' => '{firma}: die Analyse Ihrer Website, wie besprochen', 'betreff_o' => '{firma}: der Vorschlag für Ihre Website, wie besprochen',
-            'einstieg_a' => 'wie besprochen schicke ich Ihnen die Analyse der Website von {firma}:', 'einstieg_o' => 'wie besprochen ein paar Zeilen für {firma}.',
-            'einstieg_x' => 'wie besprochen schicke ich Ihnen zwei, drei Hinweise zur Website von {firma}.',
-            'gefunden' => 'Was uns aufgefallen ist:',
-            'ohne_web' => 'Wer heute {branche} {in} bei Google sucht, findet vor allem Betriebe mit Website. Eine typische Website für {mz} beginnt bei {preis}; Ihren genauen Richtpreis sehen Sie in 90 Sekunden, unverbindlich:',
-            'ohne_web_x' => 'Wer heute {branche} {in} bei Google sucht, findet vor allem Betriebe mit Website. Den Richtpreis für Ihre Website sehen Sie in 90 Sekunden, unverbindlich:',
-            'richt_web' => 'Den Richtpreis für eine neue Website sehen Sie in 90 Sekunden, unverbindlich:',
-            'bereich' => 'In Ihrem persönlichen Bereich bei Vecom Design finden Sie alles an einem Ort: Analyse, Richtpreis und die nächsten Schritte.',
-            'fragen' => 'Bei Fragen antworten Sie einfach auf diese Mail{tel}.', 'tel' => ' oder rufen Sie mich an: {telefon}',
+            'betreff' => 'Kurze Frage zu {firma}',
+            'zona' => 'in der Gegend von {stadt}', 'zona_x' => 'in der Region',
+            'e_ohne' => 'ich war auf der Suche nach einem Betrieb {zona} und mir ist aufgefallen, dass Sie online gar keine Webseite haben.',
+            'e_web' => 'ich war auf der Suche nach einem Betrieb {zona} und bin dabei auf Ihre Webseite {domain} gestoßen.',
+            'e_analyse' => 'Ich habe sie mir kurz genauer angesehen – hier eine kostenlose Analyse, was schon gut läuft und was besser ginge: {analyse}',
+            'e_analyse_ohne' => 'Dazu habe ich Ihnen eine kurze, kostenlose Übersicht zusammengestellt: {analyse}',
+            'e_punkte' => 'Zwei Dinge sind mir aufgefallen:',
+            'frage_ohne_h' => 'Sind Sie eigentlich noch aktiv und nehmen Aufträge an, oder verzichten Sie ganz bewusst auf eine Homepage?',
+            'frage_ohne' => 'Sind Sie eigentlich noch aktiv und für Ihre Kunden da, oder verzichten Sie ganz bewusst auf eine Homepage?',
+            'frage_web' => 'Kümmern Sie sich selbst noch um die Seite, oder ist da schon jemand dran?',
+            'wem_h' => 'Handwerksbetrieben wie Ihrem', 'wem' => 'Betrieben wie Ihrem',
+            'wir' => 'Ich bin {inhaber} von {absender}. Wir nehmen {wem} genau diese Arbeit ab – ohne dass Sie dafür Zeit freischaufeln oder sich mit Technik herumschlagen müssen. Sie sagen kurz, was Sie brauchen, den Rest übernehmen wir.',
+            'link' => 'Wie das abläuft, sehen Sie hier in zwei Minuten: {link}',
+            'wa_cta' => 'Oder schreiben Sie mir einfach unkompliziert per WhatsApp: {wa}',
+            'wa_hallo' => 'Guten Tag, hier ist {inhaber} von {absender}.',
+            'wa_kurz' => 'Wir nehmen {wem} genau diese Arbeit ab – ohne Zeitaufwand und ohne Technik-Stress.',
+            'wa_link' => 'Wie das abläuft: {link}',
             'stopp' => 'Wenn Sie keine weiteren Nachrichten möchten, antworten Sie einfach „STOPP“.',
-            'wa_hallo' => 'Guten Tag, hier ist {inhaber} von {absender} – wie besprochen schreibe ich Ihnen hier.',
-            'wa_analyse' => 'Hier ist die Analyse der Website von {firma}: {link}', 'wa_ohne' => 'Den Richtpreis für die Website von {firma} sehen Sie in 90 Sekunden: {link}',
-            'wa_punkt' => 'Das Wichtigste: {punkt}',
             'wa_stopp' => 'Wenn Sie keine Nachrichten mehr möchten, antworten Sie einfach „STOPP“.',
             'a_hallo' => 'Guten Tag, hier ist {inhaber} von {absender}, Webdesign. Spreche ich mit dem Inhaber von {firma}?',
             'a_problem2' => 'Außerdem: {punkt}',
@@ -154,19 +182,24 @@ final class AkquiseAnsprechen
         ],
         'en' => [
             'hallo' => 'Hello', 'gruss' => 'Kind regards',
-            'betreff_a' => '{firma}: your website analysis, as discussed', 'betreff_o' => '{firma}: the proposal for your website, as discussed',
-            'einstieg_a' => 'as discussed, here is the website analysis for {firma}:', 'einstieg_o' => 'as discussed, a few lines for {firma}.',
-            'einstieg_x' => 'as discussed, here are two or three pointers for the {firma} website.',
-            'gefunden' => 'What we noticed:',
-            'ohne_web' => 'People searching for {branche} {in} on Google mostly find businesses with a website. A typical website for {mz} starts at {preis}; you’ll see your exact guide price in 90 seconds, no obligation:',
-            'ohne_web_x' => 'People searching for {branche} {in} on Google mostly find businesses with a website. You’ll see the guide price for your website in 90 seconds, no obligation:',
-            'richt_web' => 'You’ll see the guide price for a new website in 90 seconds, no obligation:',
-            'bereich' => 'Your personal area at Vecom Design keeps everything in one place: analysis, guide price and next steps.',
-            'fragen' => 'If you have questions, just reply to this email{tel}.', 'tel' => ' or call me on {telefon}',
+            'betreff' => 'A quick question about {firma}',
+            'zona' => 'around {stadt}', 'zona_x' => 'in the area',
+            'e_ohne' => 'I was looking for a business {zona} and noticed that you don’t have a website at all.',
+            'e_web' => 'I was looking for a business {zona} and came across your website {domain}.',
+            'e_analyse' => 'I had a closer look: here is a free analysis of what already works and what could be better: {analyse}',
+            'e_analyse_ohne' => 'I put together a short, free overview for you: {analyse}',
+            'e_punkte' => 'Two things caught my eye:',
+            'frage_ohne_h' => 'Are you still active and taking on work, or have you deliberately decided against a website?',
+            'frage_ohne' => 'Are you still active and there for your customers, or have you deliberately decided against a website?',
+            'frage_web' => 'Do you still look after the site yourselves, or is someone already on it?',
+            'wem_h' => 'tradespeople like you', 'wem' => 'businesses like yours',
+            'wir' => 'I’m {inhaber} from {absender}. We take exactly this work off the hands of {wem} – without you having to find time or wrestle with technology. You tell us briefly what you need, we take care of the rest.',
+            'link' => 'You can see how it works here in two minutes: {link}',
+            'wa_cta' => 'Or simply message me on WhatsApp: {wa}',
+            'wa_hallo' => 'Hello, this is {inhaber} from {absender}.',
+            'wa_kurz' => 'We take exactly this work off the hands of {wem} – no time lost, no tech stress.',
+            'wa_link' => 'How it works: {link}',
             'stopp' => 'If you’d rather not receive further messages, just reply “STOP”.',
-            'wa_hallo' => 'Hello, this is {inhaber} from {absender} – as discussed, I’m writing to you here.',
-            'wa_analyse' => 'Here is the website analysis for {firma}: {link}', 'wa_ohne' => 'You’ll see the guide price for the {firma} website in 90 seconds: {link}',
-            'wa_punkt' => 'The most important point: {punkt}',
             'wa_stopp' => 'If you’d rather not get messages, just reply “STOP”.',
             'a_hallo' => 'Hello, this is {inhaber} from {absender}, web design. Am I speaking with the owner of {firma}?',
             'a_problem2' => 'Also: {punkt}',
@@ -249,10 +282,6 @@ final class AkquiseAnsprechen
         $in = $stadt !== '' ? BranchenStatistik::in(mb_convert_case(mb_strtolower($stadt), MB_CASE_TITLE), $sp) : '';
         $mz = BranchenStatistik::mehrzahl((string) ($f['branche'] ?? ''), $sp);
         $branche = $mz;   // „chi cerca bar e caffè a Favara“ statt „bar / caffè“
-        $preis = '';
-        if (!$hatWeb && isset(BranchenStatistik::TYPISCH[(string) ($f['branche'] ?? '')])) {
-            try { require_once __DIR__ . '/Baukasten.php'; $preis = Baukasten::geldText(BranchenStatistik::typischerPreis((string) $f['branche']), $sp); } catch (Throwable $e) { $preis = ''; }
-        }
         /* Die Punkte: nur geprüfte Befunde mit gepflegtem Satz (dieselben wie auf der Analyse-Seite). */
         $punkte = []; $wirkungen = []; $loesungen = [];
         foreach (AkquiseScore::topBefunde($befunde) as $b) {
@@ -262,30 +291,41 @@ final class AkquiseAnsprechen
             if (count($punkte) >= 2) { break; }
         }
         $r = ['{firma}' => $firma, '{inhaber}' => $abs['inhaber'], '{absender}' => $abs['firma'], '{branche}' => $branche, '{in}' => $in,
-              '{mz}' => $mz, '{preis}' => $preis, '{domain}' => (string) ($f['domain'] ?? ''), '{telefon}' => (string) $abs['telefon']];
+              '{mz}' => $mz, '{domain}' => self::domain($f), '{telefon}' => (string) $abs['telefon']];
         $t = static fn(string $k, array $mehr = []): string => trim((string) preg_replace(['~\s+([.,:;])~u', '~ {2,}~u'], ['$1', ' '], strtr($W[$k], $mehr + $r)));
         $anrede = trim((string) ($f['ansprechpartner'] ?? ''));
 
         /* ---- E-Mail ---- */
+        /* Erste E-Mail (06.10.2026, Uwe): keine erfundene Vorgeschichte („wie besprochen“), sondern die ehrliche
+           Beobachtung, eine Frage auf Augenhöhe, wer schreibt und was wir abnehmen, dann Link und WhatsApp.
+           Nie „Provision“, „Werbung“ oder „Verkauf“ (die Werkstatt hält solche Texte an). */
+        $handwerk = in_array((string) ($f['branche'] ?? ''), self::HANDWERK, true);
+        $r += ['{zona}' => $stadt !== '' ? strtr($W['zona'], ['{stadt}' => mb_convert_case(mb_strtolower($stadt), MB_CASE_TITLE)]) : $W['zona_x'],
+               '{wem}' => $W[$handwerk ? 'wem_h' : 'wem'], '{analyse}' => $analyse, '{link}' => $richt, '{wa}' => self::waLink()];
+        $t = static fn(string $k, array $mehr = []): string => trim((string) preg_replace(['~\s+([.,:;])~u', '~ {2,}~u'], ['$1', ' '], strtr($W[$k], $mehr + $r)));
         $z = [$W['hallo'] . ($anrede !== '' ? ' ' . $anrede : '') . ',', ''];
-        if ($analyse !== '') { $z[] = $t('einstieg_a'); $z[] = $analyse; }
-        elseif ($hatWeb) { $z[] = $t('einstieg_x'); }
-        else { $z[] = $t('einstieg_o'); }
-        if ($punkte) { $z[] = ''; $z[] = $W['gefunden']; foreach ($punkte as $p) { $z[] = '– ' . $p; } }
-        if (!$hatWeb) { $z[] = ''; $z[] = $t($preis !== '' ? 'ohne_web' : 'ohne_web_x'); $z[] = $richt; }
-        elseif ($analyse === '') { $z[] = ''; $z[] = $t('richt_web'); $z[] = $richt; }
-        $z[] = ''; $z[] = $W['bereich'];
-        $z[] = $t('fragen', ['{tel}' => $abs['telefon'] !== '' ? $t('tel') : '']);
+        if (!$hatWeb) {
+            $z[] = $t('e_ohne'); if ($analyse !== '') { $z[] = $t('e_analyse_ohne'); }
+            $z[] = ''; $z[] = $t($handwerk ? 'frage_ohne_h' : 'frage_ohne');
+        } else {
+            $z[] = $t('e_web');
+            if ($analyse !== '') { $z[] = $t('e_analyse'); }
+            elseif ($punkte) { $z[] = ''; $z[] = $W['e_punkte']; foreach ($punkte as $p) { $z[] = '– ' . $p; } }
+            $z[] = ''; $z[] = $t('frage_web');
+        }
+        $z[] = ''; $z[] = $t('wir');
+        $z[] = ''; $z[] = $t('link'); $z[] = $t('wa_cta');
         $z[] = ''; $z[] = $W['gruss']; $z[] = $abs['inhaber']; $z[] = $abs['firma'] . ' · ' . $abs['ort']; $z[] = $basis;
         $z[] = ''; $z[] = $W['stopp'];
-        $betreff = $t($analyse !== '' || $hatWeb ? 'betreff_a' : 'betreff_o');
+        $betreff = $t('betreff');
         $mailText = implode("\n", array_values(array_filter($z, static fn($x) => $x !== null)));
         $mail = Akquise::normEmail((string) ($f['email'] ?? ''));
 
-        /* ---- WhatsApp ---- */
-        $wz = [$t('wa_hallo'), ''];
-        $wz[] = $analyse !== '' ? $t('wa_analyse', ['{link}' => $analyse]) : $t('wa_ohne', ['{link}' => $richt]);
-        if ($punkte) { $wz[] = ''; $wz[] = $t('wa_punkt', ['{punkt}' => $punkte[0]]); }
+        /* ---- WhatsApp: dieselbe Haltung, kürzer ---- */
+        $gross = static fn(string $x): string => mb_strtoupper(mb_substr($x, 0, 1)) . mb_substr($x, 1);
+        $wz = [$t('wa_hallo') . ' ' . $gross($t($hatWeb ? 'e_web' : 'e_ohne')) . ' ' . $t($hatWeb ? 'frage_web' : ($handwerk ? 'frage_ohne_h' : 'frage_ohne')), ''];
+        $wz[] = $t('wa_kurz');
+        $wz[] = $t('wa_link', ['{link}' => $analyse !== '' ? $analyse : $richt]);
         $wz[] = ''; $wz[] = $W['wa_stopp'];
         $waText = implode("\n", $wz);
         $waNr = (string) preg_replace('~\D~', '', (string) ($f['whatsapp'] ?? ''));
