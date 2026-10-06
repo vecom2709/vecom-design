@@ -171,6 +171,17 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
 <?php /* Partner-Tracking (30.09.2026): die letzten 30 Tage in einer Zeile, Einzelheiten im eigenen Bereich */
   require_once dirname(__DIR__) . '/src/Spur.php';
   $trZ = Spur::zeitraum('30'); $trK = Spur::kennzahlen($trZ[0], $trZ[1], ['partner' => (int) $p['id']]); ?>
+<?php /* Einführung (06.10.2026, Uwe: „Sie sehen je Partner, wie weit er ist“): Touren und „Deine ersten 7 Tage“. */
+  require_once dirname(__DIR__) . '/src/PartnerTour.php'; $peE = PartnerTour::fuerAdmin($p);
+  $peNamen = ['haupt' => 'Einführung', 'kunden' => 'Kunden', 'marketing' => 'Marketing', 'ergebnisse' => 'Ergebnisse', 'shop' => 'Shop', 'support' => 'Hilfe', 'finden' => 'Kunden finden']; ?>
+<div class="block" id="einstieg">
+  <h2 style="font-size:15px;margin:0 0 8px">Einstieg <span class="marke2<?= $peE['checkliste']['n'] >= count($peE['checkliste']['punkte']) ? ' gut' : '' ?>" style="margin-left:6px"><?= (int) $peE['checkliste']['n'] ?> von <?= count($peE['checkliste']['punkte']) ?></span></h2>
+  <ul style="list-style:none;margin:0 0 10px;padding:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px">
+    <?php foreach ($peE['checkliste']['punkte'] as $pt): ?><li style="color:<?= $pt['erledigt'] ? 'var(--text)' : 'var(--leise)' ?>"><?= $pt['erledigt'] ? '✓' : '○' ?> <?= Fmt::h($pt['titel']) ?></li><?php endforeach; ?>
+  </ul>
+  <p style="margin:0;font-size:12.5px;color:var(--leise)">Touren: <?= Fmt::h(implode(' · ', array_map(static fn($k, $w) => $w . ' ' . (['fertig' => '✓ gesehen', 'uebersprungen' => '↷ übersprungen'][$peE['touren'][$k] ?? ''] ?? '— offen'), array_keys($peNamen), $peNamen))) ?></p>
+</div>
+
 <div class="block" id="tracking">
   <h2 style="font-size:15px;margin:0 0 8px">Tracking · 30 Tage <a class="mehr" href="<?= Fmt::h(url('tracking') . '?partner=' . (int) $p['id']) ?>#partner" style="margin-left:auto;font-size:12.5px;font-weight:400">Partner-Tracking öffnen →</a></h2>
   <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px">

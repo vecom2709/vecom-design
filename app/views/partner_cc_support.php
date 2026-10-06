@@ -67,7 +67,7 @@ $suStand = static fn(string $st): string => '<span class="cc-stufe tk-' . htmlsp
     <p class="cc-lead"><?= $h($su($SU['satz'])) ?></p>
   </div>
   <?php if ($suM !== ''): ?><div class="hinweis <?= $suGut ? 'gut' : 'schlecht' ?>" role="<?= $suGut ? 'status' : 'alert' ?>" style="margin:0 0 14px"><?= $h($su($SU['m'][$suM] ?? $SU['m']['text'])) ?></div><?php endif; ?>
-  <section class="cc-auf z2 cc-hilfe" aria-labelledby="su-such-t">
+  <section class="cc-auf z2 cc-hilfe" aria-labelledby="su-such-t" data-tour="su-suche">
     <h2 class="cc-titel" id="su-such-t"><?= $h($su($SU['suche'])) ?></h2>
     <form method="get" action="/partner.php" class="cc-hilfe-suche" role="search">
       <?php foreach (['t' => (string) $p['token'], 'cc' => '1', 'support' => '1'] as $suK => $suV): ?><input type="hidden" name="<?= $h($suK) ?>" value="<?= $h($suV) ?>"><?php endforeach; ?>
@@ -87,7 +87,7 @@ $suStand = static fn(string $st): string => '<span class="cc-stufe tk-' . htmlsp
     <?php endif; ?>
   </section>
 
-  <section class="cc-karte cc-auf z2" aria-labelledby="su-neu-t" style="margin-top:18px">
+  <section class="cc-karte cc-auf z2" aria-labelledby="su-neu-t" style="margin-top:18px" data-tour="su-neu">
     <h2 class="cc-titel" id="su-neu-t"><?= $h($su($SU['neu'])) ?></h2>
     <form method="post" action="<?= $h($selbst(['cc' => 1, 'support' => 1])) ?>">
       <input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>"><input type="hidden" name="tat" value="ticket_neu">
@@ -108,7 +108,7 @@ $suStand = static fn(string $st): string => '<span class="cc-stufe tk-' . htmlsp
     </form>
   </section>
 
-  <section class="cc-auf z3" aria-labelledby="su-liste-t" style="margin-top:22px">
+  <section class="cc-auf z3" aria-labelledby="su-liste-t" style="margin-top:22px" data-tour="su-liste">
     <h2 class="cc-titel" id="su-liste-t"><?= $h($su($SU['liste'])) ?></h2>
     <?php if (!$suListe): ?><p class="cc-leer"><?= $h($su($SU['leer'])) ?></p><?php endif; ?>
     <ul class="cc-best">

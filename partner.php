@@ -194,6 +194,16 @@ if ($p && $adminBlick === null && !PartnerSchutz::freigeschaltet($p)) {
 }
 if ($p) { PartnerSchutz::protokoll((int) $p['id'], 'seite'); }
 
+/* ---------- Einführung (06.10.2026): Tour fertig/übersprungen und Ereignisse der Checkliste ----------
+   Vom Skript per sendBeacon, mit demselben CSRF-Schlüssel. In der Admin-Ansicht wird nichts gespeichert. */
+if ($p && $_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['tat'] ?? '', ['tour_stand', 'tour_ev'], true)) {
+    if ($adminBlick === null && hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
+        require_once __DIR__ . '/app/src/PartnerTour.php';
+        PartnerTour::melden((int) $p['id'], (string) $_POST['tat'], $_POST);
+    }
+    http_response_code(204); exit;
+}
+
 /* ---------- Command Center (Etappe 1b, 05.10.2026, Uwe: „eigene schnelle Seite“) ----------
    Hinter Gerät und Sperre, vor allem anderen: Die Seite lädt nur, was sie zeigt
    (PartnerCommand), nicht die rund 40 Blöcke des Partnerbereichs. Gespeichert
@@ -1302,6 +1312,7 @@ if ($p && isset($_GET['karte'])) {
 <?php endif; ?>
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
+<?php if ($p): ?><link rel="stylesheet" href="/assets/css/partner-tour.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/partner-tour.css') ?>"><?php endif; ?>
 <style>
   .zum-cc{display:inline-block;margin-top:14px;font-size:13.5px;font-weight:600;color:var(--gold,#c9a24b);text-decoration:none;padding:6px 0}
   .zum-cc:hover,.zum-cc:focus-visible{text-decoration:underline}
@@ -2210,7 +2221,7 @@ if ($p && isset($_GET['karte'])) {
     <?php endif; ?>
   </div>
 
-  <div class="block pt" id="melden" data-reiter="finden">
+  <div class="block pt" id="melden" data-reiter="finden" data-tour="fi-melden">
     <h2><?= $h($T('m_titel')) ?></h2>
     <?php if (($_GET['m'] ?? '') === 'm_danke'): ?><div class="hinweis gut"><?= $h($T('m_danke')) ?></div><?php endif; ?>
     <?php if (in_array($meldung, ['m_einverstanden', 'm_genug', 'angaben'], true)): ?><div class="hinweis schlecht"><?= $h($T($meldung)) ?></div><?php endif; ?>
@@ -2296,7 +2307,7 @@ if ($p && isset($_GET['karte'])) {
 
   <?php require __DIR__ . '/app/views/partner_automatik.php'; ?>
 
-  <div class="block pt" id="app" data-reiter="profil">
+  <div class="block pt" id="app" data-reiter="profil" data-tour="app">
     <h2><?= $h($T('app_titel')) ?></h2>
     <p class="klein" style="margin-top:0"><?= $h($T('app_text')) ?></p>
     <div class="knoepfe">
@@ -2403,6 +2414,11 @@ if ($p && isset($_GET['karte'])) {
   });
 })();
 </script>
+<?php if ($p): /* Einführung (06.10.2026): „?“ und Mini-Tour „Kunden finden“ auch im alten Bereich. */
+  require_once __DIR__ . '/app/src/PartnerTour.php';
+  echo PartnerTour::json(PartnerTour::daten($p, 'voll', $sprache, PartnerTour::urls($selbst, !empty($wmKatalog)), $selbst(), ($adminBlick ?? null) !== null)); ?>
+<script src="/assets/js/partner-tour.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-tour.js') ?>" defer></script>
+<?php endif; ?>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>
 </html>

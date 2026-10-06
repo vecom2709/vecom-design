@@ -23,6 +23,8 @@ if ($ccMeldung === 'pf_fehler' && is_array($ccPost ?? null)) {   // Eingaben beh
              'ziel' => (string) ($ccPost['ziel'] ?? ''), 'ort' => (string) ($ccPost['ort'] ?? ''), 'fertig' => false];
 }
 $ccSeite ??= 'start';
+require_once dirname(__DIR__) . '/src/PartnerTour.php';
+$tcUrls = PartnerTour::urls($selbst, !empty($ccMc));   // Einführung: Adressen der Bereiche für Tour und „Zeig mir, wo“
 $ccKundenSeite = in_array($ccSeite, ['kunden', 'lead', 'mail'], true);   // E-MAIL gehört zu KUNDEN (Phase 7a)
 $ccMarketingSeite = in_array($ccSeite, ['marketing', 'kampagne', 'neu', 'qr'], true);   // Kampagnen und QR gehören zu MARKETING (Phase 3)
 $ccErgebnisSeite = $ccSeite === 'ergebnisse';   // ERGEBNISSE im Command Center (Phase 5)
@@ -84,6 +86,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/kunde.css') ?>">
 <link rel="stylesheet" href="/assets/css/partner-cc.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/partner-cc.css') ?>">
+<link rel="stylesheet" href="/assets/css/partner-tour.css?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/css/partner-tour.css') ?>">
 </head>
 <body class="cc" data-cc-voll="<?= $h($selbst()) ?>">
 <?php if ($ccSeite === 'start'): ?>
@@ -100,6 +103,8 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <img src="/assets/img/vecom-v.svg" alt="" width="42" height="34">
       <span><b>Vecom</b><small><?= $h($c($C['titel'])) ?></small></span>
     </a>
+    <?php /* Einführung (06.10.2026): das „?“ — partner-tour.js hängt Satz und Tour daran. */ ?>
+    <button class="tour-hilfe-knopf" type="button" data-tour="hilfe">?</button>
   </header>
   <nav class="cc-leiste" aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['aria'], $sprache)) ?>">
     <?php foreach ($ccLeiste as $lk => [$svg, $wort]): ?>
@@ -107,12 +112,12 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <a href="<?= $h(match ($lk) { 'cc' => $selbst(['cc' => 1]), 'finden' => $selbst(['cc' => 1, 'kunden' => 1]), 'werben' => $selbst(['cc' => 1, 'marketing' => 1]),
                  'geld' => $selbst(['cc' => 1, 'ergebnisse' => 1]),
                  'werbemittel' => $selbst(['cc' => 1, 'shop' => 1]),
-                 'academy' => $start(['ak' => '1']), default => $selbst() . '#r-' . $lk }) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
+                 'academy' => $start(['ak' => '1']), default => $selbst() . '#r-' . $lk }) ?>" data-tour="nav-<?= $h($lk) ?>"<?= $ccHier ? ' aria-current="page"' : '' ?><?= in_array($lk, $ccMehr, true) ? ' class="cc-gross"' : '' ?>>
         <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
     <?php endforeach; ?>
     <?php /* MEHR am Handy: ohne Skript, als aufklappbare Liste über der Leiste. */ ?>
     <details class="cc-mehr">
-      <summary aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache)) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span><?= $h(Texte::h(Texte::PARTNER_REITER['mehr'], $sprache)) ?></span></summary>
+      <summary aria-label="<?= $h(Texte::h(Texte::PARTNER_REITER['mehr_aria'], $sprache)) ?>" data-tour="nav-mehr"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><circle cx="5.5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="18.5" cy="12" r="1.6"/></svg><span><?= $h(Texte::h(Texte::PARTNER_REITER['mehr'], $sprache)) ?></span></summary>
       <div class="cc-mehr__liste">
         <?php foreach ($ccMehr as $lk): if (!isset($ccLeiste[$lk])) { continue; } [$svg, $wort] = $ccLeiste[$lk]; ?>
           <a href="<?= $h(match ($lk) { 'academy' => $start(['ak' => '1']), 'werbemittel' => $selbst(['cc' => 1, 'shop' => 1]), default => $selbst() . '#r-' . $lk }) ?>"><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><?= $svg ?></svg><span><?= $h(Texte::h($wort, $sprache)) ?></span></a>
@@ -132,6 +137,22 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 
     <?php if ($ccMeldung === 'pf_gut'): ?><div class="hinweis gut cc-auf" role="status" style="margin:0 0 16px"><?= $h($c($C['pf_gut'])) ?></div><?php endif; ?>
 
+    <?php /* Einführung (06.10.2026): „Deine ersten 7 Tage“ — aus echten Daten, verschwindet, wenn alles erledigt ist. */
+      $tcL = PartnerTour::checkliste($p, $sprache); $tcT = static fn(string $k): string => Texte::h(PartnerTour::TEXTE[$k], $sprache); ?>
+    <?php if ($tcL['n'] < count($tcL['punkte'])): ?>
+    <details class="tour-cl cc-auf" data-tour="checkliste" open>
+      <summary><h2><?= $h($tcT('cl_titel')) ?></h2>
+        <span class="tour-cl-balken" aria-hidden="true"><i style="width:<?= (int) round(100 * $tcL['n'] / max(1, count($tcL['punkte']))) ?>%"></i></span>
+        <span class="tour-cl-stand"><?= $h(strtr($tcT('cl_stand'), ['{n}' => (string) $tcL['n']])) ?></span></summary>
+      <ol>
+        <?php foreach ($tcL['punkte'] as $pt): ?>
+          <li class="<?= $pt['erledigt'] ? 'ja' : '' ?>"><span><i class="haken" aria-hidden="true"><?= $pt['erledigt'] ? '✓' : '' ?></i><?= $h($pt['titel']) ?><b class="sr-nur"><?= $pt['erledigt'] ? ' ✓' : '' ?></b></span>
+            <?php if (!$pt['erledigt']): ?><a href="<?= $h(PartnerTour::zeigUrl($tcUrls, $pt['tour'], $pt['ab'])) ?>" data-tour-zeig="<?= $h($pt['tour']) ?>" data-tour-ab="<?= $h($pt['ab']) ?>"><?= $h($tcT('cl_zeig')) ?> →</a><?php endif; ?></li>
+        <?php endforeach; ?>
+      </ol>
+    </details>
+    <?php endif; ?>
+
     <?php /* Neu von Vecom (Phase 7b-2): Meldungen mit Zielgruppe, bis der Partner sie ausblendet oder sie ablaufen. */
       require_once dirname(__DIR__) . '/src/PartnerNews.php';
       $ccNews = (static function () use ($p): array { try { return PartnerNews::fuerPartner($p, 2); } catch (Throwable $e) { return []; } })(); ?>
@@ -148,7 +169,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       </section>
     <?php endforeach; ?>
 
-    <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>">
+    <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>" data-tour="zahlen">
       <?php foreach ($ccKacheln as $kk => [$wert, $anker, $zusatz]):
         $txt = $kk === 'provision' ? Fmt::geld($wert) : $ccZahl($wert); ?>
         <a class="cc-zahl<?= $kk === 'provision' && $wert > 0 ? ' gold' : '' ?><?= $wert === 0 ? ' null' : '' ?>" href="<?= $h($ccBereich($anker)) ?>" data-cc-zahl="<?= $h($kk) ?>">
@@ -159,7 +180,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
       <?php endforeach; ?>
     </section>
 
-    <section class="cc-wichtig cc-auf z2" aria-labelledby="cc-wichtig-t">
+    <section class="cc-wichtig cc-auf z2" aria-labelledby="cc-wichtig-t" data-tour="wichtig">
       <h2 class="cc-titel" id="cc-wichtig-t"><?= $h($c($C['wichtig_titel'])) ?></h2>
       <?php if (!$ccWichtig): ?>
         <p class="cc-ruhig"><i class="cc-punkt gruen" aria-hidden="true"></i><?= $h($c($C['wichtig_leer'])) ?></p>
@@ -176,7 +197,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
     </section>
 
     <?php /* Der große Knopf (Punkt 4): Erst auf Tippen zeigt er die eine beste nächste Aktion — ohne Skript, als <details>. */ ?>
-    <details class="cc-jetzt cc-auf z3" id="jetzt">
+    <details class="cc-jetzt cc-auf z3" id="jetzt" data-tour="jetzt">
       <summary class="cc-jetzt__knopf"><span><?= $h($c($C['jetzt'])) ?></span><svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 9l6 6 6-6"/></svg></summary>
       <section class="cc-heute" aria-labelledby="cc-heute-t">
         <?php if ($ccE['wenig']): ?>
@@ -256,7 +277,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
         <?php endif; ?>
       </section>
 
-      <section class="cc-breit cc-karte cc-profil cc-auf z4" id="profil" aria-labelledby="cc-profil-t">
+      <section class="cc-breit cc-karte cc-profil cc-auf z4" id="profil" aria-labelledby="cc-profil-t" data-tour="profil">
         <h2 id="cc-profil-t"><?= $h($c($C['pf_titel'])) ?></h2>
         <?php if ($ccPf['fertig'] && $ccMeldung !== 'pf_fehler' && !isset($_GET['profil'])): ?>
           <p class="cc-kurz">
@@ -326,5 +347,10 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
 </div>
 <?php require_once dirname(__DIR__) . '/src/Fuss.php'; echo Fuss::html($sprache); ?>
 <script src="/assets/js/partner-cc.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-cc.js') ?>" defer></script>
+<?php /* Einführung (06.10.2026): Daten für partner-tour.js — in der Admin-Ansicht startet nichts von selbst, nichts wird gespeichert. */
+  $tcSeite = match ($ccSeite) { 'start' => 'start', 'kunden', 'lead', 'mail' => 'kunden', 'ergebnisse' => 'ergebnisse', 'shop' => 'shop', 'support' => 'support',
+      'marketing' => (($_GET['teil'] ?? '') === 'kampagnen' ? 'marketing_link' : 'marketing'), default => 'marketing_x' };
+  echo PartnerTour::json(PartnerTour::daten($p, $tcSeite, $sprache, $tcUrls, $selbst(), ($adminBlick ?? null) !== null)); ?>
+<script src="/assets/js/partner-tour.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-tour.js') ?>" defer></script>
 </body>
 </html>

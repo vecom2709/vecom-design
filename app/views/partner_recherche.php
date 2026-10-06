@@ -49,7 +49,7 @@ $kontaktFeld = static function (array $f) use ($h, $p, $sprache, $selbst, $AK, $
         $mailLink = 'mailto:' . rawurlencode(class_exists('Akquise') ? (Akquise::normEmail((string) $f['email']) ?? (string) $f['email']) : (string) $f['email']) . '?subject=' . rawurlencode($t['betreff']) . '&body=' . rawurlencode($t['mail']);
         $o .= '<div class="ak-text" data-ak-text="' . $id . '-' . $l . '"' . ($l === $spB ? '' : ' hidden') . '>'
             . '<textarea id="ak_' . $id . '_' . $l . '_wa" readonly rows="6">' . $h($t['wa']) . '</textarea>'
-            . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '" data-angeschrieben="' . $id . '">' . $h($AK('wa')) . '</a>'
+            . '<div class="ck-knoepfe"><a class="knopf klein-knopf haupt" target="_blank" rel="noopener" href="' . $h($waLink) . '" data-angeschrieben="' . $id . '" data-tour="fi-nachricht">' . $h($AK('wa')) . '</a>'
             . '<button class="knopf klein-knopf" type="button" data-kopie="ak_' . $id . '_' . $l . '_wa" data-angeschrieben="' . $id . '">' . $h($AK('kopieren')) . '</button></div>'
             . '<textarea id="ak_' . $id . '_' . $l . '_mail" readonly rows="7" style="margin-top:10px">' . $h($t['betreff'] . "\n\n" . $t['mail']) . '</textarea>'
             . '<div class="ck-knoepfe"><a class="knopf klein-knopf" href="' . $h($mailLink) . '" data-angeschrieben="' . $id . '">' . $h($AK('mail_neu')) . '</a>'
@@ -104,7 +104,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
     } else {
         $o .= '<form method="post" action="' . $h($selbst(['fi_ort' => $fiOrt, 'fi_branche' => $fiBranche, 'fi_nz' => 1])) . '#recherche">'
             . '<input type="hidden" name="_csrf" value="' . $h($_SESSION['csrf']) . '"><input type="hidden" name="tat" value="fi_reserv">'
-            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit">' . $h($T('fi_reserv')) . '</button></form>';
+            . '<input type="hidden" name="firma" value="' . (int) $f['id'] . '"><button class="knopf klein-knopf" type="submit" data-tour="fi-reserv">' . $h($T('fi_reserv')) . '</button></form>';
     }
     $o .= '</div>';
     if ($meine) { $o .= $akJetzt(Academy::lageFirma((int) $p['id'], (int) $f['id'])); }
@@ -332,7 +332,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
               <?php if (!$af['meine']): ?>
                 <form method="post" action="<?= $h($selbst()) ?>#heute" style="display:inline"><input type="hidden" name="_csrf" value="<?= $h($_SESSION['csrf']) ?>">
                   <input type="hidden" name="tat" value="fi_reserv"><input type="hidden" name="firma" value="<?= (int) $af['id'] ?>">
-                  <button class="knopf klein-knopf" type="submit"><?= $h($T('fi_reserv')) ?></button></form>
+                  <button class="knopf klein-knopf" type="submit" data-tour="fi-reserv"><?= $h($T('fi_reserv')) ?></button></form>
               <?php else: ?><span class="klein" style="margin:0"><?= $h($T('ap_reserviert')) ?></span><?php endif; ?>
               <a class="knopf klein-knopf" download href="<?= $h($selbst(['fl' => $afFl, 'f' => 'pdf'])) ?>"><?= $h(strtr($T('ap_flyer'), ['{name}' => PartnerFlyer::name($afFl, $sprache)])) ?></a>
               <a class="knopf klein-knopf" target="_blank" rel="noopener" href="<?= $h($afL['route']) ?>"><?= $h($AK('route')) ?></a>
@@ -408,7 +408,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   <h3 class="md-h" style="margin-top:24px"><?= $h($T('fi_titel')) ?></h3>
   <p class="klein" style="margin-top:0"><?= $h($T('fi_text')) ?></p>
   <?php if ($fiMeldung): ?><div class="hinweis schlecht" role="alert"><?= $h($T($fiMeldung)) ?></div><?php endif; ?>
-  <form method="get" action="/partner.php#recherche" data-warten="<?= $h($T('fi_laeuft')) ?>">
+  <form method="get" action="/partner.php#recherche" data-warten="<?= $h($T('fi_laeuft')) ?>" data-tour="fi-suche">
     <input type="hidden" name="t" value="<?= $h((string) $p['token']) ?>">
     <div class="reihe">
       <div><label for="fi_ort"><?= $h($T('fi_ort')) ?></label><input id="fi_ort" type="text" name="fi_ort" maxlength="80" required value="<?= $h($fiOrt) ?>" autocomplete="address-level2"></div>
@@ -464,7 +464,7 @@ $firmaZeile = static function (array $f, bool $meine) use ($h, $T, $selbst, $dat
   </details>
 
   <?php if ($fiMeine): ?>
-    <details class="klapp" data-klapp="fi_meine" style="margin-top:16px"<?= count($fiMeine) <= 3 ? ' open' : '' ?>>
+    <details class="klapp" data-klapp="fi_meine" style="margin-top:16px"<?= count($fiMeine) <= 3 ? ' open' : '' ?> data-tour="fi-meine">
     <summary><span class="md-l"><?= $h($T('fi_meine')) ?></span><span class="klapp__zahl"><?= count($fiMeine) ?></span></summary>
     <ul class="firmen"><?php foreach ($fiMeine as $f) { echo $firmaZeile($f, true); } ?></ul>
     </details>

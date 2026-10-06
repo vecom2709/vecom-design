@@ -32,7 +32,7 @@ $shM = (string) ($_GET['wm'] ?? '');
     <p class="cc-leer"><?= $h($sh($SH['leer'])) ?></p>
   <?php endif; ?>
   <?php foreach ($shB as $shX => $shL): if (!$shL) { continue; } ?>
-    <section class="cc-auf z2" aria-labelledby="sh-<?= $h($shX) ?>" style="margin-top:20px">
+    <section class="cc-auf z2" aria-labelledby="sh-<?= $h($shX) ?>" style="margin-top:20px" data-tour="sh-produkte">
       <h2 class="cc-titel" id="sh-<?= $h($shX) ?>"><?= $h(Texte::h(Texte::MARKETINGCENTER['b'][$shX] ?? ['it' => $shX], $sprache)) ?></h2>
       <ul class="cc-shop">
         <?php foreach ($shL as $pr): $shDruck = $shSelbst[(string) $pr['vorlage']] ?? null; ?>
@@ -55,7 +55,7 @@ $shM = (string) ($_GET['wm'] ?? '');
     <nav class="cc-schnell cc-auf z3" style="margin-top:14px"><a href="<?= $h($selbst() . '#werbemittel') ?>"><?= $h($sh($SH['alle'])) ?> →</a></nav>
   <?php endif; ?>
 
-  <section class="cc-auf z3" id="bestellungen" aria-labelledby="sh-best-t" style="margin-top:26px">
+  <section class="cc-auf z3" id="bestellungen" aria-labelledby="sh-best-t" style="margin-top:26px" data-tour="sh-bestellungen">
     <h2 class="cc-titel" id="sh-best-t"><?= $h($sh($SH['best'])) ?></h2>
     <?php if (in_array($shM, ['angekommen', 'problem', 'problem_grund', 'problem_foto'], true)): ?>
       <div class="hinweis <?= in_array($shM, ['angekommen', 'problem'], true) ? 'gut' : 'schlecht' ?>" role="<?= in_array($shM, ['angekommen', 'problem'], true) ? 'status' : 'alert' ?>" style="margin:0 0 14px"><?= $h($W('m_' . $shM)) ?></div>

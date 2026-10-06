@@ -26727,6 +26727,54 @@ pruefe('Später beim Kunden: die Kundenakte zeigt die Dokumente des Betriebs; Pa
 foreach (AkquiseDokument::liste($dF, false) as $dR) { @unlink(Ablage::ordner() . '/' . $dR['stored_name']); }
 Db::run('DELETE FROM akq_dokumente WHERE firma_id = ?', [$dF]); Db::run('DELETE FROM akq_protokoll WHERE firma_id = ?', [$dF]); Db::run('DELETE FROM akq_firmen WHERE id = ?', [$dF]);
 @unlink($dTmp); @unlink($dBoese);
+
+/* Einführung für Partner: Tour, Mini-Touren, Checkliste „Deine ersten 7 Tage“, „?“ */
+abschnitt('Partner: Einführung (Tour, Checkliste, Hilfe)');
+require_once $wurzel . '/src/PartnerTour.php';
+$tP = Partner::anlegen(['name' => 'Beispiel Partner Einführung', 'email' => 'einfuehrung@partner.example', 'status' => 'aktiv']);
+$tPa = (array) Partner::laden($tP);
+$tUrls = ['start' => '/partner.php?t=x&cc=1', 'marketing_link' => '/partner.php?t=x&cc=1&marketing=1&teil=kampagnen#kurzlink', 'voll' => '/partner.php?t=x#recherche'];
+$tGet = $_GET; $_GET = [];
+$tD0 = PartnerTour::daten($tPa, 'start', 'de', $tUrls, '/partner.php?t=x', false);
+$tCl0 = PartnerTour::checkliste($tPa, 'de');
+$tM1 = PartnerTour::melden($tP, 'tour_stand', ['tour' => 'haupt', 'status' => 'fertig']);
+$tM2 = PartnerTour::melden($tP, 'tour_stand', ['tour' => 'haupt', 'status' => 'uebersprungen']);
+$tM3 = PartnerTour::melden($tP, 'tour_stand', ['tour' => 'gibtsnicht', 'status' => 'fertig']);
+$tM4 = PartnerTour::melden($tP, 'tour_ev', ['ev' => 'link_kopiert']);
+$tM5 = PartnerTour::melden($tP, 'tour_ev', ['ev' => 'boese']);
+$tD1 = PartnerTour::daten($tPa, 'start', 'de', $tUrls, '/partner.php?t=x', false);
+$tDk = PartnerTour::daten($tPa, 'kunden', 'it', $tUrls, '/partner.php?t=x', false);
+$tCl1 = PartnerTour::checkliste($tPa, 'de');
+$_GET = ['tour' => 'marketing', 'ab' => 'link'];
+$tDs = PartnerTour::daten($tPa, 'marketing_link', 'en', $tUrls, '/partner.php?t=x', false);
+$_GET = [];
+$tDa = PartnerTour::daten($tPa, 'start', 'de', $tUrls, '/partner.php?t=x', true);
+$_GET = $tGet;
+pruefe('Einführung: frischer Partner bekommt die Tour automatisch, danach nicht mehr; „fertig“ bleibt fertig; nur bekannte Touren und Ereignisse; Bereich startet seine Mini-Tour; ?tour=…&ab=… startet gezielt; Admin-Ansicht startet und speichert nichts',
+    $tD0['auto'] === 'haupt' && $tM1 && $tM2 && !$tM3 && $tM4 && !$tM5 && $tD1['auto'] === null && $tDk['auto'] === 'kunden' && $tDk['texte']['weiter'] === 'Avanti'
+    && $tDs['start'] === ['tour' => 'marketing', 'ab' => 'link'] && $tDs['auto'] === null && $tDa['auto'] === null && $tDa['melden'] === null && $tDa['csrf'] === ''
+    && PartnerTour::stand($tP)['tour:haupt'] === 'fertig'
+    && !$tCl0['punkte'][0]['erledigt'] && $tCl1['punkte'][0]['erledigt'] && $tCl1['n'] === $tCl0['n'] + 1 && count($tCl1['punkte']) === 7,
+    json_encode([$tD0['auto'], $tM1, $tM2, $tM3, $tM4, $tM5, $tD1['auto'], $tDk['auto'], $tDs['start'], $tDa['auto'], $tCl0['n'], $tCl1['n']]));
+/* Jedes Ziel einer Tour muss es in den Seiten geben — sonst zeigt die Führung ins Leere. */
+$tQuellen = (string) file_get_contents(dirname($wurzel) . '/partner.php');
+foreach (glob($wurzel . '/views/partner_*.php') ?: [] as $tV) { $tQuellen .= (string) file_get_contents($tV); }
+$tFehlt = []; $tSprache = [];
+foreach (PartnerTour::TOUREN as $tK => $tS) {
+    foreach ($tS as $tX) {
+        foreach ($tX['ziel'] as $tZ) { if (!str_contains($tQuellen, 'data-tour="' . $tZ . '"') && !str_contains($tQuellen, 'data-tour="nav-<?= $h($lk) ?>"') && !str_starts_with($tZ, 'nav-')) { $tFehlt[] = $tK . ':' . $tZ; } }
+        foreach (['titel', 'text'] as $tF) { foreach (['it', 'de', 'en'] as $tL) { if (trim((string) ($tX[$tF][$tL] ?? '')) === '') { $tSprache[] = $tK . ':' . $tX['k'] . ':' . $tF . ':' . $tL; } } }
+    }
+}
+$tJson = PartnerTour::json(['x' => '</script><script>alert(1)</script>']);
+$tZeig = PartnerTour::zeigUrl($tUrls, 'marketing', 'link');
+pruefe('Einführung: jedes Tour-Ziel steht als data-tour in den Seiten, jeder Schritt dreisprachig; die Daten sind als JSON nicht ausführbar; „Zeig mir, wo“ führt mit Tour und Anker auf die richtige Seite; Meldung nur mit CSRF und nie in der Admin-Ansicht',
+    $tFehlt === [] && $tSprache === [] && !str_contains(substr($tJson, 40), '</script><script>') && str_contains($tJson, 'type="application/json"')
+    && $tZeig === '/partner.php?t=x&cc=1&marketing=1&teil=kampagnen&tour=marketing&ab=link#kurzlink'
+    && str_contains($tQuellen, "in_array(\$_POST['tat'] ?? '', ['tour_stand', 'tour_ev'], true)") && str_contains($tQuellen, "if (\$adminBlick === null && hash_equals((string) \$_SESSION['csrf']")
+    && in_array('tour', PartnerCommand::STARTSEITE_PARAMETER, true) && is_file(dirname($wurzel) . '/assets/js/partner-tour.js') && is_file(dirname($wurzel) . '/assets/css/partner-tour.css'),
+    json_encode([$tFehlt, $tSprache, $tZeig]));
+Db::run('DELETE FROM partner_einstieg WHERE partner_id = ?', [$tP]);
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

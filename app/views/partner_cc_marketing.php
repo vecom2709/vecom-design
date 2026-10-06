@@ -54,7 +54,7 @@ $mKarte = static function (array $k, string $nr) use ($h, $m, $M, $selbst): stri
         <?php if ($k['anker'] !== ''): ?>
           <a class="knopf" href="<?= $h($selbst() . '#' . $k['anker']) ?>"><?= $h($m($M['mt_oeffnen'])) ?> →</a>
         <?php else: ?>
-          <?php if ($k['text'] !== ''): ?><button class="knopf" type="button" data-cc-kopie="<?= $h($txtId) ?>" data-fertig="<?= $h($m($M['mt_kopiert'])) ?>"><?= $h($m($M['mt_kopieren'])) ?></button><?php endif; ?>
+          <?php if ($k['text'] !== ''): ?><button class="knopf" type="button" data-tour="mk-kopieren" data-cc-kopie="<?= $h($txtId) ?>" data-fertig="<?= $h($m($M['mt_kopiert'])) ?>"><?= $h($m($M['mt_kopieren'])) ?></button><?php endif; ?>
           <?php if ($wa): ?><a class="knopf" href="https://wa.me/?text=<?= rawurlencode($k['text']) ?>" target="_blank" rel="noopener"><?= $h($m($M['mt_wa'])) ?></a><?php endif; ?>
           <?php if ($tg): ?><a class="knopf" href="https://t.me/share/url?url=<?= rawurlencode($k['link']) ?>&amp;text=<?= rawurlencode(trim(str_replace($k['link'], '', $k['text']))) ?>" target="_blank" rel="noopener"><?= $h($m($M['mt_tg'])) ?></a><?php endif; ?>
           <?php if ($mail): ?><a class="knopf" href="mailto:?subject=<?= rawurlencode((string) $k['betreff']) ?>&amp;body=<?= rawurlencode($k['text']) ?>"><?= $h($m($M['kanaele']['email'])) ?></a><?php endif; ?>
@@ -72,7 +72,7 @@ $mKarte = static function (array $k, string $nr) use ($h, $m, $M, $selbst): stri
     <p class="cc-lead"><?= $h($m($M['satz'])) ?></p>
   </div>
 
-  <nav class="cc-unterleiste cc-auf z2" aria-label="<?= $h($m($M['teile_aria'])) ?>">
+  <nav class="cc-unterleiste cc-auf z2" aria-label="<?= $h($m($M['teile_aria'])) ?>" data-tour="mk-teile">
     <?php foreach ($mTeile as $t): ?>
       <a href="<?= $h($mUrl(['teil' => $t])) ?>"<?= $mTeil === $t ? ' aria-current="page"' : '' ?>><?= $h($m($M['teile'][$t])) ?></a>
     <?php endforeach; ?>
@@ -88,7 +88,7 @@ $mKarte = static function (array $k, string $nr) use ($h, $m, $M, $selbst): stri
   $aZ = in_array((string) ($_GET['ziel'] ?? ''), PartnerMediathek::ZWECKE, true) ? (string) $_GET['ziel'] : ($mProfilZweck[$mPf['ziel']] ?? 'neukunden');
   $aV = PartnerMediathek::vorschlaege($p, $sprache, $aB, $aK, $aZ, 3);
   $aBn = PartnerBranche::name($aB, $sprache); $aKn = $m($M['kanaele'][$aK]); ?>
-  <section class="cc-mt-assistent cc-auf z2" aria-labelledby="cc-as-t">
+  <section class="cc-mt-assistent cc-auf z2" aria-labelledby="cc-as-t" data-tour="mk-assistent">
     <h2 id="cc-as-t" class="cc-as-titel"><?= $h($m($M['as_titel'])) ?></h2>
     <p class="hilfe" style="margin:0 0 12px"><?= $h($m($M['as_satz'])) ?></p>
     <?php /* Erst die drei Inhalte, die vier Fragen zugeklappt darüber: vorbelegt aus dem Profil, ein Tipp ändert sie.
@@ -207,7 +207,7 @@ $mKarte = static function (array $k, string $nr) use ($h, $m, $M, $selbst): stri
           . '<button class="knopf" type="button" data-cc-kopie="' . $id . '" data-fertig="' . $h($m($KK['kopiert'])) . '">' . $h($m($KK['kopieren'])) . '</button>'
           . '<a class="knopf" href="' . $h($selbst(['wmqr' => 'png', 'go' => $b ?? 'haupt', 'gl' => $klSp])) . '" download>QR</a></div></li>';
   }; ?>
-  <section class="cc-karte cc-kl cc-auf z3" id="kurzlink" aria-labelledby="cc-kl-t" style="margin-top:22px">
+  <section class="cc-karte cc-kl cc-auf z3" id="kurzlink" aria-labelledby="cc-kl-t" style="margin-top:22px" data-tour="mk-link">
     <h2 class="cc-titel" id="cc-kl-t" style="margin-bottom:4px"><?= $h($m($KK['kl_titel'])) ?></h2>
     <p class="hilfe" style="margin:0 0 14px"><?= $h($m($KK['kl_satz'])) ?></p>
     <?php if (($ccMeldung ?? '') === 'kl_gut'): ?><div class="hinweis gut" role="status" style="margin:0 0 14px"><?= $h($m($KK['kl_gut'])) ?></div><?php endif; ?>

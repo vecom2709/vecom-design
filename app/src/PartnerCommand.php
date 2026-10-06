@@ -40,7 +40,7 @@ final class PartnerCommand
     public const PROFIL_ZIELE = ['neue_kunden', 'anfragen', 'bekanntheit', 'lokal', 'social'];
     public const HOECHSTENS_BRANCHEN = 3;
     /** Parameter eines schlichten Aufrufs: Link, App-Start, Sprachwahl, Werbe-Anhängsel (utm_*). */
-    public const STARTSEITE_PARAMETER = ['t', 'lang', 'app', 'fbclid', 'gclid'];
+    public const STARTSEITE_PARAMETER = ['t', 'lang', 'app', 'fbclid', 'gclid', 'tour', 'ab'];   // tour/ab: Einführung (06.10.2026)
 
     /**
      * Öffnet dieser Aufruf das Command Center? (Startseite live, 05.10.2026)

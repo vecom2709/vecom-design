@@ -49,7 +49,7 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
   <?php if ($lmText !== ''): ?><div class="hinweis <?= $h($lmArt) ?> cc-auf" role="<?= $lmArt === 'gut' ? 'status' : 'alert' ?>" style="margin:0 0 16px"><?= $h($lmText) ?></div><?php endif; ?>
 
   <details class="cc-neu cc-auf z2" id="neu"<?= $lNeuOffen ? ' open' : '' ?>>
-    <summary class="knopf haupt">+ <?= $h($l($L['neu'])) ?></summary>
+    <summary class="knopf haupt" data-tour="kd-neu">+ <?= $h($l($L['neu'])) ?></summary>
     <form method="post" action="<?= $h($lListe()) ?>#neu" class="cc-karte cc-form">
       <?= $lFormKopf('lead_neu') ?>
       <?php if ($lDup): ?>
@@ -89,7 +89,7 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
       <button class="knopf" type="submit"><?= $h($l($L['import_knopf'])) ?></button></form>
   </div>
 
-  <nav class="cc-pipeline cc-auf z2" aria-label="<?= $h($l($L['stufe'])) ?>">
+  <nav class="cc-pipeline cc-auf z2" aria-label="<?= $h($l($L['stufe'])) ?>" data-tour="kd-stufen">
     <a href="<?= $h($lListe()) ?>"<?= $lStufe === null ? ' aria-current="page"' : '' ?>><b><?= $lAktiv ?></b><span><?= $h($l($L['alle'])) ?></span></a>
     <?php foreach (PartnerLeads::STUFEN as $st): ?>
       <a href="<?= $h($lListe(['stufe' => $st])) ?>" class="s-<?= $h($st) ?><?= $lZahl[$st] === 0 ? ' null' : '' ?>"<?= $lStufe === $st ? ' aria-current="page"' : '' ?>><b><?= (int) $lZahl[$st] ?></b><span><?= $h($l($L['stufen'][$st])) ?></span></a>
@@ -97,9 +97,9 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
   </nav>
 
   <?php if (!$lAlle): ?>
-    <p class="cc-leer cc-auf z3"><?= $h($l($lStufe === null ? $L['leer'] : $L['leer_stufe'])) ?></p>
+    <p class="cc-leer cc-auf z3" data-tour="kd-liste"><?= $h($l($lStufe === null ? $L['leer'] : $L['leer_stufe'])) ?></p>
   <?php else: ?>
-    <ul class="cc-leads cc-auf z3">
+    <ul class="cc-leads cc-auf z3" data-tour="kd-liste">
       <?php foreach ($lAlle as $ld): $heute = date('Y-m-d'); $fae = (string) ($ld['aufgabe_am'] ?? $ld['naechster_am'] ?? '');
         $tel = trim((string) $ld['telefon']); $wa = $tel !== '' ? PartnerAnschreiben::waNummer($tel, (string) ($p['land'] ?? 'IT') ?: 'IT') : ''; ?>
         <li class="p-<?= $h($ld['prio']) ?>">
@@ -146,7 +146,7 @@ $lBranchen = PartnerBranche::auswahl($sprache);   // die zwölf (Phase 3) — ei
     </section>
   <?php endif; ?>
 
-  <section class="cc-werkzeuge cc-auf z4" aria-labelledby="cc-wz-t">
+  <section class="cc-werkzeuge cc-auf z4" aria-labelledby="cc-wz-t" data-tour="kd-werkzeuge">
     <h2 class="cc-titel" id="cc-wz-t"><?= $h($l($L['werkzeuge'])) ?></h2>
     <nav class="cc-schnell">
       <a href="<?= $h($selbst() . '#recherche') ?>"><?= $h($l($L['wz']['finder'])) ?></a>

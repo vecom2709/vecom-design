@@ -37,7 +37,7 @@ $gHinweis = [
     <p class="cc-lead"><?= $h($g($G['satz'])) ?></p>
   </div>
 
-  <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>">
+  <section class="cc-kz4 cc-auf z2" aria-label="<?= $h($c($C['kz4_aria'])) ?>" data-tour="eg-zahlen">
     <?php foreach ($ccKacheln as $kk => [$wert, $anker, $zusatz]):
       $txt = $kk === 'provision' ? Fmt::geld($wert) : $ccZahl($wert); ?>
       <a class="cc-zahl<?= $kk === 'provision' && $wert > 0 ? ' gold' : '' ?><?= $wert === 0 ? ' null' : '' ?>" href="<?= $h($kk === 'provision' ? '#geld' : $ccBereich($anker)) ?>" data-cc-zahl="<?= $h($kk) ?>">
@@ -65,7 +65,7 @@ $gHinweis = [
   </ol>
 
   <div class="cc-raster">
-    <section class="cc-karte cc-level cc-auf z3<?= $gSt['stufe'] !== null ? ' lv-' . $h($gSt['stufe']) : '' ?>" aria-labelledby="cc-lv-t">
+    <section class="cc-karte cc-level cc-auf z3<?= $gSt['stufe'] !== null ? ' lv-' . $h($gSt['stufe']) : '' ?>" aria-labelledby="cc-lv-t" data-tour="eg-level">
       <p class="cc-auge" id="cc-lv-t"><?= $h($g($G['lv_titel'])) ?></p>
       <?php if ($gSt['stufe'] === null): ?>
         <p class="cc-lv-satz"><?= $h($g($G['lv_aus'], ['{satz}' => Partner::satzWort($gS)])) ?></p>
@@ -113,7 +113,7 @@ $gHinweis = [
     </section>
   </div>
 
-  <section class="cc-auf z3" aria-labelledby="cc-pv-t" style="margin-top:22px">
+  <section class="cc-auf z3" aria-labelledby="cc-pv-t" style="margin-top:22px" data-tour="eg-provisionen">
     <h2 class="cc-titel" id="cc-pv-t"><?= $h($g($G['liste'])) ?></h2>
     <?php if (!$gL): ?>
       <p class="cc-leer"><?= $h($g($G['leer'])) ?></p>
@@ -143,7 +143,7 @@ $gHinweis = [
   </section>
 
   <?php if ($gA): ?>
-    <section class="cc-auf z3" aria-labelledby="cc-az-t" style="margin-top:22px">
+    <section class="cc-auf z3" aria-labelledby="cc-az-t" style="margin-top:22px" data-tour="eg-auszahlung">
       <h2 class="cc-titel" id="cc-az-t"><?= $h($g($G['ausz_titel'])) ?></h2>
       <ul class="cc-mat">
         <?php foreach ($gA as $a): ?>
