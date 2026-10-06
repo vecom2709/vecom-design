@@ -2819,6 +2819,34 @@ if ($post) {
                 Events::zahlungFehlgeschlagen((int) $_POST['id'], trim((string) ($_POST['grund'] ?? '')));
                 zurueck('bestellungen/' . (int) $_POST['order_id']);
 
+            /* AutoBuild Phase 4 (06.10.2026): Bausperre und Not-Aus. Ziehen darf jede Mitarbeit, aufheben und von Hand
+               freigeben nur ein Admin (Rechte + hier noch einmal). */
+            case 'bau_stopp':
+            case 'bau_stopp_alle':
+            case 'bau_weiter':
+            case 'bau_weiter_alle':
+            case 'bau_von_hand':
+                require_once __DIR__ . '/src/Bausperre.php';
+                $bsPid = (int) ($_POST['id'] ?? 0);
+                if (in_array($tat, ['bau_weiter', 'bau_weiter_alle', 'bau_von_hand'], true) && !Auth::istAdmin()) {
+                    throw new RuntimeException('Aufheben und von Hand freigeben darf nur ein Admin.');
+                }
+                match ($tat) {
+                    'bau_stopp'       => Bausperre::stoppen($bsPid, Auth::name(), (string) ($_POST['grund'] ?? '')),
+                    'bau_stopp_alle'  => Bausperre::alleSetzen(true, Auth::name()),
+                    'bau_weiter'      => Bausperre::weiter($bsPid, Auth::name()),
+                    'bau_weiter_alle' => Bausperre::alleSetzen(false, Auth::name()),
+                    default           => Bausperre::vonHandFreigeben($bsPid, Auth::name(), (string) ($_POST['grund'] ?? '')),
+                };
+                $_SESSION['gut'] = match ($tat) {
+                    'bau_stopp'       => 'KI für dieses Projekt gestoppt — keine Änderungen, keine Vorschau, kein Paket, kein Livegang, bis ein Admin sie wieder freigibt.',
+                    'bau_stopp_alle'  => 'Alle automatischen Builds sind gestoppt.',
+                    'bau_weiter'      => 'Die KI darf an diesem Projekt wieder arbeiten.',
+                    'bau_weiter_alle' => 'Automatische Builds sind wieder erlaubt.',
+                    default           => 'Bausperre von Hand aufgehoben — steht mit Begründung in der Prüfspur.',
+                };
+                weiter($bsPid > 0 ? 'projekte/' . $bsPid : 'projekte');
+
             case 'projekt_status':
                 $pid = (int) $_POST['id'];
                 $neuerStand = (string) $_POST['status'];

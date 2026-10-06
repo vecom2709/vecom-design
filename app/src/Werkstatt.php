@@ -6,6 +6,7 @@ require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Fmt.php';
 require_once __DIR__ . '/Status.php';
 require_once __DIR__ . '/Events.php';
+require_once __DIR__ . '/Bausperre.php';
 
 /**
  * Die Werkstatt von aussen — damit Claude Code holen und melden kann.
@@ -191,6 +192,7 @@ final class Werkstatt
                 'freigegeben' => $z['vorschau_frei_am'] !== null,
                 'repo'       => $z['repo_url'] ?: null,
                 'briefing'   => $z['briefing_am'] !== null,
+                'bau_erlaubt' => (bool) self::still(static fn() => Bausperre::darfBauen((int) $z['id'])['ok'], false),
             ];
         }
         return ['ok' => true, 'anzahl' => count($liste), 'projekte' => $liste];
@@ -207,6 +209,8 @@ final class Werkstatt
     {
         $p = self::projektFinden($d);
         $pid = (int) $p['id'];
+        Bausperre::pruefenStopp($p);
+        $bau = Bausperre::darfBauen($p);
         $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $p['customer_id']]);
         if (!$k) { throw new RuntimeException('Zu diesem Projekt gibt es keinen Kunden.'); }
 
@@ -246,6 +250,10 @@ final class Werkstatt
             'vorschau'  => $p['preview_url'] ?: null,
             'freigegeben' => ($p['vorschau_frei_am'] ?? null) !== null,
             'repo'      => $p['repo_url'] ?: null,
+            /* AutoBuild Phase 4: Solange die Bausperre gilt, darf analysiert und geplant werden — gebaut, geändert
+               oder veröffentlicht wird nichts. Vorschau, Paket und Freigabe lehnt der Server dann ohnehin ab. */
+            'bau_erlaubt' => $bau['ok'],
+            'bausperre' => $bau['ok'] ? null : $bau['grund'] . ' Nur analysieren und planen — nichts bauen, nichts an einer Website ändern, nichts veröffentlichen.',
             'briefing'  => $briefing,
             'briefing_neu' => $neu,
             'hausregeln' => $hausregeln,
@@ -257,6 +265,7 @@ final class Werkstatt
     public static function weiter(array $d): array
     {
         $p = self::projektFinden($d);
+        Bausperre::pruefenStopp($p);   // Not-Aus: nichts mehr ausliefern (AutoBuild Phase 4)
         require_once __DIR__ . '/Briefing.php';
         return [
             'ok'      => true,
@@ -278,6 +287,7 @@ final class Werkstatt
     public static function vorschau(array $d): array
     {
         $p = self::projektFinden($d);
+        Bausperre::pruefen($p);        // erst nach Angebotsannahme + Anzahlung, nie beim Not-Aus (AutoBuild Phase 4)
         $pid = (int) $p['id'];
 
         $url  = self::adressePruefen((string) ($d['vorschau'] ?? $d['url'] ?? ''), 'Vorschau-Adresse');
@@ -316,6 +326,7 @@ final class Werkstatt
     public static function stand(array $d): array
     {
         $p = self::projektFinden($d);
+        Bausperre::pruefenStopp($p);
         $neu = trim((string) ($d['stand'] ?? $d['status'] ?? ''));
         if (!isset(Status::PROJEKT[$neu])) {
             return ['ok' => false, 'hinweis' => 'Diesen Stand gibt es nicht.',
@@ -348,6 +359,7 @@ final class Werkstatt
     public static function freigeben(array $d): array
     {
         $p = self::projektFinden($d);
+        Bausperre::pruefen($p);
         $pid = (int) $p['id'];
 
         if (!self::jaGesagt((string) ($d['bestaetigt'] ?? ''))) {
@@ -475,6 +487,7 @@ final class Werkstatt
     public static function paket(array $d, array $datei = []): array
     {
         $p = self::projektFinden($d);
+        Bausperre::pruefen($p);
         $pid = (int) $p['id'];
 
         if (!$datei || (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE) {

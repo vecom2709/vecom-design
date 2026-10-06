@@ -259,6 +259,15 @@ final class Ablauf
             'Ab jetzt legt die Verwaltung beim KAS wirklich an: Accounts, Domains, Postfächer, Datenbanken. '
             . 'Aufträge, die der Probelauf angehalten hat, starten beim nächsten Cronlauf.',
             'Ja, Probelauf aus'],
+        'bau_von_hand' => [self::SCHWER,
+            'Die Bausperre fällt für dieses Projekt, ohne dass Angebotsannahme und Anzahlung im System stehen. Claude darf danach bauen und Vorschauen melden.',
+            'Ja, von Hand freigeben'],
+        'bau_weiter' => [self::RAUS,
+            'Der Not-Aus für dieses Projekt wird aufgehoben: Claude darf wieder ändern, Vorschauen und Pakete melden.',
+            'Ja, wieder freigeben'],
+        'bau_weiter_alle' => [self::RAUS,
+            'Automatische Builds sind danach wieder für alle Projekte erlaubt (der Not-Aus einzelner Projekte bleibt).',
+            'Ja, wieder erlauben'],
         'veroeffentlichen' => [self::RAUS,
             'Die fertige Seite geht auf die Domain des Kunden — öffentlich, für jeden sichtbar. '
             . 'Was dort bisher liegt, wird vorher gesichert; gelöscht wird nichts.',

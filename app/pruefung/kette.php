@@ -4436,6 +4436,42 @@ pruefe('das Briefing bleibt am Projekt stehen',
     trim((string) Db::wert('SELECT briefing FROM projects WHERE id = ?', [$wsProjekt], '')) !== '');
 pruefe('der Auftrag nennt die möglichen Stände', in_array('vorschau', (array) ($wsAuftrag['staende'] ?? []), true));
 
+/* AutoBuild Phase 4 (06.10.2026, Uwe: „KEINE WEBSITE DARF VOR ANGEBOTSANNAHME GEBAUT WERDEN“, Entscheidung 1: Annahme + Anzahlung) */
+require_once $wurzel . '/src/Bausperre.php';
+$bsSess = $_SESSION ?? [];
+$bsVorher = Bausperre::darfBauen($wsProjekt);
+$bsVorschau = 'durch'; try { Werkstatt::vorschau(['projekt' => (string) $wsProjekt, 'vorschau' => 'x.netlify.app']); } catch (RuntimeException $e) { $bsVorschau = $e->getMessage(); }
+$bsPaket = 'durch'; try { Werkstatt::paket(['projekt' => (string) $wsProjekt], []); } catch (RuntimeException $e) { $bsPaket = $e->getMessage(); }
+pruefe('Bausperre: bezahlt, aber ohne Angebotsannahme → Auftrag nur zum Planen (bau_erlaubt nein, Hinweis), Vorschau und Paket lehnt der Server ab',
+    !$bsVorher['ok'] && !$bsVorher['angenommen'] && $bsVorher['bezahlt'] && ($wsAuftrag['bau_erlaubt'] ?? null) === false
+    && str_contains((string) ($wsAuftrag['bausperre'] ?? ''), 'nichts bauen') && str_contains($bsVorschau, 'Bausperre') && str_contains($bsPaket, 'Bausperre')
+    && Db::wert('SELECT preview_url FROM projects WHERE id = ?', [$wsProjekt], null) === null, json_encode([$bsVorher, $bsVorschau, $bsPaket], JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE orders SET agb_ok_am = NOW() WHERE id = ?', [$wsBestellung]);
+$bsFrei = Bausperre::darfBauen($wsProjekt);
+pruefe('Bausperre: nach Annahme + Anzahlung frei, einmal mit Zeitpunkt festgehalten (Prüfspur)',
+    $bsFrei['ok'] && Db::wert('SELECT bau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null
+    && str_contains((string) Db::wert('SELECT bau_frei_von FROM projects WHERE id = ?', [$wsProjekt], ''), 'automatisch')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'bausperre_frei' AND entity_id = ?", [$wsProjekt], 0) === 1
+    && Bausperre::darfBauen($wsProjekt)['ok'] && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'bausperre_frei' AND entity_id = ?", [$wsProjekt], 0) === 1);
+Bausperre::stoppen($wsProjekt, 'Mia Mitarbeit', 'Kunde will andere Richtung');
+$bsS1 = 'durch'; try { Werkstatt::auftrag(['projekt' => (string) $wsProjekt]); } catch (RuntimeException $e) { $bsS1 = $e->getMessage(); }
+$bsS2 = 'durch'; try { Werkstatt::stand(['projekt' => (string) $wsProjekt, 'stand' => 'design']); } catch (RuntimeException $e) { $bsS2 = $e->getMessage(); }
+require_once $wurzel . '/src/Veroeffentlichung.php';
+$bsVs = Veroeffentlichung::stand($wsProjekt);
+Bausperre::weiter($wsProjekt, 'Uwe Admin');
+Bausperre::alleSetzen(true, 'Uwe Admin'); $bsAlle = Bausperre::darfBauen($wsProjekt); Bausperre::alleSetzen(false, 'Uwe Admin');
+$bsHand = 'durch'; try { Bausperre::vonHandFreigeben($wsProjekt, 'Uwe Admin', 'kurz'); } catch (RuntimeException $e) { $bsHand = 'nein'; }
+require_once $wurzel . '/src/Rechte.php'; require_once $wurzel . '/src/Ablauf.php';
+$_SESSION['rolle'] = 'mitarbeit'; $bsRechte = array_map(static fn($t) => Rechte::darfTat($t), ['bau_stopp', 'bau_stopp_alle', 'bau_weiter', 'bau_weiter_alle', 'bau_von_hand']);
+pruefe('Not-Aus je Projekt: kein Auftrag, kein Stand, kein Livegang (auch von Hand nicht); aufheben gibt frei; „Alle Builds stoppen“ greift überall; Freigabe von Hand nur mit Begründung',
+    str_contains($bsS1, 'Not-Aus') && str_contains($bsS2, 'Not-Aus') && !$bsVs['bereit'] && str_contains(implode(' ', $bsVs['gruende']), 'Not-Aus')
+    && Bausperre::darfBauen($wsProjekt)['ok'] && $bsAlle['stopp'] && !$bsAlle['ok'] && !Bausperre::alleGestoppt() && $bsHand === 'nein'
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action IN ('ki_stopp','ki_weiter','bau_alle_stopp','bau_alle_weiter') AND (entity_id = ? OR entity_id IS NULL)", [$wsProjekt], 0) >= 4
+    && $bsRechte === [true, true, false, false, false]
+    && (Ablauf::TRAGWEITE['bau_von_hand'][0] ?? '') === Ablauf::SCHWER && isset(Ablauf::TRAGWEITE['bau_weiter'])
+    && str_contains((string) file_get_contents($wurzel . '/views/projekt.php'), "require __DIR__ . '/projekt_bau.php'"), json_encode([$bsS1, $bsS2, $bsVs['gruende'], $bsAlle], JSON_UNESCAPED_UNICODE));
+$_SESSION = $bsSess;
+
 // Vorschau eintragen — und eben NICHT freischalten.
 $wsV = Werkstatt::vorschau(['projekt' => (string) $wsProjekt,
     'vorschau' => 'cavaleri-pruefung.netlify.app', 'repo' => 'https://github.com/beispiel/pruefung']);

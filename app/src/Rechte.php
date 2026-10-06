@@ -42,6 +42,8 @@ final class Rechte
         'fragebogen_', 'stimme_', 'werkstatt_', 'muster_', 'datei_', 'kunde_notiz', 'vorher_', 'woche_',
         // Phase 8: den Not-Aus ziehen darf jede Mitarbeit — lösen nur der Admin (automation_weiter steht hier bewusst nicht).
         'automation_notaus',
+        // AutoBuild Phase 4: den KI-Not-Aus je Projekt und für alle ziehen darf jede Mitarbeit (bau_stopp, bau_stopp_alle).
+        'bau_stopp',
     ];
 
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):

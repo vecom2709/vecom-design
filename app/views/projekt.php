@@ -27,6 +27,7 @@
 <h1><?= Fmt::h($p['name']) ?></h1></div></div>
 <div class="zwei"><div>
   <!--teil:ablauf-->
+  <?php require __DIR__ . '/projekt_bau.php'; /* AutoBuild Phase 4: Bausperre und Not-Aus */ ?>
   <div class="block"><h2>Ablauf</h2>
     <div class="balken" style="height:8px;margin-bottom:14px"><i style="width:<?= (int) $p['progress'] ?>%"></i></div>
     <form method="post" action="<?= Fmt::h(url('')) ?>" class="leiste">

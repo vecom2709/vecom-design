@@ -71,6 +71,10 @@ final class Veroeffentlichung
             }
         }
         if (!$paket) { $g[] = 'Es liegt noch kein Paket vor (Werkstatt: aktion=paket, oder hier hochladen).'; }
+        /* AutoBuild Phase 4: beim Not-Aus geht nichts live, auch nicht von Hand. */
+        require_once __DIR__ . '/Bausperre.php';
+        $bs = Bausperre::darfBauen($p);
+        if ($bs['stopp']) { $g[] = $bs['grund']; }
         if (!in_array((string) $p['status'], self::ABGENOMMEN, true)) {
             $g[] = 'Der Kunde hat noch nicht abgenommen (Stand: ' . (string) $p['status'] . ').';
         }
