@@ -37,7 +37,9 @@ final class AkquiseWorker
                              /* Demo-Vorschau (01.10.2026): die fertige Startseite vom PC -- verschickt wird erst nach Uwes Freigabe. */
                              'marketing_demo_melden',
                              /* Landingpage je Zielgruppe (01.10.2026, S6): nur Text als JSON -- online erst nach Uwes Freigabe. */
-                             'marketing_seite_melden'];
+                             'marketing_seite_melden',
+                             /* Akquise-CRM D-2 (06.10.2026): umformulierter Text als Vorschlag -- übernommen wird von Hand. */
+                             'akquise_ton_melden'];
 
     private const SCHLUESSEL = 'akq_worker_schluessel';
     private const DROSSEL_PRO_MINUTE = 240;
@@ -112,6 +114,7 @@ final class AkquiseWorker
             'marketing_vorher_bild'    => (static function () use ($d): array { require_once __DIR__ . '/MkVorherNachher.php'; return MkVorherNachher::vorherFuerAuftrag((int) ($d['auftrag_id'] ?? 0)); })(),
             'marketing_demo_melden'    => (static function () use ($d): array { require_once __DIR__ . '/MkDemo.php'; return MkDemo::melden($d); })(),
             'marketing_seite_melden'   => (static function () use ($d): array { require_once __DIR__ . '/MkSeite.php'; return MkSeite::melden($d); })(),
+            'akquise_ton_melden'       => (static function () use ($d): array { require_once __DIR__ . '/AkquiseWerkstatt.php'; return AkquiseWerkstatt::tonMelden($d); })(),
             default          => throw new InvalidArgumentException('Unbekannte Aktion.'),
         };
     }

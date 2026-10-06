@@ -24,6 +24,7 @@ import { medienLauf, type MedienAuftrag } from './kie.js';
 import { vnLauf, type VnDaten } from './vorhernachher.js';
 import { demoLauf, type DemoAuftrag } from './demo.js';
 import { seiteLauf, type SeiteAuftrag } from './seite.js';
+import { tonLauf, type TonAuftrag } from './ton.js';
 import { dreiDLauf, type DreiDAuftrag } from './render3d.js';
 import { szeneBauen } from './szene3d.js';
 
@@ -447,6 +448,8 @@ export async function marketingLauf(): Promise<boolean> {
   /* S6: Landingpage je Zielgruppe — nur Text, die Verwaltung baut die Seite. */
   if (r.auftrag?.art === 'seite') { await seiteLauf(r.auftrag as SeiteAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
   if (r.auftrag?.art === 'demo') { await demoLauf(r.auftrag as DemoAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
+  /* Akquise-CRM D-2: einen Text umformulieren — ohne Werkzeuge, Ergebnis nur als Vorschlag. */
+  if (r.auftrag?.art === 'ton') { await tonLauf(r.auftrag as TonAuftrag, { ausfuehren: claudeAusfuehren, lesen: innenLesen }); return true; }
   const a = r.auftrag as Auftrag | null;
   if (!a) return false;
   log.info('marketing', `Auftrag #${a.id}: ${a.beschreibung} — Claude recherchiert`);

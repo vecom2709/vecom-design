@@ -43,6 +43,12 @@ final class MkAuftrag
     /** Was der Auftrag tut — in einem Satz. */
     public static function beschreibung(array $a): string
     {
+        if (($a['art'] ?? '') === 'ton') {   // Akquise-CRM D-2
+            $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            require_once __DIR__ . '/AkquiseWerkstatt.php';
+            $fn = self::still(static fn() => (string) Db::wert('SELECT name FROM akq_firmen WHERE id = ?', [(int) ($p['firma_id'] ?? 0)], ''), '');
+            return 'Umformulieren · ' . (AkquiseWerkstatt::TOENE[(string) ($p['ton'] ?? '')][0] ?? 'Text') . ' · ' . (($p['kanal'] ?? '') === 'whatsapp' ? 'WhatsApp' : 'E-Mail') . ($fn !== '' ? ' an ' . $fn : '');
+        }
         if (($a['art'] ?? 'recherche') === 'uebersetzen') {
             $p = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
             if ((int) ($p['partnerseiten'] ?? 0) > 0 && (int) ($p['profile'] ?? 0) + (int) ($p['inhalte'] ?? 0) === 0) { return 'Übersetzung · Texte von ' . (int) $p['partnerseiten'] . ' Partnerseite(n)'; }
@@ -250,6 +256,13 @@ final class MkAuftrag
             $n = Db::run("UPDATE mk_auftraege SET status = 'laeuft', gestartet_am = NOW() WHERE id = ? AND status = 'wartet'", [(int) $a['id']])->rowCount();
             if ($n === 0) { continue; }   // ein anderer Abruf war schneller
             if (($a['art'] ?? 'recherche') === 'inhalte') { return ['ok' => true, 'auftrag' => self::inhalteAuftrag($a)]; }
+            if (($a['art'] ?? '') === 'ton') {
+                /* Akquise-CRM D-2: einen Text umformulieren — ohne Werkzeuge, nur mit dem, was im Text steht. */
+                require_once __DIR__ . '/AkquiseWerkstatt.php';
+                $tn = AkquiseWerkstatt::fuerPc($a);
+                if ($tn === null) { Db::update('mk_auftraege', (int) $a['id'], ['status' => 'abgebrochen', 'ergebnis' => 'Vorschlag nicht mehr da.']); continue; }
+                return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'ton', 'beschreibung' => self::beschreibung($a)] + $tn];
+            }
             if (($a['art'] ?? 'recherche') === 'uebersetzen') {
                 require_once __DIR__ . '/PartnerSeite.php';   // E4 (03.10.2026): Texte der Partnerseiten fahren mit
                 return ['ok' => true, 'auftrag' => ['id' => (int) $a['id'], 'art' => 'uebersetzen', 'beschreibung' => self::beschreibung($a)] + MkZielgruppe::ohneUebersetzung()
@@ -362,6 +375,14 @@ final class MkAuftrag
         if (!$a) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
         $in = max(0, min(999, (int) ($d['inhalte'] ?? 0)));
         $istInhalt = ($a['art'] ?? 'recherche') === 'inhalte';
+        if (($a['art'] ?? '') === 'ton') {   // D-2: der Text selbst kommt über akquise_ton_melden; hier nur „nicht geklappt“
+            if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => true]; }
+            if (!$ok) {
+                Db::update('mk_auftraege', $id, ['status' => 'fehler', 'ergebnis' => $text !== '' ? $text : 'Nicht geklappt.', 'fertig_am' => date('Y-m-d H:i:s')]);
+                Db::run("UPDATE akq_textvorschlaege SET status = 'abgelehnt', grund = ?, fertig_am = NOW() WHERE auftrag_id = ? AND status = 'wartet'", [mb_substr($text !== '' ? $text : 'Nicht geklappt.', 0, 500), $id]);
+            }
+            return ['ok' => true];
+        }
         if (in_array($a['art'] ?? '', ['uebersetzen', 'seite'], true)) {   // S6: die Seite selbst kommt über marketing_seite_melden
             if (!in_array($a['status'], ['laeuft', 'fehler'], true)) { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
             Db::update('mk_auftraege', $id, ['status' => $ok ? 'fertig' : 'fehler', 'ergebnis' => $text !== '' ? $text : null, 'zielgruppen' => $zg, 'inhalte' => $in, 'fertig_am' => date('Y-m-d H:i:s')]);

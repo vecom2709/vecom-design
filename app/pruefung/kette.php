@@ -26225,6 +26225,45 @@ pruefe('Werkstatt-Oberfläche: Prüfliste im Entwurf, bei WhatsApp und im Sendef
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_werkstatt.php'), 'name="hinweise_gelesen"')
     && $wsVs['an'] === 'info@werkstatt-bar.example' && str_contains($wsVs['text'], 'Non ricevere altri messaggi: ') && str_contains($wsVs['text'], '/widerspruch.php?t=')
     && !preg_match('~rechtssicher|garantit|score|Platzhalter~iu', $wsJs) && str_contains($wsJs, "'akq_werkstatt'"));
+/* D-2: Töne über den PC */
+require_once $wurzel . '/src/MkAuftrag.php';
+require_once $wurzel . '/src/AkquiseWorker.php';
+$tnHalt = array_map('intval', array_column(Db::all("SELECT id FROM mk_auftraege WHERE status = 'wartet'"), 'id'));
+if ($tnHalt) { Db::run("UPDATE mk_auftraege SET status = 'kette_halt' WHERE id IN (" . implode(',', $tnHalt) . ')'); }
+$tnOrig = "Buongiorno,\nil prezzo lo vede in 90 secondi: vecom-design.it/bedarf.php\nCordiali saluti";
+$tnV1 = AkquiseWerkstatt::tonAnfordern($wsId, 'email', 'kuerzer', 'Il vostro sito', $tnOrig, 'Uwe Admin');
+$tnV2 = AkquiseWerkstatt::tonAnfordern($wsId, 'email', 'lockerer', 'Il vostro sito', $tnOrig, 'Uwe Admin');
+$tnH1 = MkAuftrag::holen()['auftrag'] ?? [];
+$tnM1 = AkquiseWorker::ausfuehren('akquise_ton_melden', ['id' => (int) ($tnH1['id'] ?? 0), 'betreff' => 'Il sito', 'text' => "Buongiorno,\nil 73% dei clienti lo vede in 90 secondi: vecom-design.it/bedarf.php e www.altro-sito.it"]);
+$tnS1 = AkquiseWerkstatt::vorschlag($wsId, 'email');
+pruefe('Töne: ein Klick legt einen Auftrag für den PC an (einer je Text), der PC bekommt Text, Ton, Zahlen und Links — ein Vorschlag mit neuer Zahl oder neuem Link wird abgelehnt',
+    is_int($tnV1) && is_string($tnV2) && str_contains($tnV2, 'wartet schon') && ($tnH1['art'] ?? '') === 'ton' && ($tnH1['ton'] ?? '') === 'kuerzer'
+    && ($tnH1['zahlen'] ?? []) === ['90'] && in_array('vecom-design.it/bedarf.php', $tnH1['links'] ?? [], true) && str_contains((string) ($tnH1['anweisung'] ?? ''), 'Hälfte')
+    && !$tnM1['ok'] && str_contains((string) $tnM1['hinweis'], '73') && str_contains((string) $tnM1['hinweis'], 'www.altro-sito.it')
+    && ($tnS1['stand'] ?? '') === 'fehler' && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [(int) $tnH1['id']]) === 'fehler', json_encode([$tnV1, $tnV2, $tnH1, $tnM1, $tnS1], JSON_UNESCAPED_UNICODE));
+$tnV3 = AkquiseWerkstatt::tonAnfordern($wsId, 'email', 'professioneller', 'Il vostro sito', $tnOrig, 'Uwe Admin');
+$tnH2 = MkAuftrag::holen()['auftrag'] ?? [];
+$tnM2 = AkquiseWorker::ausfuehren('akquise_ton_melden', ['id' => (int) ($tnH2['id'] ?? 0), 'betreff' => '', 'text' => "Buongiorno,\nprezzo in 90 secondi: vecom-design.it/bedarf.php\nSaluti"]);
+$tnV4 = AkquiseWerkstatt::tonAnfordern($wsId, 'email', 'kuerzer', 'Il vostro sito', $tnOrig, 'Uwe Admin');
+$tnH3 = MkAuftrag::holen()['auftrag'] ?? [];
+$tnM3 = AkquiseWorker::ausfuehren('akquise_ton_melden', ['id' => (int) ($tnH3['id'] ?? 0), 'betreff' => 'Il sito', 'text' => "Buongiorno,\nprezzo in 90 secondi: vecom-design.it/bedarf.php\nSaluti"]);
+$tnS3 = AkquiseWerkstatt::vorschlag($wsId, 'email');
+$tnZu = AkquiseWerkstatt::vorschlagSchliessen((int) ($tnS3['id'] ?? 0), true);
+$tnS4 = AkquiseWerkstatt::vorschlag($wsId, 'email');
+pruefe('Töne: ohne Betreff abgelehnt; ein sauberer Vorschlag liegt „bereit“ und wird nur von Hand übernommen (Verlauf + Prüfspur), danach ist er weg',
+    is_int($tnV3) && !$tnM2['ok'] && str_contains((string) $tnM2['hinweis'], 'Betreff') && is_int($tnV4) && $tnM3['ok']
+    && ($tnS3['stand'] ?? '') === 'fertig' && ($tnS3['betreff'] ?? '') === 'Il sito' && str_contains((string) ($tnS3['text'] ?? ''), 'prezzo in 90 secondi')
+    && $tnZu && $tnS4 === null && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_ton_uebernommen' AND entity_id = ?", [$wsId], 0) === 1
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$wsId], 0) === 1, json_encode([$tnM2, $tnM3, $tnS3, Db::all('SELECT action, entity_id FROM audit_log WHERE action LIKE ?', ['akquise_ton%']), (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$wsId], 0)], JSON_UNESCAPED_UNICODE));
+$tnTs = (string) file_get_contents(dirname($wurzel) . '/tools/akquise/src/ki/marketing.ts') . (string) file_get_contents(dirname($wurzel) . '/tools/akquise/src/ki/ton.ts');
+$tnWs = (string) file_get_contents($wurzel . '/views/akquise_werkstatt.php');
+pruefe('Töne: der PC nimmt sie ohne Werkzeuge an (Claude Code, Uwes Abo), die Worker-Tür kennt nur „melden“ — kein Senden; die Knöpfe stehen unter jedem Text',
+    in_array('akquise_ton_melden', AkquiseWorker::AKTIONEN, true) && !in_array('akquise_ton_senden', AkquiseWorker::AKTIONEN, true)
+    && str_contains($tnTs, "r.auftrag?.art === 'ton'") && str_contains($tnTs, "SCHEMA_TON, ''") && str_contains($tnWs, 'data-ws-ton=') && str_contains($tnWs, 'nichts wird gesendet')
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_ton':") && count(AkquiseWerkstatt::TOENE) === 3);
+Db::run("DELETE FROM mk_auftraege WHERE art = 'ton' AND id IN (SELECT auftrag_id FROM akq_textvorschlaege WHERE firma_id = ?)", [$wsId]);
+Db::run('DELETE FROM akq_textvorschlaege WHERE firma_id = ?', [$wsId]);
+if ($tnHalt) { Db::run("UPDATE mk_auftraege SET status = 'wartet' WHERE id IN (" . implode(',', $tnHalt) . ')'); }
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

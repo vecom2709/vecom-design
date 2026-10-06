@@ -213,6 +213,28 @@ if ($post) {
                 echo json_encode(['liste' => $wsL, 'stopp' => AkquiseWerkstatt::zahl($wsL, AkquiseWerkstatt::STOPP), 'hinweise' => AkquiseWerkstatt::zahl($wsL, AkquiseWerkstatt::HINWEIS),
                     'vorschau' => $wsK === 'email' ? AkquiseWerkstatt::vorschau($wsF, $wsB, $wsT) : null], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
                 exit;
+            case 'akq_ton':          // D-2: Umformulieren beim PC bestellen — nichts wird gesendet
+            case 'akq_ton_stand':    // D-2: Stand des Vorschlags (JSON, nur lesen)
+            case 'akq_ton_vorschlag':// D-2: Vorschlag übernommen oder verworfen (nur Verlauf)
+                require_once __DIR__ . '/src/AkquiseWerkstatt.php';
+                $tnK = (string) ($_POST['kanal'] ?? '') === 'whatsapp' ? 'whatsapp' : 'email';
+                if ($tat === 'akq_ton') {
+                    $tnR = AkquiseWerkstatt::tonAnfordern($fid, $tnK, (string) ($_POST['ton'] ?? ''), (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), Auth::name());
+                    $tnAntwort = is_int($tnR) ? ['ok' => true, 'vorschlag' => AkquiseWerkstatt::vorschlag($fid, $tnK)] : ['ok' => false, 'hinweis' => $tnR];
+                } elseif ($tat === 'akq_ton_stand') {
+                    $tnAntwort = ['ok' => true, 'vorschlag' => AkquiseWerkstatt::vorschlag($fid, $tnK)];
+                } else {
+                    $tnV = Db::one('SELECT id FROM akq_textvorschlaege WHERE id = ? AND firma_id = ?', [(int) ($_POST['vorschlag'] ?? 0), $fid]);
+                    $tnAntwort = ['ok' => $tnV !== null && AkquiseWerkstatt::vorschlagSchliessen((int) $tnV['id'], ($_POST['was'] ?? '') === 'uebernommen')];
+                }
+                if (str_contains((string) ($_SERVER['HTTP_ACCEPT'] ?? ''), 'application/json')) {
+                    header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+                    echo json_encode($tnAntwort, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+                    exit;
+                }
+                if (!$tnAntwort['ok']) { throw new RuntimeException((string) ($tnAntwort['hinweis'] ?? 'Nicht geklappt.')); }
+                $_SESSION['gut'] = $tat === 'akq_ton' ? 'Bestellt — dein PC holt den Auftrag beim nächsten Abruf (spätestens in 5 Minuten).' : 'Erledigt.';
+                weiter('akquise/' . $fid . '#ansprechen');
             case 'akq_mail_pruefung':
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 AkquiseMail::pruefungAnfordern($fid, (string) ($_POST['notiz'] ?? ''));

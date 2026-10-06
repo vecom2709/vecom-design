@@ -213,4 +213,145 @@ final class AkquiseWerkstatt
         $audit = Akquise::letzterAudit((int) $f['id']);
         return $audit ? Akquise::befunde((int) $audit['id']) : [];
     }
+
+    /* ================================================================== */
+    /*  D-2: Töne über den PC (06.10.2026, Uwe: KI „weiter über den        */
+    /*  PC-Worker“). Der Server ruft keine KI auf: Er legt einen Auftrag   */
+    /*  an (mk_auftraege, art = ton), der PC holt ihn alle fünf Minuten,   */
+    /*  Claude Code schreibt ohne Werkzeuge um, der Vorschlag kommt hier   */
+    /*  an. Übernommen wird von Hand; gesendet wird nie.                   */
+    /* ================================================================== */
+
+    /** Ton → [Knopf, Anweisung für Claude] */
+    public const TOENE = [
+        'kuerzer'         => ['Kürzer', 'Kürzer: höchstens etwa die Hälfte der Länge. Weglassen statt umschreiben — Füllsätze, Wiederholungen, Höflichkeitsschleifen. Alles Wesentliche (Anliegen, Links, Abmeldesatz, Gruß) bleibt.'],
+        'lockerer'        => ['Lockerer', 'Lockerer: wärmer und persönlicher, wie ein Mensch, der vor Ort arbeitet — aber in derselben Anredeform (Lei/Sie bleibt). Keine Witze, keine Emojis, keine Umgangssprache, die unseriös wirkt.'],
+        'professioneller' => ['Professioneller', 'Professioneller: klarer, sachlicher, ruhiger. Kein Werbesprech, keine Superlative, keine Ausrufezeichen. Höflich, präzise, kurz.'],
+    ];
+    /** Schutz fürs Claude-Abo. */
+    public const TON_PRO_TAG = 40;
+
+    /**
+     * Einen Ton anfordern. @return int|string Vorschlagsnummer oder Hinweis
+     */
+    public static function tonAnfordern(int $firmaId, string $kanal, string $ton, string $betreff, string $text, string $wer): int|string
+    {
+        if (!isset(self::TOENE[$ton])) { return 'Unbekannter Ton.'; }
+        $kanal = $kanal === 'whatsapp' ? 'whatsapp' : 'email';
+        $f = Db::one('SELECT id, land, sprache, name FROM akq_firmen WHERE id = ?', [$firmaId]);
+        if (!$f) { return 'Betrieb nicht gefunden.'; }
+        $betreff = mb_substr(trim(strip_tags($betreff)), 0, 300);
+        $text = trim(str_replace("\r\n", "\n", strip_tags($text)));
+        if (mb_strlen($text) < 20) { return 'Erst einen Text schreiben — umformulieren lässt sich nur, was da ist.'; }
+        if (mb_strlen($text) > 6000) { return 'Der Text ist zu lang zum Umformulieren (höchstens 6000 Zeichen).'; }
+        require_once __DIR__ . '/MkAuftrag.php';
+        MkAuftrag::aufraeumen();
+        $offen = Db::one("SELECT v.id FROM akq_textvorschlaege v JOIN mk_auftraege a ON a.id = v.auftrag_id
+                           WHERE v.firma_id = ? AND v.kanal = ? AND a.status IN ('wartet','laeuft') LIMIT 1", [$firmaId, $kanal]);
+        if ($offen) { return 'Für diesen Text wartet schon ein Vorschlag auf deinen PC.'; }
+        if ((int) Db::wert("SELECT COUNT(*) FROM mk_auftraege WHERE art = 'ton' AND created_at >= CURDATE()", [], 0) >= self::TON_PRO_TAG) {
+            return 'Heute schon ' . self::TON_PRO_TAG . ' Umformulierungen — das schont dein Claude-Abo. Morgen geht es weiter.';
+        }
+        return Db::transaktion(static function () use ($f, $firmaId, $kanal, $ton, $betreff, $text, $wer): int {
+            $aid = (int) Db::insert('mk_auftraege', ['art' => 'ton', 'branche' => '', 'land' => strtoupper((string) $f['land']) === 'DE' ? 'DE' : 'IT',
+                'parameter' => json_encode(['firma_id' => $firmaId, 'kanal' => $kanal, 'ton' => $ton], JSON_UNESCAPED_UNICODE)]);
+            $vid = (int) Db::insert('akq_textvorschlaege', ['auftrag_id' => $aid, 'firma_id' => $firmaId, 'kanal' => $kanal, 'ton' => $ton,
+                'betreff_vorher' => $kanal === 'email' ? $betreff : null, 'text_vorher' => $text, 'erstellt_von' => mb_substr($wer !== '' ? $wer : 'Verwaltung', 0, 80)]);
+            Akquise::protokoll($firmaId, 'werkstatt', 'Umformulieren angefordert: „' . self::TOENE[$ton][0] . '“ (' . ($kanal === 'email' ? 'E-Mail' : 'WhatsApp') . ')');
+            return $vid;
+        });
+    }
+
+    /** Was der PC für einen Ton-Auftrag braucht — oder null, wenn der Vorschlag nicht mehr da ist. */
+    public static function fuerPc(array $a): ?array
+    {
+        $v = Db::one('SELECT * FROM akq_textvorschlaege WHERE auftrag_id = ?', [(int) $a['id']]);
+        if (!$v) { return null; }
+        $f = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $v['firma_id']]);
+        require_once __DIR__ . '/AkquiseText.php';
+        $sprache = $f ? AkquiseText::spracheFuer($f) : 'it';
+        [$zahlen, $links] = self::fakten((string) $v['betreff_vorher'] . "\n" . (string) $v['text_vorher']);
+        return [
+            'ton' => (string) $v['ton'], 'anweisung' => self::TOENE[(string) $v['ton']][1] ?? '', 'kanal' => (string) $v['kanal'],
+            'sprache' => $sprache, 'betreff' => (string) ($v['betreff_vorher'] ?? ''), 'text' => (string) $v['text_vorher'],
+            'zahlen' => $zahlen, 'links' => $links,
+        ];
+    }
+
+    /** Zahlen (außerhalb von Links) und Links eines Textes. @return array{0:list<string>,1:list<string>} */
+    public static function fakten(string $text): array
+    {
+        preg_match_all('~https?://[^\s<>"]+|\b[\w.-]+@[\w-]+\.[\w.]+\b|\b[\w-]+(?:\.[\w-]+)*\.(?:it|de|com|eu|net|org)\b(?:/[^\s<>"]*)?~iu', $text, $l);
+        $links = array_values(array_unique(array_map(static fn($x) => rtrim(mb_strtolower($x), '.,;:)'), $l[0])));
+        $ohne = (string) preg_replace('~https?://[^\s<>"]+|\b[\w.-]+@[\w-]+\.[\w.]+\b|\b[\w-]+(?:\.[\w-]+)*\.(?:it|de|com|eu|net|org)\b(?:/[^\s<>"]*)?~iu', ' ', $text);
+        preg_match_all('~\d+(?:[.,]\d+)?~u', $ohne, $z);
+        return [array_values(array_unique($z[0])), $links];
+    }
+
+    /**
+     * Der PC liefert den umgeschriebenen Text. Abgelehnt wird, was etwas dazuerfindet:
+     * eine Zahl, ein Link oder eine Adresse, die im Original nicht standen (Uwe: „Die KI darf niemals Informationen erfinden.“).
+     */
+    public static function tonMelden(array $d): array
+    {
+        $aid = (int) ($d['id'] ?? 0);
+        $a = Db::one("SELECT * FROM mk_auftraege WHERE id = ? AND art = 'ton'", [$aid]);
+        $v = $a ? Db::one('SELECT * FROM akq_textvorschlaege WHERE auftrag_id = ?', [$aid]) : null;
+        if (!$a || !$v) { return ['ok' => false, 'hinweis' => 'Auftrag unbekannt.']; }
+        if ($a['status'] !== 'laeuft') { return ['ok' => false, 'hinweis' => 'Auftrag läuft nicht.']; }
+        $betreff = mb_substr(trim(strip_tags((string) ($d['betreff'] ?? ''))), 0, 300);
+        $text = trim(str_replace("\r\n", "\n", strip_tags((string) ($d['text'] ?? ''))));
+        $grund = null;
+        if (mb_strlen($text) < 20) { $grund = 'Claude hat keinen brauchbaren Text geliefert.'; }
+        elseif ($v['kanal'] === 'email' && $betreff === '') { $grund = 'Claude hat den Betreff weggelassen.'; }
+        else {
+            [$zAlt, $lAlt] = self::fakten((string) $v['betreff_vorher'] . "\n" . (string) $v['text_vorher']);
+            [$zNeu, $lNeu] = self::fakten($betreff . "\n" . $text);
+            $neuZ = array_values(array_diff($zNeu, $zAlt));
+            $neuL = array_values(array_diff($lNeu, $lAlt));
+            if ($neuZ || $neuL) { $grund = 'Abgelehnt — Claude hat etwas dazugeschrieben, das im Original nicht stand: ' . implode(', ', array_merge($neuZ, $neuL)) . '.'; }
+        }
+        $jetzt = date('Y-m-d H:i:s');
+        if ($grund !== null) {
+            Db::update('akq_textvorschlaege', (int) $v['id'], ['status' => 'abgelehnt', 'grund' => mb_substr($grund, 0, 500), 'betreff' => $betreff ?: null, 'text' => $text ?: null, 'fertig_am' => $jetzt]);
+            Db::update('mk_auftraege', $aid, ['status' => 'fehler', 'ergebnis' => mb_substr($grund, 0, 1000), 'fertig_am' => $jetzt]);
+            return ['ok' => false, 'hinweis' => $grund];
+        }
+        /* Schon verworfen (jemand hat nicht gewartet)? Dann bleibt er verworfen — nichts taucht ungefragt wieder auf. */
+        Db::update('akq_textvorschlaege', (int) $v['id'], ['status' => $v['status'] === 'verworfen' ? 'verworfen' : 'fertig', 'betreff' => $v['kanal'] === 'email' ? $betreff : null, 'text' => $text, 'fertig_am' => $jetzt]);
+        Db::update('mk_auftraege', $aid, ['status' => 'fertig', 'ergebnis' => 'Vorschlag „' . (self::TOENE[(string) $v['ton']][0] ?? $v['ton']) . '“ liegt bereit.', 'fertig_am' => $jetzt]);
+        return ['ok' => true];
+    }
+
+    /** Der jüngste Vorschlag für einen Text (für die Anzeige), samt Stand des Auftrags. */
+    public static function vorschlag(int $firmaId, string $kanal): ?array
+    {
+        $v = Db::one("SELECT v.*, a.status AS auftrag, a.ergebnis, a.created_at AS angelegt FROM akq_textvorschlaege v JOIN mk_auftraege a ON a.id = v.auftrag_id
+                       WHERE v.firma_id = ? AND v.kanal = ? AND v.created_at >= NOW() - INTERVAL 2 DAY
+                       ORDER BY v.id DESC LIMIT 1", [$firmaId, $kanal === 'whatsapp' ? 'whatsapp' : 'email']);
+        /* Nur der jüngste zählt: Wer ihn übernommen oder verworfen hat, sieht keinen älteren, gescheiterten wieder auftauchen. */
+        if (!$v || in_array($v['status'], ['uebernommen', 'verworfen'], true)) { return null; }
+        $stand = match (true) {
+            $v['status'] === 'fertig' => 'fertig',
+            $v['status'] === 'abgelehnt' || $v['auftrag'] === 'fehler' || $v['auftrag'] === 'abgebrochen' => 'fehler',
+            $v['auftrag'] === 'laeuft' => 'laeuft',
+            default => 'wartet',
+        };
+        return ['id' => (int) $v['id'], 'ton' => (string) $v['ton'], 'wort' => self::TOENE[(string) $v['ton']][0] ?? (string) $v['ton'], 'stand' => $stand,
+                'betreff' => (string) ($v['betreff'] ?? ''), 'text' => (string) ($v['text'] ?? ''),
+                'grund' => $stand === 'fehler' ? (string) ($v['grund'] ?: $v['ergebnis'] ?: 'Nicht geklappt.') : '', 'seit' => (string) $v['angelegt']];
+    }
+
+    /** Übernommen oder verworfen — nur zum Aufräumen und für den Verlauf; der Text selbst wird im Formular ersetzt. */
+    public static function vorschlagSchliessen(int $id, bool $uebernommen): bool
+    {
+        $v = Db::one('SELECT * FROM akq_textvorschlaege WHERE id = ?', [$id]);
+        if (!$v || in_array($v['status'], ['uebernommen', 'verworfen'], true)) { return false; }
+        Db::update('akq_textvorschlaege', $id, ['status' => $uebernommen ? 'uebernommen' : 'verworfen']);
+        Akquise::protokoll((int) $v['firma_id'], 'werkstatt', 'Vorschlag „' . (self::TOENE[(string) $v['ton']][0] ?? $v['ton']) . '“ ' . ($uebernommen ? 'übernommen' : 'verworfen'));
+        if ($uebernommen) {   // Was Mitarbeit oder Partner annehmen, soll Uwe nachvollziehen können
+            Events::pruefspur('akquise_ton_uebernommen', 'akq_firmen', (int) $v['firma_id'], ['text' => mb_substr((string) $v['text_vorher'], 0, 400)], ['text' => mb_substr((string) $v['text'], 0, 400)]);
+        }
+        return true;
+    }
 }
