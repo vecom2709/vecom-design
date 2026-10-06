@@ -33,7 +33,7 @@ final class MkDemo
     public const MAX_HTML = 160_000;
     public const STUFEN = ['anfrage', 'vorhaben', 'angaben', 'angebot'];
     public const FASSUNG = 'demo-2026-10-01';
-    public const STATUS = ['wartet' => 'in Arbeit', 'fertig' => 'wartet auf dich', 'freigegeben' => 'verschickt', 'verworfen' => 'verworfen', 'fehler' => 'nicht geklappt'];
+    public const STATUS = ['wartet' => 'in Arbeit', 'fertig' => 'wartet auf dich', 'freigegeben' => 'verschickt', 'verworfen' => 'verworfen', 'fehler' => 'nicht geklappt', 'geloescht' => 'gelöscht'];
 
     public const ZUSTIMMUNG = [
         'it' => 'Desidero un’anteprima gratuita della nuova home page della mia attività. Vecom Design può leggere a questo scopo il mio sito attuale e mandarmi il link per e-mail. Senza impegno.',
@@ -258,9 +258,49 @@ final class MkDemo
         $demo = self::laden($id);
         if ($demo === null) { return 'Vorschau nicht gefunden.'; }
         $haengt = $demo['status'] === 'wartet' && !in_array((string) Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [(int) $demo['auftrag_id']], ''), ['wartet', 'laeuft'], true);
-        if (!in_array($demo['status'], ['fertig', 'fehler'], true) && !$haengt) { return 'Geht nur bei einer fertigen oder gescheiterten Vorschau.'; }
+        /* 06.10.2026, Uwe: Änderungen auch an einer verschickten Vorschau — der Link ruht, bis du die neue Fassung freigibst. */
+        if (!in_array($demo['status'], ['fertig', 'fehler', 'freigegeben'], true) && !$haengt) { return 'Geht nur bei einer fertigen, verschickten oder gescheiterten Vorschau.'; }
         Db::update('mk_demos', $id, ['status' => 'wartet', 'hinweis' => mb_substr(trim(strip_tags($hinweis)), 0, 600) ?: null, 'fehler' => null]);
         self::auftrag($id, (string) $demo['sprache'], (string) Db::wert('SELECT branche FROM akq_firmen WHERE id = ?', [(int) $demo['akq_firma_id']], ''));
+        return null;
+    }
+
+    /** Alle Vorschauen eines Kunden für seine Akte (06.10.2026), neueste zuerst, ohne die Seite selbst. */
+    public static function fuerKundeAlle(int $kundeId): array
+    {
+        try {
+            return Db::all("SELECT d.id, d.status, d.sprache, d.url, d.hinweis, d.zusammenfassung, d.fehler, d.aufrufe, d.freigegeben_am, d.gueltig_bis, d.created_at, d.updated_at,
+                                   d.token, (d.html IS NOT NULL AND d.html <> '') AS hat_seite, f.name AS firma
+                              FROM mk_demos d LEFT JOIN akq_firmen f ON f.id = d.akq_firma_id
+                             WHERE d.customer_id = ? AND d.status <> 'geloescht' ORDER BY d.id DESC LIMIT 20", [$kundeId]);
+        } catch (Throwable $e) { return []; }
+    }
+
+    /**
+     * Löschen (06.10.2026, Uwe: „… wieder löschen können“): auch eine verschickte Vorschau. Der Link ist sofort tot
+     * (neuer Schlüssel, Seite gelöscht), ein laufender Bau wird abgebrochen. Die Zeile bleibt für die Prüfspur.
+     */
+    public static function loeschen(int $id): ?string
+    {
+        $demo = self::laden($id);
+        if ($demo === null || $demo['status'] === 'geloescht') { return 'Vorschau nicht gefunden.'; }
+        Db::update('mk_demos', $id, ['status' => 'geloescht', 'html' => null, 'token' => bin2hex(random_bytes(16)), 'gueltig_bis' => null]);
+        if ((int) $demo['auftrag_id'] > 0) { Db::run("UPDATE mk_auftraege SET status = 'abgebrochen' WHERE id = ? AND status IN ('wartet','laeuft')", [(int) $demo['auftrag_id']]); }
+        Events::pruefspur('demo_geloescht', 'mk_demos', $id, ['status' => $demo['status'], 'gueltig_bis' => $demo['gueltig_bis']], ['status' => 'geloescht']);
+        try { require_once __DIR__ . '/Akquise.php'; if ((int) $demo['akq_firma_id'] > 0) { Akquise::protokoll((int) $demo['akq_firma_id'], 'demo', 'Demo-Vorschau gelöscht — der Link ist nicht mehr erreichbar'); } } catch (Throwable $e) { }
+        return null;
+    }
+
+    /** Verlängern: eine verschickte Vorschau gilt GUELTIG_TAGE ab heute bzw. ab ihrem bisherigen Ende länger. Ohne neue Mail. */
+    public static function verlaengern(int $id): ?string
+    {
+        $demo = self::laden($id);
+        if ($demo === null) { return 'Vorschau nicht gefunden.'; }
+        if ($demo['status'] !== 'freigegeben') { return 'Verlängern geht nur bei einer verschickten Vorschau.'; }
+        $ab = max(strtotime('today'), strtotime((string) ($demo['gueltig_bis'] ?: 'today')));
+        $bis = date('Y-m-d', strtotime('+' . self::GUELTIG_TAGE . ' days', $ab));
+        Db::update('mk_demos', $id, ['gueltig_bis' => $bis]);
+        Events::pruefspur('demo_verlaengert', 'mk_demos', $id, ['gueltig_bis' => $demo['gueltig_bis']], ['gueltig_bis' => $bis]);
         return null;
     }
 

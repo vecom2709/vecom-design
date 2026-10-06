@@ -19258,6 +19258,26 @@ pruefe('demo.php: Sandbox ohne Skripte und Formulare, nicht fremd einbettbar, ni
     && !str_contains($dmSrc, 'allow-scripts') && !str_contains($dmSrc, 'script-src') && str_contains($dmSrc, "header('X-Robots-Tag: noindex, nofollow')"));
 Db::run('UPDATE mk_demos SET gueltig_bis = ? WHERE id = ?', [date('Y-m-d', strtotime('-1 day')), $dmId]);
 pruefe('Demo: nach 30 Tagen ist der Link weg; verwerfen geht nach dem Verschicken nicht mehr', MkDemo::zeigen((string) $dmD['token']) === null && is_string(MkDemo::verwerfen($dmId)));
+/* Kundenakte (06.10.2026, Uwe: „Demo-Seiten … in seiner Kundenakte … freigeben, wieder löschen, Änderungen“) */
+$dmKv = MkDemo::verlaengern($dmId);
+$dmBisNeu = (string) MkDemo::laden($dmId)['gueltig_bis'];
+$dmWieder = MkDemo::zeigen((string) $dmD['token']) !== null;
+$k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $dmD['customer_id']]);
+ob_start(); require $wurzel . '/views/kunde_demos.php'; $dmAkte = (string) ob_get_clean();
+pruefe('Kundenakte: Demo-Vorschau mit Ansehen, Link des Kunden, +30 Tage, Änderungen (neu bauen mit Hinweis) und Löschen (mit Rückfrage); Verlängern gilt ab heute, wenn der Link schon abgelaufen war',
+    $dmKv === null && $dmBisNeu === date('Y-m-d', strtotime('+30 days')) && $dmWieder
+    && str_contains($dmAkte, 'id="demos"') && str_contains($dmAkte, 'value="demo_verlaengern"') && str_contains($dmAkte, 'value="demo_loeschen"') && str_contains($dmAkte, 'value="demo_nochmal"')
+    && str_contains($dmAkte, 'name="zurueck" value="kunde"') && str_contains($dmAkte, 'Link des Kunden') && str_contains($dmAkte, Fmt::h(url('demo/' . $dmId)))
+    && (Ablauf::TRAGWEITE['demo_loeschen'][0] ?? '') === Ablauf::SCHWER
+    && str_contains((string) file_get_contents($wurzel . '/views/kunde.php'), "require __DIR__ . '/kunde_demos.php'"), substr(strip_tags($dmAkte), 0, 400));
+$dmN = MkDemo::nochmal($dmId, 'Öffnungszeiten nach oben');
+$dmNst = (string) MkDemo::laden($dmId)['status']; $dmNruht = MkDemo::zeigen((string) $dmD['token']) === null;
+$dmL = MkDemo::loeschen($dmId); $dmLz = MkDemo::laden($dmId);
+pruefe('Kundenakte: Änderung an einer verschickten Vorschau → neu bauen, der Link ruht; Löschen → Link sofort tot (neuer Schlüssel, Seite weg), Bau abgebrochen, nicht mehr in der Akte; Prüfspur',
+    $dmN === null && $dmNst === 'wartet' && $dmNruht && $dmL === null && $dmLz['status'] === 'geloescht' && $dmLz['html'] === null && $dmLz['token'] !== $dmD['token']
+    && MkDemo::zeigen((string) $dmD['token']) === null && MkDemo::fuerKundeAlle((int) $dmD['customer_id']) === []
+    && Db::wert('SELECT status FROM mk_auftraege WHERE id = ?', [(int) $dmLz['auftrag_id']], '') === 'abgebrochen'
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'demo_geloescht' AND entity_id = ?", [$dmId], 0) === 1 && is_string(MkDemo::loeschen($dmId)));
 
 /* Gescheitert, nochmal mit Hinweis, verworfen */
 $dmId2 = MkDemo::anfordern($dmK2, 'de');

@@ -302,6 +302,8 @@ $eing = !empty($eingebettet);
 </div><div>
 <?php endif; ?>
 
+  <?php require __DIR__ . '/kunde_demos.php'; /* Demo-Vorschauen (06.10.2026) — nur wenn es welche gibt */ ?>
+
   <div class="block"><h2>Kontakt</h2><table><tbody>
     <tr><td>E-Mail</td><td><?= Fmt::h($k['email']) ?></td></tr>
     <tr><td>Telefon</td><td><?= Fmt::h($k['phone'] ?: '—') ?></td></tr>

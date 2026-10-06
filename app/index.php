@@ -805,19 +805,26 @@ if ($post) {
             case 'demo_freigeben':
             case 'demo_nochmal':
             case 'demo_verwerfen':
+            case 'demo_loeschen':     // 06.10.2026: auch aus der Kundenakte — löschen und verlängern
+            case 'demo_verlaengern':
                 require_once __DIR__ . '/src/MkDemo.php';
                 $dmId = (int) ($_POST['id'] ?? 0);
                 $dmD = MkDemo::laden($dmId);
                 $f = match ($tat) {
-                    'demo_freigeben' => MkDemo::freigeben($dmId),
-                    'demo_nochmal'   => MkDemo::nochmal($dmId, (string) ($_POST['hinweis'] ?? '')),
-                    default          => MkDemo::verwerfen($dmId),
+                    'demo_freigeben'   => MkDemo::freigeben($dmId),
+                    'demo_nochmal'     => MkDemo::nochmal($dmId, (string) ($_POST['hinweis'] ?? '')),
+                    'demo_loeschen'    => MkDemo::loeschen($dmId),
+                    'demo_verlaengern' => MkDemo::verlaengern($dmId),
+                    default            => MkDemo::verwerfen($dmId),
                 };
                 $_SESSION[$f === null ? 'gut' : 'fehler'] = $f ?? match ($tat) {
-                    'demo_freigeben' => 'Freigegeben — der Link ist per Mail an den Interessenten unterwegs und steht in seinem Bereich (30 Tage gültig).',
-                    'demo_nochmal'   => 'Dein PC baut die Vorschau neu' . (trim((string) ($_POST['hinweis'] ?? '')) !== '' ? ' — mit deinem Hinweis' : '') . '.',
-                    default          => 'Verworfen. Der Interessent bekommt nichts.',
+                    'demo_freigeben'   => 'Freigegeben — der Link ist per Mail an den Interessenten unterwegs und steht in seinem Bereich (30 Tage gültig).',
+                    'demo_nochmal'     => 'Dein PC baut die Vorschau neu' . (trim((string) ($_POST['hinweis'] ?? '')) !== '' ? ' — mit deinem Hinweis' : '') . '. Danach wieder ansehen und freigeben.',
+                    'demo_loeschen'    => 'Gelöscht — der Link ist ab sofort nicht mehr erreichbar.',
+                    'demo_verlaengern' => 'Verlängert — der Link gilt jetzt ' . MkDemo::GUELTIG_TAGE . ' Tage länger.',
+                    default            => 'Verworfen. Der Interessent bekommt nichts.',
                 };
+                if (($_POST['zurueck'] ?? '') === 'kunde' && $dmD) { weiter('kunden/' . (int) $dmD['customer_id'] . '#demos'); }
                 weiter(MkDemo::freigabeLink((string) ($dmD['sprache'] ?? 'it')));
 
             /* Marketing-Studio 11: Motor für Bilder/Videos und Nachtschicht; im Stapel das bessere Bild wählen. */
