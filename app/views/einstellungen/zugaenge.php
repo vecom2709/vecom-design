@@ -57,6 +57,24 @@
   </div>
 </div>
 
+<?php /* Absender je Rolle (06.10.2026, Uwe: „direkt von der Verwaltung aus die E-Mail senden anhand der E-Mail-Adresse der Rolle“) */
+  require_once dirname(__DIR__, 2) . '/src/AkquiseMail.php'; require_once dirname(__DIR__, 2) . '/src/AkquiseGate.php'; require_once dirname(__DIR__, 2) . '/src/Mail.php';
+  $zaDomain = Mail::eigeneDomain(); ?>
+<div class="block" id="absender">
+  <h2>Absender je Rolle</h2>
+  <p style="color:var(--leise);max-width:70ch">Mit dieser Adresse gehen E-Mails raus, die ein Zugang dieser Rolle direkt aus „Kunden finden“ verschickt; Antworten kommen dorthin zurück.
+    Nur Adressen <?= $zaDomain !== '' ? 'auf <b>@' . Fmt::h($zaDomain) . '</b>' : 'der Absender-Domain' ?> — andere nimmt der Versanddienst nicht an.
+    Leer: die eigene Adresse des Zugangs, wenn sie zur Domain gehört, sonst die Firmenadresse mit „Antwort an“ den Zugang.</p>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="zugang_absender"><input type="hidden" name="zurueck" value="einstellungen?b=zugaenge#absender">
+    <?php foreach (AkquiseMail::ROLLEN_ABSENDER as $zaR => $zaW): ?>
+      <div class="feld" style="margin:0"><label><?= Fmt::h($zaW) ?></label>
+        <input type="email" name="absender[<?= $zaR ?>]" value="<?= Fmt::h(AkquiseGate::einstellung('akq_absender_rolle_' . $zaR, '')) ?>" placeholder="z. B. <?= $zaR === 'admin' ? 'uwe' : 'team' ?>@<?= Fmt::h($zaDomain ?: 'vecom-design.it') ?>" style="width:240px"></div>
+    <?php endforeach; ?>
+    <button class="knopf haupt">Speichern</button>
+  </form>
+</div>
+
 <div class="block">
   <h2>Cockpit-Schutz</h2>
   <?php

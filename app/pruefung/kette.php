@@ -11429,6 +11429,36 @@ pruefe('fünf Dinge, getrennte Felder (gefunden, bestätigt, Status, Versand, We
     && !preg_match('~rechtssicher|garantiert zul|abmahnsicher~iu', $msTexte)
     && (Ablauf::TRAGWEITE['akq_mail_nicht_aufheben'][0] ?? '') === Ablauf::SCHWER
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_mail.php'"));
+/* Direkt aus der Verwaltung senden (06.10.2026, Uwe: „anhand der E-Mail-Adresse der Rolle“) */
+require_once $wurzel . '/src/Mail.php';
+require_once $wurzel . '/src/AkquiseVersand.php';
+$_SESSION = ['uid' => 1, 'rolle' => 'admin', 'name' => 'Uwe Admin'];
+$dsTest = AkquiseGate::testbetrieb(); AkquiseGate::testbetriebSetzen(false);
+$dsPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$dsPost): bool { $dsPost[] = [$an, $b, $t, $o]; return true; };
+$dsF = Akquise::firmaMelden(['name' => 'Bar Direktmail', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'info@direktmail.example', 'quelle' => 'osm:node/72']);
+$dsRot = 'durch'; try { AkquiseMail::direktSenden((int) $dsF['id'], 'Ihre Anfrage', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsRot = 'nein'; }
+AkquiseMail::grundDokumentieren((int) $dsF['id'], ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Will ein Angebot']);
+$dsDom = Mail::eigeneDomain();
+AkquiseGate::setzen('akq_absender_rolle_admin', $dsDom !== '' ? 'uwe@' . $dsDom : '');
+$dsAbs = AkquiseMail::absender();
+$dsLeer = 'durch'; try { AkquiseMail::direktSenden((int) $dsF['id'], '   ', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsLeer = 'nein'; }
+$dsR = AkquiseMail::direktSenden((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße");
+$dsV = Db::one('SELECT * FROM akq_versand WHERE id = ?', [$dsR['id']]);
+pruefe('Direktversand: nur bei 🟢 (vorher abgelehnt), nie ohne Betreff; geht einzeln raus mit Abmeldelink, steht im Versandprotokoll und in der Prüfspur',
+    $dsRot === 'nein' && $dsLeer === 'nein' && !$dsR['simuliert'] && count($dsPost) === 1 && $dsPost[0][0] === 'info@direktmail.example'
+    && str_contains($dsPost[0][2], 'widerspruch.php?t=') && $dsV && $dsV['status'] === 'gesendet' && str_starts_with((string) $dsV['grund'], 'Direkt aus der Verwaltung')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_direktmail' AND entity_id = ?", [$dsR['id']]) === 1
+    && Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [(int) $dsF['id']], '') === 'kontaktiert', json_encode([$dsRot, $dsLeer, $dsR, $dsPost]));
+pruefe('Absender je Rolle: die eingetragene Rollen-Adresse der eigenen Domain (sonst Firmenadresse mit Antwort an den Zugang) geht als Absender und Antwortadresse mit',
+    $dsDom !== '' ? ($dsAbs['email'] === 'uwe@' . $dsDom && ($dsPost[0][3]['absender']['email'] ?? '') === 'uwe@' . $dsDom && ($dsPost[0][3]['antwortAn'] ?? '') === 'uwe@' . $dsDom)
+                  : ($dsAbs['email'] === null && !isset($dsPost[0][3]['absender']) && str_contains($dsAbs['quelle'], 'Firmenadresse')), json_encode([$dsDom, $dsAbs, $dsPost[0][3] ?? null]));
+$dsZv = (string) file_get_contents($wurzel . '/views/einstellungen/zugaenge.php'); $dsIx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Einstellungen: Absender je Rolle nur auf der eigenen Domain; Senden-Knopf mit Rückfrage und angezeigtem Absender',
+    str_contains($dsZv, 'value="zugang_absender"') && str_contains($dsIx, "case 'zugang_absender':") && str_contains($dsIx, "str_ends_with(\$zaW, '@' . \$zaDom)")
+    && (Ablauf::TRAGWEITE['akq_mail_senden'][0] ?? '') === Ablauf::RAUS
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_ansprechen.php'), 'value="akq_mail_senden"'));
+AkquiseGate::setzen('akq_absender_rolle_admin', '');
+AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($dsTest);
 $_SESSION = $msSess;
 $asView = (string) file_get_contents($wurzel . '/views/akquise.php');
 pruefe('Liste zeigt E-Mail und WhatsApp je Betrieb (ohne mailto, Anschreiben erst nach Zustimmung); Aussortieren nur mit Rückfrage (schwer)',

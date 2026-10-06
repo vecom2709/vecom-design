@@ -3672,6 +3672,23 @@ if ($post) {
                 $_SESSION['gut'] = 'Zugang von ' . $u['name'] . ' gelöscht.';
                 zurueck('einstellungen?b=zugaenge');
 
+            /* Absender je Rolle (06.10.2026) für den Direktversand aus „Kunden finden“ — nur die eigene Absender-Domain. */
+            case 'zugang_absender':
+                require_once __DIR__ . '/src/AkquiseMail.php'; require_once __DIR__ . '/src/AkquiseGate.php'; require_once __DIR__ . '/src/Mail.php';
+                $zaDom = Mail::eigeneDomain();
+                $zaAlt = []; $zaNeu = [];
+                foreach (array_keys(AkquiseMail::ROLLEN_ABSENDER) as $zaR) {
+                    $zaW = mb_strtolower(trim((string) ($_POST['absender'][$zaR] ?? '')));
+                    if ($zaW !== '' && (!filter_var($zaW, FILTER_VALIDATE_EMAIL) || ($zaDom !== '' && !str_ends_with($zaW, '@' . $zaDom)))) {
+                        throw new RuntimeException('Absender für ' . AkquiseMail::ROLLEN_ABSENDER[$zaR] . ': nur eine gültige Adresse auf @' . ($zaDom ?: 'der Absender-Domain') . '.');
+                    }
+                    $zaAlt[$zaR] = AkquiseGate::einstellung('akq_absender_rolle_' . $zaR, ''); $zaNeu[$zaR] = $zaW;
+                }
+                foreach ($zaNeu as $zaR => $zaW) { AkquiseGate::setzen('akq_absender_rolle_' . $zaR, $zaW); }
+                Events::pruefspur('absender_rolle', 'settings', null, $zaAlt, $zaNeu);
+                $_SESSION['gut'] = 'Absender je Rolle gespeichert.';
+                zurueck('einstellungen?b=zugaenge');
+
             /* Rollen (05.10.2026): nur für andere Zugänge — die eigene Rolle ändert ein anderer Admin. */
             case 'zugang_rolle':
                 $uid = (int) ($_POST['id'] ?? 0);

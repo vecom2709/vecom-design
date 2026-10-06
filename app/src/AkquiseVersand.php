@@ -211,7 +211,7 @@ final class AkquiseVersand
     /** @var null|callable(string $an, string $betreff, string $text): bool  Austauschbar für die Kette (dort gibt es kein Brevo). */
     public static $postbote = null;
 
-    public static function rausschicken(array $f, string $betreff, string $text, string $sprache, ?int $vorlageId, string $gate, ?string $grund = null): array
+    public static function rausschicken(array $f, string $betreff, string $text, string $sprache, ?int $vorlageId, string $gate, ?string $grund = null, array $optionen = []): array
     {
         require_once __DIR__ . '/Mail.php';
         $token = bin2hex(random_bytes(20));
@@ -236,11 +236,13 @@ final class AkquiseVersand
             'status' => 'fehler', 'compliance' => $gate, 'grund' => $grund !== null ? mb_substr($grund, 0, 255) : null,
             'abmelde_token' => $token, 'actor' => $actor,
         ]);
-        $ok = self::$postbote ? (bool) (self::$postbote)((string) $f['email'], $betreff, $text . $zusatz) : Mail::senden('akquise', (string) $f['email'], $betreff, $text . $zusatz, [
+        /* $optionen (06.10.2026): absender/antwortAn für den Direktversand aus der Verwaltung -- Mail::senden lässt nur die eigene Domain zu. */
+        $optionen = array_intersect_key($optionen, ['absender' => 1, 'antwortAn' => 1]);
+        $ok = self::$postbote ? (bool) (self::$postbote)((string) $f['email'], $betreff, $text . $zusatz, $optionen) : Mail::senden('akquise', (string) $f['email'], $betreff, $text . $zusatz, [
             'kopfzeilen' => ['List-Unsubscribe' => '<' . $abmelden . '>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'],
             'sprache' => $sprache,
             'nurText' => true,
-        ]);
+        ] + $optionen);
         if (!$ok) {
             Db::update('akq_versand', $versandId, ['grund' => 'Brevo hat die Nachricht nicht angenommen — siehe E-Mail-Protokoll.']);
             Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'fehler']);

@@ -342,6 +342,93 @@ final class AkquiseMail
         self::statusSchreiben($firmaId);
     }
 
+    /* ================================================================== */
+    /*  Direkt aus der Verwaltung senden (06.10.2026, Uwe: „sollen auch     */
+    /*  direkt von der Verwaltung aus die E-Mail senden können anhand der   */
+    /*  E-Mail-Adresse der Rolle“)                                          */
+    /* ================================================================== */
+
+    public const ROLLEN_ABSENDER = ['admin' => 'Admin', 'mitarbeit' => 'Mitarbeit'];
+
+    /** Höchstens so viele Direktmails je Zugang und Tag -- Einzelversand, keine Serie. */
+    public const DIREKT_TAG = 30;
+
+    /**
+     * Wer als Absender erscheint: zuerst die Adresse der Rolle (Einstellungen →
+     * Zugänge), sonst die eigene Adresse des Zugangs, wenn sie zur Absender-
+     * Domain gehört, sonst die Firmenadresse mit Antwort an den Zugang.
+     * @return array{email:?string,name:string,antwort:?string,quelle:string}
+     */
+    public static function absender(): array
+    {
+        require_once __DIR__ . '/Mail.php';
+        require_once __DIR__ . '/AkquiseGate.php';
+        $domain = Mail::eigeneDomain();
+        $name = trim((Auth::name() ?: 'Vecom Design')) . ' · Vecom Design';
+        $rolle = (string) Auth::rolle();
+        $eigen = '';
+        if (Auth::id()) { $eigen = mb_strtolower((string) Db::wert('SELECT email FROM users WHERE id = ?', [(int) Auth::id()], '')); }
+        $passt = static fn(string $a): bool => $domain !== '' && filter_var($a, FILTER_VALIDATE_EMAIL) && str_ends_with($a, '@' . $domain);
+        $rollenAdresse = mb_strtolower(trim(AkquiseGate::einstellung('akq_absender_rolle_' . $rolle, '')));
+        if ($passt($rollenAdresse)) {
+            return ['email' => $rollenAdresse, 'name' => $name, 'antwort' => $rollenAdresse, 'quelle' => 'Adresse der Rolle ' . (self::ROLLEN_ABSENDER[$rolle] ?? $rolle)];
+        }
+        if ($passt($eigen)) {
+            return ['email' => $eigen, 'name' => $name, 'antwort' => $eigen, 'quelle' => 'eigene Adresse des Zugangs'];
+        }
+        return ['email' => null, 'name' => $name, 'antwort' => filter_var($eigen, FILTER_VALIDATE_EMAIL) ? $eigen : null,
+                'quelle' => 'Firmenadresse (für diese Rolle ist keine eigene Absender-Adresse eingetragen)'];
+    }
+
+    /**
+     * Eine einzelne E-Mail jetzt über das System verschicken. Nur bei 🟢,
+     * nie als Serie; Notbremse, Testbetrieb, Fehler- und Bounce-Grenzen gelten.
+     * @return array{id:int,simuliert:bool,absender:string}
+     */
+    public static function direktSenden(int $firmaId, string $betreff, string $text): array
+    {
+        require_once __DIR__ . '/AkquiseGate.php';
+        require_once __DIR__ . '/AkquiseVersand.php';
+        require_once __DIR__ . '/AkquiseText.php';
+        $f = self::firma($firmaId);
+        $k = self::kann($f);
+        if (!$k['senden']) { throw new RuntimeException('Senden geht hier nicht: ' . ($k['grund'] ?? 'kein Versandgrund dokumentiert') . '.'); }
+        $betreff = trim(mb_substr(strip_tags($betreff), 0, 200));
+        $text = trim(str_replace("\r\n", "\n", strip_tags($text)));
+        if ($betreff === '') { throw new RuntimeException('Bitte einen Betreff eintragen.'); }
+        if (mb_strlen($text) < 20) { throw new RuntimeException('Der Text ist zu kurz.'); }
+        if (mb_strlen($text) > 20000) { throw new RuntimeException('Der Text ist zu lang.'); }
+        $g = AkquiseGate::grenzen();
+        if ($g['stop']) { throw new RuntimeException('Die Notbremse ist gezogen — alle Aussendungen stehen.'); }
+        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'fehler' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)") >= $g['fehler']) {
+            throw new RuntimeException('Zu viele Fehlschläge in 24 Stunden — erst im E-Mail-Protokoll nachsehen.');
+        }
+        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'bounce' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)") >= $g['bounce']) {
+            throw new RuntimeException('Zu viele unzustellbare Adressen in 7 Tagen — Adressqualität prüfen.');
+        }
+        $actor = self::bearbeiter();
+        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE actor = ? AND status IN ('gesendet','simuliert') AND kanal = 'email' AND grund LIKE 'Direkt aus der Verwaltung%' AND created_at >= CURDATE()", [$actor]) >= self::DIREKT_TAG) {
+            throw new RuntimeException('Heute schon ' . self::DIREKT_TAG . ' Direktmails von diesem Zugang — Einzelversand, keine Serie.');
+        }
+        $abs = self::absender();
+        $grund = mb_substr('Direkt aus der Verwaltung · ' . (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung') . ' · Absender: ' . ($abs['email'] ?? 'Firmenadresse'), 0, 255);
+        $optionen = ($abs['email'] !== null ? ['absender' => ['email' => $abs['email'], 'name' => $abs['name']]] : [])
+                  + ($abs['antwort'] !== null ? ['antwortAn' => $abs['antwort']] : []);
+        $r = AkquiseVersand::rausschicken($f, $betreff, $text, AkquiseText::spracheFuer($f), null, (string) $f['compliance_status'], $grund, $optionen);
+        if (!$r['simuliert']) {
+            Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet']
+                + (in_array((string) $f['kontakt_status'], ['neu', 'qualifiziert', 'vorlage', 'freigegeben'], true) ? ['kontakt_status' => 'kontaktiert'] : []));
+            try { require_once __DIR__ . '/AkquiseSignal.php'; AkquiseSignal::vormerken($firmaId, 'email'); } catch (Throwable $e) { }
+        }
+        Akquise::protokoll($firmaId, 'versand', ($r['simuliert'] ? 'Testbetrieb: Direktmail nur simuliert' : 'Direktmail aus der Verwaltung an ' . $f['email'])
+            . ' — „' . mb_substr($betreff, 0, 80) . '“ (von ' . $actor . ', Absender ' . ($abs['email'] ?? 'Firmenadresse') . ')', ['versand' => $r['id']]);
+        Events::pruefspur('akquise_direktmail', 'akq_versand', $r['id'], [], [
+            'an' => $f['email'], 'betreff' => $betreff, 'absender' => $abs['email'] ?? 'Firmenadresse', 'antwort_an' => $abs['antwort'],
+            'versandgrund' => $f['email_legal_basis'] ?? 'einwilligung', 'werbung_gedeckt' => $k['werbung'], 'simuliert' => $r['simuliert'],
+        ]);
+        return ['id' => (int) $r['id'], 'simuliert' => (bool) $r['simuliert'], 'absender' => $abs['email'] ?? 'Firmenadresse'];
+    }
+
     private static function firma(int $firmaId): array
     {
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$firmaId]);

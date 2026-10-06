@@ -66,6 +66,13 @@ final class Mail
 
     public static function bereit(): bool { return self::zugang() !== null; }
 
+    /** Die bei Brevo eingetragene Absender-Domain (z. B. vecom-design.it) -- '' ohne Zugang. */
+    public static function eigeneDomain(): string
+    {
+        $z = self::zugang();
+        return $z === null ? '' : mb_strtolower((string) substr((string) strrchr($z['from'], '@'), 1));
+    }
+
     /** Die Adresse, an die Meldungen an Uwe selbst gehen. */
     public static function eigeneAdresse(): string
     {

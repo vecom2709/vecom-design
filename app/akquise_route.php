@@ -184,6 +184,12 @@ if ($post) {
                 $_SESSION['gut'] = 'Versandgrund dokumentiert. Status: ' . AkquiseMail::STATUS[$r['status']][2]
                     . ($r['freigabe'] ? ($r['werbung'] ? ' — einzelner Versand von Hand möglich, auch Werbung.' : ' — einzelne Nachricht von Hand möglich, keine Werbung.') : ' — eine Freigabe braucht noch eine Prüfung.');
                 weiter('akquise/' . $fid . '#mailstatus');
+            case 'akq_mail_senden':
+                require_once __DIR__ . '/src/AkquiseMail.php';
+                $r = AkquiseMail::direktSenden($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''));
+                $_SESSION['gut'] = $r['simuliert'] ? 'Testbetrieb: Die E-Mail wurde nur simuliert, nichts ging raus.'
+                                                   : 'E-Mail verschickt (Absender: ' . $r['absender'] . '). Sie steht im Verlauf und im E-Mail-Protokoll.';
+                weiter('akquise/' . $fid . '#ansprechen');
             case 'akq_mail_pruefung':
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 AkquiseMail::pruefungAnfordern($fid, (string) ($_POST['notiz'] ?? ''));
