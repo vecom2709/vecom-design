@@ -646,6 +646,14 @@ final class Cron
                 return Spuerhund::lauf();
             };
         }
+        // Bewertungs-Bitte (AI Office Stufe 4, V6, Uwe: „14 Tage nach online“, „nur wenn nichts offen ist“):
+        // nur ein Vorschlag in AI Freigaben — geschickt wird erst mit Uwes Ja.
+        if (self::heuteNochNicht('cron_bewertung_vorschlag')) {
+            $aufgaben['bewertung_vorschlag'] = static function () {
+                require_once __DIR__ . '/Bewertungsbitte.php';
+                return Bewertungsbitte::vorschlagen();
+            };
+        }
         require_once __DIR__ . '/Morgenbriefing.php';
         if (Morgenbriefing::faellig() && self::heuteNochNicht('cron_morgenbriefing')) {
             $aufgaben['morgenbriefing'] = static fn() => Morgenbriefing::senden();

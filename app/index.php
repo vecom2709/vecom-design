@@ -1796,21 +1796,11 @@ if ($post) {
                 weiter('partner/' . $klId);
 
             case 'bewertung_bitten':
-                require_once __DIR__ . '/src/Firma.php';
-                require_once __DIR__ . '/src/Texte.php';
-                require_once __DIR__ . '/src/Mail.php';
-                $bk = Db::one('SELECT id, name, email, sprache FROM customers WHERE id = ? AND anonym_am IS NULL', [(int) ($_POST['id'] ?? 0)]);
-                $bl = Firma::get('firma_google_bewertung');
-                if (!$bk || (string) $bk['email'] === '' || !str_starts_with($bl, 'https://')) {
-                    $_SESSION['fehler'] = 'Ohne E-Mail-Adresse oder Bewertungslink (Einstellungen → Firma) geht keine Bitte raus.';
-                } elseif (Mail::schonGeschickt('bewertung_bitte', 'customer_id', (int) $bk['id'])) {
-                    $_SESSION['fehler'] = 'Diesen Kunden haben wir schon gebeten — ein zweites Mal fragen wir nicht.';
-                } else {
-                    $bs = in_array((string) $bk['sprache'], ['it', 'de', 'en'], true) ? (string) $bk['sprache'] : 'it';
-                    [$bBetreff, $bText] = Texte::mail('bewertung_bitte', $bs, ['name' => trim(explode(' ', (string) $bk['name'])[0]), 'link' => $bl]);
-                    $ok = Mail::senden('bewertung_bitte', (string) $bk['email'], $bBetreff, $bText, ['customer_id' => (int) $bk['id']]);
-                    $_SESSION[$ok ? 'gut' : 'fehler'] = $ok ? 'Die Bitte um eine Google-Bewertung ist raus.' : 'Die Mail ging nicht raus — siehe Meldungen.';
-                }
+                /* Seit AI Office Stufe 4 (07.10.2026) in Nachricht::bewertungBitten — dieselbe Tat genehmigt Uwe in AI Freigaben. */
+                require_once __DIR__ . '/src/Nachricht.php';
+                $bwR = Nachricht::bewertungBitten((int) ($_POST['id'] ?? 0));
+                $_SESSION[$bwR['ok'] ? 'gut' : 'fehler'] = $bwR['text'];
+                if ($bwR['ok']) { require_once __DIR__ . '/src/Freigabe.php'; Freigabe::vonHandErledigt('bewertung_bitten', ['kunde' => (int) ($_POST['id'] ?? 0)]); }
                 zurueck('kunden/' . (int) ($_POST['id'] ?? 0));
 
             case 'einmalig_erledigt':
@@ -3548,6 +3538,8 @@ if ($post) {
                     throw new RuntimeException('Die Einladung ging nicht raus. Steht der Brevo-Schlüssel? Ist der Fragebogen schon abgeschlossen?');
                 }
                 $_SESSION['gut'] = 'Fragebogen verschickt.';
+                require_once __DIR__ . '/src/Freigabe.php';
+                Freigabe::vonHandErledigt('fragebogen_einladen', ['projekt' => $pid]);
                 zurueck('projekte/' . $pid);
 
             case 'rechnung_erzeugen':
@@ -3960,7 +3952,9 @@ if ($post) {
 
             case 'abo_anfordern':
                 require_once __DIR__ . '/src/Abo.php';
+                require_once __DIR__ . '/src/Freigabe.php';
                 $zid = (int) $_POST['id'];
+                Freigabe::vonHandErledigt('abo_anfordern', ['zahlung' => $zid]);
                 $_SESSION['gut'] = match (Abo::anfordern($zid)) {
                     'raus'           => 'Die Aufforderung ist raus — ab jetzt läuft die Frist von sieben Tagen.',
                     'versand_fehler' => 'Der Versand hat nicht geklappt — siehe Nachrichten. Die Rate bleibt ohne Frist stehen.',
@@ -4156,6 +4150,8 @@ if ($post) {
                 require_once __DIR__ . '/src/Mahnung.php';
                 $zid = (int) $_POST['id'];
                 $stufe = max(1, min(3, (int) ($_POST['stufe'] ?? 2)));
+                require_once __DIR__ . '/src/Freigabe.php';
+                Freigabe::vonHandErledigt('mahnung_schicken', ['zahlung' => $zid, 'stufe' => $stufe]);
                 $bid = (int) Db::wert('SELECT order_id FROM payments WHERE id = ?', [$zid], 0);
                 $_SESSION['gut'] = match (Mahnung::schicken($zid, $stufe)) {
                     'raus'           => Mahnung::name($stufe) . ' ist raus — der Kunde hat sie samt frischem Zahlungslink.',
@@ -4176,6 +4172,8 @@ if ($post) {
                 $_SESSION['gut'] = Nachricht::restzahlungAnfordern((int) $pr['id'])
                     ? 'Die Restzahlung ist angefordert — der Kunde hat die E-Mail mit dem Zahlungslink.'
                     : 'Nichts zu tun: Entweder ist nichts mehr offen, oder die Anforderung ging schon raus.';
+                require_once __DIR__ . '/src/Freigabe.php';
+                Freigabe::vonHandErledigt('restzahlung_anfordern', ['projekt' => (int) $pr['id']]);
                 zurueck('bestellungen/' . $bid);
 
             case 'nachricht_senden':

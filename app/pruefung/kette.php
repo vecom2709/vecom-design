@@ -11129,9 +11129,10 @@ foreach (['it', 'de', 'en'] as $gbL) {
     pruefe("Bewertung ($gbL): Mail mit Namen und Link, ohne gerade Apostrophe",
         $gbB !== '' && str_contains($gbT, 'Anna') && str_contains($gbT, 'https://g.page/r/X/review') && !str_contains($gbT . $gbB, "'"));
 }
-$gbI = (string) file_get_contents($oben . '/app/index.php');
+// Seit AI Office Stufe 4 (07.10.2026) steht die Tat in Nachricht::bewertungBitten — Knopf und AI-Freigabe rufen beide sie.
+$gbI = (string) file_get_contents($oben . '/app/src/Nachricht.php');
 pruefe('Bewertung: je Kunde nur einmal, nur mit https-Link, nie bei anonymisierten Kunden',
-    str_contains($gbI, "Mail::schonGeschickt('bewertung_bitte', 'customer_id'") && str_contains($gbI, "!str_starts_with(\$bl, 'https://')")
+    str_contains($gbI, "Mail::schonGeschickt('bewertung_bitte', 'customer_id'") && str_contains($gbI, "!str_starts_with(\$link, 'https://')")
     && str_contains($gbI, 'AND anonym_am IS NULL'));
 pruefe('Bewertung: auf der Kundenseite nur ein Link, den der Kunde selbst klickt -- und nur mit https',
     str_contains((string) file_get_contents($oben . '/kunde.php'), "str_starts_with((string) \$gLink, 'https://')"));
@@ -27696,7 +27697,7 @@ pruefe('darf(): eine Lese-Verbindung darf nicht eintragen', ClaudeZugang::darf([
 $e3Quelle = (string) file_get_contents($wurzel . '/src/ClaudeEintragen.php');
 pruefe('Eintragen kennt keinen Versand, kein Löschen, kein Genehmigen und kein Geld',
     !preg_match('/\b(Mail|Telegram|WhatsAppCloud|Zuruf|Ausgang|Abbuchung|Partner)::/', $e3Quelle) && !preg_match('/\bDELETE\b/', $e3Quelle)
-    && !str_contains($e3Quelle, 'genehmigen(') && !str_contains($e3Quelle, 'payments'));
+    && !str_contains($e3Quelle, 'genehmigen(') && !preg_match('/(UPDATE|INSERT INTO)\s+payments/i', $e3Quelle));
 pruefe('jedes Eintragen-Werkzeug ist als nicht zerstörend und nur im Haus gekennzeichnet', array_filter(ClaudeEintragen::liste(), static fn($w) =>
     ($w['annotations']['destructiveHint'] ?? true) !== false || ($w['annotations']['openWorldHint'] ?? true) !== false) === []
     && array_intersect(ClaudeEintragen::namen(), ClaudeWerkzeuge::namen()) === []);
@@ -27790,6 +27791,59 @@ Db::run('DELETE FROM tasks WHERE project_id = ?', [$e3P]);
 Db::run('DELETE FROM activities WHERE customer_id = ?', [$e3K]);
 Db::run('DELETE FROM projects WHERE id = ?', [$e3P]);
 Db::run('DELETE FROM customers WHERE id = ?', [$e3K]);
+
+/* ---- AI Office Stufe 4: mehr Vorschläge nach draußen, Bewertungs-Bitte (V6) ---- */
+abschnitt('AI Office Stufe 4: neue Freigabe-Arten und Bewertungs-Bitte');
+require_once $wurzel . '/src/Bewertungsbitte.php';
+foreach (['bewertung_bitten', 'fragebogen_einladen', 'restzahlung_anfordern', 'abo_anfordern', 'mahnung_schicken'] as $e4Art) {
+    pruefe("Freigabe-Art „{$e4Art}“ gibt es, mit Rückfrage der eigentlichen Tat (geht raus)",
+        isset(Freigabe::ARTEN[$e4Art]) && Freigabe::ARTEN[$e4Art]['tat'] === $e4Art && (Ablauf::TRAGWEITE[$e4Art][0] ?? '') === Ablauf::RAUS);
+}
+$e4Idx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('die Knöpfe in der Verwaltung erledigen offene Vorschläge derselben Tat mit', array_filter(['bewertung_bitten', 'fragebogen_einladen', 'restzahlung_anfordern', 'abo_anfordern', 'mahnung_schicken'],
+    static fn($t) => !str_contains($e4Idx, "Freigabe::vonHandErledigt('$t'")) === []);
+pruefe('die Bewertungs-Bitte hat genau eine Methode, die Knopf und Freigabe rufen', str_contains($e4Idx, 'Nachricht::bewertungBitten(')
+    && str_contains((string) file_get_contents($wurzel . '/src/Freigabe.php'), 'Nachricht::bewertungBitten(') && !str_contains($e4Idx, "Texte::mail('bewertung_bitte'"));
+// V6 an echten Zeilen: online seit 20 Tagen → Vorschlag; mit ungelesener Nachricht → keiner; nie zweimal.
+$e4K = (int) Db::insert('customers', ['name' => 'Bewertung Kette', 'email' => 'bewertung-kette@pruefung.example', 'sprache' => 'de', 'token' => bin2hex(random_bytes(12))]);
+$e4P = (int) Db::insert('projects', ['customer_id' => $e4K, 'name' => 'Bewertung Seite', 'status' => 'online', 'veroeffentlicht_am' => date('Y-m-d H:i:s', strtotime('-20 days'))]);
+$e4K2 = (int) Db::insert('customers', ['name' => 'Bewertung Wartet', 'email' => 'bewertung-wartet@pruefung.example', 'token' => bin2hex(random_bytes(12))]);
+$e4P2 = (int) Db::insert('projects', ['customer_id' => $e4K2, 'name' => 'Bewertung Zwei', 'status' => 'online', 'veroeffentlicht_am' => date('Y-m-d H:i:s', strtotime('-30 days'))]);
+Db::insert('messages', ['project_id' => $e4P2, 'customer_id' => $e4K2, 'sender' => 'kunde', 'body' => 'Noch eine Frage …']);
+$e4K3 = (int) Db::insert('customers', ['name' => 'Bewertung Frisch', 'email' => 'bewertung-frisch@pruefung.example', 'token' => bin2hex(random_bytes(12))]);
+Db::insert('projects', ['customer_id' => $e4K3, 'name' => 'Bewertung Drei', 'status' => 'online', 'veroeffentlicht_am' => date('Y-m-d H:i:s', strtotime('-5 days'))]);
+$e4Kand = array_column(Bewertungsbitte::kandidaten(), 'kunde');
+pruefe('Kandidat nach 14 Tagen — nicht mit ungelesener Nachricht, nicht nach 5 Tagen', in_array($e4K, $e4Kand, true) && !in_array($e4K2, $e4Kand, true) && !in_array($e4K3, $e4Kand, true));
+$e4Link = Db::wert("SELECT svalue FROM settings WHERE skey = 'firma_google_bewertung'", [], null);
+require_once $wurzel . '/src/Firma.php';
+Firma::speichern(['firma_google_bewertung' => 'https://g.page/r/pruefung/review']);
+$e4Mails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$e4V = Bewertungsbitte::vorschlagen();
+$e4F = (int) Db::wert("SELECT id FROM ai_freigaben WHERE art = 'bewertung_bitten' AND kunde_id = ?", [$e4K], 0);
+pruefe('V6 legt einen Vorschlag in AI Freigaben — und schickt selbst nichts', $e4F > 0 && (string) Db::wert('SELECT status FROM ai_freigaben WHERE id = ?', [$e4F], '') === 'offen'
+    && (string) Db::wert('SELECT vorgeschlagen_von FROM ai_freigaben WHERE id = ?', [$e4F], '') === 'Bewertungs-Bitte (V6)'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $e4Mails, json_encode($e4V));
+Freigabe::ablehnen($e4F, 'Kette', 'kennt uns erst kurz');
+pruefe('abgelehnt kommt nicht wieder', !in_array($e4K, array_column(Bewertungsbitte::kandidaten(), 'kunde'), true));
+// Claude darf die neuen Arten vorschlagen — mit Plausibilität.
+$e4Z = (int) Db::insert('payments', ['order_id' => null, 'art' => 'rate', 'bezeichnung' => 'Kette Rate', 'amount_cents' => 5000, 'currency' => 'EUR', 'status' => 'ausstehend',
+    'faellig_am' => date('Y-m-d', strtotime('+5 days'))]);
+pruefe('Mahnung für eine noch nicht fällige Zahlung: kein Vorschlag; Stufe 1 auch nicht',
+    !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'mahnung_schicken', 'zahlung_id' => $e4Z, 'stufe' => 2, 'titel' => 'Mahnung', 'grund' => 'Test'], 9002)['ok']
+    && !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'mahnung_schicken', 'zahlung_id' => $e4Z, 'stufe' => 1, 'titel' => 'Mahnung', 'grund' => 'Test'], 9002)['ok']);
+Db::run('UPDATE payments SET faellig_am = ? WHERE id = ?', [date('Y-m-d', strtotime('-12 days')), $e4Z]);
+$e4M = ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'mahnung_schicken', 'zahlung_id' => $e4Z, 'stufe' => 2, 'titel' => 'Zweite Mahnung', 'grund' => 'Seit 12 Tagen überfällig.'], 9002);
+pruefe('überfällig: Claude legt die Mahnung Stufe 2 als Vorschlag hin — raus geht nichts', $e4M['ok'] && (string) Db::wert('SELECT art FROM ai_freigaben WHERE id = ?', [(int) ($e4M['daten']['freigabe_id'] ?? 0)], '') === 'mahnung_schicken'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $e4Mails, $e4M['text']);
+pruefe('Betreuungsrate nur für eine Rate aus einem Vertrag', !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'abo_anfordern', 'zahlung_id' => $e4Z, 'titel' => 'Rate', 'grund' => 'Test'], 9002)['ok']);
+pruefe('Bewertung: Claude kann sie vorschlagen, aber nicht für einen Kunden ohne E-Mail', ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'bewertung_bitten', 'kunde_id' => $e4K3, 'titel' => 'Bewertung', 'grund' => 'Test'], 9002)['ok']
+    && !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'bewertung_bitten', 'kunde_id' => (int) Db::insert('customers', ['name' => 'Ohne Mail', 'email' => '', 'token' => bin2hex(random_bytes(12))]), 'titel' => 'Bewertung', 'grund' => 'Test'], 9002)['ok']);
+pruefe('V6 steht im Automation Center (schickt selbst nichts) und läuft täglich', (Automation::REGELN['bewertung_vorschlag'][3] ?? true) === false
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'cron_bewertung_vorschlag'"));
+Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE kunde_id IN (?, ?, ?) AND status = 'offen'", [$e4K, $e4K2, $e4K3]);
+Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE art = 'mahnung_schicken' AND status = 'offen'");
+Firma::speichern(['firma_google_bewertung' => (string) ($e4Link ?? '')]);
+Db::run('DELETE FROM payments WHERE id = ?', [$e4Z]);
 
 /* ============================================================================
    Aufräumen und Bilanz

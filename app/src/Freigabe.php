@@ -46,6 +46,12 @@ final class Freigabe
         'kunde_nachricht'   => ['tat' => 'kunde_nachricht',   'pflicht' => ['kunde', 'text'],  'aenderbar' => ['betreff', 'text'], 'wort' => 'Nachricht an den Kunden'],
         'nachricht_senden'  => ['tat' => 'nachricht_senden',  'pflicht' => ['projekt', 'text'],'aenderbar' => ['betreff', 'text'], 'wort' => 'Nachricht zum Projekt'],
         'partner_nachricht' => ['tat' => 'partner_nachricht', 'pflicht' => ['partner', 'text'],'aenderbar' => ['text'],            'wort' => 'Nachricht an den Partner'],
+        // AI Office Stufe 4 (07.10.2026, Uwe: alle vier angekreuzt) — jede ruft dieselbe Methode wie ihr Knopf.
+        'bewertung_bitten'      => ['tat' => 'bewertung_bitten',      'pflicht' => ['kunde'],            'aenderbar' => [], 'wort' => 'Bitte um Google-Bewertung'],
+        'fragebogen_einladen'   => ['tat' => 'fragebogen_einladen',   'pflicht' => ['projekt'],          'aenderbar' => [], 'wort' => 'Einladung zum Fragebogen'],
+        'restzahlung_anfordern' => ['tat' => 'restzahlung_anfordern', 'pflicht' => ['projekt'],          'aenderbar' => [], 'wort' => 'Restzahlung anfordern'],
+        'abo_anfordern'         => ['tat' => 'abo_anfordern',         'pflicht' => ['zahlung'],          'aenderbar' => [], 'wort' => 'Betreuungsrate anfordern'],
+        'mahnung_schicken'      => ['tat' => 'mahnung_schicken',      'pflicht' => ['zahlung', 'stufe'], 'aenderbar' => [], 'wort' => 'Mahnung schicken'],
     ];
 
     /** Prüfnaht für die Kette: ersetzt die Telegram-Nachricht an Uwe. */
@@ -97,7 +103,7 @@ final class Freigabe
     /** Nummern als Zahl, Schlüssel sortiert — damit „5“ und 5 derselbe Vorschlag sind. */
     private static function norm(array $d): array
     {
-        foreach (['projekt', 'kunde', 'partner', 'angebot'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
+        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
         ksort($d);
         return $d;
     }
@@ -111,6 +117,10 @@ final class Freigabe
         try {
             if ($projekt !== null && $kunde === null) { $kunde = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$projekt], 0) ?: null; }
             if (isset($d['angebot'])) { $kunde = (int) Db::wert('SELECT customer_id FROM angebote WHERE id = ?', [(int) $d['angebot']], 0) ?: $kunde; }
+            if (isset($d['zahlung']) && $kunde === null) {
+                $kunde = (int) Db::wert('SELECT COALESCE(o.customer_id, a.customer_id) FROM payments p LEFT JOIN orders o ON o.id = p.order_id
+                                          LEFT JOIN abos a ON a.id = p.abo_id WHERE p.id = ?', [(int) $d['zahlung']], 0) ?: null;
+            }
         } catch (Throwable $e) { }
         return [$kunde, $projekt, $partner];
     }
@@ -237,6 +247,30 @@ final class Freigabe
                 try { PartnerPost::schreiben((int) $d['partner'], (string) $d['text'], 'vecom', $userId); }
                 catch (InvalidArgumentException $e) { throw new RuntimeException('Die Nachricht ist leer.'); }
                 return 'Antwort verschickt.';
+            case 'bewertung_bitten':
+                require_once __DIR__ . '/Nachricht.php';
+                $r = Nachricht::bewertungBitten((int) $d['kunde']);
+                if (!$r['ok']) { throw new RuntimeException($r['text']); }
+                return $r['text'];
+            case 'fragebogen_einladen':
+                require_once __DIR__ . '/Onboarding.php';
+                if (!Onboarding::einladen((int) $d['projekt'], true)) { throw new RuntimeException('Die Einladung ging nicht raus. Ist der Fragebogen schon abgeschlossen?'); }
+                return 'Fragebogen verschickt.';
+            case 'restzahlung_anfordern':
+                require_once __DIR__ . '/Nachricht.php';
+                if (!Nachricht::restzahlungAnfordern((int) $d['projekt'])) { throw new RuntimeException('Nichts zu tun: Entweder ist nichts mehr offen, oder die Anforderung ging schon raus.'); }
+                return 'Die Restzahlung ist angefordert — der Kunde hat die E-Mail mit dem Zahlungslink.';
+            case 'abo_anfordern':
+                require_once __DIR__ . '/Abo.php';
+                $a = Abo::anfordern((int) $d['zahlung']);
+                if ($a !== 'raus') { throw new RuntimeException($a === 'versand_fehler' ? 'Der Versand hat nicht geklappt — siehe Nachrichten.' : 'Nichts zu tun: bezahlt oder schon angefordert.'); }
+                return 'Die Aufforderung ist raus — ab jetzt läuft die Frist von sieben Tagen.';
+            case 'mahnung_schicken':
+                require_once __DIR__ . '/Mahnung.php';
+                $stufe = max(2, min(3, (int) $d['stufe']));
+                $m = Mahnung::schicken((int) $d['zahlung'], $stufe);
+                if ($m !== 'raus') { throw new RuntimeException($m === 'versand_fehler' ? 'Sie wäre dran gewesen, aber der Versand hat nicht geklappt.' : 'Nichts zu tun: bezahlt, oder diese Stufe ging schon raus.'); }
+                return Mahnung::name($stufe) . ' ist raus — der Kunde hat sie samt frischem Zahlungslink.';
         }
         throw new RuntimeException('Unbekannte Art.');
     }

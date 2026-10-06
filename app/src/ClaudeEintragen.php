@@ -68,7 +68,7 @@ final class ClaudeEintragen
                  'ids' => ['type' => 'array', 'minItems' => 1, 'maxItems' => 50, 'items' => ['type' => 'integer', 'minimum' => 1]]]],
              'annotations' => $tut('Meldungen als gelesen')],
             ['name' => 'freigabe_vorschlagen', 'title' => 'Vorschlag in AI Freigaben',
-             'description' => 'Etwas, das nach draußen gehen soll, Uwe zur Freigabe hinlegen: Nachricht an einen Kunden (kunde_nachricht: kunde_id, betreff, text), Nachricht zum Projekt (nachricht_senden: projekt_id, text), Nachricht an einen Partner (partner_nachricht: partner_id, text), ein fertiges Angebot senden (angebot_senden: angebot_id) oder eine Vorschau freischalten (vorschau_frei: projekt_id). Es geht erst raus, wenn Uwe genehmigt; er kann Betreff und Text vorher ändern. Texte in der Sprache des Kunden, Uwe siezt Kunden. Nichts erfinden — nur, was in der Verwaltung steht.',
+             'description' => 'Etwas, das nach draußen gehen soll, Uwe zur Freigabe hinlegen: Nachricht an einen Kunden (kunde_nachricht: kunde_id, betreff, text), Nachricht zum Projekt (nachricht_senden: projekt_id, text), Nachricht an einen Partner (partner_nachricht: partner_id, text), ein fertiges Angebot senden (angebot_senden: angebot_id), eine Vorschau freischalten (vorschau_frei: projekt_id), Bitte um Google-Bewertung (bewertung_bitten: kunde_id), Einladung zum Fragebogen (fragebogen_einladen: projekt_id), Restzahlung anfordern (restzahlung_anfordern: projekt_id), Betreuungsrate anfordern (abo_anfordern: zahlung_id) oder Mahnung Stufe 2/3 (mahnung_schicken: zahlung_id, stufe). Es geht erst raus, wenn Uwe genehmigt; bei Nachrichten kann er Betreff und Text vorher ändern. Texte in der Sprache des Kunden, Uwe siezt Kunden. Nichts erfinden — nur, was in der Verwaltung steht.',
              'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['art', 'titel', 'grund'], 'properties' => [
                  'art' => ['type' => 'string', 'enum' => array_keys(Freigabe::ARTEN)],
                  'titel' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 200, 'description' => 'Worum es geht, in einer Zeile.'],
@@ -79,6 +79,8 @@ final class ClaudeEintragen
                  'projekt_id' => $zahl('Bei nachricht_senden und vorschau_frei.'),
                  'partner_id' => $zahl('Bei partner_nachricht.'),
                  'angebot_id' => $zahl('Bei angebot_senden.'),
+                 'zahlung_id' => $zahl('Bei abo_anfordern und mahnung_schicken (aus geld).'),
+                 'stufe' => ['type' => 'integer', 'enum' => [2, 3], 'description' => 'Bei mahnung_schicken: 2 oder 3 (Stufe 1 geht von selbst).'],
                  'betreff' => ['type' => 'string', 'maxLength' => 200],
                  'text' => ['type' => 'string', 'maxLength' => 8000]]],
              'annotations' => $tut('Vorschlag in AI Freigaben')],
@@ -232,6 +234,37 @@ final class ClaudeEintragen
                 break;
             case 'vorschau_frei':
                 $daten = ['projekt' => $braucht('projekt_id', 'projects', 'Projekt')];
+                break;
+            case 'bewertung_bitten':
+                $kid = $braucht('kunde_id', 'customers', 'Kunde');
+                if ((string) Db::wert('SELECT email FROM customers WHERE id = ?', [$kid], '') === '') { throw new InvalidArgumentException('Der Kunde hat keine E-Mail-Adresse.'); }
+                // Dieselbe Frage wie die Versandklasse sie stellt — hier als Abfrage, damit diese Datei sie gar nicht kennt.
+                if ((int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'bewertung_bitte' AND customer_id = ? AND status = 'gesendet'", [$kid], 0) > 0) { throw new InvalidArgumentException('Dieser Kunde wurde schon um eine Bewertung gebeten — ein zweites Mal fragt Vecom nicht.'); }
+                $daten = ['kunde' => $kid];
+                break;
+            case 'fragebogen_einladen':
+                $pid = $braucht('projekt_id', 'projects', 'Projekt');
+                if (Db::one("SELECT id FROM questionnaires WHERE project_id = ? AND submitted_at IS NOT NULL", [$pid]) !== null) { throw new InvalidArgumentException('Der Fragebogen ist schon abgeschickt.'); }
+                $daten = ['projekt' => $pid];
+                break;
+            case 'restzahlung_anfordern':
+                $daten = ['projekt' => $braucht('projekt_id', 'projects', 'Projekt')];
+                break;
+            case 'abo_anfordern':
+            case 'mahnung_schicken':
+                $zid = self::id($a, 'zahlung_id');
+                $z = Db::one('SELECT id, abo_id, status, faellig_am FROM payments WHERE id = ? AND demo = 0', [$zid]);
+                if ($z === null) { throw new InvalidArgumentException('Keine Zahlung mit der ID ' . $zid . '.'); }
+                if ((string) $z['status'] === 'bezahlt') { throw new InvalidArgumentException('Diese Zahlung ist schon bezahlt.'); }
+                if ($art === 'abo_anfordern') {
+                    if ($z['abo_id'] === null) { throw new InvalidArgumentException('Das ist keine Betreuungsrate.'); }
+                    $daten = ['zahlung' => $zid];
+                } else {
+                    $stufe = (int) ($a['stufe'] ?? 0);
+                    if (!in_array($stufe, [2, 3], true)) { throw new InvalidArgumentException('stufe: 2 oder 3.'); }
+                    if ($z['faellig_am'] === null || (string) $z['faellig_am'] >= date('Y-m-d')) { throw new InvalidArgumentException('Die Zahlung ist noch nicht überfällig.'); }
+                    $daten = ['zahlung' => $zid, 'stufe' => $stufe];
+                }
                 break;
         }
         $id = Freigabe::vorschlagen($art, $daten, [

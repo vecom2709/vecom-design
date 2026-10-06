@@ -123,6 +123,7 @@ final class Automation
         'verzeichnisse'  => ['Verzeichnisse erinnern', 'marketing', 'A', false, 'Ein Zuruf je Woche für liegende Einträge.'],
         'spur'           => ['Tracking zusammenfassen', 'marketing', 'A', false, 'Einzeldaten nach der Frist zu Tageszahlen.'],
         // System
+        'bewertung_vorschlag' => ['Bewertungs-Bitte vorschlagen', 'kunden', 'A', false, '14 Tage nach online, wenn beim Kunden nichts offen ist: ein Vorschlag in AI Freigaben. Raus geht die Bitte erst mit deinem Ja (AI Office Stufe 4).'],
         'spuerhund'      => ['Umsatz-Spürhund', 'geld', 'A', false, 'Sucht einmal am Tag Chancen: Seite ohne Betreuung oder Hosting, Angebote ohne Antwort, wartende Interessenten. Schreibt niemandem (AI Office Stufe 3).'],
         'morgenbriefing' => ['Morgenbriefing', 'system', 'A', false, 'Um 07:30 an dein Telegram: was wartet, Geld, Technik, Akquise und Termine (AI Office Stufe 2).'],
         'claude_zugang'  => ['Claude-Zugang aufräumen', 'system', 'A', false, 'Löscht abgelaufene Anfragen und Schlüssel, ungenutzte Programmanmeldungen und die Spur nach 180 Tagen.'],

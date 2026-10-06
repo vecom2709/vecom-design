@@ -104,6 +104,30 @@ final class Nachricht
     }
 
     /**
+     * Die Bitte um eine Google-Bewertung, einmal je Kunde. Bis 07.10.2026 stand das in app/index.php
+     * (bewertung_bitten); seit AI Office Stufe 4 ruft es auch die AI-Freigabe auf — dieselbe Tat.
+     * @return array{ok:bool, text:string}
+     */
+    public static function bewertungBitten(int $kundeId): array
+    {
+        require_once __DIR__ . '/Firma.php';
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/Mail.php';
+        $k = Db::one('SELECT id, name, email, sprache FROM customers WHERE id = ? AND anonym_am IS NULL', [$kundeId]);
+        $link = Firma::get('firma_google_bewertung');
+        if (!$k || (string) $k['email'] === '' || !str_starts_with($link, 'https://')) {
+            return ['ok' => false, 'text' => 'Ohne E-Mail-Adresse oder Bewertungslink (Einstellungen → Firma) geht keine Bitte raus.'];
+        }
+        if (Mail::schonGeschickt('bewertung_bitte', 'customer_id', (int) $k['id'])) {
+            return ['ok' => false, 'text' => 'Diesen Kunden haben wir schon gebeten — ein zweites Mal fragen wir nicht.'];
+        }
+        $sprache = in_array((string) $k['sprache'], ['it', 'de', 'en'], true) ? (string) $k['sprache'] : 'it';
+        [$betreff, $text] = Texte::mail('bewertung_bitte', $sprache, ['name' => trim(explode(' ', (string) $k['name'])[0]), 'link' => $link]);
+        $ok = Mail::senden('bewertung_bitte', (string) $k['email'], $betreff, $text, ['customer_id' => (int) $k['id']]);
+        return ['ok' => $ok, 'text' => $ok ? 'Die Bitte um eine Google-Bewertung ist raus.' : 'Die Mail ging nicht raus — siehe Meldungen.'];
+    }
+
+    /**
      * Nachricht an einen Kunden ohne Projekt, mit dem Link seiner offenen Anfrage (falls es eine gibt).
      * Bis 06.10.2026 stand das in app/index.php (kunde_nachricht); jetzt ruft es auch die AI-Freigabe auf.
      */

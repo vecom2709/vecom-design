@@ -34,7 +34,9 @@ $link = static function (array $f): string {
       <?= Fmt::h((string) $f['vorgeschlagen_von']) ?> · <?= Fmt::h((string) $f['system_name']) ?> · <?= Fmt::h(Fmt::zeit((string) $f['created_at'])) ?>
       <?php if ($ziel !== ''): ?> · <a href="<?= Fmt::h($ziel) ?>">Akte öffnen</a><?php endif; ?></p>
     <table class="schlicht fr-tabelle"><tbody>
-      <?php foreach (['grund' => 'Grund', 'ist' => 'Jetzt', 'soll' => 'Danach', 'auswirkung' => 'Mögliche Auswirkung', 'kosten' => 'Kosten', 'rollback' => 'Rückweg', 'empfehlung' => 'Claude empfiehlt'] as $k => $w):
+      <?php /* „Claude empfiehlt“ nur, wenn Claude vorgeschlagen hat — die Bewertungs-Bitte (V6) und der Spürhund sind Regeln, keine Meinung. */
+        $vonClaude = str_starts_with((string) $f['vorgeschlagen_von'], 'Claude');
+        foreach (['grund' => 'Grund', 'ist' => 'Jetzt', 'soll' => 'Danach', 'auswirkung' => 'Mögliche Auswirkung', 'kosten' => 'Kosten', 'rollback' => 'Rückweg', 'empfehlung' => $vonClaude ? 'Claude empfiehlt' : 'Empfehlung'] as $k => $w):
         if (empty($f[$k])) { continue; } ?>
         <tr><td style="width:24%;color:var(--dim)"><?= Fmt::h($w) ?></td><td><?= nl2br(Fmt::h((string) $f[$k])) ?></td></tr>
       <?php endforeach; ?>
