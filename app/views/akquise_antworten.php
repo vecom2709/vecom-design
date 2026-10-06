@@ -70,9 +70,11 @@ $awEinw = $awOffen ? AkquiseAntwort::einwaende((string) $awOffen['betreff'] . ' 
       <span class="akq-klein" data-aw-status></span>
     </div>
   <?php if ($awKann['senden']): ?></form><?php endif; ?>
+  <?php if ($awKann['senden'] && !$awKann['freigabe']): ?>
+    <p class="akq-klein" style="margin-top:8px">⚠ Kein Versandgrund dokumentiert, keine Einwilligung hinterlegt — das Mailprogramm öffnet trotzdem, vorher bestätigst du den Hinweis in der Prüfung. Du sendest aus deinem eigenen Programm und entscheidest selbst.</p>
+  <?php endif; ?>
   <?php if (!$awKann['senden']): ?>
-    <p class="akq-klein" style="margin-top:8px">Öffnen im Mailprogramm geht erst mit dokumentiertem Versandgrund (oben bei „E-Mail“, z. B. „Kunde hat selbst Kontakt aufgenommen“ — das deckt eine Antwort, keine Werbung).
-      Eine Antwort des Betriebs ist keine Einwilligung. Bis dahin: kopieren oder anrufen.</p>
+    <p class="akq-klein" style="margin-top:8px">Öffnen im Mailprogramm geht hier nicht: <?= $awH((string) ($awKann['grund'] ?? '')) ?></p>
   <?php endif; ?>
   <?php if ($awOffen): ?>
     <?= $post('akq_antwort_erledigt', '<input type="hidden" name="antwort" value="' . (int) $awOffen['id'] . '"><button class="knopf klein">Erledigt — nichts mehr zu tun</button>', ' style="margin-top:10px"') ?>

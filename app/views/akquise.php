@@ -257,7 +257,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
             $akqMail = trim((string) ($z['email'] ?? '')); $akqWa = Akquise::whatsappNummer($z);
             $akqMs = AkquiseMail::status($z); [$akqMsZ, , $akqMsW] = AkquiseMail::STATUS[$akqMs]; ?>
           <div class="akq-kontakt">
-            <?php if ($akqMail !== ''): ?><span title="<?= Fmt::h($akqMsW) ?>">✉ <?php if ($akqMs === AkquiseMail::FREI): ?><a href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . '#mailstatus') ?>"><?= Fmt::h($akqMail) ?></a><?php else: ?><?= Fmt::h($akqMail) ?><?php endif; ?> <span aria-label="<?= Fmt::h($akqMsW) ?>"><?= $akqMsZ ?></span></span><?php endif; ?>
+            <?php if ($akqMail !== ''): ?><span title="<?= Fmt::h($akqMsW) ?>">✉ <?php if ($akqMs !== AkquiseMail::NICHT): ?><a href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . '#ansprechen') ?>"><?= Fmt::h($akqMail) ?></a><?php else: ?><?= Fmt::h($akqMail) ?><?php endif; ?> <span aria-label="<?= Fmt::h($akqMsW) ?>"><?= $akqMsZ ?></span></span><?php endif; ?>
             <?php if ($akqWa !== null): ?><span title="<?= trim((string) ($z['whatsapp'] ?? '')) !== '' ? 'WhatsApp-Nummer' : 'Handynummer — WhatsApp wahrscheinlich' ?>">WhatsApp <?= Fmt::h($akqWa) ?></span><?php endif; ?>
             <?php if ($akqMail === '' && $akqWa === null): ?><span class="akq-klein"><?= in_array((string) $z['audit_status'], ['offen', 'laeuft'], true) ? 'E-Mail wird auf der Website gesucht …' : 'Keine E-Mail, kein WhatsApp' ?></span><?php endif; ?>
           </div>

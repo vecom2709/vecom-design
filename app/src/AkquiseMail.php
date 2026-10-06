@@ -114,18 +114,26 @@ final class AkquiseMail
     {
         $status = self::status($f);
         $gefunden = Akquise::normEmail((string) ($f['email'] ?? '')) !== null;
-        $senden = $gefunden && $status === self::FREI && !self::partnerHat($f);
+        $partner = self::partnerHat($f);
+        /* 06.10.2026, Uwe: „Immer noch kann man keine E-Mails direkt aus dem Mailprogramm versenden … unabhängig ob
+           E-Mail-Zustimmung erlaubt ist.“ — „senden“ heißt seitdem: das eigene Mailprogramm öffnen (mailto). Das geht immer,
+           außer bei „Nicht kontaktieren“ (Widerspruch, Abmeldung, Sperre) und solange ein Partner den Betrieb hat.
+           Ohne dokumentierten Versandgrund erscheint ein Hinweis, den man vor dem Öffnen bestätigt (Werkstatt).
+           „freigabe“ ist der dokumentierte Versandgrund, „werbung“ ob er Werbung deckt. */
+        $freigabe = $gefunden && $status === self::FREI;
+        $senden = $gefunden && $status !== self::NICHT && !$partner;
         $grund = null;
         if (!$gefunden) { $grund = 'Keine E-Mail-Adresse bekannt.'; }
         elseif ($status === self::NICHT) { $grund = 'Nicht kontaktieren: Werbeversand bleibt blockiert.'; }
-        elseif ($status !== self::FREI) { $grund = 'Kein Versand ohne dokumentierten Versandgrund.'; }
-        elseif (!$senden) { $grund = 'Ein Partner kümmert sich gerade um diesen Betrieb.'; }
+        elseif ($partner) { $grund = 'Ein Partner kümmert sich gerade um diesen Betrieb.'; }
+        elseif (!$freigabe) { $grund = 'Kein Versandgrund dokumentiert — du sendest aus deinem eigenen Programm und entscheidest selbst.'; }
         return [
             'gefunden' => $gefunden,
             'anzeigen' => $gefunden,                       // nie wegen fehlender Einwilligung versteckt
             'entwurf'  => $gefunden && $status !== self::NICHT,
             'senden'   => $senden,
-            'werbung'  => $senden && ((int) ($f['email_marketing_consent'] ?? 0) === 1 || self::einwilligungAlt($f)),
+            'freigabe' => $freigabe,
+            'werbung'  => $freigabe && ((int) ($f['email_marketing_consent'] ?? 0) === 1 || self::einwilligungAlt($f)),
             'status'   => $status,
             'grund'    => $grund,
         ];
@@ -367,7 +375,7 @@ final class AkquiseMail
     public const MAILTO_LANG = 1900;
 
     /**
-     * mailto:-Link erzeugen. Nur bei 🟢; dieselbe Werkstatt-Prüfung wie bisher.
+     * mailto:-Link erzeugen. Geht außer bei „Nicht kontaktieren“ immer; ohne Versandgrund nur mit bestätigtem Hinweis (Werkstatt).
      * @return array{id:int,link:string,lang:bool,text:string}
      */
     public static function mailtoErzeugen(int $firmaId, string $betreff, string $text, bool $hinweiseGelesen = false): array
@@ -391,7 +399,7 @@ final class AkquiseMail
         $id = (int) Db::insert('akq_versand', [
             'firma_id' => $firmaId, 'kanal' => 'email', 'an' => $f['email'], 'status' => 'von_hand',
             'compliance' => (string) $f['compliance_status'], 'abmelde_token' => $token, 'actor' => self::bearbeiter(),
-            'grund' => mb_substr('mailto-Link erzeugt · ' . (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung'), 0, 255),
+            'grund' => mb_substr('mailto-Link erzeugt · ' . ($k['freigabe'] ? (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung') : 'ohne dokumentierten Versandgrund (Hinweis bestätigt)'), 0, 255),
         ]);
         Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet']
             + (in_array((string) $f['kontakt_status'], ['neu', 'qualifiziert', 'vorlage', 'freigegeben'], true) ? ['kontakt_status' => 'kontaktiert'] : []));

@@ -111,7 +111,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
                 require __DIR__ . '/akquise_werkstatt.php'; endif; ?>
           <?php if ($k === 'email'): ?>
             <p class="akq-klein" style="margin:0 0 8px">„Senden“ öffnet <b>dein eigenes Mailprogramm</b> (Outlook, Apple Mail …) mit Empfänger, Betreff und Text — du schickst die Mail dort selbst ab, mit deiner eigenen Adresse.
-              Ein Abmeldelink wird angehängt. Gespeichert wird nur der Zeitpunkt.<?= AkquiseMail::kann($f)['werbung'] ? '' : ' <b>Der dokumentierte Grund deckt keine Werbung</b> — nur die Antwort bzw. geschäftliche Nachricht.' ?></p>
+              Ein Abmeldelink wird angehängt. Gespeichert wird nur der Zeitpunkt.<?php $anK = AkquiseMail::kann($f); echo !$anK['freigabe'] ? ' <b>Kein Versandgrund dokumentiert</b> — vor dem Öffnen bestätigst du den Hinweis in der Prüfung.' : ($anK['werbung'] ? '' : ' <b>Der dokumentierte Grund deckt keine Werbung</b> — nur die Antwort bzw. geschäftliche Nachricht.'); ?></p>
             <?php $ws = ['kanal' => 'email', 'senden' => true, 'betreff' => $x['betreff'], 'text' => $x['text'], 'betreffFeld' => 'an-betreff', 'textFeld' => 'an-text-email'];
                   require __DIR__ . '/akquise_werkstatt.php'; /* Modul D: dieselbe Prüfung läuft beim Senden auf dem Server */ ?>
             <button class="knopf haupt">Senden — im Mailprogramm öffnen</button>

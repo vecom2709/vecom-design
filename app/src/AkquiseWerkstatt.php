@@ -104,13 +104,15 @@ final class AkquiseWerkstatt
         /* Darf es überhaupt raus? Nur beim Versand eine Bedingung, im Entwurf eine Auskunft. */
         if ($kanal === 'email') {
             $k = AkquiseMail::kann($f);
-            if ($k['senden']) {
+            if ($k['freigabe'] && $k['senden']) {
                 $neu(self::OK, 'Versandgrund dokumentiert: ' . (AkquiseMail::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung') . '.');
                 if (!$k['werbung']) { $neu(self::HINWEIS, 'Der dokumentierte Grund deckt keine Werbung — nur Antwort bzw. geschäftliche Nachricht, kein Angebot.'); }
-            } elseif ($senden) {
-                $neu(self::STOPP, (string) ($k['grund'] ?? 'Kein Versandgrund dokumentiert.'));
+            } elseif (!$k['senden']) {
+                /* Nicht kontaktieren / Partner hat den Betrieb: auch aus dem eigenen Programm nicht (06.10.2026). */
+                $neu($senden ? self::STOPP : self::HINWEIS, (string) ($k['grund'] ?? 'Nicht möglich.'));
             } else {
-                $neu(self::HINWEIS, 'Entwurf: ' . (string) ($k['grund'] ?? 'Kein Versandgrund dokumentiert.') . ' Senden geht erst danach.');
+                /* Ohne Versandgrund (06.10.2026, Uwe: „unabhängig ob E-Mail-Zustimmung erlaubt ist“): ein Hinweis, kein Stopp. */
+                $neu(self::HINWEIS, 'Kein Versandgrund dokumentiert. Werbe-Mails brauchen in Italien und Deutschland in der Regel eine vorherige Einwilligung — du sendest aus deinem eigenen Programm und entscheidest selbst.');
             }
         }
 

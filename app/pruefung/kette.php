@@ -11365,10 +11365,11 @@ $msA = Akquise::firmaMelden(['name' => 'Bar Statusprobe', 'land' => 'IT', 'stadt
 $msId = (int) $msA['id'];
 $msF = static fn(): array => Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$msId]) ?? [];
 $msK = AkquiseMail::kann($msF());
-pruefe('E-Mail-Status 1: Adresse gefunden, angezeigt und für Entwürfe nutzbar — Versand und Werbung nicht; Quelle steht dabei',
-    $msK['status'] === AkquiseMail::KEINE && $msK['gefunden'] && $msK['anzeigen'] && $msK['entwurf'] && !$msK['senden'] && !$msK['werbung']
+pruefe('E-Mail-Status 1: Adresse gefunden, angezeigt, für Entwürfe nutzbar und im eigenen Mailprogramm zu öffnen (Uwe 06.10.: „unabhängig ob Zustimmung“) — aber keine Freigabe und keine Werbung; Quelle steht dabei',
+    $msK['status'] === AkquiseMail::KEINE && $msK['gefunden'] && $msK['anzeigen'] && $msK['entwurf'] && $msK['senden'] && !$msK['freigabe'] && !$msK['werbung']
+    && str_contains((string) $msK['grund'], 'entscheidest selbst')
     && str_contains((string) $msF()['email_source'], 'OpenStreetMap') && (int) $msF()['email_found'] === 1 && $msF()['email_contact_status'] === AkquiseMail::KEINE
-    && !AkquiseAnsprechen::frei($msF(), 'email'), json_encode($msK));
+    && AkquiseAnsprechen::frei($msF(), 'email'), json_encode($msK));
 $msFehler = [];
 foreach ([['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => '', 'notiz' => 'Test'],
           ['grund' => 'anfrage', 'datum' => date('Y-m-d', time() + 86400 * 3), 'quelle' => 'Mail vom heute', 'notiz' => 'Test'],
@@ -11380,7 +11381,7 @@ pruefe('Versandgrund: Grund, Datum (nicht in der Zukunft), Quelle/Nachweis und N
 $msR = AkquiseMail::grundDokumentieren($msId, ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail vom heute', 'notiz' => 'Will ein Angebot']);
 $msK = AkquiseMail::kann($msF());
 pruefe('Status 3 bei „konkrete Anfrage“: Versand von Hand frei, Werbung nicht; Bearbeiter, Verlauf und Prüfspur stehen fest',
-    $msR['status'] === AkquiseMail::FREI && $msK['senden'] && !$msK['werbung'] && AkquiseAnsprechen::frei($msF(), 'email')
+    $msR['status'] === AkquiseMail::FREI && $msK['senden'] && $msK['freigabe'] && !$msK['werbung'] && AkquiseAnsprechen::frei($msF(), 'email')
     && $msF()['email_legal_basis'] === 'anfrage' && $msF()['email_legal_basis_by'] === 'Mia Mitarbeit' && $msF()['email_contact_status'] === AkquiseMail::FREI
     && (int) Db::wert("SELECT COUNT(*) FROM akq_mail_grundlagen WHERE firma_id = ? AND art = 'grund' AND freigabe = 1", [$msId]) === 1
     && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_versandgrund' AND entity_id = ?", [$msId]) === 1);
@@ -11436,13 +11437,16 @@ $_SESSION = ['uid' => 1, 'rolle' => 'admin', 'name' => 'Uwe Admin'];
 $dsPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$dsPost): bool { $dsPost[] = [$an, $b, $t, $o]; return true; };
 $dsF = Akquise::firmaMelden(['name' => 'Bar Direktmail', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'info@direktmail.example', 'quelle' => 'osm:node/72']);
 $dsRot = 'durch'; try { AkquiseMail::mailtoErzeugen((int) $dsF['id'], 'Ihre Anfrage', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsRot = 'nein'; }
+$dsOhne = AkquiseMail::mailtoErzeugen((int) $dsF['id'], 'Ihre Anfrage', str_repeat('Guten Tag, ', 5), true);
+$dsOhneV = Db::one('SELECT * FROM akq_versand WHERE id = ?', [$dsOhne['id']]);
 AkquiseMail::grundDokumentieren((int) $dsF['id'], ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Will ein Angebot']);
 $dsLeer = 'durch'; try { AkquiseMail::mailtoErzeugen((int) $dsF['id'], '   ', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsLeer = 'nein'; }
 $dsR = AkquiseMail::mailtoErzeugen((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße", true);
 $dsV = Db::one('SELECT * FROM akq_versand WHERE id = ?', [$dsR['id']]);
 $dsBody = rawurldecode((string) substr((string) strstr($dsR['link'], '&body='), 6));
-pruefe('Senden im eigenen Mailprogramm: nur bei 🟢 (vorher abgelehnt), nie ohne Betreff; mailto mit Empfänger, Betreff, Text und Abmeldelink; der Server verschickt nichts; gespeichert nur Zeitpunkt, wer und an wen',
-    $dsRot === 'nein' && $dsLeer === 'nein' && $dsPost === [] && str_starts_with($dsR['link'], 'mailto:info%40direktmail.example?subject=Ihr%20Angebot&body=')
+pruefe('Senden im eigenen Mailprogramm: auch ohne Versandgrund, dann erst nach bestätigtem Hinweis (vorher abgelehnt, danach mit Vermerk); nie ohne Betreff; mailto mit Empfänger, Betreff, Text und Abmeldelink; der Server verschickt nichts; gespeichert nur Zeitpunkt, wer und an wen',
+    $dsRot === 'nein' && str_starts_with($dsOhne['link'], 'mailto:info%40direktmail.example?subject=') && $dsOhneV && str_contains((string) $dsOhneV['grund'], 'ohne dokumentierten Versandgrund')
+    && $dsLeer === 'nein' && $dsPost === [] && str_starts_with($dsR['link'], 'mailto:info%40direktmail.example?subject=Ihr%20Angebot&body=')
     && str_contains($dsBody, 'wie gewünscht das Angebot') && str_contains($dsBody, 'widerspruch.php?t=' . ($dsV['abmelde_token'] ?? 'x'))
     && $dsV && $dsV['status'] === 'von_hand' && str_starts_with((string) $dsV['grund'], 'mailto-Link erzeugt') && !str_contains((string) $dsV['grund'], 'Angebot für')
     && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_mailto' AND entity_id = ?", [$dsR['id']]) === 1
@@ -26200,11 +26204,11 @@ $wsF1 = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$wsId]);
 $wsL0 = AkquiseWerkstatt::pruefliste($wsF1, 'email', '', $wsGut, true);
 $wsL1 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', "Buongiorno [Nome],\nsiamo rechtssicher e il vostro Score è basso. Il 73% dei clienti va via.\nvecom-design.it", false);
 $wsL2 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', $wsGut, false);
-pruefe('Werkstatt: ohne Betreff, mit Platzhalter, mit Zusicherung („rechtssicher“) oder internem Wort ⛔; unbelegte Zahl ⚠; ohne Versandgrund ist Senden ⛔, im Entwurf nur ⚠; ein sauberer Text hat kein ⛔',
-    str_contains($wsSt($wsL0, 'stopp'), 'Der Betreff fehlt') && str_contains($wsSt($wsL0, 'stopp'), 'Kein Versand ohne dokumentierten Versandgrund')
+pruefe('Werkstatt: ohne Betreff, mit Platzhalter, mit Zusicherung („rechtssicher“) oder internem Wort ⛔; unbelegte Zahl ⚠; ohne Versandgrund ist Senden und Entwurf nur ⚠ (Uwe 06.10.: Mailprogramm öffnet unabhängig von der Zustimmung); ein sauberer Text hat kein ⛔',
+    str_contains($wsSt($wsL0, 'stopp'), 'Der Betreff fehlt') && str_contains($wsSt($wsL0, 'hinweis'), 'Kein Versandgrund dokumentiert') && !str_contains($wsSt($wsL0, 'stopp'), 'Versandgrund')
     && str_contains($wsSt($wsL1, 'stopp'), 'Platzhalter nicht ausgefüllt: „[Nome]“') && str_contains($wsSt($wsL1, 'stopp'), 'rechtssicher')
     && str_contains($wsSt($wsL1, 'stopp'), 'Internes Wort im Text: „score“') && str_contains($wsSt($wsL1, 'hinweis'), 'Zahl ohne Beleg: „73“')
-    && $wsSt($wsL2, 'stopp') === '' && str_contains($wsSt($wsL2, 'hinweis'), 'Entwurf:') && str_contains($wsSt($wsL2, 'ok'), 'Abmeldelink')
+    && $wsSt($wsL2, 'stopp') === '' && str_contains($wsSt($wsL2, 'hinweis'), 'Kein Versandgrund dokumentiert') && str_contains($wsSt($wsL2, 'ok'), 'Abmeldelink')
     && $wsL1[0]['stufe'] === 'stopp' && end($wsL2)['stufe'] === 'ok', json_encode([$wsL0, $wsL1, $wsL2], JSON_UNESCAPED_UNICODE));
 AkquiseMail::grundDokumentieren($wsId, ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Beispiel: will Infos']);
 $wsAb = static function (string $b, string $t, bool $g) use ($wsId): string { try { AkquiseMail::mailtoErzeugen($wsId, $b, $t, $g); return 'durch'; } catch (RuntimeException $e) { return $e->getMessage(); } };
@@ -26315,7 +26319,7 @@ pruefe('Wiedervorlage mit Grund schreibt den nächsten Schritt (eine Wahrheit mi
     && $awNF['naechster_schritt'] === 'Wiedervorlage: Nach der Saison / nach dem Urlaub — Beispiel: nach dem Sommer', json_encode([$awW1, $awW2, $awW3, $awNF], JSON_UNESCAPED_UNICODE));
 $awView = (string) file_get_contents($wurzel . '/views/akquise_antworten.php');
 $awRt = (string) file_get_contents($wurzel . '/akquise_route.php');
-pruefe('Antworten-Oberfläche: im Überblick über „E-Mail“; Senden nur über mailto mit Versandgrund (Hinweis „keine Einwilligung“), beantwortet wird beim Öffnen vermerkt; Werkstatt und Töne darunter',
+pruefe('Antworten-Oberfläche: im Überblick über „E-Mail“; Senden über mailto, ohne Versandgrund mit Hinweis „keine Einwilligung“, beantwortet wird beim Öffnen vermerkt; Werkstatt und Töne darunter',
     str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_antworten.php'") && str_contains($awView, 'value="akq_mail_mailto"')
     && str_contains($awView, 'keine Einwilligung') && str_contains($awView, "require __DIR__ . '/akquise_werkstatt.php'") && str_contains($awRt, "AkquiseAntwort::erledigen(\$fid, (int) \$_POST['antwort'], 'beantwortet')")
     && str_contains($awRt, "case 'akq_wiedervorlage':") && str_contains($awRt, "case 'akq_antwort_erledigt':"));

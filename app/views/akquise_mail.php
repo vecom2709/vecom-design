@@ -64,7 +64,7 @@ $mForm = static function (string $tat, string $innen, string $extra = '') use ($
   <?php endif; ?>
 
   <div class="ms-fuenf" aria-label="Was mit der Adresse geht">
-    <?php foreach (['gefunden' => 'Gefunden', 'anzeigen' => 'Anzeigen', 'entwurf' => 'Entwurf', 'senden' => 'Versand von Hand', 'werbung' => 'Werbung'] as $mk => $mw): ?>
+    <?php foreach (['gefunden' => 'Gefunden', 'anzeigen' => 'Anzeigen', 'entwurf' => 'Entwurf', 'senden' => 'Mailprogramm öffnen', 'werbung' => 'Werbung gedeckt'] as $mk => $mw): ?>
       <div class="<?= $mKann[$mk] ? 'ja' : 'nein' ?>"><b><?= $mKann[$mk] ? '✓' : '✗' ?></b><?= $mH($mw) ?></div>
     <?php endforeach; ?>
   </div>
@@ -84,10 +84,10 @@ $mForm = static function (string $tat, string $innen, string $extra = '') use ($
         <b>Versand freigegeben.</b> Nachricht unten bei „Ansprechen“ erstellen, bearbeiten, ansehen und von Hand senden — einzeln, nicht als Serie.
         <?= $mKann['werbung'] ? '' : 'Der dokumentierte Grund deckt keine Werbung — nur die Antwort bzw. die geschäftliche Nachricht.' ?>
       <?php elseif ($mKann['status'] === AkquiseMail::PRUEFEN): ?>
-        <b>Manuelle Prüfung erforderlich.</b> Adresse anzeigen, kopieren und Entwürfe erstellen geht. Versendet wird erst, wenn ein Versandgrund dokumentiert ist, der eine Freigabe trägt.
+        <b>Manuelle Prüfung erforderlich.</b> Adresse anzeigen, kopieren, Entwurf erstellen und im eigenen Mailprogramm öffnen geht — ohne dokumentierten Versandgrund mit einem Hinweis, den du vorher bestätigst.
       <?php else: ?>
-        <b>Keine Versandfreigabe dokumentiert.</b> Möglich: Adresse anzeigen, kopieren, Entwurf erstellen und bearbeiten, Quelle ansehen.
-        Nicht möglich: ungeprüfter automatischer Versand und Massenversand.
+        <b>Keine Versandfreigabe dokumentiert.</b> Möglich: Adresse anzeigen, kopieren, Entwurf erstellen und bearbeiten, Quelle ansehen und unten bei „Ansprechen“ im eigenen Mailprogramm öffnen (mit Hinweis, den du bestätigst).
+        Nicht möglich: automatischer Versand und Massenversand.
       <?php endif; ?>
       <?php if (!empty($f['email_legal_basis'])): ?>
         <br><span class="akq-klein">Dokumentiert: <?= $mH(AkquiseMail::GRUENDE[(string) $f['email_legal_basis']][0] ?? (string) $f['email_legal_basis']) ?>
