@@ -15587,9 +15587,9 @@ pruefe('K2/K3: deutscher Betrieb bekommt deutsche Texte; reserviert ein Partner,
     && $ahPd['tel'] === null && $ahResOk && AkquiseAnsprechen::stand(['gesperrt' => 1])['farbe'] === 'rot');
 $ahListe = Akquise::liste(['darf' => '1'], 1, 500);
 $ahView = (string) file_get_contents($wurzel . '/views/akquise.php') . (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
-pruefe('K1: Liste mit „Ansprechen“ für jeden, Schnellauswahl „Haben zugestimmt“, vier Reiter + „Mehr“, Rückfrage beim Eintragen',
+pruefe('K1: Liste mit „Ansprechen“ für jeden, Schnellauswahl „Haben zugestimmt“, fünf Reiter (Heute zuerst) + „Mehr“, Rückfrage beim Eintragen',
     in_array($ahF, array_map(static fn($z) => (int) $z['id'], $ahListe['zeilen']), true) && !in_array($ahDe, array_map(static fn($z) => (int) $z['id'], $ahListe['zeilen']), true)
-    && str_contains($ahView, "'#ansprechen'") && str_contains($ahView, "'darf' => 'Haben zugestimmt'") && str_contains($ahView, "\$akqHaupt = ['', 'folgen', 'termine', 'karte']")
+    && str_contains($ahView, "'#ansprechen'") && str_contains($ahView, "'darf' => 'Haben zugestimmt'") && str_contains($ahView, "\$akqHaupt = ['heute', '', 'pipeline', 'folgen', 'termine', 'karte']")   // seit Akquise-CRM (06.10.2026) „Heute“ zuerst
     && str_contains($ahView, '<summary>Mehr</summary>') && Ablauf::rueckfrage('akq_zugestimmt') !== null && Ablauf::rueckfrage('akq_kein_interesse') !== null
     && Ablauf::rueckfrage('akq_manuell') === null
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_ansprechen.php'"));
@@ -15688,7 +15688,7 @@ pruefe('Kennzeichnung „beim Partner“: jede Zeile in „Neue Kunden finden“
     && Akquise::partnerKennung(['herkunft' => 'vecom', 'anruf_status' => 'nicht_erreicht', 'versuche' => 2]) === ['ruft an · 2× nicht erreicht', 'an']
     && Akquise::partnerKennung(['herkunft' => 'vecom', 'anruf_status' => 'offen']) === ['ruft an', 'an']
     && str_contains($kpView, 'class="akq-partner') && str_contains($kpView, "'partner' => 'Beim Partner'") && str_contains($kpView, "'?partner=' . (int) \$al['id']")
-    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ohne_web', 'partner']"), json_encode([array_keys($kpTina), array_keys($kpAlle)]));
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "'ohne_web', 'partner', 'prio_min'"), json_encode([array_keys($kpTina), array_keys($kpAlle)]));
 $kpKunden = Db::one("SELECT (SELECT pa.name FROM partner_zuordnungen z JOIN partner pa ON pa.id = z.partner_id WHERE z.customer_id = c.id LIMIT 1) AS partner_name,
                             (SELECT z.quelle FROM partner_zuordnungen z WHERE z.customer_id = c.id LIMIT 1) AS partner_quelle FROM customers c WHERE c.id = ?", [$alK]);
 pruefe('Kennzeichnung auch unter „Alle Kunden“: der Partner steht am Namen, ☎ wenn der Kunde über seine Anrufliste kam',
@@ -26040,6 +26040,168 @@ Db::run('DELETE FROM activities WHERE id = ?', [$kdAct]);
 Db::run('DELETE FROM projects WHERE id = ?', [$kdProj]);
 Db::run('DELETE FROM kunden_verschieden WHERE a_id IN (' . implode(',', $kdK) . ') OR b_id IN (' . implode(',', $kdK) . ')');
 Db::run('DELETE FROM customers WHERE id IN (' . implode(',', $kdK) . ')');
+
+/* ============================================================================
+   Akquise-CRM Modul A–C (06.10.2026, Uwe: „A+B+C: Profil, Score, Arbeitsplatz“).
+   Profil mit Quelle, Sperrarten, Notizen mit Sichtbarkeit, Kanäle, Priorität
+   nur aus belegten Daten, „Heute“ und „Nächster bester Kontakt“.
+   ============================================================================ */
+abschnitt('Akquise-CRM: Profil, Priorität, Heute');
+require_once $wurzel . '/src/AkquiseCrm.php';
+require_once $wurzel . '/src/AkquisePrio.php';
+require_once $wurzel . '/src/AkquiseGate.php';
+$crF = static fn(string $k, string $n, array $mehr = []): int => (int) Db::insert('akq_firmen', $mehr + [
+    'kennung' => $k, 'name' => $n, 'name_norm' => mb_strtolower($n), 'land' => 'IT', 'stadt' => 'Sciacca', 'plz' => '92019', 'adresse' => 'Via Beispiel 1',
+    'branche' => 'restaurant', 'telefon' => '+39 0925 000000', 'email' => 'info@' . strtolower($k) . '.example']);
+$crA = $crF('CR00000001', 'Beispiel Trattoria Ohne Web', ['audit_status' => 'keine_website', 'ansprechpartner' => 'Beispiel Rossi']);
+$crB = $crF('CR00000002', 'Beispiel Hotel Schwach', ['audit_status' => 'fertig', 'score' => 80, 'top_probleme' => json_encode(['Seite lädt langsam']), 'url' => 'https://cr-hotel.example', 'domain' => 'cr-hotel.example']);
+$crC = $crF('CR00000003', 'Beispiel Bar Gesperrt', ['gesperrt' => 1]);
+$crCols = array_column(Db::all('SHOW COLUMNS FROM akq_firmen'), 'Field');
+pruefe('Akquise-CRM: Profilfelder sind da (Rechtsform, Unterbranche, Filiale, Position, Mobil, Profile, Quelle, Priorität, Sperrart, Zusammenfassung) — nichts entfernt',
+    !array_diff(['rechtsform', 'unterbranche', 'filiale_von', 'position', 'mobil', 'emails_weitere', 'google_profil', 'facebook', 'instagram', 'linkedin', 'xing', 'quelle_art', 'quelle_url',
+                 'gefunden_von', 'prio_score', 'prio_stufe', 'prio_gruende', 'letzter_kontakt_am', 'naechster_schritt', 'naechster_am', 'sperr_art', 'sperr_grund', 'zusammenfassung',
+                 'score', 'top_probleme', 'kontakt_status', 'einwilligung', 'wiedervorlage_am', 'notiz'], $crCols)
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE() AND table_name IN ('akq_kontakte','akq_notizen','akq_kanaele')", [], 0) === 3);
+
+/* Priorität: nur Belegtes */
+$crPa = AkquisePrio::aktualisieren($crA); $crPb = AkquisePrio::aktualisieren($crB); $crPc = AkquisePrio::aktualisieren($crC);
+$crAlle = implode(' | ', array_merge($crPa['gruende'], $crPb['gruende']));
+pruefe('Priorität: ohne Website + Ansprechperson + Kontaktweg zählt; Gründe nur aus Daten — keine Bewertungen, kein „aktiv“, kein Wachstum behauptet',
+    $crPa['score'] >= 40 && in_array('Keine eigene Website', $crPa['gruende'], true) && in_array('Ansprechperson bekannt', $crPa['gruende'], true)
+    && str_contains($crAlle, 'Kontaktweg vorhanden: E-Mail, Telefon') && str_contains(implode(' ', $crPb['gruende']), 'Digital-Chance 80/100: Seite lädt langsam')
+    && !preg_match('~[Bb]ewertung|aktiv|Wachstum|Stellen~u', $crAlle) && $crPc['stufe'] === 'nie' && $crPc['score'] === 0, json_encode([$crPa, $crPb, $crPc]));
+Db::insert('akq_antworten', ['firma_id' => $crB, 'eingang_am' => '2001-01-01 10:00:00', 'klasse' => 'PRICE_REQUEST', 'klasse_quelle' => 'hand', 'erledigt' => 0, 'created_at' => '2001-01-01 10:00:00']);
+$crPb2 = AkquisePrio::aktualisieren($crB);
+$crUpd = (string) Db::wert('SELECT updated_at FROM akq_firmen WHERE id = ?', [$crA], '');
+Db::run("UPDATE akq_firmen SET prio_am = '2000-01-01' WHERE id = ?", [$crA]);
+$crLauf = AkquisePrio::lauf(5000);
+pruefe('Priorität: eine offene positive Antwort macht „Jetzt kontaktieren“; der Cron rechnet nach, ohne „zuletzt geändert“ zu verfälschen; „Warum interessant?“ nennt die stärksten Gründe',
+    $crPb2['stufe'] === 'jetzt' && $crPb2['gruende'][0] === 'Positive Antwort wartet auf Bearbeitung' && $crLauf['gerechnet'] > 0
+    && (string) Db::wert('SELECT updated_at FROM akq_firmen WHERE id = ?', [$crA], '') === $crUpd && Db::wert('SELECT prio_am FROM akq_firmen WHERE id = ?', [$crA], '2000-01-01') > '2000-01-02'
+    && AkquisePrio::warum((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crB])) === 'Positive Antwort wartet auf Bearbeitung · Digital-Chance 80/100: Seite lädt langsam.', json_encode($crPb2));
+
+/* Heute und nächster bester Kontakt */
+$crH = AkquiseCrm::heute(500);
+$crN1 = AkquiseCrm::naechster();
+$crN2 = AkquiseCrm::naechster([$crB]);
+pruefe('Heute: die wartende Preisfrage steht bei „Heiße Antworten“ mit Wartezeit (rot ab 48 h); der nächste beste Kontakt ist sie — übersprungen kommt ein anderer',
+    in_array($crB, array_map(static fn($z) => (int) $z['id'], $crH['heiss']['zeilen']), true) && AkquiseCrm::warteStufe('2001-01-01 10:00:00') === 'admin'
+    && AkquiseCrm::warteStufe(date('Y-m-d H:i:s', time() - 50 * 3600)) === 'rot' && AkquiseCrm::warteStufe(date('Y-m-d H:i:s', time() - 25 * 3600)) === 'gelb'
+    && $crN1 === ['id' => $crB, 'grund' => 'Antwort mit Interesse wartet'] && ($crN2 === null || $crN2['id'] !== $crB)
+    && !in_array($crC, array_map(static fn($z) => (int) $z['id'], $crH['jetzt']['zeilen']), true), json_encode([$crN1, $crN2]));
+
+/* Profil speichern: Prüfung auf dem Server, Prüfspur */
+$crE1 = AkquiseCrm::profilSpeichern($crA, ['instagram' => 'javascript:alert(1)']);
+$crE2 = AkquiseCrm::profilSpeichern($crA, ['email' => 'kein-at']);
+$crE3 = AkquiseCrm::profilSpeichern($crA, ['branche' => 'gibtsnicht']);
+$crE4 = AkquiseCrm::profilSpeichern($crA, ['url' => 'https://cr-hotel.example/']);
+$crOk = AkquiseCrm::profilSpeichern($crA, ['rechtsform' => 'S.r.l.', 'position' => 'Inhaber', 'instagram' => 'https://instagram.com/beispiel', 'emails_weitere' => 'a@beispiel.example, b@beispiel.example',
+    'quelle_art' => 'google', 'quelle_url' => 'https://maps.google.com/?cid=1', 'naechster_schritt' => 'Chef vormittags anrufen', 'naechster_am' => date('Y-m-d'), 'filiale_von' => (string) $crB]);
+$crAf = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crA]);
+pruefe('Profil: Links nur http(s), E-Mail und Branche geprüft, fremde Website = Dubletten-Hinweis; gespeichert wird mit Prüfspur, Priorität neu gerechnet',
+    !$crE1['ok'] && !$crE2['ok'] && !$crE3['ok'] && !$crE4['ok'] && str_contains((string) $crE4['fehler'], 'Dublette') && $crOk['ok']
+    && $crAf['rechtsform'] === 'S.r.l.' && $crAf['instagram'] === 'https://instagram.com/beispiel' && json_decode((string) $crAf['emails_weitere'], true) === ['a@beispiel.example', 'b@beispiel.example']
+    && (int) $crAf['filiale_von'] === $crB && AkquiseCrm::quelle($crAf) === 'Google' && AkquiseCrm::quelle(['quelle' => 'osm:node/1']) === 'OpenStreetMap'
+    && str_contains((string) $crAf['prio_gruende'], 'Instagram-Profil vorhanden') && str_contains((string) $crAf['prio_gruende'], 'mehreren Standorten')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_profil' AND entity_id = ?", [$crA], 0) === 1, json_encode([$crE1, $crE4, $crOk]));
+
+/* Sperrarten */
+$crD = $crF('CR00000004', 'Beispiel Konkurrenz');
+$crW = AkquiseCrm::sperrArtSetzen($crD, 'wettbewerber', 'Agentur aus Sciacca');
+$crWg = AkquiseGate::pruefen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crD]), 'email');
+$crWl = AkquiseCrm::sperrArtLoesen($crD);
+$crH2 = AkquiseCrm::sperrArtSetzen($crD, 'nicht_kontaktieren', 'Am Telefon gesagt');
+$crHl = AkquiseCrm::sperrArtLoesen($crD);
+$crDf = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crD]);
+pruefe('Sperrarten: weich (Wettbewerber) sperrt den Versand und lässt sich lösen; hart (Nicht kontaktieren) kommt auf die Sperrliste und lässt sich hier nicht lösen; Priorität „nie“',
+    $crW['ok'] && $crWg['status'] === AkquiseGate::NICHT && $crWl['ok'] && $crH2['ok'] && !$crHl['ok'] && (int) $crDf['gesperrt'] === 1 && $crDf['sperr_art'] === 'nicht_kontaktieren'
+    && $crDf['prio_stufe'] === 'nie' && (int) Db::wert("SELECT COUNT(*) FROM akq_sperrliste WHERE firma_id = ?", [$crD], 0) >= 1
+    && !AkquiseCrm::sperrArtSetzen($crD, 'quatsch', '')['ok'] && (Ablauf::TRAGWEITE['akq_sperrart'][0] ?? '') === Ablauf::SCHWER, json_encode([$crW, $crWl, $crH2, $crHl]));
+
+/* Notizen mit Sichtbarkeit */
+AkquiseCrm::notizAnlegen($crA, 'Beispiel: Chef vormittags erreichbar.', 'team', true, ['user_id' => 1, 'autor' => 'Uwe']);
+AkquiseCrm::notizAnlegen($crA, 'Beispiel: nur Uwe.', 'ich', false, ['user_id' => 1, 'autor' => 'Uwe']);
+AkquiseCrm::notizAnlegen($crA, 'Beispiel: Budget wichtig (Vecom intern).', 'admin', false, ['user_id' => 1, 'autor' => 'Uwe']);
+AkquiseCrm::notizAnlegen($crA, 'Beispiel: Partner privat.', 'ich', false, ['partner_id' => 77, 'autor' => 'Partner']);
+$crNp = AkquiseCrm::notizAnlegen($crA, 'Beispiel', 'admin', false, ['partner_id' => 77, 'autor' => 'Partner']);
+$crT = static fn(array $l): array => array_map(static fn($n) => (string) $n['text'], $l);
+$crUwe = $crT(AkquiseCrm::notizen($crA, ['user_id' => 1]));
+$crAnder = $crT(AkquiseCrm::notizen($crA, ['user_id' => 2]));
+$crPart = $crT(AkquiseCrm::notizen($crA, ['partner_id' => 77]));
+$crFremd = $crT(AkquiseCrm::notizen($crA, ['partner_id' => 78]));
+pruefe('Notizen: angeheftete zuerst; „nur für mich“ sieht nur der Verfasser; „nur Vecom“ sieht kein Partner; „Team“ sehen alle; Partner schreiben nie „nur Vecom“',
+    $crUwe[0] === 'Beispiel: Chef vormittags erreichbar.' && in_array('Beispiel: nur Uwe.', $crUwe, true) && !in_array('Beispiel: nur Uwe.', $crAnder, true)
+    && !in_array('Beispiel: Partner privat.', $crUwe, true) && in_array('Beispiel: Partner privat.', $crPart, true) && !in_array('Beispiel: Budget wichtig (Vecom intern).', $crPart, true)
+    && $crFremd === ['Beispiel: Chef vormittags erreichbar.'] && !$crNp['ok'], json_encode([$crUwe, $crPart, $crFremd]));
+
+/* Kanäle */
+Db::insert('akq_versand', ['firma_id' => $crA, 'kanal' => 'email', 'an' => 'info@cr00000001.example', 'status' => 'gesendet', 'compliance' => 'ALLOWED', 'actor' => 'kette']);
+AkquiseCrm::kanalSetzen($crA, 'whatsapp', 'pausieren');
+AkquiseCrm::kanalSetzen($crA, 'linkedin', 'benutzt');
+AkquiseCrm::kanalSetzen($crA, 'telefon', 'naechster', '2030-01-15');
+$crK = AkquiseCrm::kanaele((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crA]));
+$crKd = AkquiseCrm::kanaele($crDf);
+pruefe('Kanäle: E-Mail aus dem Versand „benutzt“, WhatsApp pausiert, LinkedIn von Hand vermerkt, nächster Telefonkontakt gesetzt, Xing ohne Weg; gesperrt sperrt alle Kanäle',
+    $crK['email']['zustand'] === 'benutzt' && $crK['whatsapp']['zustand'] === 'pausiert' && $crK['linkedin']['zustand'] === 'benutzt' && $crK['telefon']['naechster'] === '2030-01-15'
+    && $crK['xing']['zustand'] === 'kein_weg' && !in_array(false, array_map(static fn($x) => $x['zustand'] === 'gesperrt', $crKd), true)
+    && !AkquiseCrm::kanalSetzen($crA, 'telegrammm', 'pausieren'), json_encode($crK));
+
+/* Pipeline */
+$crE = $crF('CR00000005', 'Beispiel Pipeline Betrieb', ['audit_status' => 'fertig', 'score' => 60]);
+$crS0 = AkquiseCrm::spalte($crE);
+$crS1 = AkquiseCrm::stufeSetzen($crE, 'bedarf');
+$crS2 = AkquiseCrm::stufeSetzen($crE, 'angebot_gesendet');
+$crEf = Db::one('SELECT pipeline, crm_stufe FROM akq_firmen WHERE id = ?', [$crE]);
+$crS3 = AkquiseCrm::stufeSetzen($crE, 'neu');
+$crS4 = AkquiseCrm::stufeSetzen($crE, 'gesperrt');
+$crS5 = AkquiseCrm::stufeSetzen($crE, 'gewonnen');
+$crS6 = AkquiseCrm::stufeSetzen($crE, 'bedarf');
+$crTafel = AkquiseCrm::pipeline(['q' => 'Beispiel']);
+$crInTafel = static fn(string $sp, int $id): bool => in_array($id, array_map(static fn($z) => (int) $z['id'], $crTafel[$sp]['zeilen']), true);
+pruefe('Pipeline: geprüft ist gerechnet; Bedarf von Hand; „Angebot gesendet“ schreibt dieselbe Spalte wie bisher (pipeline); zurück ins Gerechnete hebt beides auf; Sperre nur über das Profil; Gewonnen bleibt',
+    $crS0 === 'geprueft' && $crS1['ok'] && $crS1['spalte'] === 'bedarf' && $crS2['ok'] && $crS2['spalte'] === 'angebot_gesendet' && $crEf['pipeline'] === 'angebot' && $crEf['crm_stufe'] === null
+    && $crS3['ok'] && $crS3['spalte'] === 'geprueft' && !$crS4['ok'] && $crS5['ok'] && $crS5['spalte'] === 'gewonnen' && !$crS6['ok']
+    && $crInTafel('gewonnen', $crE) && $crInTafel('interesse', $crB) && $crInTafel('gesperrt', $crC) && $crTafel['kein_interesse']['n'] >= 0
+    && array_sum(array_column($crTafel, 'n')) >= 5 && count(AkquiseCrm::SPALTEN) === 16, json_encode([$crS0, $crS1, $crS2, $crS3, $crS4, $crS5, $crS6]));
+pruefe('Pipeline: Ziehen geht durch ein normales Formular (Server-Prüfung, Rückfrage bei Gewonnen/Verloren), jede Karte hat „Verschieben nach …“ ohne JavaScript',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_pipeline.php'), 'class="pl-schieben"') && str_contains((string) file_get_contents($wurzel . '/views/akquise_pipeline.php'), 'id="pl-zieh"')
+    && str_contains((string) file_get_contents($oben . '/assets/js/akquise-pipeline.js'), "form.requestSubmit()") && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "case 'akq_stufe':"));
+Db::run('DELETE FROM akq_protokoll WHERE firma_id = ?', [$crE]);
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$crE]);
+
+/* Oberfläche */
+$crRoute = (string) file_get_contents($wurzel . '/akquise_route.php');
+$crReiter = (string) file_get_contents($wurzel . '/views/akquise_reiter.php');
+$crFirma = (string) file_get_contents($wurzel . '/views/akquise_firma.php');
+pruefe('Oberfläche: Reiter „Heute“ zuerst, „Nächster bester Kontakt“, Profil-Reiter mit Quelle und neutralem Freigabe-Hinweis; Filter Priorität/E-Mail/WhatsApp; Cron-Regel im Automation Center',
+    str_contains($crReiter, "\$reiter = ['heute' => 'Heute', '' => 'Betriebe', 'pipeline' => 'Pipeline',") && str_contains($crRoute, "if (\$teil === 'naechster') {") && str_contains($crRoute, "case 'akq_profil_speichern':")
+    && str_contains($crFirma, "'profil' => 'Profil & Notizen'") && str_contains((string) file_get_contents($wurzel . '/views/akquise_profil.php'), 'Keine dokumentierte Kommunikationsfreigabe vorhanden.')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_heute.php'), 'id="naechster-oeffnen"') && isset(Automation::REGELN['akquise_prio'])
+    && Akquise::liste(['prio' => 'nie', 'gesperrte' => 1, 'q' => 'Beispiel Bar Gesperrt'])['gesamt'] === 1 && Akquise::liste(['mit_email' => 1, 'q' => 'CR00000002'])['gesamt'] === 1);
+/* Zusammenspiel mit dem Kommunikationsstatus E-Mail und dem Aussortieren (beide vom 06.10.2026, andere Sitzung) */
+require_once $wurzel . '/src/AkquiseMail.php';
+$crG = $crF('CR00000007', 'Beispiel Laden Ohne Weg', ['email' => null, 'telefon' => null, 'audit_status' => 'fertig', 'kontakt_status' => 'neu']);
+$crAus = static fn(int $id): bool => (int) Db::wert('SELECT COUNT(*) FROM akq_firmen f WHERE f.id = ? AND ' . Akquise::aussortierbarSql(), [$id], 0) === 1;
+$crAus1 = $crAus($crG);
+AkquiseCrm::notizAnlegen($crG, 'Beispiel: Inhaber kommt nächste Woche zurück', 'team', false, ['user_id' => 1, 'autor' => 'Uwe']);
+$crAus2 = $crAus($crG);
+Db::run('DELETE FROM akq_notizen WHERE firma_id = ?', [$crG]);
+Db::update('akq_firmen', $crG, ['naechster_schritt' => 'Beispiel: vorbeigehen']);
+$crAus3 = $crAus($crG);
+pruefe('Aussortieren: ein Betrieb ohne Kontaktweg fliegt raus — aber nie, wenn jemand eine Notiz, einen Ansprechpartner, einen Kanal oder einen nächsten Schritt eingetragen hat',
+    $crAus1 && !$crAus2 && !$crAus3 && isset(Akquise::BEZUG['akq_notizen'], Akquise::BEZUG['akq_kontakte'], Akquise::BEZUG['akq_kanaele']), json_encode([$crAus1, $crAus2, $crAus3]));
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$crG]);
+$crM1 = AkquiseCrm::profilSpeichern($crA, ['email' => 'neu@cr00000001.example']);
+$crMf = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crA]);
+$crKa = AkquiseCrm::kanaele($crMf);
+$crKc = AkquiseCrm::kanaele((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crC]));
+pruefe('Kommunikationsstatus: eine im Profil geänderte Adresse ist ungeprüft und „von Hand“; der Kanal E-Mail zeigt den Status von AkquiseMail (🔴 ohne Versandgrund, gesperrt bei Nicht kontaktieren) — keine zweite Rechnung',
+    $crM1['ok'] && (int) $crMf['email_verified'] === 0 && str_starts_with((string) $crMf['email_source'], 'Von Hand eingetragen')
+    && ($crKa['email']['mailstatus'][0] ?? '') === '🔴' && $crKc['email']['zustand'] === 'gesperrt' && $crKa['whatsapp']['mailstatus'] === null, json_encode([$crM1, $crKa['email'], $crKc['email']]));
+foreach (['akq_kanaele', 'akq_notizen', 'akq_kontakte', 'akq_antworten', 'akq_versand', 'akq_sperrliste', 'akq_protokoll'] as $crTab) {
+    Db::run("DELETE FROM `$crTab` WHERE firma_id IN (?, ?, ?, ?)", [$crA, $crB, $crC, $crD]);
+}
+Db::run('DELETE FROM akq_firmen WHERE id IN (?, ?, ?, ?)', [$crA, $crB, $crC, $crD]);
 
 /* ============================================================================
    Aufräumen und Bilanz

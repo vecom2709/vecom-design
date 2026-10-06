@@ -4,7 +4,7 @@
    merkt, dass etwas schieflaeuft, soll nicht erst suchen muessen. */
 $akqTeil = $akqTeil ?? '';
 $akqG = AkquiseGate::grenzen();
-$reiter = ['' => 'Betriebe', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'beitraege' => 'Beiträge', 'anzeigen' => 'Anzeigen & Branchen-Seiten', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
+$reiter = ['heute' => 'Heute', '' => 'Betriebe', 'pipeline' => 'Pipeline', 'assistent' => 'Assistent', 'karte' => 'Karte', 'auswertung' => 'Auswertung', 'briefe' => 'Brief-Serie', 'recherche' => 'Suchaufträge', 'folgen' => 'Folge-Mails', 'termine' => 'Termine', 'beitraege' => 'Beiträge', 'anzeigen' => 'Anzeigen & Branchen-Seiten', 'regeln' => 'Regeln & Versand', 'protokoll' => 'Protokoll'];
 if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgeschaltet (27.09.2026)
 ?>
 <style>
@@ -161,11 +161,15 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   @media (max-width:800px){ .akq-weg3{grid-template-columns:1fr} }
   .akq-mehr > summary{cursor:pointer;font-size:13.5px;color:var(--dim);padding:12px 16px;border:1px solid var(--linie);border-radius:14px;background:var(--flaeche)}
   .akq-mehr[open] > summary{margin-bottom:12px}
+  /* Akquise-CRM (06.10.2026): Priorität als Marke — Farbe und Zeichen, nie nur die Farbe. */
+  .crm-prio{display:inline-flex;gap:4px;align-items:center;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:650;border:1px solid var(--linie);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .crm-prio.p-jetzt{border-color:rgba(255,138,138,.5);color:#ffb4a8} .crm-prio.p-gut{border-color:rgba(74,222,128,.45);color:var(--gruen)}
+  .crm-prio.p-spaeter{border-color:rgba(245,197,66,.45);color:#f5c542} .crm-prio.p-niedrig{color:var(--leise)} .crm-prio.p-nie{border-color:var(--rot);color:var(--rot)}
   @media (max-width:700px){ .akq-filter .breit{grid-column:span 1} .akq-reiter .rechts{margin-left:0;width:100%}
     .akq-suchzeile{grid-template-columns:1fr} .akq-schritt{align-items:flex-start} }
 </style>
 <?php /* Einfacher (29.09.2026, Uwe: Ja zu K1): vier Reiter für jeden Tag, der Rest unter „Mehr“. */
-  $akqHaupt = ['', 'folgen', 'termine', 'karte'];
+  $akqHaupt = ['heute', '', 'pipeline', 'folgen', 'termine', 'karte'];   // „Heute“ (Akquise-CRM, 06.10.2026) zuerst
   $akqMehr = array_diff_key($reiter, array_flip($akqHaupt)); ?>
 <nav class="akq-reiter" aria-label="Akquise">
   <?php foreach ($akqHaupt as $ziel): if (!isset($reiter[$ziel])) { continue; } ?>

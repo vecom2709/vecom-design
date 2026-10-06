@@ -622,6 +622,51 @@ if ($post) {
                 $_SESSION['gut'] = 'Eintrag gelöscht. Die Firma selbst bleibt gesperrt, bis du es dort änderst — mit Absicht.';
                 $zu('regeln#sperrliste');
 
+            /* ---------------- Akquise-CRM Modul A/C (06.10.2026) ---------------- */
+            case 'akq_profil_speichern':
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                $crmR = AkquiseCrm::profilSpeichern($fid, $_POST);
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? ($crmR['geaendert'] ? 'Profil gespeichert (' . count($crmR['geaendert']) . ' Felder).' : 'Nichts geändert.') : $crmR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil');
+            case 'akq_sperrart':
+            case 'akq_sperrart_loesen':
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                $crmR = $tat === 'akq_sperrart' ? AkquiseCrm::sperrArtSetzen($fid, (string) ($_POST['art'] ?? ''), (string) ($_POST['grund'] ?? '')) : AkquiseCrm::sperrArtLoesen($fid);
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? ($tat === 'akq_sperrart' ? '🔴 Gesperrt — Versand für diesen Betrieb aus.' : 'Sperre gelöst.') : $crmR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil');
+            case 'akq_kontakt_neu':
+            case 'akq_kontakt_weg':
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                if ($tat === 'akq_kontakt_weg') { AkquiseCrm::kontaktLoeschen($fid, (int) ($_POST['kontakt'] ?? 0)); $zurueck('akquise/' . $fid . '?ansicht=profil#kontakte'); }
+                $crmR = AkquiseCrm::kontaktAnlegen($fid, $_POST);
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? 'Ansprechpartner ergänzt.' : $crmR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil#kontakte');
+            case 'akq_notiz_neu':
+            case 'akq_notiz_aendern':
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                $crmWer = ['user_id' => Auth::id(), 'autor' => Auth::name() !== '' ? Auth::name() : 'Verwaltung'];
+                if ($tat === 'akq_notiz_aendern') {
+                    AkquiseCrm::notizAendern($fid, (int) ($_POST['notiz'] ?? 0), (string) ($_POST['was'] ?? ''), $crmWer);
+                    $zurueck('akquise/' . $fid . '?ansicht=profil#notizen');
+                }
+                $crmR = AkquiseCrm::notizAnlegen($fid, (string) ($_POST['text'] ?? ''), (string) ($_POST['sichtbar'] ?? 'team'), !empty($_POST['angeheftet']), $crmWer);
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? 'Notiz gespeichert.' : $crmR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil#notizen');
+            case 'akq_kanal':
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                AkquiseCrm::kanalSetzen($fid, (string) ($_POST['kanal'] ?? ''), (string) ($_POST['was'] ?? ''), (string) ($_POST['datum'] ?? '') ?: null);
+                $zurueck('akquise/' . $fid . '?ansicht=profil#kanaele');
+            case 'akq_stufe':
+                /* Pipeline (Modul C): Ziehen oder „Verschieben nach“. */
+                require_once __DIR__ . '/src/AkquiseCrm.php';
+                $crmR = AkquiseCrm::stufeSetzen($fid, (string) ($_POST['ziel'] ?? ''));
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? 'Verschoben nach „' . (AkquiseCrm::SPALTEN[$crmR['spalte']] ?? '') . '“.' : $crmR['fehler'];
+                $zurueck('akquise/pipeline');
+            case 'akq_naechster_weiter':
+                /* „Überspringen“ beim nächsten besten Kontakt: nur in dieser Sitzung, ändert nichts am Betrieb. */
+                $_SESSION['akq_uebersprungen'][] = $fid;
+                weiter('akquise/naechster');
+
             default:
                 throw new RuntimeException('Unbekannte Aktion.');
         }
@@ -788,6 +833,31 @@ if ($teil === 'protokoll') {
     exit;
 }
 
+/* Akquise-CRM Modul C (06.10.2026): der Arbeitsplatz „Heute“ und „Nächster bester Kontakt“. */
+if ($teil === 'heute') {
+    require_once __DIR__ . '/src/AkquiseCrm.php';
+    require_once __DIR__ . '/src/AkquisePrio.php';
+    ansicht('akquise_heute', ['kacheln' => AkquiseCrm::heute(), 'naechster' => AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []))]);
+    exit;
+}
+if ($teil === 'pipeline') {
+    require_once __DIR__ . '/src/AkquiseCrm.php';
+    $plF = array_intersect_key($_GET, array_flip(['branche', 'stadt', 'q', 'prio', 'partner']));
+    ansicht('akquise_pipeline', ['spalten' => AkquiseCrm::pipeline($plF), 'filter' => $plF, 'werte' => Akquise::filterWerte(), 'branchen' => Akquise::branchen()]);
+    exit;
+}
+if ($teil === 'naechster') {
+    require_once __DIR__ . '/src/AkquiseCrm.php';
+    $crmN = AkquiseCrm::naechster((array) ($_SESSION['akq_uebersprungen'] ?? []));
+    if ($crmN === null) {
+        $_SESSION['gut'] = 'Für heute ist alles bearbeitet — kein weiterer Kontakt mit hoher Priorität.';
+        unset($_SESSION['akq_uebersprungen']);
+        weiter('akquise/heute');
+    }
+    $_SESSION['akq_naechster_grund'] = $crmN['grund'];
+    weiter('akquise/' . $crmN['id'] . '?naechster=1');
+}
+
 if ($teil !== '' && ctype_digit($teil)) {
     $fid = (int) $teil;
     $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
@@ -838,8 +908,18 @@ if ($teil !== '' && ctype_digit($teil)) {
     foreach ($vorlagen as $v) {
         if ($v['status'] !== 'verworfen') { $f['vorlage_status'] = $v['status']; $f['vorlage_kanal'] = $v['kanal']; break; }
     }
-    $ansicht = in_array($_GET['ansicht'] ?? '', ['befunde', 'verlauf'], true) ? (string) $_GET['ansicht'] : 'ueberblick';
+    $ansicht = in_array($_GET['ansicht'] ?? '', ['befunde', 'verlauf', 'profil'], true) ? (string) $_GET['ansicht'] : 'ueberblick';
+    /* Akquise-CRM (Modul A): Profil, Ansprechpartner, Kanäle, Notizen; Priorität, falls noch nie gerechnet. */
+    require_once __DIR__ . '/src/AkquiseCrm.php';
+    require_once __DIR__ . '/src/AkquisePrio.php';
+    if ($f['prio_am'] === null) { AkquisePrio::aktualisieren($fid); $f = array_merge($f, (array) Db::one('SELECT prio_score, prio_stufe, prio_gruende, prio_am, letzter_kontakt_am FROM akq_firmen WHERE id = ?', [$fid])); }
+    $crm = ['kanaele' => AkquiseCrm::kanaele($f), 'notizen' => AkquiseCrm::notizen($fid, ['user_id' => Auth::id()]),
+            'kontakte' => Db::all('SELECT * FROM akq_kontakte WHERE firma_id = ? ORDER BY id', [$fid]),
+            'hauptsitz' => !empty($f['filiale_von']) ? Db::one('SELECT id, name, stadt FROM akq_firmen WHERE id = ?', [(int) $f['filiale_von']]) : null,
+            'filialen' => Db::all('SELECT id, name, stadt FROM akq_firmen WHERE filiale_von = ? ORDER BY name LIMIT 50', [$fid]),
+            'naechsterGrund' => !empty($_GET['naechster']) ? (string) ($_SESSION['akq_naechster_grund'] ?? '') : ''];
     ansicht('akquise_firma', [
+        'crm' => $crm,
         'ansicht' => $ansicht,
         'ampel' => AkquiseGate::ampel($f),
         'schritt' => Akquise::naechsterSchritt($f),
@@ -863,7 +943,7 @@ if ($teil !== '' && ctype_digit($teil)) {
 }
 
 $filter = array_intersect_key($_GET, array_flip(['land', 'region', 'kreis', 'stadt', 'branche', 'kontakt', 'compliance', 'audit',
-                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web', 'partner']));
+                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web', 'partner', 'prio_min', 'prio', 'mit_email', 'mit_whatsapp']));
 ansicht('akquise', [
     'liste' => Akquise::liste($filter, max(1, (int) ($_GET['seite'] ?? 1))),
     'filter' => $filter,

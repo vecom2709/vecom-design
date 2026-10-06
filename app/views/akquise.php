@@ -9,13 +9,14 @@
 $akqTeil = '';
 require_once dirname(__DIR__) . '/src/AkquiseAnsprechen.php';
 require_once dirname(__DIR__) . '/src/AkquiseMail.php';
+require_once dirname(__DIR__) . '/src/AkquisePrio.php';
 $wert = static fn(string $k): string => (string) ($filter[$k] ?? '');
 $gewaehlt = static fn(string $k, string $v): string => (($filter[$k] ?? '') === $v) ? ' selected' : '';
 $seitenUrl = static function (int $s) use ($filter): string {
     return url('akquise') . '?' . http_build_query($filter + ['seite' => $s]);
 };
 $mehrOffen = (bool) array_intersect_key(array_filter($filter, static fn($v) => $v !== ''),
-    array_flip(['q', 'region', 'kreis', 'kontakt', 'compliance', 'audit', 'stufe', 'score_min', 'von', 'bis', 'sort', 'gesperrte']));
+    array_flip(['q', 'region', 'kreis', 'kontakt', 'compliance', 'audit', 'stufe', 'score_min', 'von', 'bis', 'sort', 'gesperrte', 'prio_min', 'prio', 'mit_email', 'mit_whatsapp']));
 $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http_build_query([$k => $v]);
 ?>
 <div class="kopf"><div><h1>Neue Kunden finden</h1>
@@ -171,10 +172,16 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
         <div><label for="audit">Prüfung</label><select id="audit" name="audit"><option value="">alle</option>
           <?php foreach (Akquise::AUDIT_STATUS as $k => $w): ?><option value="<?= $k ?>"<?= $gewaehlt('audit', $k) ?>><?= Fmt::h($w) ?></option><?php endforeach; ?></select></div>
         <div><label for="score_min">Chance ab</label><input id="score_min" name="score_min" type="number" min="0" max="100" value="<?= Fmt::h($wert('score_min')) ?>"></div>
+        <?php /* Akquise-CRM (06.10.2026): Priorität und Kontaktwege */ ?>
+        <div><label for="prio">Priorität</label><select id="prio" name="prio"><option value="">alle</option>
+          <?php foreach (AkquisePrio::STUFEN as $k => [$z, $w]): ?><option value="<?= $k ?>"<?= $gewaehlt('prio', $k) ?>><?= $z . ' ' . Fmt::h($w) ?></option><?php endforeach; ?></select></div>
+        <div><label for="prio_min">Priorität ab</label><input id="prio_min" name="prio_min" type="number" min="0" max="100" value="<?= Fmt::h($wert('prio_min')) ?>"></div>
+        <div><label class="akq-haken" style="margin-top:22px"><input type="checkbox" name="mit_email" value="1"<?= !empty($filter['mit_email']) ? ' checked' : '' ?>> mit E-Mail</label></div>
+        <div><label class="akq-haken" style="margin-top:22px"><input type="checkbox" name="mit_whatsapp" value="1"<?= !empty($filter['mit_whatsapp']) ? ' checked' : '' ?>> mit WhatsApp/Mobil</label></div>
         <div><label for="von">Gefunden ab</label><input id="von" name="von" type="date" value="<?= Fmt::h($wert('von')) ?>"></div>
         <div><label for="bis">bis</label><input id="bis" name="bis" type="date" value="<?= Fmt::h($wert('bis')) ?>"></div>
         <div><label for="sort">Reihenfolge</label><select id="sort" name="sort">
-          <?php foreach (['score' => 'Beste Chance zuerst', 'neu' => 'Neueste zuerst', 'geprueft' => 'Zuletzt geprüft', 'name' => 'Name'] as $k => $w): ?>
+          <?php foreach (['score' => 'Beste Chance zuerst', 'prio' => 'Höchste Priorität zuerst', 'neu' => 'Neueste zuerst', 'geprueft' => 'Zuletzt geprüft', 'name' => 'Name'] as $k => $w): ?>
             <option value="<?= $k ?>"<?= $gewaehlt('sort', $k) ?>><?= $w ?></option><?php endforeach; ?></select></div>
         <div><label class="akq-haken" style="margin-top:22px"><input type="checkbox" name="gesperrte" value="1"<?= !empty($filter['gesperrte']) ? ' checked' : '' ?>> gesperrte zeigen</label></div>
       </div>
@@ -255,6 +262,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
             <?php if ($akqMail === '' && $akqWa === null): ?><span class="akq-klein"><?= in_array((string) $z['audit_status'], ['offen', 'laeuft'], true) ? 'E-Mail wird auf der Website gesucht …' : 'Keine E-Mail, kein WhatsApp' ?></span><?php endif; ?>
           </div>
           <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
+          <?php $zSt = AkquisePrio::STUFEN[(string) ($z['prio_stufe'] ?? '')] ?? null; if ($zSt): ?><span class="crm-prio p-<?= Fmt::h((string) $z['prio_stufe']) ?>" style="margin-top:5px" title="Akquise-Priorität: <?= Fmt::h($zSt[1] . (AkquisePrio::warum($z) !== '' ? ' — ' . AkquisePrio::warum($z) : '')) ?>"><?= $zSt[0] ?> <?= (int) $z['prio_score'] ?></span><?php endif; ?>
           <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?>
           <?php if (!empty($z['beim_partner'])): $bp = $z['beim_partner']; [$bpWort, $bpArt] = Akquise::partnerKennung($bp); ?>
             <a class="akq-partner <?= $bpArt ?>" href="<?= Fmt::h(url('akquise') . '?partner=' . (int) $bp['partner_id']) ?>" title="Reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $bp['bis']))) ?>"><?= (string) ($bp['herkunft'] ?? '') === 'vecom' ? '☎' : '★' ?> <b><?= Fmt::h((string) $bp['partner_name']) ?></b> <?= Fmt::h($bpWort) ?></a>

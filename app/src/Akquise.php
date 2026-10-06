@@ -429,6 +429,8 @@ final class Akquise
         'akq_vorlagen' => 'firma_id', 'akq_wa_gespraeche' => 'firma_id', 'mk_demos' => 'akq_firma_id',
         'partner_briefwunsch' => 'firma_id', 'partner_leads' => 'firma_id', 'partner_reservierungen' => 'firma_id',
         'partner_tagesliste' => 'firma_id', 'partner_zugriffe' => 'firma_id', 'web_berichte' => 'firma_id',
+        // Akquise-CRM (Migration 193): was ein Mensch dazu notiert hat, wird nie still aussortiert.
+        'akq_notizen' => 'firma_id', 'akq_kontakte' => 'firma_id', 'akq_kanaele' => 'firma_id',
     ];
 
     /** Was mit dem Betrieb geht. */
@@ -441,6 +443,9 @@ final class Akquise
               "COALESCE(f.email, '') = ''", "COALESCE(f.whatsapp, '') = ''",
               "NOT (COALESCE(f.telefon, '') REGEXP '^[+](393[0-9]{8,9}|491[5-7][0-9]{8,9})$')",
               "f.audit_status IN ('fertig','fehler','keine_website','uebersprungen')"];
+        if (self::spalteDa('akq_firmen', 'crm_stufe')) {   // von Hand gesetzt: Stufe, nächster Schritt, Sperrart, Mobil
+            $w[] = "f.crm_stufe IS NULL AND f.naechster_schritt IS NULL AND f.sperr_art IS NULL AND COALESCE(f.mobil, '') = ''";
+        }
         foreach (self::BEZUG as $t => $sp) {
             if (self::tabelleDa($t)) { $w[] = "NOT EXISTS (SELECT 1 FROM $t b WHERE b.$sp = f.id)"; }
         }
@@ -449,6 +454,15 @@ final class Akquise
 
     /** @var array<string,bool> */
     private static array $tabellen = [];
+
+    private static function spalteDa(string $t, string $sp): bool
+    {
+        $k = $t . '.' . $sp;
+        if (!isset(self::$tabellen[$k])) {
+            try { self::$tabellen[$k] = Db::all("SHOW COLUMNS FROM $t LIKE " . Db::pdo()->quote($sp)) !== []; } catch (Throwable $e) { self::$tabellen[$k] = false; }
+        }
+        return self::$tabellen[$k];
+    }
 
     private static function tabelleDa(string $t): bool
     {
@@ -992,6 +1006,7 @@ final class Akquise
         'neu'     => 'f.id DESC',
         'geprueft'=> 'f.geprueft_am DESC',
         'name'    => 'f.name ASC',
+        'prio'    => 'f.prio_score IS NULL, f.prio_score DESC, f.id DESC',   // Akquise-CRM (06.10.2026)
     ];
 
     /**
@@ -1015,6 +1030,11 @@ final class Akquise
             $wo[] = 'f.kontakt_status = ?'; $args[] = $k5;
         }
         if (!empty($f['stark'])) { $wo[] = 'f.score >= 71'; }
+        /* Akquise-CRM (06.10.2026): Priorität und vorhandene Kontaktwege — „alle Dachdecker in Mainz über 80 mit E-Mail“. */
+        if (isset($f['prio_min']) && $f['prio_min'] !== '' && is_numeric($f['prio_min'])) { $wo[] = 'f.prio_score >= ?'; $args[] = (int) $f['prio_min']; }
+        if (!empty($f['prio']) && in_array($f['prio'], ['jetzt', 'gut', 'spaeter', 'niedrig', 'nie'], true)) { $wo[] = 'f.prio_stufe = ?'; $args[] = (string) $f['prio']; }
+        if (!empty($f['mit_email'])) { $wo[] = "(f.email IS NOT NULL AND f.email <> '')"; }
+        if (!empty($f['mit_whatsapp'])) { $wo[] = "((f.whatsapp IS NOT NULL AND f.whatsapp <> '') OR (f.mobil IS NOT NULL AND f.mobil <> ''))"; }
         /* Schnellfilter (29.09.2026, K1): wer hat zugestimmt, wer hat keine Website */
         if (!empty($f['darf'])) { $wo[] = "(f.einwilligung IS NOT NULL AND f.einwilligung <> '')"; }
         if (!empty($f['ohne_web'])) { $wo[] = "(f.url IS NULL OR f.url = '')"; }

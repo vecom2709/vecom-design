@@ -105,6 +105,7 @@ final class Automation
         'akquise_berichte' => ['Berichte und Branchenzahlen', 'akquise', 'A', false, 'Rechnet Berichte und Branchen-Statistik nach.'],
         'akquise_tipp'   => ['Website-Tipp der Woche', 'akquise', 'A', true, 'Dienstags, nur an bestätigte Abos.'],
         'akquise_termine' => ['Termin-Erinnerung', 'akquise', 'A', true, 'Am Vortag eine Erinnerung an den Gebuchten, genau einmal.'],
+        'akquise_prio'   => ['Akquise-Priorität rechnen', 'akquise', 'A', false, 'Rechnet die Priorität je Betrieb aus den eigenen Daten nach (300 je Lauf).'],
         'akquise_checks' => ['Website-Checks anonymisieren', 'akquise', 'A', false, 'Leert persönliche Felder nach der Frist.'],
         'akquise_woche'  => ['Akquise-Wochenbericht', 'akquise', 'A', false, 'Montags ein Zuruf an dich.'],
         // Marketing & Kanäle

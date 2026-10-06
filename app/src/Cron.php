@@ -480,6 +480,12 @@ final class Cron
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseTermin'] as $k) { require_once __DIR__ . "/$k.php"; }
                 return ['erinnert' => AkquiseTermin::erinnern()];
             },
+            /* Akquise-CRM (06.10.2026, Modul B): Priorität je Betrieb nachrechnen — die am längsten nicht gerechneten zuerst.
+               Nur Daten aus der eigenen Datenbank, kein Abruf nach draußen. */
+            'akquise_prio' => static function () {
+                require_once __DIR__ . '/AkquisePrio.php';
+                return AkquisePrio::lauf();
+            },
             /* Website-Checks: persönliche Felder nach der Frist leeren (einmal am Tag). */
             'akquise_checks' => static function () {
                 foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseCheck'] as $k) { require_once __DIR__ . "/$k.php"; }

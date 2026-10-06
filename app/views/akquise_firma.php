@@ -56,9 +56,28 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
       <span class="akq-chance s-<?= Fmt::h((string) $f['score_stufe']) ?>" title="Wie gut passt Vecom hier? 0–100, nur intern">
         Chance <b><?= $score ?></b> · <?= Fmt::h(Akquise::chanceWort($score)) ?></span>
     <?php endif; ?>
+    <?php /* Akquise-CRM (06.10.2026): Priorität = wen jetzt ansprechen; „Chance“ daneben = wie schwach der Webauftritt ist. */
+      $crmSt = AkquisePrio::STUFEN[(string) ($f['prio_stufe'] ?? '')] ?? null; if ($crmSt): ?>
+      <span class="crm-prio p-<?= Fmt::h((string) $f['prio_stufe']) ?>" id="prio" title="Akquise-Priorität 0–100, nur intern"><?= $crmSt[0] ?> <?= (int) $f['prio_score'] ?> · <?= Fmt::h($crmSt[1]) ?></span>
+    <?php endif; ?>
     <span class="akq-ampel <?= Fmt::h($ampel['farbe']) ?>"><i></i><?= Fmt::h($ampel['wort']) ?></span>
     <span class="akq-klein"><?= Fmt::h(implode(' · ', array_filter([(string) $f['stadt'], Akquise::branchenName($f['branche'])]))) ?></span>
   </div>
+  <?php $crmWarum = AkquisePrio::warum($f); if ($crmWarum !== ''): ?>
+    <p style="margin:10px 0 0;font-size:14px;color:var(--dim)" id="warum"><b style="color:var(--text)">Warum interessant?</b> <?= Fmt::h($crmWarum) ?></p>
+  <?php endif; ?>
+  <?php if ((string) ($f['sperr_art'] ?? '') !== ''): ?>
+    <div class="hinweis schlecht" style="margin:10px 0">🔴 NICHT KONTAKTIEREN — <?= Fmt::h(AkquiseCrm::SPERR_ARTEN[$f['sperr_art']] ?? (string) $f['sperr_art']) ?><?= $f['sperr_grund'] ? ': ' . Fmt::h((string) $f['sperr_grund']) : '' ?> (seit <?= Fmt::h(date('d.m.Y', strtotime((string) $f['sperr_am']))) ?>). Versand ist aus.</div>
+  <?php endif; ?>
+  <?php if (($crm['naechsterGrund'] ?? '') !== ''): ?>
+    <div class="hinweis" style="margin:10px 0;display:flex;gap:10px;align-items:center;flex-wrap:wrap" id="naechster-hinweis">
+      <span style="flex:1;min-width:220px">Nächster bester Kontakt — <?= Fmt::h($crm['naechsterGrund']) ?>.</span>
+      <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_naechster_weiter"><input type="hidden" name="firma" value="<?= $fid ?>"><button class="knopf">Überspringen → nächster</button></form>
+    </div>
+  <?php endif; ?>
+  <?php if (!empty($f['naechster_schritt']) || !empty($f['naechster_am'])): ?>
+    <p class="akq-klein" style="margin:8px 0 0">➜ Nächster Schritt<?= !empty($f['naechster_am']) ? ' am ' . Fmt::h(date('d.m.Y', strtotime((string) $f['naechster_am']))) : '' ?>: <?= Fmt::h((string) ($f['naechster_schritt'] ?? '')) ?></p>
+  <?php endif; ?>
   <?php if (!empty($f['wiedervorlage_am'])): ?>
     <p class="akq-klein" style="margin:8px 0 0">⏰ Wiedervorlage am <?= Fmt::h(date('d.m.Y', strtotime((string) $f['wiedervorlage_am']))) ?> — dann meldet sich der Betrieb mit dem Stand (Analyse-Seite geöffnet? Antwort?).</p>
   <?php endif; ?>
@@ -110,7 +129,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 
 <nav class="akq-unterreiter" aria-label="Ansicht">
-  <?php foreach (['ueberblick' => 'Überblick', 'befunde' => 'Alle Befunde (' . count($befunde) . ')', 'verlauf' => 'Verlauf'] as $k => $w): ?>
+  <?php foreach (['ueberblick' => 'Überblick', 'profil' => 'Profil & Notizen', 'befunde' => 'Alle Befunde (' . count($befunde) . ')', 'verlauf' => 'Verlauf'] as $k => $w): ?>
     <a href="<?= Fmt::h($reiterUrl($k)) ?>" class="<?= $ansicht === $k ? 'an' : '' ?>"<?= $ansicht === $k ? ' aria-current="page"' : '' ?>><?= Fmt::h($w) ?></a>
   <?php endforeach; ?>
 </nav>
@@ -460,6 +479,10 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
   <?php endforeach; ?>
 </div>
 <?php endif; ?>
+
+<?php elseif ($ansicht === 'profil'): ?>
+<!-- ============================ PROFIL (Akquise-CRM Modul A) ============================ -->
+<?php require __DIR__ . '/akquise_profil.php'; ?>
 
 <?php else: ?>
 <!-- ============================ VERLAUF ============================ -->
