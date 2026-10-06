@@ -77,6 +77,12 @@ final class Morgenbriefing
                       WHERE p.status IN ('ausstehend','in_bearbeitung','fehlgeschlagen') AND p.demo = 0 AND p.faellig_am < ?
                       ORDER BY p.faellig_am LIMIT 3", [$heute])), null);
 
+        // Umsatz-Spürhund (Stufe 3): was offen ist und was seit gestern dazukam.
+        $geld['chancen'] = $still(static function () use ($jetzt) {
+            require_once __DIR__ . '/Spuerhund.php';
+            return Spuerhund::stand(date('Y-m-d H:i:s', $jetzt - 86400));
+        });
+
         /* ---------- Technik ---------- */
         $cron = $still(static function () { require_once __DIR__ . '/Cron.php'; return Cron::zuletzt(); });
         $sicherung = $still(static function () { require_once __DIR__ . '/SicherungAussen.php'; return SicherungAussen::stand(); }, null);
@@ -149,6 +155,15 @@ final class Morgenbriefing
             foreach ((array) $g['ueberfaellig'] as $u) {
                 $z[] = '   – ' . $h($u['kunde']) . ': ' . $eur($u['cent']) . ', seit ' . (int) $u['tage'] . ' Tag' . ((int) $u['tage'] === 1 ? '' : 'en');
             }
+        }
+
+        if (!empty($g['chancen']['offen'])) {
+            $c = $g['chancen'];
+            $wert = [];
+            if ($c['wert_monat'] > 0) { $wert[] = 'rund ' . $eur($c['wert_monat']) . ' im Monat'; }
+            if ($c['wert_einmal'] > 0) { $wert[] = $eur($c['wert_einmal']) . ' in Angeboten'; }
+            $z[] = '• Umsatz-Chancen: ' . (int) $c['offen'] . ' offen' . ($c['neu'] ? ', ' . (int) $c['neu'] . ' neu' : '') . ($wert ? ' (' . implode(', ', $wert) . ')' : '');
+            foreach ($c['neue'] as $t) { $z[] = '   – neu: ' . $h(mb_substr($t, 0, 120)); }
         }
 
         $te = $d['technik'];

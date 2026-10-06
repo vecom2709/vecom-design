@@ -638,6 +638,14 @@ final class Cron
         // Morgenbriefing (AI Office Stufe 2, 07.10.2026, Uwe: „Telegram an Sie“, 07:30). Der Cron läuft alle
         // zehn Minuten; gesendet wird beim ersten Lauf ab 07:30, längstens bis 11:00 — wer um zwei Uhr
         // nachmittags ein „Guten Morgen“ bekommt, liest es nicht mehr als Briefing.
+        // Umsatz-Spürhund (AI Office Stufe 3, 07.10.2026, Uwe: „Täglich, im Briefing + eigene Seite“): einmal am
+        // Tag, beim ersten Lauf nach Mitternacht — also vor dem Briefing, das seine neuen Funde nennt.
+        if (self::heuteNochNicht('cron_spuerhund')) {
+            $aufgaben['spuerhund'] = static function () {
+                require_once __DIR__ . '/Spuerhund.php';
+                return Spuerhund::lauf();
+            };
+        }
         require_once __DIR__ . '/Morgenbriefing.php';
         if (Morgenbriefing::faellig() && self::heuteNochNicht('cron_morgenbriefing')) {
             $aufgaben['morgenbriefing'] = static fn() => Morgenbriefing::senden();

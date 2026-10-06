@@ -21,6 +21,8 @@ $navZahlen = [
   // AI Freigaben (Stufe 1): offene Vorschläge plus Mails, die der Not-Aus zurückhält.
   'ai-freigaben' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM ai_freigaben WHERE status = 'offen' OR (status = 'zurueckgestellt' AND zurueck_bis <= NOW())", [], 0), 0)
                   + (int) sicher(fn() => Db::wert('SELECT COUNT(*) FROM ausgang_gehalten WHERE entschieden_am IS NULL', [], 0), 0),
+  // Umsatz-Spürhund (Stufe 3): offene Chancen — jede ist eine Handlung (anbieten, nachfassen, antworten oder verwerfen).
+  'umsatz-chancen' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM umsatz_chancen WHERE status = 'offen'", [], 0), 0),
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
@@ -158,6 +160,7 @@ $menue = [
 
   ['rechnungen', 'Geld', 'rechnungen', [
     ['angebote', 'Angebote', 'angebote'],
+    ['umsatz-chancen', 'Umsatz-Chancen', 'umsatz-chancen'],   // AI Office Stufe 3: der Spürhund (07.10.2026)
     ['zahlungen', 'Zahlungen', 'zahlungen'],
     ['ausgaben', 'Ausgaben', 'ausgaben'],
     ['abos', 'Verträge', 'abos'],

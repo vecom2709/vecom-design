@@ -27419,7 +27419,7 @@ $czRS = ClaudeZugang::steckbriefRessource();
 $czAS = ClaudeZugang::steckbriefServer();
 pruefe('Steckbriefe: die Schnittstelle nennt ihren Aussteller (RFC 9728), der Aussteller nur PKCE mit S256 (RFC 8414)',
     $czRS['resource'] === $czB . '/mcp' && $czRS['authorization_servers'] === [$czB] && $czAS['issuer'] === $czB
-    && $czAS['code_challenge_methods_supported'] === ['S256'] && $czAS['scopes_supported'] === ['verwaltung.lesen']
+    && $czAS['code_challenge_methods_supported'] === ['S256'] && $czAS['scopes_supported'] === ['verwaltung.lesen', 'verwaltung.eintragen']
     && !isset($czAS['client_id_metadata_document_supported']));
 [$czS, $czR] = ClaudeZugang::registrieren(['redirect_uris' => ['https://boese.example/cb']], '203.0.113.9');
 pruefe('ein Programm mit fremder Rücksprungadresse wird nicht angemeldet', $czS === 400);
@@ -27678,6 +27678,118 @@ try {
 pruefe('die Gutschrift fragt nach (Ablauf SCHWER) und nur ein Admin darf', isset(Ablauf::TRAGWEITE['rechnung_gutschrift']) && str_contains((string) file_get_contents($wurzel . '/index.php'), "Gutschriften stellt nur ein Admin aus."));
 
 Firma::speichern($dgVorher);
+/* ---- AI Office Stufe 3: Claude trägt im Haus ein, Umsatz-Spürhund ---- */
+abschnitt('AI Office Stufe 3: Eintragen (nur im Haus) und Umsatz-Spürhund');
+require_once $wurzel . '/src/ClaudeEintragen.php';
+require_once $wurzel . '/src/Spuerhund.php';
+// Umfang: ohne Angabe beides, Lesen gehört immer dazu, Unbekanntes nicht.
+$e3Umfang = static function (array $extra) use ($czAnf): string {
+    $w = ClaudeZugang::anfrageAnnehmen($extra + $czAnf);
+    $a = ClaudeZugang::anfrage(substr((string) ($w['ziel'] ?? ''), -32));
+    return $a ? (string) $a['scope'] : 'FEHLER ' . ($w['ziel'] ?? $w['text'] ?? '');
+};
+pruefe('Umfang: ohne Angabe Lesen + Eintragen, „nur eintragen“ bekommt Lesen dazu, „nur lesen“ bleibt Lesen',
+    $e3Umfang(['scope' => '']) === 'verwaltung.lesen verwaltung.eintragen' && $e3Umfang(['scope' => 'verwaltung.eintragen']) === 'verwaltung.lesen verwaltung.eintragen'
+    && $e3Umfang(['scope' => 'verwaltung.lesen']) === 'verwaltung.lesen');
+pruefe('darf(): eine Lese-Verbindung darf nicht eintragen', ClaudeZugang::darf(['scope' => 'verwaltung.lesen'], ClaudeZugang::EINTRAGEN) === false
+    && ClaudeZugang::darf(['scope' => 'verwaltung.lesen verwaltung.eintragen'], ClaudeZugang::EINTRAGEN) === true);
+$e3Quelle = (string) file_get_contents($wurzel . '/src/ClaudeEintragen.php');
+pruefe('Eintragen kennt keinen Versand, kein Löschen, kein Genehmigen und kein Geld',
+    !preg_match('/\b(Mail|Telegram|WhatsAppCloud|Zuruf|Ausgang|Abbuchung|Partner)::/', $e3Quelle) && !preg_match('/\bDELETE\b/', $e3Quelle)
+    && !str_contains($e3Quelle, 'genehmigen(') && !str_contains($e3Quelle, 'payments'));
+pruefe('jedes Eintragen-Werkzeug ist als nicht zerstörend und nur im Haus gekennzeichnet', array_filter(ClaudeEintragen::liste(), static fn($w) =>
+    ($w['annotations']['destructiveHint'] ?? true) !== false || ($w['annotations']['openWorldHint'] ?? true) !== false) === []
+    && array_intersect(ClaudeEintragen::namen(), ClaudeWerkzeuge::namen()) === []);
+$e3Mcp = (string) file_get_contents($oben . '/mcp.php');
+pruefe('mcp.php: Eintragen nur mit dem Umfang, sonst 403 insufficient_scope; die Liste hängt am Umfang',
+    str_contains($e3Mcp, 'insufficient_scope') && str_contains($e3Mcp, "ClaudeZugang::darf(\$verbindung, ClaudeZugang::EINTRAGEN)") && str_contains($e3Mcp, 'ClaudeEintragen::liste()'));
+// Die Werkzeuge an echten Zeilen.
+$e3K = (int) Db::insert('customers', ['name' => 'Eintrag Kette', 'email' => 'eintrag-kette@pruefung.example', 'token' => bin2hex(random_bytes(12))]);
+$e3P = (int) Db::insert('projects', ['customer_id' => $e3K, 'name' => 'Eintrag Kette Seite', 'status' => 'online']);
+$e3F = (int) Db::insert('akq_firmen', ['kennung' => 'EK' . substr((string) hrtime(true), -8), 'name' => 'Bar Eintrag', 'name_norm' => 'bar eintrag', 'land' => 'IT', 'stadt' => 'Sciacca']);
+$e3M = (int) Db::insert('notifications', ['type' => 'kette', 'level' => 'info', 'title' => 'Kette: zum Lesen']);
+$e3Mails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$e3R = [
+    ClaudeEintragen::rufen('notiz_anlegen', ['ziel' => 'kunde', 'id' => $e3K, 'text' => 'Möchte im Frühjahr einen Shop.'], 9001),
+    ClaudeEintragen::rufen('notiz_anlegen', ['ziel' => 'betrieb', 'id' => $e3F, 'text' => 'Inhaber erst ab 17 Uhr da.'], 9001),
+    ClaudeEintragen::rufen('aufgabe_anlegen', ['projekt_id' => $e3P, 'titel' => 'Impressum prüfen', 'faellig' => date('Y-m-d', strtotime('+3 days'))], 9001),
+    ClaudeEintragen::rufen('wiedervorlage_setzen', ['betrieb_id' => $e3F, 'datum' => date('Y-m-d', strtotime('+5 days')), 'grund' => 'chef_weg'], 9001),
+    ClaudeEintragen::rufen('meldungen_gelesen', ['ids' => [$e3M]], 9001),
+];
+$e3Aufgabe = (int) ($e3R[2]['daten']['aufgabe_id'] ?? 0);
+pruefe('Notiz (Kunde, Betrieb), Aufgabe, Wiedervorlage, Meldung gelesen: alles eingetragen', array_filter($e3R, static fn($r) => !$r['ok']) === []
+    && (string) Db::wert("SELECT actor FROM activities WHERE customer_id = ? AND type = 'notiz_claude'", [$e3K], '') === 'Claude'
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_notizen WHERE firma_id = ? AND autor = 'Claude'", [$e3F], 0) === 1
+    && (string) Db::wert('SELECT title FROM tasks WHERE id = ?', [$e3Aufgabe], '') === 'Impressum prüfen'
+    && (string) Db::wert('SELECT naechster_am FROM akq_firmen WHERE id = ?', [$e3F], '') === date('Y-m-d', strtotime('+5 days'))
+    && Db::wert('SELECT read_at FROM notifications WHERE id = ?', [$e3M], null) !== null,
+    json_encode(array_map(static fn($r) => $r['text'], array_filter($e3R, static fn($r) => !$r['ok'])), JSON_UNESCAPED_UNICODE));
+pruefe('Aufgabe abhaken', ClaudeEintragen::rufen('aufgabe_erledigt', ['aufgabe_id' => $e3Aufgabe], 9001)['ok'] && (int) Db::wert('SELECT done FROM tasks WHERE id = ?', [$e3Aufgabe], 0) === 1);
+pruefe('jeder Eintrag steht in der Prüfspur mit „Claude“', (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE actor = 'Claude' AND action LIKE 'claude\\_%' AND after_json LIKE '%\"verbindung\":9001%'", [], 0) >= 6);
+pruefe('falsche Eingaben sind lesbare Fehler: Datum in der Vergangenheit, unbekannter Kunde, leerer Text',
+    !ClaudeEintragen::rufen('wiedervorlage_setzen', ['betrieb_id' => $e3F, 'datum' => '2020-01-01', 'grund' => 'saison'], 9001)['ok']
+    && !ClaudeEintragen::rufen('notiz_anlegen', ['ziel' => 'kunde', 'id' => 99999999, 'text' => 'x x'], 9001)['ok']
+    && !ClaudeEintragen::rufen('aufgabe_anlegen', ['projekt_id' => $e3P, 'titel' => ' '], 9001)['ok']);
+$e3V = ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'kunde_nachricht', 'kunde_id' => $e3K, 'titel' => 'Shop im Frühjahr ansprechen',
+    'grund' => 'Notiz vom Kunden: möchte im Frühjahr einen Shop.', 'betreff' => 'Ihr Shop im Frühjahr', 'text' => 'Guten Tag, Sie hatten einen Shop erwähnt …'], 9001);
+$e3Fid = (int) ($e3V['daten']['freigabe_id'] ?? 0);
+pruefe('ein Vorschlag landet in AI Freigaben — offen, von „Claude (Connector)“, und keine Mail ist raus', $e3V['ok']
+    && (string) Db::wert('SELECT status FROM ai_freigaben WHERE id = ?', [$e3Fid], '') === 'offen'
+    && (string) Db::wert('SELECT system_name FROM ai_freigaben WHERE id = ?', [$e3Fid], '') === 'Claude (Connector)'
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $e3Mails);
+pruefe('ein Vorschlag ohne Text oder an einen unbekannten Kunden wird nicht angelegt',
+    !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'kunde_nachricht', 'kunde_id' => $e3K, 'titel' => 'Leer', 'grund' => 'Test', 'betreff' => 'Hallo'], 9001)['ok']
+    && !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'kunde_nachricht', 'kunde_id' => 99999999, 'titel' => 'Wer?', 'grund' => 'Test', 'betreff' => 'Hallo', 'text' => 'Guten Tag, ein Text.'], 9001)['ok']);
+Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE id = ?", [$e3Fid]);
+// Der Spürhund an echten Zeilen.
+$e3Ang = (int) Db::insert('angebote', ['customer_id' => $e3K, 'nummer' => 'SH-' . substr((string) hrtime(true), -8), 'sprache' => 'de', 'status' => 'gesendet',
+    'titel' => 'Shop', 'summe_cents' => 150000, 'monatlich_cents' => 0, 'currency' => 'EUR', 'gueltig_bis' => date('Y-m-d', strtotime('+10 days')),
+    'gesendet_am' => date('Y-m-d H:i:s', strtotime('-9 days')), 'token' => bin2hex(random_bytes(24))]);
+Db::insert('akq_antworten', ['firma_id' => $e3F, 'eingang_am' => date('Y-m-d H:i:s', strtotime('-3 days')), 'klasse' => 'INTERESTED', 'erledigt' => 0]);
+$e3L = Spuerhund::lauf();
+$e3Zu = static fn(string $art, string $bezug): string => (string) Db::wert('SELECT status FROM umsatz_chancen WHERE art = ? AND bezug = ?', [$art, $bezug], '');
+pruefe('der Spürhund findet alle vier Arten: Betreuung, Hosting, Angebot, Interessent', $e3Zu('betreuung', 'kunde:' . $e3K) === 'offen'
+    && $e3Zu('hosting', 'kunde:' . $e3K) === 'offen' && $e3Zu('angebot', 'angebot:' . $e3Ang) === 'offen' && $e3Zu('interessent', 'firma:' . $e3F) === 'offen'
+    && $e3L['neu'] >= 4, json_encode($e3L));
+pruefe('ein zweiter Lauf findet nichts Neues', Spuerhund::lauf()['neu'] === 0);
+Db::insert('abos', ['customer_id' => $e3K, 'project_id' => $e3P, 'paket_slug' => 'betreuung-basis', 'paket_name' => 'Betreuung Basis', 'betrag_cents' => 3900, 'currency' => 'EUR',
+    'zahlart' => 'manuell', 'status' => 'aktiv', 'beginn' => date('Y-m-d'), 'mindestlaufzeit_bis' => date('Y-m-d', strtotime('+1 year'))]);
+Db::run("UPDATE angebote SET status = 'angenommen', angenommen_am = NOW() WHERE id = ?", [$e3Ang]);
+Spuerhund::lauf();
+pruefe('ist der Anlass weg (Vertrag da, Angebot angenommen), steht die Chance als erledigt da', $e3Zu('betreuung', 'kunde:' . $e3K) === 'erledigt'
+    && $e3Zu('angebot', 'angebot:' . $e3Ang) === 'erledigt');
+$e3H = (int) Db::wert("SELECT id FROM umsatz_chancen WHERE art = 'hosting' AND bezug = ?", ['kunde:' . $e3K], 0);
+pruefe('verworfen bleibt verworfen, auch nach dem nächsten Lauf', Spuerhund::verwerfen($e3H, 'macht er selbst', 'Kette') && (Spuerhund::lauf() !== [])
+    && $e3Zu('hosting', 'kunde:' . $e3K) === 'verworfen');
+$e3Ch = ClaudeWerkzeuge::rufen('umsatz_chancen', []);
+pruefe('Claude liest die offenen Chancen (umsatz_chancen), ohne die verworfenen', $e3Ch['ok'] && str_contains($e3Ch['text'], 'Bar Eintrag')
+    && !in_array($e3H, array_column((array) ($e3Ch['daten']['offen'] ?? []), 'id'), true));
+Morgenbriefing::$abgefangen = [];
+Morgenbriefing::senden();
+pruefe('das Morgenbriefing nennt die Umsatz-Chancen unter Geld', str_contains((string) (Morgenbriefing::$abgefangen[0] ?? ''), 'Umsatz-Chancen:'));
+Morgenbriefing::$abgefangen = null;
+pruefe('Spürhund steht im Automation Center (lässt nichts aus dem Haus) und läuft täglich', (Automation::REGELN['spuerhund'][3] ?? true) === false
+    && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'cron_spuerhund'"));
+pruefe('Seite „Umsatz-Chancen“ unter Geld, Verwerfen ohne Rückfrage, nur Admin', str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['umsatz-chancen', 'Umsatz-Chancen', 'umsatz-chancen']")
+    && !isset(Ablauf::TRAGWEITE['umsatz_chance_verwerfen']) && !in_array('umsatz-chancen', Rechte::SEITEN, true));
+// Nachtrag Sicherung (aus Stufe 0): die Probe misst am Auszug, nicht an der Datenbank von heute.
+require_once $wurzel . '/src/SicherungAussen.php';
+$e3Live = (int) Db::wert('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()', [], 0);
+$e3Probe = Db::wert("SELECT svalue FROM settings WHERE skey = 'sicherung_probe'", [], null);
+pruefe('Probe: ein Auszug mit allen seinen Tabellen ist in Ordnung, auch wenn heute zehn Tabellen mehr da sind; fehlt eine, nicht',
+    SicherungAussen::probeMelden(['ok' => true, 'tabellen' => $e3Live - 10, 'erwartet' => $e3Live - 10, 'zeilen' => ['customers' => 1]])['ok'] === true
+    && SicherungAussen::probeMelden(['ok' => true, 'tabellen' => $e3Live - 11, 'erwartet' => $e3Live - 10, 'zeilen' => ['customers' => 1]])['ok'] === false);
+if ($e3Probe === null) { Db::run("DELETE FROM settings WHERE skey = 'sicherung_probe'"); } else { Db::run("UPDATE settings SET svalue = ? WHERE skey = 'sicherung_probe'", [$e3Probe]); }
+$e3Pj = (string) file_get_contents($oben . '/tools/sicherung/probe.mjs');
+pruefe('probe.mjs zählt die Tabellen im Auszug und spielt alte Auszüge nachsichtig ein (sql_mode leer)',
+    str_contains($e3Pj, "startsWith('CREATE TABLE')") && str_contains($e3Pj, "--init-command=SET SESSION sql_mode=''"));
+Db::run('DELETE FROM umsatz_chancen WHERE kunde_id = ? OR firma_id = ?', [$e3K, $e3F]);
+Db::run('DELETE FROM abos WHERE customer_id = ?', [$e3K]);
+Db::run('DELETE FROM angebote WHERE id = ?', [$e3Ang]);
+Db::run('DELETE FROM tasks WHERE project_id = ?', [$e3P]);
+Db::run('DELETE FROM activities WHERE customer_id = ?', [$e3K]);
+Db::run('DELETE FROM projects WHERE id = ?', [$e3P]);
+Db::run('DELETE FROM customers WHERE id = ?', [$e3K]);
 
 /* ============================================================================
    Aufräumen und Bilanz

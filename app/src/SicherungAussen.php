@@ -190,16 +190,21 @@ final class SicherungAussen
         $live = (int) Db::wert('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()', [], 0);
         $tabellen = (int) ($d['tabellen'] ?? 0);
         $zeilen = array_map('intval', array_slice((array) ($d['zeilen'] ?? []), 0, 20, true));
-        $gut = !empty($d['ok']) && $tabellen > 0 && $tabellen >= $live - 3 && ($zeilen['customers'] ?? -1) >= 0;
+        // Gemessen wird am Auszug selbst (erwartet = CREATE TABLE im Auszug, probe.mjs seit 07.10.2026), nicht an
+        // der Datenbank von heute: Nach einem Deploy mit Migrationen hat sie mehr Tabellen als der Auszug von
+        // gestern — die alte Regel „live − 3“ hätte an solchen Tagen falschen Alarm gegeben.
+        $erwartet = (int) ($d['erwartet'] ?? 0);
+        $genug = $erwartet > 0 ? $tabellen >= $erwartet : $tabellen >= $live - 3;
+        $gut = !empty($d['ok']) && $tabellen > 0 && $genug && ($zeilen['customers'] ?? -1) >= 0;
         $stand = ['am' => date('Y-m-d H:i:s'), 'ok' => $gut, 'datei' => mb_substr((string) ($d['datei'] ?? ''), 0, 60),
-                  'tabellen' => $tabellen, 'live' => $live, 'zeilen' => $zeilen, 'dauer_s' => (int) ($d['dauer_s'] ?? 0),
+                  'tabellen' => $tabellen, 'erwartet' => $erwartet, 'live' => $live, 'zeilen' => $zeilen, 'dauer_s' => (int) ($d['dauer_s'] ?? 0),
                   'fehler' => mb_substr((string) ($d['fehler'] ?? ''), 0, 300)];
         Db::run("INSERT INTO settings (skey, svalue) VALUES ('sicherung_probe', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)",
             [json_encode($stand, JSON_UNESCAPED_UNICODE)]);
         require_once __DIR__ . '/Events.php';
         if (!$gut) {
             Events::melden('sicherung_probe', 'Wiederherstellungsprobe gescheitert', 'schlecht',
-                'Datei ' . $stand['datei'] . ': ' . ($stand['fehler'] !== '' ? $stand['fehler'] : $tabellen . ' von ' . $live . ' Tabellen.'), '/einstellungen?b=ueberwachung#sicherung');
+                'Datei ' . $stand['datei'] . ': ' . ($stand['fehler'] !== '' ? $stand['fehler'] : $tabellen . ' von ' . ($erwartet > 0 ? $erwartet : $live) . ' Tabellen.'), '/einstellungen?b=ueberwachung#sicherung');
         }
         return ['ok' => $gut, 'text' => $gut ? 'Probe festgehalten.' : 'Probe festgehalten — sie zeigt ein Problem.'];
     }

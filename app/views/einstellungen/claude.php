@@ -11,16 +11,17 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
 <div class="block" id="zugang"><h2>Lesezugang für Claude <span class="mehr"><span class="marke2 <?= $c['an'] ? ($aktiv ? 'gut' : '') : 'schlecht' ?>"><?=
     !$c['an'] ? 'aus' : ($aktiv ? 'verbunden' : 'bereit, nicht verbunden') ?></span></span></h2>
   <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
-    Claude kann deine Verwaltung <b>lesen</b> — Kunden, Projekte, Geld, Meldungen, Akquise, Überwachung, AI Freigaben,
-    Prüfspur und das Wissen unten. Ändern, senden oder freigeben kann Claude darüber nichts. Passwörter, Schlüssel,
-    Kundenlinks und Zahlmittel gibt die Verwaltung nie heraus.
+    Claude kann deine Verwaltung <b>lesen</b> — Kunden, Projekte, Geld, Umsatz-Chancen, Meldungen, Akquise, Überwachung,
+    AI Freigaben, Prüfspur und das Wissen unten. Mit der Erlaubnis <b>Eintragen</b> auch Notizen, Aufgaben, Wiedervorlagen,
+    Meldungen als gelesen — und Vorschläge in AI Freigaben, die erst mit deinem Ja rausgehen. Senden, freigeben, löschen
+    oder Geld bewegen kann Claude darüber nie. Passwörter, Schlüssel, Kundenlinks und Zahlmittel gibt die Verwaltung nie heraus.
   </p>
   <div class="feld" style="max-width:520px"><label for="claude-adresse">Adresse für Claude</label>
     <input id="claude-adresse" value="<?= Fmt::h((string) $c['adresse']) ?>" readonly onclick="this.select()"></div>
   <ol style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:4px 0 14px 18px;padding:0">
     <li>In Claude unter Einstellungen → Connectors einen eigenen Connector hinzufügen.</li>
     <li>Name „Vecom Verwaltung“, als Adresse die Zeile oben.</li>
-    <li>„Verbinden“ — Claude öffnet diese Verwaltung, du siehst, was erlaubt wird, und klickst „Claude Lesezugang erlauben“.</li>
+    <li>„Verbinden“ — Claude öffnet diese Verwaltung, du siehst, was erlaubt wird, und klickst „Erlauben“.</li>
   </ol>
   <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">Eine Verbindung hält <?= (int) ClaudeZugang::TAGE ?> Tage. Danach fragt Claude neu.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -33,11 +34,12 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
   <?php if (!$c['verbindungen']): ?>
     <p style="margin:0;color:var(--dim)">Noch keine. Sobald du in Claude verbindest und hier erlaubst, steht sie da.</p>
   <?php else: ?>
-    <table class="schlicht cz-stapel"><thead><tr><th>Programm</th><th>Erlaubt</th><th>Gilt bis</th><th>Zuletzt</th><th>Abfragen</th><th></th></tr></thead><tbody>
+    <table class="schlicht cz-stapel"><thead><tr><th>Programm</th><th>Darf</th><th>Erlaubt</th><th>Gilt bis</th><th>Zuletzt</th><th>Abfragen</th><th></th></tr></thead><tbody>
       <?php foreach ($c['verbindungen'] as $v):
         $gilt = $v['entzogen_am'] === null && strtotime((string) $v['bis']) > time(); ?>
         <tr style="<?= $gilt ? '' : 'opacity:.55' ?>">
           <td><?= Fmt::h((string) ($v['programm'] ?? 'Claude')) ?></td>
+          <td><?= str_contains((string) $v['scope'], ClaudeZugang::EINTRAGEN) ? 'Lesen + Eintragen' : 'Lesen' ?></td>
           <td><?= Fmt::h(Fmt::zeit((string) $v['erlaubt_am'])) ?><?= !empty($v['erlaubt_von']) ? ' · ' . Fmt::h((string) $v['erlaubt_von']) : '' ?></td>
           <td><?= $gilt ? '<span class="cz-nur-schmal">Gilt bis </span>' : '' ?><?= $gilt ? Fmt::h(date('d.m.Y', strtotime((string) $v['bis']))) : '<span class="marke2">' . ($v['entzogen_am'] !== null ? 'entzogen' : 'abgelaufen') . '</span>'
                 . ($v['entzogen_grund'] ? ' <small style="color:var(--leise)">' . Fmt::h((string) $v['entzogen_grund']) . '</small>' : '') ?></td>

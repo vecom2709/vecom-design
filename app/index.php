@@ -1528,6 +1528,13 @@ if ($post) {
                 header('Location: ' . $czZiel, true, 303);
                 exit;
 
+            case 'umsatz_chance_verwerfen':
+                /* Umsatz-Spürhund (AI Office Stufe 3): „lohnt nicht“ — die Chance bleibt danach weg. Nichts geht raus. */
+                require_once __DIR__ . '/src/Spuerhund.php';
+                $_SESSION[Spuerhund::verwerfen((int) ($_POST['id'] ?? 0), (string) ($_POST['grund'] ?? ''), Auth::name() !== '' ? Auth::name() : 'Verwaltung') ? 'gut' : 'fehler']
+                    = 'Verworfen — der Spürhund meldet diese Chance nicht wieder.';
+                zurueck('umsatz-chancen');
+
             case 'claude_entziehen':
             case 'claude_zugang_schalten':
             case 'morgenbriefing_jetzt':
@@ -4842,6 +4849,17 @@ switch ($route) {
             'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
                                                            WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
         unset($_SESSION['lauf_ergebnis']);
+        break;
+
+    case 'umsatz-chancen':
+        /* Der Umsatz-Spürhund (AI Office Stufe 3, V5, 07.10.2026): was er gefunden hat, mit Grund und Richtwert. */
+        require_once __DIR__ . '/src/Spuerhund.php';
+        // Beim Öffnen frisch nachsehen — sonst stünde ein heute angenommenes Angebot bis morgen als Chance da.
+        sicher(static fn() => Spuerhund::lauf(), null);
+        ansicht('umsatz_chancen', [
+            'offen' => sicher(static fn() => Spuerhund::offen(), []),
+            'vorbei' => sicher(static fn() => Spuerhund::vorbei(12), []),
+        ]);
         break;
 
     case 'claude-erlauben':

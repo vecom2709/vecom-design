@@ -74,6 +74,9 @@ final class ClaudeWerkzeuge
              'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'properties' => [
                  'tage' => $zahl('Zeitraum in Tagen (Standard 30).', 1, 366)]],
              'annotations' => $nur('Geld')],
+            ['name' => 'umsatz_chancen', 'title' => 'Umsatz-Chancen',
+             'description' => 'Was der Umsatz-Spürhund gefunden hat: fertige Seiten ohne Betreuung, Seiten ohne Hosting bei Vecom, Angebote ohne Antwort, wartende Interessenten — mit Grund, Richtwert und Vorschlag. Daraus lassen sich Vorschläge in AI Freigaben machen (freigabe_vorschlagen), wenn Eintragen erlaubt ist.',
+             'inputSchema' => $leer, 'annotations' => $nur('Umsatz-Chancen')],
             ['name' => 'akquise', 'title' => 'Akquise',
              'description' => 'Akquise-Stand: Zahlen von heute, offene Antworten von Interessenten, fällige Wiedervorlagen, Termine der nächsten sieben Tage.',
              'inputSchema' => $leer, 'annotations' => $nur('Akquise')],
@@ -130,6 +133,7 @@ final class ClaudeWerkzeuge
                 'projekt_akte'   => self::projektAkte($a),
                 'geld'           => self::geld($a),
                 'akquise'        => self::akquise(),
+                'umsatz_chancen' => self::umsatzChancen(),
                 'ueberwachung'   => self::ueberwachung(),
                 'pruefspur'      => self::pruefspur($a),
                 'wissen_suchen'  => self::wissenSuchen($a),
@@ -330,6 +334,17 @@ final class ClaudeWerkzeuge
                                                   WHERE i.demo = 0 AND i.issued_at >= ? ORDER BY i.issued_at DESC LIMIT 50', [$ab]),
             'hinweis' => 'Beträge in Cent.',
         ];
+    }
+
+    private static function umsatzChancen(): array
+    {
+        require_once __DIR__ . '/Spuerhund.php';
+        $offen = array_map(static fn($c) => ['id' => (int) $c['id'], 'art' => Spuerhund::ARTEN[$c['art']][0] ?? $c['art'], 'titel' => $c['titel'],
+            'grund' => $c['grund'], 'vorschlag' => $c['vorschlag'], 'richtwert_cent' => $c['wert_cents'] !== null ? (int) $c['wert_cents'] : null,
+            'richtwert_je' => $c['wert_art'], 'kunde_id' => $c['kunde_id'], 'projekt_id' => $c['projekt_id'], 'angebot_id' => $c['angebot_id'],
+            'betrieb_id' => $c['firma_id'], 'gefunden_am' => $c['gefunden_am']], Spuerhund::offen());
+        return ['offen' => $offen, 'hinweis' => 'Richtwerte aus der eigenen Preisliste, in Cent; keine Zusage. Verworfene Chancen stehen hier nicht.',
+                'seite' => self::verwaltung('/umsatz-chancen')];
     }
 
     private static function akquise(): array

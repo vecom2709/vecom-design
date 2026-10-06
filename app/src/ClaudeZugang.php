@@ -25,13 +25,19 @@ declare(strict_types=1);
  * den Code bekäme immer nur Claude — und ohne den passenden PKCE-Schlüssel
  * kann auch Claude ihn nur für die Anfrage einlösen, die es selbst gestellt hat.
  *
- * NUR LESEN
- * Diese Stufe kennt einen einzigen Umfang: verwaltung.lesen. Schreibende
- * Werkzeuge kommen erst in Stufe 3, mit eigenem Umfang und eigener Erlaubnis.
+ * ZWEI UMFÄNGE
+ * verwaltung.lesen (Stufe 2) und verwaltung.eintragen (Stufe 3): im Haus
+ * eintragen, nie nach draußen (ClaudeEintragen). Was Claude bekommt, steht
+ * auf der Erlaubnis-Seite; eine Verbindung von gestern behält ihren Umfang,
+ * bis Uwe neu erlaubt.
  */
 final class ClaudeZugang
 {
     public const UMFANG = 'verwaltung.lesen';
+    /** Stufe 3 (07.10.2026, Uwe: „Claude fragt einmal neu“): im Haus eintragen — Notizen, Aufgaben,
+        Wiedervorlagen, Meldungen als gelesen, Vorschläge in AI Freigaben. Nie nach draußen. */
+    public const EINTRAGEN = 'verwaltung.eintragen';
+    public const UMFAENGE = [self::UMFANG, self::EINTRAGEN];
     public const TAGE = 30;                     // Uwe, 07.10.2026: „30 Tage“
     public const ZUGANG_SEKUNDEN = 3600;
     public const CODE_SEKUNDEN = 300;
@@ -80,7 +86,7 @@ final class ClaudeZugang
         return [
             'resource' => self::ressource(),
             'authorization_servers' => [self::basis()],
-            'scopes_supported' => [self::UMFANG],
+            'scopes_supported' => self::UMFAENGE,
             'bearer_methods_supported' => ['header'],
             'resource_name' => 'Vecom Verwaltung (nur lesen)',
         ];
@@ -101,7 +107,7 @@ final class ClaudeZugang
             'code_challenge_methods_supported' => ['S256'],
             'token_endpoint_auth_methods_supported' => ['none', 'client_secret_post', 'client_secret_basic'],
             'revocation_endpoint_auth_methods_supported' => ['none', 'client_secret_post', 'client_secret_basic'],
-            'scopes_supported' => [self::UMFANG],
+            'scopes_supported' => self::UMFAENGE,
             'authorization_response_iss_parameter_supported' => true,
             'service_documentation' => $b . '/',
         ];
@@ -152,7 +158,7 @@ final class ClaudeZugang
         $antwort = [
             'client_id' => $clientId, 'client_id_issued_at' => time(), 'client_name' => $name,
             'redirect_uris' => array_values($wege), 'grant_types' => array_values(array_unique(array_merge($arten, ['authorization_code']))),
-            'response_types' => ['code'], 'token_endpoint_auth_method' => $methode, 'scope' => self::UMFANG,
+            'response_types' => ['code'], 'token_endpoint_auth_method' => $methode, 'scope' => implode(' ', self::UMFAENGE),
         ];
         if ($geheim !== null) { $antwort['client_secret'] = $geheim; $antwort['client_secret_expires_at'] = 0; }
         return [201, $antwort];
@@ -199,16 +205,19 @@ final class ClaudeZugang
         $ressource = (string) ($q['resource'] ?? self::ressource());
         if (!self::istRessource($ressource)) { return $zurueck('invalid_target', 'Dieser Server vergibt nur Schlüssel für ' . self::ressource() . '.'); }
         $umfang = trim((string) ($q['scope'] ?? ''));
-        if ($umfang === '') { $umfang = self::UMFANG; }
-        foreach (preg_split('/\s+/', $umfang) ?: [] as $u) {
-            if ($u !== self::UMFANG) { return $zurueck('invalid_scope', 'Diese Stufe erlaubt nur ' . self::UMFANG . '.'); }
+        // Ohne Angabe: alles, was der Steckbrief anbietet (so fragt Claude nach der MCP-Regel ohnehin).
+        $gewuenscht = $umfang === '' ? self::UMFAENGE : array_values(array_unique(preg_split('/\s+/', $umfang) ?: []));
+        foreach ($gewuenscht as $u) {
+            if (!in_array($u, self::UMFAENGE, true)) { return $zurueck('invalid_scope', 'Erlaubt sind nur ' . implode(' und ', self::UMFAENGE) . '.'); }
         }
+        // Eintragen ohne Lesen ergibt keinen Sinn — Lesen gehört immer dazu.
+        $umfang = implode(' ', array_values(array_filter(self::UMFAENGE, static fn($u) => $u === self::UMFANG || in_array($u, $gewuenscht, true))));
         if (mb_strlen($state) > 500) { return $zurueck('invalid_request', 'state ist zu lang.'); }
 
         $id = bin2hex(random_bytes(16));
         Db::insert('claude_anfragen', [
             'id' => $id, 'client_id' => $c['client_id'], 'redirect_uri' => $weg, 'state' => $state !== '' ? $state : null,
-            'code_challenge' => $challenge, 'scope' => self::UMFANG, 'resource' => self::ressource(),
+            'code_challenge' => $challenge, 'scope' => $umfang, 'resource' => self::ressource(),
             'bis' => date('Y-m-d H:i:s', time() + self::ANFRAGE_SEKUNDEN),
         ]);
         return ['art' => 'weiter', 'ziel' => self::basis() . Config::basis() . '/claude-erlauben?a=' . $id];
@@ -387,6 +396,12 @@ final class ClaudeZugang
     public static function verbindung(int $id): ?array
     {
         return Db::one('SELECT * FROM claude_verbindungen WHERE id = ? AND entzogen_am IS NULL AND bis > NOW()', [$id]) ?: null;
+    }
+
+    /** Hat die Verbindung diesen Umfang erlaubt bekommen? */
+    public static function darf(array $verbindung, string $umfang): bool
+    {
+        return in_array($umfang, preg_split('/\s+/', trim((string) $verbindung['scope'])) ?: [], true);
     }
 
     public static function entziehen(int $id, string $grund): bool

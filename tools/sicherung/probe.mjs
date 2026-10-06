@@ -10,6 +10,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { spawn, spawnSync } from 'node:child_process';
 import { pipeline } from 'node:stream/promises';
+import readline from 'node:readline';
 import { ORDNER, protokoll, anfrage, entschluesseln } from './vcs.mjs';
 
 const BIN = path.join(ORDNER, 'mariadb', 'bin');
@@ -30,7 +31,7 @@ async function main() {
   const start = Date.now();
   const auszuege = path.join(ORDNER, 'auszuege');
   const juengster = (fs.existsSync(auszuege) ? fs.readdirSync(auszuege) : []).filter((n) => n.endsWith('.sql.gz.vcs')).sort().pop();
-  const ergebnis = { datei: juengster ?? '', ok: false, tabellen: 0, zeilen: {}, dauer_s: 0, fehler: '' };
+  const ergebnis = { datei: juengster ?? '', ok: false, tabellen: 0, erwartet: 0, zeilen: {}, dauer_s: 0, fehler: '' };
   const arbeit = path.join(ORDNER, 'probe-arbeit');
   let server = null;
   try {
@@ -41,6 +42,12 @@ async function main() {
     const sql = path.join(arbeit, 'auszug.sql');
     entschluesseln(path.join(auszuege, juengster), gz);
     await pipeline(fs.createReadStream(gz), zlib.createGunzip(), fs.createWriteStream(sql));
+    // Wie viele Tabellen stehen im Auszug? Daran misst der Server die Probe — nicht an der heutigen
+    // Datenbank, die nach einem Deploy mit neuen Migrationen mehr Tabellen hat als der Auszug von gestern
+    // (sonst gäbe es an solchen Tagen falschen Alarm; aufgefallen 06.10.2026).
+    for await (const zeile of readline.createInterface({ input: fs.createReadStream(sql), crlfDelay: Infinity })) {
+      if (zeile.startsWith('CREATE TABLE')) { ergebnis.erwartet++; }
+    }
 
     if (!fs.existsSync(path.join(DATEN, 'mysql'))) {
       // Die Windows-Fassung von mariadb-install-db kennt --no-defaults nicht (gemessen 06.10.2026).
@@ -55,7 +62,9 @@ async function main() {
     if (!bereit) { throw new Error('Probe-Datenbank startet nicht.'); }
 
     client(['-e', 'DROP DATABASE IF EXISTS vecom_probe; CREATE DATABASE vecom_probe CHARACTER SET utf8mb4;']);
-    const imp = spawnSync(exe('mariadb'), ['--no-defaults', '-uroot', ...ZIEL, '--max-allowed-packet=256M', 'vecom_probe'],
+    // sql_mode leer: Auszüge von vor dem 06.10.2026 schreiben Werte in berechnete Spalten (akq_firmen.email_found),
+    // was ein strenger Server mit ERROR 1906 ablehnt — nachsichtig wird daraus eine Warnung, und der Rest kommt herein.
+    const imp = spawnSync(exe('mariadb'), ['--no-defaults', '-uroot', ...ZIEL, '--max-allowed-packet=256M', "--init-command=SET SESSION sql_mode=''", 'vecom_probe'],
       { stdio: [fs.openSync(sql, 'r'), 'pipe', 'pipe'], encoding: 'utf8', maxBuffer: 64 << 20 });
     if (imp.status !== 0) { throw new Error('Einspielen gescheitert: ' + String(imp.stderr).trim().split('\n').filter((z) => /^ERROR/.test(z)).join(' ').slice(0, 240)); }
 
@@ -65,7 +74,7 @@ async function main() {
       const r = client(['-N', 'vecom_probe', '-e', `SELECT COUNT(*) FROM \`${tab}\``]);
       ergebnis.zeilen[tab] = r.status === 0 ? (parseInt(String(r.stdout).trim(), 10) || 0) : -1;
     }
-    ergebnis.ok = ergebnis.tabellen > 0 && ergebnis.zeilen.customers >= 0;
+    ergebnis.ok = ergebnis.tabellen > 0 && ergebnis.zeilen.customers >= 0 && (ergebnis.erwartet === 0 || ergebnis.tabellen >= ergebnis.erwartet);
   } catch (e) {
     ergebnis.fehler = e.message;
   } finally {

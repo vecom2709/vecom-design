@@ -48,7 +48,7 @@ function mcpFehler(mixed $id, int $fehler, string $text, int $http = 200, ?array
 }
 
 if (!is_file(__DIR__ . '/app/config.local.php')) { mcpAntwort(null, 503); }
-foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'ClaudeZugang', 'ClaudeWerkzeuge'] as $k) {
+foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'ClaudeZugang', 'ClaudeWerkzeuge', 'ClaudeEintragen'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
@@ -73,7 +73,7 @@ $verbindung = null;
 try { $verbindung = ClaudeZugang::pruefen($token); } catch (Throwable $e) { mcpAntwort(null, 503); }
 if ($verbindung === null) {
     $steckbrief = ClaudeZugang::basis() . '/.well-known/oauth-protected-resource/mcp';
-    header('WWW-Authenticate: Bearer resource_metadata="' . $steckbrief . '", scope="' . ClaudeZugang::UMFANG . '"'
+    header('WWW-Authenticate: Bearer resource_metadata="' . $steckbrief . '", scope="' . implode(' ', ClaudeZugang::UMFAENGE) . '"'
         . ($token !== '' ? ', error="invalid_token"' : ''));
     mcpFehler(null, -32001, $token === '' ? 'Anmeldung nötig.' : 'Schlüssel ungültig oder abgelaufen.', 401);
 }
@@ -121,7 +121,8 @@ $ergebnis = static function (array $r) use ($id, $modern): never {
     mcpAntwort(['jsonrpc' => '2.0', 'id' => $id, 'result' => $r === [] ? new stdClass() : $r]);
 };
 $anleitung = 'Lesezugang zur Verwaltung von Vecom Design (vecom-design.it), der Webdesign-Agentur von Uwe auf Sizilien. '
-    . 'Nur lesen: Ändern, Senden oder Freigeben geht hier nicht — dafür Uwe den Link in die Verwaltung geben. '
+    . 'Lesen immer; mit der Erlaubnis „Eintragen“ auch Notizen, Aufgaben, Wiedervorlagen, Meldungen als gelesen und Vorschläge in AI Freigaben. '
+    . 'Nach draußen geht nie etwas direkt: Nachrichten und Angebote nur als Vorschlag, Uwe genehmigt. Nichts erfinden. '
     . 'Mit Uwe Deutsch sprechen und ihn siezen. Beträge kommen in Cent; null heißt „ließ sich nicht lesen“, nicht „keine“. '
     . 'Für einen Überblick zuerst lage_heute; für „warum ist das so?“ wissen_suchen.';
 $server = ['name' => 'vecom-verwaltung', 'title' => 'Vecom Verwaltung', 'version' => '2.0'];
@@ -141,20 +142,32 @@ switch ($art) {
         $ergebnis([]);
 
     case 'tools/list':
-        $ergebnis(['tools' => ClaudeWerkzeuge::liste()]);
+        // Was Claude sieht, hängt am erlaubten Umfang (MCP „Tools“: darf je nach Berechtigung verschieden sein).
+        $eintragen = ClaudeZugang::darf($verbindung, ClaudeZugang::EINTRAGEN);
+        $ergebnis(['tools' => array_merge(ClaudeWerkzeuge::liste(), $eintragen ? ClaudeEintragen::liste() : [])]);
 
     case 'tools/call':
         $name = (string) ($param['name'] ?? '');
         $argumente = is_array($param['arguments'] ?? null) ? $param['arguments'] : [];
-        if (!in_array($name, ClaudeWerkzeuge::namen(), true)) { mcpFehler($id, -32602, 'Unbekanntes Werkzeug: ' . mb_substr($name, 0, 60)); }
+        $schreibt = in_array($name, ClaudeEintragen::namen(), true);
+        if (!$schreibt && !in_array($name, ClaudeWerkzeuge::namen(), true)) { mcpFehler($id, -32602, 'Unbekanntes Werkzeug: ' . mb_substr($name, 0, 60)); }
         $vid = (int) $verbindung['id'];
+        if ($schreibt && !ClaudeZugang::darf($verbindung, ClaudeZugang::EINTRAGEN)) {
+            // Fehlt der Umfang: 403 mit dem, was gebraucht wird — Claude kann dann neu um Erlaubnis fragen (MCP „Scope Challenge“).
+            ClaudeZugang::spur($vid, $name, [], false, 0, 0);
+            header('WWW-Authenticate: Bearer error="insufficient_scope", scope="' . implode(' ', ClaudeZugang::UMFAENGE) . '", resource_metadata="'
+                . ClaudeZugang::basis() . '/.well-known/oauth-protected-resource/mcp", error_description="Eintragen ist nicht erlaubt"');
+            mcpFehler($id, -32001, 'Für Eintragen fehlt die Erlaubnis — bitte in Claude neu verbinden.', 403);
+        }
         if (ClaudeZugang::zuViel($vid)) {
             ClaudeZugang::spur($vid, $name, $argumente, false, 0, 0);
             $ergebnis(['content' => [['type' => 'text', 'text' => 'Zu viele Abfragen in kurzer Zeit. In zehn Minuten wieder.']], 'isError' => true]);
         }
         $t0 = microtime(true);
-        $r = ClaudeWerkzeuge::rufen($name, $argumente);
-        ClaudeZugang::spur($vid, $name, $argumente, $r['ok'], mb_strlen($r['text']), (int) round((microtime(true) - $t0) * 1000));
+        $r = $schreibt ? ClaudeEintragen::rufen($name, $argumente, $vid) : ClaudeWerkzeuge::rufen($name, $argumente);
+        // In der Spur steht bei Texten nur die Länge — eine Kundennachricht gehört nicht ins Protokoll der Griffe.
+        $spurArg = array_map(static fn($w) => is_string($w) && mb_strlen($w) > 80 ? '(' . mb_strlen($w) . ' Zeichen)' : $w, $argumente);
+        ClaudeZugang::spur($vid, $name, $spurArg, $r['ok'], mb_strlen($r['text']), (int) round((microtime(true) - $t0) * 1000));
         $aus = ['content' => [['type' => 'text', 'text' => $r['text']]], 'isError' => !$r['ok']];
         if ($r['ok'] && is_array($r['daten']) && !array_is_list($r['daten'])) { $aus['structuredContent'] = $r['daten']; }
         $ergebnis($aus);
