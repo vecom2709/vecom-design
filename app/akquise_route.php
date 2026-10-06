@@ -186,10 +186,22 @@ if ($post) {
                 weiter('akquise/' . $fid . '#mailstatus');
             case 'akq_mail_senden':
                 require_once __DIR__ . '/src/AkquiseMail.php';
-                $r = AkquiseMail::direktSenden($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''));
+                $r = AkquiseMail::direktSenden($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), !empty($_POST['hinweise_gelesen']));
                 $_SESSION['gut'] = $r['simuliert'] ? 'Testbetrieb: Die E-Mail wurde nur simuliert, nichts ging raus.'
                                                    : 'E-Mail verschickt (Absender: ' . $r['absender'] . '). Sie steht im Verlauf und im E-Mail-Protokoll.';
                 weiter('akquise/' . $fid . '#ansprechen');
+            case 'akq_werkstatt':   // Nachrichten-Werkstatt: Prüfliste + Vorschau, nur lesen, nichts wird gesendet oder gespeichert
+                require_once __DIR__ . '/src/AkquiseWerkstatt.php';
+                $wsF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
+                if (!$wsF) { http_response_code(404); exit; }
+                $wsK = (string) ($_POST['kanal'] ?? '') === 'whatsapp' ? 'whatsapp' : 'email';
+                $wsB = mb_substr((string) ($_POST['betreff'] ?? ''), 0, 300);
+                $wsT = mb_substr((string) ($_POST['text'] ?? ''), 0, 20000);
+                $wsL = AkquiseWerkstatt::pruefliste($wsF, $wsK, $wsB, $wsT, !empty($_POST['senden']));
+                header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+                echo json_encode(['liste' => $wsL, 'stopp' => AkquiseWerkstatt::zahl($wsL, AkquiseWerkstatt::STOPP), 'hinweise' => AkquiseWerkstatt::zahl($wsL, AkquiseWerkstatt::HINWEIS),
+                    'vorschau' => $wsK === 'email' ? AkquiseWerkstatt::vorschau($wsF, $wsB, $wsT) : null], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
+                exit;
             case 'akq_mail_pruefung':
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 AkquiseMail::pruefungAnfordern($fid, (string) ($_POST['notiz'] ?? ''));

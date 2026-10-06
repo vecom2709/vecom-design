@@ -90,6 +90,8 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
           <div class="an-feld"><label for="an-betreff">Betreff</label><input id="an-betreff" value="<?= $anH($x['betreff']) ?>" data-an="betreff"></div>
           <div class="an-feld"><label for="an-text-email">Text — Entwurf</label>
             <textarea id="an-text-email" class="an-text" data-an="text-email" rows="16"><?= $anH($x['text']) ?></textarea></div>
+          <?php $ws = ['kanal' => 'email', 'senden' => false, 'betreff' => $x['betreff'], 'text' => $x['text'], 'betreffFeld' => 'an-betreff', 'textFeld' => 'an-text-email'];
+                require __DIR__ . '/akquise_werkstatt.php'; /* Modul D: Prüfliste auch im Entwurf */ ?>
           <div class="an-knoepfe">
             <button class="knopf" type="button" data-an-kopieren="text-email">Text kopieren</button>
             <span class="akq-klein">an <?= $anH((string) $f['email']) ?></span>
@@ -105,9 +107,13 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
           <?php endif; ?>
           <div class="an-feld"><label for="an-text-<?= $k ?>">Text <span style="text-transform:none;letter-spacing:0">— du kannst ihn hier noch ändern</span></label>
             <textarea id="an-text-<?= $k ?>" class="an-text" data-an="text-<?= $k ?>"<?= $k === 'email' ? ' name="text" required' : '' ?> rows="<?= $k === 'email' ? 16 : 9 ?>"><?= $anH($x['text']) ?></textarea></div>
+          <?php if ($k === 'whatsapp'): $ws = ['kanal' => 'whatsapp', 'senden' => false, 'betreff' => '', 'text' => $x['text'], 'betreffFeld' => '', 'textFeld' => 'an-text-whatsapp'];
+                require __DIR__ . '/akquise_werkstatt.php'; endif; ?>
           <?php if ($k === 'email'): ?>
             <p class="akq-klein" style="margin:0 0 8px">Absender: <b><?= $anH($anAbs['name']) ?></b> &lt;<?= $anH($anAbs['email'] ?? AkquiseText::absender()['email']) ?>&gt;<?= $anAbs['antwort'] && $anAbs['antwort'] !== $anAbs['email'] ? ' · Antworten an ' . $anH($anAbs['antwort']) : '' ?> · <?= $anH($anAbs['quelle']) ?>.
               Ein Abmeldelink wird angehängt.<?= AkquiseMail::kann($f)['werbung'] ? '' : ' <b>Der dokumentierte Grund deckt keine Werbung</b> — nur die Antwort bzw. geschäftliche Nachricht.' ?></p>
+            <?php $ws = ['kanal' => 'email', 'senden' => true, 'betreff' => $x['betreff'], 'text' => $x['text'], 'betreffFeld' => 'an-betreff', 'textFeld' => 'an-text-email'];
+                  require __DIR__ . '/akquise_werkstatt.php'; /* Modul D: dieselbe Prüfung läuft beim Senden auf dem Server */ ?>
             <button class="knopf haupt">Jetzt aus der Verwaltung senden</button>
             </form>
           <?php endif; ?>
@@ -229,3 +235,4 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
   });
 })();
 </script>
+<script src="/assets/js/akquise-werkstatt.js" defer></script>

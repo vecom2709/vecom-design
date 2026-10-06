@@ -11442,7 +11442,7 @@ $dsDom = Mail::eigeneDomain();
 AkquiseGate::setzen('akq_absender_rolle_admin', $dsDom !== '' ? 'uwe@' . $dsDom : '');
 $dsAbs = AkquiseMail::absender();
 $dsLeer = 'durch'; try { AkquiseMail::direktSenden((int) $dsF['id'], '   ', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsLeer = 'nein'; }
-$dsR = AkquiseMail::direktSenden((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße");
+$dsR = AkquiseMail::direktSenden((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße", true);   // Hinweise bestätigt (Werkstatt, Modul D)
 $dsV = Db::one('SELECT * FROM akq_versand WHERE id = ?', [$dsR['id']]);
 pruefe('Direktversand: nur bei 🟢 (vorher abgelehnt), nie ohne Betreff; geht einzeln raus mit Abmeldelink, steht im Versandprotokoll und in der Prüfspur',
     $dsRot === 'nein' && $dsLeer === 'nein' && !$dsR['simuliert'] && count($dsPost) === 1 && $dsPost[0][0] === 'info@direktmail.example'
@@ -26202,6 +26202,51 @@ foreach (['akq_kanaele', 'akq_notizen', 'akq_kontakte', 'akq_antworten', 'akq_ve
     Db::run("DELETE FROM `$crTab` WHERE firma_id IN (?, ?, ?, ?)", [$crA, $crB, $crC, $crD]);
 }
 Db::run('DELETE FROM akq_firmen WHERE id IN (?, ?, ?, ?)', [$crA, $crB, $crC, $crD]);
+
+abschnitt('Akquise-CRM: Nachrichten-Werkstatt (Modul D)');
+require_once $wurzel . '/src/AkquiseWerkstatt.php';
+require_once $wurzel . '/src/AkquiseMail.php';
+require_once $wurzel . '/src/AkquiseVersand.php';
+$wsSess = $_SESSION ?? [];
+$_SESSION = ['uid' => 1, 'rolle' => 'admin', 'name' => 'Uwe Admin'];
+$wsTest = AkquiseGate::testbetrieb(); AkquiseGate::testbetriebSetzen(false);
+$wsPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$wsPost): bool { $wsPost[] = [$an, $b, $t]; return true; };
+$wsF = Akquise::firmaMelden(['name' => 'Beispiel Werkstatt Bar', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'info@werkstatt-bar.example', 'quelle' => 'osm:node/9071']);
+$wsId = (int) $wsF['id'];
+$wsSt = static fn(array $l, string $stufe): string => implode(' | ', array_column(array_filter($l, static fn($x) => $x['stufe'] === $stufe), 'text'));
+$wsGut = "Buongiorno,\nho visto il vostro locale a Favara. Se vi interessa, trovate esempi su vecom-design.it.\nCordiali saluti";
+$wsF1 = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$wsId]);
+$wsL0 = AkquiseWerkstatt::pruefliste($wsF1, 'email', '', $wsGut, true);
+$wsL1 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', "Buongiorno [Nome],\nsiamo rechtssicher e il vostro Score è basso. Il 73% dei clienti va via.\nvecom-design.it", false);
+$wsL2 = AkquiseWerkstatt::pruefliste($wsF1, 'email', 'Il vostro sito', $wsGut, false);
+pruefe('Werkstatt: ohne Betreff, mit Platzhalter, mit Zusicherung („rechtssicher“) oder internem Wort ⛔; unbelegte Zahl ⚠; ohne Versandgrund ist Senden ⛔, im Entwurf nur ⚠; ein sauberer Text hat kein ⛔',
+    str_contains($wsSt($wsL0, 'stopp'), 'Der Betreff fehlt') && str_contains($wsSt($wsL0, 'stopp'), 'Kein Versand ohne dokumentierten Versandgrund')
+    && str_contains($wsSt($wsL1, 'stopp'), 'Platzhalter nicht ausgefüllt: „[Nome]“') && str_contains($wsSt($wsL1, 'stopp'), 'rechtssicher')
+    && str_contains($wsSt($wsL1, 'stopp'), 'Internes Wort im Text: „score“') && str_contains($wsSt($wsL1, 'hinweis'), 'Zahl ohne Beleg: „73“')
+    && $wsSt($wsL2, 'stopp') === '' && str_contains($wsSt($wsL2, 'hinweis'), 'Entwurf:') && str_contains($wsSt($wsL2, 'ok'), 'Abmeldelink')
+    && $wsL1[0]['stufe'] === 'stopp' && end($wsL2)['stufe'] === 'ok', json_encode([$wsL0, $wsL1, $wsL2], JSON_UNESCAPED_UNICODE));
+AkquiseMail::grundDokumentieren($wsId, ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Beispiel: will Infos']);
+$wsAb = static function (string $b, string $t, bool $g) use ($wsId): string { try { AkquiseMail::direktSenden($wsId, $b, $t, $g); return 'durch'; } catch (RuntimeException $e) { return $e->getMessage(); } };
+$wsR1 = $wsAb('Il vostro sito', "Buongiorno,\nsiamo abmahnsicher.\nvecom-design.it", true);
+$wsR2 = $wsAb('Il vostro sito', "Buongiorno,\nil 73% dei clienti cerca da mobile.\nvecom-design.it", false);
+$wsN2 = count($wsPost);
+$wsR3 = $wsAb('Il vostro sito', "Buongiorno,\nil 73% dei clienti cerca da mobile.\nvecom-design.it", true);
+pruefe('Werkstatt auf dem Server: ⛔ geht auch bestätigt nie raus; ⚠ nur mit „Hinweise gelesen“ — erst dann genau eine Mail',
+    str_starts_with($wsR1, 'Nicht gesendet:') && str_contains($wsR1, 'abmahnsicher') && str_contains($wsR2, 'Hinweise gelesen') && $wsN2 === 0
+    && $wsR3 === 'durch' && count($wsPost) === 1 && $wsPost[0][0] === 'info@werkstatt-bar.example', json_encode([$wsR1, $wsR2, $wsR3, count($wsPost)], JSON_UNESCAPED_UNICODE));
+$wsVs = AkquiseWerkstatt::vorschau($wsF1, 'Il vostro sito', $wsGut);
+$wsAn = (string) file_get_contents($wurzel . '/views/akquise_ansprechen.php');
+$wsJs = (string) file_get_contents(dirname($wurzel) . '/assets/js/akquise-werkstatt.js');
+$wsRt = (string) file_get_contents($wurzel . '/akquise_route.php');
+pruefe('Werkstatt-Oberfläche: Prüfliste im Entwurf, bei WhatsApp und im Sendeformular (mit „Hinweise gelesen“); Vorschau zeigt An, Betreff und die Abmeldezeile; die Regeln stehen nur auf dem Server',
+    substr_count($wsAn, "require __DIR__ . '/akquise_werkstatt.php'") === 3 && str_contains($wsRt, "case 'akq_werkstatt':") && str_contains($wsRt, "!empty(\$_POST['hinweise_gelesen'])")
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_werkstatt.php'), 'name="hinweise_gelesen"')
+    && $wsVs['an'] === 'info@werkstatt-bar.example' && str_contains($wsVs['text'], 'Non ricevere altri messaggi: ') && str_contains($wsVs['text'], '/widerspruch.php?t=')
+    && !preg_match('~rechtssicher|garantit|score|Platzhalter~iu', $wsJs) && str_contains($wsJs, "'akq_werkstatt'"));
+AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
+$_SESSION = $wsSess;
+foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$wsId]);
 
 /* ============================================================================
    Aufräumen und Bilanz

@@ -385,7 +385,7 @@ final class AkquiseMail
      * nie als Serie; Notbremse, Testbetrieb, Fehler- und Bounce-Grenzen gelten.
      * @return array{id:int,simuliert:bool,absender:string}
      */
-    public static function direktSenden(int $firmaId, string $betreff, string $text): array
+    public static function direktSenden(int $firmaId, string $betreff, string $text, bool $hinweiseGelesen = false): array
     {
         require_once __DIR__ . '/AkquiseGate.php';
         require_once __DIR__ . '/AkquiseVersand.php';
@@ -398,6 +398,10 @@ final class AkquiseMail
         if ($betreff === '') { throw new RuntimeException('Bitte einen Betreff eintragen.'); }
         if (mb_strlen($text) < 20) { throw new RuntimeException('Der Text ist zu kurz.'); }
         if (mb_strlen($text) > 20000) { throw new RuntimeException('Der Text ist zu lang.'); }
+        /* Nachrichten-Werkstatt (Akquise-CRM Modul D, 06.10.2026): dieselbe Textprüfung wie bei den Folge-Mails —
+           Stopp geht nie raus, Hinweise nur bestätigt. Auf dem Server, damit kein Formular sie umgeht. */
+        require_once __DIR__ . '/AkquiseWerkstatt.php';
+        AkquiseWerkstatt::freigeben(AkquiseWerkstatt::pruefliste($f, 'email', $betreff, $text, true), $hinweiseGelesen);
         $g = AkquiseGate::grenzen();
         if ($g['stop']) { throw new RuntimeException('Die Notbremse ist gezogen — alle Aussendungen stehen.'); }
         if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'fehler' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)") >= $g['fehler']) {
