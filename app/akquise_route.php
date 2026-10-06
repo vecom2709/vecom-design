@@ -169,6 +169,14 @@ if ($post) {
                 $_SESSION['gut'] = 'Betriebe suchen ist eingeschaltet — wartende Aufträge startet dein PC in den nächsten fünf Minuten.';
                 weiter('akquise#steuerung');
 
+            /* Aussortieren (06.10.2026, Uwe: „die Betriebe, die keine E-Mail haben und kein WhatsApp, lösche raus“). */
+            case 'akq_aussortieren':
+                $n = Akquise::aussortieren();
+                Events::pruefspur('aussortieren', 'akq_firmen', 0, [], ['geloescht' => $n]);
+                $_SESSION['gut'] = $n > 0 ? $n . ' Betrieb' . ($n === 1 ? '' : 'e') . ' ohne E-Mail und ohne WhatsApp gelöscht. Neue kommen gar nicht erst in die Liste.'
+                                          : 'Nichts zu löschen — jeder Betrieb in der Liste hat E-Mail oder WhatsApp, oder wartet noch auf die Prüfung seiner Website.';
+                weiter('akquise');
+
             case 'akq_an_partner':
                 require_once __DIR__ . '/src/PartnerAnrufliste.php';
                 $r = PartnerAnrufliste::uebergeben((array) ($_POST['firmen'] ?? []), (int) ($_POST['partner'] ?? 0), (string) ($_POST['vermerk'] ?? ''), Auth::name() ?: 'Uwe');

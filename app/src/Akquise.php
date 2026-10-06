@@ -374,6 +374,158 @@ final class Akquise
         return filter_var($e, FILTER_VALIDATE_EMAIL) ? $e : null;
     }
 
+    /* ==================================================================
+       ERREICHBAR ODER AUSSORTIERT (06.10.2026, Uwe: „finde von allen die
+       E-Mail-Adressen und zeige sie mit an, auch zukünftige — und die
+       Betriebe, die keine E-Mail haben und kein WhatsApp, lösche raus“)
+
+       WhatsApp heißt: eine eingetragene WhatsApp-Nummer, ein wa.me-Link auf
+       der Website oder eine Handynummer (IT +39 3…, DE +49 15/16/17) --
+       ob eine Nummer wirklich WhatsApp hat, sieht man von außen nicht,
+       eine Handynummer ist die belastbare Näherung. Festnetz allein zählt nicht.
+
+       Gelöscht wird nur, was niemanden sonst betrifft: nicht gesperrt (die
+       Sperre muss stehen bleiben), Stufe neu oder qualifiziert, keine
+       Einwilligung, Website schon geprüft, und kein Eintrag in einer der
+       Bezugstabellen (Partner, Briefe, Versand, Termine, Antworten …).
+       Eigene Daten (Audits, Befunde, Protokoll, Analysen, Signale, Fotos)
+       gehen mit.
+       ================================================================== */
+
+    /** Handynummer in der normalisierten Form (+39 3…, +49 15/16/17 …). */
+    public static function istHandy(?string $tel): bool
+    {
+        return (bool) preg_match('~^\+(393\d{8,9}|491[5-7]\d{8,9})$~', (string) $tel);
+    }
+
+    /** Die Nummer für WhatsApp: eingetragen, sonst die Handynummer, sonst null. */
+    public static function whatsappNummer(array $f): ?string
+    {
+        $wa = trim((string) ($f['whatsapp'] ?? ''));
+        if ($wa !== '') { return $wa; }
+        $tel = (string) ($f['telefon'] ?? '');
+        return self::istHandy($tel) ? $tel : null;
+    }
+
+    /** Hat der Betrieb eine E-Mail oder WhatsApp? */
+    public static function erreichbar(array $f): bool
+    {
+        return trim((string) ($f['email'] ?? '')) !== '' || self::whatsappNummer($f) !== null;
+    }
+
+    /** Dasselbe für Rohdaten aus der Suche (noch nicht normalisiert). */
+    public static function erreichbarRoh(array $roh): bool
+    {
+        $land = strtoupper((string) ($roh['land'] ?? ''));
+        return self::normEmail($roh['email'] ?? null) !== null
+            || trim((string) ($roh['whatsapp'] ?? '')) !== ''
+            || self::istHandy(self::normTelefon($roh['telefon'] ?? null, $land));
+    }
+
+    /** Wo ein Betrieb sonst noch vorkommt -- dann bleibt er. Tabelle => Spalte. */
+    public const BEZUG = [
+        'akq_antworten' => 'firma_id', 'akq_briefe' => 'firma_id', 'akq_checks' => 'firma_id', 'akq_einwilligungen' => 'firma_id',
+        'akq_folgen' => 'firma_id', 'akq_sperrliste' => 'firma_id', 'akq_termine' => 'firma_id', 'akq_versand' => 'firma_id',
+        'akq_vorlagen' => 'firma_id', 'akq_wa_gespraeche' => 'firma_id', 'mk_demos' => 'akq_firma_id',
+        'partner_briefwunsch' => 'firma_id', 'partner_leads' => 'firma_id', 'partner_reservierungen' => 'firma_id',
+        'partner_tagesliste' => 'firma_id', 'partner_zugriffe' => 'firma_id', 'web_berichte' => 'firma_id',
+    ];
+
+    /** Was mit dem Betrieb geht. */
+    private const EIGENE = ['akq_befunde', 'akq_audits', 'akq_protokoll', 'akq_analysen', 'akq_signale'];
+
+    /** Bedingung „darf aussortiert werden“ über f = akq_firmen. */
+    public static function aussortierbarSql(): string
+    {
+        $w = ["f.gesperrt = 0", "f.kontakt_status IN ('neu','qualifiziert')", "COALESCE(f.einwilligung, '') = ''",
+              "COALESCE(f.email, '') = ''", "COALESCE(f.whatsapp, '') = ''",
+              "NOT (COALESCE(f.telefon, '') REGEXP '^[+](393[0-9]{8,9}|491[5-7][0-9]{8,9})$')",
+              "f.audit_status IN ('fertig','fehler','keine_website','uebersprungen')"];
+        foreach (self::BEZUG as $t => $sp) {
+            if (self::tabelleDa($t)) { $w[] = "NOT EXISTS (SELECT 1 FROM $t b WHERE b.$sp = f.id)"; }
+        }
+        return implode(' AND ', $w);
+    }
+
+    /** @var array<string,bool> */
+    private static array $tabellen = [];
+
+    private static function tabelleDa(string $t): bool
+    {
+        if (!isset(self::$tabellen[$t])) {
+            try { Db::wert("SELECT 1 FROM $t LIMIT 1"); self::$tabellen[$t] = true; } catch (Throwable $e) { self::$tabellen[$t] = false; }
+        }
+        return self::$tabellen[$t];
+    }
+
+    public static function aussortierbarZahl(): int
+    {
+        return (int) Db::wert('SELECT COUNT(*) FROM akq_firmen f WHERE ' . self::aussortierbarSql());
+    }
+
+    /**
+     * Löscht Betriebe ohne E-Mail und ohne WhatsApp (alle oder nur $nurId)
+     * und merkt sich ihre Schlüssel. @return int gelöschte Betriebe
+     */
+    public static function aussortieren(?int $nurId = null, int $max = 5000): int
+    {
+        $sql = 'SELECT f.* FROM akq_firmen f WHERE ' . self::aussortierbarSql() . ($nurId !== null ? ' AND f.id = ?' : '') . ' ORDER BY f.id LIMIT ' . max(1, $max);
+        $weg = 0;
+        foreach (Db::all($sql, $nurId !== null ? [$nurId] : []) as $f) {
+            $id = (int) $f['id'];
+            $bilder = [];
+            foreach (Db::all('SELECT screenshot_mobil, screenshot_desktop FROM akq_audits WHERE firma_id = ?', [$id]) as $au) {
+                foreach ($au as $b) { if ((string) $b !== '') { $bilder[] = (string) $b; } }
+            }
+            Db::transaktion(static function () use ($id, $f): void {
+                foreach (self::EIGENE as $t) { if (self::tabelleDa($t)) { Db::run("DELETE FROM $t WHERE firma_id = ?", [$id]); } }
+                Db::run('DELETE FROM akq_firmen WHERE id = ?', [$id]);
+                foreach (self::aussortierSchluessel($f) as $k) {
+                    Db::run('INSERT IGNORE INTO akq_aussortiert (schluessel, name) VALUES (?, ?)', [$k, mb_substr((string) $f['name'], 0, 190)]);
+                }
+            }, 3);
+            foreach (array_unique($bilder) as $bild) {
+                if (preg_match('~^[A-Za-z0-9._-]+$~', $bild)) {
+                    try { require_once __DIR__ . '/Ablage.php'; @unlink(Ablage::ordner() . '/akquise/' . $bild); } catch (Throwable $e) { }
+                }
+            }
+            $weg++;
+        }
+        if ($weg > 0) {
+            self::protokoll(null, 'aussortiert', $weg . ' Betrieb' . ($weg === 1 ? '' : 'e') . ' ohne E-Mail und ohne WhatsApp gelöscht');
+        }
+        return $weg;
+    }
+
+    /** @return list<string> */
+    public static function aussortierSchluessel(array $f): array
+    {
+        $k = [];
+        if (trim((string) ($f['quelle'] ?? '')) !== '') { $k[] = 'q:' . mb_substr((string) $f['quelle'], 0, 180); }
+        $dom = (string) ($f['domain'] ?? '') !== '' ? (string) $f['domain'] : (string) (self::normDomain($f['url'] ?? null) ?? '');
+        if ($dom !== '' && !self::istPlattform($dom)) { $k[] = 'd:' . mb_substr($dom, 0, 180); }
+        $nn = (string) ($f['name_norm'] ?? '') !== '' ? (string) $f['name_norm'] : self::normName((string) ($f['name'] ?? ''));
+        if ($nn !== '' && trim((string) ($f['plz'] ?? '')) !== '') { $k[] = 'n:' . mb_substr($nn . '|' . trim((string) $f['plz']), 0, 180); }
+        return $k;
+    }
+
+    /** Schon einmal aussortiert? */
+    public static function warAussortiert(array $roh): bool
+    {
+        $k = self::aussortierSchluessel($roh);
+        if (!$k || !self::tabelleDa('akq_aussortiert')) { return false; }
+        return (int) Db::wert('SELECT COUNT(*) FROM akq_aussortiert WHERE schluessel IN (' . implode(',', array_fill(0, count($k), '?')) . ')', $k) > 0;
+    }
+
+    /** Wieder aufnehmen: Schlüssel vergessen (jetzt mit Kontaktweg gefunden). */
+    public static function aussortiertVergessen(array $roh): void
+    {
+        $k = self::aussortierSchluessel($roh);
+        if ($k && self::tabelleDa('akq_aussortiert')) {
+            Db::run('DELETE FROM akq_aussortiert WHERE schluessel IN (' . implode(',', array_fill(0, count($k), '?')) . ')', $k);
+        }
+    }
+
     /** L-XXXXXXXX aus einem Alphabet ohne 0/O und 1/I -- am Telefon buchstabierbar. */
     public static function neueKennung(): string
     {
@@ -719,10 +871,11 @@ final class Akquise
                 $upd['kontakt_status'] = 'qualifiziert';
             }
         }
-        foreach (['sprache' => 2, 'email' => 190, 'telefon' => 40, 'ansprechpartner' => 120] as $feld => $max) {
+        foreach (['sprache' => 2, 'email' => 190, 'telefon' => 40, 'whatsapp' => 40, 'ansprechpartner' => 120] as $feld => $max) {
             // Was der Worker auf der Website gefunden hat, fuellt nur Luecken.
+            // WhatsApp (06.10.2026): die Nummer aus einem wa.me-Link der Website.
             $wert = $feld === 'email' ? self::normEmail($e[$feld] ?? null)
-                  : ($feld === 'telefon' ? self::normTelefon($e[$feld] ?? null, (string) $firma['land']) : self::kurz($e[$feld] ?? null, $max));
+                  : (in_array($feld, ['telefon', 'whatsapp'], true) ? self::normTelefon($e[$feld] ?? null, (string) $firma['land']) : self::kurz($e[$feld] ?? null, $max));
             if ($wert !== null && ($firma[$feld] ?? null) === null) { $upd[$feld] = $wert; }
         }
         Db::update('akq_firmen', $firmaId, $upd);

@@ -19,6 +19,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-score.s-interessant{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:var(--gelb)}
   .akq-score.s-beobachten,.akq-score.s-gering{color:var(--dim)}
   .akq-klein{font-size:12.5px;color:var(--leise)}
+  .akq-kontakt{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--text);word-break:break-all}
   .akq-probleme{margin:0;padding-left:16px;font-size:12.5px;color:var(--dim);max-width:340px}
   .akq-probleme li{margin:1px 0}
   .akq-filter{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}

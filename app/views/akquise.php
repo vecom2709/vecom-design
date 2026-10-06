@@ -208,6 +208,15 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   $akqPn = sicher(static fn() => (string) Db::wert('SELECT name FROM partner WHERE id = ?', [(int) $filter['partner']], ''), ''); ?>
   <p class="akq-klein" style="margin:0 0 8px">Gezeigt: nur Betriebe bei Partner <b><?= Fmt::h($akqPn) ?></b> · <a href="<?= Fmt::h(url('akquise') . '?partner=alle') ?>">alle Partner</a> · <a href="<?= Fmt::h(url('akquise')) ?>">alle Betriebe</a></p>
 <?php endif; ?>
+<?php /* Aussortieren (06.10.2026, Uwe): Betriebe ohne E-Mail und ohne WhatsApp raus. Neue kommen gar nicht erst hinein. */
+  $akqWeg = sicher(static fn() => Akquise::aussortierbarZahl(), 0);
+  if ($akqWeg > 0 && Rechte::darfTat('akq_aussortieren')): ?>
+  <div class="hinweis" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span><b><?= $akqWeg ?> Betrieb<?= $akqWeg === 1 ? '' : 'e' ?></b> ohne E-Mail und ohne WhatsApp — die lassen sich nicht anschreiben.</span>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_aussortieren">
+      <button class="knopf">Aussortieren</button></form>
+  </div>
+<?php endif; ?>
 <div class="block">
   <?php if (!$liste['zeilen']): ?>
     <div class="leer">
@@ -235,6 +244,13 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
         <td><label class="akq-wahl"><?php if ($akqPartner && $stand['farbe'] === 'grau' && trim((string) ($z['telefon'] ?? '')) !== ''): ?><input type="checkbox" name="firmen[]" value="<?= (int) $z['id'] ?>" aria-label="<?= Fmt::h((string) $z['name']) ?> auswählen"><?php endif; ?>
           <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a></label>
           <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
+          <?php /* E-Mail und WhatsApp in jeder Zeile (06.10.2026, Uwe). Anschreiben erst nach Zustimmung -- deshalb kein mailto. */
+            $akqMail = trim((string) ($z['email'] ?? '')); $akqWa = Akquise::whatsappNummer($z); ?>
+          <div class="akq-kontakt">
+            <?php if ($akqMail !== ''): ?><span title="E-Mail — anschreiben erst nach Zustimmung">✉ <?= Fmt::h($akqMail) ?></span><?php endif; ?>
+            <?php if ($akqWa !== null): ?><span title="<?= trim((string) ($z['whatsapp'] ?? '')) !== '' ? 'WhatsApp-Nummer' : 'Handynummer — WhatsApp wahrscheinlich' ?>">WhatsApp <?= Fmt::h($akqWa) ?></span><?php endif; ?>
+            <?php if ($akqMail === '' && $akqWa === null): ?><span class="akq-klein"><?= in_array((string) $z['audit_status'], ['offen', 'laeuft'], true) ? 'E-Mail wird auf der Website gesucht …' : 'Keine E-Mail, kein WhatsApp' ?></span><?php endif; ?>
+          </div>
           <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
           <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?>
           <?php if (!empty($z['beim_partner'])): $bp = $z['beim_partner']; [$bpWort, $bpArt] = Akquise::partnerKennung($bp); ?>

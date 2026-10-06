@@ -173,9 +173,26 @@ final class AkquiseWorker
         $liste = array_slice((array) ($d['firmen'] ?? []), 0, 200);
         $neu = $dubletten = $fehler = 0;
         $ergebnisse = [];
+        $aussortiert = 0;
         foreach ($liste as $roh) {
             if (!is_array($roh)) { $fehler++; continue; }
             try {
+                /* Ohne E-Mail und ohne WhatsApp (06.10.2026, Uwe: „lösche raus“): ohne Website gar nicht erst
+                   anlegen -- da findet sich nichts mehr. Mit Website erst nach der Prüfung entscheiden
+                   (dort steht oft die Adresse), außer der Betrieb wurde schon einmal aussortiert. */
+                if (!str_starts_with((string) ($roh['quelle'] ?? ''), 'lead-scout:') && trim((string) ($roh['name'] ?? '')) !== ''
+                    && in_array(strtoupper(trim((string) ($roh['land'] ?? ''))), ['DE', 'IT'], true)) {
+                    if (Akquise::erreichbarRoh($roh)) {
+                        Akquise::aussortiertVergessen($roh);
+                    } else {
+                        $dom = Akquise::normDomain((string) ($roh['url'] ?? ''));
+                        if ($dom === null || Akquise::istPlattform($dom) || Akquise::warAussortiert($roh)) {
+                            $aussortiert++;
+                            $ergebnisse[] = ['quelle' => $roh['quelle'] ?? null, 'aussortiert' => true];
+                            continue;
+                        }
+                    }
+                }
                 $r = Akquise::firmaMelden($roh, $laufId);
                 if (str_starts_with((string) ($roh['quelle'] ?? ''), 'lead-scout:')) { Akquise::altbestand((int) $r['id'], $roh); }
                 $r['neu'] ? $neu++ : $dubletten++;
@@ -189,7 +206,7 @@ final class AkquiseWorker
             Db::run('UPDATE akq_laeufe SET gefunden = gefunden + ?, neu = neu + ?, dubletten = dubletten + ? WHERE id = ?',
                 [count($liste), $neu, $dubletten, $laufId]);
         }
-        return ['ok' => true, 'neu' => $neu, 'dubletten' => $dubletten, 'fehler' => $fehler, 'ergebnisse' => $ergebnisse];
+        return ['ok' => true, 'neu' => $neu, 'dubletten' => $dubletten, 'fehler' => $fehler, 'aussortiert' => $aussortiert, 'ergebnisse' => $ergebnisse];
     }
 
     private static function auditMelden(array $d): array
@@ -206,6 +223,8 @@ final class AkquiseWorker
         }
         unset($d['bilder']);
         $r = Akquise::auditMelden($firmaId, $d);
+        /* Nach der Prüfung: weder E-Mail noch WhatsApp gefunden → raus (06.10.2026). */
+        try { $r['aussortiert'] = Akquise::aussortieren($firmaId) > 0; } catch (Throwable $e) { $r['aussortiert'] = false; }
         return ['ok' => true] + $r;
     }
 

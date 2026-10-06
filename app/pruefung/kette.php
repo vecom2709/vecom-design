@@ -11308,11 +11308,59 @@ AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Trattoria V
 pruefe('ein zweiter Import legt keinen zweiten Versand an',
     (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?", [(int) $akAltF['id']]) === 1);
 AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Pizzeria Fremd', 'land' => 'IT', 'stadt' => 'Favara', 'quelle' => 'osm:node/43',
+    'email' => 'pizzeria@fremd.example',   // seit 06.10.2026 kommt ohne E-Mail/WhatsApp und ohne Website nichts mehr in die Liste
     'schon_kontaktiert' => ['am' => '2026-09-23']]]]);
 pruefe('„schon kontaktiert" gilt nur für die Übernahme, nicht für die Recherche',
     Db::wert("SELECT kontakt_status FROM akq_firmen WHERE quelle = 'osm:node/43'", [], '') === 'neu');
 pruefe('die Übernahmedatei liegt in daten/ und kommt nie ins Repository',
     str_contains((string) file_get_contents($oben . '/tools/akquise/.gitignore'), 'daten/'));
+
+/* Aussortieren (06.10.2026, Uwe: „E-Mail-Adressen zeigen, auch zukünftige — ohne E-Mail und ohne WhatsApp raus“) */
+$asM = AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [
+    ['name' => 'Bar Ohne Alles', 'land' => 'IT', 'stadt' => 'Favara', 'plz' => '92026', 'telefon' => '0922 123456', 'quelle' => 'osm:node/60'],
+    ['name' => 'Bar Handy', 'land' => 'IT', 'stadt' => 'Favara', 'telefon' => '333 1234567', 'quelle' => 'osm:node/61'],
+    ['name' => 'Bar Mail', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'Info@Bar-Mail.example', 'quelle' => 'osm:node/62'],
+    ['name' => 'Bar Webseite', 'land' => 'IT', 'stadt' => 'Favara', 'plz' => '92026', 'url' => 'https://bar-webseite.example', 'quelle' => 'osm:node/63'],
+]]);
+$asId = static fn(string $q): int => (int) Db::wert('SELECT id FROM akq_firmen WHERE quelle = ?', [$q], 0);
+pruefe('Suche: ohne Website und ohne E-Mail/Handy wird nichts angelegt; Handy, E-Mail oder Website kommen hinein',
+    $asM['aussortiert'] === 1 && $asId('osm:node/60') === 0 && $asId('osm:node/61') > 0 && $asId('osm:node/62') > 0 && $asId('osm:node/63') > 0, json_encode($asM));
+$asWeb = $asId('osm:node/63');
+pruefe('mit Website: vor der Prüfung bleibt der Betrieb (die Adresse steht oft auf der Website)', Akquise::aussortieren($asWeb) === 0);
+$asA = AkquiseWorker::ausfuehren('audit_melden', ['firma_id' => $asWeb, 'status' => 'fertig', 'befunde' => []]);
+pruefe('nach der Prüfung ohne E-Mail und ohne WhatsApp: gelöscht samt Audit, Schlüssel gemerkt',
+    !empty($asA['aussortiert']) && $asId('osm:node/63') === 0 && (int) Db::wert('SELECT COUNT(*) FROM akq_audits WHERE firma_id = ?', [$asWeb]) === 0
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_aussortiert WHERE schluessel IN ('q:osm:node/63', 'd:bar-webseite.example')") === 2);
+$asW2 = AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Bar Webseite', 'land' => 'IT', 'url' => 'https://www.bar-webseite.example/', 'quelle' => 'osm:way/63']]]);
+$asW3 = AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Bar Webseite', 'land' => 'IT', 'url' => 'https://bar-webseite.example', 'email' => 'ciao@bar-webseite.example', 'quelle' => 'osm:node/63']]]);
+pruefe('schon aussortiert: kommt nachts nicht wieder; mit E-Mail wird er wieder aufgenommen und vergessen',
+    $asW2['aussortiert'] === 1 && $asW3['neu'] === 1 && $asId('osm:node/63') > 0
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_aussortiert WHERE schluessel IN ('q:osm:node/63', 'd:bar-webseite.example')") === 0);
+$asWa = Akquise::firmaMelden(['name' => 'Bar Wa', 'land' => 'IT', 'url' => 'https://bar-wa.example', 'quelle' => 'osm:node/64']);
+AkquiseWorker::ausfuehren('audit_melden', ['firma_id' => (int) $asWa['id'], 'status' => 'fertig', 'befunde' => [], 'whatsapp' => '393471234567']);
+$asWaF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $asWa['id']]);
+pruefe('WhatsApp aus einem wa.me-Link der Website wird gespeichert und hält den Betrieb in der Liste',
+    $asWaF && $asWaF['whatsapp'] === '+393471234567' && Akquise::erreichbar($asWaF));
+$asGes = Akquise::firmaMelden(['name' => 'Bar Gesperrt', 'land' => 'IT', 'stadt' => 'Favara', 'quelle' => 'osm:node/65']);
+Db::update('akq_firmen', (int) $asGes['id'], ['gesperrt' => 1]);
+$asPar = Akquise::firmaMelden(['name' => 'Bar Beim Partner', 'land' => 'IT', 'stadt' => 'Favara', 'quelle' => 'osm:node/66']);
+$asParPid = (int) Db::wert('SELECT id FROM partner ORDER BY id LIMIT 1', [], 0);
+if ($asParPid > 0) { try { Db::insert('partner_reservierungen', ['partner_id' => $asParPid, 'firma_id' => (int) $asPar['id'], 'bis' => date('Y-m-d', time() + 86400)]); } catch (Throwable $e) { $asParPid = 0; } }
+$asOhne = Akquise::firmaMelden(['name' => 'Bar Festnetz Alt', 'land' => 'IT', 'stadt' => 'Favara', 'telefon' => '0922 999888', 'quelle' => 'osm:node/67']);
+$asZahl = Akquise::aussortierbarZahl();
+$asWeg = Akquise::aussortieren((int) $asOhne['id']) + Akquise::aussortieren((int) $asGes['id']) + Akquise::aussortieren((int) $asPar['id'])
+       + Akquise::aussortieren($asId('osm:node/61')) + Akquise::aussortieren($asId('osm:node/62'));
+pruefe('Knopf „Aussortieren“ löscht den Altbestand ohne Kontaktweg — Gesperrte und Betriebe beim Partner bleiben, Handy- und Mail-Betriebe sowieso',
+    $asZahl >= 1 && $asWeg === 1 + ($asParPid === 0 ? 1 : 0) && Akquise::aussortierbarZahl() === $asZahl - $asWeg
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE id = ?', [(int) $asOhne['id']]) === 0
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE id = ?', [(int) $asGes['id']]) === 1
+    && ($asParPid === 0 || (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE id = ?', [(int) $asPar['id']]) === 1)
+    && $asId('osm:node/61') > 0 && $asId('osm:node/62') > 0, json_encode([$asZahl, $asWeg, $asParPid]));
+$asView = (string) file_get_contents($wurzel . '/views/akquise.php');
+pruefe('Liste zeigt E-Mail und WhatsApp je Betrieb (ohne mailto, Anschreiben erst nach Zustimmung); Aussortieren nur mit Rückfrage (schwer)',
+    str_contains($asView, 'class="akq-kontakt"') && str_contains($asView, 'Akquise::whatsappNummer($z)') && !str_contains($asView, 'href="mailto:<?= Fmt::h($akqMail)')
+    && str_contains($asView, 'value="akq_aussortieren"') && (Ablauf::TRAGWEITE['akq_aussortieren'][0] ?? '') === Ablauf::SCHWER
+    && Akquise::istHandy('+393331234567') && Akquise::istHandy('+4915112345678') && !Akquise::istHandy('+390922123456') && !Akquise::istHandy('+4930123456'));
 
 /* Wochenbericht */
 pruefe('Wochenbericht: nicht an einem Dienstag', isset(Akquise::wochenbericht(strtotime('2026-09-29 09:00'))['uebersprungen']));

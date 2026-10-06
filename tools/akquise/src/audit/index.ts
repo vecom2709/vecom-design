@@ -37,11 +37,49 @@ export interface AuditErgebnis {
   sprache?: string;
   email?: string;
   telefon?: string;
+  /** Nummer aus einem wa.me-/WhatsApp-Link der Website (06.10.2026). */
+  whatsapp?: string;
   bilder?: { mobil?: string; desktop?: string };
   marken?: { art: string; x: number; y: number; b: number; h: number }[];
   /** Öffnungszeiten laut Website (D3, 29.09.2026) -- nur wenn eindeutig gefunden. */
   oeffnungszeiten?: Oeffnung;
   grund?: string;
+}
+
+/* E-Mail und WhatsApp von der Website (06.10.2026, Uwe: „finde von allen die E-Mail-Adressen“).
+   Erst mailto-Links, dann Adressen im sichtbaren Text (Kontakt, Impressum, Fußzeile) -- auch
+   „info [at] firma.it“. Eine Adresse der eigenen Domain schlägt jede fremde. Bilddateien
+   („logo@2x.png“) und Platzhalter fallen weg. */
+const MAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}/gi;
+const MAIL_VERSTECKT = /([a-z0-9._%+-]+)\s*(?:\[at\]|\(at\)|\s+at\s+|\[chiocciola\]|\(chiocciola\))\s*([a-z0-9-]+(?:\s*(?:\.|\[dot\]|\(dot\)|\[punto\])\s*[a-z0-9-]+)+)/gi;
+const KEINE_MAIL = /\.(png|jpe?g|gif|webp|svg|avif)$|^(example|esempio|name|nome|email|mail|tuo|your)@|@(example|sentry|wixpress|domain|dominio)\./i;
+
+export function mailsAusText(text: string): string[] {
+  const roh = [...(text.match(MAIL) ?? [])];
+  for (const m of text.matchAll(MAIL_VERSTECKT)) {
+    roh.push(`${m[1]}@${m[2].replace(/\s*(?:\[dot\]|\(dot\)|\[punto\])\s*/gi, '.').replace(/\s+/g, '')}`);
+  }
+  return Array.from(new Set(roh.map((e) => e.toLowerCase().replace(/^[._-]+|[._-]+$/g, '')).filter((e) => !KEINE_MAIL.test(e))));
+}
+
+export function whatsappAusLinks(links: string[]): string | undefined {
+  for (const l of links) {
+    let nr = '';
+    try {
+      const u = new URL(l);
+      nr = /wa\.me$/i.test(u.hostname) ? u.pathname.replace(/\D/g, '') : (u.searchParams.get('phone') ?? '').replace(/\D/g, '');
+    } catch { continue; }
+    if (nr.length >= 8 && nr.length <= 15) return `+${nr}`;
+  }
+  return undefined;
+}
+
+export function kontaktAusSeiten(seiten: { mailtoLinks: string[]; waLinks?: string[]; text: string }[], basis: string): { email?: string; whatsapp?: string } {
+  const eigen = (e: string) => gleicheSite('https://' + e.split('@')[1] + '/', basis);
+  const mailto = seiten.flatMap((s) => s.mailtoLinks).map((e) => decodeURIComponent(e).trim().toLowerCase()).filter((e) => /@/.test(e) && !KEINE_MAIL.test(e));
+  const imText = seiten.flatMap((s) => mailsAusText(s.text ?? ''));
+  const email = mailto.find(eigen) ?? imText.find(eigen) ?? mailto[0] ?? imText[0];
+  return { email, whatsapp: whatsappAusLinks(seiten.flatMap((s) => s.waLinks ?? [])) };
 }
 
 /** Alle Regeln auf feste Rohdaten -- ohne Netz, deshalb gut zu pruefen. */
@@ -97,8 +135,7 @@ export async function auditieren(firma: FirmaKurz): Promise<AuditErgebnis> {
   const befunde = regelnAnwenden(roh);
   const m = roh.browser?.mobil;
   const seiten = alleSeiten(roh);
-  const email = seiten.flatMap((s) => s.mailtoLinks).find((e) => /@/.test(e) && gleicheSite('x.' + e.split('@')[1], basis))
-    ?? seiten.flatMap((s) => s.mailtoLinks).find((e) => /@/.test(e));
+  const { email, whatsapp } = kontaktAusSeiten(seiten, basis);
   const telefon = seiten.flatMap((s) => s.telLinks).map((t) => decodeURIComponent(t.replace(/^tel:/, '')))[0];
 
   // Rohdaten lokal aufheben (Beleg, Nachpruefung) -- nie ins Repository.
@@ -125,7 +162,7 @@ export async function auditieren(firma: FirmaKurz): Promise<AuditErgebnis> {
     beendet_am: new Date().toISOString(),
     worker_version: VERSION,
     sprache: m ? spracheErkennen(m.lang, m.text) : undefined,
-    email, telefon,
+    email, telefon, whatsapp,
     bilder: { mobil: roh.browser?.screenshotMobil ?? undefined, desktop: roh.browser?.screenshotDesktop ?? undefined },
     marken: roh.browser?.mobil?.marken ?? [],   // A2 (28.09.2026): Stellen auf dem Handyfoto
     oeffnungszeiten: oeffnungLesen(seiten.flatMap((s) => s.oeffnungRoh ?? []), seiten.map((s) => s.text)) ?? undefined,
