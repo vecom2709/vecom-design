@@ -509,6 +509,8 @@
       </div>
     <?php endif; ?>
 
+    <?php require __DIR__ . '/projekt_versionen.php'; /* AutoBuild Phase 6: Fassungen */ ?>
+
     <?php /* AUF DIE DOMAIN (26.09.2026): das Paket per FTPS in den Web-Ordner des
              Kunden-Accounts. Steht nur da, wenn die Domain bei uns liegt; sonst
              bleibt es beim Herunterladen und Schicken wie bisher. */
@@ -525,7 +527,8 @@
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="veroeffentlichen">
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <?php /* Kein zweites Blau: "Herunterladen" steht schon als Hauptknopf daneben. */ ?>
-            <button class="knopf"><?= empty($p['veroeffentlicht_am']) ? 'Seite veröffentlichen' : 'Neue Fassung veröffentlichen' ?></button>
+            <?php if (!empty($vs['version'])): ?><input type="hidden" name="version" value="<?= (int) $vs['version']['id'] ?>"><?php endif; ?>
+            <button class="knopf"><?= !empty($vs['version']) ? 'V' . (int) $vs['version']['nummer'] . ' ' : '' ?><?= empty($p['veroeffentlicht_am']) ? 'veröffentlichen' : 'als neue Fassung veröffentlichen' ?></button>
             <span style="color:var(--leise);font-size:12.5px;margin-left:8px">„<?= Fmt::h((string) $vs['paket']['orig_name']) ?>“ — was dort liegt, wird vorher gesichert, gelöscht wird nichts.</span>
           </form>
         <?php else: ?>

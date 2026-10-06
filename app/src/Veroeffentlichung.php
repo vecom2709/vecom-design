@@ -48,14 +48,18 @@ final class Veroeffentlichung
      * Kann veroeffentlicht werden -- und wenn nicht, warum nicht (in Uwes Worten).
      * @return array{bereit:bool, gruende:list<string>, projekt:?array, auftrag:?array, paket:?array, ftp:?array}
      */
-    public static function stand(int $projektId): array
+    public static function stand(int $projektId, ?int $versionId = null): array
     {
         $g = [];
         $p = Db::one('SELECT * FROM projects WHERE id = ?', [$projektId]);
-        if (!$p) { return ['bereit' => false, 'gruende' => ['Projekt nicht gefunden.'], 'projekt' => null, 'auftrag' => null, 'paket' => null, 'ftp' => null]; }
+        if (!$p) { return ['bereit' => false, 'gruende' => ['Projekt nicht gefunden.'], 'projekt' => null, 'auftrag' => null, 'paket' => null, 'ftp' => null, 'version' => null]; }
         $a = Db::one("SELECT * FROM hosting_auftraege WHERE customer_id = ? AND status IN ('angelegt','aktiv')
                        ORDER BY (project_id = ?) DESC, id DESC LIMIT 1", [(int) $p['customer_id'], $projektId]);
-        $paket = Db::one("SELECT * FROM files WHERE project_id = ? AND rolle = 'paket' ORDER BY id DESC LIMIT 1", [$projektId]);
+        /* AutoBuild Phase 6: veröffentlicht wird eine nummerierte Fassung — ohne Angabe die neueste. */
+        require_once __DIR__ . '/Versionen.php';
+        $version = $versionId !== null ? Versionen::laden($versionId) : Versionen::neueste($projektId);
+        if ($version !== null && (int) $version['project_id'] !== $projektId) { $version = null; $g[] = 'Diese Fassung gehört zu einem anderen Projekt.'; }
+        $paket = $version !== null ? Db::one('SELECT * FROM files WHERE id = ?', [(int) $version['file_id']]) : null;
         $ftp = null;
         if (!$a) {
             $g[] = 'Die Domain liegt nicht bei uns (kein eingerichteter Hosting-Auftrag).';
@@ -71,6 +75,7 @@ final class Veroeffentlichung
             }
         }
         if (!$paket) { $g[] = 'Es liegt noch kein Paket vor (Werkstatt: aktion=paket, oder hier hochladen).'; }
+        elseif (($vs = Versionen::liveSperre($version)) !== null) { $g[] = $vs; }   // Staging zuerst (Phase 6)
         /* AutoBuild Phase 4: beim Not-Aus geht nichts live, auch nicht von Hand. */
         require_once __DIR__ . '/Bausperre.php';
         $bs = Bausperre::darfBauen($p);
@@ -78,7 +83,7 @@ final class Veroeffentlichung
         if (!in_array((string) $p['status'], self::ABGENOMMEN, true)) {
             $g[] = 'Der Kunde hat noch nicht abgenommen (Stand: ' . (string) $p['status'] . ').';
         }
-        return ['bereit' => !$g, 'gruende' => $g, 'projekt' => $p, 'auftrag' => $a, 'paket' => $paket, 'ftp' => $ftp];
+        return ['bereit' => !$g, 'gruende' => $g, 'projekt' => $p, 'auftrag' => $a, 'paket' => $paket, 'ftp' => $ftp, 'version' => $version];
     }
 
     /**
@@ -145,9 +150,9 @@ final class Veroeffentlichung
      *        Methoden wie FtpVerbindung (verbinden, liste, holen, ordner, senden, schliessen)
      * @return array{ok:bool, text:string, dateien?:int, sicherung?:?int, probelauf?:bool}
      */
-    public static function veroeffentlichen(int $projektId, ?object $ftp = null, ?callable $https = null): array
+    public static function veroeffentlichen(int $projektId, ?object $ftp = null, ?callable $https = null, ?int $versionId = null): array
     {
-        $s = self::stand($projektId);
+        $s = self::stand($projektId, $versionId);
         if (!$s['bereit']) { return ['ok' => false, 'text' => implode(' ', $s['gruende'])]; }
         $p = $s['projekt']; $a = $s['auftrag']; $paket = $s['paket']; $z = $s['ftp'];
         $domain = (string) $a['domain'];
@@ -225,13 +230,14 @@ final class Veroeffentlichung
             Db::insert('websites', ['customer_id' => (int) $p['customer_id'], 'project_id' => $projektId, 'domain' => $domain,
                 'url' => $url, 'status' => 'wird_geprueft', 'monitoring' => 1]);
         }
-        Events::protokoll('veroeffentlicht', count($dateien) . ' Dateien aus „' . $paket['orig_name'] . '“ auf ' . $domain . ' veröffentlicht'
+        if ($s['version'] !== null) { Versionen::liveGesetzt((int) $s['version']['id']); }
+        Events::protokoll('veroeffentlicht', ($s['version'] !== null ? 'V' . (int) $s['version']['nummer'] . ': ' : '') . count($dateien) . ' Dateien aus „' . $paket['orig_name'] . '“ auf ' . $domain . ' veröffentlicht'
             . ($sicherungId ? ' (vorher gesichert)' : ' (Webspace war leer)'), (int) $p['customer_id'], null, $projektId);
 
         /* 4. HTTPS gleich pruefen -- "Online" haengt daran (Hosting::httpsSperre). */
         $h = Hosting::httpsPruefen((int) $a['id'], $https);
         return ['ok' => true, 'dateien' => $geladen, 'sicherung' => $sicherungId,
-            'text' => $geladen . ' Dateien auf ' . $domain . ' veröffentlicht' . ($sicherungId ? ', das Bisherige ist gesichert' : '') . '. '
+            'text' => ($s['version'] !== null ? 'V' . (int) $s['version']['nummer'] . ': ' : '') . $geladen . ' Dateien auf ' . $domain . ' veröffentlicht' . ($sicherungId ? ', das Bisherige ist gesichert' : '') . '. '
                 . ($h['status'] === 'ok' ? 'HTTPS steht — jetzt „Online“ setzen.' : 'HTTPS noch nicht in Ordnung: ' . $h['text'])];
     }
 

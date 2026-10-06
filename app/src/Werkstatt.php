@@ -524,8 +524,12 @@ final class Werkstatt
 
         require_once __DIR__ . '/Ablage.php';
         $dateiId = Ablage::annehmen($datei, $pid, (int) $p['customer_id'], 'werkstatt', self::ROLLE_PAKET);
+        /* AutoBuild Phase 6: jede Fassung bekommt eine Nummer (V1, V2 …). */
+        require_once __DIR__ . '/Versionen.php';
+        $vId = Versionen::erfassen($pid, (int) $dateiId, 'werkstatt', (string) ($d['notiz'] ?? ''));
+        $vNr = (int) Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vId], 0);
 
-        Events::protokoll('paket_neu', 'Website-Paket hinterlegt: ' . $name,
+        Events::protokoll('paket_neu', 'Website-Paket V' . $vNr . ' hinterlegt: ' . $name,
             (int) $p['customer_id'], $p['order_id'] !== null ? (int) $p['order_id'] : null, $pid);
         Events::melden('paket_neu', 'Die fertige Website liegt als Paket bereit', 'gut',
             (string) $p['name'] . ' — ' . $name
@@ -534,7 +538,7 @@ final class Werkstatt
 
         $frei = ($p['paket_frei_am'] ?? null) !== null;
 
-        return ['ok' => true, 'projekt' => $pid, 'datei' => $dateiId, 'name' => $name,
+        return ['ok' => true, 'projekt' => $pid, 'datei' => $dateiId, 'name' => $name, 'version' => $vNr,
                 'bytes' => (int) $datei['size'], 'freigegeben' => $frei,
                 'hinweis' => $frei
                     ? 'Hinterlegt. Der Kunde sieht ab sofort diese Fassung auf seiner Seite.'

@@ -2540,9 +2540,30 @@ if ($post) {
                    diesen Klick, mit Sicherung vorher (Veroeffentlichung). */
                 require_once __DIR__ . '/src/Veroeffentlichung.php';
                 $vpid = (int) ($_POST['id'] ?? 0);
-                $ve = sicher(static fn() => Veroeffentlichung::veroeffentlichen($vpid), ['ok' => false, 'text' => 'Unerwarteter Fehler beim Veröffentlichen.']);
+                $veV = (int) ($_POST['version'] ?? 0);   // AutoBuild Phase 6: eine bestimmte Fassung (auch Zurückrollen)
+                $ve = sicher(static fn() => Veroeffentlichung::veroeffentlichen($vpid, null, null, $veV > 0 ? $veV : null), ['ok' => false, 'text' => 'Unerwarteter Fehler beim Veröffentlichen.']);
                 $_SESSION[$ve['ok'] ? 'gut' : 'fehler'] = $ve['text'];
                 zurueck('projekte/' . $vpid);
+
+            /* AutoBuild Phase 6 (06.10.2026): Testfassung und Prüfung je Fassung. */
+            case 'version_netlify':
+            case 'version_staging':
+            case 'version_geprueft':
+                require_once __DIR__ . '/src/Versionen.php';
+                $vrV = Versionen::laden((int) ($_POST['version'] ?? 0));
+                $vrPid = (int) ($_POST['id'] ?? 0);
+                if (!$vrV || (int) $vrV['project_id'] !== $vrPid) { throw new RuntimeException('Fassung gehört nicht zu diesem Projekt.'); }
+                if ($tat === 'version_netlify') {
+                    $vrE = Versionen::aufNetlify((int) $vrV['id'], Auth::name());
+                    $_SESSION[$vrE['ok'] ? 'gut' : 'fehler'] = $vrE['text'];
+                } elseif ($tat === 'version_staging') {
+                    Versionen::stagingEintragen((int) $vrV['id'], (string) ($_POST['url'] ?? ''), Auth::name());
+                    $_SESSION['gut'] = 'Testadresse für V' . (int) $vrV['nummer'] . ' eingetragen — ansehen, dann „geprüft“.';
+                } else {
+                    Versionen::geprueft((int) $vrV['id'], Auth::name());
+                    $_SESSION['gut'] = 'V' . (int) $vrV['nummer'] . ' ist als geprüft markiert und darf live.';
+                }
+                zurueck('projekte/' . $vrPid . '#versionen');
 
             case 'domainpruefung_testen':
                 /* Misst auf diesem Server, welche Stufe der Domainpruefung
@@ -4097,8 +4118,10 @@ if ($post) {
                 if (!preg_match('~\.zip$~i', $pName)) {
                     throw new RuntimeException('Das Paket muss eine .zip sein — so kann es jeder öffnen.');
                 }
-                Ablage::annehmen($_FILES['datei'] ?? [], $pid, (int) $pr['customer_id'], 'admin', 'paket');
-                Events::protokoll('paket_neu', 'Website-Paket hinterlegt: ' . $pName,
+                $phId = Ablage::annehmen($_FILES['datei'] ?? [], $pid, (int) $pr['customer_id'], 'admin', 'paket');
+                require_once __DIR__ . '/src/Versionen.php';   // AutoBuild Phase 6: nummerierte Fassung
+                $phV = Versionen::erfassen($pid, (int) $phId, 'hand', (string) ($_POST['notiz'] ?? ''));
+                Events::protokoll('paket_neu', 'Website-Paket V' . (int) Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$phV], 0) . ' hinterlegt: ' . $pName,
                     (int) $pr['customer_id'], $pr['order_id'] !== null ? (int) $pr['order_id'] : null, $pid);
                 $_SESSION['gut'] = ($pr['paket_frei_am'] ?? null) !== null
                     ? 'Paket liegt bereit — der Kunde sieht ab sofort diese Fassung.'

@@ -9540,6 +9540,14 @@ Db::run('UPDATE hosting_auftraege SET technik_blob = ? WHERE id = ?',
 $vpZipPfad = $vpZip(['seite/index.html' => '<h1>Neu</h1>', 'seite/css/stil.css' => 'body{}', 'seite/bilder/logo.png' => 'PNG']);
 $vpPaket = Ablage::ausDatei($vpZipPfad, 'seite.zip', $vpP, $vpK, 'werkstatt');
 Db::run("UPDATE files SET rolle = 'paket' WHERE id = ?", [$vpPaket]);
+/* AutoBuild Phase 6: ein Paket ohne Versionseintrag (von früher) wird V1 — und muss erst auf die Testfassung. */
+require_once $wurzel . '/src/Versionen.php';
+$vpV1 = Versionen::neueste($vpP);
+$vpOhneTest = Veroeffentlichung::stand($vpP)['gruende'];
+pruefe('Fassungen: ein altes Paket wird V1 (Bestand); live erst nach Testfassung und Prüfung',
+    $vpV1 !== null && (int) $vpV1['nummer'] === 1 && $vpV1['quelle'] === 'bestand' && count($vpOhneTest) === 2 && str_contains($vpOhneTest[0], 'Testfassung'), json_encode($vpOhneTest, JSON_UNESCAPED_UNICODE));
+Versionen::stagingEintragen((int) $vpV1['id'], 'veroeff-probe-v1.netlify.app', 'Uwe Admin');
+Versionen::geprueft((int) $vpV1['id'], 'Uwe Admin');
 pruefe('Veröffentlichen: vor der Abnahme nicht -- nur dieser Grund bleibt',
     Veroeffentlichung::stand($vpP)['gruende'] === ['Der Kunde hat noch nicht abgenommen (Stand: entwicklung).']);
 Db::run("UPDATE projects SET status = 'finale_freigabe' WHERE id = ?", [$vpP]);
@@ -9574,6 +9582,45 @@ pruefe('Veröffentlichen: die Domain wird beobachtet, das Projekt trägt Datum u
     $vpW && (string) $vpW['url'] === 'https://veroeff-probe.it' && (int) $vpW['monitoring'] === 1
     && (string) Db::wert('SELECT veroeffentlicht_domain FROM projects WHERE id = ?', [$vpP], '') === 'veroeff-probe.it'
     && (string) Db::wert('SELECT ssl_status FROM hosting_auftraege WHERE id = ?', [$vpA], '') === 'ok');
+/* AutoBuild Phase 6: V2 über die Testfassung (Netlify, gestellt), live, dann zurück auf V1. */
+$vpZip2 = $vpZip(['index.html' => '<h1>Zwei</h1>', 'neu.html' => 'NEU']);
+$vpP2 = Ablage::ausDatei($vpZip2, 'seite-v2.zip', $vpP, $vpK, 'admin'); Db::run("UPDATE files SET rolle = 'paket' WHERE id = ?", [$vpP2]);
+$vpV2 = Versionen::erfassen($vpP, $vpP2, 'hand', 'Farben geändert');
+$vpV2Sperre = Veroeffentlichung::stand($vpP)['gruende'];
+$vpOhneToken = Versionen::aufNetlify($vpV2, 'Uwe Admin');
+$vpCfg = new ReflectionProperty('Config', 'data'); $vpCfg->setAccessible(true); $vpCfgAlt = $vpCfg->getValue(); $vpCfg->setValue(null, ['netlify_token' => 'nl-test-token-geheim'] + (array) $vpCfgAlt);
+$vpNlLog = [];
+Versionen::$http = static function (string $m, string $u, array $k, ?string $b) use (&$vpNlLog): array {
+    $vpNlLog[] = $m . ' ' . $u . ' ' . (in_array('Authorization: Bearer nl-test-token-geheim', $k, true) ? 'auth' : 'ohne') . ' ' . strlen((string) $b);
+    if (str_ends_with($u, '/sites')) { return [201, ['id' => 'site-123']]; }
+    return [200, ['id' => 'dep-456', 'deploy_ssl_url' => 'https://dep-456--vecom-seite.netlify.app']];
+};
+$vpNl = Versionen::aufNetlify($vpV2, 'Uwe Admin');
+Versionen::$http = null; $vpCfg->setValue(null, $vpCfgAlt);
+$vpNlV = Versionen::laden($vpV2);
+$vpV2Noch = Veroeffentlichung::stand($vpP)['gruende'];
+Versionen::geprueft($vpV2, 'Uwe Admin');
+$vpE2 = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps);
+$vpIndexV2 = $vpFtp->fs['/web/index.html'] ?? '';
+$vpLiveV2 = (int) Db::wert('SELECT live_version_id FROM projects WHERE id = ?', [$vpP], 0) === $vpV2;
+$vpFremd = Veroeffentlichung::stand($wsProjekt, $vpV2);
+$vpZur = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps, (int) $vpV1['id']);
+pruefe('Fassungen: V2 nicht ohne Testfassung; Netlify ohne Schlüssel sagt es; mit Schlüssel eigene Seite + Deploy mit fester Adresse, danach erst „geprüft“, dann live (V2 LIVE)',
+    (int) Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vpV2], 0) === 2 && str_contains(implode(' ', $vpV2Sperre), 'V2 war noch nicht auf der Testfassung')
+    && !$vpOhneToken['ok'] && str_contains($vpOhneToken['text'], 'netlify_token')
+    && $vpNl['ok'] && count($vpNlLog) === 2 && str_contains($vpNlLog[0], 'POST https://api.netlify.com/api/v1/sites auth') && str_contains($vpNlLog[1], '/sites/site-123/deploys auth')
+    && (string) Db::wert('SELECT netlify_site_id FROM projects WHERE id = ?', [$vpP], '') === 'site-123' && $vpNlV['staging_url'] === 'https://dep-456--vecom-seite.netlify.app'
+    && str_contains(implode(' ', $vpV2Noch), 'noch nicht als geprüft') && $vpE2['ok'] && str_starts_with($vpE2['text'], 'V2:') && $vpIndexV2 === '<h1>Zwei</h1>' && $vpLiveV2,
+    json_encode([Db::wert('SELECT netlify_site_id FROM projects WHERE id = ?', [$vpP], ''), $vpNlV['staging_url'] ?? null, $vpFtp->fs['/web/index.html'] ?? null, Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vpV2], 0)], JSON_UNESCAPED_UNICODE));
+pruefe('Zurückrollen: V1 war schon live → ohne neue Prüfung wieder veröffentlicht, vorher gesichert, V1 ist LIVE, Prüfspur „zurückgerollt“; fremde Fassung abgelehnt; Token nirgends protokolliert',
+    $vpZur['ok'] && !empty($vpZur['sicherung']) && ($vpFtp->fs['/web/index.html'] ?? '') === '<h1>Neu</h1>' && ($vpFtp->fs['/web/neu.html'] ?? '') === 'NEU'
+    && (int) Db::wert('SELECT live_version_id FROM projects WHERE id = ?', [$vpP], 0) === (int) $vpV1['id']
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'version_zurueckgerollt' AND entity_id = ?", [(int) $vpV1['id']], 0) === 1
+    && !$vpFremd['bereit'] && str_contains(implode(' ', $vpFremd['gruende']), 'anderen Projekt')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE after_json LIKE '%nl-test-token%' OR before_json LIKE '%nl-test-token%'", [], 0) === 0
+    && str_contains((string) file_get_contents($wurzel . '/src/Werkstatt.php'), "Versionen::erfassen(\$pid, (int) \$dateiId, 'werkstatt'")
+    && str_contains((string) file_get_contents($wurzel . '/views/projekt.php'), "projekt_versionen.php"),
+    json_encode([$vpZur, $vpFremd['gruende']], JSON_UNESCAPED_UNICODE));
 pruefe('Veröffentlichen: das FTP-Passwort steht in keinem Protokoll',
     (int) Db::wert("SELECT COUNT(*) FROM activities WHERE title LIKE '%Ftp-Geheim%' OR meta LIKE '%Ftp-Geheim%'", [], 0) === 0);
 $vpKQ = (string) file_get_contents($wurzel . '/../kunde.php');
