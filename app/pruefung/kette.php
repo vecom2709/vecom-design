@@ -11429,36 +11429,31 @@ pruefe('fünf Dinge, getrennte Felder (gefunden, bestätigt, Status, Versand, We
     && !preg_match('~rechtssicher|garantiert zul|abmahnsicher~iu', $msTexte)
     && (Ablauf::TRAGWEITE['akq_mail_nicht_aufheben'][0] ?? '') === Ablauf::SCHWER
     && str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_mail.php'"));
-/* Direkt aus der Verwaltung senden (06.10.2026, Uwe: „anhand der E-Mail-Adresse der Rolle“) */
-require_once $wurzel . '/src/Mail.php';
+/* Senden über das eigene Mailprogramm (06.10.2026, Uwe: „NICHT selbst über einen eigenen Server oder eine API versenden …
+   mailto:-Link … Das System speichert nur den Zeitstempel der Generierung.“) — ersetzt den Direktversand vom selben Tag. */
 require_once $wurzel . '/src/AkquiseVersand.php';
 $_SESSION = ['uid' => 1, 'rolle' => 'admin', 'name' => 'Uwe Admin'];
-$dsTest = AkquiseGate::testbetrieb(); AkquiseGate::testbetriebSetzen(false);
 $dsPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$dsPost): bool { $dsPost[] = [$an, $b, $t, $o]; return true; };
 $dsF = Akquise::firmaMelden(['name' => 'Bar Direktmail', 'land' => 'IT', 'stadt' => 'Favara', 'email' => 'info@direktmail.example', 'quelle' => 'osm:node/72']);
-$dsRot = 'durch'; try { AkquiseMail::direktSenden((int) $dsF['id'], 'Ihre Anfrage', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsRot = 'nein'; }
+$dsRot = 'durch'; try { AkquiseMail::mailtoErzeugen((int) $dsF['id'], 'Ihre Anfrage', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsRot = 'nein'; }
 AkquiseMail::grundDokumentieren((int) $dsF['id'], ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Will ein Angebot']);
-$dsDom = Mail::eigeneDomain();
-AkquiseGate::setzen('akq_absender_rolle_admin', $dsDom !== '' ? 'uwe@' . $dsDom : '');
-$dsAbs = AkquiseMail::absender();
-$dsLeer = 'durch'; try { AkquiseMail::direktSenden((int) $dsF['id'], '   ', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsLeer = 'nein'; }
-$dsR = AkquiseMail::direktSenden((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße", true);   // Hinweise bestätigt (Werkstatt, Modul D)
+$dsLeer = 'durch'; try { AkquiseMail::mailtoErzeugen((int) $dsF['id'], '   ', str_repeat('Guten Tag, ', 5)); } catch (RuntimeException $e) { $dsLeer = 'nein'; }
+$dsR = AkquiseMail::mailtoErzeugen((int) $dsF['id'], 'Ihr Angebot', "Guten Tag,\nwie gewünscht das Angebot für Ihre neue Website.\nViele Grüße", true);
 $dsV = Db::one('SELECT * FROM akq_versand WHERE id = ?', [$dsR['id']]);
-pruefe('Direktversand: nur bei 🟢 (vorher abgelehnt), nie ohne Betreff; geht einzeln raus mit Abmeldelink, steht im Versandprotokoll und in der Prüfspur',
-    $dsRot === 'nein' && $dsLeer === 'nein' && !$dsR['simuliert'] && count($dsPost) === 1 && $dsPost[0][0] === 'info@direktmail.example'
-    && str_contains($dsPost[0][2], 'widerspruch.php?t=') && $dsV && $dsV['status'] === 'gesendet' && str_starts_with((string) $dsV['grund'], 'Direkt aus der Verwaltung')
-    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_direktmail' AND entity_id = ?", [$dsR['id']]) === 1
-    && Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [(int) $dsF['id']], '') === 'kontaktiert', json_encode([$dsRot, $dsLeer, $dsR, $dsPost]));
-pruefe('Absender je Rolle: die eingetragene Rollen-Adresse der eigenen Domain (sonst Firmenadresse mit Antwort an den Zugang) geht als Absender und Antwortadresse mit',
-    $dsDom !== '' ? ($dsAbs['email'] === 'uwe@' . $dsDom && ($dsPost[0][3]['absender']['email'] ?? '') === 'uwe@' . $dsDom && ($dsPost[0][3]['antwortAn'] ?? '') === 'uwe@' . $dsDom)
-                  : ($dsAbs['email'] === null && !isset($dsPost[0][3]['absender']) && str_contains($dsAbs['quelle'], 'Firmenadresse')), json_encode([$dsDom, $dsAbs, $dsPost[0][3] ?? null]));
+$dsBody = rawurldecode((string) substr((string) strstr($dsR['link'], '&body='), 6));
+pruefe('Senden im eigenen Mailprogramm: nur bei 🟢 (vorher abgelehnt), nie ohne Betreff; mailto mit Empfänger, Betreff, Text und Abmeldelink; der Server verschickt nichts; gespeichert nur Zeitpunkt, wer und an wen',
+    $dsRot === 'nein' && $dsLeer === 'nein' && $dsPost === [] && str_starts_with($dsR['link'], 'mailto:info%40direktmail.example?subject=Ihr%20Angebot&body=')
+    && str_contains($dsBody, 'wie gewünscht das Angebot') && str_contains($dsBody, 'widerspruch.php?t=' . ($dsV['abmelde_token'] ?? 'x'))
+    && $dsV && $dsV['status'] === 'von_hand' && str_starts_with((string) $dsV['grund'], 'mailto-Link erzeugt') && !str_contains((string) $dsV['grund'], 'Angebot für')
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_mailto' AND entity_id = ?", [$dsR['id']]) === 1
+    && Db::wert('SELECT kontakt_status FROM akq_firmen WHERE id = ?', [(int) $dsF['id']], '') === 'kontaktiert', json_encode([$dsRot, $dsLeer, $dsPost]));
 $dsZv = (string) file_get_contents($wurzel . '/views/einstellungen/zugaenge.php'); $dsIx = (string) file_get_contents($wurzel . '/index.php');
-pruefe('Einstellungen: Absender je Rolle nur auf der eigenen Domain; Senden-Knopf mit Rückfrage und angezeigtem Absender',
-    str_contains($dsZv, 'value="zugang_absender"') && str_contains($dsIx, "case 'zugang_absender':") && str_contains($dsIx, "str_ends_with(\$zaW, '@' . \$zaDom)")
-    && (Ablauf::TRAGWEITE['akq_mail_senden'][0] ?? '') === Ablauf::RAUS
-    && str_contains((string) file_get_contents($wurzel . '/views/akquise_ansprechen.php'), 'value="akq_mail_senden"'));
-AkquiseGate::setzen('akq_absender_rolle_admin', '');
-AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($dsTest);
+$dsAn = (string) file_get_contents($wurzel . '/views/akquise_ansprechen.php'); $dsRt = (string) file_get_contents($wurzel . '/akquise_route.php');
+pruefe('Kein Direktversand mehr: kein „Absender je Rolle“, keine Tat akq_mail_senden, das Formular erzeugt den mailto-Link (akq_mail_mailto) und öffnet ihn',
+    !str_contains($dsZv, 'zugang_absender') && !str_contains($dsIx, "case 'zugang_absender':") && !isset(Ablauf::TRAGWEITE['akq_mail_senden'])
+    && !str_contains($dsAn, 'akq_mail_senden') && str_contains($dsAn, 'value="akq_mail_mailto"') && str_contains($dsAn, 'window.location.href = j.link')
+    && str_contains($dsRt, "case 'akq_mail_mailto':") && !method_exists('AkquiseMail', 'direktSenden'));
+AkquiseVersand::$postbote = null;
 $_SESSION = $msSess;
 $asView = (string) file_get_contents($wurzel . '/views/akquise.php');
 pruefe('Liste zeigt E-Mail und WhatsApp je Betrieb (ohne mailto, Anschreiben erst nach Zustimmung); Aussortieren nur mit Rückfrage (schwer)',
@@ -24247,8 +24242,10 @@ pruefe('KUNDEN-Seite: + Kontakt, Stufen mit Zahlen, Liste; Namen escaped; „Üb
     && str_contains($plH3, 'Hotel Sole') && !str_contains($plH3, 'Pizzeria Mamma'));
 pruefe('Akte: sechs Schnellfunktionen (Anrufen, WhatsApp mit Text, E-Mail MIT Betreff, Notiz, Aufgabe, Übergeben), Stufe/Priorität, Aufgaben, Verlauf, Daten, Archiv — escaped, jedes Formular mit CSRF',
     substr_count(substr($plH2, (int) strpos($plH2, '<nav class="cc-aktionen'), (int) strpos($plH2, '</nav>', (int) strpos($plH2, '<nav class="cc-aktionen')) - (int) strpos($plH2, '<nav class="cc-aktionen')), '<a ') === 6
-    && str_contains($plH2, 'href="tel:3334445556"') && str_contains($plH2, 'https://wa.me/39333') && rawurldecode($plMt[1] ?? '') !== '' && rawurldecode($plMt[1] ?? '') === Texte::h($plT['mail_betreff'], PartnerAnschreiben::spracheZurAdresse('bar.example', 'de'))
-    && str_contains($plH2, 'data-cc-kontakt="anruf"') && str_contains($plH2, 'data-cc-kontakt="whatsapp"') && str_contains($plH2, 'data-cc-kontakt="email"')
+    && str_contains($plH2, 'href="tel:3334445556"') && str_contains($plH2, 'https://wa.me/39333')
+    /* Seit 06.10.2026: E-MAIL führt jeden aktiven Partner in den Composer (vorausgefüllt, Betreff Pflicht), der den mailto-Link erzeugt. */
+    && preg_match('~href="[^"]*mail=1[^"]*an_lead=' . (int) $plX . '~', str_replace('&amp;', '&', $plH2)) === 1
+    && str_contains($plH2, 'data-cc-kontakt="anruf"') && str_contains($plH2, 'data-cc-kontakt="whatsapp"')
     && str_contains($plH2, 'name="tat" value="lead_stufe"') && str_contains($plH2, 'name="tat" value="lead_uebergeben"') && str_contains($plH2, 'name="einverstanden" value="1" required')
     && str_contains($plH2, '<h1>') && !str_contains($plH2, '<b>Fett</b>') && substr_count($plH2, '<form') === substr_count($plH2, 'name="_csrf"'),
     'mailto-Betreff: ' . ($plMt[1] ?? '—'));
@@ -25057,71 +25054,54 @@ pruefe('Betreff-Prüfung: leer, Leerzeichen, geschütztes Leerzeichen, Nullbreit
     && PartnerMail::betreffPruefen('Betreff') === 'platzhalter' && PartnerMail::betreffPruefen(' (kein Betreff) ') === 'platzhalter' && PartnerMail::betreffPruefen('Oggetto:') === 'platzhalter'
     && PartnerMail::betreffPruefen('.....') === 'platzhalter' && PartnerMail::betreffPruefen('Test') === 'platzhalter'
     && PartnerMail::betreffPruefen('Ihre Website — ein paar Ideen') === null && PartnerMail::betreffPruefen('Tür') === null);
-$p7Gesendet = [];
-PartnerMail::$senden = static function (string $an, string $b, string $t, array $bz) use (&$p7Gesendet): bool { $p7Gesendet[] = [$an, $b, $t, $bz]; return true; };
-// Ohne @vecom-Adresse: kein Center, auch nicht mit einer Adresse im Formular (die gibt es dort gar nicht).
-$p7Ohne = PartnerMail::senden($p7O, 'betrieb@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de');
-pruefe('Ohne @vecom-Adresse: kein E-Mail-Center, nichts gesendet, nichts gespeichert',
-    !PartnerMail::kann($p7O) && $p7Ohne === 'keine_adresse' && $p7Gesendet === [] && (int) Db::wert('SELECT COUNT(*) FROM partner_mails', [], 0) === 0);
+/* Seit 06.10.2026 (Uwe): kein Versand über Brevo mehr — mailtoErzeugen() prüft, erzeugt den mailto:-Link und
+   speichert nur Zeitpunkt, Empfänger und Abmeldeschlüssel (ohne Betreff und Text). */
+$p7Ohne = PartnerMail::mailtoErzeugen($p7O, 'betrieb@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de');
+pruefe('mailto für jeden aktiven Partner — auch ohne @vecom-Adresse; Testpartner nie',
+    PartnerMail::kann($p7O) && $p7Ohne['code'] === 'ok' && str_starts_with($p7Ohne['link'], 'mailto:betrieb%40kunde.example?subject=Ihre%20Website&body=')
+    && !PartnerMail::kann(['status' => 'aktiv', 'test' => 1]) && !PartnerMail::kann(['status' => 'pausiert']), json_encode($p7Ohne['code']));
+Db::run('DELETE FROM partner_mails');
 pruefe('Adresse zuordnen (nur Verwaltung): nur @vecom-design.it, Kleinbuchstaben, eindeutig je Partner',
     PartnerMail::adresseSetzen($p7i, 'mia@gmail.com') === 'form' && PartnerMail::adresseSetzen($p7i, 'mia@vecom-design.it.boese.example') === 'form'
     && PartnerMail::adresseSetzen($p7i, ' Mia.Mail@Vecom-Design.it ') === 'ok' && PartnerMail::adresseSetzen((int) $p7O['id'], 'mia.mail@vecom-design.it') === 'belegt'
     && PartnerMail::adresseSetzen(999999, 'x@vecom-design.it') === 'partner' && Partner::laden($p7i)['vecom_adresse'] === 'mia.mail@vecom-design.it');
 $p7 = Partner::laden($p7i);
-// DIE PFLICHTREGEL auf dem Server: jeder dieser Versuche endet, bevor gezählt, gespeichert oder gesendet wird.
 $p7Leer = [];
-foreach (['', '   ', "\u{00A0}\u{200B}", 'ok', 'Betreff', '...'] as $p7B) { $p7Leer[] = PartnerMail::senden($p7, 'betrieb@kunde.example', $p7B, 'Guten Tag, ein kurzer Gruß.', 'de'); }
-pruefe('PFLICHTREGEL (Server): ohne gültigen Betreff geht keine Mail hinaus — nichts gesendet, nichts gespeichert, kein Platz im Limit verbraucht',
-    $p7Leer === ['betreff_leer', 'betreff_leer', 'betreff_leer', 'betreff_kurz', 'betreff_platzhalter', 'betreff_platzhalter'] && $p7Gesendet === []
+foreach (['', '   ', "\u{00A0}\u{200B}", 'ok', 'Betreff', '...'] as $p7B) { $p7Leer[] = PartnerMail::mailtoErzeugen($p7, 'betrieb@kunde.example', $p7B, 'Guten Tag, ein kurzer Gruß.', 'de')['code']; }
+pruefe('PFLICHTREGEL (Server): ohne gültigen Betreff kein mailto-Link, nichts gespeichert',
+    $p7Leer === ['betreff_leer', 'betreff_leer', 'betreff_leer', 'betreff_kurz', 'betreff_platzhalter', 'betreff_platzhalter']
     && (int) Db::wert('SELECT COUNT(*) FROM partner_mails', [], 0) === 0, json_encode($p7Leer));
 $p7L = PartnerLeads::anlegen($p7i, ['name' => 'Bar Sole', 'email' => 'info@barsole.example', 'ansprechpartner' => 'Rosa']);
 $p7Lid = (int) ($p7L['id'] ?? 0);
-$p7Ok = PartnerMail::senden($p7 + ['vecom_adresse' => 'boese@vecom-design.it'], ' info@BarSole.example ', '  Ihre Website — ein paar Ideen ', "Guten Tag Rosa,\r\nich habe Ideen für Sie.", 'de', $p7Lid);
+$p7Ok = PartnerMail::mailtoErzeugen($p7 + ['vecom_adresse' => 'boese@vecom-design.it'], ' info@BarSole.example ', '  Ihre Website — ein paar Ideen ', "Guten Tag Rosa,\r\nich habe Ideen für Sie.", 'de', $p7Lid);
 $p7Z = Db::one('SELECT * FROM partner_mails WHERE partner_id = ? ORDER BY id DESC LIMIT 1', [$p7i]) ?: [];
-$p7G = $p7Gesendet[0] ?? ['', '', '', []];
-pruefe('Senden: Absender und Antwortadresse aus der Datenbank (nicht aus dem übergebenen Partner), Empfänger normalisiert, Betreff getrimmt, Fußzeile mit Abmeldelink und List-Unsubscribe; gespeichert mit Inhalt',
-    $p7Ok === 'ok' && $p7G[0] === 'info@barsole.example' && $p7G[1] === 'Ihre Website — ein paar Ideen'
-    && ($p7G[3]['absender']['email'] ?? '') === 'mia.mail@vecom-design.it' && ($p7G[3]['antwortAn'] ?? '') === 'mia.mail@vecom-design.it'
-    && str_contains($p7G[2], "ich habe Ideen für Sie.\n\n-- \nMia Mail\nmia.mail@vecom-design.it\nPartner von Vecom Design") && !str_contains($p7G[2], "\r")
-    && str_contains($p7G[2], 'https://pruefung.example/widerspruch.php?t=' . ($p7Z['abmelde_token'] ?? 'x') . '&l=de')
-    && ($p7G[3]['kopfzeilen']['List-Unsubscribe'] ?? '') === '<https://pruefung.example/widerspruch.php?t=' . ($p7Z['abmelde_token'] ?? 'x') . '&l=de>'
-    && ($p7Z['status'] ?? '') === 'gesendet' && ($p7Z['text'] ?? '') === "Guten Tag Rosa,\nich habe Ideen für Sie." && (int) ($p7Z['lead_id'] ?? 0) === $p7Lid
-    && ($p7Z['absender'] ?? '') === 'mia.mail@vecom-design.it' && !str_contains(json_encode($p7G[3]), 'mia.privat'),
-    json_encode([$p7Ok, $p7G[0], $p7G[1], $p7G[3]['absender'] ?? null]));
+$p7Body = rawurldecode((string) substr((string) strstr((string) ($p7Ok['link'] ?? ''), '&body='), 6));
+pruefe('mailto: Empfänger normalisiert, Betreff getrimmt, Fußzeile (Name, Adresse aus der Datenbank) mit Abmeldelink im Text; gespeichert nur Zeitpunkt, Empfänger und Schlüssel — kein Betreff, kein Text; der Server sendet nichts',
+    $p7Ok['code'] === 'ok' && str_starts_with((string) $p7Ok['link'], 'mailto:info%40barsole.example?subject=' . rawurlencode('Ihre Website — ein paar Ideen') . '&body=')
+    && str_contains($p7Body, "ich habe Ideen für Sie.\n\n-- \nMia Mail\nmia.mail@vecom-design.it\nPartner von Vecom Design") && !str_contains($p7Body, "\r")
+    && str_contains($p7Body, 'https://pruefung.example/widerspruch.php?t=' . ($p7Z['abmelde_token'] ?? 'x') . '&l=de') && !str_contains($p7Body, 'boese@')
+    && ($p7Z['status'] ?? '') === 'mailto' && $p7Z['betreff'] === null && $p7Z['text'] === null && ($p7Z['an'] ?? '') === 'info@barsole.example'
+    && (int) ($p7Z['lead_id'] ?? 0) === $p7Lid && !empty($p7Z['created_at'])
+    && !str_contains((string) file_get_contents($wurzel . '/src/PartnerMail.php'), 'Mail::senden('), json_encode([$p7Ok['code'] ?? null, $p7Z['status'] ?? null]));
 $p7V = PartnerLeads::verlauf($p7i, $p7Lid);
-pruefe('Senden an einen eigenen Lead: Kontakt vermerkt (NEU → KONTAKTIERT), Betreff im Verlauf; ein fremder Lead wird abgelehnt',
+pruefe('mailto an einen eigenen Lead: Kontakt vermerkt (NEU → KONTAKTIERT), im Verlauf ohne Betreff; ein fremder Lead wird abgelehnt',
     (PartnerLeads::laden($p7i, $p7Lid)['stufe'] ?? '') === 'kontaktiert' && (bool) array_filter($p7V, static fn($v) => $v['art'] === 'email')
-    && (bool) array_filter($p7V, static fn($v) => str_contains((string) $v['text'], 'Ihre Website — ein paar Ideen'))
-    && PartnerMail::senden($p7, 'x@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de', 987654) === 'lead');
-pruefe('Empfänger und Text: ungültig, .invalid, die eigene Adresse und zu kurzer Text werden abgelehnt',
-    PartnerMail::senden($p7, 'kein-mail', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
-    && PartnerMail::senden($p7, 'weg@anonym.invalid', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
-    && PartnerMail::senden($p7, 'mia.mail@vecom-design.it', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'empfaenger'
-    && PartnerMail::senden($p7, 'b@kunde.example', 'Ihre Website', 'Hallo', 'de') === 'text');
-// Abmelden: der Link sperrt die Adresse für alle Kanäle; danach geht auch keine Partner-Mail mehr hin.
+    && !array_filter($p7V, static fn($v) => str_contains((string) $v['text'], 'Ihre Website — ein paar Ideen'))
+    && PartnerMail::mailtoErzeugen($p7, 'x@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de', 987654)['code'] === 'lead');
+pruefe('Empfänger und Text: ungültig, .invalid und zu kurzer Text werden abgelehnt',
+    PartnerMail::mailtoErzeugen($p7, 'kein-mail', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de')['code'] === 'empfaenger'
+    && PartnerMail::mailtoErzeugen($p7, 'weg@anonym.invalid', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de')['code'] === 'empfaenger'
+    && PartnerMail::mailtoErzeugen($p7, 'b@kunde.example', 'Ihre Website', 'Hallo', 'de')['code'] === 'text');
 $p7Tok = (string) ($p7Z['abmelde_token'] ?? '');
-pruefe('Abmeldelink: gültiger Schlüssel sperrt die Adresse (Sperrliste aller Kanäle), ein falscher nicht; danach wird nicht mehr gesendet',
+pruefe('Abmeldelink: gültiger Schlüssel sperrt die Adresse (Sperrliste aller Kanäle), ein falscher nicht; danach kein mailto mehr an sie',
     PartnerMail::tokenSprache($p7Tok) === 'de' && PartnerMail::tokenSprache(str_repeat('a', 40)) === null && !PartnerMail::widerspruch('zu-kurz')
     && PartnerMail::widerspruch($p7Tok) && (int) Db::wert("SELECT COUNT(*) FROM akq_sperrliste WHERE art = 'email' AND wert = 'info@barsole.example' AND quelle = 'abmeldung'", [], 0) === 1
     && Db::wert('SELECT abgemeldet_am FROM partner_mails WHERE abmelde_token = ?', [$p7Tok], null) !== null
-    && PartnerMail::senden($p7, 'info@barsole.example', 'Noch eine Frage', 'Guten Tag, noch eine Frage.', 'de') === 'gesperrt'
+    && PartnerMail::mailtoErzeugen($p7, 'info@barsole.example', 'Noch eine Frage', 'Guten Tag, noch eine Frage.', 'de')['code'] === 'gesperrt'
     && str_contains((string) file_get_contents($oben . '/widerspruch.php'), 'PartnerMail::widerspruch($token)'));
-// Grenzen: 5 pro Stunde, 20 in 24 Stunden — gezählt werden gesendete und laufende.
-$p7Lauf = [];
-for ($i = 0; $i < 5; $i++) { $p7Lauf[] = PartnerMail::senden($p7, "b$i@kunde.example", 'Ihre Website ' . $i, 'Guten Tag, ein kurzer Gruß.', 'it'); }
-pruefe('Grenze je Stunde: nach 5 Mails in der letzten Stunde ist Schluss (die erste zählte mit)',
-    $p7Lauf === ['ok', 'ok', 'ok', 'ok', 'stunde'] && PartnerMail::gezaehlt($p7i) === ['tag' => 5, 'stunde' => 5], json_encode($p7Lauf));
-Db::run("UPDATE partner_mails SET created_at = NOW() - INTERVAL 2 HOUR WHERE partner_id = ?", [$p7i]);
-for ($i = 0; $i < 15; $i++) { Db::run("INSERT INTO partner_mails (partner_id, absender, an, betreff, text, status, abmelde_token, created_at) VALUES (?, 'mia.mail@vecom-design.it', 'alt@kunde.example', 'Alt', 'Alt', 'gesendet', ?, NOW() - INTERVAL 3 HOUR)", [$p7i, bin2hex(random_bytes(20))]); }
-pruefe('Grenze je Tag: 20 in 24 Stunden; ältere als 24 Stunden zählen nicht',
-    PartnerMail::senden($p7, 'neu@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'tag'
-    && (static function () use ($p7, $p7i): bool { Db::run("UPDATE partner_mails SET created_at = NOW() - INTERVAL 25 HOUR WHERE partner_id = ? AND betreff = 'Alt'", [$p7i]);
-        return PartnerMail::senden($p7, 'neu@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'ok'; })());
-PartnerMail::$senden = static fn(): bool => false;
-pruefe('Scheitert der Versand, bleibt die Mail als „fehler“ stehen — der Partner bekommt eine Meldung, keine Wiederholung',
-    PartnerMail::senden($p7, 'neu2@kunde.example', 'Ihre Website', 'Guten Tag, ein kurzer Gruß.', 'de') === 'fehler'
-    && Db::wert("SELECT status FROM partner_mails WHERE an = 'neu2@kunde.example'", [], '') === 'fehler');
-PartnerMail::$senden = null;
+$p7Lang = PartnerMail::mailtoErzeugen($p7, 'lang@kunde.example', 'Ihre Website', str_repeat('Ein langer Satz für die Prüfung. ', 80), 'de');
+pruefe('langer Text: der Link meldet „lang“ und liefert den Text mit — das Skript legt ihn zusätzlich in die Zwischenablage',
+    $p7Lang['code'] === 'ok' && $p7Lang['lang'] === true && str_contains($p7Lang['text'], 'Ein langer Satz'));
 // Die letzte Tür für JEDE Mail: Mail::senden ohne Betreff, und mit fremdem Absender.
 Db::run("DELETE FROM mails WHERE anlass = 'kette_betreff'");
 $p7M1 = Mail::senden('kette_betreff', 'jemand@kunde.example', " \u{00A0} ", 'Text');
@@ -25156,21 +25136,22 @@ $p7Seite = static function (int $pid, array $get = [], string $fehler = '', ?arr
 };
 $p7L2 = PartnerLeads::anlegen($p7i, ['name' => 'Pizzeria <Napoli>', 'email' => 'ciao@napoli.it', 'ansprechpartner' => 'Gino']);
 $p7H = $p7Seite($p7i, ['an_lead' => (int) ($p7L2['id'] ?? 0)]);
-pruefe('E-MAIL-Seite: Von fest (nur lesen, aus der Datenbank), Betreff Pflicht (required, minlength, pattern) mit sichtbarem Hinweis, aus der Akte vorausgefüllt in der Sprache des Betriebs, Namen escaped, CSRF, kein Abmeldeschlüssel',
-    str_contains($p7H, 'value="Mia Mail &lt;mia.mail@vecom-design.it&gt;" readonly') && preg_match('~name="betreff"[^>]*required[^>]*minlength="3"~', $p7H) === 1
-    && str_contains($p7H, 'Pflicht — ohne Betreff geht keine E-Mail hinaus.') && str_contains($p7H, 'value="ciao@napoli.it"')
+pruefe('E-MAIL-Seite: „Im Mailprogramm öffnen“ statt Senden über den Server, Betreff Pflicht (required, minlength, pattern) mit sichtbarem Hinweis, aus der Akte vorausgefüllt in der Sprache des Betriebs, Namen escaped, CSRF, kein Abmeldeschlüssel',
+    !str_contains($p7H, 'readonly tabindex="-1"') && str_contains($p7H, 'Im Mailprogramm öffnen') && preg_match('~name="betreff"[^>]*required[^>]*minlength="3"~', $p7H) === 1
+    && str_contains($p7H, 'Pflicht — ohne Betreff öffnet sich keine E-Mail.') && str_contains($p7H, 'value="ciao@napoli.it"')
     && str_contains($p7H, 'Il suo sito web') && str_contains($p7H, 'Buongiorno Gino') && str_contains($p7H, 'Pizzeria &lt;Napoli&gt;') && !str_contains($p7H, '<Napoli>')
     && str_contains($p7H, 'name="_csrf"') && str_contains($p7H, 'value="mail_senden"') && !str_contains($p7H, (string) $p7Tok)
-    && str_contains($p7H, 'Heute ') && str_contains($p7H, 'will keine Nachrichten mehr') && str_contains($p7H, 'data-betreff-min="3"'));
+    && str_contains($p7H, 'Gespeichert wird nur der Zeitpunkt') && str_contains($p7H, 'will keine Nachrichten mehr') && str_contains($p7H, 'data-betreff-min="3"'));
 $p7H2 = $p7Seite($p7i, [], 'betreff_leer', ['an' => 'a@b.example', 'betreff' => '  ', 'text' => 'Mein langer Text bleibt.', 'lead' => null, 'fsprache' => 'it']);
 pruefe('E-MAIL-Seite nach Ablehnung: Meldung „Betreff fehlt“, Feld markiert, alles Eingegebene bleibt',
-    str_contains($p7H2, 'Der Betreff fehlt. Ohne Betreff senden wir keine E-Mail.') && str_contains($p7H2, 'aria-invalid="true"')
+    str_contains($p7H2, 'Der Betreff fehlt. Ohne Betreff öffnen wir keine E-Mail.') && str_contains($p7H2, 'aria-invalid="true"')
     && str_contains($p7H2, 'Mein langer Text bleibt.') && str_contains($p7H2, 'value="a@b.example"') && str_contains($p7H2, '<option value="it" selected>'));
 $p7Pp = (string) file_get_contents($oben . '/partner.php');
 $p7Js = (string) file_get_contents($oben . '/assets/js/partner-cc.js');
-pruefe('Wege: E-MAIL nur mit @vecom-Adresse erreichbar; Senden nur mit CSRF über PartnerMail; Browser prüft den Betreff vorab (auch unsichtbare Leerzeichen); Verwaltung ordnet zu',
+pruefe('Wege: E-MAIL für aktive Partner (PartnerMail::kann); mailto nur mit CSRF über PartnerMail; Browser prüft den Betreff vorab (auch unsichtbare Leerzeichen) und öffnet den Link; Verwaltung ordnet zu',
     str_contains($p7Pp, "isset(\$_GET['mail']) && (static function () use (\$p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann(\$p); })()")
-    && str_contains($p7Pp, "!\$ccCsrf ? 'csrf' : PartnerMail::senden(\$p,") && str_contains($p7Js, "getElementById('pm-form')") && str_contains($p7Js, '​')
+    && str_contains($p7Pp, "!\$ccCsrf ? ['code' => 'csrf'] : PartnerMail::mailtoErzeugen(\$p,") && str_contains($p7Js, "getElementById('pm-form')") && str_contains($p7Js, '​')
+    && str_contains($p7Js, 'window.location.href = j.link')
     && str_contains((string) file_get_contents($wurzel . '/views/partner_akte.php'), 'value="partner_vecom_adresse"')
     && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('partner_vecom_adresse', $t) || str_starts_with('vecom_adressen_lesen', $t)));
 $p7Fehlt = []; $p7Platz = [];
@@ -25185,7 +25166,7 @@ $p7Drei = static function ($w, string $pfad) use (&$p7Drei, &$p7Fehlt, &$p7Platz
     foreach ($w as $k => $v) { $p7Drei($v, "$pfad.$k"); }
 };
 $p7Drei(Texte::PARTNER_MAIL, 'PARTNER_MAIL');
-pruefe('Texte E-MAIL: dreisprachig mit denselben Platzhaltern, Deutsch duzt; jede Antwort von PartnerMail::senden hat einen Satz',
+pruefe('Texte E-MAIL: dreisprachig mit denselben Platzhaltern, Deutsch duzt; jede Antwort von PartnerMail::mailtoErzeugen hat einen Satz',
     $p7Fehlt === [] && $p7Platz === [] && Texte::duzt('PARTNER_MAIL.satz')
     && !array_diff(['ok', 'betreff_leer', 'betreff_kurz', 'betreff_lang', 'betreff_platzhalter', 'keine_adresse', 'empfaenger', 'text', 'gesperrt', 'stunde', 'tag', 'lead', 'fehler', 'csrf'], array_keys(Texte::PARTNER_MAIL['m'])),
     json_encode([$p7Fehlt, $p7Platz]));
@@ -25960,7 +25941,7 @@ $tpAnfrVor = (int) Db::wert('SELECT COUNT(*) FROM anfragen', [], 0);
 $tpMeld = Partner::kundeMelden($tpId, ['name' => 'Beispiel Kontakt', 'email' => 'kontakt-p9@beispiel.example', 'einverstanden' => 1], 'it');
 Db::run('UPDATE partner SET vecom_adresse = ? WHERE id = ?', ['testpartner@vecom-design.it', $tpId]);
 $tpFrisch = Partner::laden($tpId);
-$tpMail = PartnerMail::senden($tpFrisch, 'kunde@beispiel.example', 'Beispiel Betreff', 'Ein Beispieltext, lang genug für die Prüfung.', 'it');
+$tpMail = PartnerMail::mailtoErzeugen($tpFrisch, 'kunde@beispiel.example', 'Beispiel Betreff', 'Ein Beispieltext, lang genug für die Prüfung.', 'it')['code'];
 Db::run('UPDATE partner SET vecom_adresse = NULL WHERE id = ?', [$tpId]);
 pruefe('Testpartner zählt nirgends: kein Klick, keine Zuordnung, keine echte Anfrage, keine Mail, kein Push, kein Geld, kein Mail-Center',
     (int) Db::wert('SELECT COALESCE(SUM(anzahl), 0) FROM partner_klicks WHERE partner_id = ?', [$tpId], 0) === $tpKlickVor
@@ -26226,14 +26207,15 @@ pruefe('Werkstatt: ohne Betreff, mit Platzhalter, mit Zusicherung („rechtssich
     && $wsSt($wsL2, 'stopp') === '' && str_contains($wsSt($wsL2, 'hinweis'), 'Entwurf:') && str_contains($wsSt($wsL2, 'ok'), 'Abmeldelink')
     && $wsL1[0]['stufe'] === 'stopp' && end($wsL2)['stufe'] === 'ok', json_encode([$wsL0, $wsL1, $wsL2], JSON_UNESCAPED_UNICODE));
 AkquiseMail::grundDokumentieren($wsId, ['grund' => 'anfrage', 'datum' => date('Y-m-d'), 'quelle' => 'Anfrage per E-Mail', 'notiz' => 'Beispiel: will Infos']);
-$wsAb = static function (string $b, string $t, bool $g) use ($wsId): string { try { AkquiseMail::direktSenden($wsId, $b, $t, $g); return 'durch'; } catch (RuntimeException $e) { return $e->getMessage(); } };
+$wsAb = static function (string $b, string $t, bool $g) use ($wsId): string { try { AkquiseMail::mailtoErzeugen($wsId, $b, $t, $g); return 'durch'; } catch (RuntimeException $e) { return $e->getMessage(); } };
+$wsZahl = static fn(): int => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND grund LIKE 'mailto-Link erzeugt%'", [$wsId], 0);   // seit 06.10.2026: mailto statt Versand
 $wsR1 = $wsAb('Il vostro sito', "Buongiorno,\nsiamo abmahnsicher.\nvecom-design.it", true);
 $wsR2 = $wsAb('Il vostro sito', "Buongiorno,\nil 73% dei clienti cerca da mobile.\nvecom-design.it", false);
-$wsN2 = count($wsPost);
+$wsN2 = $wsZahl();
 $wsR3 = $wsAb('Il vostro sito', "Buongiorno,\nil 73% dei clienti cerca da mobile.\nvecom-design.it", true);
 pruefe('Werkstatt auf dem Server: ⛔ geht auch bestätigt nie raus; ⚠ nur mit „Hinweise gelesen“ — erst dann genau eine Mail',
     str_starts_with($wsR1, 'Nicht gesendet:') && str_contains($wsR1, 'abmahnsicher') && str_contains($wsR2, 'Hinweise gelesen') && $wsN2 === 0
-    && $wsR3 === 'durch' && count($wsPost) === 1 && $wsPost[0][0] === 'info@werkstatt-bar.example', json_encode([$wsR1, $wsR2, $wsR3, count($wsPost)], JSON_UNESCAPED_UNICODE));
+    && $wsR3 === 'durch' && $wsZahl() === 1 && $wsPost === [], json_encode([$wsR1, $wsR2, $wsR3, $wsZahl()], JSON_UNESCAPED_UNICODE));
 $wsVs = AkquiseWerkstatt::vorschau($wsF1, 'Il vostro sito', $wsGut);
 $wsAn = (string) file_get_contents($wurzel . '/views/akquise_ansprechen.php');
 $wsJs = (string) file_get_contents(dirname($wurzel) . '/assets/js/akquise-werkstatt.js');

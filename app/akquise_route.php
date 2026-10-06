@@ -184,12 +184,23 @@ if ($post) {
                 $_SESSION['gut'] = 'Versandgrund dokumentiert. Status: ' . AkquiseMail::STATUS[$r['status']][2]
                     . ($r['freigabe'] ? ($r['werbung'] ? ' — einzelner Versand von Hand möglich, auch Werbung.' : ' — einzelne Nachricht von Hand möglich, keine Werbung.') : ' — eine Freigabe braucht noch eine Prüfung.');
                 weiter('akquise/' . $fid . '#mailstatus');
-            case 'akq_mail_senden':
+            /* Senden über das eigene Mailprogramm (06.10.2026, Uwe): mailto-Link statt Versand über Brevo. Mit js=1 als JSON,
+               sonst Weiterleitung direkt auf den Link. Gespeichert wird nur der Zeitpunkt (akq_versand, ohne Betreff und Text). */
+            case 'akq_mail_mailto':
                 require_once __DIR__ . '/src/AkquiseMail.php';
-                $r = AkquiseMail::direktSenden($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), !empty($_POST['hinweise_gelesen']));
-                $_SESSION['gut'] = $r['simuliert'] ? 'Testbetrieb: Die E-Mail wurde nur simuliert, nichts ging raus.'
-                                                   : 'E-Mail verschickt (Absender: ' . $r['absender'] . '). Sie steht im Verlauf und im E-Mail-Protokoll.';
-                weiter('akquise/' . $fid . '#ansprechen');
+                try {
+                    $r = AkquiseMail::mailtoErzeugen($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), !empty($_POST['hinweise_gelesen']));
+                } catch (RuntimeException $e) {
+                    if (!empty($_POST['js'])) { header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'fehler' => $e->getMessage()], JSON_UNESCAPED_UNICODE); exit; }
+                    throw $e;
+                }
+                if (!empty($_POST['js'])) {
+                    header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+                    echo json_encode(['ok' => true, 'link' => $r['link'], 'lang' => $r['lang'], 'text' => $r['text']], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    exit;
+                }
+                header('Location: ' . $r['link'], true, 303);
+                exit;
             case 'akq_werkstatt':   // Nachrichten-Werkstatt: Prüfliste + Vorschau, nur lesen, nichts wird gesendet oder gespeichert
                 require_once __DIR__ . '/src/AkquiseWerkstatt.php';
                 $wsF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);

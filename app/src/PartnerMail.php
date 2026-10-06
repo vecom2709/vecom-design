@@ -67,7 +67,8 @@ final class PartnerMail
     public static function kann(array $p): bool
     {
         // Testpartner (Phase 9b): nie ein Mail-Center — seine Mails gingen an echte Kunden.
-        return ($p['status'] ?? '') === 'aktiv' && empty($p['test']) && self::adresseGueltig((string) ($p['vecom_adresse'] ?? ''));
+        // Seit 06.10.2026 (mailto, das eigene Programm sendet) für jeden aktiven Partner — die @vecom-Adresse ist nicht mehr nötig.
+        return ($p['status'] ?? '') === 'aktiv' && empty($p['test']);
     }
 
     /**
@@ -119,64 +120,45 @@ final class PartnerMail
     }
 
     /**
-     * Eine Mail aus dem Dashboard. @return string ok | betreff_leer|betreff_kurz|betreff_lang|betreff_platzhalter
-     *   | keine_adresse | empfaenger | text | gesperrt | tag | stunde | lead | fehler
+     * E-Mail über das eigene Mailprogramm (06.10.2026, Uwe: „Das System soll die E-Mails NICHT selbst über einen
+     * eigenen Server oder eine API versenden … mailto:-Link … Das System speichert nur den Zeitstempel der Generierung.“)
+     *
+     * Prüft wie bisher (Betreff Pflicht, Empfänger, Text, Sperrliste, eigener Lead), erzeugt den mailto:-Link mit
+     * Fußzeile und Abmeldelink und speichert eine Zeile ohne Betreff und Text: Zeitpunkt, Empfänger, Abmeldeschlüssel.
+     * Gesendet wird im Programm des Partners. @return array{code:string, link?:string, text?:string, lang?:bool}
+     *   code: ok | betreff_leer|betreff_kurz|betreff_lang|betreff_platzhalter | keine_adresse | empfaenger | text | gesperrt | lead
      */
-    public static function senden(array $p, string $an, string $betreff, string $text, string $sprache, ?int $leadId = null): string
+    public static function mailtoErzeugen(array $p, string $an, string $betreff, string $text, string $sprache, ?int $leadId = null): array
     {
-        // 1. Die Pflichtregel zuerst — vor allem anderen.
         $bf = self::betreffPruefen($betreff);
-        if ($bf !== null) { return 'betreff_' . $bf; }
+        if ($bf !== null) { return ['code' => 'betreff_' . $bf]; }
         $betreff = trim((string) preg_replace('~[\s\x{00A0}\x{200B}-\x{200D}\x{2060}\x{FEFF}]+~u', ' ', $betreff));
-        // 2. Nur wer eine @vecom-Adresse hat; die Adresse kommt aus der Datenbank, nie aus dem Formular.
         $pid = (int) ($p['id'] ?? 0);
         $frisch = Db::one('SELECT id, name, status, vecom_adresse, test FROM partner WHERE id = ?', [$pid]);
-        if (!$frisch || !self::kann($frisch)) { return 'keine_adresse'; }
-        $absender = (string) $frisch['vecom_adresse'];
-        // 3. Empfänger und Text.
+        if (!$frisch || !self::kann($frisch)) { return ['code' => 'keine_adresse']; }
         require_once __DIR__ . '/Akquise.php';
         $an = Akquise::normEmail($an) ?? '';
-        if ($an === '' || str_ends_with($an, '.invalid') || $an === $absender) { return 'empfaenger'; }
+        if ($an === '' || str_ends_with($an, '.invalid')) { return ['code' => 'empfaenger']; }
         $text = str_replace(["\r\n", "\r"], "\n", trim($text));
-        if (mb_strlen($text) < self::TEXT_MIN || mb_strlen($text) > self::TEXT_MAX) { return 'text'; }
+        if (mb_strlen($text) < self::TEXT_MIN || mb_strlen($text) > self::TEXT_MAX) { return ['code' => 'text']; }
         $sprache = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
-        // 4. Sperrliste: die Adresse und — außer bei Freemail — ihre Domain („auf keinem Kanal“).
         require_once __DIR__ . '/AkquiseGate.php';
-        if (AkquiseGate::trifftSperrliste(['email' => $an]) !== null) { return 'gesperrt'; }
-        // 5. Ein eigener Lead? Fremde gibt es nicht (PartnerLeads prüft die Partner-ID).
+        if (AkquiseGate::trifftSperrliste(['email' => $an]) !== null) { return ['code' => 'gesperrt']; }
         if ($leadId !== null) {
             require_once __DIR__ . '/PartnerLeads.php';
-            if (!PartnerLeads::laden($pid, $leadId)) { return 'lead'; }
+            if (!PartnerLeads::laden($pid, $leadId)) { return ['code' => 'lead']; }
         }
-        // 6. Grenzen zählen und den Platz belegen — unter Sperre auf der Partnerzeile.
         $token = bin2hex(random_bytes(20));
-        $id = Db::transaktion(static function () use ($pid, $leadId, $absender, $an, $betreff, $text, $sprache, $token): int|string {
-            Db::one('SELECT id FROM partner WHERE id = ? FOR UPDATE', [$pid]);
-            $z = self::gezaehlt($pid);
-            if ($z['stunde'] >= self::STUNDE_MAX) { return 'stunde'; }
-            if ($z['tag'] >= self::TAG_MAX) { return 'tag'; }
-            Db::run('INSERT INTO partner_mails (partner_id, lead_id, absender, an, betreff, text, sprache, abmelde_token) VALUES (?,?,?,?,?,?,?,?)',
-                [$pid, $leadId, $absender, $an, mb_substr($betreff, 0, 160), $text, $sprache, $token]);
-            return (int) Db::wert('SELECT LAST_INSERT_ID()', [], 0);
-        }, 5);
-        if (is_string($id)) { return $id; }
-        // 7. Senden. Fußzeile und Abmeldelink setzt der Server, nicht der Partner.
-        $link = self::abmeldeLink($token, $sprache);
+        $adresse = self::adresseGueltig((string) ($frisch['vecom_adresse'] ?? '')) ? (string) $frisch['vecom_adresse'] : null;
+        Db::run("INSERT INTO partner_mails (partner_id, lead_id, absender, an, betreff, text, sprache, status, abmelde_token) VALUES (?,?,?,?,NULL,NULL,?,'mailto',?)",
+            [$pid, $leadId, $adresse, $an, $sprache, $token]);
         $name = trim((string) $frisch['name']);
-        $voll = $text . "\n\n-- \n" . $name . "\n" . $absender . "\n" . self::fuss($sprache, $link);
-        $bezug = ['absender' => ['email' => $absender, 'name' => $name . ' · Vecom Design'], 'antwortAn' => $absender, 'nurText' => true,
-                  'kopfzeilen' => ['List-Unsubscribe' => '<' . $link . '>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'],
-                  'sprache' => $sprache];
-        try {
-            $ok = self::$senden !== null ? (bool) (self::$senden)($an, $betreff, $voll, $bezug)
-                : (static function () use ($an, $betreff, $voll, $bezug): bool { require_once __DIR__ . '/Mail.php'; return Mail::senden('partner_mail', $an, $betreff, $voll, $bezug); })();
-        } catch (Throwable $e) { $ok = false; }
-        Db::run('UPDATE partner_mails SET status = ?, fehler = ? WHERE id = ?', [$ok ? 'gesendet' : 'fehler', $ok ? null : 'Versand gescheitert (Brevo).', $id]);
-        if (!$ok) { return 'fehler'; }
+        $voll = $text . "\n\n-- \n" . $name . ($adresse !== null ? "\n" . $adresse : '') . "\n" . self::fuss($sprache, self::abmeldeLink($token, $sprache));
         if ($leadId !== null) {
-            try { PartnerLeads::kontakt($pid, $leadId, 'email'); PartnerLeads::eintrag($pid, $leadId, 'notiz', '✉ ' . mb_substr($betreff, 0, 150)); } catch (Throwable $e) { /* Verlauf ist Beiwerk */ }
+            try { PartnerLeads::kontakt($pid, $leadId, 'email'); PartnerLeads::eintrag($pid, $leadId, 'notiz', '✉ E-Mail im eigenen Mailprogramm geöffnet'); } catch (Throwable $e) { /* Verlauf ist Beiwerk */ }
         }
-        return 'ok';
+        $link = 'mailto:' . rawurlencode($an) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($voll);
+        return ['code' => 'ok', 'link' => $link, 'text' => $voll, 'lang' => strlen($link) > 1900];
     }
 
     public static function abmeldeLink(string $token, string $sprache): string

@@ -193,6 +193,18 @@
       if (f.reportValidity) { f.reportValidity(); }
       return;
     }
-    var k = f.querySelector('button[type=submit]'); if (k) { k.disabled = true; }
+    /* Seit 06.10.2026: der Server prüft und erzeugt den mailto:-Link, das eigene Mailprogramm sendet. */
+    if (!window.fetch) { return; }
+    e.preventDefault();
+    var st = document.getElementById('pm-status'), d = new FormData(f); d.append('js', '1');
+    fetch(f.getAttribute('action'), { method: 'POST', body: d, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (!j.ok) { if (st) { st.textContent = '⛔ ' + (j.meldung || ''); } return; }
+        if (j.lang && navigator.clipboard) { navigator.clipboard.writeText(j.text).catch(function () {}); }
+        if (st) { st.textContent = '✓ ' + (j.lang ? f.getAttribute('data-lang') : f.getAttribute('data-ok')); }
+        window.location.href = j.link;
+      })
+      .catch(function () { f.submit(); });
   });
 })();

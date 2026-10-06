@@ -51,7 +51,7 @@ $mForm = static function (string $tat, string $innen, string $extra = '') use ($
   <?php if ($mKann['gefunden']): ?>
     <div class="ms-adresse">
       <?php if ($mKann['senden']): ?>
-        <a href="<?= $mH('mailto:' . rawurlencode($mMail)) ?>" data-ms-oeffnen="email"><code><?= $mH($mMail) ?></code></a>
+        <a href="#ansprechen" title="Zum Senden: Text prüfen und im eigenen Mailprogramm öffnen"><code><?= $mH($mMail) ?></code></a>
       <?php else: ?>
         <code><?= $mH($mMail) ?></code>
       <?php endif; ?>

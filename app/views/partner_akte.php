@@ -415,8 +415,8 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
 <div class="block" id="vecom-adresse">
   <h2 style="font-size:15px;margin:0 0 6px">@vecom-Adresse und E-Mails</h2>
   <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
-    <?php if (!empty($p['vecom_adresse'])): ?>Sendet aus dem Dashboard als <code><?= Fmt::h((string) $p['vecom_adresse']) ?></code> — Antworten gehen an diese Adresse. Höchstens <?= PartnerMail::TAG_MAX ?> am Tag, <?= PartnerMail::STUNDE_MAX ?> pro Stunde, Betreff Pflicht, Abmeldelink unter jeder Mail.
-    <?php else: ?>Keine Adresse zugeordnet: Der Partner hat kein E-Mail-Center, nur den Link ins eigene Mailprogramm.<?php endif; ?></p>
+    Seit 06.10.2026 verschickt das System keine Partner-Mails mehr selbst: „Senden“ öffnet das eigene Mailprogramm des Partners (mailto), gespeichert wird nur der Zeitpunkt (ohne Betreff und Text).
+    <?php if (!empty($p['vecom_adresse'])): ?>Die Adresse <code><?= Fmt::h((string) $p['vecom_adresse']) ?></code> steht in der Fußzeile; senden sollte er am besten aus diesem Postfach.<?php endif; ?></p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_vecom_adresse"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
     <div class="feld" style="margin:0;min-width:260px"><label for="pm-adr">Adresse (leer = keine)</label>
@@ -428,12 +428,12 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
     <button class="knopf stumm" style="min-height:32px;padding:5px 10px;font-size:12.5px">Bestehende Adressen aus dem KAS lesen</button>
     <small style="color:var(--leise)"><?= $pmKas['am'] !== '' ? count($pmKas['adressen']) . ' Adressen, gelesen ' . Fmt::h($pmKas['am']) : 'noch nicht gelesen' ?> · nur lesen, kein Passwort</small></form>
   <?php if ($pmMails): ?>
-    <details style="margin:12px 0 0"><summary style="font-size:13px;cursor:pointer">Gesendete E-Mails (<?= count($pmMails) ?>, mit Inhalt)</summary>
+    <details style="margin:12px 0 0"><summary style="font-size:13px;cursor:pointer">E-Mails (<?= count($pmMails) ?>) — seit 06.10. nur Zeitpunkt und Empfänger</summary>
       <div class="tabellenrahmen"><table id="partner-mails"><thead><tr><th>Wann</th><th>An</th><th>Betreff</th><th>Stand</th></tr></thead><tbody>
       <?php foreach ($pmMails as $pmX): ?>
         <tr><td><?= Fmt::h(Fmt::datum((string) $pmX['created_at'])) ?></td><td><?= Fmt::h((string) $pmX['an']) ?></td>
-          <td><details><summary><?= Fmt::h((string) $pmX['betreff']) ?></summary><pre style="white-space:pre-wrap;font:13px/1.5 inherit;margin:6px 0 0"><?= Fmt::h((string) $pmX['text']) ?></pre></details></td>
-          <td><?= Fmt::h($pmX['abgemeldet_am'] !== null ? 'abgemeldet' : (string) $pmX['status']) ?><?= $pmX['fehler'] ? ' · ' . Fmt::h((string) $pmX['fehler']) : '' ?></td></tr>
+          <td><?php if ((string) ($pmX['betreff'] ?? '') !== ''): ?><details><summary><?= Fmt::h((string) $pmX['betreff']) ?></summary><pre style="white-space:pre-wrap;font:13px/1.5 inherit;margin:6px 0 0"><?= Fmt::h((string) $pmX['text']) ?></pre></details><?php else: ?><span style="color:var(--leise)">— nicht gespeichert —</span><?php endif; ?></td>
+          <td><?= Fmt::h($pmX['abgemeldet_am'] !== null ? 'abgemeldet' : ((string) $pmX['status'] === 'mailto' ? 'im Mailprogramm geöffnet' : (string) $pmX['status'])) ?><?= $pmX['fehler'] ? ' · ' . Fmt::h((string) $pmX['fehler']) : '' ?></td></tr>
       <?php endforeach; ?></tbody></table></div></details>
   <?php endif; ?>
 </div>

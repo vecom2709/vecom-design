@@ -292,8 +292,17 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
         $ccMLead = (int) ($_POST['lead'] ?? 0) ?: null;
         $ccMailPost = ['an' => mb_substr((string) ($_POST['an'] ?? ''), 0, 190), 'betreff' => mb_substr((string) ($_POST['betreff'] ?? ''), 0, 200),
                        'text' => mb_substr((string) ($_POST['text'] ?? ''), 0, 7000), 'lead' => $ccMLead, 'fsprache' => (string) ($_POST['fsprache'] ?? $sprache)];
-        $ccMailFehler = !$ccCsrf ? 'csrf' : PartnerMail::senden($p, $ccMailPost['an'], $ccMailPost['betreff'], $ccMailPost['text'], $ccMailPost['fsprache'], $ccMLead);
-        if ($ccMailFehler === 'ok') { header('Location: ' . $selbst(['cc' => 1, 'mail' => 1, 'm' => 'ok']), true, 303); exit; }
+        /* Seit 06.10.2026 (Uwe): kein Versand über den Server — ein mailto:-Link ins eigene Mailprogramm; gespeichert wird nur der Zeitpunkt.
+           Mit js=1 als JSON (das Skript öffnet den Link), sonst Weiterleitung direkt auf den Link. */
+        $ccMR = !$ccCsrf ? ['code' => 'csrf'] : PartnerMail::mailtoErzeugen($p, $ccMailPost['an'], $ccMailPost['betreff'], $ccMailPost['text'], $ccMailPost['fsprache'], $ccMLead);
+        $ccMailFehler = (string) $ccMR['code'];
+        if (!empty($_POST['js'])) {
+            header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+            echo json_encode($ccMailFehler === 'ok' ? ['ok' => true, 'link' => $ccMR['link'], 'lang' => $ccMR['lang'], 'text' => $ccMR['text']]
+                : ['ok' => false, 'code' => $ccMailFehler, 'meldung' => Texte::h(Texte::PARTNER_MAIL['m'][$ccMailFehler] ?? Texte::PARTNER_MAIL['m']['fehler'], $sprache)], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
+        if ($ccMailFehler === 'ok') { header('Location: ' . $ccMR['link'], true, 303); exit; }
         $_GET['mail'] = 1;
     }
     /* Kunden & Leads (Phase 2, 05.10.2026): jede Tat nur für eigene Leads — PartnerLeads prüft die Partner-ID
@@ -376,7 +385,7 @@ if ($p && (PartnerCommand::startseite((string) ($_SERVER['REQUEST_METHOD'] ?? 'G
     elseif (isset($_GET['marketing'])) { $ccSeite = 'marketing'; }
     elseif (isset($_GET['ergebnisse'])) { $ccSeite = 'ergebnisse'; }
     elseif (isset($_GET['support'])) { $ccSeite = 'support'; }   // SUPPORT (Phase 7b): Tickets
-    elseif (isset($_GET['mail']) && (static function () use ($p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann($p); })()) { $ccSeite = 'mail'; }   // E-MAIL (Phase 7a): nur mit @vecom-Adresse
+    elseif (isset($_GET['mail']) && (static function () use ($p): bool { require_once __DIR__ . '/app/src/PartnerMail.php'; return PartnerMail::kann($p); })()) { $ccSeite = 'mail'; }   // E-MAIL (Phase 7a; seit 06.10.2026 mailto für jeden aktiven Partner)
     elseif (isset($_GET['shop']) && $ccMc) { $ccSeite = 'shop'; }   // SHOP (Phase 6a): zwei Druckwege, Bestellungen   // ERGEBNISSE (Phase 5): Geld in vier Stufen, Level, Provisionen
     elseif (isset($_GET['qr'])) { $ccSeite = 'qr'; }
     elseif (($_GET['kampagne'] ?? '') === 'neu') { $ccSeite = 'neu'; }

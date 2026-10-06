@@ -157,7 +157,8 @@ final class AkquiseWerkstatt
         $von = (string) ($abs['email'] ?? AkquiseText::absender()['email'] ?? '');
         return [
             'an' => (string) ($f['email'] ?? ''),
-            'von' => trim((string) ($abs['name'] ?? '') . ' <' . $von . '>'),
+            /* Seit 06.10.2026 geht die Mail aus dem eigenen Programm (mailto) -- dann steht dort die eigene Adresse. */
+            'von' => ($abs['email'] ?? null) === null ? 'deine eigene Adresse (aus deinem Mailprogramm)' : trim((string) ($abs['name'] ?? '') . ' <' . $von . '>'),
             'antwort' => ($abs['antwort'] ?? null) !== null && $abs['antwort'] !== $von ? (string) $abs['antwort'] : null,
             'betreff' => trim($betreff),
             'text' => trim(str_replace("\r\n", "\n", $text)) . "\n\n" . $fuss . $web . '/widerspruch.php?t=…',

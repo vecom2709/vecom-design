@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/Db.php';
+require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Auth.php';
 require_once __DIR__ . '/Events.php';
 require_once __DIR__ . '/Akquise.php';
@@ -343,52 +344,34 @@ final class AkquiseMail
     }
 
     /* ================================================================== */
-    /*  Direkt aus der Verwaltung senden (06.10.2026, Uwe: „sollen auch     */
-    /*  direkt von der Verwaltung aus die E-Mail senden können anhand der   */
-    /*  E-Mail-Adresse der Rolle“)                                          */
+    /*  Senden über das eigene Mailprogramm (06.10.2026, Uwe: „Das System   */
+    /*  soll die E-Mails NICHT selbst über einen eigenen Server oder eine   */
+    /*  API versenden. Es soll stattdessen einen mailto:-Link erzeugen …    */
+    /*  Das System speichert nur den Zeitstempel der Generierung.“)         */
+    /*                                                                      */
+    /*  Ersetzt den Direktversand über Brevo vom selben Tag. Gespeichert    */
+    /*  wird eine Zeile in akq_versand: Zeitpunkt, wer, an welche Adresse   */
+    /*  und ein Abmeldeschlüssel (damit der Abmeldelink im Text wirkt) —    */
+    /*  kein Betreff, kein Text. Ob die Mail wirklich rausging, weiß das    */
+    /*  System nicht; es weiß nur, dass der Link erzeugt wurde.             */
     /* ================================================================== */
 
-    public const ROLLEN_ABSENDER = ['admin' => 'Admin', 'mitarbeit' => 'Mitarbeit'];
-
-    /** Höchstens so viele Direktmails je Zugang und Tag -- Einzelversand, keine Serie. */
-    public const DIREKT_TAG = 30;
-
-    /**
-     * Wer als Absender erscheint: zuerst die Adresse der Rolle (Einstellungen →
-     * Zugänge), sonst die eigene Adresse des Zugangs, wenn sie zur Absender-
-     * Domain gehört, sonst die Firmenadresse mit Antwort an den Zugang.
-     * @return array{email:?string,name:string,antwort:?string,quelle:string}
-     */
+    /** Für Anzeige und Werkstatt-Vorschau: der Absender ist das eigene Programm. @return array{email:?string,name:string,antwort:?string,quelle:string} */
     public static function absender(): array
     {
-        require_once __DIR__ . '/Mail.php';
-        require_once __DIR__ . '/AkquiseGate.php';
-        $domain = Mail::eigeneDomain();
-        $name = trim((Auth::name() ?: 'Vecom Design')) . ' · Vecom Design';
-        $rolle = (string) Auth::rolle();
-        $eigen = '';
-        if (Auth::id()) { $eigen = mb_strtolower((string) Db::wert('SELECT email FROM users WHERE id = ?', [(int) Auth::id()], '')); }
-        $passt = static fn(string $a): bool => $domain !== '' && filter_var($a, FILTER_VALIDATE_EMAIL) && str_ends_with($a, '@' . $domain);
-        $rollenAdresse = mb_strtolower(trim(AkquiseGate::einstellung('akq_absender_rolle_' . $rolle, '')));
-        if ($passt($rollenAdresse)) {
-            return ['email' => $rollenAdresse, 'name' => $name, 'antwort' => $rollenAdresse, 'quelle' => 'Adresse der Rolle ' . (self::ROLLEN_ABSENDER[$rolle] ?? $rolle)];
-        }
-        if ($passt($eigen)) {
-            return ['email' => $eigen, 'name' => $name, 'antwort' => $eigen, 'quelle' => 'eigene Adresse des Zugangs'];
-        }
-        return ['email' => null, 'name' => $name, 'antwort' => filter_var($eigen, FILTER_VALIDATE_EMAIL) ? $eigen : null,
-                'quelle' => 'Firmenadresse (für diese Rolle ist keine eigene Absender-Adresse eingetragen)'];
+        return ['email' => null, 'name' => 'dein eigenes Mailprogramm', 'antwort' => null,
+                'quelle' => 'die Mail geht aus deinem eigenen Programm (Outlook, Apple Mail …) mit deiner eigenen Adresse raus'];
     }
 
+    /** Ab dieser Länge kürzen manche Programme den Link -- dann liegt der Text zusätzlich in der Zwischenablage. */
+    public const MAILTO_LANG = 1900;
+
     /**
-     * Eine einzelne E-Mail jetzt über das System verschicken. Nur bei 🟢,
-     * nie als Serie; Notbremse, Testbetrieb, Fehler- und Bounce-Grenzen gelten.
-     * @return array{id:int,simuliert:bool,absender:string}
+     * mailto:-Link erzeugen. Nur bei 🟢; dieselbe Werkstatt-Prüfung wie bisher.
+     * @return array{id:int,link:string,lang:bool,text:string}
      */
-    public static function direktSenden(int $firmaId, string $betreff, string $text, bool $hinweiseGelesen = false): array
+    public static function mailtoErzeugen(int $firmaId, string $betreff, string $text, bool $hinweiseGelesen = false): array
     {
-        require_once __DIR__ . '/AkquiseGate.php';
-        require_once __DIR__ . '/AkquiseVersand.php';
         require_once __DIR__ . '/AkquiseText.php';
         $f = self::firma($firmaId);
         $k = self::kann($f);
@@ -398,39 +381,24 @@ final class AkquiseMail
         if ($betreff === '') { throw new RuntimeException('Bitte einen Betreff eintragen.'); }
         if (mb_strlen($text) < 20) { throw new RuntimeException('Der Text ist zu kurz.'); }
         if (mb_strlen($text) > 20000) { throw new RuntimeException('Der Text ist zu lang.'); }
-        /* Nachrichten-Werkstatt (Akquise-CRM Modul D, 06.10.2026): dieselbe Textprüfung wie bei den Folge-Mails —
-           Stopp geht nie raus, Hinweise nur bestätigt. Auf dem Server, damit kein Formular sie umgeht. */
+        /* Nachrichten-Werkstatt (Modul D): Stopp nie, Hinweise nur bestätigt — auf dem Server. */
         require_once __DIR__ . '/AkquiseWerkstatt.php';
         AkquiseWerkstatt::freigeben(AkquiseWerkstatt::pruefliste($f, 'email', $betreff, $text, true), $hinweiseGelesen);
-        $g = AkquiseGate::grenzen();
-        if ($g['stop']) { throw new RuntimeException('Die Notbremse ist gezogen — alle Aussendungen stehen.'); }
-        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'fehler' AND created_at >= DATE_SUB(NOW(), INTERVAL 1 DAY)") >= $g['fehler']) {
-            throw new RuntimeException('Zu viele Fehlschläge in 24 Stunden — erst im E-Mail-Protokoll nachsehen.');
-        }
-        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'bounce' AND created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)") >= $g['bounce']) {
-            throw new RuntimeException('Zu viele unzustellbare Adressen in 7 Tagen — Adressqualität prüfen.');
-        }
-        $actor = self::bearbeiter();
-        if ((int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE actor = ? AND status IN ('gesendet','simuliert') AND kanal = 'email' AND grund LIKE 'Direkt aus der Verwaltung%' AND created_at >= CURDATE()", [$actor]) >= self::DIREKT_TAG) {
-            throw new RuntimeException('Heute schon ' . self::DIREKT_TAG . ' Direktmails von diesem Zugang — Einzelversand, keine Serie.');
-        }
-        $abs = self::absender();
-        $grund = mb_substr('Direkt aus der Verwaltung · ' . (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung') . ' · Absender: ' . ($abs['email'] ?? 'Firmenadresse'), 0, 255);
-        $optionen = ($abs['email'] !== null ? ['absender' => ['email' => $abs['email'], 'name' => $abs['name']]] : [])
-                  + ($abs['antwort'] !== null ? ['antwortAn' => $abs['antwort']] : []);
-        $r = AkquiseVersand::rausschicken($f, $betreff, $text, AkquiseText::spracheFuer($f), null, (string) $f['compliance_status'], $grund, $optionen);
-        if (!$r['simuliert']) {
-            Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet']
-                + (in_array((string) $f['kontakt_status'], ['neu', 'qualifiziert', 'vorlage', 'freigegeben'], true) ? ['kontakt_status' => 'kontaktiert'] : []));
-            try { require_once __DIR__ . '/AkquiseSignal.php'; AkquiseSignal::vormerken($firmaId, 'email'); } catch (Throwable $e) { }
-        }
-        Akquise::protokoll($firmaId, 'versand', ($r['simuliert'] ? 'Testbetrieb: Direktmail nur simuliert' : 'Direktmail aus der Verwaltung an ' . $f['email'])
-            . ' — „' . mb_substr($betreff, 0, 80) . '“ (von ' . $actor . ', Absender ' . ($abs['email'] ?? 'Firmenadresse') . ')', ['versand' => $r['id']]);
-        Events::pruefspur('akquise_direktmail', 'akq_versand', $r['id'], [], [
-            'an' => $f['email'], 'betreff' => $betreff, 'absender' => $abs['email'] ?? 'Firmenadresse', 'antwort_an' => $abs['antwort'],
-            'versandgrund' => $f['email_legal_basis'] ?? 'einwilligung', 'werbung_gedeckt' => $k['werbung'], 'simuliert' => $r['simuliert'],
+        $token = bin2hex(random_bytes(20));
+        $sp = AkquiseText::spracheFuer($f);
+        $abmelden = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/widerspruch.php?t=' . $token;
+        $voll = $text . "\n\n" . (['de' => 'Keine weiteren Nachrichten: ', 'it' => 'Non ricevere altri messaggi: ', 'en' => 'No further messages: '][$sp] ?? '') . $abmelden;
+        $id = (int) Db::insert('akq_versand', [
+            'firma_id' => $firmaId, 'kanal' => 'email', 'an' => $f['email'], 'status' => 'von_hand',
+            'compliance' => (string) $f['compliance_status'], 'abmelde_token' => $token, 'actor' => self::bearbeiter(),
+            'grund' => mb_substr('mailto-Link erzeugt · ' . (self::GRUENDE[(string) ($f['email_legal_basis'] ?? '')][0] ?? 'Einwilligung'), 0, 255),
         ]);
-        return ['id' => (int) $r['id'], 'simuliert' => (bool) $r['simuliert'], 'absender' => $abs['email'] ?? 'Firmenadresse'];
+        Db::update('akq_firmen', $firmaId, ['versand_status' => 'gesendet']
+            + (in_array((string) $f['kontakt_status'], ['neu', 'qualifiziert', 'vorlage', 'freigegeben'], true) ? ['kontakt_status' => 'kontaktiert'] : []));
+        Akquise::protokoll($firmaId, 'versand', 'E-Mail im eigenen Mailprogramm geöffnet (mailto-Link erzeugt von ' . self::bearbeiter() . ')', ['versand' => $id]);
+        Events::pruefspur('akquise_mailto', 'akq_versand', $id, [], ['an' => $f['email'], 'erzeugt' => date('Y-m-d H:i:s')]);
+        $link = 'mailto:' . rawurlencode((string) $f['email']) . '?subject=' . rawurlencode($betreff) . '&body=' . rawurlencode($voll);
+        return ['id' => $id, 'link' => $link, 'lang' => strlen($link) > self::MAILTO_LANG, 'text' => $voll];
     }
 
     private static function firma(int $firmaId): array

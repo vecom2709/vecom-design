@@ -101,8 +101,8 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
             Ruf an oder geh vorbei (Reiter „Anruf“ oder „Besuch“). Sagt er Ja, unten „Hat zugestimmt“ ausfüllen: Dann steht hier der fertige Text zum Öffnen.
             <?php if ($k === 'whatsapp' && AkquiseGate::einwilligungDeckt($f, 'email')): ?><br><span class="akq-klein">Für E-Mail hat er schon zugestimmt — für WhatsApp noch nicht.</span><?php endif; ?></div>
         <?php else: $x = $an[$k]; ?>
-          <?php if ($k === 'email'): $anAbs = AkquiseMail::absender(); /* Direkt aus der Verwaltung senden (06.10.2026) */ ?>
-            <form method="post" action="<?= $anH(url('akquise')) ?>" id="an-direkt"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_mail_senden"><input type="hidden" name="firma" value="<?= $anFid ?>">
+          <?php if ($k === 'email'): /* Senden über das eigene Mailprogramm (06.10.2026): mailto-Link, das System verschickt nichts selbst */ ?>
+            <form method="post" action="<?= $anH(url('akquise')) ?>" id="an-direkt" data-an-mailto><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_mail_mailto"><input type="hidden" name="firma" value="<?= $anFid ?>">
             <div class="an-feld"><label for="an-betreff">Betreff</label><input id="an-betreff" name="betreff" required maxlength="200" value="<?= $anH($x['betreff']) ?>" data-an="betreff"></div>
           <?php endif; ?>
           <div class="an-feld"><label for="an-text-<?= $k ?>">Text <span style="text-transform:none;letter-spacing:0">— du kannst ihn hier noch ändern</span></label>
@@ -110,20 +110,22 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
           <?php if ($k === 'whatsapp'): $ws = ['kanal' => 'whatsapp', 'senden' => false, 'betreff' => '', 'text' => $x['text'], 'betreffFeld' => '', 'textFeld' => 'an-text-whatsapp'];
                 require __DIR__ . '/akquise_werkstatt.php'; endif; ?>
           <?php if ($k === 'email'): ?>
-            <p class="akq-klein" style="margin:0 0 8px">Absender: <b><?= $anH($anAbs['name']) ?></b> &lt;<?= $anH($anAbs['email'] ?? AkquiseText::absender()['email']) ?>&gt;<?= $anAbs['antwort'] && $anAbs['antwort'] !== $anAbs['email'] ? ' · Antworten an ' . $anH($anAbs['antwort']) : '' ?> · <?= $anH($anAbs['quelle']) ?>.
-              Ein Abmeldelink wird angehängt.<?= AkquiseMail::kann($f)['werbung'] ? '' : ' <b>Der dokumentierte Grund deckt keine Werbung</b> — nur die Antwort bzw. geschäftliche Nachricht.' ?></p>
+            <p class="akq-klein" style="margin:0 0 8px">„Senden“ öffnet <b>dein eigenes Mailprogramm</b> (Outlook, Apple Mail …) mit Empfänger, Betreff und Text — du schickst die Mail dort selbst ab, mit deiner eigenen Adresse.
+              Ein Abmeldelink wird angehängt. Gespeichert wird nur der Zeitpunkt.<?= AkquiseMail::kann($f)['werbung'] ? '' : ' <b>Der dokumentierte Grund deckt keine Werbung</b> — nur die Antwort bzw. geschäftliche Nachricht.' ?></p>
             <?php $ws = ['kanal' => 'email', 'senden' => true, 'betreff' => $x['betreff'], 'text' => $x['text'], 'betreffFeld' => 'an-betreff', 'textFeld' => 'an-text-email'];
                   require __DIR__ . '/akquise_werkstatt.php'; /* Modul D: dieselbe Prüfung läuft beim Senden auf dem Server */ ?>
-            <button class="knopf haupt">Jetzt aus der Verwaltung senden</button>
+            <button class="knopf haupt">Senden — im Mailprogramm öffnen</button>
+            <span class="akq-klein" data-an-mailto-status></span>
             </form>
           <?php endif; ?>
           <div class="an-knoepfe">
-            <a class="knopf<?= $k === 'email' ? '' : ' haupt' ?>" data-an-oeffnen="<?= $k ?>" href="<?= $anH((string) $x['link']) ?>"<?= $k === 'whatsapp' ? ' target="_blank" rel="noopener noreferrer"' : '' ?>>
-              <?= $k === 'email' ? 'Stattdessen im Mailprogramm öffnen' : 'In WhatsApp öffnen' ?></a>
+            <?php if ($k === 'whatsapp'): ?>
+            <a class="knopf haupt" data-an-oeffnen="whatsapp" href="<?= $anH((string) $x['link']) ?>" target="_blank" rel="noopener noreferrer">In WhatsApp öffnen</a>
+            <?php endif; ?>
             <button class="knopf" type="button" data-an-kopieren="text-<?= $k ?>">Text kopieren</button>
             <span class="akq-klein" data-an-status="<?= $k ?>"><?= $k === 'email' ? 'an ' . $anH((string) $f['email']) : 'an ' . $anH((string) $f['whatsapp']) ?></span>
           </div>
-          <p class="akq-klein" style="margin-top:8px">Beim Öffnen wird der Kontakt im Verlauf vermerkt. Antwortet er „STOP“: unten „Nie mehr ansprechen“.</p>
+          <p class="akq-klein" style="margin-top:8px">Beim Öffnen wird der Zeitpunkt im Verlauf vermerkt. Antwortet er „STOP“: oben bei „E-Mail“ „Nicht kontaktieren“ setzen.</p>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
@@ -227,6 +229,23 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
       var s = box.querySelector('[data-an-status="' + a.getAttribute('data-an-oeffnen') + '"]'); if (s) s.textContent = '✓ im Verlauf vermerkt';
     });
   });
+  /* Senden über das eigene Mailprogramm (06.10.2026): der Server prüft und erzeugt den Link, gespeichert wird nur der Zeitpunkt */
+  var mf = box.querySelector('[data-an-mailto]');
+  if (mf && window.fetch) {
+    mf.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var st = mf.querySelector('[data-an-mailto-status]'), d = new FormData(mf); d.append('js', '1');
+      fetch(mf.getAttribute('action'), { method: 'POST', body: d, credentials: 'same-origin', headers: { 'Accept': 'application/json' } })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { if (st) st.textContent = '⛔ ' + (j.fehler || 'Nicht möglich.'); return; }
+          if (j.lang && navigator.clipboard) { navigator.clipboard.writeText(j.text).catch(function () {}); }
+          if (st) st.textContent = j.lang ? '✓ Mailprogramm geöffnet — der Text ist lang und liegt zusätzlich in der Zwischenablage, falls dein Programm ihn kürzt.' : '✓ Mailprogramm geöffnet — dort selbst auf Senden drücken.';
+          window.location.href = j.link;
+        })
+        .catch(function () { mf.submit(); });
+    });
+  }
   /* Weg abgewählt → Feld nicht mehr Pflicht */
   box.querySelectorAll('[data-an-schalter]').forEach(function (c) {
     var f = document.getElementById(c.getAttribute('data-an-schalter'));
