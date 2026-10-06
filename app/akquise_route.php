@@ -22,6 +22,13 @@ $akqBereit = sicher(static fn() => Db::wert('SELECT COUNT(*) FROM akq_regeln') !
 if ($post) {
     Csrf::pruefen();
     $tat = (string) ($_POST['tat'] ?? '');
+    /* Modul G: Was beim „Gewonnen“ mit dem Kunden geschah — als Satz hinter der Erfolgsmeldung. */
+    $akqKundeWort = static function (): string {
+        $k = Akquise::$letzterKunde;
+        if ($k === null) { return ''; }
+        if (!$k['ok']) { return ' Kunde noch nicht angelegt: ' . (string) ($k['fehler'] ?? ''); }
+        return ' ' . (!empty($k['neu']) ? 'Kunde angelegt' : 'Mit Kunde verknüpft') . ' (#' . (int) $k['kunde'] . ').' . (!empty($k['partner']) ? ' ' . $k['partner'] . '.' : '');
+    };
     $fid = (int) ($_POST['firma'] ?? 0);
     $zu = static fn(string $wohin) => weiter('akquise' . ($wohin !== '' ? '/' . $wohin : ''));
     /* Zurueck dorthin, wo der Knopf stand (Reiter „Alle Befunde", „Verlauf") --
@@ -339,7 +346,9 @@ if ($post) {
                 }
                 Akquise::protokoll($fid, 'bearbeitet', 'Stammdaten bearbeitet');
                 AkquiseGate::statusSpeichern($fid);
-                $_SESSION['gut'] = 'Gespeichert.';
+                require_once __DIR__ . '/src/AkquiseKunde.php';   // Modul G: „Gewonnen“ ohne Adresse — jetzt ist eine da?
+                $akqNk = AkquiseKunde::nachGewonnen($fid);
+                $_SESSION['gut'] = 'Gespeichert.' . ($akqNk && $akqNk['ok'] ? ' Kunde angelegt (#' . (int) $akqNk['kunde'] . ').' : '');
                 weiter('akquise/' . $fid);
 
             case 'akq_befund_verwerfen':
@@ -498,7 +507,7 @@ if ($post) {
             case 'akq_pipeline':
                 $pfId = (int) ($_POST['firma'] ?? 0);
                 Akquise::pipelineSetzen($pfId, (string) ($_POST['wert'] ?? ''));
-                $_SESSION['gut'] = ($_POST['wert'] ?? '') !== '' ? 'Stand gesetzt: ' . Akquise::PIPELINE_HAND[(string) $_POST['wert']] . '.' : 'Stand zurückgesetzt.';
+                $_SESSION['gut'] = (($_POST['wert'] ?? '') !== '' ? 'Stand gesetzt: ' . Akquise::PIPELINE_HAND[(string) $_POST['wert']] . '.' : 'Stand zurückgesetzt.') . $akqKundeWort();
                 weiter('akquise/' . $pfId);
 
             case 'akq_brief_schalten':
@@ -689,7 +698,10 @@ if ($post) {
             case 'akq_profil_speichern':
                 require_once __DIR__ . '/src/AkquiseCrm.php';
                 $crmR = AkquiseCrm::profilSpeichern($fid, $_POST);
-                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? ($crmR['geaendert'] ? 'Profil gespeichert (' . count($crmR['geaendert']) . ' Felder).' : 'Nichts geändert.') : $crmR['fehler'];
+                require_once __DIR__ . '/src/AkquiseKunde.php';   // Modul G: „Gewonnen“ ohne Adresse — jetzt ist eine da?
+                $akqNk = $crmR['ok'] ? AkquiseKunde::nachGewonnen($fid) : null;
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? ($crmR['geaendert'] ? 'Profil gespeichert (' . count($crmR['geaendert']) . ' Felder).' : 'Nichts geändert.')
+                    . ($akqNk && $akqNk['ok'] ? ' Kunde angelegt (#' . (int) $akqNk['kunde'] . ').' : '') : $crmR['fehler'];
                 $zurueck('akquise/' . $fid . '?ansicht=profil');
             case 'akq_sperrart':
             case 'akq_sperrart_loesen':
@@ -723,7 +735,7 @@ if ($post) {
                 /* Pipeline (Modul C): Ziehen oder „Verschieben nach“. */
                 require_once __DIR__ . '/src/AkquiseCrm.php';
                 $crmR = AkquiseCrm::stufeSetzen($fid, (string) ($_POST['ziel'] ?? ''));
-                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? 'Verschoben nach „' . (AkquiseCrm::SPALTEN[$crmR['spalte']] ?? '') . '“.' : $crmR['fehler'];
+                $_SESSION[$crmR['ok'] ? 'gut' : 'fehler'] = $crmR['ok'] ? 'Verschoben nach „' . (AkquiseCrm::SPALTEN[$crmR['spalte']] ?? '') . '“.' . $akqKundeWort() : $crmR['fehler'];
                 $zurueck('akquise/pipeline');
             case 'akq_naechster_weiter':
                 /* „Überspringen“ beim nächsten besten Kontakt: nur in dieser Sitzung, ändert nichts am Betrieb. */

@@ -319,16 +319,22 @@ final class AkquiseCrm
     public static function spalteSql(): string
     {
         $pos = "'" . implode("','", ['INTERESTED', 'MORE_INFO', 'CALL_REQUEST', 'PRICE_REQUEST']) . "'";
+        /* Modul G (06.10.2026, Uwe: „Pipeline folgt dem Angebot, aus den Daten“): Angebot, Bestellung und
+           Preisrechner des verknüpften Kunden schieben den Betrieb weiter. Von Hand Gesetztes bleibt möglich;
+           ein angenommenes Angebot oder eine Bestellung ist aber „Gewonnen“, egal was vorher gezogen wurde. */
+        require_once __DIR__ . '/AkquiseKunde.php';
+        $g = AkquiseKunde::spalteTeile();
         return "CASE
             WHEN f.kontakt_status = 'abgelehnt' OR f.sperr_art = 'kein_interesse' THEN 'kein_interesse'
-            WHEN f.pipeline = 'gewonnen' OR f.kontakt_status = 'kunde' OR f.bestandskunde = 1 THEN 'gewonnen'
+            WHEN f.pipeline = 'gewonnen' OR f.kontakt_status = 'kunde' OR f.bestandskunde = 1 OR {$g['gewonnen']} THEN 'gewonnen'
             WHEN f.gesperrt = 1 THEN 'gesperrt'
             WHEN f.pipeline = 'verloren' THEN 'verloren'
             WHEN f.crm_stufe = 'spaeter' THEN 'spaeter'
-            WHEN f.pipeline = 'verhandlung' THEN 'nachfassen'
-            WHEN f.pipeline = 'angebot' THEN 'angebot_gesendet'
-            WHEN f.crm_stufe = 'angebot_erstellt' THEN 'angebot_erstellt'
-            WHEN f.crm_stufe = 'bedarf' THEN 'bedarf'
+            WHEN f.pipeline = 'verhandlung' OR {$g['abgelaufen']} THEN 'nachfassen'
+            WHEN f.pipeline = 'angebot' OR {$g['gesendet']} THEN 'angebot_gesendet'
+            WHEN {$g['verloren']} THEN 'verloren'
+            WHEN f.crm_stufe = 'angebot_erstellt' OR {$g['entwurf']} THEN 'angebot_erstellt'
+            WHEN f.crm_stufe = 'bedarf' OR {$g['bedarf']} THEN 'bedarf'
             WHEN EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.klasse IN ($pos))
               OR EXISTS (SELECT 1 FROM akq_termine t WHERE t.firma_id = f.id AND t.status IN ('gebucht','erledigt')) THEN 'interesse'
             WHEN f.kontakt_status = 'geantwortet' THEN 'antwort'

@@ -144,6 +144,20 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
   </div>
 
   <div>
+    <?php /* Akquise-CRM Modul G (06.10.2026): Partner und voraussichtliche Provision — nur der Admin, vor dem Senden. */
+      if (Rechte::geld()): require_once __DIR__ . '/../src/AkquiseKunde.php';
+        $agProv = AkquiseKunde::provisionVoraus((int) $a['customer_id'], AkquiseKunde::betrag($a));
+        $agFirma = Db::one('SELECT id, name FROM akq_firmen WHERE customer_id = ? ORDER BY id DESC LIMIT 1', [(int) $a['customer_id']]);
+        if ($agProv || $agFirma): ?>
+    <div class="block" id="provision">
+      <h2 style="font-size:15px;margin:0 0 8px">Herkunft und Provision</h2>
+      <?php if ($agFirma): ?><p style="font-size:13.5px;margin:0 0 6px">Aus „Neue Kunden finden“: <a href="<?= Fmt::h(url('akquise/' . (int) $agFirma['id'] . '#auftrag')) ?>"><?= Fmt::h((string) $agFirma['name']) ?></a></p><?php endif; ?>
+      <?php if ($agProv): ?><p style="font-size:13.5px;margin:0">Partner <a href="<?= Fmt::h(url('partner/' . $agProv['pid'])) ?>"><?= Fmt::h($agProv['partner']) ?></a> · Satz <?= Fmt::h($agProv['satz']) ?>
+        <?= $agProv['hinweis'] ? ' — ' . Fmt::h($agProv['hinweis']) : (AkquiseKunde::betrag($a) > 0 ? ' · voraussichtlich <b>' . Fmt::geld($agProv['cents']) . '</b>' : '') ?></p>
+        <p style="color:var(--leise);font-size:12px;margin:4px 0 0">Netto gerechnet wie bei der Buchung. Gebucht wird erst, wenn der Kunde zahlt.</p>
+      <?php else: ?><p style="color:var(--leise);font-size:12.5px;margin:0">Kein Partner zugeordnet — keine Provision.</p><?php endif; ?>
+    </div>
+    <?php endif; endif; ?>
     <?php $istFest = Angebot::istFestpreis($a); $festHinweis = $istFest ? Angebot::verteilen((int) $a['id']) : null; ?>
     <?php if ($aenderbar || $istFest): ?>
     <div class="block" id="festpreis">

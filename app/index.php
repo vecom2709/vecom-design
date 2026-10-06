@@ -350,6 +350,21 @@ if ($post) {
                 if ($neu !== null) { weiter('angebote/' . $neu); }
                 zurueck('bedarf');
 
+            /* Akquise-CRM Modul G (06.10.2026): Angebot direkt aus dem Betrieb — ein Knopf.
+               Legt den Kunden an, wenn es ihn noch nicht gibt, und den Entwurf (Preisrechner oder Festpreis).
+               Gesendet wird nur im Angebotseditor. Nur Admin: Preise gehören nicht zur Mitarbeit. */
+            case 'angebot_aus_akquise':
+                require_once __DIR__ . '/src/AkquiseKunde.php';
+                require_once __DIR__ . '/src/Baukasten.php';
+                $aaF = (int) ($_POST['firma'] ?? 0);
+                $aaC = trim((string) ($_POST['festpreis'] ?? '')) !== '' ? Baukasten::centsAus((string) $_POST['festpreis']) : null;
+                $aaR = AkquiseKunde::angebotAnlegen($aaF, $aaC);
+                if (!$aaR['ok']) { $_SESSION['fehler'] = (string) $aaR['fehler']; weiter('akquise/' . $aaF . '#auftrag'); }
+                Events::pruefspur('angebot_aus_akquise', 'angebote', (int) $aaR['angebot'], [], ['firma_id' => $aaF, 'customer_id' => (int) $aaR['kunde']]);
+                $_SESSION['gut'] = 'Angebotsentwurf angelegt' . (!empty($aaR['neu']) ? ', dazu der Kunde (#' . (int) $aaR['kunde'] . ')' : '') . '.'
+                    . (!empty($aaR['partner']) ? ' ' . $aaR['partner'] . '.' : '') . ' Prüfen und hier senden — vorher geht nichts raus.';
+                weiter('angebote/' . (int) $aaR['angebot']);
+
             /* Festpreis-Angebot (01.10.2026): Betrag fest, Bausteine teilen ihn */
             case 'angebot_festpreis_neu':
                 require_once __DIR__ . '/src/Angebot.php';

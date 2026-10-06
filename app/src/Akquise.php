@@ -143,8 +143,12 @@ final class Akquise
     }
 
     /** Angebot / Verhandlung / Gewonnen / Verloren von Hand setzen ('' = zurück auf das Gerechnete). */
+    /** Ergebnis der Kundenanlage beim letzten „Gewonnen“ — für die Meldung nach dem Klick (Modul G). */
+    public static ?array $letzterKunde = null;
+
     public static function pipelineSetzen(int $id, string $wert): void
     {
+        self::$letzterKunde = null;
         if ($wert !== '' && !isset(self::PIPELINE_HAND[$wert])) { throw new InvalidArgumentException('Unbekannte Stufe.'); }
         $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$id]);
         if (!$f) { throw new RuntimeException('Firma nicht gefunden.'); }
@@ -153,6 +157,12 @@ final class Akquise
         Db::update('akq_firmen', $id, $neu);
         Events::pruefspur('akquise_pipeline', 'akq_firmen', $id, ['pipeline' => $f['pipeline'] ?? null, 'kontakt_status' => $f['kontakt_status']], $neu);
         self::protokoll($id, 'pipeline', $wert !== '' ? 'Stand gesetzt: ' . self::PIPELINE_HAND[$wert] : 'Stand zurückgesetzt (wieder aus den Daten gerechnet)');
+        /* Modul G (06.10.2026, Uwe: „Automatisch bei Gewonnen“): Jetzt entsteht der Kunde — oder wird verknüpft,
+           wenn es ihn unter der Adresse schon gibt. Ohne Adresse später, sobald sie eingetragen ist. */
+        if ($wert === 'gewonnen') {
+            require_once __DIR__ . '/AkquiseKunde.php';
+            self::$letzterKunde = AkquiseKunde::nachGewonnen($id);
+        }
         /* Gewonnen oder verloren: keine Folge-Mails mehr. */
         if (in_array($wert, ['gewonnen', 'verloren'], true)) {
             try {

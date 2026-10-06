@@ -26442,6 +26442,92 @@ pruefe('Partner-Reservierungen: eigener Reiter nur für den Admin; Entscheiden m
 foreach (['partner_warnungen', 'partner_entscheide', 'partner_reservierungen', 'akq_antworten', 'akq_protokoll'] as $fpT) { Db::run("DELETE FROM `$fpT` WHERE firma_id = ?", [$fpF]); }
 Db::run('DELETE FROM partner_lead_verlauf WHERE lead_id = ?', [$fpLead]); Db::run('DELETE FROM partner_leads WHERE id = ?', [$fpLead]);
 Db::run('DELETE FROM akq_firmen WHERE id = ?', [$fpF]);
+
+/* Modul G: Betrieb → Kunde (automatisch bei „Gewonnen“ und mit dem ersten Angebot), Provision bei Reservierung, Angebot, Pipeline aus den Daten */
+abschnitt('Akquise-CRM: Vom Betrieb zum Auftrag (Modul G)');
+require_once $wurzel . '/src/AkquiseKunde.php';
+require_once $wurzel . '/src/Angebot.php';
+$gF = $crF('CR00000012', 'Beispiel Gewinn Trattoria', ['ansprechpartner' => 'Beispiel Bianchi', 'telefon' => '+39 0925 112233', 'sprache' => 'de']);
+$gReserv = PartnerRecherche::reservieren($fpA, $gF);
+$gSp0 = AkquiseCrm::spalte($gF);
+Akquise::pipelineSetzen($gF, 'gewonnen');
+$gK1 = Akquise::$letzterKunde;
+$gFz = (array) Db::one('SELECT customer_id, kontakt_status FROM akq_firmen WHERE id = ?', [$gF]);
+$gKid = (int) ($gFz['customer_id'] ?? 0);
+$gKunde = (array) Db::one('SELECT name, company, email, phone, city, sprache FROM customers WHERE id = ?', [$gKid]);
+$gZu = Db::one('SELECT partner_id, quelle FROM partner_zuordnungen WHERE customer_id = ?', [$gKid]);
+$gK1b = AkquiseKunde::sicherstellen($gF, 'nochmal');
+pruefe('„Gewonnen“ legt den Kunden an (Firma, Ansprechpartner, Adresse, Sprache aus dem Betrieb), verknüpft ihn und ordnet ihn dem reservierenden Partner zu; ein zweiter Aufruf legt nichts doppelt an',
+    $gReserv === 'ok' && $gSp0 === 'reserviert' && ($gK1['ok'] ?? false) && !empty($gK1['neu']) && $gKid === (int) ($gK1['kunde'] ?? 0) && $gKid > 0
+    && $gKunde['company'] === 'Beispiel Gewinn Trattoria' && $gKunde['name'] === 'Beispiel Bianchi' && $gKunde['email'] === 'info@cr00000012.example'
+    && $gKunde['city'] === 'Sciacca' && $gKunde['sprache'] === 'de' && $gZu && (int) $gZu['partner_id'] === $fpA && $gZu['quelle'] === 'partner'
+    && $gK1b['ok'] && empty($gK1b['neu']) && (int) $gK1b['kunde'] === $gKid
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_kunde' AND entity_id = ?", [$gF], 0) === 1,
+    json_encode([$gReserv, $gSp0, $gK1, $gFz, $gKunde, $gZu, $gK1b]));
+/* Ohne Adresse: erst nichts, dann beim Eintragen */
+$gN = $crF('CR00000013', 'Beispiel Ohne Adresse', ['email' => null]);
+Akquise::pipelineSetzen($gN, 'gewonnen');
+$gN1 = Akquise::$letzterKunde;
+$gN1k = Db::wert('SELECT customer_id FROM akq_firmen WHERE id = ?', [$gN], null);
+AkquiseCrm::profilSpeichern($gN, ['email' => 'kontakt@ohne-adresse.example']);
+$gN2 = AkquiseKunde::nachGewonnen($gN);
+/* Bestehender Kunde unter derselben Adresse: verknüpfen statt doppelt; Anrufliste ohne Zustimmung: kein Partner */
+$gV = $crF('CR00000014', 'Beispiel Schon Kunde', ['email' => 'info@cr00000012.example']);
+$gV1 = AkquiseKunde::sicherstellen($gV, 'Test');
+$gW = $crF('CR00000015', 'Beispiel Anrufliste', []);
+Db::insert('partner_reservierungen', ['firma_id' => $gW, 'partner_id' => $fpB, 'bis' => date('Y-m-d', strtotime('+10 days')), 'herkunft' => 'vecom', 'anruf_status' => 'offen']);
+$gW1 = AkquiseKunde::sicherstellen($gW, 'Test');
+pruefe('Ohne E-Mail entsteht kein Kunde (Hinweis statt Fehler), nach dem Eintragen schon; gleiche Adresse wird verknüpft, nicht doppelt angelegt; Anrufliste ohne Zustimmung am Telefon gibt dem Partner nichts',
+    $gN1 !== null && !$gN1['ok'] && str_contains((string) $gN1['fehler'], 'E-Mail') && $gN1k === null && $gN2 && $gN2['ok'] && !empty($gN2['neu'])
+    && (int) Db::wert('SELECT customer_id FROM akq_firmen WHERE id = ?', [$gN], 0) === (int) $gN2['kunde']
+    && $gV1['ok'] && empty($gV1['neu']) && (int) $gV1['kunde'] === $gKid
+    && $gW1['ok'] && Db::one('SELECT 1 FROM partner_zuordnungen WHERE customer_id = ?', [(int) $gW1['kunde']]) === null && str_contains((string) $gW1['partner'], 'ohne Zustimmung'),
+    json_encode([$gN1, $gN1k, $gN2, $gV1, $gW1]));
+/* Angebot und Pipeline: aus den Daten */
+$gO = $crF('CR00000016', 'Beispiel Angebot Bar', []);
+$gA0 = AkquiseKunde::angebotAnlegen($gO, null);
+$gOk = (int) Db::wert('SELECT customer_id FROM akq_firmen WHERE id = ?', [$gO], 0);
+$gSpK = AkquiseCrm::spalte($gO);
+$gBed = (int) Db::insert('bedarf', ['customer_id' => $gOk, 'token' => bin2hex(random_bytes(24)), 'antworten' => '{}', 'status' => 'abgesendet', 'abgesendet_am' => date('Y-m-d H:i:s'), 'email' => 'info@cr00000016.example']);
+$gSpB = AkquiseCrm::spalte($gO);
+$gA1 = AkquiseKunde::angebotAnlegen($gO, 149000);
+$gAid = (int) ($gA1['angebot'] ?? 0);
+$gAng = (array) Db::one('SELECT status, festpreis_cents, customer_id, sprache FROM angebote WHERE id = ?', [$gAid]);
+$gSp1 = AkquiseCrm::spalte($gO);
+Db::run("UPDATE angebote SET status = 'gesendet', gesendet_am = NOW() WHERE id = ?", [$gAid]);  $gSp2 = AkquiseCrm::spalte($gO);
+Db::run("UPDATE angebote SET status = 'abgelaufen' WHERE id = ?", [$gAid]);                     $gSp3 = AkquiseCrm::spalte($gO);
+Db::run("UPDATE angebote SET status = 'abgelehnt' WHERE id = ?", [$gAid]);                      $gSp4 = AkquiseCrm::spalte($gO);
+Db::run("UPDATE angebote SET status = 'angenommen' WHERE id = ?", [$gAid]);                     $gSp5 = AkquiseCrm::spalte($gO);
+$gA2 = AkquiseKunde::angebotAnlegen($gO, null);
+$gStand = AkquiseKunde::stand((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$gO]));
+pruefe('Ein Knopf: Angebotsentwurf mit Festpreis (Kunde entsteht dabei, nichts gesendet); ohne Festpreis aus dem Preisrechner; die Pipeline folgt: Bedarf → Angebot erstellt → gesendet → abgelaufen = nachfassen → abgelehnt = verloren → angenommen = gewonnen',
+    !$gA0['ok'] && str_contains((string) $gA0['fehler'], 'Festpreis') && $gOk > 0 && $gSpK === 'neu' && $gSpB === 'bedarf'
+    && $gA1['ok'] && $gAng['status'] === 'entwurf' && (int) $gAng['festpreis_cents'] === 149000 && (int) $gAng['customer_id'] === $gOk
+    && $gSp1 === 'angebot_erstellt' && $gSp2 === 'angebot_gesendet' && $gSp3 === 'nachfassen' && $gSp4 === 'verloren' && $gSp5 === 'gewonnen'
+    && $gA2['ok'] && (int) Db::wert('SELECT bedarf_id FROM angebote WHERE id = ?', [(int) $gA2['angebot']], 0) === $gBed
+    && count($gStand['angebote']) === 2 && (int) ($gStand['bedarf_fertig']['id'] ?? 0) === $gBed,
+    json_encode([$gA0, $gSpK, $gSpB, $gA1, $gAng, $gSp1, $gSp2, $gSp3, $gSp4, $gSp5, $gA2]));
+/* Provision: dieselbe Rechnung wie beim Buchen, nur Vorschau; nur Admin */
+$gSatz = Partner::satzFuer((array) Partner::laden($fpA));
+$gMw = (float) Config::get('mwst', 0.0); $gBasis = (int) round(149000 / (1 + max(0.0, $gMw) / 100));
+$gSoll = $gSatz['art'] === 'fest' ? min((int) $gSatz['wert'], $gBasis) : (int) round($gBasis * (int) $gSatz['wert'] / 10000);
+$gPv = AkquiseKunde::provisionVoraus($gKid, 149000);
+$gPv0 = AkquiseKunde::provisionVoraus($gOk, 149000);
+$gViewF = (string) file_get_contents($wurzel . '/views/akquise_firma.php');
+$gViewA = (string) file_get_contents($wurzel . '/views/angebot.php');
+$gViewG = (string) file_get_contents($wurzel . '/views/akquise_auftrag.php');
+pruefe('Provision im Angebot: Partner, Satz und voraussichtlicher Betrag (netto, wie bei der Buchung); ohne Partner nichts; Angebot aus dem Betrieb ist eine Admin-Tat (Mitarbeit darf keine Preise), Anzeige nur mit Rechte::geld',
+    $gPv && $gPv['pid'] === $fpA && $gPv['cents'] === $gSoll && $gSoll > 0 && $gPv['hinweis'] === null && $gPv0 === null
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($p) => str_starts_with('angebot_aus_akquise', $p))
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "case 'angebot_aus_akquise':")
+    && str_contains($gViewF, "akquise_auftrag.php") && str_contains($gViewA, 'provisionVoraus') && str_contains($gViewA, 'Rechte::geld()')
+    && str_contains($gViewG, '$auGeld = Rechte::geld()') && !str_contains($gViewG, 'tat" value="akq_'),
+    json_encode([$gSatz, $gSoll, $gPv, $gPv0]));
+foreach ([$gF, $gN, $gV, $gW, $gO] as $gX) {
+    foreach (['partner_reservierungen', 'akq_protokoll'] as $gT) { Db::run("DELETE FROM `$gT` WHERE firma_id = ?", [$gX]); }
+    Db::run('DELETE FROM akq_firmen WHERE id = ?', [$gX]);
+}
+Db::run('DELETE FROM angebote WHERE customer_id = ?', [$gOk]); Db::run('DELETE FROM bedarf WHERE id = ?', [$gBed]);
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }
