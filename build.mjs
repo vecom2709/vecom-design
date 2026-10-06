@@ -14,6 +14,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { LANDESEITEN, LANDESEITEN_WORTE, LANDESEITEN_KURZ, LANDESEITEN_STAND } from './seiten/landeseiten.mjs';
 import { DEUTSCHLAND_SEITEN, DEUTSCHLAND_WORTE, DEUTSCHLAND_STAND } from './seiten/deutschland.mjs';
+import { wissenBauen } from './tools/wissen.mjs';
 
 const BASE = 'https://vecom-design.it';
 
@@ -913,3 +914,7 @@ ${['it', 'de', 'en'].map((x) => `    <xhtml:link rel="alternate" hreflang="${x}"
   const neu = `${vor}\n${eintraege}\n  ${nach}`;
   if (neu !== readFileSync('sitemap.xml', 'utf8')) { writeFileSync('sitemap.xml', neu); console.log('geschrieben: sitemap.xml (Deutschland)'); }
 }
+
+/* Das AI-Wissen aus PROJEKT.md & Co. fuer Claudes Lesezugang (AI Office Stufe 2, 07.10.2026) —
+   Erklaerung in tools/wissen.mjs. Liegt in app/data/ (gesperrt) und nicht im Repository. */
+wissenBauen('.');

@@ -14595,7 +14595,9 @@ $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', '
                 // Weiterleitung der Telegram-Mini-App, zeigt selbst nichts; die Sprache kommt aus dem Knopf
                 'telegram-app.php',
                 // Das Vecom-Fenster in Telegram (01.10.2026): eigener schlichter Rahmen in Telegram, die Sprache kommt aus dem Kanal-Knopf
-                'telegram-menue.php'];
+                'telegram-menue.php',
+                // Claudes Erlaubnis-Tür (AI Office Stufe 2): Fehlerseite nur für Uwe, wenn Claude falsch fragt — deutsch, ohne Skript
+                'oauth.php', 'mcp.php'];
 $jsFehlt = [];
 foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
     $jsName = basename($jsPhp);
@@ -27405,6 +27407,127 @@ pruefe('ohne Link schickt die Mail-Funktion nichts', Nachricht::zahlungslinkMail
 pruefe('der Knopf in der Verwaltung benutzt dieselbe Mail', str_contains((string) file_get_contents($wurzel . '/index.php'), 'Nachricht::zahlungslinkMail($zid)'));
 pruefe('der Dank nach der Annahme kennt den schon verschickten Link', isset(Texte::ANGEBOT['dankeAnLink']));
 pruefe('die Zugangsmail nennt alle sechs Schritte', str_contains(Texte::mail('zugang', 'de', ['name' => '', 'link' => 'x', 'tage' => '7'])[1], '6. Online'));
+
+/* ---- AI Office Stufe 2: Claude liest (MCP mit OAuth), Morgenbriefing, Wissen ---- */
+abschnitt('AI Office Stufe 2: Claudes Lesezugang, Morgenbriefing, Wissen');
+require_once $wurzel . '/src/ClaudeZugang.php';
+require_once $wurzel . '/src/ClaudeWerkzeuge.php';
+require_once $wurzel . '/src/Wissen.php';
+require_once $wurzel . '/src/Morgenbriefing.php';
+$czB = ClaudeZugang::basis();
+$czRS = ClaudeZugang::steckbriefRessource();
+$czAS = ClaudeZugang::steckbriefServer();
+pruefe('Steckbriefe: die Schnittstelle nennt ihren Aussteller (RFC 9728), der Aussteller nur PKCE mit S256 (RFC 8414)',
+    $czRS['resource'] === $czB . '/mcp' && $czRS['authorization_servers'] === [$czB] && $czAS['issuer'] === $czB
+    && $czAS['code_challenge_methods_supported'] === ['S256'] && $czAS['scopes_supported'] === ['verwaltung.lesen']
+    && !isset($czAS['client_id_metadata_document_supported']));
+[$czS, $czR] = ClaudeZugang::registrieren(['redirect_uris' => ['https://boese.example/cb']], '203.0.113.9');
+pruefe('ein Programm mit fremder Rücksprungadresse wird nicht angemeldet', $czS === 400);
+[$czS, $czC] = ClaudeZugang::registrieren(['client_name' => 'Claude', 'redirect_uris' => ['https://claude.ai/api/mcp/auth_callback'], 'token_endpoint_auth_method' => 'none'], '203.0.113.9');
+pruefe('Claudes Rücksprungadresse: angemeldet, ohne Geheimnis bei „none“', $czS === 201 && str_starts_with($czC['client_id'], 'vcl_') && !isset($czC['client_secret']));
+$czPruefer = ClaudeZugang::b64url(random_bytes(40));
+$czAnf = ['response_type' => 'code', 'client_id' => $czC['client_id'], 'redirect_uri' => 'https://claude.ai/api/mcp/auth_callback',
+          'code_challenge' => ClaudeZugang::b64url(hash('sha256', $czPruefer, true)), 'code_challenge_method' => 'S256', 'state' => 'st-1',
+          'resource' => $czB . '/mcp', 'scope' => 'verwaltung.lesen'];
+pruefe('unbekanntes Programm: Fehlerseite, keine Weiterleitung', ClaudeZugang::anfrageAnnehmen(['client_id' => 'vcl_' . str_repeat('0', 32)] + $czAnf)['art'] === 'fehler');
+pruefe('ohne S256 und mit fremdem Umfang: zurück mit Fehler',
+    str_contains((string) (ClaudeZugang::anfrageAnnehmen(['code_challenge_method' => 'plain'] + $czAnf)['ziel'] ?? ''), 'error=invalid_request')
+    && str_contains((string) (ClaudeZugang::anfrageAnnehmen(['scope' => 'verwaltung.schreiben'] + $czAnf)['ziel'] ?? ''), 'error=invalid_scope')
+    && str_contains((string) (ClaudeZugang::anfrageAnnehmen(['resource' => 'https://andere.example/mcp'] + $czAnf)['ziel'] ?? ''), 'error=invalid_target'));
+$czW = ClaudeZugang::anfrageAnnehmen($czAnf);
+$czA = (string) (preg_match('/a=([a-f0-9]{32})$/', (string) ($czW['ziel'] ?? ''), $czM) ? $czM[1] : '');
+pruefe('eine gültige Anfrage führt in die Verwaltung, wo Uwe erlaubt', $czW['art'] === 'weiter' && $czA !== '' && ClaudeZugang::anfrage($czA) !== null);
+$czZiel = (string) ClaudeZugang::erlauben($czA, 1, 'Kette');
+parse_str((string) parse_url($czZiel, PHP_URL_QUERY), $czQ);
+pruefe('Erlauben: zurück an Claude mit Code, state und iss — und nur einmal', str_starts_with($czZiel, 'https://claude.ai/api/mcp/auth_callback?')
+    && ($czQ['state'] ?? '') === 'st-1' && ($czQ['iss'] ?? '') === $czB && str_starts_with((string) ($czQ['code'] ?? ''), 'vcc_')
+    && ClaudeZugang::erlauben($czA, 1, 'Kette') === null);
+pruefe('falscher PKCE-Prüfer: kein Schlüssel', ClaudeZugang::einloesen(['grant_type' => 'authorization_code', 'client_id' => $czC['client_id'],
+    'code' => $czQ['code'], 'code_verifier' => str_repeat('a', 43)])[1]['error'] === 'invalid_grant');
+[$czS, $czT] = ClaudeZugang::einloesen(['grant_type' => 'authorization_code', 'client_id' => $czC['client_id'], 'code' => $czQ['code'],
+    'code_verifier' => $czPruefer, 'redirect_uri' => 'https://claude.ai/api/mcp/auth_callback', 'resource' => $czB . '/mcp']);
+$czV = ClaudeZugang::pruefen((string) ($czT['access_token'] ?? ''));
+pruefe('richtiger Prüfer: Zugang für eine Stunde, Verbindung für 30 Tage', $czS === 200 && $czV !== null && $czT['expires_in'] <= 3600
+    && abs(strtotime((string) $czV['bis']) - time() - 30 * 86400) < 120);
+pruefe('Schlüssel und Codes stehen nur als Hash in der Datenbank', (int) Db::wert('SELECT COUNT(*) FROM claude_schluessel WHERE hash IN (?, ?, ?)',
+    [$czT['access_token'], $czT['refresh_token'], $czQ['code']], 0) === 0 && (int) Db::wert('SELECT COUNT(*) FROM claude_schluessel WHERE hash = ?', [hash('sha256', $czT['access_token'])], 0) === 1);
+[$czS, $czT2] = ClaudeZugang::einloesen(['grant_type' => 'refresh_token', 'client_id' => $czC['client_id'], 'refresh_token' => $czT['refresh_token']]);
+pruefe('Erneuern gibt ein neues Paar, das alte gilt weiter nur bis zu seiner Stunde', $czS === 200 && $czT2['refresh_token'] !== $czT['refresh_token'] && ClaudeZugang::pruefen($czT2['access_token']) !== null);
+ClaudeZugang::einloesen(['grant_type' => 'refresh_token', 'client_id' => $czC['client_id'], 'refresh_token' => $czT['refresh_token']]);
+pruefe('dieselbe Erneuerung ein zweites Mal: die ganze Verbindung ist zu (OAuth 2.1, 4.3.1)', ClaudeZugang::pruefen($czT2['access_token']) === null
+    && ClaudeZugang::verbindung((int) $czV['id']) === null);
+pruefe('Code ein zweites Mal: abgelehnt', ClaudeZugang::einloesen(['grant_type' => 'authorization_code', 'client_id' => $czC['client_id'],
+    'code' => $czQ['code'], 'code_verifier' => $czPruefer])[0] === 400);
+pruefe('RFC 8707: die Adresse wird ohne Rücksicht auf Groß/klein und Schrägstrich erkannt, fremde nicht',
+    ClaudeZugang::istRessource(strtoupper(substr($czB, 0, 5)) . substr($czB, 5) . '/mcp/') && !ClaudeZugang::istRessource('https://andere.example/mcp') && !ClaudeZugang::istRessource($czB . '/mcp#x'));
+ClaudeZugang::schalten(false, 'Kette');
+pruefe('Zugang aus: keine Anmeldung, keine Anfrage', ClaudeZugang::registrieren(['redirect_uris' => ['https://claude.ai/api/mcp/auth_callback']], '203.0.113.9')[0] === 403
+    && str_contains((string) (ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'] ?? ''), 'error=access_denied'));
+ClaudeZugang::schalten(true, 'Kette');
+$czEins = ClaudeZugang::erlauben((string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32), 1, 'Kette');
+$czErste = (int) Db::wert('SELECT MAX(id) FROM claude_verbindungen', [], 0);
+ClaudeZugang::erlauben((string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32), 1, 'Kette');
+pruefe('eine Verbindung zur Zeit: wer neu erlaubt, beendet die ältere', $czEins !== null && ClaudeZugang::verbindung($czErste) === null
+    && (int) Db::wert('SELECT COUNT(*) FROM claude_verbindungen WHERE entzogen_am IS NULL', [], 0) === 1);
+// Die Werkzeuge: nur lesen, nichts Geheimes.
+$czQuelle = (string) file_get_contents($wurzel . '/src/ClaudeWerkzeuge.php');
+$czListe = ClaudeWerkzeuge::liste();
+pruefe('jedes Werkzeug ist als „nur lesen“ gekennzeichnet, keins doppelt', count($czListe) >= 14
+    && count(array_unique(array_column($czListe, 'name'))) === count($czListe)
+    && array_filter($czListe, static fn($w) => ($w['annotations']['readOnlyHint'] ?? false) !== true || ($w['annotations']['destructiveHint'] ?? true) !== false) === []);
+pruefe('in den Werkzeugen steht kein schreibendes SQL, kein Versand und kein SELECT *',
+    !preg_match('/\b(INSERT|UPDATE|DELETE|REPLACE)\s/', $czQuelle) && !preg_match('/\b(Mail|Telegram|WhatsAppCloud|Zuruf)::/', $czQuelle) && !str_contains($czQuelle, 'SELECT *'));
+pruefe('und keine Spalte mit Zugang, Token oder Zahlmittel', !preg_match('/\b(token|stripe_kunde|zahlmittel_id|zugang_blob|technik_blob|kas_login|password_hash|ip)\b\s*(,|FROM|AS)/', $czQuelle));
+$czKid = (int) Db::insert('customers', ['name' => 'Akte Kette', 'email' => 'akte-kette@pruefung.example', 'token' => 'tok-' . bin2hex(random_bytes(12))]);
+$czTok = (string) Db::wert('SELECT token FROM customers WHERE id = ?', [$czKid], '');
+$czAk = ClaudeWerkzeuge::rufen('kunde_akte', ['kunde_id' => $czKid]);
+pruefe('die Kundenakte zeigt Namen, aber nie den Kundenlink', $czAk['ok'] && str_contains($czAk['text'], 'Akte Kette') && !str_contains($czAk['text'], $czTok));
+pruefe('ein falsches Argument ist ein lesbarer Werkzeugfehler', ClaudeWerkzeuge::rufen('kunden_suchen', ['suche' => 'x'])['ok'] === false
+    && ClaudeWerkzeuge::rufen('kunde_akte', ['kunde_id' => 'eins'])['ok'] === false && ClaudeWerkzeuge::rufen('loeschen', [])['ok'] === false);
+$czLage = ClaudeWerkzeuge::rufen('lage_heute', []);
+pruefe('lage_heute liefert dieselben Teile wie das Briefing', $czLage['ok'] && isset($czLage['daten']['wartet'], $czLage['daten']['geld'], $czLage['daten']['technik'], $czLage['daten']['akquise']));
+Db::run('DELETE FROM customers WHERE id = ?', [$czKid]);
+// Die Tür nach außen: mcp.php, oauth.php, .htaccess, Deploy.
+$czMcp = (string) file_get_contents($oben . '/mcp.php');
+$czHt = (string) file_get_contents($oben . '/.htaccess');
+pruefe('mcp.php: 401 mit Steckbrief-Adresse, nur POST, Origin geprüft, Kopf gegen Rumpf (2026-07-28)', str_contains($czMcp, 'resource_metadata=')
+    && str_contains($czMcp, "header('Allow: POST')") && str_contains($czMcp, 'HTTP_ORIGIN') && str_contains($czMcp, '-32020') && str_contains($czMcp, "'initialize'"));
+pruefe('.htaccess: /mcp, /oauth/… und die Steckbriefe gehen an die Tür, der Authorization-Kopf wird weitergereicht',
+    str_contains($czHt, 'RewriteRule ^mcp/?$ mcp.php') && str_contains($czHt, 'oauth-protected-resource|oauth-authorization-server')
+    && preg_match('~RewriteRule \^\(mcp[^\n]*E=HTTP_AUTHORIZATION~', $czHt) === 1);
+$czDeploy = (string) file_get_contents($oben . '/.github/workflows/ftp-deploy.yml');
+pruefe('der Deploy lädt mcp.php und oauth.php hoch', !str_contains($czDeploy, 'mcp\.php') && !str_contains($czDeploy, 'oauth\.php'));
+$czIdx = (string) file_get_contents($wurzel . '/index.php');
+pruefe('Erlauben nur als Admin und nur nach der eigenen Anmeldung', !in_array('claude-erlauben', Rechte::SEITEN, true)
+    && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('claude_erlauben', $t)) && str_contains($czIdx, "claude-erlauben\\?a=[a-f0-9]{32}"));
+// Wissen (V8)
+$czWj = sys_get_temp_dir() . '/wissen-kette-' . bin2hex(random_bytes(4)) . '.json';
+exec('node ' . escapeshellarg((string) realpath($oben . '/tools/wissen.mjs')) . ' ' . escapeshellarg($czWj) . ' 2>&1', $czO, $czCode);
+Wissen::setzen(Wissen::laden($czWj));
+$czSt = Wissen::stand();
+pruefe('das Wissen entsteht aus PROJEKT.md, CLAUDE.md, VECOM-STANDARD.md und AKQUISE.md', $czCode === 0 && $czSt !== null && $czSt['kapitel'] > 50
+    && count(array_filter($czSt['quellen'], static fn($q) => in_array($q['datei'], ['PROJEKT.md', 'CLAUDE.md', 'VECOM-STANDARD.md', 'AKQUISE.md'], true))) === 4, implode(' ', $czO));
+$czTr = Wissen::suchen('Kette vor jedem Deploy', 3);
+pruefe('die Suche findet das Kapitel aus CLAUDE.md zuerst (nicht das längste)', ($czTr[0]['quelle'] ?? '') === 'CLAUDE.md', json_encode(array_column($czTr, 'titel'), JSON_UNESCAPED_UNICODE));
+$czLang = array_values(array_filter(Wissen::inhalt('PROJEKT.md'), static fn($k) => $k['zeichen'] > Wissen::SEITE));
+$czK = $czLang ? Wissen::kapitel($czLang[0]['id']) : null;
+pruefe('lange Kapitel kommen seitenweise', $czK !== null && $czK['weiter'] === Wissen::SEITE && Wissen::kapitel($czLang[0]['id'], (int) $czK['weiter'])['ab'] === Wissen::SEITE);
+pruefe('das erzeugte Wissen liegt nicht im Repository und in einem gesperrten Ordner', str_contains((string) file_get_contents($oben . '/.gitignore'), 'app/data/wissen.json')
+    && trim((string) file_get_contents($wurzel . '/data/.htaccess')) === 'Require all denied' && str_contains((string) file_get_contents($oben . '/build.mjs'), 'wissenBauen('));
+Wissen::setzen(null);
+@unlink($czWj);
+// Morgenbriefing (V2)
+Morgenbriefing::$abgefangen = [];
+$czMb = Morgenbriefing::senden();
+$czText = (string) (Morgenbriefing::$abgefangen[0] ?? '');
+pruefe('das Morgenbriefing hat alle vier Teile, die Uwe angekreuzt hat', $czMb['gesendet'] === 1 && str_contains($czText, 'Wartet auf dich')
+    && str_contains($czText, '<b>Geld</b>') && str_contains($czText, '<b>Technik</b>') && str_contains($czText, '<b>Akquise und Termine</b>'));
+Morgenbriefing::$abgefangen = null;
+$czTag = strtotime(date('Y-m-d'));
+pruefe('es geht ab 07:30 und nur bis 11:00', !Morgenbriefing::faellig($czTag + 7 * 3600 + 29 * 60) && Morgenbriefing::faellig($czTag + 7 * 3600 + 30 * 60)
+    && !Morgenbriefing::faellig($czTag + 11 * 3600));
+pruefe('Briefing und Aufräumen stehen im Automation Center und lassen nichts aus dem Haus', (Automation::REGELN['morgenbriefing'][3] ?? true) === false
+    && (Automation::REGELN['claude_zugang'][3] ?? true) === false && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'cron_morgenbriefing'"));
 
 /* ============================================================================
    Aufräumen und Bilanz

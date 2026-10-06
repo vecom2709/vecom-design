@@ -18,6 +18,17 @@ RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
 # an PHP weiter. Nur fuer cron.php; ohne L, damit alles Weitere unveraendert gilt.
 RewriteCond %{HTTP:Authorization} .
 RewriteRule ^cron\.php$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+# Claudes Lesezugang (AI Office Stufe 2, 07.10.2026): /mcp ist die Adresse, die
+# Uwe bei Claude eintraegt; /oauth/... und die beiden Steckbriefe unter
+# /.well-known/ sind die Tuer, durch die Claude um Erlaubnis fragt (oauth.php).
+# Der Schluessel kommt im Authorization-Kopf -- deshalb auch hier weiterreichen.
+# Nach der Umleitung heisst er REDIRECT_HTTP_AUTHORIZATION; beide PHP-Dateien
+# lesen beide Namen.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^(mcp/?|mcp\.php|oauth/(token|revoke)/?|oauth\.php)$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteRule ^mcp/?$ mcp.php [L]
+RewriteRule ^oauth/(register|authorize|token|revoke)/?$ oauth.php?schritt=$1 [L,QSA]
+RewriteRule ^\.well-known/(oauth-protected-resource|oauth-authorization-server)(/mcp)?/?$ oauth.php?schritt=$1 [L,QSA]
 
 # Sicherheits-Header (26.09.2026). "always", damit sie auch auf Fehlerseiten
 # und Weiterleitungen stehen. Keine davon heisst Cache-Control -- die
@@ -191,6 +202,13 @@ RewriteRule ^assets/js/(haus|werkbank)\.js$ - [G,L]
 <IfModule mod_headers.c>
   <FilesMatch "\.(html|php)$">
     Header set Cache-Control "no-cache, must-revalidate"
+  </FilesMatch>
+  # Claudes Erlaubnis-Tuer und Schnittstelle (AI Office Stufe 2, 07.10.2026): Schluessel und
+  # Antworten duerfen in keinem Zwischenspeicher liegen (RFC 6749, 5.1: no-store). Der Block
+  # darueber setzt fuer jede .php no-cache und gewaenne sonst gegen das no-store aus PHP --
+  # gemessen mit Apache 2.4: ohne diese Zeilen kam no-cache an.
+  <FilesMatch "^(mcp|oauth)\.php$">
+    Header set Cache-Control "no-store"
   </FilesMatch>
   <FilesMatch "\.(css|js)$">
     Header set Cache-Control "public, max-age=3600, must-revalidate"

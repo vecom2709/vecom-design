@@ -117,3 +117,7 @@ __pycache__/
 # Repository stehen nur die Auftraege (3d-produktion/musik/auftraege/*.json).
 3d-produktion/musik/*.mp3
 3d-produktion/musik/*.wav
+
+# Das AI-Wissen entsteht bei jedem Bau neu aus PROJEKT.md & Co. (tools/wissen.mjs).
+# Zwei Arbeitskopien sollen sich nicht um ein erzeugtes JSON streiten.
+app/data/wissen.json

@@ -244,7 +244,11 @@ if ($route === 'anmelden') {
     if ($post) {
         Csrf::pruefen();
         $email = (string) ($_POST['email'] ?? '');
+        /* Kam Uwe von Claudes „Verbinden“ (AI Office Stufe 2), geht es nach der Anmeldung dorthin
+           zurück. Vorher lesen: Die Anmeldung leert die Sitzung. Nur diese eine Adresse, sonst nichts. */
+        $nachAnmeldung = (string) ($_SESSION['nach_anmeldung'] ?? '');
         if (Auth::anmelden($email, (string) ($_POST['passwort'] ?? ''))) {
+            if (preg_match('~^claude-erlauben\?a=[a-f0-9]{32}$~', $nachAnmeldung)) { weiter($nachAnmeldung); }
             weiter('');
         }
         $minuten = Auth::gesperrt($email);
@@ -258,6 +262,11 @@ if ($route === 'anmelden') {
 }
 if ($route === 'abmelden') { Auth::abmelden(); weiter('anmelden'); }
 
+/* Claude fragt um Erlaubnis (AI Office Stufe 2, 07.10.2026): Wer dafür erst angemeldet werden muss,
+   soll danach wieder auf der Erlaubnis-Seite landen, nicht auf „Heute“. */
+if ($route === 'claude-erlauben' && preg_match('/^[a-f0-9]{32}$/', (string) ($_GET['a'] ?? ''))) {
+    $_SESSION['nach_anmeldung'] = 'claude-erlauben?a=' . (string) $_GET['a'];
+}
 Auth::$nurPuls = $route === 'puls';
 Auth::nurAdmin();
 
@@ -1500,6 +1509,45 @@ if ($post) {
                 zurueck('ai-freigaben#f' . $frId);
 
             case 'sicherung_schluessel':
+            case 'claude_erlauben':
+            case 'claude_ablehnen':
+                /* Claudes Lesezugang (AI Office Stufe 2, 07.10.2026): Uwe sagt Ja oder Nein auf der
+                   Erlaubnis-Seite. Danach geht es zurück zu Claude — an die Rücksprungadresse, die beim
+                   Anmelden des Programms gegen Claudes eigene geprüft wurde (ClaudeZugang::RUECKWEGE). */
+                require_once __DIR__ . '/src/ClaudeZugang.php';
+                $czWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                $czZiel = $tat === 'claude_erlauben'
+                    ? ClaudeZugang::erlauben((string) ($_POST['a'] ?? ''), (int) Auth::id(), $czWer)
+                    : ClaudeZugang::ablehnen((string) ($_POST['a'] ?? ''), $czWer);
+                unset($_SESSION['nach_anmeldung']);
+                if ($czZiel === null) {
+                    $_SESSION['fehler'] = 'Diese Anfrage gilt nicht mehr (sie hält zehn Minuten). In Claude einfach noch einmal „Verbinden“ wählen.';
+                    weiter('einstellungen?b=claude');
+                }
+                header('Location: ' . $czZiel, true, 303);
+                exit;
+
+            case 'claude_entziehen':
+            case 'claude_zugang_schalten':
+            case 'morgenbriefing_jetzt':
+                require_once __DIR__ . '/src/ClaudeZugang.php';
+                $czWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                if ($tat === 'claude_entziehen') {
+                    $czOk = ClaudeZugang::entziehen((int) ($_POST['id'] ?? 0), 'entzogen von ' . $czWer);
+                    $_SESSION[$czOk ? 'gut' : 'fehler'] = $czOk ? 'Verbindung entzogen. Claude kommt damit nicht mehr herein.' : 'Diese Verbindung war schon zu.';
+                } elseif ($tat === 'claude_zugang_schalten') {
+                    $czAn = (string) ($_POST['an'] ?? '') === '1';
+                    ClaudeZugang::schalten($czAn, $czWer);
+                    $_SESSION['gut'] = $czAn ? 'Claude-Zugang ist an. Verbinden geht wieder.' : 'Claude-Zugang ist aus — alle Verbindungen sind entzogen.';
+                } else {
+                    require_once __DIR__ . '/src/Morgenbriefing.php';
+                    $mbR = Morgenbriefing::senden();
+                    $_SESSION[$mbR['gesendet'] > 0 ? 'gut' : 'fehler'] = $mbR['gesendet'] > 0
+                        ? 'Morgenbriefing an dein Telegram geschickt.'
+                        : ($mbR['weg'] === 'zuruf' ? 'Telegram nicht erreichbar — das Briefing ging über den Ersatzweg.' : 'Telegram ist nicht verbunden (Einstellungen → Telegram).');
+                }
+                zurueck('einstellungen?b=claude');
+
             case 'sicherung_schluessel_weg':
                 /* Sicherung außer Haus (AI Office Stufe 0, 06.10.2026): nur der Admin, öffentlicher Schlüssel des Rechners. */
                 require_once __DIR__ . '/src/SicherungAussen.php';
@@ -4768,6 +4816,17 @@ switch ($route) {
         unset($_SESSION['lauf_ergebnis']);
         break;
 
+    case 'claude-erlauben':
+        /* Claude fragt um Lesezugang (AI Office Stufe 2, 07.10.2026). Uwe sieht, wer fragt, was erlaubt
+           wird und wie lange — und sagt Ja oder Nein. Die Anfrage selbst hat oauth.php geprüft. */
+        require_once __DIR__ . '/src/ClaudeZugang.php';
+        unset($_SESSION['nach_anmeldung']);
+        ansicht('claude_erlauben', [
+            'anfrage' => sicher(static fn() => ClaudeZugang::anfrage((string) ($_GET['a'] ?? '')), null),
+            'an' => sicher(static fn() => ClaudeZugang::an(), false),
+        ]);
+        break;
+
     case 'ai-freigaben':
         /* AI Freigaben (AI Office Stufe 1, 06.10.2026): Vorschläge von Claude/Werkstatt und die Mails,
            die der Not-Aus zurückhält — eine Seite für alles, was auf Uwes Ja wartet. */
@@ -5696,6 +5755,20 @@ switch ($route) {
                 require_once __DIR__ . '/src/SicherungAussen.php';
                 return SicherungAussen::stand();
             }, ['eingerichtet' => false, 'fingerabdruck' => '', 'abgeholt' => null, 'probe' => null]);
+        }
+
+        if ($b === 'claude') {
+            /* Claudes Lesezugang, das Morgenbriefing und das Wissen (AI Office Stufe 2, 07.10.2026). */
+            require_once __DIR__ . '/src/ClaudeZugang.php';
+            require_once __DIR__ . '/src/Wissen.php';
+            require_once __DIR__ . '/src/Morgenbriefing.php';
+            $daten['claude'] = sicher(static fn() => ['an' => ClaudeZugang::an(), 'adresse' => ClaudeZugang::ressource(),
+                'verbindungen' => ClaudeZugang::verbindungen(), 'griffe' => ClaudeZugang::letzteGriffe(20)],
+                ['an' => false, 'adresse' => '', 'verbindungen' => [], 'griffe' => []]);
+            $daten['wissen'] = sicher(static fn() => Wissen::stand(), null);
+            $daten['briefing'] = (string) sicher(static fn() => Morgenbriefing::text(Morgenbriefing::daten()), '');
+            $daten['briefingZuletzt'] = (string) sicher(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_morgenbriefing'", [], ''), '');
+            $daten['telegramVerbunden'] = (bool) sicher(static function () { require_once __DIR__ . '/src/TelegramAdmin.php'; return TelegramAdmin::chat((int) Auth::id()) !== null; }, false);
         }
 
         if ($b === 'daten') {

@@ -635,6 +635,19 @@ final class Cron
         if (self::heuteNochNicht('cron_sicherung')) {
             $aufgaben['sicherung'] = static fn() => Sicherung::laufen();
         }
+        // Morgenbriefing (AI Office Stufe 2, 07.10.2026, Uwe: „Telegram an Sie“, 07:30). Der Cron läuft alle
+        // zehn Minuten; gesendet wird beim ersten Lauf ab 07:30, längstens bis 11:00 — wer um zwei Uhr
+        // nachmittags ein „Guten Morgen“ bekommt, liest es nicht mehr als Briefing.
+        require_once __DIR__ . '/Morgenbriefing.php';
+        if (Morgenbriefing::faellig() && self::heuteNochNicht('cron_morgenbriefing')) {
+            $aufgaben['morgenbriefing'] = static fn() => Morgenbriefing::senden();
+        }
+        if (self::heuteNochNicht('cron_claude_zugang')) {
+            $aufgaben['claude_zugang'] = static function () {
+                require_once __DIR__ . '/ClaudeZugang.php';
+                return ClaudeZugang::aufraeumen();
+            };
+        }
         // Außer Haus: holt der Rechner ab, probt er? (AI Office Stufe 0, 06.10.2026)
         if (self::heuteNochNicht('cron_sicherung_aussen')) {
             $aufgaben['sicherung_aussen'] = static function () {
