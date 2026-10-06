@@ -1,0 +1,33 @@
+-- AI Office Stufe 1 (06.10.2026): Freigabevorgänge. Claude (oder die Werkstatt) schlägt vor,
+-- Uwe genehmigt, lehnt ab, ändert oder stellt zurück. Genehmigt wird immer dieselbe Tat wie
+-- sein Knopf in der Verwaltung; diese Tabelle hält nur fest, was vorgeschlagen und entschieden wurde.
+CREATE TABLE IF NOT EXISTS ai_freigaben (
+  id               INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  art              VARCHAR(40)  NOT NULL,
+  daten            TEXT         NOT NULL,
+  fingerabdruck    CHAR(64)     NOT NULL,
+  titel            VARCHAR(255) NOT NULL,
+  kunde_id         INT UNSIGNED NULL,
+  projekt_id       INT UNSIGNED NULL,
+  partner_id       INT UNSIGNED NULL,
+  system_name      VARCHAR(40)  NOT NULL DEFAULT 'Verwaltung',
+  grund            TEXT         NULL,
+  ist              TEXT         NULL,
+  soll             TEXT         NULL,
+  kosten           VARCHAR(255) NULL,
+  auswirkung       TEXT         NULL,
+  rollback         TEXT         NULL,
+  empfehlung       TEXT         NULL,
+  vorgeschlagen_von VARCHAR(80) NOT NULL DEFAULT 'Claude',
+  status           VARCHAR(16)  NOT NULL DEFAULT 'offen',
+  zurueck_bis      DATETIME     NULL,
+  entschieden_von  VARCHAR(80)  NULL,
+  entschieden_am   DATETIME     NULL,
+  kanal            VARCHAR(16)  NULL,
+  geaendert        TINYINT(1)   NOT NULL DEFAULT 0,
+  ergebnis         TEXT         NULL,
+  created_at       DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_ai_freigaben_status (status, zurueck_bis),
+  KEY ix_ai_freigaben_finger (fingerabdruck)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

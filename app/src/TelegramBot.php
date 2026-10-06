@@ -1098,6 +1098,10 @@ final class TelegramBot
         if (preg_match('/^(fl|fv|ff|ffj|fw|fwj|fs|fsj)(?::(\d{1,9}))?$/', $was, $m)) {
             return self::freigabeKnopf($c, $m[1], (int) ($m[2] ?? 0), $msgId);
         }
+        /* AI Freigaben (AI Office Stufe 1, 06.10.2026, Uwe: Telegram „nur RAUS, SCHWER nur in der Verwaltung“). */
+        if (preg_match('/^(ag|aj|ajj|an|az)(?::(\d{1,9}))$/', $was, $m)) {
+            return self::aiFreigabeKnopf($c, $m[1], (int) $m[2], $msgId);
+        }
         self::zeigeLage($c, $msgId);
         return 'lage';
     }
@@ -1142,12 +1146,80 @@ final class TelegramBot
         return 'lage';
     }
 
+    /** AI-Freigabe im Chat: ansehen → Rückfrage → ausführen; ablehnen; bis morgen zurückstellen. */
+    private static function aiFreigabeKnopf(array $c, string $tat, int $id, ?int $msgId): string
+    {
+        require_once __DIR__ . '/Freigabe.php';
+        $f = Freigabe::laden($id);
+        $b = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . rtrim(Config::basis(), '/');
+        $verwaltung = [['text' => '🛠 In der Verwaltung', 'url' => $b . '/ai-freigaben/' . $id]];
+        if (!$f) { self::zeigen($c, 'Diese Freigabe gibt es nicht mehr.', [[['text' => '📋 Alle Freigaben', 'callback_data' => 'v:fl']]], $msgId); return 'freigaben'; }
+        $r = Freigabe::rueckfrage($f);
+        $wer = (string) Db::wert('SELECT name FROM users WHERE id = ?', [(int) $c['admin_verbunden']], 'Uwe');
+        $offen = in_array($f['status'], ['offen', 'zurueckgestellt'], true);
+        $kopf = '🛡 <b>' . self::h((string) $f['titel']) . "</b>
+";
+        if ($tat === 'ag' || !$offen) {
+            $d = Freigabe::daten($f);
+            $text = $kopf;
+            foreach (['grund' => 'Grund', 'ist' => 'Jetzt', 'soll' => 'Danach', 'kosten' => 'Kosten', 'rollback' => 'Rückweg', 'empfehlung' => 'Claude empfiehlt'] as $k => $w) {
+                if (!empty($f[$k])) { $text .= "
+<b>" . $w . ':</b> ' . self::h(mb_substr((string) $f[$k], 0, 400)); }
+            }
+            if (!empty($d['betreff'])) { $text .= "
+
+<b>Betreff:</b> " . self::h((string) $d['betreff']); }
+            if (!empty($d['text'])) { $text .= "
+<blockquote expandable>" . self::h(mb_substr((string) $d['text'], 0, 2500)) . '</blockquote>'; }
+            if (!$offen) {
+                self::zeigen($c, $text . "
+
+Schon entschieden: " . self::h((string) $f['status']) . '.', [$verwaltung], $msgId);
+                return 'ai_freigabe';
+            }
+            $knoepfe = $r['gewicht'] === Ablauf::RAUS
+                ? [[['text' => '✅ Genehmigen', 'callback_data' => 'v:aj:' . $id], ['text' => '❌ Ablehnen', 'callback_data' => 'v:an:' . $id]],
+                   [['text' => '⏰ Bis morgen', 'callback_data' => 'v:az:' . $id]], $verwaltung]
+                : [[['text' => '🛠 Wiegt schwer — nur in der Verwaltung', 'url' => $b . '/ai-freigaben/' . $id]]];
+            self::zeigen($c, $text, $knoepfe, $msgId);
+            return 'ai_freigabe';
+        }
+        if ($tat === 'aj') {
+            if ($r['gewicht'] !== Ablauf::RAUS) { self::zeigen($c, $kopf . "
+Das wiegt schwer — genehmigen nur in der Verwaltung.", [$verwaltung], $msgId); return 'ai_freigabe'; }
+            self::zeigen($c, '✅ <b>Genehmigen?</b>' . "
+" . self::h((string) $f['titel']) . "
+
+" . self::h($r['frage']), [
+                [['text' => '✅ ' . $r['ja'], 'callback_data' => 'v:ajj:' . $id]],
+                [['text' => '⬅️ Nein, zurück', 'callback_data' => 'v:ag:' . $id]],
+            ], $msgId);
+            return 'rueckfrage';
+        }
+        $erg = match ($tat) {
+            'ajj' => Freigabe::genehmigen($id, $wer, [], 'telegram', (int) $c['admin_verbunden']),
+            'an' => Freigabe::ablehnen($id, $wer, '', 'telegram'),
+            default => Freigabe::zurueckstellen($id, 1, $wer, 'telegram'),
+        };
+        self::zeigeFreigaben($c, $msgId, ($erg['ok'] ? '✅ ' : '⚠️ ') . self::h($erg['text']) . "
+
+");
+        return $tat === 'ajj' ? ($erg['ok'] ? 'ai_genehmigt' : 'ai_fehlgeschlagen') : ($tat === 'an' ? 'ai_abgelehnt' : 'ai_zurueck');
+    }
+
     private static function zeigeFreigaben(array $c, ?int $msgId = null, string $vorspann = ''): void
     {
         $e = TelegramAkquise::entwuerfe();
         $kanal = ['email' => '✉️', 'brief' => '📮'];
         $text = $vorspann . "✅ <b>Freigaben</b> — Entwürfe, die auf Sie warten: <b>" . $e['zahl'] . "</b>\n";
         $knoepfe = [];
+        // AI Freigaben (Stufe 1) zuerst: Claude-Vorschläge, eine Zeile je Vorschlag.
+        require_once __DIR__ . '/Freigabe.php';
+        $ai = Freigabe::offen(8);
+        if ($ai) {
+            $text .= "🛡 AI Freigaben: <b>" . count($ai) . "</b>\n";
+            foreach ($ai as $z) { $knoepfe[] = [['text' => mb_substr('🛡 ' . (string) $z['titel'], 0, 60), 'callback_data' => 'v:ag:' . (int) $z['id']]]; }
+        }
         if (!$e['liste']) {
             $text .= "\nNichts offen.";
         } else {

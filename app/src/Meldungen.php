@@ -48,6 +48,9 @@ final class Meldungen
                 require_once __DIR__ . '/Ausgang.php';
                 return Ausgang::anzahlOffen() === 0;
             },
+            // AI-Freigabe entschieden (genehmigt, abgelehnt, zurückgestellt) — AI Office Stufe 1.
+            'ai_freigabe' => static fn(array $m, ?int $id): bool => $id !== null
+                && (string) Db::wert('SELECT COALESCE(MAX(status), ?) FROM ai_freigaben WHERE id = ?', ['weg', $id], 'weg') !== 'offen',
             // Werkstatt meldete „Vorschau bereit“ — erledigt, sobald Uwe freigeschaltet hat (06.10.2026).
             'werkstatt_vorschau_bereit' => static fn(array $m, ?int $id): bool => $id !== null
                 && Db::wert('SELECT vorschau_frei_am FROM projects WHERE id = ?', [$id], null) !== null,
@@ -72,7 +75,7 @@ final class Meldungen
     /** Die Nummer aus dem Link („/anfragen/7“ → 7), sonst null. */
     public static function nummer(?string $link): ?int
     {
-        return preg_match('~^/[a-z_]+/(\d+)(?:[/?#]|$)~', (string) $link, $t) ? (int) $t[1] : null;
+        return preg_match('~^/[a-z_-]+/(\d+)(?:[/?#]|$)~', (string) $link, $t) ? (int) $t[1] : null;
     }
 
     /** Markiert als gelesen, was sich erledigt hat. @return int wie viele */

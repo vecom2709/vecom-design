@@ -403,6 +403,11 @@ final class Ablauf
         'automation_notaus' => [self::RAUS,
             'Ab sofort schickt keine Automation mehr etwas raus: keine Mails, keine Hinweise, keine Posts, keine Abbuchung, keine Mahnung, keine Partner-Auszahlung — auch nicht aus Webhooks, Bots oder dem Telefon. Mails, die dabei entstehen, warten auf deine Entscheidung. Prüfungen, Zahlungsabgleich und Sicherung laufen weiter. Lösen kann nur der Admin.',
             'Ja, Not-Aus ziehen'],
+        /* AI Freigaben: Das Formular trägt die Frage der eigentlichen Tat (data-frage) — dieser Eintrag
+           sorgt nur dafür, dass der Server ohne beantwortete Rückfrage nichts ausführt. */
+        'freigabe_genehmigen' => [self::RAUS,
+            'Die vorgeschlagene Tat wird jetzt ausgeführt — genau wie mit ihrem eigenen Knopf in der Verwaltung.',
+            'Ja, genehmigen'],
         'sicherung_schluessel' => [self::SCHWER,
             'Ab jetzt kann der Rechner mit dem passenden privaten Schlüssel jede Nacht die ganze Datenbank und alle Kundendateien abholen — verschlüsselt, lesbar nur für ihn. Ein schon eingetragener Schlüssel wird ersetzt.',
             'Ja, Schlüssel eintragen'],

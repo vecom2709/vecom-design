@@ -103,6 +103,52 @@ final class Nachricht
         return $id;
     }
 
+    /**
+     * Nachricht an einen Kunden ohne Projekt, mit dem Link seiner offenen Anfrage (falls es eine gibt).
+     * Bis 06.10.2026 stand das in app/index.php (kunde_nachricht); jetzt ruft es auch die AI-Freigabe auf.
+     */
+    public static function anKunde(int $kundeId, string $text, string $betreff = ''): int
+    {
+        require_once __DIR__ . '/Anfrage.php';
+        $tok = '';
+        try {
+            $tok = (string) Db::wert('SELECT token FROM anfragen WHERE customer_id = ? AND order_id IS NULL ORDER BY id DESC LIMIT 1', [$kundeId], '');
+        } catch (Throwable $e) { }
+        return self::vorab($kundeId, $text, 'admin', $tok !== '' ? Anfrage::link($tok) : null, $betreff);
+    }
+
+    /**
+     * Die Vorschau für den Kunden freischalten — einmal, mit genau einer E-Mail.
+     * Bis 06.10.2026 stand das in app/index.php (vorschau_frei); jetzt ruft es auch die AI-Freigabe auf.
+     * @return array{ok:bool, text:string, mail:bool}
+     */
+    public static function vorschauFreischalten(int $projektId): array
+    {
+        $url = '';
+        try { $url = (string) Db::wert('SELECT preview_url FROM projects WHERE id = ?', [$projektId], ''); } catch (Throwable $e) { }
+        if (trim($url) === '') {
+            throw new RuntimeException('Ohne Vorschau-Adresse gibt es nichts freizuschalten. '
+                . 'Trag sie zuerst ein — sonst bekommt der Kunde eine E-Mail und findet nichts.');
+        }
+        Db::update('projects', $projektId, ['vorschau_frei_am' => date('Y-m-d H:i:s')]);
+        // Der Projektstand zieht mit, damit beides nicht auseinanderlaeuft.
+        // melden = false: Die E-Mail schicken wir gleich selbst, und zwar genau einmal.
+        try { Events::projektStatus($projektId, 'vorschau', false); } catch (Throwable $e) { }
+        Events::protokoll('vorschau_frei', 'Vorschau für den Kunden freigeschaltet', null, null, $projektId);
+        require_once __DIR__ . '/Freigabe.php';
+        Freigabe::vonHandErledigt('vorschau_frei', ['projekt' => $projektId]);   // kein zweites Angebot unter „AI Freigaben“
+        // Ob die E-Mail schon einmal draussen war, muss VOR dem Verschicken feststehen.
+        require_once __DIR__ . '/Mail.php';
+        $schonMal = false; $raus = false;
+        try { $schonMal = Mail::schonGeschickt('vorschau', 'project_id', $projektId); } catch (Throwable $e) { }
+        try { $raus = self::vorschauBereit($projektId); } catch (Throwable $e) { }
+        return ['ok' => true, 'mail' => $raus, 'text' => 'Vorschau ist freigeschaltet.' . match (true) {
+            $raus     => ' Der Kunde hat die E-Mail bekommen.',
+            $schonMal => ' Eine zweite E-Mail bekommt er nicht — die erste ist schon draußen. Auf seiner Seite sieht er den Entwurf sofort.',
+            default   => ' Die E-Mail ging nicht raus — er sieht die Vorschau aber auf seiner Seite.',
+        }];
+    }
+
     public static function schreiben(int $projektId, string $text, string $von, ?string $betreff = null): int
     {
         $text = trim($text);

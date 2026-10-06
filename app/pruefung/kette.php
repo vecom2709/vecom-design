@@ -4570,16 +4570,23 @@ pruefe('freigeben meldet nur — auch mit ja wird nichts freigeschaltet', ($wsF[
     && Db::wert('SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
 pruefe('und der Kunde bekommt keine E-Mail aus der Werkstatt',
     (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0) === $wsMailsFrei);
-pruefe('Uwe hat eine Meldung mit Link aufs Projekt', (int) Db::wert(
-    "SELECT COUNT(*) FROM notifications WHERE type = 'werkstatt_vorschau_bereit' AND link = ? AND read_at IS NULL",
-    ['/projekte/' . $wsProjekt], 0) === 1);
-// Uwe klickt (hier: dieselbe Spalte wie der Knopf) — die Meldung erledigt sich selbst.
-Db::run('UPDATE projects SET vorschau_frei_am = NOW() WHERE id = ?', [$wsProjekt]);
+require_once $oben . '/app/src/Freigabe.php';
+$wsFr = Db::one("SELECT * FROM ai_freigaben WHERE art = 'vorschau_frei' AND projekt_id = ? AND status = 'offen'", [$wsProjekt]);
+pruefe('Uwe hat eine AI-Freigabe mit Vorher/Nachher und Rückweg (Stufe 1)', $wsFr !== null && ($wsF['freigabe'] ?? 0) === (int) $wsFr['id']
+    && (string) $wsFr['ist'] !== '' && (string) $wsFr['soll'] !== '' && (string) $wsFr['rollback'] !== '' && (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'ai_freigabe' AND link = ?", ['/ai-freigaben/' . ($wsFr['id'] ?? 0)], 0) === 1);
+pruefe('ein zweites Melden legt keine zweite Freigabe an', (Werkstatt::freigeben(['projekt' => (string) $wsProjekt])['freigabe'] ?? 0) === (int) ($wsFr['id'] ?? -1)
+    && (int) Db::wert("SELECT COUNT(*) FROM ai_freigaben WHERE art = 'vorschau_frei' AND projekt_id = ?", [$wsProjekt], 0) === 1);
+// Uwe genehmigt — dieselbe Methode wie der Knopf „Vorschau freischalten“.
+$wsG = Freigabe::genehmigen((int) $wsFr['id'], 'Kette');
+pruefe('Genehmigen schaltet frei wie der Knopf und steht danach als erledigt da', $wsG['ok'] === true
+    && Db::wert('SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null
+    && (string) Db::wert('SELECT status FROM ai_freigaben WHERE id = ?', [(int) $wsFr['id']], '') === 'ausgefuehrt', json_encode($wsG));
+pruefe('ein zweites Genehmigen tut nichts Doppeltes', Freigabe::genehmigen((int) $wsFr['id'], 'Kette')['ok'] === false);
 require_once $oben . '/app/src/Meldungen.php';
 Meldungen::aufraeumen();
-pruefe('nach dem Freischalten ist die Meldung erledigt', (int) Db::wert(
-    "SELECT COUNT(*) FROM notifications WHERE type = 'werkstatt_vorschau_bereit' AND link = ? AND read_at IS NULL",
-    ['/projekte/' . $wsProjekt], 0) === 0);
+pruefe('nach dem Genehmigen ist die Meldung erledigt', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'ai_freigabe' AND link = ? AND read_at IS NULL", ['/ai-freigaben/' . (int) $wsFr['id']], 0) === 0);
 pruefe('ein zweites freigeben sagt nur „schon frei“', (Werkstatt::freigeben(['projekt' => (string) $wsProjekt])['gemeldet'] ?? true) === false);
 
 // Und ohne Adresse gibt es nichts zu melden — sonst klickt der Kunde ins Leere.
@@ -27067,6 +27074,51 @@ Db::run("DELETE FROM settings WHERE skey IN ('sicherung_probe', 'sicherung_abgeh
 pruefe('der Gerätecode steht nicht im Meldungstitel (der geht per Zuruf raus)',
     !str_contains((string) file_get_contents($wurzel . '/src/PartnerGeraet.php'), "'): ' . \$code,"));
 pruefe('cron.php nimmt den Schlüssel auch als HTTP-Passwort', str_contains((string) file_get_contents($oben . '/cron.php'), 'PHP_AUTH_PW'));
+
+/* ---- AI Office Stufe 1: AI Freigaben ---- */
+abschnitt('AI Office Stufe 1: AI Freigaben');
+require_once $wurzel . '/src/Freigabe.php';
+require_once $wurzel . '/src/PartnerPost.php';
+$frTg = []; Freigabe::$telegram = static function (string $t, array $k) use (&$frTg) { $frTg[] = $k; };
+$frP = (int) Db::insert('partner', ['name' => 'Freigabe Beispiel', 'email' => 'freigabe-partner@pruefung.example', 'code' => 'FR' . strtoupper(bin2hex(random_bytes(3))), 'token' => bin2hex(random_bytes(24)), 'status' => 'aktiv']);
+$frId = Freigabe::vorschlagen('partner_nachricht', ['partner' => (string) $frP, 'text' => 'Ciao, hai visto la nuova campagna?'], ['titel' => 'Nachricht an Partner', 'grund' => 'Seit 9 Tagen keine Aktivität.']);
+pruefe('ein Vorschlag entsteht genau einmal („5“ und 5 sind dasselbe)', Freigabe::vorschlagen('partner_nachricht', ['partner' => $frP, 'text' => 'Ciao, hai visto la nuova campagna?']) === $frId);
+pruefe('Telegram bekommt bei RAUS die Knöpfe zum Entscheiden', isset($frTg[0][0][0]['callback_data']) && $frTg[0][0][0]['callback_data'] === 'v:ag:' . $frId);
+gesperrt('ohne Pflichtangaben gibt es keinen Vorschlag', static fn() => Freigabe::vorschlagen('kunde_nachricht', ['kunde' => 1]));
+gesperrt('unbekannte Arten gibt es nicht', static fn() => Freigabe::vorschlagen('kunde_loeschen', ['kunde' => 1]));
+// Zurückstellen: aus der offenen Liste, nach der Frist wieder da.
+pruefe('zurückstellen nur um 1, 3 oder 7 Tage', Freigabe::zurueckstellen($frId, 2, 'Kette')['ok'] === false && Freigabe::zurueckstellen($frId, 3, 'Kette')['ok'] === true
+    && !in_array($frId, array_map('intval', array_column(Freigabe::offen(), 'id')), true));
+Db::run('UPDATE ai_freigaben SET zurueck_bis = NOW() - INTERVAL 1 MINUTE WHERE id = ?', [$frId]);
+pruefe('nach der Frist steht sie wieder oben', in_array($frId, array_map('intval', array_column(Freigabe::offen(), 'id')), true));
+// Ändern und per Telegram genehmigen — auch im Not-Aus, denn es ist Uwes Klick.
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('auto_notaus', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+Automation::automatischAb('telegram-webhook');
+$frVor = (int) Db::wert('SELECT COUNT(*) FROM partner_nachrichten WHERE partner_id = ?', [$frP], 0);
+$frG = Freigabe::genehmigen($frId, 'Kette', ['text' => 'Ciao! Ti mando il nuovo volantino.', 'betreff' => 'nicht änderbar'], 'telegram');
+pruefe('Genehmigen per Telegram führt die Tat aus, mit Uwes Änderung, und der Not-Aus hält sie nicht', $frG['ok'] === true
+    && (string) Db::wert('SELECT text FROM partner_nachrichten WHERE partner_id = ? ORDER BY id DESC LIMIT 1', [$frP], '') === 'Ciao! Ti mando il nuovo volantino.'
+    && (int) Db::wert('SELECT COUNT(*) FROM partner_nachrichten WHERE partner_id = ?', [$frP], 0) === $frVor + 1
+    && (int) Db::wert('SELECT geaendert FROM ai_freigaben WHERE id = ?', [$frId], 0) === 1, json_encode($frG));
+pruefe('danach gilt der Webhook wieder als automatisch', Automation::automatisch() === true);
+Automation::automatischZuruecksetzen();
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'auto_notaus'");
+// SCHWER nur in der Verwaltung: angebot_senden wiegt schwer?
+$frA = Freigabe::vorschlagen('angebot_senden', ['angebot' => 999999], ['titel' => 'Angebot senden']);
+$frR = Freigabe::rueckfrage(Freigabe::laden($frA));
+pruefe('was schwer wiegt, lässt sich per Telegram nicht genehmigen', $frR['gewicht'] !== Ablauf::SCHWER
+    || Freigabe::genehmigen($frA, 'Kette', [], 'telegram')['ok'] === false);
+$frF = Freigabe::genehmigen($frA, 'Kette');
+pruefe('scheitert die Tat, steht die Freigabe als fehlgeschlagen da — mit dem Satz warum', $frF['ok'] === false
+    && (string) Db::wert('SELECT status FROM ai_freigaben WHERE id = ?', [$frA], '') === 'fehlgeschlagen' && $frF['text'] !== '');
+$frB = Freigabe::vorschlagen('kunde_nachricht', ['kunde' => 1, 'text' => 'Beispiel']);
+pruefe('ablehnen: nichts passiert, Prüfspur steht', Freigabe::ablehnen($frB, 'Kette', 'Ton passt nicht')['ok'] === true
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'freigabe_abgelehnt' AND entity_id = ?", [$frB], 0) === 1
+    && Freigabe::genehmigen($frB, 'Kette')['ok'] === false);
+pruefe('genehmigen hat eine Rückfrage auf dem Server', isset(Ablauf::TRAGWEITE['freigabe_genehmigen']));
+Freigabe::$telegram = null;
+Db::run('DELETE FROM partner_nachrichten WHERE partner_id = ?', [$frP]);
+Db::run('DELETE FROM partner WHERE id = ?', [$frP]);
 
 /* ============================================================================
    Aufräumen und Bilanz

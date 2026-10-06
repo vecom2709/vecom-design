@@ -412,7 +412,10 @@ if ($post) {
             case 'angebot_senden':
                 require_once __DIR__ . '/src/Angebot.php';
                 $aid = (int) ($_POST['id'] ?? 0);
-                Angebot::senden($aid);
+                if (Angebot::senden($aid)) {
+                    require_once __DIR__ . '/src/Freigabe.php';
+                    Freigabe::vonHandErledigt('angebot_senden', ['angebot' => $aid]);
+                }
                 zurueck('angebote/' . $aid);
 
             case 'bedarf_loeschen':
@@ -1480,6 +1483,22 @@ if ($post) {
                 weiter('partner#testpartner');
 
             case 'automation_schalten':
+            case 'freigabe_genehmigen':
+            case 'freigabe_ablehnen':
+            case 'freigabe_zurueckstellen':
+                /* AI Freigaben (AI Office Stufe 1, 06.10.2026): nur der Admin. Genehmigen ruft dieselbe
+                   Methode wie der Knopf der Tat (Freigabe::ausfuehren); die Rückfrage der Tat steht am Formular. */
+                require_once __DIR__ . '/src/Freigabe.php';
+                $frId = (int) ($_POST['id'] ?? 0);
+                $frWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                $frR = match ($tat) {
+                    'freigabe_genehmigen' => Freigabe::genehmigen($frId, $frWer, array_intersect_key($_POST, ['text' => 1, 'betreff' => 1]), 'verwaltung', Auth::id()),
+                    'freigabe_ablehnen' => Freigabe::ablehnen($frId, $frWer, trim((string) ($_POST['grund'] ?? ''))),
+                    default => Freigabe::zurueckstellen($frId, (int) ($_POST['tage'] ?? 1), $frWer),
+                };
+                $_SESSION[$frR['ok'] ? 'gut' : 'fehler'] = $frR['text'];
+                zurueck('ai-freigaben#f' . $frId);
+
             case 'sicherung_schluessel':
             case 'sicherung_schluessel_weg':
                 /* Sicherung außer Haus (AI Office Stufe 0, 06.10.2026): nur der Admin, öffentlicher Schlüssel des Rechners. */
@@ -1946,16 +1965,10 @@ if ($post) {
                 zurueck('bestellungen/' . (int) ($_POST['order_id'] ?? $bst['id']));
 
             case 'kunde_nachricht':
+                // Seit 06.10.2026 in Nachricht::anKunde — dieselbe Stelle für die AI-Freigabe.
                 require_once __DIR__ . '/src/Nachricht.php';
-                require_once __DIR__ . '/src/Anfrage.php';
                 $kid = (int) ($_POST['id'] ?? 0);
-                // Wenn eine offene Anfrage da ist, kommt ihr Link mit in die Mail.
-                $tok = sicher(static fn() => Db::wert(
-                    'SELECT token FROM anfragen WHERE customer_id = ? AND order_id IS NULL ORDER BY id DESC LIMIT 1',
-                    [$kid], ''), '');
-                Nachricht::vorab($kid, (string) ($_POST['text'] ?? ''), 'admin',
-                    $tok ? Anfrage::link((string) $tok) : null,
-                    (string) ($_POST['betreff'] ?? ''));
+                Nachricht::anKunde($kid, (string) ($_POST['text'] ?? ''), (string) ($_POST['betreff'] ?? ''));
                 $_SESSION['gut'] = 'Nachricht ist raus — der Kunde bekommt sie per E-Mail.';
                 zurueck('kunden/' . $kid);
 
@@ -2068,32 +2081,10 @@ if ($post) {
                 zurueck('vorgaenge');
 
             case 'vorschau_frei':
+                /* Der Ablauf steht seit 06.10.2026 in Nachricht::vorschauFreischalten — dieselbe
+                   Stelle ruft auch eine genehmigte AI-Freigabe auf (AI Office Stufe 1). */
                 require_once __DIR__ . '/src/Nachricht.php';
-                $pid = (int) ($_POST['id'] ?? 0);
-                $url = (string) sicher(static fn() => Db::wert(
-                    'SELECT preview_url FROM projects WHERE id = ?', [$pid], ''), '');
-                if (trim($url) === '') {
-                    throw new RuntimeException('Ohne Vorschau-Adresse gibt es nichts freizuschalten. '
-                        . 'Trag sie zuerst ein — sonst bekommt der Kunde eine E-Mail und findet nichts.');
-                }
-                Db::update('projects', $pid, ['vorschau_frei_am' => date('Y-m-d H:i:s')]);
-                // Der Projektstand zieht mit, damit beides nicht auseinanderlaeuft.
-                // melden = false: Die E-Mail schicken wir gleich selbst, und zwar
-                // genau einmal.
-                sicher(static fn() => Events::projektStatus($pid, 'vorschau', false), null);
-                Events::protokoll('vorschau_frei', 'Vorschau für den Kunden freigeschaltet', null, null, $pid);
-                // Ob die E-Mail schon einmal draussen war, muss VOR dem
-                // Verschicken feststehen — danach ist sie es in jedem Fall,
-                // und die Rueckmeldung waere nicht mehr zu unterscheiden.
-                require_once __DIR__ . '/src/Mail.php';
-                $schonMal = (bool) sicher(static fn() => Mail::schonGeschickt('vorschau', 'project_id', $pid), false);
-                $raus = (bool) sicher(static fn() => Nachricht::vorschauBereit($pid), false);
-                $_SESSION['gut'] = 'Vorschau ist freigeschaltet.' . match (true) {
-                    $raus     => ' Der Kunde hat die E-Mail bekommen.',
-                    $schonMal => ' Eine zweite E-Mail bekommt er nicht — die erste ist schon draußen. '
-                                 . 'Auf seiner Seite sieht er den Entwurf sofort.',
-                    default   => ' Die E-Mail ging nicht raus — er sieht die Vorschau aber auf seiner Seite.',
-                };
+                $_SESSION['gut'] = Nachricht::vorschauFreischalten((int) ($_POST['id'] ?? 0))['text'];
                 zurueck('vorgaenge');
 
             case 'vorschau_sperren':
@@ -4734,6 +4725,21 @@ switch ($route) {
             'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
                                                            WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
         unset($_SESSION['lauf_ergebnis']);
+        break;
+
+    case 'ai-freigaben':
+        /* AI Freigaben (AI Office Stufe 1, 06.10.2026): Vorschläge von Claude/Werkstatt und die Mails,
+           die der Not-Aus zurückhält — eine Seite für alles, was auf Uwes Ja wartet. */
+        require_once __DIR__ . '/src/Freigabe.php';
+        require_once __DIR__ . '/src/Ausgang.php';
+        ansicht('ai_freigaben', [
+            'offen' => sicher(static fn() => Freigabe::offen(), []),
+            'ruhend' => sicher(static fn() => Freigabe::ruhend(), []),
+            'entschieden' => sicher(static fn() => Freigabe::entschieden(15), []),
+            'gehalten' => sicher(static fn() => Ausgang::offen(), []),
+            'notaus' => sicher(static fn() => Automation::notAus(), false),
+            'fokus' => (int) $id,
+        ]);
         break;
 
     case 'partner-support':

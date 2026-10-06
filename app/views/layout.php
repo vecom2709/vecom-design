@@ -18,6 +18,9 @@ $navZahlen = [
   'bestellungen'=> (int) Db::wert("SELECT COUNT(*) FROM orders WHERE status IN ('neu','zahlung_ausstehend')"),
   /* Phase 9: offene Anliegen der Partner (wartet auf Vecom). */
   'partner-support' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM partner_tickets WHERE stand = 'offen'", [], 0), 0),
+  // AI Freigaben (Stufe 1): offene Vorschläge plus Mails, die der Not-Aus zurückhält.
+  'ai-freigaben' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM ai_freigaben WHERE status = 'offen' OR (status = 'zurueckgestellt' AND zurueck_bis <= NOW())", [], 0), 0)
+                  + (int) sicher(fn() => Db::wert('SELECT COUNT(*) FROM ausgang_gehalten WHERE entschieden_am IS NULL', [], 0), 0),
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
@@ -118,6 +121,7 @@ $menue = [
      Einstellungen etwas nicht stimmt. */
   ['heute', 'Heute', 'heute', [
     ['benachrichtigungen', 'Was nicht läuft', 'benachrichtigungen'],
+    ['ai-freigaben', 'AI Freigaben', 'ai-freigaben'],   // AI Office Stufe 1 (06.10.2026)
     ['aktivitaeten', 'Was passiert ist', 'aktivitaeten'],
   ]],
 

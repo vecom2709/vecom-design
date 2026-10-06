@@ -365,10 +365,10 @@ final class Werkstatt
      * AI Office hat es als ersten Befund geführt. Uwe: „Claude meldet, Sie
      * klicken“.
      *
-     * Jetzt: eine Meldung an Uwe mit Link aufs Projekt, eine Zeile in der
-     * Akte. Freigeschaltet wird mit dem Knopf „Vorschau freischalten“ — dort
-     * steht die Rückfrage aus Ablauf::TRAGWEITE. Die Meldung erledigt sich
-     * selbst, sobald die Vorschau frei ist (Meldungen::regeln). „bestaetigt“
+     * Jetzt: eine Freigabe unter „AI Freigaben“ (Stufe 1) und eine Zeile in der
+     * Akte. Freigeschaltet wird per Genehmigen oder mit dem Knopf „Vorschau
+     * freischalten“ — beides dieselbe Methode, beide mit der Rückfrage aus
+     * Ablauf::TRAGWEITE. „bestaetigt“
      * wird angenommen und ignoriert, damit ältere Aufrufer nicht scheitern.
      */
     public static function freigeben(array $d): array
@@ -389,15 +389,25 @@ final class Werkstatt
 
         $kunde = (string) self::still(static fn() => Db::wert(
             'SELECT name FROM customers WHERE id = ?', [(int) $p['customer_id']], ''), '');
-        self::still(static fn() => Events::melden('werkstatt_vorschau_bereit',
-            'Vorschau bereit zum Freischalten' . ($kunde !== '' ? ': ' . $kunde : ''), 'hinweis',
-            'Claude Code meldet die Vorschau als fertig. Ansehen, dann „Vorschau freischalten“ — erst damit bekommt der Kunde die E-Mail.',
-            '/projekte/' . $pid));
+        /* Seit Stufe 1 (06.10.2026) eine echte Freigabe unter „AI Freigaben“ — mit Knöpfen auch in
+           Telegram. Genehmigt wird dieselbe Tat wie „Vorschau freischalten“ (Nachricht::vorschauFreischalten). */
+        require_once __DIR__ . '/Freigabe.php';
+        $fid = (int) Freigabe::vorschlagen('vorschau_frei', ['projekt' => $pid], [
+            'titel' => 'Vorschau freischalten' . ($kunde !== '' ? ': ' . $kunde : ''),
+            'system' => 'Werkstatt', 'von' => 'Claude Code',
+            'grund' => 'Claude Code meldet die Vorschau als fertig gebaut.',
+            'ist' => 'Die Vorschau liegt unter ' . $url . ' — der Kunde sieht sie noch nicht.',
+            'soll' => 'Der Kunde sieht den Entwurf auf seiner Seite und bekommt eine E-Mail „Vorschau bereit“.',
+            'kosten' => 'keine',
+            'auswirkung' => 'Der Kunde wird gebeten, die Vorschau anzusehen und Änderungen zu melden.',
+            'rollback' => '„Vorschau sperren“ im Projekt nimmt sie wieder weg; die E-Mail lässt sich nicht zurückholen.',
+            'empfehlung' => 'Vorher selbst öffnen: Stimmen Texte, Bilder, Kontaktdaten? Dann freischalten.',
+        ]);
         self::still(static fn() => Events::protokoll('werkstatt_bereit',
             'Werkstatt meldet: Vorschau bereit zum Freischalten', (int) $p['customer_id'], null, $pid));
 
-        return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url, 'mail' => false, 'gemeldet' => true,
-                'hinweis' => 'Gemeldet. Uwe sieht es in der Verwaltung und schaltet frei — '
+        return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url, 'mail' => false, 'gemeldet' => true, 'freigabe' => $fid,
+                'hinweis' => 'Gemeldet. Uwe sieht es unter „AI Freigaben“ und schaltet frei — '
                            . 'erst dann bekommt der Kunde eine E-Mail.'];
     }
 
