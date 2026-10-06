@@ -98,3 +98,4 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
   <?php endif; ?>
 </div>
 <?php require __DIR__ . '/projekt_wuensche.php'; /* AutoBuild Phase 8: Kundenwünsche */ ?>
+<?php require __DIR__ . '/projekt_livegang.php'; /* AutoBuild Phase 9: Livegang */ ?>

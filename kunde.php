@@ -1664,6 +1664,17 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </form>
   </details>
 
+  <?php /* ---------- Übergabe (AutoBuild Phase 9) ----------
+       Erst sichtbar, wenn Vecom sie freigegeben hat. Ohne Passwörter. */
+  $uebergabe = sicherLesen(static fn() => isset($seite['vorgang']['projekt_id'])
+      ? Db::one('SELECT uebergabe, uebergabe_frei_am FROM projects WHERE id = ? AND uebergabe_frei_am IS NOT NULL', [(int) $seite['vorgang']['projekt_id']]) : null, null);
+  if ($uebergabe && trim((string) $uebergabe['uebergabe']) !== ''): require_once __DIR__ . '/app/src/BauAuftrag.php'; ?>
+    <details id="uebergabe" class="klapp" open>
+      <summary><?= $h(preg_match('~^#\s*([^\n—]+)~u', (string) $uebergabe['uebergabe'], $ueT) ? trim($ueT[1]) : 'Übergabe') ?></summary>
+      <div style="margin-top:8px;font-size:15px;line-height:1.6"><?= BauAuftrag::alsHtml(preg_replace('~^#[^\n]*\n~u', '', (string) $uebergabe['uebergabe'])) ?></div>
+    </details>
+  <?php endif; ?>
+
   <?php /* ---------- Änderungswünsche (AutoBuild Phase 8) ----------
        Was er geschrieben hat, und was daraus wird — in seinen Worten.
        Ein Zusatz wird hier angekündigt, nie stillschweigend gebaut. */

@@ -2889,6 +2889,30 @@ if ($post) {
                 };
                 weiter($bsPid > 0 ? 'projekte/' . $bsPid : 'projekte');
 
+            /* AutoBuild Phase 9 (06.10.2026): Lieferprüfung, Live-Prüfung, Übergabe — nur Admin. */
+            case 'lieferung_bestaetigen':
+            case 'lieferung_livecheck':
+            case 'uebergabe_erstellen':
+            case 'uebergabe_frei':
+            case 'uebergabe_zu':
+                require_once __DIR__ . '/src/Lieferung.php';
+                $lgPid = (int) ($_POST['id'] ?? 0);
+                if (!Auth::istAdmin()) { throw new RuntimeException('Livegang und Übergabe macht nur ein Admin.'); }
+                if ($tat === 'lieferung_bestaetigen') {
+                    Lieferung::bestaetigen($lgPid, (int) ($_POST['version'] ?? 0), array_map('strval', (array) ($_POST['haken'] ?? [])), Auth::name(), (string) ($_POST['notiz'] ?? ''));
+                    $_SESSION['gut'] = 'Lieferprüfung abgehakt — die Fassung darf jetzt live.';
+                } elseif ($tat === 'lieferung_livecheck') {
+                    $lgC = Lieferung::liveCheck($lgPid);
+                    $_SESSION[$lgC['ok'] ? 'gut' : 'fehler'] = $lgC['text'];
+                } elseif ($tat === 'uebergabe_erstellen') {
+                    Lieferung::uebergabeErstellen($lgPid, Auth::name());
+                    $_SESSION['gut'] = 'Übergabe erstellt — lesen, dann dem Kunden zeigen.';
+                } else {
+                    Lieferung::uebergabeFreigeben($lgPid, Auth::name(), $tat === 'uebergabe_frei');
+                    $_SESSION['gut'] = $tat === 'uebergabe_frei' ? 'Der Kunde sieht die Übergabe ab sofort auf seiner Seite.' : 'Übergabe vor dem Kunden verborgen.';
+                }
+                weiter('projekte/' . $lgPid . '#livegang');
+
             /* AutoBuild Phase 8 (06.10.2026): Kundenwünsche — erfassen, einordnen (Scope), umsetzen lassen. */
             case 'wunsch_neu':
             case 'wunsch_einordnen':

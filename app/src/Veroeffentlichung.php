@@ -76,6 +76,7 @@ final class Veroeffentlichung
         }
         if (!$paket) { $g[] = 'Es liegt noch kein Paket vor (Werkstatt: aktion=paket, oder hier hochladen).'; }
         elseif (($vs = Versionen::liveSperre($version)) !== null) { $g[] = $vs; }   // Staging zuerst (Phase 6)
+        elseif (($ls = (static function () use ($version) { require_once __DIR__ . '/Lieferung.php'; return Lieferung::sperre($version); })()) !== null) { $g[] = $ls; }   // Lieferprüfung (Phase 9)
         /* AutoBuild Phase 4: beim Not-Aus geht nichts live, auch nicht von Hand. */
         require_once __DIR__ . '/Bausperre.php';
         $bs = Bausperre::darfBauen($p);

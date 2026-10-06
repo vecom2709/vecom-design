@@ -9686,6 +9686,8 @@ pruefe('Fassungen: ein altes Paket wird V1 (Bestand); live erst nach Testfassung
     $vpV1 !== null && (int) $vpV1['nummer'] === 1 && $vpV1['quelle'] === 'bestand' && count($vpOhneTest) === 2 && str_contains($vpOhneTest[0], 'Testfassung'), json_encode($vpOhneTest, JSON_UNESCAPED_UNICODE));
 Versionen::stagingEintragen((int) $vpV1['id'], 'veroeff-probe-v1.netlify.app', 'Uwe Admin');
 Versionen::geprueft((int) $vpV1['id'], 'Uwe Admin');
+/* Phase 9: die Lieferprüfung für dieses alte Probepaket als erledigt eintragen (die Prüfung selbst testet Abschnitt Phase 9 unten). */
+Db::insert('projekt_lieferung', ['project_id' => $vpP, 'version_id' => (int) $vpV1['id'], 'punkte' => '{}', 'von' => 'Kette']);
 pruefe('Veröffentlichen: vor der Abnahme nicht -- nur dieser Grund bleibt',
     Veroeffentlichung::stand($vpP)['gruende'] === ['Der Kunde hat noch nicht abgenommen (Stand: entwicklung).']);
 Db::run("UPDATE projects SET status = 'finale_freigabe' WHERE id = ?", [$vpP]);
@@ -9738,6 +9740,8 @@ Versionen::$http = null; $vpCfg->setValue(null, $vpCfgAlt);
 $vpNlV = Versionen::laden($vpV2);
 $vpV2Noch = Veroeffentlichung::stand($vpP)['gruende'];
 Versionen::geprueft($vpV2, 'Uwe Admin');
+$vpOhneLief = Veroeffentlichung::stand($vpP)['gruende'];
+Db::insert('projekt_lieferung', ['project_id' => $vpP, 'version_id' => $vpV2, 'punkte' => '{}', 'von' => 'Kette']);
 $vpE2 = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps);
 $vpIndexV2 = $vpFtp->fs['/web/index.html'] ?? '';
 $vpLiveV2 = (int) Db::wert('SELECT live_version_id FROM projects WHERE id = ?', [$vpP], 0) === $vpV2;
@@ -9748,7 +9752,7 @@ pruefe('Fassungen: V2 nicht ohne Testfassung; Netlify ohne Schlüssel sagt es; m
     && !$vpOhneToken['ok'] && str_contains($vpOhneToken['text'], 'netlify_token')
     && $vpNl['ok'] && count($vpNlLog) === 2 && str_contains($vpNlLog[0], 'POST https://api.netlify.com/api/v1/sites auth') && str_contains($vpNlLog[1], '/sites/site-123/deploys auth')
     && (string) Db::wert('SELECT netlify_site_id FROM projects WHERE id = ?', [$vpP], '') === 'site-123' && $vpNlV['staging_url'] === 'https://dep-456--vecom-seite.netlify.app'
-    && str_contains(implode(' ', $vpV2Noch), 'noch nicht als geprüft') && $vpE2['ok'] && str_starts_with($vpE2['text'], 'V2:') && $vpIndexV2 === '<h1>Zwei</h1>' && $vpLiveV2,
+    && str_contains(implode(' ', $vpV2Noch), 'noch nicht als geprüft') && str_contains(implode(' ', $vpOhneLief), 'Lieferprüfung für V2') && $vpE2['ok'] && str_starts_with($vpE2['text'], 'V2:') && $vpIndexV2 === '<h1>Zwei</h1>' && $vpLiveV2,
     json_encode([Db::wert('SELECT netlify_site_id FROM projects WHERE id = ?', [$vpP], ''), $vpNlV['staging_url'] ?? null, $vpFtp->fs['/web/index.html'] ?? null, Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vpV2], 0)], JSON_UNESCAPED_UNICODE));
 pruefe('Zurückrollen: V1 war schon live → ohne neue Prüfung wieder veröffentlicht, vorher gesichert, V1 ist LIVE, Prüfspur „zurückgerollt“; fremde Fassung abgelehnt; Token nirgends protokolliert',
     $vpZur['ok'] && !empty($vpZur['sicherung']) && ($vpFtp->fs['/web/index.html'] ?? '') === '<h1>Neu</h1>' && ($vpFtp->fs['/web/neu.html'] ?? '') === 'NEU'
@@ -9759,6 +9763,46 @@ pruefe('Zurückrollen: V1 war schon live → ohne neue Prüfung wieder veröffen
     && str_contains((string) file_get_contents($wurzel . '/src/Werkstatt.php'), "Versionen::erfassen(\$pid, (int) \$dateiId, 'werkstatt'")
     && str_contains((string) file_get_contents($wurzel . '/views/projekt.php'), "projekt_versionen.php"),
     json_encode([$vpZur, $vpFremd['gruende']], JSON_UNESCAPED_UNICODE));
+/* AutoBuild Phase 9 (06.10.2026): Lieferprüfung, Livegang, Live-Prüfung, Übergabe. */
+require_once $wurzel . '/src/Lieferung.php'; require_once $wurzel . '/src/Wunsch.php';
+$l9Html = static fn(string $t) => '<!doctype html><html lang="it"><head><meta name="viewport" content="width=device-width"><title>' . $t . '</title><meta name="description" content="Pagina di prova per la consegna."></head><body><h1>' . $t . '</h1><a href="privacy.html">Privacy</a></body></html>';
+$l9Zip = $vpZip(['index.html' => $l9Html('Veroeff Probe — Start'), 'privacy.html' => $l9Html('Veroeff Probe — Privacy')]);
+$l9F = Ablage::ausDatei($l9Zip, 'seite-v3.zip', $vpP, $vpK, 'admin'); Db::run("UPDATE files SET rolle = 'paket' WHERE id = ?", [$l9F]);
+$l9V = Versionen::erfassen($vpP, $l9F, 'hand');
+Versionen::stagingEintragen($l9V, 'veroeff-probe-v3.netlify.app', 'Uwe Admin'); Versionen::geprueft($l9V, 'Uwe Admin');
+$l9Auto = Lieferung::automatisch($vpP, Versionen::laden($l9V));
+$l9Gesperrt = Veroeffentlichung::stand($vpP)['gruende'];
+$l9Fehl1 = 'durch'; try { Lieferung::bestaetigen($vpP, $l9V, ['mobil', 'kontakt'], 'Uwe Admin'); } catch (RuntimeException $e) { $l9Fehl1 = $e->getMessage(); }
+$l9W = Wunsch::erfassen($vpP, 'Noch ein Wunsch', 'kunde');
+$l9Fehl2 = 'durch'; try { Lieferung::bestaetigen($vpP, $l9V, array_keys(Lieferung::MANUELL), 'Uwe Admin'); } catch (RuntimeException $e) { $l9Fehl2 = $e->getMessage(); }
+Wunsch::einordnen($l9W, 'abgelehnt', 'Uwe Admin', 'Nicht Teil dieser Seite.');
+$l9Fremd = 'durch'; try { Lieferung::bestaetigen($wsProjekt, $l9V, array_keys(Lieferung::MANUELL), 'Uwe Admin'); } catch (RuntimeException $e) { $l9Fremd = 'nein'; }
+Lieferung::bestaetigen($vpP, $l9V, array_keys(Lieferung::MANUELL), 'Uwe Admin', 'Mit dem Kunden am Telefon durchgegangen');
+$l9Bereit = Veroeffentlichung::stand($vpP)['bereit'];
+pruefe('Lieferprüfung: Tests werden für Hand-Pakete nachgeholt; ohne abgehakte Prüfung geht die Fassung nicht live; alle Punkte selbst angesehen, kein offener Wunsch, eigene Fassung — dann bereit (Prüfspur)',
+    in_array(true, array_map(static fn($a) => $a['key'] === 'tests' && $a['ok'], $l9Auto), true) && str_contains(implode(' ', $l9Gesperrt), 'Lieferprüfung für V')
+    && str_contains($l9Fehl1, 'Noch nicht abgehakt') && str_contains($l9Fehl2, 'Kundenwünsche') && $l9Fremd === 'nein' && $l9Bereit
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'lieferpruefung' AND after_json LIKE ?", ['%"projekt":' . $vpP . '%'], 0) === 1,
+    json_encode([$l9Auto, $l9Gesperrt, $l9Fehl1, $l9Fehl2], JSON_UNESCAPED_UNICODE));
+$l9E = Veroeffentlichung::veroeffentlichen($vpP, $vpFtp, $vpHttps, $l9V);
+$l9C1 = Lieferung::liveCheck($vpP, static fn(string $u): array => [200, '<html><head><title>Veroeff Probe — Start</title></head></html>']);
+$l9C2 = Lieferung::liveCheck($vpP, static fn(string $u): array => [200, '<html><title>Alte Seite</title></html>']);
+$l9C3 = Lieferung::liveCheck($vpP, static fn(string $u): array => [404, '']);
+pruefe('Livegang: V3 geht live (gesichert); Live-Prüfung erkennt richtig, alte Seite (falscher Titel) und Fehler',
+    $l9E['ok'] && !empty($l9E['sicherung']) && $l9C1['ok'] && !$l9C2['ok'] && str_contains($l9C2['text'], 'nicht den Titel') && !$l9C3['ok'] && str_contains($l9C3['text'], '404')
+    && json_decode((string) Db::wert('SELECT livecheck FROM projects WHERE id = ?', [$vpP], ''), true)['status'] === 404,
+    json_encode([$l9E, $l9C1, $l9C2, $l9C3], JSON_UNESCAPED_UNICODE));
+$l9Vorher = 'durch'; try { Lieferung::uebergabeFreigeben($vpP, 'Uwe', true); } catch (RuntimeException $e) { $l9Vorher = 'nein'; }
+$l9Md = Lieferung::uebergabeErstellen($vpP, 'Uwe Admin');
+Lieferung::uebergabeFreigeben($vpP, 'Uwe Admin');
+$l9KQ = (string) file_get_contents(dirname($wurzel) . '/kunde.php');
+$_SESSION['rolle'] = 'mitarbeit'; $l9Rechte = array_map(static fn($t) => Rechte::darfTat($t), ['lieferung_bestaetigen', 'uebergabe_frei', 'veroeffentlichen']); $_SESSION['rolle'] = 'admin';
+pruefe('Übergabe: erst nach dem Livegang, in der Sprache des Kunden, mit Adresse, Fassung und Änderungsweg — ohne Passwort; Kunde sieht sie erst nach Freigabe; nur Admin; Rückfrage',
+    $l9Vorher === 'nein' && str_contains($l9Md, 'https://veroeff-probe.it') && str_contains($l9Md, 'V' . (int) Versionen::laden($l9V)['nummer']) && !str_contains($l9Md, 'Ftp-Geheim')
+    && (str_contains($l9Md, 'preventivo') || str_contains($l9Md, 'Angebot') || str_contains($l9Md, 'quote'))
+    && Db::wert('SELECT uebergabe_frei_am FROM projects WHERE id = ?', [$vpP], null) !== null && str_contains($l9KQ, 'uebergabe_frei_am IS NOT NULL')
+    && $l9Rechte === [false, false, false] && Ablauf::wiegt('uebergabe_frei') === Ablauf::RAUS,
+    json_encode([$l9Md, $l9Rechte], JSON_UNESCAPED_UNICODE));
 pruefe('Veröffentlichen: das FTP-Passwort steht in keinem Protokoll',
     (int) Db::wert("SELECT COUNT(*) FROM activities WHERE title LIKE '%Ftp-Geheim%' OR meta LIKE '%Ftp-Geheim%'", [], 0) === 0);
 $vpKQ = (string) file_get_contents($wurzel . '/../kunde.php');
