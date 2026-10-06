@@ -514,6 +514,21 @@ if (in_array($stufe ?? '', ['angebot', 'freigabe'], true)) {
    er nichts versäumt hat und wann es weitergeht. */
 $wartetAufLink = ($stufe ?? '') === 'angebot' && !$angebotOffen && !$offen && $faellig !== null;
 
+/* Der Name der Rate in der Sprache der Seite (06.10.2026). Die Bezeichnung
+   entsteht in Events immer deutsch („Anzahlung (50 %) bei Auftrag“) -- ein
+   italienischer Kunde las auf seinem Zahlknopf Deutsch. Anzahlung und
+   Restzahlung heißen deshalb hier nach ihrer Art; alles andere (Nachtrag,
+   Gesamtbetrag) behält seine Bezeichnung. */
+$rateName = static function (array $z) use ($sprache): string {
+    $art = (string) ($z['art'] ?? '');
+    if ($art === 'anzahlung') {
+        $pz = preg_match('~(\d{1,3})\s*%~', (string) ($z['bezeichnung'] ?? ''), $m) ? $m[1] : '50';
+        return strtr(Texte::h(Texte::SEITE['rateAnzahlung'] ?? [], $sprache, 'Anzahlung ({p} %) bei Auftrag'), ['{p}' => $pz]);
+    }
+    if ($art === 'restzahlung') { return Texte::h(Texte::SEITE['rateRest'] ?? [], $sprache, 'Restzahlung bei Übergabe'); }
+    return (string) (($z['bezeichnung'] ?? '') ?: Texte::h(Texte::SEITE['rateZahlung'] ?? [], $sprache, 'Zahlung'));
+};
+
 /* Kann Stripe wirklich kassieren? Dieselbe Prüfung wie beim Monatsvertrag.
    Wenn nicht, führt ein Zahlungslink ins Leere -- dann zählt die Überweisung. */
 $stripeKann = (bool) sicherLesen(static function (): bool {
@@ -914,8 +929,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
       <?php elseif ($stufe === 'angebot' && $offen): ?>
         <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
-          <?= $h((string) ($offen['bezeichnung'] ?: 'Zahlung')) ?> ·
-          <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></a>
+          <span><?= $h($rateName($offen)) ?> · <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></span></a>
 
       <?php elseif ($stufe === 'angaben' && $fragebogen && $fbToken !== ''): ?>
         <?php
@@ -999,8 +1013,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 
       <?php elseif ($stufe === 'freigabe' && $offen): ?>
         <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
-          <?= $h((string) ($offen['bezeichnung'] ?: 'Restzahlung')) ?> ·
-          <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></a>
+          <span><?= $h($rateName($offen)) ?> · <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></span></a>
 
       <?php elseif (($stufe === 'online' || $stufe === 'fertig') && $seite['live'] !== ''): ?>
         <a class="knopf haupt" href="<?= $h($seite['live']) ?>" target="_blank" rel="noopener">
