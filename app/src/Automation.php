@@ -22,8 +22,9 @@ require_once __DIR__ . '/Db.php';
      C  nur von Hand — steht hier zur Übersicht, läuft nie im Cron.
 
    NOT-AUS
-   Hält jede Regel mit raus = true an, sofort und für alle. Prüfungen,
-   Zahlungsabgleich und Sicherung laufen weiter: Ein Not-Aus, der auch die
+   Hält jede Regel mit raus = true an, sofort und für alle — und seit
+   06.10.2026 auch die Wege außerhalb des Cron (ausgangGesperrt, siehe
+   unten). Prüfungen, Zahlungsabgleich und Sicherung laufen weiter: Ein Not-Aus, der auch die
    Sicherung stoppt, wäre ein zweiter Schaden. Ziehen darf ihn jede Rolle
    mit Zugang zur Verwaltung außer „Nur lesen“; lösen nur der Admin.
 
@@ -51,11 +52,11 @@ final class Automation
         'gespraeche'     => ['Gespräche von STRATO holen', 'kunden', 'A', false, 'Holt die Anrufe stündlich herüber (nur lesen).'],
         'netlify'        => ['Netlify-Vorschau erinnern', 'kunden', 'A', false, 'Erinnert dich nach vier Wochen an die Vorschau (löscht nie).'],
         // Geld
-        'zahlabgleich'   => ['Zahlungsabgleich', 'geld', 'A', false, 'Fragt offene Zahlungen beim Anbieter nach (nur lesen).'],
+        'zahlabgleich'   => ['Zahlungsabgleich', 'geld', 'A', false, 'Fragt offene Zahlungen beim Anbieter nach und bucht Eingänge. Beleg, Auftragsbestätigung und Fragebogen, die daraus folgen, hält der Not-Aus zurück (06.10.2026).'],
         'zahllinks'      => ['Zahlungslinks ablaufen lassen', 'geld', 'A', false, 'Abgelaufene Links zurück auf „ausstehend“.'],
         'abbuchungen'    => ['Abbuchung fälliger Raten', 'geld', 'A', true, 'Bucht angekündigte Raten am Fälligkeitstag über Stripe ab.'],
         'mahnungen'      => ['Mahnung Stufe 1', 'geld', 'A', true, 'Erste Zahlungserinnerung drei Tage nach Fälligkeit, mit frischem Link. Stufe 2 und 3 bleiben bei dir.'],
-        'betreuung'      => ['Betreuungsmonate anlegen', 'geld', 'A', false, 'Legt fällige Monate als offene Raten an — fordert nichts an.'],
+        'betreuung'      => ['Betreuungsmonate anlegen und anfordern', 'geld', 'A', true, 'Legt fällige Monate als Raten an und fordert sie gleich per Mail an bzw. kündigt die Abbuchung an. Bis 06.10.2026 stand hier „fordert nichts an“ — das stimmte nicht.'],
         'abos'           => ['Gekündigte Verträge beenden', 'geld', 'A', false, 'Setzt Verträge nach ihrem Enddatum auf beendet.'],
         'steuerakte'     => ['Paket fürs Finanzamt', 'geld', 'A', false, 'Baut das Jahrespaket jeden Morgen neu.'],
         // Hosting & Seiten
@@ -130,6 +131,7 @@ final class Automation
         'versand'        => ['E-Mail-Versand prüfen', 'system', 'A', false, 'Fragt täglich, ob Brevo noch antwortet.'],
         'zustellbarkeit' => ['SPF, DKIM, DMARC', 'system', 'A', false, 'Prüft täglich die Einträge der Absenderdomain.'],
         'sicherung'      => ['Sicherung der Datenbank', 'system', 'A', false, 'Täglicher Auszug.'],
+        'sicherung_aussen' => ['Sicherung außer Haus überwachen', 'system', 'A', false, 'Meldet, wenn Uwes Rechner die Sicherung über 2 Tage nicht abgeholt oder über 9 Tage nicht probeweise eingespielt hat (06.10.2026).'],
     ];
 
     /** Nur von Hand (Stufe C) — zur Übersicht. Läuft nie im Cron. */
@@ -145,6 +147,41 @@ final class Automation
     private static ?array $zustand = null;
 
     /* ---------------------------------------------------------------- Lesen */
+
+    /* WEGE OHNE MENSCHEN (AI Office Stufe 0, 06.10.2026)
+       Der Not-Aus hielt bis heute nur den Cron an. Die Systemanalyse fand
+       Wege, die von selbst nach draußen gehen, ohne je durch den Cron zu
+       laufen: Stripe-Webhook (Beleg, Auftragsbestätigung, Druckauftrag,
+       KAS-Anlage), WhatsApp- und Meta-Webhook (Assistent, Kommentar-
+       Direktnachrichten), Telegram-Bot, KI-Telefon. Jeder dieser Eingänge
+       meldet sich jetzt als „automatisch“; die Ausgänge (Mail, Telegram,
+       WhatsApp, Meta, Druckerei, KAS) fragen ausgangGesperrt(). Ein Klick in
+       der Verwaltung ist nie automatisch — Uwe kann während des Not-Aus
+       weiter selbst handeln. Nachrichten an Uwe selbst gehen immer. */
+    private static bool $automatisch = false;
+
+    /** Am Anfang jedes Eingangs ohne Menschen aufrufen (cron.php, Webhooks, Telefon). */
+    public static function automatischAb(string $herkunft = 'automatisch'): void
+    {
+        self::$automatisch = true;
+        self::$herkunft = mb_substr($herkunft, 0, 40);
+    }
+
+    private static string $herkunft = '';
+
+    public static function automatisch(): bool { return self::$automatisch; }
+
+    public static function herkunft(): string { return self::$herkunft; }
+
+    /** Prüfnaht für die Kette: zurück in „ein Mensch klickt“. */
+    public static function automatischZuruecksetzen(): void { self::$automatisch = false; self::$herkunft = ''; }
+
+    /** Darf ein automatischer Weg jetzt etwas nach draußen schicken? true = nein, Not-Aus. */
+    public static function ausgangGesperrt(): bool
+    {
+        if (!self::$automatisch) { return false; }
+        try { return self::notAus(); } catch (Throwable $e) { return false; }
+    }
 
     public static function notAus(): bool
     {

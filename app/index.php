@@ -1480,6 +1480,40 @@ if ($post) {
                 weiter('partner#testpartner');
 
             case 'automation_schalten':
+            case 'sicherung_schluessel':
+            case 'sicherung_schluessel_weg':
+                /* Sicherung außer Haus (AI Office Stufe 0, 06.10.2026): nur der Admin, öffentlicher Schlüssel des Rechners. */
+                require_once __DIR__ . '/src/SicherungAussen.php';
+                $siWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                if ($tat === 'sicherung_schluessel_weg') {
+                    SicherungAussen::schluesselEntfernen($siWer);
+                    $_SESSION['gut'] = 'Schlüssel entfernt. Der Rechner holt nichts mehr ab.';
+                } else {
+                    $siR = SicherungAussen::schluesselSetzen((string) ($_POST['oeffentlich'] ?? ''), $siWer);
+                    $_SESSION[$siR['ok'] ? 'gut' : 'fehler'] = $siR['text'];
+                }
+                zurueck('einstellungen?b=ueberwachung#sicherung');
+
+            case 'ausgang_senden':
+            case 'ausgang_alle_senden':
+            case 'ausgang_verwerfen':
+                /* Zurückgehaltene Mails aus dem Not-Aus (AI Office Stufe 0, 06.10.2026). Nur der Admin
+                   (keine Mitarbeit-Tat); senden erst, wenn der Not-Aus gelöst ist. */
+                require_once __DIR__ . '/src/Ausgang.php';
+                $agWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                if ($tat === 'ausgang_alle_senden') {
+                    if (Automation::notAus()) { $_SESSION['fehler'] = 'Erst den Not-Aus lösen — dann senden.'; zurueck('automationen#gehalten'); }
+                    $agR = Ausgang::alleSenden($agWer);
+                    $_SESSION[$agR['fehler'] === 0 ? 'gut' : 'fehler'] = $agR['gesendet'] . ' gesendet'
+                        . ($agR['fehler'] > 0 ? ', ' . $agR['fehler'] . ' gingen nicht raus und warten weiter.' : '.');
+                    zurueck('automationen#gehalten');
+                }
+                $agR = $tat === 'ausgang_senden'
+                    ? Ausgang::senden((int) ($_POST['id'] ?? 0), $agWer)
+                    : Ausgang::verwerfen((int) ($_POST['id'] ?? 0), $agWer);
+                $_SESSION[$agR['ok'] ? 'gut' : 'fehler'] = $agR['text'];
+                zurueck('automationen#gehalten');
+
             case 'automation_notaus':
             case 'automation_weiter':
                 /* Automation Center (Phase 8, 06.10.2026, Uwe: „Schalten Admin, Not-Aus alle“): Schalten und Lösen nur
@@ -5587,6 +5621,11 @@ switch ($route) {
             $daten['adresse'] = sicher(static fn() => Cron::adresse(), '');
             $daten['lauf']    = sicher(static fn() => Cron::zuletzt(), null);
             $daten['bilanz']  = sicher(static fn() => Cron::letzteBilanz(), null);
+            $daten['cronWeg'] = (string) sicher(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_weg'", [], ''), '');
+            $daten['sicherungAussen'] = sicher(static function () {
+                require_once __DIR__ . '/src/SicherungAussen.php';
+                return SicherungAussen::stand();
+            }, ['eingerichtet' => false, 'fingerabdruck' => '', 'abgeholt' => null, 'probe' => null]);
         }
 
         if ($b === 'daten') {
@@ -5708,6 +5747,7 @@ switch ($route) {
             'lauf' => sicher(static fn() => Cron::zuletzt(), null),
             'admin' => Auth::istAdmin(),
             'darfNotaus' => Rechte::darfTat('automation_notaus'),
+            'gehalten' => sicher(static function () { require_once __DIR__ . '/src/Ausgang.php'; return Ausgang::offen(); }, []),
         ]);
         break;
 

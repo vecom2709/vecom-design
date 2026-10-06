@@ -635,6 +635,13 @@ final class Cron
         if (self::heuteNochNicht('cron_sicherung')) {
             $aufgaben['sicherung'] = static fn() => Sicherung::laufen();
         }
+        // Außer Haus: holt der Rechner ab, probt er? (AI Office Stufe 0, 06.10.2026)
+        if (self::heuteNochNicht('cron_sicherung_aussen')) {
+            $aufgaben['sicherung_aussen'] = static function () {
+                require_once __DIR__ . '/SicherungAussen.php';
+                return SicherungAussen::taeglich();
+            };
+        }
         // Ganz zuletzt das Jahrespaket fuers Finanzamt. Es baut jeden Beleg
         // als PDF neu und wird mit jedem Jahr laenger — und was am laengsten
         // dauert, darf nicht vor der Sicherung stehen: Steigt der Server

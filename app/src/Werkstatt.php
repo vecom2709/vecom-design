@@ -27,10 +27,9 @@ require_once __DIR__ . '/Bausperre.php';
  * WAS HIER ABSICHTLICH NICHT PASSIERT
  *
  * Freischalten. Das ist der Moment, in dem der Kunde eine E-Mail bekommt und
- * auf seiner Seite etwas Neues sieht -- die einzige Aktion hier draussen mit
- * Wirkung nach aussen. Sie hat deshalb eine eigene Aktion und einen eigenen
- * Satz in der Antwort, statt als Nebenwirkung von "Vorschau eintragen" zu
- * passieren. Wer eine Adresse eintraegt, will eine Adresse eintragen.
+ * auf seiner Seite etwas Neues sieht. Seit 06.10.2026 meldet "freigeben" nur
+ * noch, dass es so weit ist; freigeschaltet wird in der Verwaltung, per Klick.
+ * Von hier draussen erreicht nichts mehr den Kunden.
  *
  * WARUM EIN EIGENER SCHLUESSEL
  *
@@ -356,43 +355,50 @@ final class Werkstatt
      * Deshalb verlangt er ein ausdrueckliches "ja". Ein Tippfehler im
      * Rumpf soll keine E-Mail ausloesen, die sich nicht zurueckholen laesst.
      */
+    /**
+     * „Fertig, bitte freischalten“ — gemeldet, nicht ausgeführt.
+     *
+     * BIS 06.10.2026 schaltete diese Aktion selbst frei: Mit dem Schlüssel und
+     * „bestaetigt = ja“ bekam der Kunde eine E-Mail, ohne dass ein Mensch
+     * geklickt hatte. Das widersprach der Regel aus CLAUDE.md („alles ab
+     * Vorschau bleibt am Klick eines Menschen“), und die Systemanalyse für das
+     * AI Office hat es als ersten Befund geführt. Uwe: „Claude meldet, Sie
+     * klicken“.
+     *
+     * Jetzt: eine Meldung an Uwe mit Link aufs Projekt, eine Zeile in der
+     * Akte. Freigeschaltet wird mit dem Knopf „Vorschau freischalten“ — dort
+     * steht die Rückfrage aus Ablauf::TRAGWEITE. Die Meldung erledigt sich
+     * selbst, sobald die Vorschau frei ist (Meldungen::regeln). „bestaetigt“
+     * wird angenommen und ignoriert, damit ältere Aufrufer nicht scheitern.
+     */
     public static function freigeben(array $d): array
     {
         $p = self::projektFinden($d);
         Bausperre::pruefen($p);
         $pid = (int) $p['id'];
 
-        if (!self::jaGesagt((string) ($d['bestaetigt'] ?? ''))) {
-            return ['ok' => false, 'bestaetigung_noetig' => true,
-                    'projekt' => $pid,
-                    'hinweis' => 'Freischalten schickt dem Kunden eine E-Mail und öffnet ihm den Entwurf. '
-                               . 'Wenn das so gewollt ist, noch einmal mit bestaetigt = ja.'];
-        }
-        $url = trim((string) self::still(static fn() => Db::wert(
-            'SELECT preview_url FROM projects WHERE id = ?', [$pid], ''), ''));
+        $url = trim((string) ($p['preview_url'] ?? ''));
         if ($url === '') {
             throw new RuntimeException('Ohne Vorschau-Adresse gibt es nichts freizuschalten — '
-                . 'sonst bekommt der Kunde eine E-Mail und findet nichts.');
+                . 'erst „vorschau“ mit der Adresse melden.');
+        }
+        if (!empty($p['vorschau_frei_am'])) {
+            return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url, 'mail' => false, 'gemeldet' => false,
+                    'hinweis' => 'Die Vorschau ist schon freigeschaltet. Der Kunde sieht sie auf seiner Seite.'];
         }
 
-        Db::update('projects', $pid, ['vorschau_frei_am' => date('Y-m-d H:i:s')]);
-        self::still(static fn() => Events::projektStatus($pid, 'vorschau', false));
-        self::still(static fn() => Events::protokoll('vorschau_frei',
-            'Vorschau aus der Werkstatt freigeschaltet', (int) $p['customer_id'], null, $pid));
+        $kunde = (string) self::still(static fn() => Db::wert(
+            'SELECT name FROM customers WHERE id = ?', [(int) $p['customer_id']], ''), '');
+        self::still(static fn() => Events::melden('werkstatt_vorschau_bereit',
+            'Vorschau bereit zum Freischalten' . ($kunde !== '' ? ': ' . $kunde : ''), 'hinweis',
+            'Claude Code meldet die Vorschau als fertig. Ansehen, dann „Vorschau freischalten“ — erst damit bekommt der Kunde die E-Mail.',
+            '/projekte/' . $pid));
+        self::still(static fn() => Events::protokoll('werkstatt_bereit',
+            'Werkstatt meldet: Vorschau bereit zum Freischalten', (int) $p['customer_id'], null, $pid));
 
-        require_once __DIR__ . '/Mail.php';
-        require_once __DIR__ . '/Nachricht.php';
-        $schonMal = (bool) self::still(static fn() => Mail::schonGeschickt('vorschau', 'project_id', $pid), false);
-        $raus = (bool) self::still(static fn() => Nachricht::vorschauBereit($pid), false);
-
-        return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url,
-                'mail' => $raus, 'hinweis' => match (true) {
-                    $raus     => 'Freigeschaltet. Der Kunde hat die E-Mail bekommen.',
-                    $schonMal => 'Freigeschaltet. Eine zweite E-Mail bekommt er nicht — '
-                               . 'die erste war schon draußen. Auf seiner Seite sieht er den Entwurf sofort.',
-                    default   => 'Freigeschaltet. Die E-Mail ging nicht raus — '
-                               . 'auf seiner Seite sieht er die Vorschau trotzdem.',
-                }];
+        return ['ok' => true, 'projekt' => $pid, 'vorschau' => $url, 'mail' => false, 'gemeldet' => true,
+                'hinweis' => 'Gemeldet. Uwe sieht es in der Verwaltung und schaltet frei — '
+                           . 'erst dann bekommt der Kunde eine E-Mail.'];
     }
 
     /* ================================================================== */
@@ -453,15 +459,21 @@ final class Werkstatt
      * Eine einzelne Datei ausliefern — die Bytes, nicht JSON.
      *
      * Der Aufrufer hat den Schluessel; werkstatt.php hat ihn bereits
-     * geprueft, bevor diese Methode ueberhaupt drankommt. Geprueft wird hier
-     * nur noch, dass die Nummer zu einer Datei gehoert, die es gibt.
+     * geprueft, bevor diese Methode ueberhaupt drankommt. Geprueft wird hier,
+     * dass die Nummer zu Material oder Paket eines Projekts gehoert.
      */
     public static function datei(array $d): never
     {
         $id = (int) ($d['id'] ?? 0);
         if ($id <= 0) { throw new RuntimeException('Sag, welche Datei: id.'); }
 
-        $f = Db::one('SELECT * FROM files WHERE id = ?', [$id]);
+        /* NUR DATEIEN EINES PROJEKTS (06.10.2026). Vorher lieferte jede Nummer
+           jede Datei aus — Rechnungen, Ausweise, Akquise-Nachweise. Ein
+           verlorener Werkstattschlüssel hätte die ganze Ablage geöffnet.
+           Jetzt nur, was `dateien` auch anbietet: Material und Paket eines
+           Projekts. Alles andere sieht aus wie „gibt es nicht“. */
+        $f = Db::one('SELECT * FROM files WHERE id = ? AND project_id IS NOT NULL AND rolle IN (?, ?)',
+            [$id, self::ROLLE_MATERIAL, self::ROLLE_PAKET]);
         if (!$f) { throw new RuntimeException('Diese Datei gibt es nicht (mehr).'); }
 
         require_once __DIR__ . '/Ablage.php';

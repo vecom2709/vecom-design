@@ -21,6 +21,10 @@ if (!is_file($konfig)) { http_response_code(503); exit("Noch nicht eingerichtet.
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
+// Ein Eingang ohne Menschen: Während des Not-Aus geht von hier nichts an Kunden,
+// Partner oder die Öffentlichkeit (AI Office Stufe 0, 06.10.2026, Automation::ausgangGesperrt).
+require_once __DIR__ . '/app/src/Automation.php';
+Automation::automatischAb('cron');
 require_once __DIR__ . '/app/src/Cron.php';
 require_once __DIR__ . '/app/src/Einrichtung.php';
 
@@ -28,7 +32,23 @@ date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 
 // Der Schluessel darf in der Adresse stehen (so kann der KAS ihn aufrufen)
 // oder im Kopf mitkommen. Verglichen wird zeitkonstant.
-$schluessel = (string) ($_GET['schluessel'] ?? $_SERVER['HTTP_X_VECOM_CRON'] ?? '');
+//
+// SEIT 06.10.2026 (AI Office Stufe 0) AUCH ALS HTTP-PASSWORT: Ein Schluessel in
+// der Adresse landet in jedem Serverprotokoll. Der KAS-Cronjob kann unter
+// „Erweiterte Einstellungen“ einen HTTP-Benutzer und ein HTTP-Passwort
+// mitschicken (all-inkl.com, Anleitung „Cronjobs: Einrichtung“) — dann steht
+// der Schluessel im Kopf, nicht in der Adresse. Welcher Weg zuletzt kam, merkt
+// sich cron_weg; die Verwaltung zeigt es, damit der Umstieg messbar ist.
+$cronBasis = (string) ($_SERVER['PHP_AUTH_PW'] ?? '');
+if ($cronBasis === '') {
+    $cronKopf = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
+    if (stripos($cronKopf, 'basic ') === 0) {
+        $cronTeile = explode(':', (string) base64_decode(substr($cronKopf, 6), true), 2);
+        $cronBasis = (string) ($cronTeile[1] ?? '');
+    }
+}
+$cronWeg = $cronBasis !== '' ? 'passwort' : (isset($_SERVER['HTTP_X_VECOM_CRON']) ? 'kopf' : 'adresse');
+$schluessel = $cronBasis !== '' ? $cronBasis : (string) ($_SERVER['HTTP_X_VECOM_CRON'] ?? $_GET['schluessel'] ?? '');
 
 try {
     if (!Cron::schluesselStimmt($schluessel)) {
@@ -41,6 +61,9 @@ try {
     http_response_code(503);
     exit("Noch nicht bereit.\n");
 }
+try {
+    Db::run("INSERT INTO settings (skey, svalue) VALUES ('cron_weg', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$cronWeg]);
+} catch (Throwable $e) { /* nur Anzeige */ }
 
 /* --------------------------------------------------------------------------
    Zuerst: die Datenbank nachziehen.

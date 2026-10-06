@@ -445,9 +445,27 @@ final class Kunde
         'telefon_gespraeche' => 'kunde_id = :k',
         'activities'     => 'customer_id = :k',
         'users'          => 'customer_id = :k',
-        'audit_log'      => "entity = 'customer' AND entity_id = :k",
+        /* audit_log steht hier seit 06.10.2026 NICHT mehr (AI Office Stufe 0): Die
+           Prüfspur wird geschwärzt statt gelöscht — siehe spurSchwaerzen(). */
         'customers'      => 'id = :k',
     ];
+
+    /**
+     * Prüfspur eines Kunden schwärzen statt löschen (AI Office Stufe 0, 06.10.2026).
+     *
+     * Bis heute verschwanden beim Löschen und Anonymisieren alle Zeilen der
+     * Prüfspur zu diesem Kunden — wer was wann getan hatte, war danach nicht
+     * mehr belegbar. Eine Prüfspur, die sich mitlöschen lässt, ist keine.
+     * Jetzt bleibt jede Zeile mit Tat, Zeit und Handelndem; was darin den
+     * Menschen beschreibt (vorher/nachher, IP), wird geleert.
+     */
+    public static function spurSchwaerzen(int $kundeId): int
+    {
+        try {
+            return Db::run("UPDATE audit_log SET before_json = NULL, after_json = JSON_OBJECT('geschwaerzt', 'Kunde gelöscht oder anonymisiert'), ip = NULL
+                             WHERE entity = 'customer' AND entity_id = ?", [$kundeId])->rowCount();
+        } catch (Throwable $e) { return 0; }
+    }
 
     /**
      * Loescht den Kunden mit allem, was an ihm haengt.
@@ -561,6 +579,7 @@ final class Kunde
                      'd' => $kundeId, 'e' => $kundeId])->rowCount();
             } catch (Throwable $e) { /* Tabelle fehlt in dieser Installation */ }
 
+            $summe += self::spurSchwaerzen($kundeId);
             foreach (self::REIHE as $tabelle => $wo) {
                 try {
                     $summe += Db::run("DELETE FROM `$tabelle` WHERE $wo", ['k' => $kundeId])->rowCount();
@@ -661,12 +680,12 @@ final class Kunde
                    sind Geschaeft, kein Mensch. Was daran der Mensch ist,
                    raeumt der Block gleich darunter weg. */
                 'users'          => 'customer_id = :k',
-                'audit_log'      => "entity = 'customer' AND entity_id = :k",
             ] as $tabelle => $wo) {
                 try {
                     $zeilen += Db::run("DELETE FROM `$tabelle` WHERE $wo", ['k' => $kundeId])->rowCount();
                 } catch (Throwable $e) { }
             }
+            $zeilen += self::spurSchwaerzen($kundeId);   // Prüfspur bleibt, geschwärzt (06.10.2026)
             try {
                 $zeilen += Db::run('DELETE FROM notifications WHERE link = ?',
                     ['/kunden/' . $kundeId])->rowCount();

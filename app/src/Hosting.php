@@ -688,6 +688,15 @@ final class Hosting
            ist (fortsetzen). Einen halb angelegten Auftrag mit erfundenem
            Login darf es nicht geben. */
         if ($kas === null && Kas::probelauf()) { return self::probelaufMerken($a); }
+        /* Not-Aus (AI Office Stufe 0, 06.10.2026): Nach einer Zahlung per Webhook würde sonst
+           mitten im Not-Aus ein KAS-Account entstehen. Der Auftrag bleibt „zugestimmt“ und wird
+           vorgemerkt wie im Probelauf — die Cron-Regel „hosting“ legt ihn nach dem Lösen an. */
+        if ($kas === null && (string) $a['status'] === 'zugestimmt' && class_exists('Automation') && Automation::ausgangGesperrt()) {
+            Db::run('UPDATE hosting_auftraege SET probelauf_am = COALESCE(probelauf_am, NOW()) WHERE id = ?', [(int) $a['id']]);
+            Events::melden('hosting_notaus', 'Hosting ' . $a['domain'] . ' wartet (Not-Aus)', 'hinweis',
+                'Zugestimmt und bezahlt, aber während des Not-Aus nicht im KAS angelegt. Läuft nach dem Lösen von selbst an.', '/kunden/' . (int) $a['customer_id']);
+            return ['ok' => false, 'notaus' => true, 'text' => 'Not-Aus: nichts angelegt. Läuft nach dem Lösen von selbst an.'];
+        }
         if ((string) $a['status'] === 'in_arbeit') { return self::weiter($auftragId, $kas); }
         if ((string) $a['status'] !== 'zugestimmt') {
             return ['ok' => false, 'text' => 'Nur ein zugestimmter Auftrag wird angelegt (Stand: ' . $a['status'] . ').'];

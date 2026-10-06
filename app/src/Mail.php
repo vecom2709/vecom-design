@@ -1,6 +1,8 @@
 <?php
 declare(strict_types=1);
 
+require_once __DIR__ . '/Automation.php';
+
 /**
  * E-Mails über Brevo — derselbe Weg, den das Kontaktformular der Website
  * schon nutzt.
@@ -125,6 +127,17 @@ final class Mail
             return false;
         }
         $z = self::zugang();
+        /* NOT-AUS AUCH AUSSERHALB DES CRON (AI Office Stufe 0, 06.10.2026). Ein Webhook, das
+           KI-Telefon oder der Cron wollen während des Not-Aus eine Mail an Kunden oder Partner
+           schicken: Sie wartet in Ausgang, bis Uwe sie sendet oder verwirft. Mails an Uwe selbst
+           gehen immer — eine Störung muss ihn gerade dann erreichen. */
+        if (Automation::ausgangGesperrt() && !self::anUns($an, $z)) {
+            require_once __DIR__ . '/Ausgang.php';
+            $gehalten = Ausgang::mailHalten($anlass, $an, $betreff, $text, $bezug);
+            self::vermerken($eintrag + ['status' => 'gehalten', 'fehler' => $gehalten
+                ? 'Not-Aus — zurückgehalten, bis Uwe entscheidet.' : 'Not-Aus — nicht verschickt.']);
+            return false;
+        }
         if ($z === null) {
             self::vermerken($eintrag + ['status' => 'fehler', 'fehler' => 'Kein Brevo-Schlüssel hinterlegt.']);
             return false;
@@ -273,6 +286,19 @@ final class Mail
      * bessere Warnung als eine, sie begraben nur alles andere. Wie viele es
      * waren, steht in der Meldung.
      */
+    /** Geht die Mail an Vecom selbst (Uwes Postfach, Absender, ein aktiver Admin)? */
+    private static function anUns(string $an, ?array $z): bool
+    {
+        $an = mb_strtolower(trim($an));
+        if ($an === '') { return false; }
+        foreach ([(string) ($z['to'] ?? ''), (string) ($z['from'] ?? '')] as $eigen) {
+            if ($eigen !== '' && mb_strtolower($eigen) === $an) { return true; }
+        }
+        try {
+            return (int) Db::wert("SELECT COUNT(*) FROM users WHERE LOWER(email) = ? AND role = 'admin' AND active = 1", [$an], 0) > 0;
+        } catch (Throwable $e) { return false; }
+    }
+
     private static function vermerken(array $daten): void
     {
         try { Db::insert('mails', $daten); } catch (Throwable $e) { /* Protokoll ist Beiwerk */ }

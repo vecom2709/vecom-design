@@ -50,6 +50,10 @@ if (!is_file(__DIR__ . '/app/config.local.php')) { $aus(404); }
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Texte', 'Events', 'Webhook', 'Telegram', 'TelegramBot'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
+// Ein Eingang ohne Menschen: Während des Not-Aus geht von hier nichts an Kunden,
+// Partner oder die Öffentlichkeit (AI Office Stufe 0, 06.10.2026, Automation::ausgangGesperrt).
+require_once __DIR__ . '/app/src/Automation.php';
+Automation::automatischAb('telegram-webhook');
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 
 try {

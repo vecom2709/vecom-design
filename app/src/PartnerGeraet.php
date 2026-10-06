@@ -126,11 +126,15 @@ final class PartnerGeraet
                 strtr($t('geraet_mail_text'), ['{name}' => (string) $p['name'], '{code}' => $code, '{min}' => (string) self::CODE_MINUTEN, '{geraet}' => $bezeichnung]));
         } catch (Throwable $e) { $ok = false; }
         if ($ok) { return 'gesendet'; }
-        // Mail ging nicht raus: Uwe sieht den Code (nur er), damit der Partner nicht ausgesperrt ist.
+        /* Mail ging nicht raus: Uwe sieht den Code, damit der Partner nicht ausgesperrt ist.
+           SEIT 06.10.2026 (AI Office Stufe 0) NICHT MEHR IM TITEL: Der Titel geht bei „warnung“
+           per Zuruf aufs Handy (WhatsApp über einen Fremddienst) und steht in der Meldungsliste,
+           die auch Mitarbeit und Lesen sehen. Der Code steht nur im Text; die Meldungsliste zeigt
+           diesen Text bei dieser Art nur dem Admin (views/benachrichtigungen.php). */
         try {
             require_once __DIR__ . '/Events.php';
-            Events::melden('partner_geraet_code', 'Gerätecode für ' . $p['name'] . ' (' . $p['code'] . '): ' . $code,
-                'warnung', 'Die Mail an den Partner ging nicht raus. Gib ihm den Code weiter — gültig bis ' . date('H:i', strtotime($bis)) . ' Uhr.', 'partner/' . $pid);
+            Events::melden('partner_geraet_code', 'Gerätecode für ' . $p['name'] . ' (' . $p['code'] . '): Mail ging nicht raus',
+                'warnung', 'Code ' . $code . ' — gib ihn dem Partner weiter, gültig bis ' . date('H:i', strtotime($bis)) . ' Uhr.', 'partner/' . $pid);
         } catch (Throwable $e) { }
         return 'uwe';
     }

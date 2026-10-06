@@ -47,7 +47,7 @@ foreach ($liste as $regeln) { foreach ($regeln as $r) {
   <div class="block" id="notaus" style="border-color:rgba(255,138,138,.45)">
     <h2 style="color:var(--rot)">Not-Aus steht</h2>
     <p style="font-size:13px;margin:0 0 12px">Seit <?= Fmt::h($notaus['am'] !== '' ? Fmt::zeit($notaus['am']) : '—') ?><?= $notaus['von'] !== '' ? ', gezogen von ' . Fmt::h($notaus['von']) : '' ?>.
-      Alle Regeln mit „geht raus“ ruhen. Prüfungen, Zahlungsabgleich, Sicherung und Entwürfe laufen weiter.</p>
+      Alle Regeln mit „geht raus“ ruhen — und auch Webhooks, Bots und das Telefon schicken nichts. Mails, die dabei entstehen, warten unten auf dich. Prüfungen, Zahlungsabgleich, Sicherung und Entwürfe laufen weiter.</p>
     <?php if ($admin): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="automation_weiter"><input type="hidden" name="zurueck" value="automationen">
@@ -57,6 +57,38 @@ foreach ($liste as $regeln) { foreach ($regeln as $r) {
     <?php else: ?>
       <p style="color:var(--leise);font-size:12.5px;margin:0">Lösen kann nur der Admin.</p>
     <?php endif; ?>
+  </div>
+<?php endif; ?>
+
+<?php $gehalten = $gehalten ?? []; if ($gehalten): /* AI Office Stufe 0 (06.10.2026): was der Not-Aus zurückhielt */ ?>
+  <div class="block" id="gehalten">
+    <h2>Zurückgehalten: <?= count($gehalten) ?> Mail<?= count($gehalten) === 1 ? '' : 's' ?></h2>
+    <p style="font-size:13px;margin:0 0 12px;color:var(--leise)">Automationen wollten sie während des Not-Aus verschicken. Nichts davon ist draußen.
+      <?= $notaus['an'] ? 'Senden geht erst, wenn der Not-Aus gelöst ist.' : 'Du entscheidest je Mail — oder alle auf einmal.' ?></p>
+    <?php if ($admin && !$notaus['an']): ?>
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 12px">
+        <?= Csrf::feld() ?><input type="hidden" name="tat" value="ausgang_alle_senden"><input type="hidden" name="zurueck" value="automationen">
+        <button class="knopf haupt">Alle <?= count($gehalten) ?> Mails jetzt senden</button>
+      </form>
+    <?php endif; ?>
+    <?php foreach ($gehalten as $g): ?>
+      <div class="am-regel" id="gehalten-<?= (int) $g['id'] ?>">
+        <div class="am-was">
+          <b><?= Fmt::h($g['betreff']) ?></b>
+          <span class="marke2"><?= Fmt::h($g['anlass']) ?></span>
+          <?php if (!empty($g['herkunft'])): ?><span class="marke2" title="Woher die Mail kam">aus <?= Fmt::h($g['herkunft']) ?></span><?php endif; ?>
+          <p>An <?= Fmt::h($g['empfaenger']) ?> · <?= Fmt::h(Fmt::zeit((string) $g['created_at'])) ?></p>
+        </div>
+        <?php if ($admin): ?>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <?php if (!$notaus['an']): ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="ausgang_senden"><input type="hidden" name="id" value="<?= (int) $g['id'] ?>"><input type="hidden" name="zurueck" value="automationen"><button class="knopf">Mail jetzt senden</button></form>
+            <?php endif; ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="ausgang_verwerfen"><input type="hidden" name="id" value="<?= (int) $g['id'] ?>"><input type="hidden" name="zurueck" value="automationen"><button class="knopf">Mail verwerfen</button></form>
+          </div>
+        <?php endif; ?>
+      </div>
+    <?php endforeach; ?>
   </div>
 <?php endif; ?>
 

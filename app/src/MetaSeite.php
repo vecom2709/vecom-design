@@ -144,6 +144,11 @@ final class MetaSeite
     /** @return array{status:int, json:?array} */
     private static function roh(string $methode, string $url, ?array $body, string $token): array
     {
+        /* Not-Aus (AI Office Stufe 0, 06.10.2026): Ein automatischer Weg postet und schreibt
+           nichts — keine Kommentar-Direktnachricht, kein Beitrag. Lesen (GET) bleibt. */
+        if ($methode !== 'GET' && class_exists('Automation') && Automation::ausgangGesperrt()) {
+            return ['status' => 0, 'json' => ['error' => ['message' => 'Not-Aus — nichts verschickt.']]];
+        }
         if (self::$netz) { return (self::$netz)($methode, $url, $body, $token); }
         if ($token === '') { return ['status' => 0, 'json' => ['error' => ['message' => 'Kein Seiten-Schlüssel hinterlegt.']]]; }
         $ch = curl_init($url);

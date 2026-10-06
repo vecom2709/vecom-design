@@ -13,6 +13,11 @@ RewriteCond %{HTTP_HOST} ^www\.vecom-design\.it$ [NC]
 RewriteRule ^ https://vecom-design.it%{REQUEST_URI} [R=301,L]
 RewriteCond %{HTTPS} !=on
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# Cron-Schluessel als HTTP-Passwort statt in der Adresse (06.10.2026, AI Office
+# Stufe 0). Unter PHP-FPM/CGI reicht Apache den Authorization-Kopf sonst nicht
+# an PHP weiter. Nur fuer cron.php; ohne L, damit alles Weitere unveraendert gilt.
+RewriteCond %{HTTP:Authorization} .
+RewriteRule ^cron\.php$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
 
 # Sicherheits-Header (26.09.2026). "always", damit sie auch auf Fehlerseiten
 # und Weiterleitungen stehen. Keine davon heisst Cache-Control -- die

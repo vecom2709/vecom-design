@@ -4563,19 +4563,34 @@ pruefe('die Notiz steht in der Akte', (int) Db::wert(
 gesperrt('eine leere Notiz wird nicht abgelegt',
     static fn() => Werkstatt::notiz(['projekt' => (string) $wsProjekt, 'text' => '   ']));
 
-// Freigeben: der einzige Schritt, der beim Kunden ankommt.
-$wsF = Werkstatt::freigeben(['projekt' => (string) $wsProjekt]);
-pruefe('ohne ja wird nur nachgefragt', !empty($wsF['bestaetigung_noetig']));
-pruefe('und nichts ist freigeschaltet', Db::wert(
-    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
-$wsF2 = Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']);
-pruefe('nach ja ist freigeschaltet', ($wsF2['ok'] ?? false) === true && Db::wert(
-    'SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null);
+// Freigeben: seit 06.10.2026 nur noch melden (Uwe: „Claude meldet, Sie klicken“).
+$wsMailsFrei = (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0);
+$wsF = Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']);
+pruefe('freigeben meldet nur — auch mit ja wird nichts freigeschaltet', ($wsF['gemeldet'] ?? false) === true
+    && Db::wert('SELECT vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt], null) === null);
+pruefe('und der Kunde bekommt keine E-Mail aus der Werkstatt',
+    (int) Db::wert('SELECT COUNT(*) FROM mails WHERE customer_id = ?', [$wsKunde], 0) === $wsMailsFrei);
+pruefe('Uwe hat eine Meldung mit Link aufs Projekt', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'werkstatt_vorschau_bereit' AND link = ? AND read_at IS NULL",
+    ['/projekte/' . $wsProjekt], 0) === 1);
+// Uwe klickt (hier: dieselbe Spalte wie der Knopf) — die Meldung erledigt sich selbst.
+Db::run('UPDATE projects SET vorschau_frei_am = NOW() WHERE id = ?', [$wsProjekt]);
+require_once $oben . '/app/src/Meldungen.php';
+Meldungen::aufraeumen();
+pruefe('nach dem Freischalten ist die Meldung erledigt', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'werkstatt_vorschau_bereit' AND link = ? AND read_at IS NULL",
+    ['/projekte/' . $wsProjekt], 0) === 0);
+pruefe('ein zweites freigeben sagt nur „schon frei“', (Werkstatt::freigeben(['projekt' => (string) $wsProjekt])['gemeldet'] ?? true) === false);
 
-// Und ohne Adresse gibt es nichts freizuschalten — sonst klickt der Kunde ins Leere.
+// Und ohne Adresse gibt es nichts zu melden — sonst klickt der Kunde ins Leere.
 Db::run('UPDATE projects SET preview_url = NULL, vorschau_frei_am = NULL WHERE id = ?', [$wsProjekt]);
-gesperrt('ohne Vorschau-Adresse wird nicht freigeschaltet',
+gesperrt('ohne Vorschau-Adresse wird nichts gemeldet',
     static fn() => Werkstatt::freigeben(['projekt' => (string) $wsProjekt, 'bestaetigt' => 'ja']));
+
+// Dateien: nur Material und Paket eines Projekts, nie die übrige Ablage (06.10.2026).
+$wsQuelle = (string) file_get_contents($oben . '/app/src/Werkstatt.php');
+pruefe('Werkstatt::datei liefert nur Projektdateien (Material/Paket)',
+    str_contains($wsQuelle, 'project_id IS NOT NULL AND rolle IN (?, ?)'));
 
 // Die Liste zeigt, woran gebaut wird.
 $wsListe = Werkstatt::liste([]);
@@ -26837,6 +26852,174 @@ AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }
 Db::run('DELETE FROM akq_firmen WHERE id = ?', [$wsId]);
+
+/* ============================================================================
+   AI Office Stufe 0: Der Not-Aus hält auch Webhooks, Bots und Telefon an (06.10.2026)
+
+   Die Systemanalyse fand: Der Not-Aus stoppte nur den Cron. Ein Stripe-Webhook
+   schickte weiter Belege, der WhatsApp-Assistent antwortete, ein Druckauftrag
+   ging raus. Jetzt meldet sich jeder Eingang ohne Menschen als „automatisch“,
+   und die Ausgänge fragen Automation::ausgangGesperrt().
+   ============================================================================ */
+abschnitt('AI Office Stufe 0: Not-Aus für alle Wege');
+require_once $wurzel . '/src/Automation.php';
+require_once $wurzel . '/src/Ausgang.php';
+require_once $wurzel . '/src/Mail.php';
+require_once $wurzel . '/src/Telegram.php';
+require_once $wurzel . '/src/WhatsAppCloud.php';
+$s0Alt = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'auto_notaus'", [], '0');
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('auto_notaus', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+Automation::automatischZuruecksetzen();
+pruefe('ein Klick in der Verwaltung ist nie gesperrt — auch nicht im Not-Aus', Automation::ausgangGesperrt() === false);
+Automation::automatischAb('kette');
+pruefe('ein automatischer Weg ist im Not-Aus gesperrt', Automation::ausgangGesperrt() === true);
+
+$s0Vor = Ausgang::anzahlOffen();
+$s0Text = 'Grazie per il pagamento. ' . bin2hex(random_bytes(4));
+$s0A = Mail::senden('beleg', 'kunde-s0@pruefung.example', 'Beleg', $s0Text, ['anhaenge' => [['name' => 'beleg.pdf', 'daten' => "%PDF-1.4\x00\xff binär"]]]);
+$s0B = Mail::senden('beleg', 'kunde-s0@pruefung.example', 'Beleg', $s0Text, []);
+pruefe('die Mail an den Kunden geht nicht raus, sondern wartet — genau einmal, auch beim zweiten Versuch',
+    $s0A === false && $s0B === false && Ausgang::anzahlOffen() === $s0Vor + 1
+    && (string) Db::wert("SELECT status FROM mails WHERE empfaenger = 'kunde-s0@pruefung.example' ORDER BY id DESC LIMIT 1", [], '') === 'gehalten');
+$s0Zeile = Db::one("SELECT * FROM ausgang_gehalten WHERE empfaenger = 'kunde-s0@pruefung.example' AND entschieden_am IS NULL");
+$s0N = json_decode((string) ($s0Zeile['nutzlast'] ?? ''), true);
+pruefe('der Anhang (binär) übersteht das Warten unverändert',
+    base64_decode((string) ($s0N['bezug']['anhaenge'][0]['daten'] ?? ''), true) === "%PDF-1.4\x00\xff binär"
+    && ($s0Zeile['herkunft'] ?? '') === 'kette');
+pruefe('Uwe hat eine Meldung mit Link zu den zurückgehaltenen Mails', (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'ausgang_gehalten' AND link = '/automationen#gehalten'", [], 0) >= 1);
+$s0Uwe = Db::insert('users', ['name' => 'Uwe S0', 'email' => 'uwe-s0@pruefung.example', 'role' => 'admin', 'active' => 1, 'password_hash' => password_hash('x' . bin2hex(random_bytes(8)), PASSWORD_DEFAULT)]);
+Mail::senden('stoerung', 'uwe-s0@pruefung.example', 'Störung', 'Text', []);
+pruefe('eine Mail an Uwe selbst wird nie zurückgehalten', (int) Db::wert(
+    "SELECT COUNT(*) FROM ausgang_gehalten WHERE empfaenger = 'uwe-s0@pruefung.example'", [], 0) === 0);
+
+// Telegram: Kunden-Chat gesperrt, Uwes Admin-Chat offen.
+$s0Tg = []; Telegram::$netz = static function (string $m, array $d) use (&$s0Tg) { $s0Tg[] = $d['chat_id'] ?? null; return ['ok' => true, 'result' => []]; };
+$s0Chat = Db::insert('telegram_chats', ['chat_id' => '990001', 'admin_verbunden' => $s0Uwe]);
+$s0T1 = Telegram::rufen('sendMessage', ['chat_id' => '990002', 'text' => 'an einen Kunden']);
+$s0T2 = Telegram::rufen('sendMessage', ['chat_id' => '990001', 'text' => 'an Uwe']);
+$s0T3 = Telegram::rufen('deleteMessage', ['chat_id' => '990002', 'message_id' => 1]);
+pruefe('Telegram: an Kunden nichts, an Uwes Admin-Chat ja, Löschen (Spam) weiter erlaubt',
+    $s0T1['ok'] === false && $s0T2['ok'] === true && $s0T3['ok'] === true && $s0Tg === ['990001', '990002'], json_encode($s0Tg));
+Telegram::$netz = null;
+// WhatsApp: keine Nachricht.
+$s0Wa = 0; WhatsAppCloud::$netz = static function () use (&$s0Wa) { $s0Wa++; return ['status' => 200, 'json' => ['messages' => [['id' => 'x']]]]; };
+pruefe('WhatsApp: der Assistent schweigt im Not-Aus', WhatsAppCloud::textSenden('393330000000', 'Ciao') === false && $s0Wa === 0);
+WhatsAppCloud::$netz = null;
+// Druckauftrag und KAS-Anlage: Quellprüfung, beide fragen den Not-Aus.
+$s0Q = (string) file_get_contents($wurzel . '/src/WmBestellung.php') . (string) file_get_contents($wurzel . '/src/Hosting.php') . (string) file_get_contents($wurzel . '/src/MetaSeite.php');
+pruefe('Druckauftrag, KAS-Anlage und Meta-Posten fragen den Not-Aus', substr_count($s0Q, 'Automation::ausgangGesperrt()') >= 3);
+$s0Eing = 0;
+foreach (['cron.php', 'stripe-webhook.php', 'wa-webhook.php', 'telegram-webhook.php', 'telefon.php', 'google-lead.php'] as $s0D) {
+    if (str_contains((string) file_get_contents($oben . '/' . $s0D), 'Automation::automatischAb(')) { $s0Eing++; }
+}
+pruefe('alle sechs Eingänge ohne Menschen melden sich als automatisch', $s0Eing === 6, (string) $s0Eing);
+pruefe('„Betreuung“ ist ehrlich als „geht raus“ markiert', Automation::REGELN['betreuung'][3] === true);
+
+// Entscheiden: im Not-Aus kein Senden; danach senden (ohne Brevo geht es nicht raus und wartet weiter) oder verwerfen.
+Automation::automatischZuruecksetzen();
+$s0Id = (int) $s0Zeile['id'];
+pruefe('im Not-Aus lässt sich nichts senden', Ausgang::senden($s0Id, 'Kette')['ok'] === false && Ausgang::anzahlOffen() === $s0Vor + 1);
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'auto_notaus'");
+$s0Brevo = Db::all("SELECT skey, svalue FROM settings WHERE skey IN ('brevo_key', 'brevo_from', 'brevo_name', 'brevo_to')");
+Db::run("DELETE FROM settings WHERE skey IN ('brevo_key', 'brevo_from', 'brevo_name', 'brevo_to')");
+$s0S = Ausgang::senden($s0Id, 'Kette');
+pruefe('geht das Senden schief, wartet die Mail weiter', $s0S['ok'] === false
+    && array_key_exists('entschieden_am', $s0Zl = (array) Db::one('SELECT entschieden_am FROM ausgang_gehalten WHERE id = ?', [$s0Id])) && $s0Zl['entschieden_am'] === null,
+    json_encode([$s0S, $s0Zl ?? null]));
+foreach ($s0Brevo as $s0R) { Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$s0R['skey'], $s0R['svalue']]); }
+$s0V = Ausgang::verwerfen($s0Id, 'Kette');
+pruefe('verwerfen entscheidet genau einmal und steht in der Prüfspur', $s0V['ok'] === true && Ausgang::verwerfen($s0Id, 'Kette')['ok'] === false
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'ausgang_verworfen' AND entity_id = ?", [$s0Id], 0) === 1);
+require_once $wurzel . '/src/Meldungen.php';
+Meldungen::aufraeumen();
+pruefe('ist über alles entschieden, erledigt sich die Meldung', Ausgang::anzahlOffen() > 0 || (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'ausgang_gehalten' AND read_at IS NULL", [], 0) === 0);
+pruefe('Senden und Verwerfen haben eine Rückfrage, die sagt, was passiert',
+    isset(Ablauf::TRAGWEITE['ausgang_senden'], Ablauf::TRAGWEITE['ausgang_alle_senden'], Ablauf::TRAGWEITE['ausgang_verwerfen']));
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('auto_notaus', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$s0Alt]);
+// Prüfspur bleibt beim Löschen eines Kunden — geschwärzt, nicht weg.
+require_once $wurzel . '/src/Kunde.php';
+$s0K = Events::kundeFinden(['name' => 'Spur Beispiel', 'email' => 'spur-s0@pruefung.example']);
+Events::pruefspur('kunde_geaendert', 'customer', $s0K, ['name' => 'Spur Beispiel'], ['name' => 'Spur Beispiel 2']);
+$s0SpurVor = (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE entity = 'customer' AND entity_id = ?", [$s0K], 0);
+Kunde::loeschen($s0K);
+$s0SpurNach = Db::all("SELECT before_json, after_json, ip FROM audit_log WHERE entity = 'customer' AND entity_id = ? AND action = 'kunde_geaendert'", [$s0K]);
+pruefe('nach dem Löschen steht die Prüfspur noch — ohne die Daten des Menschen',
+    $s0SpurVor >= 1 && count($s0SpurNach) === 1 && $s0SpurNach[0]['before_json'] === null && $s0SpurNach[0]['ip'] === null
+    && !str_contains((string) $s0SpurNach[0]['after_json'], 'Spur Beispiel'), json_encode($s0SpurNach));
+Db::run('DELETE FROM telegram_chats WHERE id = ?', [$s0Chat]);
+Db::run('DELETE FROM users WHERE id = ?', [$s0Uwe]);
+Db::run("DELETE FROM mails WHERE empfaenger IN ('kunde-s0@pruefung.example', 'uwe-s0@pruefung.example')");
+
+/* ---- Stufe 0: Sicherung außer Haus (Uwes Rechner holt ab, nur er kann lesen) ---- */
+abschnitt('AI Office Stufe 0: Sicherung außer Haus');
+require_once $wurzel . '/src/Sicherung.php';
+require_once $wurzel . '/src/SicherungAussen.php';
+// Der Auszug lässt berechnete Spalten weg — sonst bricht das Einspielen ab (Fehler 1906, gefunden von der ersten Probe).
+Db::run("INSERT INTO akq_firmen (kennung, name, name_norm, land, email) VALUES (?, 'Sicherung Beispiel', 'sicherung beispiel', 'IT', 'info@beispiel.example')", ['L-' . strtoupper(bin2hex(random_bytes(4)))]);
+$saAusz = Sicherung::laufen(true);
+$saSql = (string) gzdecode((string) file_get_contents(Sicherung::ordner() . '/' . $saAusz['datei']));
+preg_match('~INSERT INTO `akq_firmen` \(([^)]*)\)~', $saSql, $saSp);
+pruefe('der Datenbankauszug schreibt berechnete Spalten nicht mit', isset($saSp[1]) && !str_contains($saSp[1], 'email_found'), $saSp[1] ?? 'kein INSERT');
+Db::run("DELETE FROM akq_firmen WHERE name = 'Sicherung Beispiel'");
+@unlink(Sicherung::ordner() . '/' . $saAusz['datei']);
+// Schlüssel des „Rechners“, Verschlüsselung, Gegenprobe mit dem Node-Werkzeug, das auf dem Rechner läuft.
+$saPaar = openssl_pkey_new(['private_key_bits' => 3072, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
+openssl_pkey_export($saPaar, $saPrivat);
+$saOeff = (string) openssl_pkey_get_details($saPaar)['key'];
+pruefe('ein zu kurzer Schlüssel wird abgelehnt', SicherungAussen::schluesselSetzen((string) openssl_pkey_get_details(openssl_pkey_new(['private_key_bits' => 1024]))['key'], 'Kette')['ok'] === false);
+pruefe('der Schlüssel des Rechners lässt sich eintragen', SicherungAussen::schluesselSetzen($saOeff, 'Kette')['ok'] === true && SicherungAussen::eingerichtet());
+$saTmp = sys_get_temp_dir() . '/vcs-kette-' . bin2hex(random_bytes(4));
+@mkdir($saTmp . '/schluessel', 0700, true);
+file_put_contents($saTmp . '/schluessel/privat.pem', $saPrivat);
+$saKlar = random_bytes(2 * SicherungAussen::ABSCHNITT + 12345);   // drei Abschnitte
+file_put_contents($saTmp . '/klar.bin', $saKlar);
+$saFd = fopen($saTmp . '/geheim.vcs', 'wb');
+SicherungAussen::verschluesseln($saTmp . '/klar.bin', static function (string $t) use ($saFd): void { fwrite($saFd, $t); });
+fclose($saFd);
+$saNode = escapeshellarg((string) realpath($oben . '/tools/sicherung/vcs.mjs'));
+$saLauf = static fn(string $quelle, string $ziel): int => (static function () use ($quelle, $ziel, $saNode, $saTmp): int {
+    exec('VECOM_SICHERUNG=' . escapeshellarg($saTmp) . ' node --input-type=module -e ' . escapeshellarg(
+        "const m = await import(process.argv[1]); m.entschluesseln(process.argv[2], process.argv[3]);") . ' ' . $saNode . ' '
+        . escapeshellarg($quelle) . ' ' . escapeshellarg($ziel) . ' 2>/dev/null', $o, $code);
+    return $code;
+})();
+$saCode = $saLauf($saTmp . '/geheim.vcs', $saTmp . '/zurueck.bin');
+pruefe('was der Server verschlüsselt, öffnet der Rechner byte-genau (3 Abschnitte)', $saCode === 0
+    && hash_file('sha256', $saTmp . '/zurueck.bin') === hash('sha256', $saKlar), 'node ' . $saCode);
+$saRoh = (string) file_get_contents($saTmp . '/geheim.vcs');
+file_put_contents($saTmp . '/kurz.vcs', substr($saRoh, 0, strlen($saRoh) - 40));
+$saGekippt = $saRoh; $saGekippt[intdiv(strlen($saRoh), 2)] = chr(ord($saGekippt[intdiv(strlen($saRoh), 2)]) ^ 1);
+file_put_contents($saTmp . '/kipp.vcs', $saGekippt);
+pruefe('abgeschnitten oder ein Bit verändert: der Rechner merkt es', $saLauf($saTmp . '/kurz.vcs', $saTmp . '/x') !== 0 && $saLauf($saTmp . '/kipp.vcs', $saTmp . '/y') !== 0);
+// Unterschrift: richtig, wiederholt, fremd, zu alt.
+$saZeit = (string) (int) (microtime(true) * 1000);
+$saMsg = static fn(string $a, string $z, string $n, string $r = '') => $a . "\n" . $z . "\n" . $n . "\n" . hash('sha256', $r);
+openssl_sign($saMsg('liste', $saZeit, ''), $saSig, $saPrivat, OPENSSL_ALGO_SHA256);
+$saFremd = openssl_pkey_new(['private_key_bits' => 3072]);
+openssl_sign($saMsg('liste', (string) ((int) $saZeit + 5), ''), $saSigF, $saFremd, OPENSSL_ALGO_SHA256);
+$saAlt = (string) ((int) $saZeit - 3600 * 1000);
+openssl_sign($saMsg('liste', $saAlt, ''), $saSigA, $saPrivat, OPENSSL_ALGO_SHA256);
+pruefe('nur die Unterschrift des Rechners gilt, jede nur einmal, nur frisch',
+    SicherungAussen::anfrageStimmt('liste', $saZeit, '', '', base64_encode($saSig)) === true
+    && SicherungAussen::anfrageStimmt('liste', $saZeit, '', '', base64_encode($saSig)) === false
+    && SicherungAussen::anfrageStimmt('liste', (string) ((int) $saZeit + 5), '', '', base64_encode($saSigF)) === false
+    && SicherungAussen::anfrageStimmt('liste', $saAlt, '', '', base64_encode($saSigA)) === false);
+pruefe('Namen außerhalb der Ablage gibt es nicht', SicherungAussen::pfad('datei', '../config.local.php') === null
+    && SicherungAussen::pfad('datei', '.htaccess') === null && SicherungAussen::pfad('holen', 'vecom-2026-01-01.sql') === null);
+$saProbe = SicherungAussen::probeMelden(['ok' => true, 'datei' => 'x', 'tabellen' => 1, 'zeilen' => ['customers' => 3]]);
+pruefe('eine Probe mit fehlenden Tabellen gilt als Problem und meldet sich', $saProbe['ok'] === false && (int) Db::wert(
+    "SELECT COUNT(*) FROM notifications WHERE type = 'sicherung_probe' AND level = 'schlecht'", [], 0) >= 1);
+SicherungAussen::schluesselEntfernen('Kette');
+pruefe('ohne Schlüssel ist die Tür zu', SicherungAussen::eingerichtet() === false
+    && SicherungAussen::anfrageStimmt('liste', (string) ((int) $saZeit + 99), '', '', base64_encode($saSig)) === false);
+array_map('unlink', glob($saTmp . '/*.*') ?: []); @unlink($saTmp . '/schluessel/privat.pem'); @rmdir($saTmp . '/schluessel'); @rmdir($saTmp);
+Db::run("DELETE FROM settings WHERE skey IN ('sicherung_probe', 'sicherung_abgeholt')");
+// Gerätecode nicht im Titel, Cron-Schlüssel auch als HTTP-Passwort.
+pruefe('der Gerätecode steht nicht im Meldungstitel (der geht per Zuruf raus)',
+    !str_contains((string) file_get_contents($wurzel . '/src/PartnerGeraet.php'), "'): ' . \$code,"));
+pruefe('cron.php nimmt den Schlüssel auch als HTTP-Passwort', str_contains((string) file_get_contents($oben . '/cron.php'), 'PHP_AUTH_PW'));
 
 /* ============================================================================
    Aufräumen und Bilanz

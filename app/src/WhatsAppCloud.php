@@ -124,6 +124,12 @@ final class WhatsAppCloud
     private static function anfrage(string $methode, string $url, ?array $body = null): array
     {
         $token = self::geheim('wa_token');
+        /* Not-Aus (AI Office Stufe 0, 06.10.2026): Assistent und Folge-Vorlagen schweigen,
+           solange er steht — eine WhatsApp-Antwort Stunden später ist keine Antwort mehr,
+           deshalb wird hier nichts gesammelt, nur nicht gesendet. */
+        if ($methode === 'POST' && str_ends_with($url, '/messages') && class_exists('Automation') && Automation::ausgangGesperrt()) {
+            return ['status' => 0, 'json' => ['error' => ['message' => 'Not-Aus — nichts verschickt.']]];
+        }
         if (self::$netz) { return (self::$netz)($methode, $url, $body, $token); }
         if ($token === '') { return ['status' => 0, 'json' => ['error' => ['message' => 'Kein Zugangsschlüssel hinterlegt.']]]; }
         $ch = curl_init($url);

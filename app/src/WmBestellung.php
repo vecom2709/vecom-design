@@ -83,6 +83,15 @@ final class WmBestellung
     public static function nachZahlung(int $id): void
     {
         if (!self::automatik()) { return; }
+        /* Not-Aus (AI Office Stufe 0, 06.10.2026): Ein Druckauftrag kostet Geld und ist nicht
+           zurückzuholen. Während des Not-Aus wie bei ausgeschalteter Automatik: Uwe löst ihn
+           selbst aus. Die Zahlung ist gebucht, nur der Auftrag wartet. */
+        if (class_exists('Automation') && Automation::ausgangGesperrt()) {
+            $n = (string) Db::wert('SELECT nummer FROM wm_bestellungen WHERE id = ?', [$id], '');
+            Events::melden('wm_notaus', 'Werbemittel ' . $n . ': Druckauftrag wartet (Not-Aus)', 'warnung',
+                'Bezahlt, aber wegen des Not-Aus nicht automatisch an die Druckerei gegeben. Nach dem Lösen von Hand bestellen.', '/werbemittel/bestellungen');
+            return;
+        }
         try {
             $anbieter = (string) Db::wert('SELECT anbieter FROM wm_positionen WHERE bestellung_id = ? ORDER BY id LIMIT 1', [$id], '');
             require_once __DIR__ . '/Druckerei.php';

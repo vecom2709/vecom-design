@@ -135,11 +135,27 @@ final class Sicherung
             $schreib("DROP TABLE IF EXISTS $q;\n" . ($erzeugen[1] ?? '') . ";\n\n");
             $anzahl++;
 
+            /* BERECHNETE SPALTEN NICHT MITSCHREIBEN (06.10.2026). Die erste
+               Wiederherstellungsprobe fand: akq_firmen.email_found ist eine
+               berechnete Spalte; ein INSERT mit Wert dafuer bricht das Einspielen
+               mit Fehler 1906 ab — ab dort fehlten alle weiteren Tabellen. Eine
+               Sicherung, die sich nicht einspielen laesst, war es nie. Die Spalte
+               rechnet sich beim Einspielen von selbst neu. */
+            $berechnet = array_column($pdo->query(
+                "SELECT COLUMN_NAME FROM information_schema.COLUMNS
+                  WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = " . $pdo->quote((string) $tabelle) . "
+                    AND (IS_GENERATED = 'ALWAYS' OR EXTRA LIKE '%GENERATED%')")->fetchAll(PDO::FETCH_ASSOC), 'COLUMN_NAME');
+            $auswahl = '*';
+            if ($berechnet) {
+                $alle = array_column($pdo->query("SHOW COLUMNS FROM $q")->fetchAll(PDO::FETCH_ASSOC), 'Field');
+                $auswahl = implode(', ', array_map(static fn($s) => self::q((string) $s), array_values(array_diff($alle, $berechnet))));
+            }
+
             // Ungepuffert lesen: sonst haelt PDO die ganze Tabelle im
             // Speicher, und bei den Dateien und Nachrichten wird das eng.
             $pdo->setAttribute(PDO::MYSQL_ATTR_USE_BUFFERED_QUERY, false);
             try {
-                $zeilen  = $pdo->query("SELECT * FROM $q");
+                $zeilen  = $pdo->query("SELECT $auswahl FROM $q");
                 $stapel  = [];
                 $spalten = null;
 

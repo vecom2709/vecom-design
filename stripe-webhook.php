@@ -24,6 +24,10 @@ if (!is_file($konfig)) { http_response_code(503); exit('nicht eingerichtet'); }
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Webhook'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
 }
+// Ein Eingang ohne Menschen: Während des Not-Aus geht von hier nichts an Kunden,
+// Partner oder die Öffentlichkeit (AI Office Stufe 0, 06.10.2026, Automation::ausgangGesperrt).
+require_once __DIR__ . '/app/src/Automation.php';
+Automation::automatischAb('stripe-webhook');
 require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
 require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
 

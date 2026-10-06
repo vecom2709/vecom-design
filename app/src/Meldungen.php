@@ -43,6 +43,14 @@ final class Meldungen
                 $seit = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_sitzung_seit'", [], '');
                 return $seit !== '' && strtotime($seit) >= strtotime((string) $m['created_at']);
             },
+            // Not-Aus hielt Mails zurück — erledigt, wenn über alle entschieden ist (06.10.2026).
+            'ausgang_gehalten' => static function (array $m, ?int $id): bool {
+                require_once __DIR__ . '/Ausgang.php';
+                return Ausgang::anzahlOffen() === 0;
+            },
+            // Werkstatt meldete „Vorschau bereit“ — erledigt, sobald Uwe freigeschaltet hat (06.10.2026).
+            'werkstatt_vorschau_bereit' => static fn(array $m, ?int $id): bool => $id !== null
+                && Db::wert('SELECT vorschau_frei_am FROM projects WHERE id = ?', [$id], null) !== null,
             // Anfrage ist nicht mehr neu (in Arbeit, erledigt) -- oder gelöscht.
             'anfrage_neu' => static fn(array $m, ?int $id): bool => $id !== null
                 && (string) Db::wert('SELECT COALESCE(MAX(status), ?) FROM anfragen WHERE id = ?', ['weg', $id], 'weg') !== 'neu',

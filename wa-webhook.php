@@ -16,6 +16,10 @@ header('X-Robots-Tag: noindex, nofollow');
 header('X-Content-Type-Options: nosniff');
 if (!is_file(__DIR__ . '/app/config.local.php')) { http_response_code(503); exit; }
 foreach (['Config', 'Db', 'Status', 'Auth', 'Fmt', 'Events', 'Texte', 'Akquise', 'AkquiseGate', 'AkquiseText', 'WhatsAppCloud', 'MetaSeite', 'MkKommentar'] as $k) { require_once __DIR__ . "/app/src/$k.php"; }
+// Ein Eingang ohne Menschen: Während des Not-Aus geht von hier nichts an Kunden,
+// Partner oder die Öffentlichkeit (AI Office Stufe 0, 06.10.2026, Automation::ausgangGesperrt).
+require_once __DIR__ . '/app/src/Automation.php';
+Automation::automatischAb('wa-webhook');
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {

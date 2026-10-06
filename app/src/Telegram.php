@@ -480,6 +480,14 @@ final class Telegram
         if (!preg_match('/^[A-Za-z]{3,40}$/', $methode)) {
             return ['ok' => false, 'result' => null, 'beschreibung' => 'unbekannte Methode', 'status' => 0];
         }
+        /* Not-Aus (AI Office Stufe 0, 06.10.2026): Ein automatischer Weg (Webhook, Cron) schickt
+           während des Not-Aus nichts an Kunden, Gruppen oder den Kanal. Uwes eigene Admin-Chats
+           bleiben offen — dort kommen Störungen und Freigaben an. Löschen, Lesen, Webhook-Pflege
+           laufen weiter: Sie schicken niemandem etwas. */
+        if ((str_starts_with($methode, 'send') || in_array($methode, ['copyMessage', 'forwardMessage'], true))
+            && class_exists('Automation') && Automation::ausgangGesperrt() && !self::adminChat($daten['chat_id'] ?? null)) {
+            return ['ok' => false, 'result' => null, 'beschreibung' => 'Not-Aus — nichts verschickt.', 'status' => 0];
+        }
         if (self::$netz) {
             $r = (array) (self::$netz)($methode, $daten);
             return $r + ['ok' => false, 'result' => null, 'beschreibung' => '', 'status' => 200];
@@ -509,6 +517,15 @@ final class Telegram
             'beschreibung' => $ok ? '' : mb_substr((string) ($j['description'] ?? $netzfehler ?: ('HTTP ' . $status)), 0, 200),
             'status' => $status,
         ];
+    }
+
+    /** Ist das ein Chat, in dem Uwe (ein verbundener Admin) sitzt? */
+    private static function adminChat(mixed $chatId): bool
+    {
+        if ($chatId === null || $chatId === '') { return false; }
+        try {
+            return (int) Db::wert('SELECT COUNT(*) FROM telegram_chats WHERE chat_id = ? AND admin_verbunden IS NOT NULL', [(string) $chatId], 0) > 0;
+        } catch (Throwable $e) { return false; }
     }
 
     /**

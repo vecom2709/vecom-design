@@ -63,7 +63,7 @@ $knopf = static function (string $tat, int $id, string $text, string $stil = '')
             <?= $m['link']
                 ? '<a href="' . Fmt::h(url(ltrim((string) $m['link'], '/'))) . '">' . Fmt::h((string) $m['title']) . '</a>'
                 : Fmt::h((string) $m['title']) ?>
-            <?php if ($m['body']): ?><br><small><?= Fmt::h((string) $m['body']) ?></small><?php endif; ?>
+            <?php if ($m['body'] && ((string) $m['type'] !== 'partner_geraet_code' || Auth::istAdmin())): /* Gerätecodes nur für den Admin (06.10.2026) */ ?><br><small><?= Fmt::h((string) $m['body']) ?></small><?php endif; ?>
           </span>
           <span class="wann" style="display:flex;gap:6px;align-items:center">
             <?= Fmt::h(Fmt::seit($m['created_at'])) ?>

@@ -83,6 +83,17 @@
     Der Schlüssel gehört nicht in eine E-Mail und nicht in einen Chat. Wer ihn hat, kann den
     Lauf anstoßen — mehr nicht, aber das reicht als Grund, ihn für sich zu behalten.
   </p>
+  <?php $cronWeg = $cronWeg ?? ''; /* AI Office Stufe 0 (06.10.2026): Schlüssel als HTTP-Passwort statt in der Adresse */ ?>
+  <div class="hinweis<?= $cronWeg === 'passwort' ? ' gut' : '' ?>" id="cron-weg" style="margin-top:14px">
+    <?php if ($cronWeg === 'passwort'): ?>
+      Der KAS schickt den Schlüssel als HTTP-Passwort — er steht in keinem Serverprotokoll.
+    <?php else: ?>
+      Zuletzt kam der Schlüssel <b><?= $cronWeg === 'kopf' ? 'im Kopf' : 'in der Adresse' ?></b>. Sicherer: im KAS beim Cronjob
+      unter <b>Erweiterte Einstellungen</b> als <b>HTTP-Benutzer</b> „cron“ und als <b>HTTP-Passwort</b> den Teil hinter
+      <code>schluessel=</code> eintragen und in der URL nur <code><?= Fmt::h((string) preg_replace('~\?.*$~', '', (string) $adresse)) ?></code> lassen.
+      Die Adresse mit Schlüssel funktioniert weiter, bis du umgestellt hast.
+    <?php endif; ?>
+  </div>
   <?php if ($bilanz): ?>
     <p style="color:var(--leise);font-size:12px;margin-top:14px;word-break:break-all">
       Letzte Bilanz: <?= Fmt::h(json_encode($bilanz, JSON_UNESCAPED_UNICODE)) ?></p>
@@ -108,6 +119,40 @@
   ];
 ?>
 <?php $ddiag = $_SESSION['domain_diagnose'] ?? null; unset($_SESSION['domain_diagnose']); ?>
+<?php $sa = $sicherungAussen ?? ['eingerichtet' => false, 'fingerabdruck' => '', 'abgeholt' => null, 'probe' => null];
+      $saProbe = $sa['probe'] ?? null; $saAb = $sa['abgeholt'] ?? null; ?>
+<div class="block" id="sicherung"><h2>Sicherung außer Haus
+  <span class="mehr"><span class="marke2 <?= $sa['eingerichtet'] ? 'gut' : 'warn' ?>"><?= $sa['eingerichtet'] ? 'eingerichtet' : 'fehlt' ?></span></span></h2>
+  <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:12px">
+    Dein Windows-Rechner holt jede Nacht den Datenbankauszug und alle Kundendateien ab, verschlüsselt —
+    lesen kann sie nur er. Einmal die Woche spielt er die Sicherung probeweise in eine eigene Datenbank ein
+    und meldet, ob alles da ist. Ohne Passwort: Der Rechner unterschreibt jede Anfrage mit seinem Schlüssel.</p>
+  <?php if ($sa['eingerichtet']): ?>
+    <table class="schlicht"><tbody>
+      <tr><td style="width:34%">Schlüssel des Rechners</td><td><code><?= Fmt::h($sa['fingerabdruck']) ?></code></td></tr>
+      <tr><td>Zuletzt abgeholt</td><td><?= $saAb ? Fmt::h(Fmt::zeit((string) $saAb['am']) . ' · ' . $saAb['name']) : '<span style="color:var(--gelb)">noch nie</span>' ?></td></tr>
+      <tr><td>Letzte Probe</td><td><?php if ($saProbe): ?>
+        <span class="marke2 <?= !empty($saProbe['ok']) ? 'gut' : 'schlecht' ?>"><?= !empty($saProbe['ok']) ? 'in Ordnung' : 'Problem' ?></span>
+        <?= Fmt::h(Fmt::zeit((string) $saProbe['am'])) ?> · <?= (int) $saProbe['tabellen'] ?> Tabellen
+        <?php if (isset($saProbe['zeilen']['customers'])): ?> · <?= (int) $saProbe['zeilen']['customers'] ?> Kunden<?php endif; ?>
+        <?php if (!empty($saProbe['fehler'])): ?><br><small style="color:var(--rot)"><?= Fmt::h((string) $saProbe['fehler']) ?></small><?php endif; ?>
+      <?php else: ?><span style="color:var(--gelb)">noch keine</span><?php endif; ?></td></tr>
+    </tbody></table>
+  <?php endif; ?>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="sicherung_schluessel"><input type="hidden" name="zurueck" value="einstellungen?b=ueberwachung">
+    <div class="feld"><label for="sicherung-oeffentlich"><?= $sa['eingerichtet'] ? 'Neuen öffentlichen Schlüssel eintragen' : 'Öffentlicher Schlüssel des Rechners' ?></label>
+      <textarea id="sicherung-oeffentlich" name="oeffentlich" rows="4" placeholder="-----BEGIN PUBLIC KEY-----" style="font-family:monospace;font-size:12px"></textarea></div>
+    <button class="knopf<?= $sa['eingerichtet'] ? '' : ' haupt' ?>">Schlüssel eintragen</button>
+    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Steht auf dem Rechner in <code>Vecom-Sicherung\oeffentlich.pem</code>. Nur der öffentliche Teil — er ist kein Geheimnis.</span>
+  </form>
+  <?php if ($sa['eingerichtet']): ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="sicherung_schluessel_weg"><input type="hidden" name="zurueck" value="einstellungen?b=ueberwachung">
+      <button class="knopf">Schlüssel entfernen</button></form>
+  <?php endif; ?>
+</div>
+
 <div class="block"><h2>Domainprüfung testen</h2>
   <p style="color:var(--dim);font-size:13.5px;line-height:1.65;margin-bottom:10px">
     Prüft auf diesem Server je eine vergebene und eine sicher freie Domain (.it und .com), Stufe für Stufe.
