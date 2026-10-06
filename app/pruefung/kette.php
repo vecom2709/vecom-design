@@ -26264,6 +26264,64 @@ pruefe('Töne: der PC nimmt sie ohne Werkzeuge an (Claude Code, Uwes Abo), die W
 Db::run("DELETE FROM mk_auftraege WHERE art = 'ton' AND id IN (SELECT auftrag_id FROM akq_textvorschlaege WHERE firma_id = ?)", [$wsId]);
 Db::run('DELETE FROM akq_textvorschlaege WHERE firma_id = ?', [$wsId]);
 if ($tnHalt) { Db::run("UPDATE mk_auftraege SET status = 'wartet' WHERE id IN (" . implode(',', $tnHalt) . ')'); }
+/* Modul E: Antworten, Einwände, Nachfassen, Wiedervorlage, Zusammenfassung */
+require_once $wurzel . '/src/AkquiseAntwort.php';
+$awE1 = AkquiseAntwort::einwaende('Buongiorno, abbiamo già un sito ma costa troppo rifarlo');
+$awE2 = AkquiseAntwort::einwaende('Kein Bedarf gerade, vielleicht nächstes Jahr');
+$awV1 = AkquiseAntwort::vorlageFuer(['klasse' => 'PRICE_REQUEST', 'betreff' => 'Domanda', 'text' => 'Quanto costa un sito?']);
+$awV2 = AkquiseAntwort::vorlageFuer(['klasse' => 'OTHER', 'text' => 'ok']);
+$awF = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$wsId]);
+$awAlle = [];
+foreach (array_keys(AkquiseAntwort::VORLAGEN_NAMEN) as $awK) { foreach (['it', 'de', 'en'] as $awS) { $awAlle[$awK . '/' . $awS] = AkquiseAntwort::entwurf($awF, $awK, $awS, ['betreff' => 'Il vostro sito']); } }
+$awStopp = []; $awZahl = [];
+foreach ($awAlle as $awK => $awX) {
+    $awL = AkquiseWerkstatt::pruefliste($awF, 'email', $awX['betreff'], $awX['text'], false);
+    if (AkquiseWerkstatt::zahl($awL, 'stopp') > 0) { $awStopp[] = $awK; }
+    if (preg_match('~\d~', str_replace((string) AkquiseText::absender()['telefon'], '', AkquiseWerkstatt::ohneLinks($awX['betreff'] . ' ' . $awX['text'])))) { $awZahl[] = $awK; }
+}
+pruefe('Antworten: Einwände werden erkannt (zu teuer, hat schon eine Website, später), sonst entscheidet die Klasse; jede Vorlage in DE/IT/EN besteht die Werkstatt ohne ⛔ und enthält keine Zahl; Antwort im selben Faden (Re:)',
+    $awE1 === ['teuer', 'hat_website'] && $awE2 === ['spaeter'] && $awV1 === 'preis' && $awV2 === 'allgemein' && count($awAlle) === 39 && $awStopp === [] && $awZahl === []
+    && $awAlle['teuer/it']['betreff'] === 'Re: Il vostro sito' && $awAlle['nachfassen1/it']['betreff'] !== 'Re: Il vostro sito' && str_contains($awAlle['preis/de']['text'], '/de/preise.html')
+    && str_contains($awAlle['info/en']['text'], '/website-check.php?lang=en'), json_encode([$awE1, $awE2, $awV1, $awStopp, $awZahl], JSON_UNESCAPED_UNICODE));
+$awA = (int) Db::insert('akq_antworten', ['firma_id' => $wsId, 'eingang_am' => date('Y-m-d H:i:s'), 'betreff' => 'Re: Il vostro sito', 'text' => 'Costa troppo per noi', 'klasse' => 'OTHER', 'klasse_quelle' => 'hand']);
+$awO1 = AkquiseAntwort::offen($wsId);
+$awZ = AkquiseAntwort::zusammenfassung((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$wsId]));
+$awErl = AkquiseAntwort::erledigen($wsId, $awA, 'erledigt');
+$awErl2 = AkquiseAntwort::erledigen($wsId, $awA, 'erledigt');
+pruefe('Antworten: die offene Antwort steht oben, „Erledigt“ räumt sie weg (einmal, mit Verlauf); die Zusammenfassung nennt nur Belegtes — Nachrichten, Antwort mit Einwand, Versandgrund',
+    (int) ($awO1['id'] ?? 0) === $awA && $awErl && !$awErl2 && AkquiseAntwort::offen($wsId) === null
+    && str_contains(implode(' ', $awZ), 'Einwand: Zu teuer / kein Budget') && str_contains(implode(' ', $awZ), 'Versandgrund/Zustimmung dokumentiert') && str_contains(implode(' ', $awZ), 'Eine Nachricht am ')
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND text = 'Antwort als erledigt markiert'", [$wsId], 0) === 1, json_encode($awZ, JSON_UNESCAPED_UNICODE));
+/* Nachfassen: eigener Betrieb mit genau einer Mail vor 4 Tagen, ohne Antwort */
+$awN = $crF('CR00000009', 'Beispiel Nachfass Bar', ['kontakt_status' => 'kontaktiert']);
+Db::insert('akq_versand', ['firma_id' => $awN, 'kanal' => 'email', 'an' => 'info@cr00000009.example', 'status' => 'von_hand', 'compliance' => 'pruefen', 'created_at' => date('Y-m-d H:i:s', time() - 4 * 86400)]);
+$awNf1 = AkquiseAntwort::nachfassen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$awN]));
+$awH1 = AkquiseCrm::heute(50)['nachfassen'];
+Db::insert('akq_versand', ['firma_id' => $awN, 'kanal' => 'email', 'an' => 'info@cr00000009.example', 'status' => 'von_hand', 'compliance' => 'pruefen', 'created_at' => date('Y-m-d H:i:s', time() - 1 * 86400)]);
+$awNf2 = AkquiseAntwort::nachfassen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$awN]));
+Db::run("UPDATE akq_versand SET created_at = created_at - INTERVAL 5 DAY WHERE firma_id = ?", [$awN]);
+$awNf3 = AkquiseAntwort::nachfassen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$awN]));
+Db::insert('akq_antworten', ['firma_id' => $awN, 'eingang_am' => date('Y-m-d H:i:s'), 'text' => 'Grazie', 'klasse' => 'OTHER', 'klasse_quelle' => 'hand']);
+$awNf4 = AkquiseAntwort::nachfassen((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$awN]));
+pruefe('Nachfassen: Tag 3 nach der ersten Mail ohne Antwort steht unter „Heute“; direkt nach der zweiten Mail nicht; ab Tag 7 die letzte; nach einer Antwort nie — gesendet wird dabei nichts',
+    ($awNf1['schritt'] ?? 0) === 1 && in_array($awN, array_map(static fn($z) => (int) $z['id'], $awH1['zeilen']), true) && $awNf2 === null && ($awNf3['schritt'] ?? 0) === 2 && $awNf4 === null
+    && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$awN], 0) === 2, json_encode([$awNf1, $awNf2, $awNf3, $awNf4]));
+$awW1 = AkquiseAntwort::wiedervorlage($awN, 'saison', 'Beispiel: nach dem Sommer', null, 30);
+$awW2 = AkquiseAntwort::wiedervorlage($awN, 'unbekannt', '', null, 3);
+$awW3 = AkquiseAntwort::wiedervorlage($awN, 'budget', '', '2001-01-01', 0);
+$awNF = (array) Db::one('SELECT naechster_am, naechster_schritt FROM akq_firmen WHERE id = ?', [$awN]);
+pruefe('Wiedervorlage mit Grund schreibt den nächsten Schritt (eine Wahrheit mit Profil und „Heute“); ohne Grund oder mit Datum in der Vergangenheit nicht',
+    $awW1['ok'] && !$awW2['ok'] && !$awW3['ok'] && $awNF['naechster_am'] === date('Y-m-d', strtotime('+30 days'))
+    && $awNF['naechster_schritt'] === 'Wiedervorlage: Nach der Saison / nach dem Urlaub — Beispiel: nach dem Sommer', json_encode([$awW1, $awW2, $awW3, $awNF], JSON_UNESCAPED_UNICODE));
+$awView = (string) file_get_contents($wurzel . '/views/akquise_antworten.php');
+$awRt = (string) file_get_contents($wurzel . '/akquise_route.php');
+pruefe('Antworten-Oberfläche: im Überblick über „E-Mail“; Senden nur über mailto mit Versandgrund (Hinweis „keine Einwilligung“), beantwortet wird beim Öffnen vermerkt; Werkstatt und Töne darunter',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise_firma.php'), "require __DIR__ . '/akquise_antworten.php'") && str_contains($awView, 'value="akq_mail_mailto"')
+    && str_contains($awView, 'keine Einwilligung') && str_contains($awView, "require __DIR__ . '/akquise_werkstatt.php'") && str_contains($awRt, "AkquiseAntwort::erledigen(\$fid, (int) \$_POST['antwort'], 'beantwortet')")
+    && str_contains($awRt, "case 'akq_wiedervorlage':") && str_contains($awRt, "case 'akq_antwort_erledigt':"));
+foreach (['akq_versand', 'akq_antworten', 'akq_protokoll'] as $awT) { Db::run("DELETE FROM `$awT` WHERE firma_id = ?", [$awN]); }
+Db::run('DELETE FROM akq_firmen WHERE id = ?', [$awN]);
+Db::run('DELETE FROM akq_antworten WHERE firma_id = ?', [$wsId]);
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

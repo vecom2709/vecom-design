@@ -190,6 +190,10 @@ if ($post) {
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 try {
                     $r = AkquiseMail::mailtoErzeugen($fid, (string) ($_POST['betreff'] ?? ''), (string) ($_POST['text'] ?? ''), !empty($_POST['hinweise_gelesen']));
+                    if ((int) ($_POST['antwort'] ?? 0) > 0) {   // Modul E: aus „Antwort vorbereiten“ — die Antwort gilt als beantwortet
+                        require_once __DIR__ . '/src/AkquiseAntwort.php';
+                        AkquiseAntwort::erledigen($fid, (int) $_POST['antwort'], 'beantwortet');
+                    }
                 } catch (RuntimeException $e) {
                     if (!empty($_POST['js'])) { header('Content-Type: application/json; charset=utf-8'); echo json_encode(['ok' => false, 'fehler' => $e->getMessage()], JSON_UNESCAPED_UNICODE); exit; }
                     throw $e;
@@ -235,6 +239,17 @@ if ($post) {
                 if (!$tnAntwort['ok']) { throw new RuntimeException((string) ($tnAntwort['hinweis'] ?? 'Nicht geklappt.')); }
                 $_SESSION['gut'] = $tat === 'akq_ton' ? 'Bestellt — dein PC holt den Auftrag beim nächsten Abruf (spätestens in 5 Minuten).' : 'Erledigt.';
                 weiter('akquise/' . $fid . '#ansprechen');
+            case 'akq_antwort_erledigt':   // Modul E: Antwort braucht nichts mehr (oder wurde anders erledigt, z. B. am Telefon)
+                require_once __DIR__ . '/src/AkquiseAntwort.php';
+                $_SESSION['gut'] = AkquiseAntwort::erledigen($fid, (int) ($_POST['antwort'] ?? 0), 'erledigt') ? 'Als erledigt vermerkt.' : 'War schon erledigt.';
+                weiter('akquise/' . $fid . '#aw');
+            case 'akq_wiedervorlage':      // Modul E: Wiedervorlage mit Grund — schreibt den nächsten Schritt
+                require_once __DIR__ . '/src/AkquiseAntwort.php';
+                $wvR = AkquiseAntwort::wiedervorlage($fid, (string) ($_POST['grund'] ?? ''), (string) ($_POST['notiz'] ?? ''),
+                    ((string) ($_POST['tage'] ?? '') === '0' && ($_POST['datum'] ?? '') !== '') ? (string) $_POST['datum'] : null, (int) ($_POST['tage'] ?? 0));
+                if (!$wvR['ok']) { throw new RuntimeException($wvR['fehler']); }
+                $_SESSION['gut'] = 'Wiedervorlage am ' . date('d.m.Y', strtotime($wvR['am'])) . ' — steht unter „Heute“, wenn sie fällig ist.';
+                weiter('akquise/' . $fid . '#aw-wv');
             case 'akq_mail_pruefung':
                 require_once __DIR__ . '/src/AkquiseMail.php';
                 AkquiseMail::pruefungAnfordern($fid, (string) ($_POST['notiz'] ?? ''));

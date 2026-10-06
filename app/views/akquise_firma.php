@@ -183,6 +183,7 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
   </div>
 
   <div>
+    <?php require __DIR__ . '/akquise_antworten.php'; /* Akquise-CRM E: Zusammenfassung, Antwort vorbereiten, Nachfassen, Wiedervorlage */ ?>
     <?php require __DIR__ . '/akquise_mail.php'; /* Kommunikationsstatus E-Mail (06.10.2026) */ ?>
     <?php require __DIR__ . '/akquise_ansprechen.php'; /* K2/K3 (29.09.2026): fertige Texte für alle Wege */ ?>
     <!-- ====== Kontakt: genau ein Weg, je nach Stand ====== -->

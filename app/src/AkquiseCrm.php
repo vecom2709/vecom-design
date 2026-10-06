@@ -431,6 +431,14 @@ final class AkquiseCrm
             WHERE a.klasse NOT IN ($pos) AND a.klasse NOT IN ('OUT_OF_OFFICE','INVALID_ADDRESS','DO_NOT_CONTACT','NOT_INTERESTED') AND a.erledigt = 0 AND f.gesperrt = 0 GROUP BY f.id ORDER BY seit"];
         $k['faellig'] = ['titel' => 'Wiedervorlagen & Follow-ups fällig', 'ton' => 'warnung', 'sql' => "SELECT $felder, LEAST(COALESCE(f.naechster_am, '9999-12-31'), COALESCE(f.wiedervorlage_am, '9999-12-31')) AS seit
             FROM akq_firmen f WHERE " . self::ANSPRECHBAR . " AND (f.naechster_am <= CURDATE() OR f.wiedervorlage_am <= CURDATE()) ORDER BY seit"];
+        /* Modul E: Nachfassen Tag 3 / Tag 7 ohne Antwort — Erinnerung mit fertigem Entwurf, gesendet wird von Hand (AkquiseAntwort::nachfassen). */
+        $k['nachfassen'] = ['titel' => 'Nachfassen fällig (Tag 3 / Tag 7)', 'ton' => 'warnung', 'sql' => "SELECT $felder, v.erste AS seit FROM akq_firmen f
+            JOIN (SELECT firma_id, COUNT(*) AS n, MIN(created_at) AS erste, MAX(created_at) AS letzte FROM akq_versand WHERE kanal = 'email' AND status IN ('gesendet','von_hand') GROUP BY firma_id) v ON v.firma_id = f.id
+            WHERE f.gesperrt = 0 AND f.kontakt_status NOT IN ('kunde','abgelehnt','gesperrt','geantwortet') AND v.letzte <= NOW() - INTERVAL 2 DAY
+              AND ((v.n = 1 AND v.erste <= NOW() - INTERVAL 3 DAY) OR (v.n = 2 AND v.erste <= NOW() - INTERVAL 7 DAY))
+              AND NOT EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.eingang_am >= v.erste)
+              AND NOT EXISTS (SELECT 1 FROM akq_folgen fo WHERE fo.firma_id = f.id AND fo.status IN ('laeuft','pausiert'))
+            ORDER BY v.erste"];
         $k['ohne_schritt'] = ['titel' => 'Interessenten ohne nächsten Schritt', 'ton' => 'warnung', 'sql' => "SELECT $felder, NULL AS seit FROM akq_firmen f
             WHERE f.gesperrt = 0 AND f.kontakt_status NOT IN ('kunde','abgelehnt','gesperrt') AND f.naechster_am IS NULL AND (f.wiedervorlage_am IS NULL OR f.wiedervorlage_am < CURDATE())
               AND (f.pipeline IN ('angebot','verhandlung') OR EXISTS (SELECT 1 FROM akq_antworten a WHERE a.firma_id = f.id AND a.klasse IN ($pos) AND a.erledigt = 1))

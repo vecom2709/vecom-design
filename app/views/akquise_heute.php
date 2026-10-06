@@ -48,7 +48,7 @@ $warteText = ['gelb' => 'seit über 24 h', 'rot' => 'seit über 48 h', 'admin' =
 </div>
 
 <nav class="crm-schnell" aria-label="Schnellzugriff">
-  <?php foreach (['heiss' => '🔥 Heiße Antworten', 'antworten' => 'Offene Antworten', 'faellig' => 'Follow-ups & Wiedervorlagen', 'ohne_schritt' => 'Ohne nächsten Schritt', 'jetzt' => 'Noch nicht angesprochen'] as $k => $w): ?>
+  <?php foreach (['heiss' => '🔥 Heiße Antworten', 'antworten' => 'Offene Antworten', 'faellig' => 'Follow-ups & Wiedervorlagen', 'nachfassen' => 'Nachfassen', 'ohne_schritt' => 'Ohne nächsten Schritt', 'jetzt' => 'Noch nicht angesprochen'] as $k => $w): ?>
     <a href="#k-<?= $k ?>"><?= Fmt::h($w) ?> <b><?= (int) ($kacheln[$k]['n'] ?? 0) ?></b></a>
   <?php endforeach; ?>
   <a href="<?= Fmt::h(url('angebote')) ?>">Angebote</a>
@@ -61,10 +61,11 @@ $warteText = ['gelb' => 'seit über 24 h', 'rot' => 'seit über 48 h', 'admin' =
       <?php if (!$ka['zeilen']): ?><div class="crm-leer">Nichts offen.</div><?php endif; ?>
       <?php foreach ($ka['zeilen'] as $z): $w = in_array($k, ['heiss', 'antworten'], true) ? AkquiseCrm::warteStufe($z['seit'] ?? null) : ''; ?>
         <div class="crm-betrieb">
-          <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><?= Fmt::h((string) $z['name']) ?></a>
+          <a href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . (in_array($k, ['heiss', 'antworten', 'nachfassen'], true) ? '#aw' : '')) ?>"><?= Fmt::h((string) $z['name']) ?></a>
           <span><?= $prio($z) ?></span>
           <small><?= Fmt::h(implode(' · ', array_filter([(string) $z['stadt'], Akquise::branchenName($z['branche']), isset($z['partner']) ? 'bei ' . $z['partner'] . ' bis ' . date('d.m.', strtotime((string) $z['seit'])) : '']))) ?>
             <?php if ($w !== ''): ?><span class="crm-warte <?= $w ?>">wartet <?= Fmt::h($warteText[$w]) ?></span><?php endif; ?>
+            <?php if ($k === 'nachfassen' && !empty($z['seit'])): ?> · erste Nachricht <?= Fmt::h(date('d.m.', strtotime((string) $z['seit']))) ?><?php endif; ?>
             <?php if ($k === 'faellig' && !empty($z['seit']) && $z['seit'] !== '9999-12-31'): ?> · fällig seit <?= Fmt::h(date('d.m.Y', strtotime((string) $z['seit']))) ?><?php endif; ?>
             <?php $wy = AkquisePrio::warum($z); if ($wy !== '' && in_array($k, ['jetzt', 'ohne_schritt'], true)): ?><br><?= Fmt::h($wy) ?><?php endif; ?></small>
         </div>
