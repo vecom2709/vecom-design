@@ -3,6 +3,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/Firma.php';
 require_once __DIR__ . '/Pdf.php';
+require_once __DIR__ . '/Dokument.php';
 
 /**
  * Widerrufsbelehrung und Muster-Widerrufsformular.
@@ -130,8 +131,8 @@ final class Widerruf
         $tinte = [0.051, 0.106, 0.165];
         $grau  = [0.42, 0.46, 0.53];
         $leise = [0.62, 0.66, 0.72];
-        $blau  = [0.024, 0.282, 0.910];
-        $cyan  = [0.122, 0.910, 1.0];
+        $blau  = Dokument::bereit() ? Dokument::GOLD_TEXT : [0.024, 0.282, 0.910];
+        $cyan  = Dokument::bereit() ? Dokument::GOLD : [0.122, 0.910, 1.0];
         $linie = [0.80, 0.83, 0.87];
 
         $p = new Pdf();
@@ -140,21 +141,24 @@ final class Widerruf
 
         /* Briefkopf wie auf dem Beleg — es ist dasselbe Haus. */
         require_once __DIR__ . '/Rechnung.php';
-        $logo = Rechnung::logo();
-        if ($logo === null || !$p->bild($logo, $rand, 44, 98, 67)) {
-            $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
-            $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+        /* Stil „Vecom Gold“ (07.10.2026); ohne PDF-Schriften der bisherige Kopf. */
+        if (!Dokument::briefkopf($p, $rand)) {
+            $logo = Rechnung::logo();
+            if ($logo === null || !$p->bild($logo, $rand, 44, 98, 67)) {
+                $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
+                $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+            }
+            $y = 46;
+            foreach (Firma::anschrift() as $i => $zeile) {
+                $p->text($rechts, $y, $zeile, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
+                $y += 11.5;
+            }
+            $p->flaeche($rand, 124, ($rechts - $rand) * 0.38, 1.6, $blau);
+            $p->flaeche($rand + ($rechts - $rand) * 0.38, 124, ($rechts - $rand) * 0.12, 1.6, $cyan);
         }
-        $y = 46;
-        foreach (Firma::anschrift() as $i => $zeile) {
-            $p->text($rechts, $y, $zeile, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
-            $y += 11.5;
-        }
-        $p->flaeche($rand, 124, ($rechts - $rand) * 0.38, 1.6, $blau);
-        $p->flaeche($rand + ($rechts - $rand) * 0.38, 124, ($rechts - $rand) * 0.12, 1.6, $cyan);
 
         /* Titel und Vorbemerkung */
-        $p->text($rand, 168, $t['formTitel'], 20, true, 'links', $tinte);
+        Dokument::titelAlt($p, $rand, 168, $t['formTitel']);
         /* Die Kundennummer oben rechts. Wer dieses Blatt zurueckschickt,
            schickt es oft ohne Bestellnummer und manchmal von einer anderen
            Adresse — an der Nummer laesst er sich trotzdem zuordnen. */
@@ -219,13 +223,15 @@ final class Widerruf
         $p->text($rand, $y + 4, $t['formFuss'], 8.5, false, 'links', $leise);
 
         /* Fuss */
-        $fuss = Pdf::A4_HOCH - 82;
-        $p->flaeche($rand, $fuss, ($rechts - $rand) * 0.10, 1.2, $blau);
-        $p->linie($rand + ($rechts - $rand) * 0.10, $fuss + 0.6, $rechts, $fuss + 0.6, 0.5, $linie);
-        $fy = $fuss + 18;
-        foreach (Firma::fusszeilen() as $zeile) {
-            $p->text($rand, $fy, $zeile, 8, false, 'links', $leise);
-            $fy += 11;
+        if (!Dokument::briefFuss($p, $rand)) {
+            $fuss = Pdf::A4_HOCH - 82;
+            $p->flaeche($rand, $fuss, ($rechts - $rand) * 0.10, 1.2, $blau);
+            $p->linie($rand + ($rechts - $rand) * 0.10, $fuss + 0.6, $rechts, $fuss + 0.6, 0.5, $linie);
+            $fy = $fuss + 18;
+            foreach (Firma::fusszeilen() as $zeile) {
+                $p->text($rand, $fy, $zeile, 8, false, 'links', $leise);
+                $fy += 11;
+            }
         }
 
         return $p->fertig();

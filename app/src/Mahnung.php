@@ -9,6 +9,7 @@ require_once __DIR__ . '/Texte.php';
 require_once __DIR__ . '/Events.php';
 require_once __DIR__ . '/Kunde.php';
 require_once __DIR__ . '/Kundenzugang.php';
+require_once __DIR__ . '/Firma.php';
 
 /**
  * Was passiert, wenn jemand nicht zahlt.
@@ -264,12 +265,22 @@ final class Mahnung
             'kundennr'  => Kunde::nummer((int) $z['customer_id']),
         ]);
 
+        /* Ab der zweiten Stufe liegt die Mahnung als PDF im Stil „Vecom Gold“ bei (07.10.2026,
+           Vorschlag 1/6) — ein Blatt, das man ablegen oder weitergeben kann. Stufe 1 bleibt der
+           freundliche neue Link ohne Anhang. */
+        $anhaenge = [];
+        if ($stufe >= 2) {
+            try {
+                $pdf = self::pdf($zahlungId, $stufe, $frist);
+                if ($pdf !== '') { $anhaenge[] = ['name' => self::dateiname($stufe, (string) $z['order_no'], $sprache), 'daten' => $pdf]; }
+            } catch (Throwable $e) { /* ohne Anhang ist besser als ohne Mail */ }
+        }
         $ok = Mail::senden(self::ANLASS[$stufe], (string) $z['kunde_email'], $betreff, $text, [
             'customer_id' => (int) $z['customer_id'],
             'order_id'    => (int) $z['order_id'],
             'payment_id'  => $zahlungId,
             'antwortAn'   => Mail::eigeneAdresse(),
-        ]);
+        ] + ($anhaenge ? ['anhaenge' => $anhaenge] : []));
 
         if ($ok) {
             try {
@@ -279,6 +290,80 @@ final class Mahnung
             } catch (Throwable $e) { /* Beiwerk */ }
         }
         return $ok ? 'raus' : 'versand_fehler';
+    }
+
+    /** Titel je Stufe in der Sprache des Kunden. */
+    public static function titel(int $stufe, string $s): string
+    {
+        $t = [1 => ['it' => 'Promemoria di pagamento', 'de' => 'Zahlungserinnerung', 'en' => 'Payment reminder'],
+              2 => ['it' => 'Sollecito di pagamento', 'de' => 'Mahnung', 'en' => 'Payment notice'],
+              3 => ['it' => 'Ultimo sollecito', 'de' => 'Letzte Mahnung', 'en' => 'Final notice']];
+        return $t[$stufe][$s] ?? $t[1]['de'];
+    }
+
+    public static function dateiname(int $stufe, string $vorgang, string $s): string
+    {
+        $t = str_replace(' ', '-', self::titel($stufe, $s));
+        return $t . '-' . (preg_replace('~[^A-Za-z0-9-]+~', '-', $vorgang) ?: 'Vecom') . '.pdf';
+    }
+
+    /**
+     * Die Mahnung als PDF (07.10.2026): offener Posten, alte Fälligkeit, neue Frist, wie zahlen.
+     * Keine Zinsen, keine Gebühren — wie in der Mail. In der letzten Stufe der Hinweis auf die
+     * gesetzliche Regel (D.Lgs. 231/2002 für Unternehmen), angewandt wird sie von Uwe, nicht vom System.
+     */
+    public static function pdf(int $zahlungId, int $stufe, ?string $frist = null): string
+    {
+        require_once __DIR__ . '/Dokument.php';
+        if (!Dokument::bereit()) { return ''; }
+        $z = Db::one(
+            "SELECT z.*, COALESCE(o.order_no, CONCAT('Betreuung ', z.abrechnungsmonat)) AS order_no, c.id AS customer_id, c.name AS kunde,
+                    c.company AS firma, c.street AS strasse, c.zip AS plz, c.city AS ort, c.country AS land, c.sprache AS sprache
+               FROM payments z LEFT JOIN orders o ON o.id = z.order_id LEFT JOIN abos a ON a.id = z.abo_id
+               JOIN customers c ON c.id = COALESCE(o.customer_id, a.customer_id) WHERE z.id = ?", [$zahlungId]);
+        if (!$z) { return ''; }
+        $s = in_array((string) $z['sprache'], ['it', 'de', 'en'], true) ? (string) $z['sprache'] : 'it';
+        $frist ??= date('Y-m-d', strtotime('+' . self::FRIST_TAGE . ' days'));
+        $w = (string) $z['currency'];
+        $titel = self::titel($stufe, $s);
+        $d = new Dokument($titel, (string) $z['order_no'], $titel . ' · ' . $z['order_no']);
+        $adresse = array_values(array_filter([trim((string) ($z['firma'] ?? '')), (string) $z['kunde'], trim((string) ($z['strasse'] ?? '')),
+            trim((string) ($z['plz'] ?? '') . ' ' . (string) ($z['ort'] ?? '')), trim((string) ($z['land'] ?? ''))], static fn($x) => $x !== ''));
+        if (count($adresse) > 1 && $adresse[0] === $adresse[1]) { array_shift($adresse); }
+        $L = static fn(array $t): string => $t[$s] ?? $t['de'];
+        $d->adresseUndMeta(Dokument::absenderzeile(), $adresse, [
+            [$L(['it' => 'Data', 'de' => 'Datum', 'en' => 'Date']), Dokument::datum(date('Y-m-d'))],
+            [$L(['it' => 'Ordine', 'de' => 'Vorgang', 'en' => 'Reference']), (string) $z['order_no']],
+            [$L(['it' => 'N. cliente', 'de' => 'Kundennr.', 'en' => 'Customer no.']), Kunde::nummer((int) $z['customer_id'])],
+        ]);
+        $anrede = $L(['it' => 'Gentile ' . $z['kunde'] . ',', 'de' => 'Guten Tag ' . $z['kunde'] . ',', 'en' => 'Dear ' . $z['kunde'] . ',']);
+        $satz = [1 => ['it' => 'forse le è sfuggito: il seguente importo risulta ancora aperto.', 'de' => 'vielleicht ist es untergegangen: Der folgende Betrag ist noch offen.', 'en' => 'perhaps it slipped through: the following amount is still open.'],
+                 2 => ['it' => 'nonostante il nostro promemoria, il seguente importo risulta ancora aperto. La preghiamo di saldarlo entro la nuova scadenza.', 'de' => 'trotz unserer Erinnerung ist der folgende Betrag noch offen. Bitte begleichen Sie ihn bis zur neuen Frist.', 'en' => 'despite our reminder, the following amount is still open. Please settle it by the new deadline.'],
+                 3 => ['it' => 'il seguente importo è ancora aperto. Questo è il nostro ultimo sollecito prima di ulteriori passi.', 'de' => 'der folgende Betrag ist weiterhin offen. Dies ist unsere letzte Mahnung vor weiteren Schritten.', 'en' => 'the following amount is still open. This is our final notice before further steps.']][$stufe] ?? [];
+        $d->absatz($anrede . "\n" . $L($satz));
+        $betrag = (int) $z['amount_cents'];
+        $d->positionen([['pos' => '1', 'titel' => self::was((string) $z['art'], $s) . ' · ' . $z['order_no'],
+            'text' => $L(['it' => 'Scadenza originale: ', 'de' => 'Ursprünglich fällig: ', 'en' => 'Originally due: ']) . Dokument::datum((string) $z['faellig_am']),
+            'menge' => '1', 'einzel' => Dokument::geld($betrag, $w), 'gesamt' => Dokument::geld($betrag, $w), 'gesamt_cent' => $betrag]],
+            ['pos' => 'Pos.', 'bez' => $L(['it' => 'Descrizione', 'de' => 'Bezeichnung', 'en' => 'Description']), 'menge' => $L(['it' => 'Q.tà', 'de' => 'Menge', 'en' => 'Qty']),
+             'einzel' => '€', 'gesamt' => $L(['it' => 'Importo €', 'de' => 'Betrag €', 'en' => 'Amount €']), 'uebertrag' => '', 'weiter' => '%d'],
+            static fn(int $c): string => Dokument::geld($c, $w));
+        $d->summen([[$L(['it' => 'Da pagare entro il', 'de' => 'Zu zahlen bis', 'en' => 'Payable by']), Dokument::datum($frist)]],
+            $L(['it' => 'Importo aperto', 'de' => 'Offener Betrag', 'en' => 'Amount due']), Dokument::geld($betrag, $w) . ' €');
+        /* Keine Kontonummer (06.10.2026, Uwe: „Kontonummer zum Überweisen braucht nicht angezeigt werden, da mit
+           Stripe über Zahlungslink eh mit drin“) — bezahlt wird über den Link in der Mail. */
+        $d->kasten($L(['it' => 'Come pagare', 'de' => 'So zahlen Sie', 'en' => 'How to pay']), [],
+            $L(['it' => 'Con il link di pagamento nella nostra e-mail: carta, Apple Pay o Google Pay, in pochi secondi.',
+                'de' => 'Über den Zahlungslink in unserer E-Mail: Karte, Apple Pay oder Google Pay, in wenigen Sekunden.',
+                'en' => 'Via the payment link in our email: card, Apple Pay or Google Pay, in a few seconds.']));
+        $d->hinweis($L(['it' => 'Se ha già pagato nel frattempo, consideri nulla questa comunicazione.', 'de' => 'Haben Sie inzwischen bezahlt, betrachten Sie dieses Schreiben bitte als gegenstandslos.', 'en' => 'If you have paid in the meantime, please disregard this notice.']));
+        if ($stufe === 3) {
+            $d->hinweis($L(['it' => 'Decorsa la scadenza ci riserviamo di applicare gli interessi di mora previsti dalla legge (D.Lgs. 231/2002) e di sospendere i servizi collegati.',
+                'de' => 'Nach Ablauf der Frist behalten wir uns vor, die gesetzlichen Verzugszinsen (D.Lgs. 231/2002) zu berechnen und die zugehörigen Leistungen auszusetzen.',
+                'en' => 'After the deadline we reserve the right to charge statutory late-payment interest (D.Lgs. 231/2002) and to suspend related services.']));
+        }
+        $d->gruss('', $L(['it' => 'Cordiali saluti', 'de' => 'Mit freundlichen Grüßen', 'en' => 'Kind regards']), Firma::get('inhaber', 'Uwe Vetter'), Firma::get('name', 'Vecom Design'));
+        return $d->fertig(['Title' => $titel . ' ' . $z['order_no']]);
     }
 
     /**

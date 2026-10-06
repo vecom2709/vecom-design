@@ -64,6 +64,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
               <th class="num" style="width:80px">Menge</th>
               <th class="num" style="width:120px">Einzeln</th>
               <th class="num" style="width:110px">Summe</th>
+              <th style="width:70px" title="Steht im Kasten „Optional – auf Wunsch zubuchbar“ und zählt nicht zur Summe">optional</th>
               <th style="width:60px"></th>
             </tr></thead>
             <tbody>
@@ -71,6 +72,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
               <tr>
                 <td><strong><?= Fmt::h((string) $p['bezeichnung']) ?></strong>
                   <?php if ((int) $p['monatlich']): ?> <span class="marke2 warnung">monatlich</span><?php endif; ?>
+                  <?php if ((int) ($p['optional'] ?? 0)): ?> <span class="marke2">optional</span><?php endif; ?>
                   <?php if (!empty($p['von_hand']) && Angebot::istFestpreis($a)): ?> <span class="marke2" title="Preis von dir gesetzt — die anderen Zeilen gleichen aus">von Hand</span><?php endif; ?>
                   <?php if (trim((string) $p['beschreibung']) !== ''): ?>
                     <div style="color:var(--leise);font-size:12.5px;line-height:1.5;margin-top:3px">
@@ -82,6 +84,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
                 <td class="num"><input name="preis[<?= (int) $p['id'] ?>]" value="<?= Fmt::h($eur((int) $p['einzel_cents'])) ?>"
                        inputmode="decimal" style="width:100%;text-align:right" aria-label="Einzelpreis"></td>
                 <td class="num"><?= Fmt::geld((int) $p['summe_cents'], (string) $a['currency']) ?></td>
+                <td style="text-align:center"><input type="checkbox" name="optional[<?= (int) $p['id'] ?>]" value="1" <?= (int) ($p['optional'] ?? 0) ? 'checked' : '' ?> aria-label="optional" style="width:18px;height:18px"></td>
                 <td style="text-align:right">
                   <button class="knopf stumm" name="weg" value="<?= (int) $p['id'] ?>"
                           formnovalidate title="Zeile entfernen">×</button>

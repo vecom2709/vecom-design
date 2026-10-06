@@ -165,6 +165,22 @@ final class Lieferung
     }
 
     /** Das Übergabe-Dokument (Markdown) in der Sprache des Kunden erzeugen und am Projekt speichern. */
+    /** Die Übergabe als PDF im Stil „Vecom Gold“ (07.10.2026) — zum Ablegen beim Kunden. Leer, wenn es keine gibt. */
+    public static function uebergabePdf(int $pid): string
+    {
+        $p = Db::one('SELECT p.uebergabe, p.veroeffentlicht_domain, p.customer_id, c.sprache FROM projects p JOIN customers c ON c.id = p.customer_id WHERE p.id = ?', [$pid]);
+        if (!$p || trim((string) ($p['uebergabe'] ?? '')) === '') { return ''; }
+        require_once __DIR__ . '/Dokument.php';
+        if (!Dokument::bereit()) { return ''; }
+        $s = in_array((string) $p['sprache'], ['it', 'de', 'en'], true) ? (string) $p['sprache'] : 'it';
+        $titel = ['it' => 'Consegna', 'de' => 'Übergabe', 'en' => 'Handover'][$s];
+        $d = new Dokument($titel, (string) $p['veroeffentlicht_domain'], $titel . ' · ' . $p['veroeffentlicht_domain']);
+        $md = (string) $p['uebergabe'];
+        $md = (string) preg_replace('~^#\s+[^\n]*\n~', '', $md, 1);   // der Titel steht schon im Kopf
+        $d->markdown($md);
+        return $d->fertig(['Title' => $titel . ' ' . $p['veroeffentlicht_domain']]);
+    }
+
     public static function uebergabeErstellen(int $pid, string $wer): string
     {
         $p = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);

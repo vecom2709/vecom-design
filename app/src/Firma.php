@@ -33,6 +33,9 @@ final class Firma
         'firma_mwst'      => '0',
         'firma_regime'    => 'normal',
         'firma_hinweis'   => '',
+        /* Echte Rechnungen (07.10.2026): ab welchem Tag die P.IVA gilt, PEC für die FatturaPA. */
+        'firma_rechnung_ab' => '',
+        'firma_pec'       => '',
         // Link zum Bewerten im Google-Unternehmensprofil (26.09.2026); leer = nirgends angeboten
         'firma_google_bewertung' => '',
     ];
@@ -153,10 +156,18 @@ final class Firma
             && $betragCent > 7747;
     }
 
-    /** Ohne Umsatzsteuernummer ist es ein Beleg, keine Rechnung. */
-    public static function istRechnungsberechtigt(): bool
+    /**
+     * Ohne Umsatzsteuernummer ist es ein Beleg, keine Rechnung.
+     * Mit Stichtag (firma_rechnung_ab): erst Zahlungen ab diesem Tag werden Rechnungen —
+     * was davor bezahlt wurde, bleibt Beleg, keine Nummer ändert sich nachträglich.
+     */
+    public static function istRechnungsberechtigt(?string $datum = null): bool
     {
-        return self::get('piva') !== '';
+        if (self::get('piva') === '') { return false; }
+        $ab = self::get('rechnung_ab');
+        if ($ab === '') { return true; }
+        /* Ohne Datum gilt heute — sonst stünde vor dem Stichtag schon „netto zzgl. IVA“ auf dem Angebot. */
+        return substr($datum ?? date('Y-m-d'), 0, 10) >= substr($ab, 0, 10);
     }
 
     /** Die Anschrift als Zeilen, leere ausgelassen. */

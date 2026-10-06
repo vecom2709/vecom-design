@@ -90,6 +90,10 @@ final class Ablauf
         'rechnung_schicken' => [self::SCHWER,
             'Die Rechnung geht als Beleg an den Kunden.',
             'Ja, Rechnung schicken'],
+        'rechnung_gutschrift' => [self::SCHWER,
+            'Die Gutschrift bekommt eine Nummer aus dem fortlaufenden Kreis und steht danach in den Büchern. '
+            . 'An den Kunden geht sie erst, wenn Sie sie schicken.',
+            'Ja, Gutschrift ausstellen'],
         'zugang_loeschen' => [self::SCHWER,
             'Der Zugang wird endgültig gelöscht. Wer ihn hatte, kommt nicht mehr in die Verwaltung; '
             . 'eine Telegram-Verbindung dieses Zugangs wird getrennt. Nur abschalten lässt sich rückgängig machen.',

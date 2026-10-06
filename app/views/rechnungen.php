@@ -48,7 +48,7 @@
               'anzahlung' => 'Anzahlung', 'restzahlung' => 'Restzahlung', default => 'Zahlung' }) ?>
           <?php if ($r['order_no']): ?><br><small style="color:var(--leise)"><?= Fmt::h((string) $r['order_no']) ?></small><?php endif; ?></td>
         <td style="white-space:nowrap"><?= Fmt::h(Fmt::datum((string) $r['issued_at'])) ?></td>
-        <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><?= Fmt::h(Fmt::geld((int) $r['total_cents'], (string) $r['currency'])) ?></td>
+        <td style="white-space:nowrap;font-variant-numeric:tabular-nums"><?= (($r['doc_typ'] ?? '') === 'gutschrift' ? '−' : '') . Fmt::h(Fmt::geld((int) $r['total_cents'], (string) $r['currency'])) ?></td>
         <td style="text-align:right"><a class="knopf" href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'] . '/pdf')) ?>">PDF</a></td>
       </tr>
     <?php endforeach; ?>

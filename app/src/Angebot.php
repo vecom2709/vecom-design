@@ -206,7 +206,7 @@ final class Angebot
         $fest = (int) $a['festpreis_cents'];
         /* Das Gewicht wird einmal festgehalten — sonst wanderte es mit jeder Verteilung. */
         Db::run('UPDATE angebot_positionen SET gewicht_cents = einzel_cents WHERE angebot_id = ? AND gewicht_cents IS NULL', [$angebotId]);
-        $zeilen = Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 ORDER BY sortierung, id', [$angebotId]);
+        $zeilen = Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 AND optional = 0 ORDER BY sortierung, id', [$angebotId]);
         if (!$zeilen) { return 'Noch keine Baustein-Zeile — der Festpreis verteilt sich, sobald du Bausteine hinzufügst.'; }
         $hand = array_values(array_filter($zeilen, static fn($z) => (int) $z['von_hand'] === 1));
         $frei = array_values(array_filter($zeilen, static fn($z) => (int) $z['von_hand'] !== 1));
@@ -575,13 +575,13 @@ final class Angebot
     }
 
     /** Aendert Menge und Einzelpreis mehrerer Zeilen auf einmal. */
-    public static function zeilenSpeichern(int $angebotId, array $mengen, array $preise): int
+    public static function zeilenSpeichern(int $angebotId, array $mengen, array $preise, ?array $optional = null): int
     {
         $a = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]);
         if (!$a || !self::aenderbar($a)) { return 0; }
 
         $wie = 0;
-        Db::transaktion(static function () use ($angebotId, $mengen, $preise, $a, &$wie) {
+        Db::transaktion(static function () use ($angebotId, $mengen, $preise, $a, $optional, &$wie) {
             foreach ($mengen as $pid => $menge) {
                 $pid = (int) $pid;
                 $z = Db::one('SELECT * FROM angebot_positionen WHERE id = ? AND angebot_id = ?', [$pid, $angebotId]);
@@ -590,6 +590,8 @@ final class Angebot
                 $m = max(1, (int) $menge);
                 $e = Baukasten::centsAus((string) ($preise[$pid] ?? '0'));
                 $feld = ['menge' => $m, 'einzel_cents' => $e, 'summe_cents' => $e * $m];
+                /* Dokumentstil 07.10.2026: „optional“ = steht im Kasten „auf Wunsch zubuchbar“, zählt nicht zur Summe. */
+                if ($optional !== null) { $feld['optional'] = !empty($optional[$pid]) ? 1 : 0; }
                 /* Festpreis: Wer den Preis einer Zeile ändert, setzt ihn fest; die anderen gleichen aus. */
                 if (self::istFestpreis($a) && !(int) $z['monatlich'] && $e !== (int) $z['einzel_cents']) { $feld['von_hand'] = 1; }
                 Db::update('angebot_positionen', $pid, $feld);
@@ -614,10 +616,10 @@ final class Angebot
     {
         self::verteilen($angebotId);   // Festpreis (01.10.2026): erst verteilen, dann summieren
         $einmal = (int) Db::wert(
-            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0',
+            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 AND optional = 0',
             [$angebotId], 0);
         $monat = (int) Db::wert(
-            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 1',
+            'SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 1 AND optional = 0',
             [$angebotId], 0);
         Db::update('angebote', $angebotId, ['summe_cents' => $einmal, 'monatlich_cents' => $monat]);
     }
@@ -707,9 +709,10 @@ final class Angebot
                     'gueltigsatz' => $gueltigsatz,
                     'link'        => $ziel,
                 ]);
-                /* Festpreis-Angebot (01.10.2026): das Angebot als PDF mit allen Positionen dazu. */
+                /* Festpreis-Angebot (01.10.2026): das Angebot als PDF mit allen Positionen dazu.
+                   Seit dem Stil „Vecom Gold“ (07.10.2026, Vorschlag 6) jedes Angebot mit Positionen. */
                 $anhaenge = [];
-                if (self::istFestpreis($a)) {
+                if (self::istFestpreis($a) || self::positionen($angebotId)) {
                     try {
                         $pdf = self::pdf($angebotId);
                         $neuA = Db::one('SELECT * FROM angebote WHERE id = ?', [$angebotId]) ?: $a;
@@ -996,6 +999,86 @@ final class Angebot
      */
     public static function pdf(int $angebotId): string
     {
+        require_once __DIR__ . '/Dokument.php';
+        if (!Dokument::bereit()) { return self::pdfAlt($angebotId); }   // ohne PDF-Schriften: der bisherige Beleg-Stil
+        require_once __DIR__ . '/Texte.php';
+        require_once __DIR__ . '/Kunde.php';
+        $a = Db::one('SELECT a.*, c.name AS kunde, c.company AS firma, c.street AS strasse, c.zip AS plz, c.city AS ort, c.country AS land
+                        FROM angebote a JOIN customers c ON c.id = a.customer_id WHERE a.id = ?', [$angebotId]);
+        if (!$a) { return ''; }
+        $spr = in_array((string) $a['sprache'], ['it', 'de', 'en'], true) ? (string) $a['sprache'] : 'it';
+        $T = static fn(string $k): string => Texte::h(Texte::ANGEBOT[$k] ?? [], $spr);
+        $w = (string) $a['currency'];
+        $geld = static fn(int $c): string => Dokument::geld($c, $w);
+
+        /* Titel wie in der Vorlage: „Variante 2 – Neue Website mit integriertem Shop“ → Untertitel oben, Teil nach dem Strich in Gold. */
+        $titel = trim((string) $a['titel']);
+        $teile = preg_split('~\s+[–-]\s+~u', $titel, 2) ?: [$titel];
+        $d = new Dokument($T('pdfTitel'), $titel, $T('pdfTitel') . ' ' . $a['nummer'] . ($titel !== '' ? ' · ' . $titel : ''));
+        $adresse = array_values(array_filter([trim((string) ($a['firma'] ?? '')), (string) $a['kunde'], trim((string) ($a['strasse'] ?? '')),
+            trim((string) ($a['plz'] ?? '') . ' ' . (string) ($a['ort'] ?? '')), trim((string) ($a['land'] ?? ''))], static fn($z) => $z !== ''));
+        if (count($adresse) > 1 && $adresse[0] === $adresse[1]) { array_shift($adresse); }
+        $d->adresseUndMeta(Dokument::absenderzeile(), $adresse, array_values(array_filter([
+            [$T('nummer'), (string) $a['nummer']],
+            [$T('pdfDatum'), Dokument::datum((string) ($a['gesendet_am'] ?: $a['created_at']))],
+            [$T('pdfGueltig'), $a['gueltig_bis'] ? Dokument::datum((string) $a['gueltig_bis']) : ''],
+            [$T('pdfKunde'), Kunde::nummer((int) $a['customer_id'])],
+            [$T('pdfAnsprech'), Firma::get('inhaber', 'Uwe Vetter')],
+        ], static fn($z) => trim((string) $z[1]) !== '')));
+        if ($titel !== '') {
+            count($teile) === 2 ? $d->ueberschrift($teile[0] . ' – ', $teile[1]) : $d->ueberschrift('', $titel);
+        }
+        $einl = trim((string) ($a['einleitung'] ?? ''));
+        $d->absatz($einl !== '' ? $einl : $T('pdfAnrede') . "\n" . $T('lead'));
+
+        $haupt = []; $mtl = []; $opt = [];
+        foreach (self::positionen($angebotId) as $z) {
+            if ((int) ($z['optional'] ?? 0)) { $opt[] = $z; } elseif ((int) $z['monatlich']) { $mtl[] = $z; } else { $haupt[] = $z; }
+        }
+        $zeilen = [];
+        foreach ($haupt as $i => $z) {
+            $zeilen[] = ['pos' => (string) ($i + 1), 'titel' => (string) $z['bezeichnung'], 'text' => trim((string) $z['beschreibung']),
+                'menge' => (string) (int) $z['menge'], 'einzel' => $geld((int) $z['einzel_cents']), 'gesamt' => $geld((int) $z['summe_cents']), 'gesamt_cent' => (int) $z['summe_cents']];
+        }
+        if ($zeilen) {
+            $d->positionen($zeilen, ['pos' => $T('pdfPos'), 'bez' => $T('pdfBez'), 'menge' => $T('pdfMenge'), 'einzel' => $T('pdfEinzel'), 'gesamt' => $T('pdfGesamt'),
+                'uebertrag' => $T('pdfUebertrag'), 'weiter' => $T('pdfWeiter')], $geld);
+        }
+        $netto = Firma::istRechnungsberechtigt() && Firma::regime() !== 'forfettario';
+        $zus = $netto ? ' (' . ['it' => 'imponibile', 'de' => 'netto', 'en' => 'net'][$spr] . ')' : '';
+        $summenZeilen = [[$T('pdfZwischen') . $zus, $geld((int) $a['summe_cents']) . ' €']];
+        foreach ($mtl as $z) { $summenZeilen[] = [(string) $z['bezeichnung'], $geld((int) $z['summe_cents']) . ' € / ' . $T('proMonat')]; }
+        $d->summen($summenZeilen, $T('pdfSumme') . $zus, $geld((int) $a['summe_cents']) . ' €', self::steuerSatz($spr));
+        if ($opt) {
+            $d->kasten($T('optional'), array_map(static fn($z) => [(string) $z['bezeichnung'], trim((string) $z['beschreibung']),
+                $geld((int) $z['summe_cents']) . ' €' . ((int) $z['monatlich'] ? ' / ' . $T('proMonat') : '')], $opt));
+        }
+        $ab = static fn(string $k): array => explode('|', $T($k), 2) + [1 => ''];
+        $d->zweiSpalten($T('pdfAblauf'), [$ab('pdfA1'), $ab('pdfA2'), $ab('pdfA3')], $T('pdfBeding'), array_values(array_filter([
+            [$T('pdfB1'), strtr($T('pdfB1t'), ['{p}' => (string) (int) $a['anzahlung_prozent']])],
+            [$T('pdfB2'), $T('pdfB2t')],
+            $a['gueltig_bis'] ? [$T('pdfB3'), Dokument::datum((string) $a['gueltig_bis'])] : null,
+        ])));
+        $d->gruss($T('pdfSchluss'), $T('pdfGruss'), Firma::get('inhaber', 'Uwe Vetter'), Firma::get('name', 'Vecom Design'));
+        return $d->fertig(['Title' => $T('pdfTitel') . ' ' . $a['nummer'] . ' – ' . ((string) ($a['firma'] ?: $a['kunde'])), 'Subject' => $titel]);
+    }
+
+    /** Die Steuerzeile unter der Summe — je nach Stand von P.IVA und Regime. */
+    public static function steuerSatz(string $spr): string
+    {
+        if (!Firma::istRechnungsberechtigt()) {
+            return ['it' => 'Importi in euro.', 'de' => 'Alle Beträge in Euro.', 'en' => 'All amounts in euro.'][$spr] ?? 'Alle Beträge in Euro.';
+        }
+        if (Firma::regime() === 'forfettario') {
+            return ['it' => 'Importi in euro, senza IVA (regime forfettario, L. 190/2014).', 'de' => 'Alle Beträge in Euro, ohne IVA (regime forfettario, L. 190/2014).',
+                    'en' => 'All amounts in euro, without VAT (regime forfettario, L. 190/2014).'][$spr];
+        }
+        return ['it' => 'Importi in euro, IVA esclusa.', 'de' => 'Alle Beträge in Euro, netto, zuzüglich gesetzlicher IVA bzw. Reverse Charge.', 'en' => 'All amounts in euro, net, plus VAT or reverse charge as applicable.'][$spr];
+    }
+
+    /** Der bisherige Stil — nur, wenn die PDF-Schriften fehlen. */
+    private static function pdfAlt(int $angebotId): string
+    {
         require_once __DIR__ . '/Pdf.php';
         require_once __DIR__ . '/Firma.php';
         require_once __DIR__ . '/Rechnung.php';
@@ -1172,6 +1255,7 @@ final class Angebot
     {
         $zeilen = [];
         foreach (self::positionen($angebotId) as $p) {
+            if ((int) ($p['optional'] ?? 0)) { continue; }   // nur auf Wunsch — gehört nicht zur Bestellung
             $zeilen[] = ((int) $p['menge'] > 1 ? $p['menge'] . '× ' : '')
                 . $p['bezeichnung'] . ': ' . Fmt::geld((int) $p['summe_cents'])
                 . ((int) $p['monatlich'] ? ' im Monat' : '');

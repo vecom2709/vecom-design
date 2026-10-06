@@ -58,6 +58,7 @@ $lgForm = static fn(string $tat, string $inhalt, string $stil = 'display:inline-
     <?php if (!empty($lgP['uebergabe'])): ?>
       <details style="margin-top:8px"<?= empty($lgP['uebergabe_frei_am']) ? ' open' : '' ?>><summary style="cursor:pointer;font-size:14px">Übergabe-Dokument <?= !empty($lgP['uebergabe_frei_am']) ? '· 👁 der Kunde sieht es seit ' . Fmt::h(Fmt::datum((string) $lgP['uebergabe_frei_am'])) : '· noch nicht freigegeben' ?></summary>
         <div style="font-size:15px;line-height:1.55;border:1px solid var(--linie, #eee);border-radius:8px;padding:6px 14px;margin-top:6px"><?= BauAuftrag::alsHtml((string) $lgP['uebergabe']) ?></div>
+        <p style="margin:8px 0 0"><a class="knopf klein" href="<?= Fmt::h(url('projekte/' . (int) $p['id'] . '/uebergabe.pdf')) ?>">Als PDF</a></p>
       </details>
     <?php endif; ?>
   <?php endif; ?>

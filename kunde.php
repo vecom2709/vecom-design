@@ -174,6 +174,21 @@ if ($kunde && isset($_GET['abovertrag'])) {
     exit;
 }
 
+/* Die Übergabe als PDF (07.10.2026) — nur, wenn Uwe sie freigegeben hat und das Projekt dem Kunden gehört. */
+if ($kunde && isset($_GET['uebergabe_pdf'])) {
+    require_once __DIR__ . '/app/src/Lieferung.php';
+    $up = sicherLesen(fn() => Db::one('SELECT id, veroeffentlicht_domain FROM projects WHERE id = ? AND customer_id = ? AND uebergabe_frei_am IS NOT NULL',
+        [(int) $_GET['uebergabe_pdf'], (int) $kunde['id']]), null);
+    if (!$up) { http_response_code(404); exit('Nicht gefunden.'); }
+    $daten = (string) sicherLesen(fn() => Lieferung::uebergabePdf((int) $up['id']), '');
+    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    header('Content-Type: application/pdf');
+    header('Content-Length: ' . strlen($daten));
+    header('Content-Disposition: attachment; filename="Uebergabe-' . preg_replace('~[^A-Za-z0-9.-]+~', '-', (string) $up['veroeffentlicht_domain']) . '.pdf"');
+    echo $daten;
+    exit;
+}
+
 /* -------------------------------------------------------------------------
    Was der Kunde tun kann. Vier Dinge, mehr braucht es nicht.
    ------------------------------------------------------------------------- */
@@ -1685,6 +1700,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <details id="uebergabe" class="klapp" open>
       <summary><?= $h(preg_match('~^#\s*([^\n—]+)~u', (string) $uebergabe['uebergabe'], $ueT) ? trim($ueT[1]) : 'Übergabe') ?></summary>
       <div style="margin-top:8px;font-size:15px;line-height:1.6"><?= BauAuftrag::alsHtml(preg_replace('~^#[^\n]*\n~u', '', (string) $uebergabe['uebergabe'])) ?></div>
+      <p style="margin:10px 0 0"><a class="knopf" href="<?= $h($hier) ?>&amp;uebergabe_pdf=<?= (int) $seite['vorgang']['projekt_id'] ?>">PDF</a></p>
     </details>
   <?php endif; ?>
 

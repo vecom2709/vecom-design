@@ -332,7 +332,7 @@ $datum = static function (?string $d): string {
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 4px"><?= $h($T('posten')) ?></h2>
     <?php foreach ($positionen as $p): ?>
-      <?php if ((int) $p['monatlich']) { continue; } ?>
+      <?php if ((int) $p['monatlich'] || (int) ($p['optional'] ?? 0)) { continue; } ?>
       <div class="pos">
         <div class="pos__wort">
           <strong><?= $h((string) $p['bezeichnung']) ?></strong>
@@ -353,12 +353,22 @@ $datum = static function (?string $d): string {
     </div>
 
     <?php foreach ($positionen as $p): ?>
-      <?php if (!(int) $p['monatlich']) { continue; } ?>
+      <?php if (!(int) $p['monatlich'] || (int) ($p['optional'] ?? 0)) { continue; } ?>
       <div class="mtl">
         <span><?= $h((string) $p['bezeichnung']) ?></span>
         <span><?= $h(Fmt::geld((int) $p['summe_cents'], (string) $a['currency'])) ?> <?= $h($T('proMonat')) ?></span>
       </div>
     <?php endforeach; ?>
+
+    <?php $optPos = array_filter($positionen, static fn($p) => (int) ($p['optional'] ?? 0)); if ($optPos): ?>
+      <div style="margin-top:16px;padding:14px 16px;border:1px solid rgba(200,150,62,.45);border-radius:12px;background:rgba(200,150,62,.06)">
+        <div style="font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#a07a2c;font-weight:700"><?= $h($T('optional')) ?></div>
+        <?php foreach ($optPos as $p): ?>
+          <div class="mtl"><span><?= $h((string) $p['bezeichnung']) ?><?php if (trim((string) $p['beschreibung']) !== ''): ?><br><small style="color:var(--leise)"><?= $h((string) $p['beschreibung']) ?></small><?php endif; ?></span>
+            <span><?= $h(Fmt::geld((int) $p['summe_cents'], (string) $a['currency'])) ?><?= (int) $p['monatlich'] ? ' ' . $h($T('proMonat')) : '' ?></span></div>
+        <?php endforeach; ?>
+      </div>
+    <?php endif; ?>
 
     <?php if ((int) $a['summe_cents'] > 0): ?>
       <p class="zahlung"><?= $h(strtr($T('zahlung'), [

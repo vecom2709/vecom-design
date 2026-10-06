@@ -142,6 +142,27 @@ $eing = !empty($eingebettet);
     <?php endif; ?>
   </div>
 
+  <?php /* Alle E-Mails an den Kunden (07.10.2026, Uwe: „in den jeweiligen Kundenakten sollen auch alle
+     versendeten E-Mails angezeigt werden“). Inhalt per Klick, so wie er hinausging. */
+    require_once __DIR__ . '/../src/KundeMails.php'; $kmListe = $kundenMails ?? []; ?>
+  <div class="block" id="emails"><h2>E-Mails <span style="font-size:13px;color:var(--leise);font-weight:500"><?= count($kmListe) ?></span></h2>
+    <?php if (!$kmListe): ?><div class="leer">Noch keine E-Mail an diesen Kunden.</div><?php else: ?>
+    <div class="tabellenrahmen"><table style="font-size:14px"><thead><tr><th>Wann</th><th>Betreff</th><th>Stand</th><th>Anhänge</th></tr></thead><tbody>
+      <?php foreach (array_slice($kmListe, 0, 60) as $km): $kmSt = KundeMails::STATUS[$km['status']] ?? [ucfirst($km['status']), '']; ?>
+        <tr>
+          <td style="white-space:nowrap"><?= Fmt::h(Fmt::zeit($km['zeit'])) ?></td>
+          <td><?php if ($km['quelle'] === 'mail'): ?><a href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '/mail/' . $km['id'])) ?>"><?= Fmt::h(Fmt::name($km['betreff'], 'E-Mail ohne Betreff')) ?></a><?php else: ?><?= Fmt::h($km['betreff']) ?><?php endif; ?>
+            <div class="akq-klein" style="color:var(--leise)">an <?= Fmt::h($km['an']) ?><?= $km['quelle'] === 'mail' && !$km['inhalt'] ? ' · Inhalt nicht gespeichert (vor 07.10.2026)' : '' ?><?= $km['quelle'] === 'akq' ? ' · Inhalt nicht gespeichert (aus Ihrem Mailprogramm)' : '' ?></div>
+            <?php if ($km['status'] !== 'gesendet' && $km['fehler'] !== ''): ?><div class="akq-klein" style="color:var(--rot)"><?= Fmt::h($km['fehler']) ?></div><?php endif; ?></td>
+          <td><span class="marke2 <?= Fmt::h($kmSt[1]) ?>"><?= Fmt::h($kmSt[0]) ?></span></td>
+          <td><?= $km['anhaenge'] ? Fmt::h(implode(', ', array_map(static fn($a) => '📎 ' . $a['name'], $km['anhaenge']))) : '—' ?></td>
+        </tr>
+      <?php endforeach; ?>
+    </tbody></table></div>
+    <?php if (count($kmListe) > 60): ?><p class="akq-klein">Die neuesten 60 von <?= count($kmListe) ?>.</p><?php endif; ?>
+    <?php endif; ?>
+  </div>
+
   <?php /* Dokumente aus „Neue Kunden finden“ (06.10.2026, Uwe: „am Betrieb, später beim Kunden“) — liegen weiter am Betrieb. */
     require_once __DIR__ . '/../src/AkquiseDokument.php'; $kDokAkq = AkquiseDokument::zuKunde((int) $k['id']); ?>
   <?php if ($kDokAkq): ?>

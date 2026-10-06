@@ -7,6 +7,7 @@ require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Fmt.php';
 require_once __DIR__ . '/Config.php';
 require_once __DIR__ . '/Pdf.php';
+require_once __DIR__ . '/Dokument.php';
 require_once __DIR__ . '/Firma.php';
 require_once __DIR__ . '/Widerruf.php';
 require_once __DIR__ . '/Kunde.php';
@@ -150,8 +151,8 @@ final class Abovertrag
         $waehrung = (string) ($abo['currency'] ?? 'EUR');
         [$paketName, $punkte] = self::paketworte($abo, $sprache);
 
-        $blau  = [0.024, 0.282, 0.910];
-        $cyan  = [0.122, 0.910, 1.0];
+        $blau  = Dokument::bereit() ? Dokument::GOLD_TEXT : [0.024, 0.282, 0.910];
+        $cyan  = Dokument::bereit() ? Dokument::GOLD : [0.122, 0.910, 1.0];
         $tinte = [0.051, 0.106, 0.165];
         $grau  = [0.42, 0.46, 0.53];
         $leise = [0.60, 0.64, 0.70];
@@ -164,21 +165,24 @@ final class Abovertrag
 
         /* ---------- Briefkopf, wie auf Beleg und Auftragsbestaetigung ---------- */
         require_once __DIR__ . '/Rechnung.php';
-        $logo = Rechnung::logo();
-        if ($logo === null || !$p->bild($logo, $rand, 44, 98, 67)) {
-            $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
-            $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+        /* Stil „Vecom Gold“ (07.10.2026); ohne PDF-Schriften der bisherige Kopf. */
+        if (!Dokument::briefkopf($p, $rand)) {
+            $logo = Rechnung::logo();
+            if ($logo === null || !$p->bild($logo, $rand, 44, 98, 67)) {
+                $bv = $p->text($rand, 62, 'VECOM', 17, true, 'links', $blau);
+                $p->text($rand + $bv + 5, 62, 'DESIGN', 17, true, 'links', $tinte);
+            }
+            $y = 46;
+            foreach (Firma::anschrift() as $i => $zeile) {
+                $p->text($rechts, $y, $zeile, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
+                $y += 11.5;
+            }
+            $p->flaeche($rand, 124, $breit * 0.38, 1.6, $blau);
+            $p->flaeche($rand + $breit * 0.38, 124, $breit * 0.12, 1.6, $cyan);
         }
-        $y = 46;
-        foreach (Firma::anschrift() as $i => $zeile) {
-            $p->text($rechts, $y, $zeile, 8.5, $i === 0, 'rechts', $i === 0 ? $tinte : $grau);
-            $y += 11.5;
-        }
-        $p->flaeche($rand, 124, $breit * 0.38, 1.6, $blau);
-        $p->flaeche($rand + $breit * 0.38, 124, $breit * 0.12, 1.6, $cyan);
 
         /* ---------- Titel und Eckdaten ---------- */
-        $p->text($rand, 164, $w['titel'], 20, true, 'links', $tinte);
+        Dokument::titelAlt($p, $rand, 164, $w['titel']);
         $p->text($rechts, 152, $w['eck'], 7.5, true, 'rechts', $leise);
         $p->text($rechts, 166, 'A-' . (int) $abo['id'], 11, true, 'rechts', $tinte);
         $p->text($rechts, 180, $w['datum'] . ' ' . Fmt::datum((string) $abo['created_at']), 9, false, 'rechts', $grau);
@@ -280,13 +284,15 @@ final class Abovertrag
         $p->text($rand, $y, $w['agb'] . ':  ' . Sprache::legal($sprache), 8.5, false, 'links', $grau);
 
         /* ---------- Fuss ---------- */
-        $fuss = Pdf::A4_HOCH - 82;
-        $p->flaeche($rand, $fuss, $breit * 0.10, 1.2, $blau);
-        $p->linie($rand + $breit * 0.10, $fuss + 0.6, $rechts, $fuss + 0.6, 0.5, $linie);
-        $fy = $fuss + 18;
-        foreach (Firma::fusszeilen() as $zeile) {
-            $p->text($rand, $fy, $zeile, 8, false, 'links', $leise);
-            $fy += 11;
+        if (!Dokument::briefFuss($p, $rand)) {
+            $fuss = Pdf::A4_HOCH - 82;
+            $p->flaeche($rand, $fuss, $breit * 0.10, 1.2, $blau);
+            $p->linie($rand + $breit * 0.10, $fuss + 0.6, $rechts, $fuss + 0.6, 0.5, $linie);
+            $fy = $fuss + 18;
+            foreach (Firma::fusszeilen() as $zeile) {
+                $p->text($rand, $fy, $zeile, 8, false, 'links', $leise);
+                $fy += 11;
+            }
         }
 
         return $p->fertig();

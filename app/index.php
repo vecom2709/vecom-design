@@ -152,6 +152,7 @@ function datenKunde(int $id, array $k): array {
                       WHERE COALESCE(o.customer_id, a.customer_id) = ?
                       ORDER BY p.id DESC', [$id]),
                 'aktivitaeten' => Db::all('SELECT * FROM activities WHERE customer_id = ? ORDER BY id DESC LIMIT 20', [$id]),
+                'kundenMails' => sicher(static function () use ($id): array { require_once __DIR__ . '/src/KundeMails.php'; return KundeMails::liste($id); }, []),
                 'nachrichten' => sicher(static fn() => Db::all(
                     'SELECT * FROM messages WHERE customer_id = ? ORDER BY id ASC LIMIT 100', [$id])),
                 'dateien' => sicher(static fn() => Db::all(
@@ -400,7 +401,7 @@ if ($post) {
                 // Zeile schickt dasselbe Formular ab, nur mit "weg".
                 $weg = (int) ($_POST['weg'] ?? 0);
                 if ($weg > 0) { Angebot::zeileWeg($aid, $weg); }
-                else { Angebot::zeilenSpeichern($aid, (array) ($_POST['menge'] ?? []), (array) ($_POST['preis'] ?? [])); }
+                else { Angebot::zeilenSpeichern($aid, (array) ($_POST['menge'] ?? []), (array) ($_POST['preis'] ?? []), (array) ($_POST['optional'] ?? [])); }
                 zurueck('angebote/' . $aid);
 
             case 'angebot_baustein':
@@ -3564,6 +3565,16 @@ if ($post) {
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
                 zurueck('rechnungen/' . (int) $r['id']);
 
+            case 'rechnung_gutschrift':
+                /* Gutschrift / Nota di credito (07.10.2026, Vorschlag 11): eine ausgestellte Rechnung
+                   wird nie geändert oder gelöscht — korrigiert wird mit einem eigenen Dokument. */
+                if (!Auth::istAdmin()) { throw new RuntimeException('Gutschriften stellt nur ein Admin aus.'); }
+                require_once __DIR__ . '/src/Rechnung.php';
+                $gsCent = (int) round(((float) str_replace(',', '.', trim((string) ($_POST['betrag'] ?? '')))) * 100);
+                $gsId = Rechnung::gutschrift((int) $_POST['id'], $gsCent, (string) ($_POST['grund'] ?? ''), (Auth::name() ?: 'admin'));
+                $_SESSION['gut'] = 'Gutschrift erstellt. Sie geht erst an den Kunden, wenn Sie sie schicken.';
+                zurueck('rechnungen/' . $gsId);
+
             case 'cockpit_schuetzen':
                 require_once __DIR__ . '/src/Cockpit.php';
                 // Ein leeres Feld heisst weiterhin: das System denkt sich eins
@@ -4642,6 +4653,23 @@ switch ($route) {
             $k = Db::one('SELECT * FROM customers WHERE id = ?', [$id]);
             if (!$k) { http_response_code(404); exit('Kunde nicht gefunden.'); }
             if (($teile[2] ?? '') === 'bearbeiten') { ansicht('kunde_form', ['k' => $k]); break; }
+            if (($teile[2] ?? '') === 'mail' && ctype_digit((string) ($teile[3] ?? ''))) {
+                /* Eine verschickte E-Mail so, wie sie hinausging (07.10.2026). „roh“ ist der Briefbogen
+                   selbst — im Rahmen, ohne Skripte (CSP sandbox). */
+                require_once __DIR__ . '/src/KundeMails.php';
+                $kmE = KundeMails::eine($id, (int) $teile[3]);
+                if (!$kmE) { http_response_code(404); exit('E-Mail nicht gefunden.'); }
+                if (($teile[4] ?? '') === 'roh') {
+                    header('Content-Security-Policy: ' . KundeMails::CSP);
+                    header('X-Content-Type-Options: nosniff');
+                    header('Content-Type: text/html; charset=utf-8');
+                    echo $kmE['html'] !== '' ? $kmE['html']
+                        : '<!doctype html><meta charset="utf-8"><pre style="font:15px/1.6 system-ui,sans-serif;white-space:pre-wrap;padding:16px">' . Fmt::h($kmE['text']) . '</pre>';
+                    exit;
+                }
+                ansicht('kunde_mail', ['k' => $k, 'm' => $kmE]);
+                break;
+            }
             // Wer die Akte oeffnet, hat gelesen. Dasselbe passiert beim
             // Oeffnen eines Projekts — nur gab es fuer die Nachrichten ohne
             // Projekt bisher keine Stelle, an der es passiert waere.
@@ -5164,6 +5192,15 @@ switch ($route) {
                           FROM projects p JOIN customers c ON c.id = p.customer_id
                           LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$id]);
             if (!$p) { http_response_code(404); exit('Projekt nicht gefunden.'); }
+            if (($teile[2] ?? '') === 'uebergabe.pdf') {
+                require_once __DIR__ . '/src/Lieferung.php';
+                $upd = Lieferung::uebergabePdf($id);
+                if ($upd === '') { http_response_code(404); exit('Keine Übergabe vorhanden.'); }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="Uebergabe-' . $id . '.pdf"');
+                echo $upd;
+                exit;
+            }
             ansicht('projekt', datenProjekt($id, $p));
             break;
         }
@@ -5921,6 +5958,17 @@ switch ($route) {
         ]);
         break;
 
+    case 'rechnungsmuster':
+        /* Muster-Rechnung ohne Datenbankeintrag (Einstellungen → Firmendaten, 07.10.2026). */
+        Auth::nurAdmin();
+        require_once __DIR__ . '/src/Rechnung.php';
+        $muDaten = Rechnung::muster((string) ($_GET['fall'] ?? 'beleg'), (string) ($_GET['sprache'] ?? 'de'));
+        header('Content-Type: application/pdf');
+        header('Content-Disposition: inline; filename="Muster-' . preg_replace('~[^a-z_]~', '', (string) ($_GET['fall'] ?? 'beleg')) . '.pdf"');
+        header('X-Content-Type-Options: nosniff');
+        echo $muDaten;
+        exit;
+
     case 'rechnungen':
         require_once __DIR__ . '/src/Rechnung.php';
         if ($id !== null) {
@@ -5938,6 +5986,17 @@ switch ($route) {
                 echo $daten;
                 exit;
             }
+            if (($teile[2] ?? '') === 'xml') {
+                /* FatturaPA zum Hochladen beim SDI (Fatture e Corrispettivi) oder für den Commercialista.
+                   Verschickt wird nichts automatisch. */
+                require_once __DIR__ . '/src/FatturaPa.php';
+                $fx = FatturaPa::erzeugen((int) $r['id']);
+                header('Content-Type: application/xml; charset=utf-8');
+                header('Content-Disposition: attachment; filename="' . $fx['name'] . '"');
+                header('X-Content-Type-Options: nosniff');
+                echo $fx['xml'];
+                exit;
+            }
             ansicht('rechnung', ['r' => $r, 'posten' => Rechnung::posten($r)]);
             break;
         }
@@ -5948,7 +6007,7 @@ switch ($route) {
                  LEFT JOIN orders o ON o.id = r.order_id
                  ORDER BY r.id DESC LIMIT 300')),
             'summe' => (int) sicher(static fn() => Db::wert(
-                'SELECT COALESCE(SUM(total_cents),0) FROM invoices WHERE YEAR(issued_at) = ?', [date('Y')]), 0),
+                "SELECT COALESCE(SUM(IF(doc_typ = 'gutschrift', -total_cents, total_cents)),0) FROM invoices WHERE YEAR(issued_at) = ?", [date('Y')]), 0),
             'ohneBeleg' => sicher(static fn() => Db::all(
                 "SELECT p.*, o.order_no, c.name AS kunde, c.company AS firma
                  FROM payments p

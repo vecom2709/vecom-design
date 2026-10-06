@@ -101,12 +101,26 @@ final class Mail
             } catch (Throwable $e) { /* dann eben ohne */ }
         }
 
+        $sprache = self::spracheVon($bezug);
+        $html = !empty($bezug['nurText']) ? null : self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache);
+        /* Die Kundenakte zeigt jede Mail so, wie sie hinausging (07.10.2026, Uwe: „in den jeweiligen
+           Kundenakten sollen auch alle versendeten E-Mails angezeigt werden“): Text, Briefbogen und
+           die Namen der Anhänge. Die Anhänge selbst nicht — Belege und Angebote liegen ohnehin in der
+           Akte und werden von dort neu erzeugt. */
+        $anhangListe = [];
+        foreach ((array) ($bezug['anhaenge'] ?? []) as $a) {
+            if (trim((string) ($a['name'] ?? '')) === '' || (string) ($a['daten'] ?? '') === '') { continue; }
+            $anhangListe[] = ['name' => mb_substr(trim((string) $a['name']), 0, 120), 'groesse' => strlen((string) $a['daten'])];
+        }
         $eintrag = [
             'anlass' => $anlass, 'empfaenger' => mb_substr($an, 0, 190), 'betreff' => mb_substr($betreff, 0, 255),
             'customer_id' => $bezug['customer_id'] ?? null,
             'project_id'  => $bezug['project_id'] ?? null,
             'order_id'    => $bezug['order_id'] ?? null,
             'payment_id'  => $bezug['payment_id'] ?? null,
+            'inhalt'      => mb_substr($text, 0, 200000),
+            'html'        => $html,
+            'anhaenge'    => $anhangListe ? json_encode($anhangListe, JSON_UNESCAPED_UNICODE) : null,
         ];
 
         // Ein anonymisierter Kunde traegt eine Adresse unter .invalid. Die
@@ -161,8 +175,6 @@ final class Mail
             return false;
         }
 
-        $sprache = self::spracheVon($bezug);
-
         $inhalt = [
             'sender'      => $absender,
             'to'          => [['email' => $an]],
@@ -181,7 +193,7 @@ final class Mail
                Programme, die kein HTML anzeigen, und er hilft dem Spamfilter.
                Neu ist nur die zweite Fassung derselben Worte, in der die
                Adressen anklickbar sind. */
-            'htmlContent' => self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache),
+            'htmlContent' => (string) $html,
         ];
         /* Eine persoenliche Erstansprache geht als reiner Text: Sie soll
            aussehen wie ein Brief von einem Menschen, nicht wie ein
@@ -301,7 +313,12 @@ final class Mail
 
     private static function vermerken(array $daten): void
     {
-        try { Db::insert('mails', $daten); } catch (Throwable $e) { /* Protokoll ist Beiwerk */ }
+        try { Db::insert('mails', $daten); }
+        catch (Throwable $e) {
+            /* Vor Migration 210 fehlen die Spalten für den Inhalt — dann wenigstens die Zeile. */
+            try { Db::insert('mails', array_diff_key($daten, ['inhalt' => 1, 'html' => 1, 'anhaenge' => 1])); }
+            catch (Throwable $e2) { /* Protokoll ist Beiwerk */ }
+        }
 
         /* Der Stand auf der Seite "Integrationen" wurde bisher nur von der
            ausdruecklichen Pruefung geschrieben — und die laeuft fast nie.
@@ -433,6 +450,11 @@ final class Mail
     private const TEXT      = '#1A1816';
     private const LEISE     = '#807b73';
     private const LINIE     = '#edeae3';
+    /* Briefbogen „Vecom Gold“ (07.10.2026) — dieselben Farben wie Angebot und Rechnung als PDF. */
+    private const NAVY      = '#0b1430';
+    private const GOLD      = '#c79a48';
+    private const GOLD_HELL = '#e6c98a';
+    private const NAVY_TEXT = '#c9cedb';
 
     /**
      * Derselbe Brief, nur als HTML — auf dem Briefbogen von Vecom Design.
@@ -556,6 +578,7 @@ final class Mail
             . '.vd-marke{color:#f9f8f3!important}'
             . '.vd-linie{border-color:#3b3731!important}'
             . '.vd-adr{color:#f3db9b!important}'
+            . '.vd-fuss,.vd-fuss div{color:#c9cedb!important}'
             . '}'
             . '@media (max-width:520px){'
             /* Nur die seitliche Luft schrumpft. Nimmt man hier die ganze
@@ -563,6 +586,7 @@ final class Mail
                Briefkopf steht dann mit einem Loch ueber der Anrede. */
             . '.vd-innen{padding-left:20px!important;padding-right:20px!important}'
             . '.vd-knopf a{display:block!important}'
+            . '.vd-spalte{display:block!important;width:100%!important;padding:0 0 14px!important}'
             . '}'
             . '</style></head>'
             . '<body class="vd-grund" style="margin:0;padding:0;background:' . self::GRUND . ';">'
@@ -573,7 +597,6 @@ final class Mail
             . '<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"'
             . ' class="vd-blatt" style="max-width:580px;background:' . self::FLAECHE
             . ';border-radius:14px;overflow:hidden">'
-            . self::streifen()
             . self::kopf()
             . '<tr><td class="vd-innen vd-text" style="padding:6px 34px 30px;font-family:' . $schrift
             . ';font-size:15.5px;color:' . self::TEXT . '">'
@@ -581,27 +604,6 @@ final class Mail
             . '</td></tr>'
             . self::fuss($sprache, $schrift)
             . '</table></td></tr></table></body></html>';
-    }
-
-    /**
-     * Der Farbstreifen: die Markenfarben, vier Pixel hoch.
-     *
-     * Drei Zellen statt eines Verlaufs. Outlook rechnet keine Verlaeufe, und
-     * ein Streifen, der bei jedem dritten Empfaenger fehlt, ist kein
-     * Markenzeichen. Drei Flaechen nebeneinander koennen alle.
-     */
-    private static function streifen(): string
-    {
-        return '<tr><td style="padding:0;font-size:0;line-height:0">'
-             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">'
-             . '<tr>'
-             . '<td width="45%" height="4" style="background:' . self::BLAU_TIEF
-             . ';font-size:0;line-height:0">&nbsp;</td>'
-             . '<td width="35%" height="4" style="background:' . self::BLAU
-             . ';font-size:0;line-height:0">&nbsp;</td>'
-             . '<td width="20%" height="4" style="background:' . self::CYAN
-             . ';font-size:0;line-height:0">&nbsp;</td>'
-             . '</tr></table></td></tr>';
     }
 
     /**
@@ -614,25 +616,24 @@ final class Mail
      */
     private static function kopf(): string
     {
-        $schrift = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
-        $name = self::still(static fn() => Firma::get('name'), 'Vecom Design');
-        /* "Vecom Design" wird zu "Vecom" plus gesperrtem "Design". Heisst die
-           Firma einmal anders, steht sie eben ungeteilt da. */
-        $teil = explode(' ', trim((string) $name), 2);
-        $eins = $teil[0] ?? 'Vecom';
-        $zwei = $teil[1] ?? '';
-
-        return '<tr><td class="vd-innen" style="padding:30px 34px 4px;font-family:' . $schrift . '">'
-             . '<div class="vd-marke" style="font-size:19px;font-weight:700;letter-spacing:-.01em;'
-             . 'color:' . self::TEXT . ';line-height:1.1">' . self::sicher($eins) . '</div>'
-             . ($zwei !== ''
-                ? '<div class="vd-leise" style="font-size:10.5px;font-weight:600;letter-spacing:.42em;'
-                  . 'text-transform:uppercase;color:' . self::LEISE . ';margin-top:5px">'
-                  . self::sicher($zwei) . '</div>'
-                : '')
-             . '<div class="vd-linie" style="border-top:1px solid ' . self::LINIE
-             . ';margin:22px 0 0;font-size:0;line-height:0">&nbsp;</div>'
-             . '</td></tr>';
+        $schrift = "Georgia,'Times New Roman',serif";
+        $name = (string) self::still(static fn() => Firma::get('name'), 'Vecom Design');
+        $web  = rtrim((string) self::still(static fn() => Config::get('website', 'https://vecom-design.it'), 'https://vecom-design.it'), '/');
+        /* DAS LOGO IST JETZT EIN BILD — ABER EINES, DAS FEHLEN DARF
+           ------------------------------------------------------------------
+           Früher stand die Wortmarke als Schrift da, weil viele Programme Bilder erst nach einem
+           Klick laden. Uwe wollte den Stil des Angebots (navy Kopf, goldenes Logo). Die Lösung für
+           beides: Die navy Fläche ist eine Tabellenfarbe und daher immer da; das Logo liegt darauf,
+           und lädt es nicht, steht an seiner Stelle der Firmenname in Gold (alt-Text mit Schrift-
+           angaben). Ein leerer Rahmen entsteht so nie. Das Bild liegt öffentlich auf der Website,
+           nicht im Anhang — sonst trägt jede Mail 13 KB mehr und sieht wie Werbung aus. */
+        return '<tr><td align="center" bgcolor="' . self::NAVY . '" style="background:' . self::NAVY . ';padding:26px 24px 22px">'
+             . '<img src="' . self::sicher($web . '/assets/img/mail-logo-gold.png') . '" width="150" height="117" alt="' . self::sicher($name) . '"'
+             . ' style="display:block;width:150px;height:auto;max-width:150px;border:0;outline:none;text-decoration:none;'
+             . 'font-family:' . $schrift . ';font-size:24px;letter-spacing:.12em;color:' . self::GOLD . ';line-height:1.2">'
+             . '</td></tr>'
+             . '<tr><td height="3" bgcolor="' . self::GOLD . '" style="background:' . self::GOLD . ';font-size:0;line-height:0;height:3px">&nbsp;</td></tr>'
+             . '<tr><td style="height:26px;font-size:0;line-height:0">&nbsp;</td></tr>';
     }
 
     /**
@@ -654,13 +655,10 @@ final class Mail
            gleich auf einen Zahlungsknopf drueckt, gehoeren sie nicht --
            Kontodaten neben einem Zahlungslink sind genau das Bild, das
            Betrugsmails erzeugen. Also nur Kontakt und Steuernummern. */
+        /* Anschrift und Kontakt stehen seit dem Briefbogen „Vecom Gold“ im dunklen Fuß darunter;
+           hier hell nur noch Steuernummern, Telegram und der Satz, warum die Mail kommt. */
         $unten = [];
-        $kontakt = array_filter([
-            (string) self::still(static fn() => Firma::get('email'), ''),
-            (string) self::still(static fn() => Firma::get('telefon'), ''),
-            (string) self::still(static fn() => Firma::get('web'), ''),
-        ], static fn($w) => trim((string) $w) !== '');
-        if ($kontakt) { $unten[] = implode('  ·  ', $kontakt); }
+        $zeilen = [];
 
         $steuer = [];
         $piva = (string) self::still(static fn() => Firma::get('piva'), '');
@@ -699,10 +697,33 @@ final class Mail
 
         if ($inhalt === '') { return ''; }
 
-        return '<tr><td class="vd-innen vd-leise vd-linie" style="padding:20px 34px 26px;'
-             . 'border-top:1px solid ' . self::LINIE . ';font-family:' . $schrift
-             . ';font-size:12px;line-height:1.6;color:' . self::LEISE . '">'
-             . $inhalt . '</td></tr>';
+        /* Der dunkle Fuß wie auf dem Angebot: links wer, Mitte wie erreichbar, rechts die Website.
+           Auf dem Telefon stehen die drei Spalten untereinander (.vd-spalte). */
+        $name  = (string) self::still(static fn() => Firma::get('name'), 'Vecom Design');
+        $adr   = (array) self::still(static fn() => Firma::anschrift(), []);
+        array_shift($adr);
+        $mail  = (string) self::still(static fn() => Firma::get('email'), '');
+        $tel   = (string) self::still(static fn() => Firma::get('telefon'), '');
+        $web   = (string) self::still(static fn() => Firma::get('web'), '');
+        $spalte = static fn(string $inhalt, string $breite, string $ausr = 'left'): string =>
+            '<td class="vd-spalte" width="' . $breite . '" valign="top" style="padding:0 10px 0 0;text-align:' . $ausr . ';font-family:' . $schrift
+            . ';font-size:12px;line-height:1.6;color:' . self::NAVY_TEXT . '">' . $inhalt . '</td>';
+        $links = '<div style="font-family:Georgia,serif;font-size:15px;color:' . self::GOLD . ';margin:0 0 4px">' . self::sicher($name) . '</div>'
+               . ($adr ? self::sicher(implode(', ', $adr)) : '');
+        $mitte = ($mail !== '' ? '<div><a href="mailto:' . self::sicher($mail) . '" style="color:' . self::NAVY_TEXT . ';text-decoration:none">' . self::sicher($mail) . '</a></div>' : '')
+               . ($tel !== '' ? '<div>' . self::sicher($tel) . '</div>' : '');
+        $rechts = ($web !== '' ? '<div><a href="' . self::sicher(str_starts_with($web, 'http') ? $web : 'https://' . $web) . '" style="color:' . self::GOLD_HELL . ';text-decoration:none">'
+                  . self::sicher(preg_replace('~^https?://~', '', $web)) . '</a></div>' : '')
+                . '<div style="color:#8d94a8">Webdesign · Logo Design · Branding</div>';
+
+        return '<tr><td style="height:8px;font-size:0;line-height:0">&nbsp;</td></tr>'
+             . '<tr><td class="vd-innen vd-leise" style="padding:0 34px 22px;font-family:' . $schrift
+             . ';font-size:12px;line-height:1.6;color:' . self::LEISE . '">' . $inhalt . '</td></tr>'
+             . '<tr><td height="3" bgcolor="' . self::GOLD . '" style="background:' . self::GOLD . ';font-size:0;line-height:0;height:3px">&nbsp;</td></tr>'
+             . '<tr><td class="vd-innen vd-fuss" bgcolor="' . self::NAVY . '" style="background:' . self::NAVY . ';padding:22px 34px 24px">'
+             . '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
+             . $spalte($links, '38%') . $spalte($mitte, '30%') . $spalte($rechts, '32%', 'left')
+             . '</tr></table></td></tr>';
     }
 
     /**

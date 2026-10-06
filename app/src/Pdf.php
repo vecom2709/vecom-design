@@ -33,6 +33,15 @@ final class Pdf
     /** Dokumenteigenschaften (/Info), z. B. Titel und eine unsichtbare Kennung. */
     private array $info = [];
 
+    /** Eingebettete TrueType-Schriften (07.10.2026, Dokumentstil „Vecom Gold“): name => [kurz, ttf, maße]. */
+    private array $schriften = [];
+
+    /** PNG-Bilder: je Eintrag [farbdaten(zlib), alpha(zlib)|null, breite, hoehe, farbraum]. */
+    private array $pngs = [];
+
+    /** Ordner der PDF-Schriften (TTF + Maße als JSON, erzeugt aus den Web-Schriften des Repos). */
+    public const SCHRIFT_ORDNER = __DIR__ . '/../schrift/pdf';
+
     public function __construct(
         private float $breite = self::A4_BREIT,
         private float $hoehe  = self::A4_HOCH,
@@ -188,6 +197,137 @@ final class Pdf
         return null;
     }
 
+    /* ------------------------------------------------------------------ */
+    /*  Eingebettete Schriften (07.10.2026)                                */
+    /* ------------------------------------------------------------------ */
+
+    /** Ist die Schrift vorhanden? (TTF + JSON im Schriftordner) */
+    public static function schriftDa(string $name): bool
+    {
+        return is_file(self::SCHRIFT_ORDNER . '/' . $name . '.ttf') && is_file(self::SCHRIFT_ORDNER . '/' . $name . '.json');
+    }
+
+    /** Lädt die Schrift einmal und gibt ihr Kürzel (/T1, /T2 …) zurück. */
+    private function schrift(string $name): array
+    {
+        if (!isset($this->schriften[$name])) {
+            if (!self::schriftDa($name)) { throw new RuntimeException('PDF-Schrift fehlt: ' . $name); }
+            $m = json_decode((string) file_get_contents(self::SCHRIFT_ORDNER . '/' . $name . '.json'), true);
+            $this->schriften[$name] = ['T' . (count($this->schriften) + 1), (string) file_get_contents(self::SCHRIFT_ORDNER . '/' . $name . '.ttf'), $m];
+        }
+        return $this->schriften[$name];
+    }
+
+    /** Breite in Punkt in einer eingebetteten Schrift; $sperrung = Zeichenabstand in Punkt. */
+    public function breite(string $inhalt, float $groesse, string $schrift, float $sperrung = 0): float
+    {
+        $w = $this->kodieren($inhalt);
+        $m = $this->schrift($schrift)[2];
+        $summe = 0;
+        foreach (str_split($w) as $z) { $o = ord($z); $summe += ($o >= 32 ? ($m['breiten'][$o - 32] ?? 500) : 0); }
+        return $summe / 1000 * $groesse + max(0, strlen($w) - 1) * $sperrung;
+    }
+
+    /**
+     * Text in einer eingebetteten Schrift (inter-400, inter-500, inter-600, cormorant-500 …).
+     * $sperrung: zusätzlicher Zeichenabstand in Punkt (für gesperrte Großbuchstaben).
+     */
+    public function schreiben(float $x, float $y, string $inhalt, float $groesse, string $schrift,
+                              array $farbe = [0, 0, 0], string $ausrichtung = 'links', float $sperrung = 0): float
+    {
+        $w = $this->kodieren($inhalt);
+        if ($w === '') { return 0.0; }
+        [$kurz] = $this->schrift($schrift);
+        $b = $this->breite($inhalt, $groesse, $schrift, $sperrung);
+        if ($ausrichtung !== 'links') { $x = $ausrichtung === 'rechts' ? $x - $b : $x - $b / 2; }
+        $this->teile[] = sprintf("BT /%s %.2F Tf %.2F Tc %.3F %.3F %.3F rg %.2F %.2F Td (%s) Tj ET",
+            $kurz, $groesse, $sperrung, $farbe[0], $farbe[1], $farbe[2], $x, $this->hoehe - $y, $this->maskieren($w));
+        return $b;
+    }
+
+    /** Umbrechen in einer eingebetteten Schrift. */
+    public function umbrechenIn(string $text, float $breite, float $groesse, string $schrift): array
+    {
+        $aus = [];
+        foreach (preg_split('~\R~', $text) ?: [] as $absatz) {
+            $zeile = '';
+            foreach (preg_split('~\s+~', trim($absatz)) ?: [] as $wort) {
+                if ($wort === '') { continue; }
+                $versuch = $zeile === '' ? $wort : "$zeile $wort";
+                if ($zeile !== '' && $this->breite($versuch, $groesse, $schrift) > $breite) { $aus[] = $zeile; $zeile = $wort; }
+                else { $zeile = $versuch; }
+            }
+            $aus[] = $zeile;
+        }
+        return $aus;
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  PNG mit Transparenz (07.10.2026)                                   */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Ein PNG (8 Bit: Grau, RGB, Palette, mit oder ohne Alpha) an eine feste Stelle.
+     * Die Pixel werden entpackt, entfiltert und als Farbe + Maske (SMask) eingebettet.
+     * Gibt false zurück, wenn das Bild nicht lesbar ist — dann fehlt eben das Bild.
+     */
+    public function bildPng(string $png, float $x, float $y, float $breite, float $hoehe): bool
+    {
+        $d = self::pngLesen($png);
+        if ($d === null) { return false; }
+        $this->pngs[] = $d;
+        $this->teile[] = sprintf("q\n%.2F 0 0 %.2F %.2F %.2F cm\n/Pn%d Do\nQ", $breite, $hoehe, $x, $this->hoehe - $y - $hoehe, count($this->pngs));
+        return true;
+    }
+
+    /** @return array{0:string,1:?string,2:int,3:int,4:string}|null */
+    public static function pngLesen(string $png): ?array
+    {
+        if (substr($png, 0, 8) !== "\x89PNG\r\n\x1a\n") { return null; }
+        $i = 8; $n = strlen($png); $idat = ''; $plte = ''; $trns = ''; $w = $h = $tiefe = $typ = 0;
+        while ($i + 8 <= $n) {
+            $len = unpack('N', substr($png, $i, 4))[1]; $art = substr($png, $i + 4, 4); $inh = substr($png, $i + 8, $len);
+            if ($art === 'IHDR') { $k = unpack('Nw/Nh/Ct/Cf', $inh); $w = $k['w']; $h = $k['h']; $tiefe = $k['t']; $typ = $k['f']; if (ord($inh[12]) !== 0) { return null; } }
+            elseif ($art === 'PLTE') { $plte = $inh; }
+            elseif ($art === 'tRNS') { $trns = $inh; }
+            elseif ($art === 'IDAT') { $idat .= $inh; }
+            elseif ($art === 'IEND') { break; }
+            $i += 12 + $len;
+        }
+        if ($tiefe !== 8 || $w < 1 || $h < 1 || $w * $h > 4_000_000) { return null; }
+        $kan = [0 => 1, 2 => 3, 3 => 1, 4 => 2, 6 => 4][$typ] ?? 0;
+        if ($kan === 0) { return null; }
+        $roh = @gzuncompress($idat);
+        if ($roh === false) { return null; }
+        $zeile = $w * $kan;
+        if (strlen($roh) < ($zeile + 1) * $h) { return null; }
+        $farbe = ''; $alpha = ''; $vor = str_repeat("\0", $zeile); $mitAlpha = in_array($typ, [4, 6], true) || ($typ === 3 && $trns !== '');
+        for ($r = 0; $r < $h; $r++) {
+            $f = ord($roh[$r * ($zeile + 1)]); $z = substr($roh, $r * ($zeile + 1) + 1, $zeile); $neu = $z;
+            if ($f !== 0) {
+                $neu = '';
+                for ($c = 0; $c < $zeile; $c++) {
+                    $a = $c >= $kan ? ord($neu[$c - $kan]) : 0; $b = ord($vor[$c]); $cc = $c >= $kan ? ord($vor[$c - $kan]) : 0; $x0 = ord($z[$c]);
+                    $v = match ($f) { 1 => $x0 + $a, 2 => $x0 + $b, 3 => $x0 + intdiv($a + $b, 2), 4 => $x0 + self::paeth($a, $b, $cc), default => $x0 };
+                    $neu .= chr($v & 0xFF);
+                }
+            }
+            $vor = $neu;
+            if ($typ === 2 || $typ === 0) { $farbe .= $neu; }
+            elseif ($typ === 6) { for ($c = 0; $c < $zeile; $c += 4) { $farbe .= substr($neu, $c, 3); $alpha .= $neu[$c + 3]; } }
+            elseif ($typ === 4) { for ($c = 0; $c < $zeile; $c += 2) { $farbe .= $neu[$c]; $alpha .= $neu[$c + 1]; } }
+            else { for ($c = 0; $c < $zeile; $c++) { $ix = ord($neu[$c]); $farbe .= substr($plte, $ix * 3, 3) ?: "\0\0\0"; if ($mitAlpha) { $alpha .= $ix < strlen($trns) ? $trns[$ix] : "\xFF"; } } }
+        }
+        $raum = in_array($typ, [0, 4], true) ? 'DeviceGray' : 'DeviceRGB';
+        return [gzcompress($farbe, 9), $mitAlpha ? gzcompress($alpha, 9) : null, $w, $h, $raum];
+    }
+
+    private static function paeth(int $a, int $b, int $c): int
+    {
+        $p = $a + $b - $c; $pa = abs($p - $a); $pb = abs($p - $b); $pc = abs($p - $c);
+        return ($pa <= $pb && $pa <= $pc) ? $a : ($pb <= $pc ? $b : $c);
+    }
+
     /** Beginnt eine neue Seite. Alles Weitere landet auf ihr. */
     public function neueSeite(): void
     {
@@ -196,6 +336,22 @@ final class Pdf
     }
 
     public function seitenzahl(): int { return count($this->seiten) + 1; }
+
+    /** Nachträglich auf eine fertige Seite zeichnen (1-basiert) — z. B. „Seite 1/3“, wenn die Gesamtzahl feststeht. */
+    public function anSeite(int $nr, callable $zeichnen): void
+    {
+        $gesamt = $this->seitenzahl();
+        if ($nr < 1 || $nr > $gesamt) { return; }
+        if ($nr === $gesamt) { $zeichnen($this); return; }
+        $jetzt = $this->teile;
+        $this->teile = $this->seiten[$nr - 1];
+        $zeichnen($this);
+        $this->seiten[$nr - 1] = $this->teile;
+        $this->teile = $jetzt;
+    }
+
+    public function seitenHoehe(): float { return $this->hoehe; }
+    public function seitenBreite(): float { return $this->breite; }
 
     /** Dokumenteigenschaften: Title, Author, Subject, Keywords. */
     public function info(array $werte): void
@@ -208,6 +364,7 @@ final class Pdf
     /** Fertiges PDF als Zeichenkette. */
     public function fertig(): string
     {
+        if ($this->schriften !== [] || $this->pngs !== []) { return $this->fertigAllgemein(); }
         if ($this->seiten !== [] || $this->info !== []) { return $this->fertigMehrseitig(); }
         $inhalt = implode("\n", $this->teile);
 
@@ -309,6 +466,70 @@ final class Pdf
         foreach ($stellen as $st) { $pdf .= sprintf("%010d 00000 n \n", $st); }
         $pdf .= "trailer\n<< /Size " . (count($objekte) + 1) . " /Root 1 0 R" . ($infoNr ? " /Info $infoNr 0 R" : '') . " >>\n"
               . "startxref\n$xref\n%%EOF\n";
+        return $pdf;
+    }
+
+    /**
+     * Der allgemeine Weg (07.10.2026): eingebettete Schriften, JPEG und PNG,
+     * mehrere Seiten, /Info. Die Nummern werden fortlaufend vergeben.
+     */
+    private function fertigAllgemein(): string
+    {
+        $objekte = [];
+        $neu = static function (string $o) use (&$objekte): int { $objekte[] = $o; return count($objekte); };
+        $neu(''); $neu('');   // 1 Katalog, 2 Seitenbaum — unten gefüllt
+        $f1 = $neu("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>");
+        $f2 = $neu("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+        $fonts = '/F1 ' . $f1 . ' 0 R /F2 ' . $f2 . ' 0 R';
+        foreach ($this->schriften as $name => [$kurz, $ttf, $m]) {
+            $basis = 'VECOM' . chr(65 + (int) substr($kurz, 1) % 26) . '+' . preg_replace('~[^A-Za-z0-9]~', '', (string) $m['name']);
+            $z = gzcompress($ttf, 9);
+            $datei = $neu(sprintf("<< /Length %d /Length1 %d /Filter /FlateDecode >>\nstream\n%s\nendstream", strlen($z) + 1, strlen($ttf), $z));
+            $desk = $neu(sprintf("<< /Type /FontDescriptor /FontName /%s /Flags %d /FontBBox [%s] /ItalicAngle 0 /Ascent %d /Descent %d /CapHeight %d /StemV %d /FontFile2 %d 0 R >>",
+                $basis, (int) ($m['flags'] ?? 32), implode(' ', array_map('intval', (array) $m['bbox'])), (int) $m['ascent'], (int) $m['descent'], (int) $m['capHeight'], (int) ($m['stemV'] ?? 80), $datei));
+            $fid = $neu(sprintf("<< /Type /Font /Subtype /TrueType /BaseFont /%s /FirstChar 32 /LastChar 255 /Widths [%s] /Encoding /WinAnsiEncoding /FontDescriptor %d 0 R >>",
+                $basis, implode(' ', array_map('intval', (array) $m['breiten'])), $desk));
+            $fonts .= ' /' . $kurz . ' ' . $fid . ' 0 R';
+        }
+        $xo = '';
+        foreach ($this->bilder as $nr => [$daten, $bb, $bh, $farbraum]) {
+            $id = $neu(sprintf("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /%s /BitsPerComponent 8 /Filter /DCTDecode /Length %d >>\nstream\n%s\nendstream",
+                $bb, $bh, $farbraum, strlen($daten) + 1, $daten));
+            $xo .= sprintf('/Im%d %d 0 R ', $nr + 1, $id);
+        }
+        foreach ($this->pngs as $nr => [$farbe, $alpha, $bb, $bh, $raum]) {
+            $maske = '';
+            if ($alpha !== null) {
+                $mid = $neu(sprintf("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter /FlateDecode /Length %d >>\nstream\n%s\nendstream",
+                    $bb, $bh, strlen($alpha) + 1, $alpha));
+                $maske = ' /SMask ' . $mid . ' 0 R';
+            }
+            $id = $neu(sprintf("<< /Type /XObject /Subtype /Image /Width %d /Height %d /ColorSpace /%s /BitsPerComponent 8 /Filter /FlateDecode%s /Length %d >>\nstream\n%s\nendstream",
+                $bb, $bh, $raum, $maske, strlen($farbe) + 1, $farbe));
+            $xo .= sprintf('/Pn%d %d 0 R ', $nr + 1, $id);
+        }
+        $mittel = '/Font << ' . $fonts . ' >>' . ($xo !== '' ? ' /XObject << ' . $xo . '>>' : '');
+        $kids = [];
+        foreach (array_merge($this->seiten, [$this->teile]) as $teile) {
+            $inhalt = gzcompress(implode("\n", $teile), 6);
+            $cid = $neu(sprintf("<< /Length %d /Filter /FlateDecode >>\nstream\n%s\nendstream", strlen($inhalt) + 1, $inhalt));
+            $kids[] = $neu(sprintf("<< /Type /Page /Parent 2 0 R /MediaBox [0 0 %.2F %.2F] /Resources << %s >> /Contents %d 0 R >>", $this->breite, $this->hoehe, $mittel, $cid)) . ' 0 R';
+        }
+        $objekte[0] = "<< /Type /Catalog /Pages 2 0 R >>";
+        $objekte[1] = sprintf("<< /Type /Pages /Kids [%s] /Count %d >>", implode(' ', $kids), count($kids));
+        $infoNr = 0;
+        if ($this->info !== []) {
+            $felder = '';
+            foreach ($this->info as $k => $v) { $felder .= '/' . $k . ' (' . $this->maskieren($this->kodieren($v)) . ') '; }
+            $infoNr = $neu('<< ' . $felder . '/Producer (Vecom Verwaltung) >>');
+        }
+        $pdf = "%PDF-1.4\n%\xE2\xE3\xCF\xD3\n";
+        $stellen = [];
+        foreach ($objekte as $i => $o) { $stellen[] = strlen($pdf); $pdf .= ($i + 1) . " 0 obj\n$o\nendobj\n"; }
+        $xref = strlen($pdf);
+        $pdf .= "xref\n0 " . (count($objekte) + 1) . "\n0000000000 65535 f \n";
+        foreach ($stellen as $st) { $pdf .= sprintf("%010d 00000 n \n", $st); }
+        $pdf .= "trailer\n<< /Size " . (count($objekte) + 1) . " /Root 1 0 R" . ($infoNr ? " /Info $infoNr 0 R" : '') . " >>\nstartxref\n$xref\n%%EOF\n";
         return $pdf;
     }
 

@@ -948,7 +948,7 @@ $rq = file_get_contents(dirname(__DIR__) . '/src/Rechnung.php') ?: '';
 pruefe('ein Belegfehler wird nicht mehr verschluckt',
     str_contains($rq, "Db::doppelt(\$e, 'uq_invoices_payment')") && str_contains($rq, 'throw $e;'));
 pruefe('die Belegnummer wird im Versuch neu geholt',
-    str_contains($rq, "\$zeile['invoice_no'] = self::naechsteNummer();"));
+    str_contains($rq, "\$zeile['invoice_no'] = self::naechsteNummer("));
 
 /* Und die praktische Seite: Wer noch kein Wort gehoert hat, steht oben --
    auch wenn er erst seit einer Stunde wartet. */
@@ -20491,7 +20491,7 @@ $fpPdf = Angebot::pdf((int) $fpA);
 pruefe('Festpreis: geht ohne Fragebogen raus, mit Angebots-Mail; das PDF entsteht (und hängt an der Mail)',
     $fpSent === true && !Onboarding::fertig($fpK) && (string) Db::wert('SELECT status FROM angebote WHERE id = ?', [(int) $fpA], '') === 'gesendet'
     && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'angebot' AND customer_id = ?", [$fpK], 0) === 1
-    && str_starts_with($fpPdf, '%PDF') && str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "self::istFestpreis(\$a)) {\n                    try {\n                        \$pdf = self::pdf(\$angebotId);"), $fpErr);
+    && str_starts_with($fpPdf, '%PDF') && str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "self::positionen(\$angebotId)) {\n                    try {\n                        \$pdf = self::pdf(\$angebotId);"), $fpErr);
 /* Gesendet: nichts verschiebt sich mehr */
 $fpVor = json_encode($fpZ()); Angebot::verteilen((int) $fpA);
 pruefe('Festpreis: ein verschicktes Angebot verteilt nicht mehr neu', json_encode($fpZ()) === $fpVor);
@@ -27528,6 +27528,156 @@ pruefe('es geht ab 07:30 und nur bis 11:00', !Morgenbriefing::faellig($czTag + 7
     && !Morgenbriefing::faellig($czTag + 11 * 3600));
 pruefe('Briefing und Aufräumen stehen im Automation Center und lassen nichts aus dem Haus', (Automation::REGELN['morgenbriefing'][3] ?? true) === false
     && (Automation::REGELN['claude_zugang'][3] ?? true) === false && str_contains((string) file_get_contents($wurzel . '/src/Cron.php'), "'cron_morgenbriefing'"));
+
+/* Dokumentstil „Vecom Gold“, echte Rechnungen, E-Mails in der Akte (07.10.2026, Uwe: „ok super“ zu 1–13).
+   Mit VD_MUSTER_DIR schreibt der Abschnitt die Muster als Dateien (Testlauf für Uwe). */
+abschnitt('Dokumente „Vecom Gold“: Angebot, Rechnung, Gutschrift, FatturaPA, E-Mails in der Akte');
+require_once $wurzel . '/src/Dokument.php';
+require_once $wurzel . '/src/Rechnung.php';
+require_once $wurzel . '/src/FatturaPa.php';
+require_once $wurzel . '/src/KundeMails.php';
+require_once $wurzel . '/src/Mahnung.php';
+require_once $wurzel . '/src/Lieferung.php';
+require_once $wurzel . '/src/Vertragsblatt.php';
+require_once $wurzel . '/src/Widerruf.php';
+$dgDir = (string) getenv('VD_MUSTER_DIR');
+$dgAb = static function (string $name, string $daten) use ($dgDir): void { if ($dgDir !== '' && is_dir($dgDir)) { file_put_contents($dgDir . '/' . $name, $daten); } };
+$dgSeiten = static fn(string $pdf): int => preg_match_all('~/Type /Page /~', $pdf);
+$dgVorher = [];
+foreach (['firma_piva', 'firma_regime', 'firma_mwst', 'firma_rechnung_ab', 'firma_pec', 'firma_iban', 'firma_strasse', 'firma_plz', 'firma_ort', 'firma_land', 'firma_email', 'firma_telefon', 'firma_web', 'firma_steuernr'] as $dgF) { $dgVorher[$dgF] = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$dgF], ''); }
+Firma::speichern(['firma_piva' => '', 'firma_rechnung_ab' => '', 'firma_strasse' => 'Via Esempio 12', 'firma_plz' => '92019', 'firma_ort' => 'Sciacca (AG)', 'firma_land' => 'Italia',
+    'firma_email' => 'info@vecom-design.it', 'firma_telefon' => '+39 000 0000000', 'firma_web' => 'vecom-design.it', 'firma_iban' => 'IT00X0000000000000000000000']);
+pruefe('die PDF-Schriften (Inter, Cormorant) und das Gold-Logo sind da', Dokument::bereit() && is_file($wurzel . '/assets/logo-gold.png') && is_file($oben . '/assets/img/mail-logo-gold.png'));
+
+/* Angebot im Stil der Vorlage, mit einer optionalen Position */
+$dgK = (int) Db::insert('customers', ['name' => 'Mario Rossi', 'email' => 'gold-it@probe.example', 'company' => 'Ristorante Esempio', 'sprache' => 'de',
+    'street' => 'Via Roma 1', 'zip' => '92019', 'city' => 'Sciacca (AG)', 'country' => 'Italia', 'vat_id' => '01234567890', 'sdi' => 'ABC1234']);
+$dgKde = (int) Db::insert('customers', ['name' => 'Max Muster', 'email' => 'gold-de@probe.example', 'company' => 'Muster GmbH', 'sprache' => 'de',
+    'street' => 'Musterstraße 1', 'zip' => '10115', 'city' => 'Berlin', 'country' => 'Deutschland', 'vat_id' => 'DE123456789']);
+$dgA = (int) Angebot::festpreisNeu($dgK, 290000, 'de');
+Db::update('angebote', $dgA, ['titel' => 'Variante 2 – Neue Website mit integriertem Shop']);
+Angebot::bausteinDazu($dgA, 'basis'); Angebot::bausteinDazu($dgA, 'seite', 5); Angebot::bausteinDazu($dgA, 'logo');
+$dgZ = Db::all('SELECT * FROM angebot_positionen WHERE angebot_id = ? ORDER BY sortierung, id', [$dgA]);
+$dgLogo = null; foreach ($dgZ as $z) { if ((string) $z['baustein_slug'] === 'logo') { $dgLogo = $z; } }
+$dgM = []; $dgP = []; $dgO = [];
+foreach ($dgZ as $z) { $dgM[(int) $z['id']] = (int) $z['menge']; $dgP[(int) $z['id']] = number_format((int) $z['einzel_cents'] / 100, 2, ',', ''); $dgO[(int) $z['id']] = $dgLogo && (int) $z['id'] === (int) $dgLogo['id'] ? 1 : 0; }
+Angebot::zeilenSpeichern($dgA, $dgM, $dgP, $dgO);
+$dgSumme = (int) Db::wert('SELECT summe_cents FROM angebote WHERE id = ?', [$dgA], 0);
+$dgOhneOpt = (int) Db::wert('SELECT COALESCE(SUM(summe_cents),0) FROM angebot_positionen WHERE angebot_id = ? AND optional = 0 AND monatlich = 0', [$dgA], 0);
+pruefe('eine optionale Position zählt nicht zur Summe', $dgLogo !== null && (int) Db::wert('SELECT optional FROM angebot_positionen WHERE id = ?', [(int) ($dgLogo['id'] ?? 0)], 0) === 1 && $dgSumme === $dgOhneOpt, "$dgSumme / $dgOhneOpt");
+$dgPdfA = Angebot::pdf($dgA);
+pruefe('das Angebot ist ein PDF im neuen Stil (Schriften eingebettet, Logo mit Transparenz)', str_starts_with($dgPdfA, '%PDF') && str_contains($dgPdfA, '/FontFile2') && str_contains($dgPdfA, '/SMask') && $dgSeiten($dgPdfA) >= 1);
+$dgAb('01-Angebot.pdf', $dgPdfA);
+
+/* Vor der Partita IVA: Zahlungsbeleg */
+pruefe('ohne Partita IVA ist jeder Fall ein Zahlungsbeleg', Rechnung::steuerfall(Db::one('SELECT * FROM customers WHERE id = ?', [$dgK]), date('Y-m-d'))['fall'] === 'beleg');
+$dgOrd = (int) Db::insert('orders', ['order_no' => 'VD-GOLD-1', 'customer_id' => $dgK, 'package_name' => 'Website', 'price_cents' => 145000, 'status' => 'bezahlt']);
+$dgZahl = static fn(int $cent, string $tag = 'now') => (int) Db::insert('payments', ['order_id' => $dgOrd, 'art' => 'anzahlung', 'amount_cents' => $cent, 'currency' => 'EUR', 'status' => 'bezahlt', 'paid_at' => date('Y-m-d H:i:s', strtotime($tag))]);
+$dgBe = Rechnung::ausZahlung($dgZahl(72500));
+$dgBeR = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) $dgBe]);
+pruefe('der Beleg heißt BE-…, doc_typ beleg, ohne Steuer', $dgBeR && str_starts_with((string) $dgBeR['invoice_no'], 'BE-') && $dgBeR['doc_typ'] === 'beleg' && (int) $dgBeR['tax_cents'] === 0);
+$dgPdfBe = Rechnung::pdf($dgBeR);
+pruefe('der Zahlungsbeleg kommt im neuen Stil', str_starts_with($dgPdfBe, '%PDF') && str_contains($dgPdfBe, '/FontFile2'));
+$dgAb('02-Zahlungsbeleg.pdf', $dgPdfBe);
+$dgXmlFehler = ''; try { FatturaPa::erzeugen((int) $dgBe); } catch (Throwable $e) { $dgXmlFehler = $e->getMessage(); }
+pruefe('zu einem Zahlungsbeleg gibt es keine FatturaPA', $dgXmlFehler !== '');
+
+/* Stichtag: Partita IVA eingetragen, Rechnungen erst ab morgen */
+Firma::speichern(['firma_piva' => '01234567891', 'firma_regime' => 'forfettario', 'firma_mwst' => '0', 'firma_rechnung_ab' => date('Y-m-d', strtotime('+1 day')), 'firma_steuernr' => 'VTTWEU70A01Z112X']);
+pruefe('vor dem Stichtag bleibt es ein Beleg, ab dem Stichtag eine Rechnung',
+    !Firma::istRechnungsberechtigt(date('Y-m-d')) && Firma::istRechnungsberechtigt(date('Y-m-d', strtotime('+1 day'))) && !Firma::istRechnungsberechtigt());
+Firma::speichern(['firma_rechnung_ab' => date('Y-m-d')]);
+
+/* Forfettario mit Bollo */
+$dgRe = Rechnung::ausZahlung($dgZahl(72500));
+$dgReR = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) $dgRe]);
+pruefe('forfettario: RE-…, Natura N2.2, ohne IVA, Bollo 2 € über 77,47 €', $dgReR && str_starts_with((string) $dgReR['invoice_no'], 'RE-') && $dgReR['doc_typ'] === 'rechnung'
+    && $dgReR['steuerfall'] === 'forfettario' && $dgReR['natura'] === 'N2.2' && (int) $dgReR['tax_cents'] === 0 && (int) $dgReR['bollo_cents'] === 200);
+$dgSaetze = implode(' ', Rechnung::pflichtSaetze($dgReR, 'de'));
+pruefe('forfettario: Hinweis L. 190/2014, Ritenuta, Bollo virtuale und „Höflichkeitskopie“ stehen drauf',
+    str_contains($dgSaetze, 'Legge n. 190/2014') && str_contains($dgSaetze, 'ritenuta') && str_contains($dgSaetze, 'bollo') && str_contains($dgSaetze, 'Höflichkeitskopie'));
+$dgPdfRe = Rechnung::pdf($dgReR);
+$dgAb('03-Rechnung-forfettario.pdf', $dgPdfRe);
+$dgX = FatturaPa::erzeugen((int) $dgRe);
+$dgDom = new DOMDocument(); $dgOk = @$dgDom->loadXML($dgX['xml']);
+$dgXp = $dgOk ? new DOMXPath($dgDom) : null;
+$dgQ = static fn(string $q): string => $dgXp ? trim((string) ($dgXp->query($q)->item(0)?->textContent ?? '')) : '';
+pruefe('FatturaPA forfettario: gültiges XML, RF19, TD01, N2.2, Bollo, Empfänger mit SDI',
+    $dgOk && str_starts_with($dgX['name'], 'IT01234567891_') && $dgQ('//RegimeFiscale') === 'RF19' && $dgQ('//TipoDocumento') === 'TD01'
+    && $dgQ('//DatiRiepilogo/Natura') === 'N2.2' && $dgQ('//DatiBollo/ImportoBollo') === '2.00' && $dgQ('//CodiceDestinatario') === 'ABC1234'
+    && $dgQ('//ImportoTotaleDocumento') === '725.00', substr($dgX['xml'], 0, 600));
+$dgAb($dgX['name'], $dgX['xml']);
+
+/* Ordinario mit 22 % */
+Firma::speichern(['firma_regime' => 'normal', 'firma_mwst' => '22']);
+$dgOrdR = Db::one('SELECT * FROM invoices WHERE id = ?', [(int) Rechnung::ausZahlung($dgZahl(122000))]);
+pruefe('ordinario: 22 % herausgerechnet (1.220 € = 1.000 € + 220 €)', $dgOrdR && $dgOrdR['steuerfall'] === 'ordinario' && (int) $dgOrdR['net_cents'] === 100000 && (int) $dgOrdR['tax_cents'] === 22000 && (int) $dgOrdR['bollo_cents'] === 0);
+$dgAb('04-Rechnung-mit-IVA.pdf', Rechnung::pdf($dgOrdR));
+$dgX2 = FatturaPa::erzeugen((int) $dgOrdR['id']);
+pruefe('FatturaPA ordinario: RF01 und Aliquota 22.00', str_contains($dgX2['xml'], '<RegimeFiscale>RF01</RegimeFiscale>') && str_contains($dgX2['xml'], '<AliquotaIVA>22.00</AliquotaIVA>'));
+
+/* EU-Firma: Reverse Charge */
+$dgOrdDe = (int) Db::insert('orders', ['order_no' => 'VD-GOLD-2', 'customer_id' => $dgKde, 'package_name' => 'Website', 'price_cents' => 150000, 'status' => 'bezahlt']);
+$dgRcId = (int) Rechnung::ausZahlung((int) Db::insert('payments', ['order_id' => $dgOrdDe, 'art' => 'gesamt', 'amount_cents' => 150000, 'currency' => 'EUR', 'status' => 'bezahlt', 'paid_at' => date('Y-m-d H:i:s')]));
+$dgRcR = Db::one('SELECT * FROM invoices WHERE id = ?', [$dgRcId]);
+pruefe('EU-Firmenkunde mit USt-IdNr.: Reverse Charge N2.1, keine IVA, Satz nach art. 7-ter', $dgRcR && $dgRcR['steuerfall'] === 'reverse_charge' && $dgRcR['natura'] === 'N2.1'
+    && (int) $dgRcR['tax_cents'] === 0 && str_contains(implode(' ', Rechnung::pflichtSaetze($dgRcR, 'de')), '7-ter'));
+$dgAb('05-Rechnung-EU-Reverse-Charge.pdf', Rechnung::pdf($dgRcR));
+$dgX3 = FatturaPa::erzeugen($dgRcId);
+pruefe('FatturaPA Ausland: CodiceDestinatario XXXXXXX, IdPaese DE', str_contains($dgX3['xml'], '<CodiceDestinatario>XXXXXXX</CodiceDestinatario>') && str_contains($dgX3['xml'], '<IdPaese>DE</IdPaese>'));
+
+/* Gutschrift / Nota di credito */
+$dgGsFehler = ''; try { Rechnung::gutschrift((int) $dgRe, 100000, 'zu viel', 'kette'); } catch (Throwable $e) { $dgGsFehler = $e->getMessage(); }
+$dgGs = Rechnung::gutschrift((int) $dgRe, 20000, 'Teilleistung entfällt', 'kette');
+$dgGsR = Db::one('SELECT * FROM invoices WHERE id = ?', [$dgGs]);
+pruefe('Gutschrift: NC-… zur Rechnung, mit Verweis, mehr als bezahlt geht nicht', $dgGsFehler !== '' && $dgGsR && str_starts_with((string) $dgGsR['invoice_no'], 'NC-')
+    && (int) $dgGsR['storno_von'] === (int) $dgRe && $dgGsR['doc_typ'] === 'gutschrift' && (int) $dgGsR['total_cents'] === 20000);
+$dgAb('06-Gutschrift-Nota-di-credito.pdf', Rechnung::pdf($dgGsR));
+$dgX4 = FatturaPa::erzeugen($dgGs);
+pruefe('FatturaPA der Gutschrift: TD04 mit DatiFattureCollegate', str_contains($dgX4['xml'], '<TipoDocumento>TD04</TipoDocumento>') && str_contains($dgX4['xml'], '<DatiFattureCollegate>'));
+$dgRest = Rechnung::gutschrift((int) $dgRe, 0, 'Rest storniert', 'kette');
+$dgNochmal = ''; try { Rechnung::gutschrift((int) $dgRe, 0, 'noch einmal', 'kette'); } catch (Throwable $e) { $dgNochmal = $e->getMessage(); }
+pruefe('der Rest lässt sich gutschreiben, danach nichts mehr', (int) Db::wert('SELECT total_cents FROM invoices WHERE id = ?', [$dgRest], 0) === 52500 && $dgNochmal !== '');
+$dgGsBe = Rechnung::gutschrift((int) $dgBe, 0, 'Auftrag storniert', 'kette');
+pruefe('zu einem Zahlungsbeleg heißt die Gutschrift GS-…', str_starts_with((string) Db::wert('SELECT invoice_no FROM invoices WHERE id = ?', [$dgGsBe], ''), 'GS-'));
+
+/* Muster ohne Datenbankeintrag */
+$dgVorZahl = (int) Db::wert('SELECT COUNT(*) FROM invoices', [], 0);
+$dgMu = true; foreach (['beleg', 'forfettario', 'ordinario', 'reverse_charge', 'gutschrift'] as $dgF) { $dgMu = $dgMu && str_starts_with(Rechnung::muster($dgF), '%PDF'); }
+pruefe('die Muster in den Einstellungen entstehen, ohne etwas zu speichern', $dgMu && (int) Db::wert('SELECT COUNT(*) FROM invoices', [], 0) === $dgVorZahl);
+
+/* Mahnung als PDF */
+$dgOffen = (int) Db::insert('payments', ['order_id' => $dgOrd, 'art' => 'restzahlung', 'amount_cents' => 72500, 'currency' => 'EUR', 'status' => 'ausstehend', 'faellig_am' => date('Y-m-d', strtotime('-12 days'))]);
+$dgMa = Mahnung::pdf($dgOffen, 2);
+pruefe('die Mahnung gibt es als PDF im neuen Stil', str_starts_with($dgMa, '%PDF') && str_contains($dgMa, '/FontFile2'));
+$dgAb('07-Mahnung.pdf', $dgMa);
+pruefe('ab Stufe 2 hängt die Mahnung an der Mail', str_contains((string) file_get_contents($wurzel . '/src/Mahnung.php'), "if (\$stufe >= 2) {"));
+$dgVb = Vertragsblatt::pdf($dgOrd);
+pruefe('Auftragsbestätigung und Widerrufsformular tragen den neuen Kopf', str_starts_with($dgVb, '%PDF') && str_contains($dgVb, '/SMask') && str_contains(Widerruf::formularPdf('de'), '/SMask'));
+$dgAb('08-Auftragsbestaetigung.pdf', $dgVb);
+
+/* E-Mails: Briefbogen, gespeicherter Inhalt, Kundenakte */
+$dgVorMail = (int) Db::wert('SELECT COALESCE(MAX(id),0) FROM mails', [], 0);
+Mail::senden('test_gold', 'gold-it@probe.example', 'Ihr Angebot', "Guten Tag Herr Rossi,\n\nanbei Ihr Angebot.\n\nhttps://vecom-design.it/angebot.php?t=x\n\nViele Grüße\nUwe Vetter",
+    ['customer_id' => $dgK, 'anhaenge' => [['name' => 'Angebot.pdf', 'daten' => $dgPdfA]]]);
+$dgMail = Db::one('SELECT * FROM mails WHERE id > ? AND anlass = ? ORDER BY id DESC LIMIT 1', [$dgVorMail, 'test_gold']);
+pruefe('jede E-Mail wird mit Text, Briefbogen und Anhangnamen festgehalten', $dgMail && str_contains((string) $dgMail['inhalt'], 'anbei Ihr Angebot')
+    && str_contains((string) $dgMail['html'], 'mail-logo-gold.png') && str_contains((string) $dgMail['html'], '#0b1430') && str_contains((string) $dgMail['anhaenge'], 'Angebot.pdf'));
+$dgAb('09-E-Mail.html', (string) ($dgMail['html'] ?? ''));
+$dgFremd = (int) Db::insert('mails', ['anlass' => 'x', 'empfaenger' => 'anders@probe.example', 'betreff' => 'Fremd', 'status' => 'gesendet', 'customer_id' => $dgKde, 'inhalt' => 'geheim']);
+$dgListe = KundeMails::liste($dgK);
+$dgIds = array_map(static fn($e) => $e['id'], array_filter($dgListe, static fn($e) => $e['quelle'] === 'mail'));
+pruefe('die Kundenakte zeigt seine E-Mails — und keine fremden', in_array((int) $dgMail['id'], $dgIds, true) && !in_array($dgFremd, $dgIds, true)
+    && KundeMails::eine($dgK, $dgFremd) === null && (KundeMails::eine($dgK, (int) $dgMail['id'])['html'] ?? '') !== '');
+try {
+    $dgFi = (int) Db::insert('akq_firmen', ['kennung' => 'G' . bin2hex(random_bytes(4)), 'name' => 'Ristorante Esempio', 'name_norm' => 'ristorante esempio', 'land' => 'IT', 'customer_id' => $dgK]);
+    Db::insert('akq_versand', ['firma_id' => $dgFi, 'kanal' => 'email', 'an' => 'gold-it@probe.example', 'status' => 'von_hand', 'compliance' => 'ok']);
+    $dgAkq = array_values(array_filter(KundeMails::liste($dgK), static fn($e) => $e['quelle'] === 'akq'));
+    pruefe('eine Akquise-Mail aus dem Mailprogramm steht als „im Mailprogramm geöffnet“ in der Akte', count($dgAkq) === 1 && $dgAkq[0]['status'] === 'von_hand' && isset(KundeMails::STATUS['von_hand']));
+} catch (Throwable $e) { pruefe('Akquise-Mail in der Akte', false, $e->getMessage()); }
+pruefe('die Gutschrift fragt nach (Ablauf SCHWER) und nur ein Admin darf', isset(Ablauf::TRAGWEITE['rechnung_gutschrift']) && str_contains((string) file_get_contents($wurzel . '/index.php'), "Gutschriften stellt nur ein Admin aus."));
+
+Firma::speichern($dgVorher);
 
 /* ============================================================================
    Aufräumen und Bilanz

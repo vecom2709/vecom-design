@@ -27,7 +27,71 @@ final class Rechnung
     /** Zahlungsziel in Tagen, ab Ausstellung. */
     public const FAELLIG_IN_TAGEN = 14;
 
-    public static function istRechnung(): bool { return Firma::istRechnungsberechtigt(); }
+    public static function istRechnung(?string $datum = null): bool { return Firma::istRechnungsberechtigt($datum); }
+
+    /* ------------------------------------------------------------------ */
+    /*  Steuerfall (07.10.2026, echte Rechnungen nach Art. 21 DPR 633/72)   */
+    /* ------------------------------------------------------------------ */
+
+    /** Länderwort → ISO-Code (für Reverse Charge und FatturaPA). */
+    public const LAENDER = [
+        'IT' => ['it', 'italia', 'italien', 'italy'], 'DE' => ['de', 'deutschland', 'germania', 'germany'], 'AT' => ['at', 'österreich', 'oesterreich', 'austria'],
+        'CH' => ['ch', 'schweiz', 'svizzera', 'switzerland'], 'FR' => ['fr', 'frankreich', 'francia', 'france'], 'ES' => ['es', 'spanien', 'spagna', 'spain'],
+        'NL' => ['nl', 'niederlande', 'olanda', 'paesi bassi', 'netherlands'], 'BE' => ['be', 'belgien', 'belgio', 'belgium'], 'LU' => ['lu', 'luxemburg', 'lussemburgo', 'luxembourg'],
+        'PL' => ['pl', 'polen', 'polonia', 'poland'], 'MT' => ['mt', 'malta'], 'GB' => ['gb', 'uk', 'großbritannien', 'regno unito', 'united kingdom'], 'US' => ['us', 'usa', 'stati uniti', 'united states'],
+    ];
+    public const EU = ['AT','BE','BG','CY','CZ','DE','DK','EE','ES','FI','FR','GR','HR','HU','IE','IT','LT','LU','LV','MT','NL','PL','PT','RO','SE','SI','SK'];
+
+    public static function landIso(string $land): string
+    {
+        $l = mb_strtolower(trim($land));
+        if ($l === '') { return 'IT'; }
+        foreach (self::LAENDER as $iso => $woerter) { if (in_array($l, $woerter, true)) { return $iso; } }
+        return strlen($l) === 2 ? strtoupper($l) : 'IT';
+    }
+
+    /**
+     * Welcher Fall gilt für diesen Kunden an diesem Tag?
+     *  beleg          — noch keine P.IVA (oder vor dem Stichtag): Zahlungsbeleg
+     *  reverse_charge — Firmenkunde im Ausland mit USt-ID: nicht steuerbar in Italien (Art. 7-ter), Natura N2.1
+     *  forfettario    — Regime forfettario: ohne IVA (L. 190/2014), Natura N2.2, ggf. Marca da bollo
+     *  ordinario      — IVA nach eingetragenem Satz
+     * @return array{fall:string, satz:float, natura:?string}
+     */
+    public static function steuerfall(array $kunde, string $datum): array
+    {
+        if (!self::istRechnung($datum)) { return ['fall' => 'beleg', 'satz' => 0.0, 'natura' => null]; }
+        $iso = self::landIso((string) ($kunde['country'] ?? ''));
+        if ($iso !== 'IT' && trim((string) ($kunde['vat_id'] ?? '')) !== '') { return ['fall' => 'reverse_charge', 'satz' => 0.0, 'natura' => 'N2.1']; }
+        if (Firma::regime() === 'forfettario') { return ['fall' => 'forfettario', 'satz' => 0.0, 'natura' => 'N2.2']; }
+        return ['fall' => 'ordinario', 'satz' => Firma::mwstEingetragen(), 'natura' => null];
+    }
+
+    /** Die Pflichtsätze für dieses Dokument, in der Sprache des Kunden (Gesetzeswortlaut bleibt italienisch). @return list<string> */
+    public static function pflichtSaetze(array $r, string $s): array
+    {
+        $fall = (string) ($r['steuerfall'] ?? 'beleg');
+        $aus = [];
+        if ($fall === 'beleg') {
+            $aus[] = ['it' => 'Questa è una ricevuta di pagamento, non una fattura ai fini fiscali.', 'de' => 'Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn.',
+                      'en' => 'This is a payment receipt, not an invoice for tax purposes.'][$s];
+            return $aus;
+        }
+        if ($fall === 'reverse_charge') {
+            $aus[] = 'Operazione non soggetta ad IVA ai sensi dell\'art. 7-ter del D.P.R. 633/1972 – inversione contabile.';
+            $aus[] = ['it' => 'L\'imposta è dovuta dal committente (reverse charge).', 'de' => 'Steuerschuldnerschaft des Leistungsempfängers (Reverse Charge).',
+                      'en' => 'VAT to be accounted for by the recipient (reverse charge).'][$s];
+        }
+        if ($fall === 'forfettario') {
+            $aus[] = 'Operazione senza applicazione dell\'IVA, effettuata ai sensi dell\'articolo 1, commi da 54 a 89, della Legge n. 190/2014 – regime forfettario.';
+            $aus[] = 'Si richiede la non applicazione della ritenuta alla fonte a titolo d\'acconto ai sensi dell\'art. 1, comma 67, L. 190/2014.';
+        }
+        if ((int) ($r['bollo_cents'] ?? 0) > 0) { $aus[] = 'Imposta di bollo di 2,00 € assolta in modo virtuale ai sensi del D.M. 17.06.2014.'; }
+        $aus[] = ['it' => 'Copia di cortesia. La fattura originale è il file elettronico trasmesso al Sistema di Interscambio (SDI).',
+                  'de' => 'Höflichkeitskopie. Die gültige Rechnung ist die elektronische Fassung, die über das italienische SDI übermittelt wird.',
+                  'en' => 'Courtesy copy. The original invoice is the electronic file transmitted via the Italian SDI.'][$s];
+        return $aus;
+    }
 
     public static function bezeichnung(): string
     {
@@ -84,6 +148,7 @@ final class Rechnung
      */
     public static function sprache(array $r): string
     {
+        if (in_array($r['_sprache'] ?? null, ['it', 'de', 'en'], true)) { return (string) $r['_sprache']; }   // nur für Muster
         $s = '';
         try {
             if (!empty($r['order_id'])) {
@@ -105,9 +170,16 @@ final class Rechnung
      * Kunde liest, muss in seiner Sprache stehen — ein italienischer Gastwirt
      * bekommt keinen "Zahlungsbeleg".
      */
-    public static function wort(string $sprache): string
+    public static function wort(string $sprache, ?array $r = null): string
     {
         $s = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        if ($r !== null && isset($r['doc_typ'])) {
+            return match ((string) $r['doc_typ']) {
+                'rechnung'   => ['it' => 'Fattura', 'de' => 'Rechnung', 'en' => 'Invoice'][$s],
+                'gutschrift' => (str_starts_with((string) $r['invoice_no'], 'NC-') ? ['it' => 'Nota di credito', 'de' => 'Gutschrift', 'en' => 'Credit note'] : ['it' => 'Storno ricevuta', 'de' => 'Gutschrift zum Beleg', 'en' => 'Receipt credit'])[$s],
+                default      => ['it' => 'Ricevuta', 'de' => 'Zahlungsbeleg', 'en' => 'Receipt'][$s],
+            };
+        }
         return self::istRechnung()
             ? ['it' => 'Fattura', 'de' => 'Rechnung', 'en' => 'Invoice'][$s]
             : ['it' => 'Ricevuta', 'de' => 'Zahlungsbeleg', 'en' => 'Receipt'][$s];
@@ -132,10 +204,10 @@ final class Rechnung
      * (RE). Wer eine Umsatzsteuernummer bekommt, faengt bei den Rechnungen
      * sauber bei 1 an, statt eine Belegreihe fortzusetzen.
      */
-    public static function naechsteNummer(): string
+    public static function naechsteNummer(?string $art = null, ?string $datum = null): string
     {
-        $art  = self::istRechnung() ? 'RE' : 'BE';
-        $jahr = date('Y');
+        $art  ??= self::istRechnung($datum) ? 'RE' : 'BE';
+        $jahr = $datum !== null ? substr($datum, 0, 4) : date('Y');
         $vorn = "$art-$jahr-";
         $hoechste = (int) Db::wert(
             "SELECT COALESCE(MAX(CAST(SUBSTRING(invoice_no, ?) AS UNSIGNED)), 0)
@@ -188,7 +260,9 @@ final class Rechnung
         $kunde = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
 
         $brutto = (int) $z['amount_cents'];
-        $satz   = Firma::mwst();
+        $tag    = date('Y-m-d', strtotime((string) ($z['paid_at'] ?? 'now')) ?: time());
+        $fall   = self::steuerfall($kunde ?: [], $tag);
+        $satz   = $fall['satz'];
         // Die Preise auf der Website sind das, was der Kunde zahlt. Steuer
         // wird also herausgerechnet, nicht aufgeschlagen.
         $netto  = $satz > 0 ? (int) round($brutto / (1 + $satz / 100)) : $brutto;
@@ -204,7 +278,11 @@ final class Rechnung
             'project_id' => $projektId,
             'payment_id' => $zahlungId,
             'art'        => (string) ($z['art'] ?? 'gesamt'),
-            'titel'      => self::bezeichnung(),
+            'titel'      => $fall['fall'] === 'beleg' ? 'Zahlungsbeleg' : 'Rechnung',
+            'doc_typ'    => $fall['fall'] === 'beleg' ? 'beleg' : 'rechnung',
+            'steuerfall' => $fall['fall'],
+            'natura'     => $fall['natura'],
+            'bollo_cents'=> $fall['fall'] === 'forfettario' && $brutto > 7747 ? 200 : 0,
             'net_cents'  => $netto,
             'tax_rate'   => $satz,
             'tax_cents'  => $steuer,
@@ -243,7 +321,7 @@ final class Rechnung
            einer Transaktion sieht jeder Anlauf den wirklich aktuellen Stand. */
         try {
             return Db::nochmal(static function () use ($zeile): int {
-                $zeile['invoice_no'] = self::naechsteNummer();
+                $zeile['invoice_no'] = self::naechsteNummer($zeile['doc_typ'] === 'rechnung' ? 'RE' : 'BE', (string) $zeile['issued_at']);
                 return Db::insert('invoices', $zeile);
             }, 'uq_invoices_no');
         } catch (Throwable $e) {
@@ -354,7 +432,7 @@ final class Rechnung
             $ang = Db::one('SELECT id FROM angebote WHERE order_id = ? AND festpreis_cents IS NOT NULL ORDER BY id DESC LIMIT 1', [(int) $r['order_id']]);
         } catch (Throwable $e) { return null; }
         if (!$ang) { return null; }
-        $pos = Db::all('SELECT bezeichnung, menge, summe_cents FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 AND summe_cents > 0 ORDER BY sortierung, id', [(int) $ang['id']]);
+        $pos = Db::all('SELECT bezeichnung, menge, summe_cents FROM angebot_positionen WHERE angebot_id = ? AND monatlich = 0 AND optional = 0 AND summe_cents > 0 ORDER BY sortierung, id', [(int) $ang['id']]);
         $gesamt = array_sum(array_map(static fn($p) => (int) $p['summe_cents'], $pos));
         $brutto = (int) $r['total_cents'];
         if (!$pos || $gesamt <= 0 || $brutto <= 0) { return null; }
@@ -412,8 +490,151 @@ final class Rechnung
         return ($d === false || $d === '') ? null : $d;
     }
 
-    /** Das fertige PDF. */
+    /** Das fertige PDF — im Dokumentstil „Vecom Gold“, wenn die Schriften da sind. */
     public static function pdf(array $r): string
+    {
+        require_once __DIR__ . '/Dokument.php';
+        if (Dokument::bereit()) { return self::pdfGold($r); }
+        return self::pdfAlt($r);
+    }
+
+    /** Beleg, Rechnung oder Gutschrift im gemeinsamen Stil (07.10.2026). */
+    public static function pdfGold(array $r): string
+    {
+        $k = Kunde::belegEmpfaenger($r);
+        $b = $r['order_id'] !== null ? Db::one('SELECT * FROM orders WHERE id = ?', [(int) $r['order_id']]) : null;
+        $w = (string) $r['currency'];
+        $s = self::sprache($r);
+        $wo = self::WORTE[$s];
+        $typ = (string) ($r['doc_typ'] ?? (str_starts_with((string) $r['invoice_no'], 'RE-') ? 'rechnung' : 'beleg'));
+        $r['doc_typ'] = $typ;
+        $r['steuerfall'] ??= $typ === 'beleg' ? 'beleg' : 'ordinario';
+        $satz = $typ === 'beleg' ? 0.0 : (float) $r['tax_rate'];
+        $geld = static fn(int $c): string => Dokument::geld($c, $w);
+        $titel = self::wort($s, $r);
+        $eigen = trim((string) ($r['titel'] ?? ''));
+        $unter = $typ === 'gutschrift' ? (string) ($r['grund'] ?? '') : self::wofuer((string) $r['art'], $s) . ($b ? ' · ' . $wo['bestellung'] . ' ' . $b['order_no'] : '');
+        $d = new Dokument($titel, $unter, $titel . ' ' . $r['invoice_no']);
+
+        $adresse = array_values(array_filter([(string) ($k['company'] ?? ''), (string) ($k['name'] ?? ''), (string) ($k['street'] ?? ''),
+            trim((string) ($k['zip'] ?? '') . ' ' . (string) ($k['city'] ?? '')), (string) ($k['country'] ?? '')], static fn($z) => trim($z) !== ''));
+        if (count($adresse) > 1 && $adresse[0] === $adresse[1]) { array_shift($adresse); }
+        foreach ([['vat_id', 'P.IVA / VAT'], ['tax_code', 'C.F.'], ['sdi', 'SDI / PEC']] as [$f, $l]) {
+            if (trim((string) ($k[$f] ?? '')) !== '') { $adresse[] = $l . ' ' . trim((string) $k[$f]); }
+        }
+        $meta = [[$wo['nummer'], (string) $r['invoice_no']], [$wo['datum'], Dokument::datum((string) $r['issued_at'])],
+                 [$wo['kundennr'], Kunde::nummer((int) $r['customer_id'])]];
+        if ($b) { $meta[] = [$wo['bestellung'], (string) $b['order_no']]; }
+        if ($typ === 'gutschrift' && !empty($r['storno_von'])) {
+            $orig = Db::one('SELECT invoice_no, issued_at FROM invoices WHERE id = ?', [(int) $r['storno_von']]);
+            if ($orig) {
+                $meta[] = [['it' => 'Rif. fattura', 'de' => 'Zu Nr.', 'en' => 'Ref. no.'][$s], (string) $orig['invoice_no']];
+                $meta[] = [['it' => 'del', 'de' => 'vom', 'en' => 'dated'][$s], Dokument::datum((string) $orig['issued_at'])];
+            }
+        }
+        $d->adresseUndMeta(Dokument::absenderzeile(), $adresse, $meta);
+        if ($eigen !== '' && !in_array($eigen, ['Rechnung', 'Zahlungsbeleg', 'Gutschrift'], true)) { $d->ueberschrift('', $eigen); }
+
+        $zeilen = [];
+        foreach (self::posten($r, $s) as $i => $po) {
+            $betrag = $satz > 0 ? (int) $po['netto'] : (int) $po['brutto'];
+            $zeilen[] = ['pos' => (string) ($i + 1), 'titel' => (string) $po['text'], 'text' => '', 'menge' => '1', 'einzel' => $geld($betrag), 'gesamt' => $geld($betrag), 'gesamt_cent' => $betrag];
+        }
+        $d->positionen($zeilen, ['pos' => 'Pos.', 'bez' => $s === 'it' ? 'Descrizione' : ($s === 'en' ? 'Description' : 'Bezeichnung'),
+            'menge' => $s === 'it' ? 'Quantità' : ($s === 'en' ? 'Qty' : 'Menge'), 'einzel' => $s === 'it' ? 'Prezzo €' : ($s === 'en' ? 'Unit €' : 'Einzel €'),
+            'gesamt' => $s === 'it' ? 'Importo €' : ($s === 'en' ? 'Amount €' : 'Betrag €'), 'uebertrag' => $s === 'it' ? 'Riporto' : ($s === 'en' ? 'Carried forward' : 'Übertrag'),
+            'weiter' => $s === 'it' ? 'Continua a pagina %d' : ($s === 'en' ? 'Continued on page %d' : 'Fortsetzung auf Seite %d')], $geld);
+
+        $summen = [];
+        if ($satz > 0) {
+            $summen[] = [$wo['netto'], $geld((int) $r['net_cents']) . ' €'];
+            $summen[] = ['IVA ' . rtrim(rtrim(number_format($satz, 2, ',', '.'), '0'), ',') . ' %', $geld((int) $r['tax_cents']) . ' €'];
+        } elseif ($typ !== 'beleg') {
+            $summen[] = [$wo['netto'], $geld((int) $r['net_cents']) . ' €'];
+            $summen[] = ['IVA (' . ($r['natura'] ?? 'N2.2') . ')', '0,00 €'];
+        }
+        $d->summen($summen, $wo['gesamt'], ($typ === 'gutschrift' ? '− ' : '') . $geld((int) $r['total_cents']) . ' €');
+
+        /* Zahlungsstand bzw. Gutschrift-Hinweis im hellen Kasten. */
+        if ($typ === 'gutschrift') {
+            $d->kasten(['it' => 'Nota', 'de' => 'Hinweis', 'en' => 'Note'][$s], [], ['it' => 'L\'importo le viene rimborsato o compensato con il prossimo pagamento.',
+                'de' => 'Der Betrag wird Ihnen erstattet oder mit der nächsten Zahlung verrechnet.', 'en' => 'The amount will be refunded or offset against your next payment.'][$s]
+                . (trim((string) ($r['grund'] ?? '')) !== '' ? ' ' . trim((string) $r['grund']) : ''));
+        } else {
+            $d->kasten(['it' => 'Pagamento', 'de' => 'Zahlung', 'en' => 'Payment'][$s], [], strtr($wo['bezahlt'], ['{datum}' => Dokument::datum((string) $r['issued_at'])]));
+        }
+        foreach (self::pflichtSaetze($r, $s) as $satzText) { $d->hinweis($satzText); }
+        $hinweis = trim((string) ($r['hinweis'] ?? ''));
+        if ($hinweis !== '') { $d->hinweis($hinweis); }
+        return $d->fertig(['Title' => $titel . ' ' . $r['invoice_no']]);
+    }
+
+    /**
+     * Ein Muster zum Ansehen (Einstellungen → Firmendaten, Vorschlag 12): dieselbe Erzeugung wie
+     * echt, nur mit erfundenem Empfänger, Nummer „MUSTER“ und ohne einen einzigen Datenbankeintrag.
+     * So sieht Uwe vor dem Stichtag, was mit seiner Partita IVA und seinem Regime auf dem Blatt steht.
+     */
+    public static function muster(string $fall, string $sprache = 'de'): string
+    {
+        $fall = in_array($fall, ['beleg', 'forfettario', 'ordinario', 'reverse_charge', 'gutschrift'], true) ? $fall : 'beleg';
+        $kunde = $fall === 'reverse_charge'
+            ? ['company' => 'Muster GmbH', 'name' => 'Max Muster', 'street' => 'Musterstraße 1', 'zip' => '10115', 'city' => 'Berlin', 'country' => 'Deutschland', 'vat_id' => 'DE123456789']
+            : ['company' => 'Ristorante Esempio', 'name' => 'Mario Rossi', 'street' => 'Via Roma 1', 'zip' => '92019', 'city' => 'Sciacca (AG)', 'country' => 'Italia', 'vat_id' => '01234567890', 'sdi' => 'ABC1234'];
+        $brutto = 145000;
+        $satz = $fall === 'ordinario' ? max(0.0, Firma::mwstEingetragen()) ?: 22.0 : 0.0;
+        $netto = $satz > 0 ? (int) round($brutto / (1 + $satz / 100)) : $brutto;
+        $typ = $fall === 'beleg' ? 'beleg' : ($fall === 'gutschrift' ? 'gutschrift' : 'rechnung');
+        $r = ['id' => 0, 'invoice_no' => 'MUSTER', 'customer_id' => 0, 'empfaenger' => json_encode($kunde, JSON_UNESCAPED_UNICODE), 'order_id' => null, 'project_id' => null,
+            'payment_id' => null, 'art' => 'gesamt', 'titel' => '', 'net_cents' => $netto, 'tax_rate' => $satz, 'tax_cents' => $brutto - $netto, 'total_cents' => $brutto,
+            'currency' => 'EUR', 'status' => 'bezahlt', 'hinweis' => trim(Firma::get('hinweis')), 'issued_at' => date('Y-m-d'), 'doc_typ' => $typ,
+            'steuerfall' => $fall === 'gutschrift' ? (Firma::regime() === 'forfettario' ? 'forfettario' : 'ordinario') : $fall,
+            'natura' => $fall === 'forfettario' ? 'N2.2' : ($fall === 'reverse_charge' ? 'N2.1' : null),
+            'bollo_cents' => $fall === 'forfettario' ? 200 : 0, 'storno_von' => null, 'grund' => $fall === 'gutschrift' ? 'Muster: Teilleistung entfällt' : null, '_sprache' => $sprache];
+        if ($fall === 'gutschrift' && $r['steuerfall'] === 'forfettario') { $r['natura'] = 'N2.2'; $r['tax_rate'] = 0; $r['tax_cents'] = 0; $r['net_cents'] = $brutto; }
+        require_once __DIR__ . '/Dokument.php';
+        return self::pdfGold($r);
+    }
+
+    /* ------------------------------------------------------------------ */
+    /*  Gutschrift / Nota di credito (07.10.2026)                          */
+    /* ------------------------------------------------------------------ */
+
+    /**
+     * Eine Gutschrift zu einem Dokument — statt etwas zu löschen. Eigene Nummer
+     * (NC-… zu Rechnungen, GS-… zu Belegen), Verweis auf das Original, derselbe
+     * Steuerfall. Zusammen nie mehr als das Original.
+     * @return int Id der Gutschrift
+     */
+    public static function gutschrift(int $invoiceId, int $cents, string $grund, string $wer): int
+    {
+        $o = Db::one('SELECT * FROM invoices WHERE id = ?', [$invoiceId]);
+        if (!$o) { throw new RuntimeException('Dokument nicht gefunden.'); }
+        if (($o['doc_typ'] ?? '') === 'gutschrift') { throw new RuntimeException('Zu einer Gutschrift gibt es keine Gutschrift.'); }
+        $grund = mb_substr(trim(strip_tags($grund)), 0, 500);
+        if (mb_strlen($grund) < 5) { throw new RuntimeException('Bitte einen Grund angeben (steht auf der Gutschrift).'); }
+        $schon = (int) Db::wert("SELECT COALESCE(SUM(total_cents),0) FROM invoices WHERE storno_von = ? AND doc_typ = 'gutschrift'", [$invoiceId], 0);
+        $rest = (int) $o['total_cents'] - $schon;
+        $cents = $cents <= 0 ? $rest : $cents;
+        if ($cents <= 0 || $cents > $rest) { throw new RuntimeException('Höchstens ' . Fmt::geld($rest, (string) $o['currency']) . ' — mehr wurde nicht bezahlt bzw. ist schon gutgeschrieben.'); }
+        $anteil = $cents / max(1, (int) $o['total_cents']);
+        $netto = (int) round((int) $o['net_cents'] * $anteil);
+        $prefix = ($o['doc_typ'] ?? '') === 'rechnung' ? 'NC' : 'GS';
+        $zeile = ['invoice_no' => '', 'customer_id' => (int) $o['customer_id'], 'order_id' => $o['order_id'], 'project_id' => $o['project_id'],
+            'abo_id' => $o['abo_id'] ?? null, 'payment_id' => null, 'art' => (string) $o['art'], 'titel' => 'Gutschrift',
+            'net_cents' => $netto, 'tax_rate' => (float) $o['tax_rate'], 'tax_cents' => $cents - $netto, 'total_cents' => $cents, 'currency' => (string) $o['currency'],
+            'status' => 'gutschrift', 'issued_at' => date('Y-m-d'), 'due_at' => date('Y-m-d'), 'doc_typ' => 'gutschrift',
+            'steuerfall' => (string) ($o['steuerfall'] ?? 'beleg'), 'natura' => $o['natura'] ?? null, 'bollo_cents' => 0, 'storno_von' => $invoiceId, 'grund' => $grund];
+        if (array_key_exists('empfaenger', $o) && $o['empfaenger'] !== null) { $zeile['empfaenger'] = $o['empfaenger']; }
+        $id = Db::nochmal(static function () use ($zeile, $prefix): int {
+            $zeile['invoice_no'] = self::naechsteNummer($prefix, date('Y-m-d'));
+            return Db::insert('invoices', $zeile);
+        }, 'uq_invoices_no');
+        Events::pruefspur('gutschrift', 'invoices', $id, [], ['zu' => $o['invoice_no'], 'cents' => $cents, 'grund' => $grund, 'von' => $wer]);
+        return $id;
+    }
+
+    /** Der bisherige Stil — nur ohne PDF-Schriften. */
+    private static function pdfAlt(array $r): string
     {
         // Der Empfaenger, wie er auf diesem Beleg steht: der eingefrorene,
         // wenn er beim Ausstellen festgehalten wurde, sonst der aus der
