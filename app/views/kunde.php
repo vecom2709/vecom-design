@@ -142,6 +142,20 @@ $eing = !empty($eingebettet);
     <?php endif; ?>
   </div>
 
+  <?php /* Dokumente aus „Neue Kunden finden“ (06.10.2026, Uwe: „am Betrieb, später beim Kunden“) — liegen weiter am Betrieb. */
+    require_once __DIR__ . '/../src/AkquiseDokument.php'; $kDokAkq = AkquiseDokument::zuKunde((int) $k['id']); ?>
+  <?php if ($kDokAkq): ?>
+  <div class="block" id="akquise-dokumente"><h2>Dokumente aus der Akquise</h2>
+    <ul style="list-style:none;margin:0;padding:0;font-size:14px">
+      <?php foreach ($kDokAkq as $d): ?>
+        <li style="border-bottom:1px solid var(--linie);padding:6px 0"><?= (int) $d['wichtig'] ? '★ ' : '' ?><a href="<?= Fmt::h(url('akquise/' . (int) $d['firma_id'] . '/dokument/' . (int) $d['id'])) ?>"><?= Fmt::h((string) $d['orig_name']) ?></a>
+          <span style="color:var(--leise);font-size:12px"> · <?= Fmt::h(AkquiseDokument::ARTEN[(string) $d['art']] ?? (string) $d['art']) ?> · <?= Fmt::h(date('d.m.Y', strtotime((string) $d['created_at']))) ?> ·
+            <a href="<?= Fmt::h(url('akquise/' . (int) $d['firma_id'] . '?ansicht=profil#dokumente')) ?>"><?= Fmt::h((string) $d['firma']) ?></a></span></li>
+      <?php endforeach; ?>
+    </ul>
+  </div>
+  <?php endif; ?>
+
   <div class="block"><h2>Dateien</h2>
     <?php /* Phase 6a: die alte Website als Vorlage sichern -- Texte, Bilder und
              PDFs als eine ZIP-Datei hier in der Ablage. Nur lesen, nichts aendern. */ ?>

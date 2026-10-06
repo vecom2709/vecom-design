@@ -731,6 +731,29 @@ if ($post) {
                 require_once __DIR__ . '/src/AkquiseCrm.php';
                 AkquiseCrm::kanalSetzen($fid, (string) ($_POST['kanal'] ?? ''), (string) ($_POST['was'] ?? ''), (string) ($_POST['datum'] ?? '') ?: null);
                 $zurueck('akquise/' . $fid . '?ansicht=profil#kanaele');
+            /* ---------------- Dokumente je Betrieb (06.10.2026) ---------------- */
+            case 'akq_dok_hoch':
+                require_once __DIR__ . '/src/AkquiseDokument.php';
+                $dkR = AkquiseDokument::hochladen($fid, (array) ($_FILES['datei'] ?? []), (string) ($_POST['art'] ?? ''), !empty($_POST['wichtig']),
+                    (string) ($_POST['notiz'] ?? ''), Auth::name() ?: 'Verwaltung', Auth::id());
+                $_SESSION[$dkR['ok'] ? 'gut' : 'fehler'] = $dkR['ok'] ? 'Dokument abgelegt.' : $dkR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil#dokumente');
+            case 'akq_dok_wichtig':
+            case 'akq_dok_archiv':
+            case 'akq_dok_zurueck':
+                require_once __DIR__ . '/src/AkquiseDokument.php';
+                $dkId = (int) ($_POST['dokument'] ?? 0);
+                $dkOk = $tat === 'akq_dok_wichtig' ? AkquiseDokument::wichtig($dkId, $fid)
+                      : AkquiseDokument::archivieren($dkId, $fid, $tat === 'akq_dok_zurueck', Auth::name() ?: 'Verwaltung');
+                $_SESSION[$dkOk ? 'gut' : 'fehler'] = $dkOk ? ['akq_dok_wichtig' => 'Markierung geändert.', 'akq_dok_archiv' => 'Archiviert — nichts gelöscht.', 'akq_dok_zurueck' => 'Zurückgeholt.'][$tat] : 'Dokument nicht gefunden.';
+                $zurueck('akquise/' . $fid . '?ansicht=profil#dokumente');
+            case 'akq_dok_loeschen':
+                /* Nur Admin (Uwe: „Löschen nur Admin“) — der Name beginnt mit akq_, darum hier ausdrücklich geprüft. */
+                require_once __DIR__ . '/src/AkquiseDokument.php';
+                $dkR = AkquiseDokument::loeschen((int) ($_POST['dokument'] ?? 0), $fid, Rechte::rolle() === 'admin', Auth::name() ?: 'Verwaltung');
+                $_SESSION[$dkR['ok'] ? 'gut' : 'fehler'] = $dkR['ok'] ? 'Dokument endgültig gelöscht. Die Prüfspur behält Name und Größe.' : $dkR['fehler'];
+                $zurueck('akquise/' . $fid . '?ansicht=profil#dokumente');
+
             /* ---------------- Akquise-CRM Modul H (06.10.2026): Kampagnen ---------------- */
             case 'akq_kampagne_neu':
                 require_once __DIR__ . '/src/AkquiseKampagne.php';
@@ -984,6 +1007,13 @@ if ($teil !== '' && ctype_digit($teil)) {
     $f = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
     if (!$f) { $_SESSION['fehler'] = 'Diese Firma gibt es nicht.'; weiter('akquise'); }
     $zusatz = (string) ($teile[2] ?? '');
+    if ($zusatz === 'dokument') {
+        /* Dokument je Betrieb ausliefern: nur über die Verwaltung, als Anhang (Ablage::ausliefern). */
+        require_once __DIR__ . '/src/AkquiseDokument.php';
+        $dkD = AkquiseDokument::laden((int) ($teile[3] ?? 0), $fid);
+        if (!$dkD) { http_response_code(404); exit('Dieses Dokument gibt es nicht.'); }
+        Ablage::ausliefern($dkD);
+    }
     if ($zusatz === 'brief' && !AkquiseGate::briefAn()) { $_SESSION['fehler'] = 'Briefe sind ausgeschaltet.'; weiter('akquise/' . $fid); }
     if ($zusatz === 'brief') {
         /* Druckblatt: eigenes A4 ohne Menue. */

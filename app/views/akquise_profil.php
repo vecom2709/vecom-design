@@ -170,6 +170,50 @@ $hart = in_array((string) ($f['sperr_art'] ?? ''), AkquiseCrm::SPERR_HART, true)
   </div>
   <?php endif; ?>
 
+  <?php /* Dokumente je Betrieb (06.10.2026): nur Verwaltung; archivieren statt löschen, endgültig löschen nur der Admin. */
+    require_once dirname(__DIR__) . '/src/AkquiseDokument.php';
+    $pfDok = AkquiseDokument::liste($fid); $pfDokArchiv = AkquiseDokument::liste($fid, true); $pfAdmin = Rechte::rolle() === 'admin';
+    $pfDokZeile = static function (array $d, bool $archiv) use ($post, $fid, $pfAdmin): string {
+        $zu = '<input type="hidden" name="dokument" value="' . (int) $d['id'] . '"><input type="hidden" name="zurueck" value="akquise/' . $fid . '?ansicht=profil#dokumente">';
+        $knoepfe = $archiv
+            ? $post('akq_dok_zurueck', $zu . '<button class="knopf klein">Zurückholen</button>') . ($pfAdmin ? $post('akq_dok_loeschen', $zu . '<button class="knopf klein">Endgültig löschen</button>') : '')
+            : $post('akq_dok_wichtig', $zu . '<button class="knopf klein" title="Oben anheften">' . ((int) $d['wichtig'] ? '★ wichtig' : '☆') . '</button>') . $post('akq_dok_archiv', $zu . '<button class="knopf klein">Archivieren</button>');
+        return '<li class="pf-dok' . ((int) $d['wichtig'] && !$archiv ? ' wichtig' : '') . '"><div><a href="' . Fmt::h(url('akquise/' . $fid . '/dokument/' . (int) $d['id'])) . '">' . Fmt::h((string) $d['orig_name']) . '</a>'
+            . '<span class="pf-art">' . Fmt::h(AkquiseDokument::ARTEN[(string) $d['art']] ?? (string) $d['art']) . '</span>'
+            . '<div class="unter">' . Fmt::h(date('d.m.Y', strtotime((string) $d['created_at']))) . ' · ' . Fmt::h((string) $d['hochgeladen_von']) . ' · ' . Fmt::h(Fmt::bytes((int) $d['size_bytes']))
+            . ($d['notiz'] ? ' · ' . Fmt::h((string) $d['notiz']) : '') . ($archiv ? ' · archiviert ' . Fmt::h(date('d.m.Y', strtotime((string) $d['archiviert_am']))) : '') . '</div></div>'
+            . '<div class="pf-dok-k">' . $knoepfe . '</div></li>';
+    }; ?>
+  <style>
+    .pf-doks{list-style:none;margin:0 0 10px;padding:0}
+    .pf-dok{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--linie);padding:8px 0;font-size:14px}
+    .pf-dok.wichtig a{font-weight:650}
+    .pf-dok .unter{font-size:12px;color:var(--leise);margin-top:2px}
+    .pf-art{font-size:11.5px;margin-left:8px;padding:1px 8px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim)}
+    .pf-dok-k{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+    .pf-dok-hoch{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;align-items:end}
+    .pf-dok-hoch .breit{grid-column:span 2} .pf-dok-hoch .feld{margin:0} .pf-dok-hoch select,.pf-dok-hoch input[type=text]{width:100%}
+    @media (max-width:560px){.pf-dok{flex-direction:column}.pf-dok-hoch .breit{grid-column:auto}}
+  </style>
+  <div class="block" id="dokumente">
+    <h2>Dokumente <?= $pfDok ? '<span class="marke2">' . count($pfDok) . '</span>' : '' ?></h2>
+    <?php if ($pfDok): ?><ul class="pf-doks"><?php foreach ($pfDok as $d): ?><?= $pfDokZeile($d, false) ?><?php endforeach; ?></ul>
+    <?php else: ?><p class="akq-klein" style="margin:0 0 10px">Noch keine Dokumente — zum Beispiel ein Einwilligungsnachweis, ein Foto vom Besuch oder ein unterschriebenes Angebot.</p><?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" enctype="multipart/form-data" class="pf-dok-hoch"><?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="akq_dok_hoch"><input type="hidden" name="firma" value="<?= (int) $fid ?>">
+      <div class="feld breit"><label for="pf-datei">Datei (PDF, Bild, Office, höchstens <?= Fmt::h(Fmt::bytes(Ablage::grenze())) ?>)</label><input id="pf-datei" type="file" name="datei" required></div>
+      <div class="feld"><label for="pf-art">Art</label><select id="pf-art" name="art"><?php foreach (AkquiseDokument::ARTEN as $k => $w): ?><option value="<?= $k ?>"<?= $k === 'sonstiges' ? ' selected' : '' ?>><?= Fmt::h($w) ?></option><?php endforeach; ?></select></div>
+      <div class="feld breit"><label for="pf-dnotiz">Notiz</label><input id="pf-dnotiz" type="text" name="notiz" maxlength="255" placeholder="optional"></div>
+      <label class="akq-klein" style="display:flex;gap:6px;align-items:center;justify-content:flex-start;padding-bottom:10px"><input type="checkbox" name="wichtig" value="1" style="width:auto;margin:0"> wichtig — oben anheften</label>
+      <div><button class="knopf">Hochladen</button></div>
+    </form>
+    <p class="akq-klein" style="margin:8px 0 0">Nur für die Verwaltung sichtbar, nie für Partner. Wird der Betrieb Kunde, stehen die Dokumente auch in der Kundenakte.</p>
+    <?php if ($pfDokArchiv): ?>
+      <details style="margin-top:10px"><summary class="akq-klein" style="cursor:pointer">Archiv (<?= count($pfDokArchiv) ?>)<?= $pfAdmin ? '' : ' — endgültig löschen kann nur der Admin' ?></summary>
+        <ul class="pf-doks"><?php foreach ($pfDokArchiv as $d): ?><?= $pfDokZeile($d, true) ?><?php endforeach; ?></ul></details>
+    <?php endif; ?>
+  </div>
+
   <div class="block" id="sperre">
     <h2>Sperrstatus</h2>
     <?php if ((string) ($f['sperr_art'] ?? '') !== ''): ?>

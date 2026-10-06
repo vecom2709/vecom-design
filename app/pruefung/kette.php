@@ -26647,6 +26647,50 @@ foreach ([$h1, $h2, $h3, $h4] as $hX) {
     foreach (['akq_versand', 'akq_antworten', 'akq_protokoll'] as $hT) { Db::run("DELETE FROM `$hT` WHERE firma_id = ?", [$hX]); }
     Db::run('DELETE FROM akq_firmen WHERE id = ?', [$hX]);
 }
+
+/* Dokumente je Betrieb: sicher abgelegt, Art + wichtig, archivieren statt löschen, endgültig nur Admin, später in der Kundenakte */
+abschnitt('Akquise-CRM: Dokumente je Betrieb');
+require_once $wurzel . '/src/AkquiseDokument.php';
+$dF = $crF('CR00000031', 'Beispiel Dokumente Bar', []);
+$dTmp = tempnam(sys_get_temp_dir(), 'kd'); file_put_contents($dTmp, "%PDF-1.4\n1 0 obj << /Type /Catalog >> endobj\ntrailer << /Root 1 0 R >>\n%%EOF\n");
+$dAb = Ablage::ablegenAus($dTmp, '../Einwilligung Rossi.pdf');
+$dE = AkquiseDokument::eintragen($dF, $dAb, 'einwilligung', true, 'Beispiel: Formular vom Besuch', 'Kette', null);
+$dE2 = AkquiseDokument::eintragen($dF, Ablage::ablegenAus($dTmp, 'foto.pdf'), 'quatsch', false, '', 'Kette', null);
+$dBoese = tempnam(sys_get_temp_dir(), 'kd'); file_put_contents($dBoese, "<?php echo 'x';\n");
+$dAbgelehnt = false; try { Ablage::ablegenAus($dBoese, 'boese.php'); } catch (RuntimeException $e) { $dAbgelehnt = true; }
+$dL = AkquiseDokument::liste($dF);
+$dPfad = Ablage::ordner() . '/' . $dAb['stored_name'];
+pruefe('Dokument je Betrieb: liegt im gesperrten Ordner unter Zufallsnamen (.bin), Name ohne Pfad, Typ aus dem Inhalt (PHP abgelehnt), unbekannte Art = Sonstiges, „wichtig“ steht oben, Einwilligung ist Nachweis',
+    $dE['ok'] && $dE2['ok'] && $dAbgelehnt && is_file($dPfad) && str_ends_with($dAb['stored_name'], '.bin') && $dAb['orig_name'] === 'Einwilligung Rossi.pdf' && $dAb['mime'] === 'application/pdf'
+    && count($dL) === 2 && (int) $dL[0]['id'] === (int) $dE['id'] && $dL[1]['art'] === 'sonstiges' && (int) (AkquiseDokument::nachweis($dF)['id'] ?? 0) === (int) $dE['id'],
+    json_encode([$dE, $dE2, $dAbgelehnt, $dAb, count($dL)]));
+$dId = (int) $dE['id'];
+$dX1 = AkquiseDokument::loeschen($dId, $dF, true, 'Uwe');            // noch nicht archiviert
+$dA = AkquiseDokument::archivieren($dId, $dF, false, 'Mitarbeit');
+$dL2 = count(AkquiseDokument::liste($dF)); $dAr = count(AkquiseDokument::liste($dF, true));
+$dX2 = AkquiseDokument::loeschen($dId, $dF, false, 'Mitarbeit');     // keine Admin-Rolle
+$dFremd = AkquiseDokument::loeschen($dId, $dF + 999, true, 'Uwe');    // falscher Betrieb
+$dX3 = AkquiseDokument::loeschen($dId, $dF, true, 'Uwe');
+pruefe('Archivieren blendet aus und löscht nichts; endgültig löschen nur Admin, nur aus dem Archiv, nur am eigenen Betrieb — Datei und Eintrag weg, Prüfspur bleibt; Rückfrage „schwer“',
+    !$dX1['ok'] && $dA && $dL2 === 1 && $dAr === 1 && !$dX2['ok'] && !$dFremd['ok'] && $dX3['ok'] && !is_file($dPfad)
+    && Db::one('SELECT id FROM akq_dokumente WHERE id = ?', [$dId]) === null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'akquise_dokument_geloescht' AND entity_id = ?", [$dId], 0) === 1
+    && (Ablauf::TRAGWEITE['akq_dok_loeschen'][0] ?? '') === Ablauf::SCHWER,
+    json_encode([$dX1, $dA, $dL2, $dAr, $dX2, $dFremd, $dX3]));
+$dK = Events::kundeFinden(['name' => 'Beispiel Dokumente Bar', 'email' => 'dok@beispiel-dokumente.example']);
+Db::run('UPDATE akq_firmen SET customer_id = ? WHERE id = ?', [$dK, $dF]);
+$dZk = AkquiseDokument::zuKunde($dK);
+$dPartnerViews = '';
+foreach (glob($wurzel . '/views/partner*.php') ?: [] as $dV) { $dPartnerViews .= (string) file_get_contents($dV); }
+$dPartnerViews .= (string) file_get_contents(dirname($wurzel) . '/partner.php');
+pruefe('Später beim Kunden: die Kundenakte zeigt die Dokumente des Betriebs; Partner-Seiten kennen keine Betriebs-Dokumente; Auslieferung nur über die Verwaltung',
+    count($dZk) === 1 && $dZk[0]['firma'] === 'Beispiel Dokumente Bar' && !str_contains($dPartnerViews, 'akq_dokumente') && !str_contains($dPartnerViews, 'AkquiseDokument')
+    && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "\$zusatz === 'dokument'")
+    && str_contains((string) file_get_contents($wurzel . '/views/kunde.php'), 'AkquiseDokument::zuKunde'),
+    json_encode($dZk));
+foreach (AkquiseDokument::liste($dF, false) as $dR) { @unlink(Ablage::ordner() . '/' . $dR['stored_name']); }
+Db::run('DELETE FROM akq_dokumente WHERE firma_id = ?', [$dF]); Db::run('DELETE FROM akq_protokoll WHERE firma_id = ?', [$dF]); Db::run('DELETE FROM akq_firmen WHERE id = ?', [$dF]);
+@unlink($dTmp); @unlink($dBoese);
 AkquiseVersand::$postbote = null; AkquiseGate::testbetriebSetzen($wsTest);
 $_SESSION = $wsSess;
 foreach (['akq_versand', 'akq_protokoll', 'akq_mail_grundlagen'] as $wsTab) { Db::run("DELETE FROM `$wsTab` WHERE firma_id = ?", [$wsId]); }

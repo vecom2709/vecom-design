@@ -95,6 +95,9 @@ $mForm = static function (string $tat, string $innen, string $extra = '') use ($
           <?= !empty($f['email_legal_basis_by']) ? ' · ' . $mH((string) $f['email_legal_basis_by']) : '' ?>
           <?= !empty($f['email_legal_basis_source']) ? ' · Nachweis: ' . $mH(mb_substr((string) $f['email_legal_basis_source'], 0, 160)) : '' ?></span>
       <?php endif; ?>
+      <?php require_once dirname(__DIR__) . '/src/AkquiseDokument.php'; $mDok = AkquiseDokument::nachweis((int) $f['id']); if ($mDok): /* Dokumente je Betrieb: Einwilligungsnachweis */ ?>
+        <br><span class="akq-klein">Nachweis als Dokument: <a href="<?= $mH(url('akquise/' . (int) $f['id'] . '/dokument/' . (int) $mDok['id'])) ?>"><?= $mH((string) $mDok['orig_name']) ?></a> (<?= $mH(date('d.m.Y', strtotime((string) $mDok['created_at']))) ?>)</span>
+      <?php endif; ?>
     </p>
 
     <details id="versandgrund"<?= $mKann['status'] === AkquiseMail::PRUEFEN ? ' open' : '' ?>><summary>Versandgrund dokumentieren</summary>

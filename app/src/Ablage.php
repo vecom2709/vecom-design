@@ -234,6 +234,37 @@ final class Ablage
         ]);
     }
 
+    /**
+     * Nur ablegen, ohne Eintrag in `files` (Dokumente je Betrieb, 06.10.2026):
+     * dieselben Prüfungen wie annehmen() — Größe, Typ aus dem Inhalt, Zufallsname
+     * mit .bin im gesperrten Ordner. Den Eintrag schreibt der Aufrufer.
+     * @return array{stored_name:string, orig_name:string, mime:string, size_bytes:int}
+     */
+    public static function ablegen(array $datei): array
+    {
+        $fehlercode = (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($fehlercode !== UPLOAD_ERR_OK) { throw new RuntimeException(self::fehlerText($fehlercode)); }
+        $tmp = (string) ($datei['tmp_name'] ?? '');
+        if ($tmp === '' || !is_uploaded_file($tmp)) { throw new RuntimeException('Die Datei ist nicht richtig angekommen.'); }
+        return self::ablegenAus($tmp, (string) ($datei['name'] ?? 'datei'), true);
+    }
+
+    /** Wie ablegen(), aus einer Datei auf dem Server (für die Prüfkette und den Worker). */
+    public static function ablegenAus(string $pfad, string $name, bool $hochgeladen = false): array
+    {
+        $groesse = (int) @filesize($pfad);
+        if ($groesse <= 0) { throw new RuntimeException('Die Datei ist leer.'); }
+        if ($groesse > self::grenze()) { throw new RuntimeException('Die Datei ist größer als ' . Fmt::bytes(self::grenze()) . '.'); }
+        $typ = (string) (new finfo(FILEINFO_MIME_TYPE))->file($pfad);
+        if (!isset(self::ERLAUBT[$typ])) { throw new RuntimeException('Dieses Dateiformat nehmen wir nicht an (' . $typ . ').'); }
+        $abgelegt = bin2hex(random_bytes(16)) . '.bin';
+        $ziel = self::ordner() . '/' . $abgelegt;
+        $ok = $hochgeladen ? move_uploaded_file($pfad, $ziel) : @copy($pfad, $ziel);
+        if (!$ok) { throw new RuntimeException('Die Datei ließ sich nicht ablegen.'); }
+        @chmod($ziel, 0644);
+        return ['stored_name' => $abgelegt, 'orig_name' => self::namenSaeubern($name), 'mime' => $typ, 'size_bytes' => $groesse];
+    }
+
     /** Der angezeigte Name — ohne Pfade, ohne Steuerzeichen, gekuerzt. */
     private static function namenSaeubern(string $roh): string
     {
