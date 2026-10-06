@@ -43,6 +43,8 @@ final class AkquiseSteuerung
             /* Recherche per Knopf (01.10.2026) — unabhängig von Notbremse und Schaltern:
                sie kontaktiert niemanden, sie liefert nur Entwürfe. */
             'marketing_wartet' => (static function (): bool { require_once __DIR__ . '/MkAuftrag.php'; return MkAuftrag::wartet(); })(),
+            /* AutoBuild Phase 5 (06.10.2026): ein Bau-Auftrag (Analyse/Pflichtenheft) wartet — beim Not-Aus nie. */
+            'bau_wartet' => (static function (): bool { require_once __DIR__ . '/BauAuftrag.php'; return BauAuftrag::wartet(); })(),
         ];
     }
 

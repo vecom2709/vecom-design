@@ -25,7 +25,7 @@ import { auditieren } from './audit/index.js';
 import { browserZu } from './audit/browser.js';
 import { texteLauf } from './ki/texte.js';
 import { kiVerbrauch } from './ki/claude.js';
-import { marketingLauf } from './ki/marketing.js';
+import { bauAbholen, marketingLauf } from './ki/marketing.js';
 import type { FirmaKurz } from './audit/typen.js';
 import { importieren, verbinden } from './einrichten.js';
 
@@ -84,13 +84,15 @@ async function steuern(): Promise<void> {
     return;
   }
   /* Recherche per Knopf (01.10.2026): In Marketing → Recherche „Recherche starten“ gedrückt. */
-  if (b.marketing_wartet) {
+  if (b.marketing_wartet || b.bau_wartet) {
     if (!sperren()) return;
     /* Marketing-Studio 6: Eine Ein-Klick-Kampagne bringt nach den Texten mehrere Bilder — nacheinander abarbeiten
        statt eins alle fünf Minuten (höchstens 12 Aufträge oder 40 Minuten je Lauf). */
     try {
       const t0 = Date.now();
-      for (let i = 0; i < 12 && Date.now() - t0 < 40 * 60_000; i++) { if (!(await marketingLauf())) break; }
+      if (b.marketing_wartet) for (let i = 0; i < 12 && Date.now() - t0 < 40 * 60_000; i++) { if (!(await marketingLauf())) break; }
+      /* AutoBuild Phase 5: Analyse und Pflichtenheft — höchstens drei je Lauf. */
+      if (b.bau_wartet) for (let i = 0; i < 3 && Date.now() - t0 < 50 * 60_000; i++) { if (!(await bauAbholen())) break; }
     }
     finally { freigeben(); await status('frei'); }
     return;
@@ -278,6 +280,11 @@ async function main(): Promise<void> {
   if (befehl === 'verbinden') return verbinden();
   if (befehl === 'import') return importieren(process.argv[3]);
   if (befehl === 'steuern') return steuern();
+  if (befehl === 'bau') {   // AutoBuild Phase 5: von Hand einen Bau-Auftrag abholen
+    if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
+    try { if (!(await bauAbholen())) log.info('bau', 'Kein wartender Bau-Auftrag.'); } finally { freigeben(); await status('frei'); }
+    return;
+  }
   if (befehl === 'marketing') {
     if (!sperren()) { log.warn('start', 'Es läuft schon ein Worker — dieser Start wird beendet.'); return; }
     try { if (!(await marketingLauf())) log.info('marketing', 'Kein wartender Auftrag.'); } finally { freigeben(); await status('frei'); }

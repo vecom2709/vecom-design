@@ -27,6 +27,7 @@ import { seiteLauf, type SeiteAuftrag } from './seite.js';
 import { tonLauf, type TonAuftrag } from './ton.js';
 import { dreiDLauf, type DreiDAuftrag } from './render3d.js';
 import { szeneBauen } from './szene3d.js';
+import { bauLauf } from './bau.js';
 
 /** Länger darf Claude nicht recherchieren (die Verwaltung gibt nach 75 Minuten auf). */
 const ZEITLIMIT_MS = 45 * 60_000;
@@ -432,6 +433,11 @@ function claudeAusfuehren(text: string, ordner: string, schema: object = SCHEMA,
 }
 
 /** Einen wartenden Auftrag abarbeiten. Gibt true zurück, wenn einer da war. */
+/** AutoBuild Phase 5: einen Bau-Auftrag (Analyse/Pflichtenheft) erledigen — false = nichts zu tun. */
+export async function bauAbholen(): Promise<boolean> {
+  return bauLauf({ ausfuehren: claudeAusfuehren, lesen: innenLesen });
+}
+
 export async function marketingLauf(): Promise<boolean> {
   const r = await api('marketing_auftrag_holen');
   if (r.auftrag?.art === 'inhalte') { await inhalteLauf(r.auftrag as InhalteAuftrag); return true; }

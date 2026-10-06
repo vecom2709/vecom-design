@@ -4470,6 +4470,64 @@ pruefe('Not-Aus je Projekt: kein Auftrag, kein Stand, kein Livegang (auch von Ha
     && $bsRechte === [true, true, false, false, false]
     && (Ablauf::TRAGWEITE['bau_von_hand'][0] ?? '') === Ablauf::SCHWER && isset(Ablauf::TRAGWEITE['bau_weiter'])
     && str_contains((string) file_get_contents($wurzel . '/views/projekt.php'), "require __DIR__ . '/projekt_bau.php'"), json_encode([$bsS1, $bsS2, $bsVs['gruende'], $bsAlle], JSON_UNESCAPED_UNICODE));
+
+/* AutoBuild Phase 5 (06.10.2026, Uwe: „ja“): Bau-Warteschlange — Analyse und Pflichtenheft über den PC. */
+require_once $wurzel . '/src/BauAuftrag.php'; require_once $wurzel . '/src/AkquiseWorker.php';
+$baA1 = BauAuftrag::anlegen($wsProjekt, 'analyse', 'Mia Mitarbeit', 'Bitte <b>Speisekarte</b> beachten');
+$baDoppelt = BauAuftrag::anlegen($wsProjekt, 'analyse', 'Mia Mitarbeit');
+$baFalsch = BauAuftrag::anlegen($wsProjekt, 'bauen_jetzt', 'Mia Mitarbeit');
+$baWartet = BauAuftrag::wartet() && (AkquiseSteuerung::befehl()['bau_wartet'] ?? false) === true;
+Bausperre::alleSetzen(true, 'Uwe Admin');
+$baNotWartet = BauAuftrag::wartet(); $baNotHolen = BauAuftrag::holen();
+Bausperre::alleSetzen(false, 'Uwe Admin');
+$baH = AkquiseWorker::ausfuehren('bau_auftrag_holen', []);
+$baAu = $baH['auftrag'] ?? [];
+pruefe('Bau-Warteschlange: Knopf legt Auftrag an (doppelt und erfundene Art nicht), steuern meldet bau_wartet, beim Not-Aus für alle wartet nichts und der PC holt nichts; abgeholt mit Briefing, Leistungsumfang, Regel „nichts bauen“, ohne E-Mail',
+    is_int($baA1) && is_string($baDoppelt) && str_contains($baDoppelt, 'wartet schon') && is_string($baFalsch) && $baWartet && !$baNotWartet && $baNotHolen['auftrag'] === null
+    && (int) ($baAu['id'] ?? 0) === $baA1 && $baAu['art'] === 'analyse' && trim((string) $baAu['briefing']) !== '' && is_array($baAu['umfang'])
+    && str_contains((string) $baAu['regel'], 'Nichts bauen') && !array_key_exists('email', (array) $baAu['kunde']) && !str_contains(json_encode($baAu, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), (string) Db::wert('SELECT c.email FROM customers c JOIN projects p ON p.customer_id = c.id WHERE p.id = ?', [$wsProjekt], 'nie-da'))
+    && $baAu['hinweis'] === 'Bitte Speisekarte beachten'
+    && (string) Db::wert('SELECT status FROM bau_auftraege WHERE id = ?', [$baA1], '') === 'laeuft' && BauAuftrag::holen()['auftrag'] === null
+    && in_array('bau_auftrag_holen', AkquiseWorker::AKTIONEN, true), json_encode([$baA1, $baDoppelt, $baFalsch, $baWartet, $baNotWartet, preg_match_all('~.{30}@.{30}~u', json_encode($baAu, JSON_UNESCAPED_UNICODE), $baAt) ? $baAt[0] : [], is_array($baAu['umfang'] ?? null)], JSON_UNESCAPED_UNICODE));
+$baKurz = BauAuftrag::melden(['id' => $baA1, 'ok' => true, 'text' => 'zu kurz']);
+$baNochmal = BauAuftrag::melden(['id' => $baA1, 'ok' => true, 'text' => str_repeat('x', 300)]);   // „fehler“ darf noch einmal gemeldet werden
+$baP = BauAuftrag::anlegen($wsProjekt, 'pflichtenheft', 'Uwe Admin');
+BauAuftrag::holen();
+$baMd = "# Pflichtenheft\n" . str_repeat('Ziel und Seiten. ', 20) . "\n<script>alert(1)</script>\n## Nicht enthalten\n- Shop\n## Abnahmekriterien\n- Formular kommt an";
+$baOk = BauAuftrag::melden(['id' => $baP, 'ok' => true, 'text' => $baMd]);
+$baErg = (string) Db::wert('SELECT ergebnis FROM bau_auftraege WHERE id = ?', [$baP], '');
+$baVorUeb = Db::wert('SELECT pflichtenheft FROM projects WHERE id = ?', [$wsProjekt], null);
+BauAuftrag::uebernehmen($baP, 'Uwe Admin');
+$baUebFalsch = 'durch'; $baW = BauAuftrag::anlegen($wsProjekt, 'analyse', 'Mia Mitarbeit');
+try { BauAuftrag::uebernehmen((int) $baW, 'Uwe Admin'); } catch (RuntimeException $e) { $baUebFalsch = 'nein'; }
+pruefe('Rückmeldung: zu wenig Text gilt als Fehler; fertig ohne <script>; erst „übernehmen“ schreibt das Pflichtenheft ans Projekt (Prüfspur); nur fertige lassen sich übernehmen; Meldung an die Verwaltung',
+    $baKurz['ok'] && (string) Db::wert('SELECT status FROM bau_auftraege WHERE id = ?', [$baA1], '') === 'fertig' && $baNochmal['ok']
+    && $baOk['ok'] && !str_contains($baErg, '<script') && str_contains($baErg, 'Abnahmekriterien') && $baVorUeb === null
+    && (string) Db::wert('SELECT pflichtenheft FROM projects WHERE id = ?', [$wsProjekt], '') === $baErg
+    && Db::wert('SELECT pflichtenheft_am FROM projects WHERE id = ?', [$wsProjekt], null) !== null
+    && (int) Db::wert("SELECT COUNT(*) FROM audit_log WHERE action = 'bau_pflichtenheft_uebernommen' AND entity_id = ?", [$wsProjekt], 0) === 1
+    && $baUebFalsch === 'nein' && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title LIKE 'Pflichtenheft fertig:%'", [], 0) >= 1,
+    json_encode([$baKurz, $baNochmal, $baOk, mb_substr($baErg, 0, 80)], JSON_UNESCAPED_UNICODE));
+$baAb1 = BauAuftrag::abbrechen((int) $baW, 'Mia Mitarbeit');
+$baW2 = BauAuftrag::anlegen($wsProjekt, 'analyse', 'Mia Mitarbeit');
+Bausperre::stoppen($wsProjekt, 'Mia Mitarbeit', 'Kunde meldet sich nicht');
+$baGestopptAnlegen = BauAuftrag::anlegen($wsProjekt, 'pflichtenheft', 'Mia Mitarbeit');
+$baGestopptHolen = BauAuftrag::holen();
+Bausperre::weiter($wsProjekt, 'Uwe Admin');
+$baW3 = BauAuftrag::anlegen($wsProjekt, 'analyse', 'Mia Mitarbeit'); BauAuftrag::holen();
+Db::run('UPDATE bau_auftraege SET gestartet_am = NOW() - INTERVAL 3 HOUR WHERE id = ?', [$baW3]); BauAuftrag::aufraeumen();
+$baAb2 = BauAuftrag::abbrechen((int) $baW3, 'Mia Mitarbeit');
+$_SESSION['rolle'] = 'mitarbeit'; $baRechte = array_map(static fn($t) => Rechte::darfTat($t), ['bau_auftrag', 'bau_auftrag_abbrechen', 'bau_uebernehmen']);
+$baHtml = BauAuftrag::alsHtml("# Titel\n**fett** <img src=x onerror=alert(1)>\n- eins");
+pruefe('Abbrechen nur wartend; Not-Aus am Projekt: kein neuer Auftrag, ein wartender wird beim Abholen abgebrochen; hängende Läufe werden nach 75 Min. „Fehler“; Mitarbeit darf anstoßen, übernehmen nur Admin; Anzeige maskiert HTML; Karte zeigt die Warteschlange',
+    $baAb1 === null && is_string($baGestopptAnlegen) && str_contains($baGestopptAnlegen, 'Not-Aus') && $baGestopptHolen['auftrag'] === null
+    && (string) Db::wert('SELECT status FROM bau_auftraege WHERE id = ?', [$baW2], '') === 'abgebrochen'
+    && (string) Db::wert('SELECT status FROM bau_auftraege WHERE id = ?', [$baW3], '') === 'fehler' && is_string($baAb2)
+    && $baRechte === [true, true, false] && str_contains($baHtml, '&lt;img') && str_contains($baHtml, '<b>fett</b>') && str_contains($baHtml, '<li>eins</li>')
+    && str_contains((string) file_get_contents($wurzel . '/views/projekt_bau.php'), 'BauAuftrag::fuerProjekt'),
+    json_encode([$baAb1, $baGestopptAnlegen, $baGestopptHolen, $baAb2, $baRechte], JSON_UNESCAPED_UNICODE));
+Db::run('DELETE FROM bau_auftraege WHERE project_id = ?', [$wsProjekt]);
+Db::run('UPDATE projects SET pflichtenheft = NULL, pflichtenheft_am = NULL WHERE id = ?', [$wsProjekt]);
 $_SESSION = $bsSess;
 
 // Vorschau eintragen — und eben NICHT freischalten.

@@ -17,6 +17,7 @@
     "alles": "tsx src/cli.ts alles",
     "steuern": "tsx src/cli.ts steuern",
     "marketing": "tsx src/cli.ts marketing",
+    "bau": "tsx src/cli.ts bau",
     "einzel": "tsx src/cli.ts einzel",
     "test": "tsx --test test/*.test.ts",
     "typen": "tsc --noEmit",

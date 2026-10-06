@@ -44,6 +44,8 @@ final class Rechte
         'automation_notaus',
         // AutoBuild Phase 4: den KI-Not-Aus je Projekt und für alle ziehen darf jede Mitarbeit (bau_stopp, bau_stopp_alle).
         'bau_stopp',
+        // AutoBuild Phase 5: Analyse/Pflichtenheft anstoßen und wartende abbrechen (bau_auftrag, bau_auftrag_abbrechen) — übernehmen nur der Admin.
+        'bau_auftrag',
     ];
 
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):

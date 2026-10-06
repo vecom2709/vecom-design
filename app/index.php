@@ -2847,6 +2847,28 @@ if ($post) {
                 };
                 weiter($bsPid > 0 ? 'projekte/' . $bsPid : 'projekte');
 
+            /* AutoBuild Phase 5 (06.10.2026): Bau-Warteschlange — Analyse und Pflichtenheft über den PC. */
+            case 'bau_auftrag':
+            case 'bau_auftrag_abbrechen':
+            case 'bau_uebernehmen':
+                require_once __DIR__ . '/src/BauAuftrag.php';
+                $baPid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'bau_auftrag') {
+                    $baErg = BauAuftrag::anlegen($baPid, (string) ($_POST['art'] ?? ''), Auth::name(), (string) ($_POST['hinweis'] ?? ''));
+                    if (is_string($baErg)) { $_SESSION['fehler'] = $baErg; zurueck('projekte/' . $baPid . '#bauen'); }
+                    $_SESSION['gut'] = BauAuftrag::name((string) $_POST['art']) . ' wartet auf deinen PC — er holt den Auftrag innerhalb von fünf Minuten ab.';
+                } elseif ($tat === 'bau_auftrag_abbrechen') {
+                    $baF = BauAuftrag::abbrechen((int) ($_POST['auftrag'] ?? 0), Auth::name());
+                    if ($baF !== null) { $_SESSION['fehler'] = $baF; zurueck('projekte/' . $baPid . '#bauen'); }
+                    $_SESSION['gut'] = 'Auftrag abgebrochen.';
+                } else {
+                    $baA = BauAuftrag::laden((int) ($_POST['auftrag'] ?? 0));
+                    if (!$baA || (int) $baA['project_id'] !== $baPid) { throw new RuntimeException('Auftrag gehört nicht zu diesem Projekt.'); }
+                    BauAuftrag::uebernehmen((int) $baA['id'], Auth::name());
+                    $_SESSION['gut'] = BauAuftrag::name((string) $baA['art']) . ' übernommen — diese Fassung gilt jetzt für das Projekt.';
+                }
+                weiter('projekte/' . $baPid . '#bauen');
+
             case 'projekt_status':
                 $pid = (int) $_POST['id'];
                 $neuerStand = (string) $_POST['status'];
