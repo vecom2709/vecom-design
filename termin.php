@@ -138,7 +138,7 @@ $tage = explode(',', $T('tage'));
   <a class="knopf leise" href="termin.php?lang=<?= $h($sprache) ?>"><?= $h($T('neu_buchen')) ?></a>
 
 <?php elseif ($termin): $b = strtotime((string) $termin['beginn']); ?>
-  <p class="zeile"><?= $h($T('zeile')) ?></p>
+  <p class="zeile"><?= $h(strtr($T('zeile'), ['{dauer}' => (string) (AkquiseTermin::einstellungen()['dauer'] ?? 30)])) ?></p>
   <?php if ($termin['status'] === 'abgesagt'): ?>
     <h1><?= $h($T('abgesagt')) ?></h1>
     <p class="lead"><?= $h(AkquiseTermin::zeitText($b, $sprache)) ?></p>
@@ -161,7 +161,7 @@ $tage = explode(',', $T('tage'));
   <?php endif; ?>
 
 <?php else: ?>
-  <p class="zeile"><?= $h($T('zeile')) ?></p>
+  <p class="zeile"><?= $h(strtr($T('zeile'), ['{dauer}' => (string) (AkquiseTermin::einstellungen()['dauer'] ?? 30)])) ?></p>
   <h1><?= $h($T('h1')) ?></h1>
   <p class="lead"><?= $h($T('lead')) ?></p>
   <p class="klein" style="margin:0"><?= $h($T('zeitzone')) ?></p>

@@ -241,8 +241,14 @@ final class Kundenzugang
             }
         }
 
-        // Das Vorhaben teilt sich den ersten Platz der Leiste mit der Anfrage
-        $nr    = array_search($stufe === 'vorhaben' ? 'anfrage' : $stufe, self::REIHE, true);
+        /* Das Vorhaben teilt sich den ersten Platz der Leiste mit der Anfrage.
+           „fertig“ steht auf dem letzten Platz, bei „online“ (06.10.2026):
+           Die Stufe fehlt in REIHE, array_search gab false, daraus wurde
+           Platz 0 -- und kunde.php las daraus „anfrage“. Ein längst
+           abgeschlossener Kunde sah dann „Ich schreibe Ihr Angebot“ und
+           die Leiste auf „Angebot“. */
+        $platz = match ($stufe) { 'vorhaben' => 'anfrage', 'fertig' => 'online', default => $stufe };
+        $nr    = array_search($platz, self::REIHE, true);
 
         // Die Adresse der Seite: solange sie nicht online ist, der Entwurf.
         //

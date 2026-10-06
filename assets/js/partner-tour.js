@@ -218,6 +218,10 @@
   window.vecomTour = { starten: starten };
 
   /* ---------------- „?“: ein Satz und die Tour für diesen Bereich ---------------- */
+  /* Wie die große Tour heißt (06.10.2026): bei Partnern „haupt“, auf der
+     Kundenseite „kunde“ -- eigener Name, damit eine gesehene Partnertour im
+     selben Browser die Kundentour nicht als erledigt markiert. */
+  var ganz = D.ganz || 'haupt';
   function hilfeKnopf() {
     var kn = document.querySelector('[data-tour="hilfe"]');
     if (!kn) {   // Partnerseite (alter Bereich): schwebend oben rechts
@@ -234,12 +238,12 @@
       feld = document.createElement('div'); feld.className = 'tour-hilfe'; feld.setAttribute('role', 'dialog'); feld.setAttribute('aria-label', T.hilfe);
       var p = document.createElement('p'); p.textContent = D.hilfe; feld.appendChild(p);
       var reihe = document.createElement('div'); reihe.className = 'tour-knoepfe';
-      if (D.tour_hier && D.tour_hier !== 'haupt') {
+      if (D.tour_hier && D.tour_hier !== ganz) {
         var b1 = document.createElement('button'); b1.type = 'button'; b1.className = 'knopf haupt'; b1.textContent = T.tour_bereich;
         b1.addEventListener('click', function () { zu(); starten(D.tour_hier); }); reihe.appendChild(b1);
       }
-      var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'knopf' + (D.tour_hier === 'haupt' ? ' haupt' : ''); b2.textContent = T.tour_ganz;
-      b2.addEventListener('click', function () { zu(); if (D.seite === 'start') { starten('haupt'); } else { location.href = urlMit('start', 'haupt', 'hallo'); } });
+      var b2 = document.createElement('button'); b2.type = 'button'; b2.className = 'knopf' + (D.tour_hier === ganz ? ' haupt' : ''); b2.textContent = T.tour_ganz;
+      b2.addEventListener('click', function () { zu(); if (D.seite === 'start') { starten(ganz); } else { location.href = urlMit('start', ganz, 'hallo'); } });
       reihe.appendChild(b2);
       var b3 = document.createElement('button'); b3.type = 'button'; b3.className = 'knopf stumm'; b3.textContent = T.schliessen;
       b3.addEventListener('click', zu); reihe.appendChild(b3);
@@ -276,7 +280,7 @@
     /* Eine Mini-Tour startet nur, wenn ihr erster Schritt hier auch zu sehen ist (Partnerseite: richtiger Reiter). */
     var erste = (D.touren[D.auto] || [])[0];
     if (!erste) { return; }
-    if (D.auto !== 'haupt' && !zielFinden(erste)) { return; }
+    if (D.auto !== ganz && !zielFinden(erste)) { return; }
     setTimeout(function () { starten(D.auto); }, reduziert ? 0 : 900);   // nach dem Einblenden der Seite
   }
   if (document.readyState === 'loading') { document.addEventListener('DOMContentLoaded', los); } else { los(); }

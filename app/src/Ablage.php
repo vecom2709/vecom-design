@@ -82,8 +82,17 @@ final class Ablage
 
     /**
      * Was angenommen wird — geprueft am tatsaechlichen Inhalt, nicht an dem,
-     * was der Browser behauptet. SVG fehlt mit Absicht: Es kann Skripte
-     * enthalten und ist als Bildformat hier nicht noetig.
+     * was der Browser behauptet.
+     *
+     * SVG und EPS sind seit dem 06.10.2026 dabei. Vorher fehlte SVG mit
+     * Absicht, weil es Skripte enthalten kann -- aber der Fragebogen bietet
+     * ausdruecklich „als Vektordatei (ai, eps, svg, pdf)“ an, und genau das
+     * Logo, das wir am dringendsten brauchen, wurde dann mit „Dieses
+     * Dateiformat nehmen wir nicht an“ abgewiesen. Die Gefahr liegt nicht im
+     * Ablegen, sondern im Anzeigen: ausliefern() schickt jede Datei als
+     * Anhang, mit nosniff und `sandbox`, und eine Vorschau bauen wir aus
+     * Vektoren nicht (sie stehen nicht in VORSCHAUBAR). Ein Skript im SVG
+     * laeuft deshalb nirgends auf unserer Domain.
      */
     /**
      * Eine Datei ablegen, die der Server selbst erzeugt hat (Phase 6a: die
@@ -135,6 +144,10 @@ final class Ablage
         'application/vnd.ms-excel' => 'xls',
         'video/mp4' => 'mp4', 'video/quicktime' => 'mov',
         'audio/mpeg' => 'mp3',
+        // Vektor-Logos (06.10.2026). Illustrator ab CS speichert PDF-kompatibel
+        // und kommt als application/pdf an; aeltere .ai und .eps als PostScript.
+        'image/svg+xml' => 'svg', 'image/svg' => 'svg',
+        'application/postscript' => 'eps', 'image/x-eps' => 'eps',
     ];
 
     /** Der Ablageordner. Entsteht beim ersten Mal, samt seiner Sperre. */
@@ -499,6 +512,9 @@ final class Ablage
     /** Was in einem Formular als erlaubte Endungen angeboten wird. */
     public static function endungen(): string
     {
-        return '.' . implode(',.', array_unique(array_values(self::ERLAUBT)));
+        // .ai dazu: Illustrator-Dateien kommen als PDF oder PostScript an,
+        // tragen aber ihre eigene Endung -- ohne sie bliebe die Datei im
+        // Auswahlfenster grau.
+        return '.' . implode(',.', array_unique([...array_values(self::ERLAUBT), 'ai']));
     }
 }

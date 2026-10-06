@@ -27251,6 +27251,104 @@ Freigabe::$telegram = null;
 Db::run('DELETE FROM partner_nachrichten WHERE partner_id = ?', [$frP]);
 Db::run('DELETE FROM partner WHERE id = ?', [$frP]);
 
+/* ---- Erklärhilfen und Stolperstellen der Kundenseite (06.10.2026) ----
+   Uwe: „den Ablauf für den Kunden erklären … alles“. Geprüft wird, was die
+   Erklärung verspricht: dass die Seite denselben Stand zeigt, den die
+   Texte beschreiben, und dass keine Erklärung auf ein Feld zeigt, das es
+   nicht gibt. */
+abschnitt('Kundenseite: Ablauf erklärt, Stolperstellen behoben');
+require_once $wurzel . '/src/KundeTour.php';
+$khQuelle = (string) file_get_contents(dirname(__DIR__, 2) . '/kunde.php');
+
+// 14: Ein abgeschlossenes Projekt steht auf dem letzten Platz der Leiste.
+$khP = (array) Db::one('SELECT id, status FROM projects WHERE id = ?', [$projektId]);
+if ($khP) {
+    Db::run("UPDATE projects SET status = 'abgeschlossen' WHERE id = ?", [$projektId]);
+    $khS = Kundenzugang::seite((array) Db::one('SELECT * FROM customers WHERE id = ?', [(int) $kundeId]));
+    pruefe('ein abgeschlossenes Projekt heißt auf der Kundenseite „fertig“', ($khS['stufe'] ?? '') === 'fertig', (string) ($khS['stufe'] ?? '—'));
+    pruefe('… und steht auf dem Platz von „online“, nicht auf dem ersten (sonst „Ich schreibe Ihr Angebot“)',
+        (int) ($khS['stufe_nr'] ?? -1) === (int) array_search('online', Kundenzugang::REIHE, true),
+        (string) ($khS['stufe_nr'] ?? '—'));
+    Db::run('UPDATE projects SET status = ? WHERE id = ?', [(string) $khP['status'], $projektId]);
+}
+
+// 13: Gezählt werden die Pflichtangaben, nicht alle Felder.
+pruefe('ohne Antworten fehlen genau die sichtbaren Kernfragen',
+    Fragen::kernOffen([]) > 0 && Fragen::kernOffen([]) <= count(Fragen::KERN), (string) Fragen::kernOffen([]));
+$khVoll = [];
+foreach (Texte::FRAGEBOGEN as $khAb) { foreach ((array) ($khAb['felder'] ?? []) as $khN => $khF) { $khVoll[$khN] = 'x'; } }
+pruefe('mit allen Antworten fehlt nichts mehr', Fragen::kernOffen($khVoll) === 0, (string) Fragen::kernOffen($khVoll));
+pruefe('die Kundenseite zählt nicht mehr „x / 69 Felder“', !str_contains($khQuelle, "'Felder ausgefüllt'") && str_contains($khQuelle, 'Fragen::kernOffen('));
+
+// 12: Vektor-Logos werden angenommen, aber nie als Vorschau gezeigt.
+$khT = sys_get_temp_dir() . '/kette-logo-' . bin2hex(random_bytes(4));
+file_put_contents($khT . '.svg', '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10"><rect width="10" height="10"/></svg>');
+file_put_contents($khT . '.eps', "%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 10 10\nnewpath\n");
+$khIds = [];
+foreach (['svg', 'eps'] as $khE) {
+    try { $khIds[$khE] = Ablage::ausDatei($khT . '.' . $khE, 'logo.' . $khE, $projektId, (int) $kundeId, 'kunde'); }
+    catch (Throwable $e) { $khIds[$khE] = 0; }
+    pruefe("ein Logo als .{$khE} wird angenommen", ($khIds[$khE] ?? 0) > 0);
+}
+pruefe('ein SVG bekommt nie eine Vorschau (Skripte im Bild laufen nirgends)',
+    !Ablage::vorschaubar(['mime' => 'image/svg+xml']) && str_contains(Ablage::endungen(), '.svg') && str_contains(Ablage::endungen(), '.ai'));
+foreach ($khIds as $khId) { if ($khId > 0) { Db::run('DELETE FROM files WHERE id = ?', [$khId]); } }
+@unlink($khT . '.svg'); @unlink($khT . '.eps');
+
+// 10/11: Nach der Annahme ohne Link ein Satz mit Zeitangabe, die Überweisung für Projektraten.
+pruefe('angenommen ohne Zahlungslink: eigener Satz statt „Bezahlt wird auf einer Seite von Stripe“',
+    str_contains($khQuelle, '$wartetAufLink') && isset(Texte::SEITE['angenommenTitel'], Texte::SEITE['angenommenText'], Texte::SEITE['angenommenTextUe']));
+pruefe('die Überweisung gibt es auch für Anzahlung und Restzahlung, nur mit IBAN',
+    str_contains($khQuelle, "\$ueRate = (\$faellig !== null && Firma::get('iban') !== '')"));
+
+// 16: Wer den Link verloren hat, fordert ihn auf der Fehlerseite neu an.
+pruefe('die Fehlerseite hat das Feld zum Neuanfordern', str_contains($khQuelle, 'action="/zugang.php?lang=') && str_contains($khQuelle, "\$T('neuKnopf')"));
+
+// 17: Das Hosting-Angebot kommt per Mail.
+[$khB, $khM] = Texte::mail('hosting_hinweis', 'de', ['name' => 'X', 'domain' => 'beispiel.it', 'link' => 'https://x/y']);
+pruefe('die Hosting-Mail hat Betreff, Link und keinen offenen Platzhalter',
+    $khB !== '' && str_contains($khM, 'https://x/y') && !preg_match('/\{[a-z]+\}/', $khB . $khM));
+
+// 9 und 15: keine widersprüchlichen Versprechen mehr.
+foreach (['it', 'de', 'en'] as $khL) {
+    $khJs = (string) file_get_contents(dirname(__DIR__, 2) . "/assets/js/i18n-{$khL}.js");
+    pruefe("Startseite ({$khL}): kein „Geld erst am Schluss“ neben 50 % Anzahlung",
+        !preg_match('/ganz am Schluss|solo alla fine"|only at the end/', $khJs) && str_contains($khJs, '50'));
+}
+pruefe('kein „binnen 24 Stunden“ mehr neben „innerhalb eines Werktags“',
+    !str_contains((string) file_get_contents($wurzel . '/src/Texte.php'), 'binnen 24 Stunden mit dem Angebot')
+    && !str_contains((string) file_get_contents($wurzel . '/src/Texte.php'), 'Den verbindlichen Preis schicke ich Ihnen binnen 24 Stunden'));
+pruefe('die Terminseite nennt die eingestellte Dauer, keine feste Zahl', str_contains(Texte::AKQ_TERMIN['zeile']['de'], '{dauer}'));
+require_once $wurzel . '/src/Widerruf.php';
+$khW = (string) file_get_contents($wurzel . '/src/Widerruf.php');
+pruefe('die Widerrufsbelehrung siezt', !str_contains($khW, 'kannst du') && !str_contains($khW, 'wenn du den Vertrag'));
+
+// Die Erklärhilfen: jeder Schritt der Leiste hat seinen Satz, jede Tour zeigt auf ein echtes Feld.
+$khReihe = array_values(array_filter(Kundenzugang::REIHE, static fn($x) => $x !== 'angaben'));
+$khFehlt = [];
+foreach ($khReihe as $khSt) {
+    foreach (['it', 'de', 'en'] as $khL) {
+        if (trim((string) (Texte::KUNDE_ABLAUF['schritte'][$khSt]['text'][$khL] ?? '')) === '') { $khFehlt[] = "$khSt/$khL"; }
+    }
+}
+pruefe('„So läuft es“ erklärt jeden Schritt der Leiste in drei Sprachen', $khFehlt === [], implode(', ', $khFehlt));
+$khZiele = [];
+foreach (Texte::KUNDE_TOUR['schritte'] as $khTs) { foreach ($khTs['ziel'] as $khZ) { $khZiele[] = $khZ; } }
+$khOhne = array_values(array_filter(array_unique($khZiele), static fn($z) => !str_contains($khQuelle, 'data-tour="' . $z . '"')));
+pruefe('jede Station der Tour zeigt auf ein Feld, das die Kundenseite hat', $khOhne === [], implode(', ', $khOhne));
+$khD = KundeTour::daten('de', 'kunde.php?t=x');
+pruefe('die Tour heißt „kunde“ und meldet nichts an den Server',
+    ($khD['ganz'] ?? '') === 'kunde' && isset($khD['touren']['kunde']) && $khD['melden'] === null);
+$khPlatz = [];
+foreach (Texte::KUNDE_FAQ['fragen'] as [$khF, $khA]) {
+    foreach (['it', 'de', 'en'] as $khL) {
+        $khTxt = strtr((string) ($khA[$khL] ?? ''), ['{anzahlung}' => '50', '{max}' => '15 MB']);
+        if (trim((string) ($khF[$khL] ?? '')) === '' || $khTxt === '' || preg_match('/\{[a-z]+\}/', $khTxt)) { $khPlatz[] = $khL; }
+    }
+}
+pruefe('die häufigen Fragen sind in drei Sprachen ganz, ohne offene Platzhalter', $khPlatz === [], implode(', ', $khPlatz));
+pruefe('die Zugangsmail nennt alle sechs Schritte', str_contains(Texte::mail('zugang', 'de', ['name' => '', 'link' => 'x', 'tage' => '7'])[1], '6. Online'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

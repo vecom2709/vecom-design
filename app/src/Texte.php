@@ -652,6 +652,31 @@ final class Texte
         'richtpreisHilfe'=> ['it' => 'Senza impegno. Il preventivo vincolante arriva appena il questionario è completo.',
                              'de' => 'Unverbindlich. Das verbindliche Angebot kommt, sobald der Fragebogen fertig ist.',
                              'en' => 'No obligation. The binding quote follows as soon as the questionnaire is complete.'],
+        /* Nur die Pflichtangaben zählen (06.10.2026) -- statt „12 / 69 Felder“. */
+        'kernOffen'  => ['it' => 'Mancano ancora {n} risposte obbligatorie, circa {m} min — il resto è facoltativo.',
+                         'de' => 'Noch {n} Pflichtangaben, etwa {m} Min. — alles andere ist freiwillig.',
+                         'en' => '{n} required answers left, about {m} min — everything else is optional.'],
+        'kernEins'   => ['it' => 'Manca ancora una risposta obbligatoria, circa {m} min — il resto è facoltativo.',
+                         'de' => 'Noch eine Pflichtangabe, etwa {m} Min. — alles andere ist freiwillig.',
+                         'en' => 'One required answer left, about {m} min — everything else is optional.'],
+        'kernFertig' => ['it' => 'Tutte le risposte obbligatorie ci sono: manca solo «Inviare definitivamente» all’ultima pagina.',
+                         'de' => 'Alle Pflichtangaben sind da — es fehlt nur noch „Endgültig absenden“ auf der letzten Seite.',
+                         'en' => 'All required answers are in — only “Send” on the last page is left.'],
+        /* Angebot angenommen, Zahlungslink noch nicht da (06.10.2026). Vorher
+           stand hier „Ihr Angebot steht“ und „Bezahlt wird auf einer Seite von
+           Stripe“ -- ohne Knopf und ohne Zeitangabe. */
+        'angenommenTitel'   => ['it' => 'Preventivo accettato — grazie!', 'de' => 'Angebot angenommen — danke!', 'en' => 'Quote accepted — thank you!'],
+        'angenommenText'    => ['it' => 'Il prossimo passo è l’acconto di {betrag}. Il link per pagarlo glielo mando per e-mail — di solito lo stesso giorno, al più tardi il giorno lavorativo dopo. Poi lo trova anche qui.',
+                                'de' => 'Als Nächstes kommt die Anzahlung über {betrag}. Den Link dafür schicke ich Ihnen per E-Mail — meist noch am selben Tag, spätestens am nächsten Werktag. Dann steht er auch hier.',
+                                'en' => 'Next comes the deposit of {betrag}. I’ll email you the payment link — usually the same day, at the latest the next working day. It will then appear here too.'],
+        'angenommenTextUe'  => ['it' => 'Il prossimo passo è l’acconto di {betrag}. Può pagarlo subito con bonifico — i dati sono qui sotto. Se preferisce la carta, le mando il link per e-mail, di solito lo stesso giorno.',
+                                'de' => 'Als Nächstes kommt die Anzahlung über {betrag}. Sie können sie gleich per Überweisung zahlen — die Angaben stehen unten. Lieber mit Karte? Dann schicke ich Ihnen den Link per E-Mail, meist noch am selben Tag.',
+                                'en' => 'Next comes the deposit of {betrag}. You can pay it right away by bank transfer — the details are below. Prefer a card? Then I’ll email you the link, usually the same day.'],
+        'restOhneLink'      => ['it' => 'Il link per il saldo di {betrag} arriva per e-mail e poi compare qui.',
+                                'de' => 'Den Link für die Restzahlung über {betrag} bekommen Sie per E-Mail; dann steht er auch hier.',
+                                'en' => 'The link for the final payment of {betrag} comes by email and then appears here.'],
+        'lieberUeberweisen' => ['it' => 'Preferisce il bonifico?', 'de' => 'Lieber per Überweisung?', 'en' => 'Prefer a bank transfer?'],
+        'ueBetrag'          => ['it' => 'Importo', 'de' => 'Betrag', 'en' => 'Amount'],
         'vorhabenAngekommen' => ['it' => 'Grazie, il suo progetto è arrivato. Adesso qualche informazione in più, perché il preventivo sia preciso — quello che ha appena risposto è già compilato. Può fermarsi e riprendere quando vuole.',
                                  'de' => 'Danke, Ihr Vorhaben ist angekommen. Jetzt noch die Angaben, damit das Angebot genau passt — was Sie eben beantwortet haben, steht schon drin. Sie können jederzeit aufhören und weitermachen.',
                                  'en' => 'Thank you, your project has arrived. Now a few more details so the quote fits exactly — what you just answered is already filled in. You can stop and continue any time.'],
@@ -1320,9 +1345,15 @@ final class Texte
             'de' => 'Diese Seite gehört Ihnen. Legen Sie sie als Lesezeichen an — Sie finden sie hier auch noch in Monaten.',
             'en' => 'This page stays yours. Bookmark it — it will still be here months from now.'],
         'nichtGefunden' => [
-            'it' => 'Questo link non è valido. Mi scriva e gliene mando uno nuovo.',
-            'de' => 'Dieser Link gilt nicht mehr. Schreiben Sie mir kurz, dann schicke ich Ihnen einen neuen.',
-            'en' => 'This link is no longer valid. Write to me and I’ll send a new one.'],
+            'it' => 'Questo link non è più valido. Inserisca il suo indirizzo e-mail: le mando subito il link giusto.',
+            'de' => 'Dieser Link gilt nicht mehr. Tragen Sie Ihre E-Mail-Adresse ein — ich schicke Ihnen sofort den gültigen Link.',
+            'en' => 'This link is no longer valid. Enter your email address and I’ll send you the right link straight away.'],
+        /* Link neu anfordern, direkt auf der Fehlerseite (06.10.2026) */
+        'neuFeld'     => ['it' => 'Il suo indirizzo e-mail', 'de' => 'Ihre E-Mail-Adresse', 'en' => 'Your email address'],
+        'neuKnopf'    => ['it' => 'Mandatemi il link', 'de' => 'Link zuschicken', 'en' => 'Send me the link'],
+        'neuOderMail' => ['it' => 'Non arriva niente? Guardi anche nello spam, oppure scriva a kontakt@vecom-design.it.',
+                          'de' => 'Es kommt nichts an? Sehen Sie auch im Spam-Ordner nach, oder schreiben Sie an kontakt@vecom-design.it.',
+                          'en' => 'Nothing arrives? Check your spam folder too, or write to kontakt@vecom-design.it.'],
     ];
 
     /**
@@ -1853,6 +1884,27 @@ final class Texte
                 . "your own access details:\n{link}\n\n"
                 . "You decide there with one click. Any questions — just reply to this email."],
         ],
+        /* Das Hosting-Angebot nach dem Fragebogen, wenn die Domain schon
+           besteht (06.10.2026). Bisher erschien der Kasten still auf der
+           Kundenseite -- wer sie nicht oeffnete, merkte nichts. Bei einer
+           neuen Domain geht weiter „hosting_angebot“ raus. */
+        'hosting_hinweis' => [
+            'it' => ['Il suo hosting per {domain}: l’offerta è pronta',
+                "Buongiorno {name},\n\nnel questionario ha scelto che il suo sito giri da Vecom Design. "
+                . "Sulla sua pagina personale trova ora l’offerta per {domain} — con il prezzo mensile e tutto "
+                . "quello che è compreso:\n{link}\n\n"
+                . "Ancora non è ordinato niente: decide lì con un clic. Se ha domande, risponda pure a questa e-mail."],
+            'de' => ['Ihr Hosting für {domain}: das Angebot liegt bereit',
+                "Guten Tag {name},\n\nSie haben im Fragebogen gewählt, dass Ihre Website bei Vecom Design laufen soll. "
+                . "Auf Ihrer persönlichen Seite steht jetzt das Angebot für {domain} — mit dem Monatspreis und allem, "
+                . "was drinsteckt:\n{link}\n\n"
+                . "Bestellt ist damit noch nichts: Sie entscheiden dort mit einem Klick. Bei Fragen antworten Sie einfach auf diese E-Mail."],
+            'en' => ['Your hosting for {domain}: the offer is ready',
+                "Hello {name},\n\nin the questionnaire you chose to have your website run by Vecom Design. "
+                . "Your personal page now has the offer for {domain} — with the monthly price and everything "
+                . "included:\n{link}\n\n"
+                . "Nothing is ordered yet: you decide there with one click. Any questions — just reply to this email."],
+        ],
         /* DREI STUFEN, EIN TON, DER SICH AENDERT
            ----------------------------------------------------------------
            Bis hierher passierte bei einer unbezahlten Rate gar nichts. Der
@@ -2028,11 +2080,11 @@ final class Texte
            bloss fuer einen Newsletter eingetragen. */
         'zugang' => [
             'it' => ['Il suo accesso personale — Vecom Design',
-                "Buongiorno{name},\n\necco la sua dashboard personale di Vecom Design:\n\n{link}\n\nDa lì passa tutto, fino alla consegna del sito. I prossimi passi:\n\n1. Il suo questionario: comincia con otto domande brevi e subito dopo vede un prezzo indicativo; poi qualche informazione sulla sua attività, perché il preventivo sia preciso.\n2. Preventivo e acconto: legge il preventivo con calma e decide lei.\n3. Anteprima e approvazione: vede il suo sito prima che vada online.\n\nNessun account, nessuna password. Apra il link entro {tage} giorni; dopo il primo clic resta valido e può salvarlo tra i preferiti.\n\nNon ha richiesto lei questa e-mail? Allora la ignori: senza un clic sul link non viene salvato nulla.\n\nA presto\nUwe Vetter · Vecom Design"],
+                "Buongiorno{name},\n\necco la sua dashboard personale di Vecom Design:\n\n{link}\n\nDa lì passa tutto, fino alla consegna del sito. Ecco come procede:\n\n1. Il suo questionario: otto domande brevi, subito dopo il suo prezzo indicativo; poi qualche informazione sulla sua attività, perché il preventivo sia preciso.\n2. Preventivo: entro un giorno lavorativo dal questionario è sulla sua pagina, voce per voce. Decide con calma.\n3. Realizzazione: con l’acconto comincio. Logo, foto e testi li carica sulla sua pagina.\n4. Bozza: vede il suo sito prima che vada online e mi dice cosa cambiare.\n5. Saldo: solo quando ha approvato il sito finito.\n6. Online: il sito va in rete ed è suo.\n\nAdesso tocca solo al primo passo: apra il link e cominci il questionario. Chi deve fare qualcosa lo vede sempre in alto sulla sua pagina.\n\nNessun account, nessuna password. Apra il link entro {tage} giorni; dopo il primo clic resta valido e può salvarlo tra i preferiti.\n\nNon ha richiesto lei questa e-mail? Allora la ignori: senza un clic sul link non viene salvato nulla.\n\nA presto\nUwe Vetter · Vecom Design"],
             'de' => ['Ihr persönlicher Zugang – Vecom Design',
-                "Guten Tag{name},\n\nhier ist Ihr persönliches Dashboard bei Vecom Design:\n\n{link}\n\nDarüber läuft alles bis zur Übergabe Ihrer Website. Die nächsten Schritte:\n\n1. Ihr Fragebogen: Er beginnt mit acht kurzen Fragen, danach sehen Sie sofort einen Richtpreis; dann ein paar Angaben zu Ihrem Betrieb, damit das Angebot genau passt.\n2. Angebot und Anzahlung: Sie lesen das Angebot in Ruhe und entscheiden.\n3. Entwurf und Freigabe: Sie sehen Ihre Seite, bevor sie online geht.\n\nKein Konto, kein Passwort. Öffnen Sie den Link innerhalb von {tage} Tagen; nach dem ersten Klick bleibt er gültig, und Sie können ihn als Lesezeichen ablegen.\n\nSie haben diese Mail nicht angefordert? Dann ignorieren Sie sie einfach: Ohne einen Klick auf den Link wird nichts gespeichert.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
+                "Guten Tag{name},\n\nhier ist Ihr persönliches Dashboard bei Vecom Design:\n\n{link}\n\nDarüber läuft alles bis zur Übergabe Ihrer Website. So geht es weiter:\n\n1. Ihr Fragebogen: acht kurze Fragen, danach sofort Ihr Richtpreis; dann ein paar Angaben zu Ihrem Betrieb, damit das Angebot genau passt.\n2. Angebot: Innerhalb eines Werktags nach dem Fragebogen liegt es auf Ihrer Seite, Position für Position. Sie entscheiden in Ruhe.\n3. Bau: Mit der Anzahlung fange ich an. Logo, Fotos und Texte laden Sie auf Ihrer Seite hoch.\n4. Entwurf: Sie sehen Ihre Seite, bevor sie online geht, und sagen mir, was anders werden soll.\n5. Restzahlung: erst, wenn Sie die fertige Seite freigegeben haben.\n6. Online: Ihre Website geht live und gehört Ihnen.\n\nJetzt ist nur der erste Schritt dran: Öffnen Sie den Link und beginnen Sie mit dem Fragebogen. Wer gerade dran ist, steht auf Ihrer Seite immer ganz oben.\n\nKein Konto, kein Passwort. Öffnen Sie den Link innerhalb von {tage} Tagen; nach dem ersten Klick bleibt er gültig, und Sie können ihn als Lesezeichen ablegen.\n\nSie haben diese Mail nicht angefordert? Dann ignorieren Sie sie einfach: Ohne einen Klick auf den Link wird nichts gespeichert.\n\nHerzliche Grüße\nUwe Vetter · Vecom Design"],
             'en' => ['Your personal access – Vecom Design',
-                "Hello{name},\n\nhere is your personal dashboard at Vecom Design:\n\n{link}\n\nEverything runs through it until your website is handed over. The next steps:\n\n1. Your questionnaire: it starts with eight short questions and you see a guide price straight away; then a few details about your business, so the quote fits exactly.\n2. Quote and deposit: you read the quote in your own time and decide.\n3. Draft and approval: you see your site before it goes live.\n\nNo account, no password. Open the link within {tage} days; after the first click it stays valid and you can bookmark it.\n\nDidn’t request this email? Then just ignore it: nothing is stored unless the link is clicked.\n\nBest regards\nUwe Vetter · Vecom Design"],
+                "Hello{name},\n\nhere is your personal dashboard at Vecom Design:\n\n{link}\n\nEverything runs through it until your website is handed over. This is how it goes:\n\n1. Your questionnaire: eight short questions, then right away your guide price; then a few details about your business, so the quote fits exactly.\n2. Quote: within one working day of the questionnaire it is on your page, item by item. You decide in your own time.\n3. Build: with the deposit I start. You upload your logo, photos and texts on your page.\n4. Draft: you see your site before it goes live and tell me what should change.\n5. Final payment: only once you have approved the finished site.\n6. Live: your website goes online and it is yours.\n\nRight now only the first step is up: open the link and start the questionnaire. Whose turn it is always shows at the top of your page.\n\nNo account, no password. Open the link within {tage} days; after the first click it stays valid and you can bookmark it.\n\nDidn’t request this email? Then just ignore it: nothing is stored unless the link is clicked.\n\nBest regards\nUwe Vetter · Vecom Design"],
         ],
         /* Schon Kunde: derselbe Link noch einmal (E2). */
         'zugang_bestand' => [
@@ -2446,9 +2498,9 @@ final class Texte
             'en' => 'For what you have described',
         ],
         'ergebnisText' => [
-            'it' => 'Questa è una stima, non un preventivo. Il prezzo definitivo glielo mando entro 24 ore, con le voci una per una — e vale quello.',
-            'de' => 'Das ist eine Schätzung, kein Angebot. Den verbindlichen Preis schicke ich Ihnen binnen 24 Stunden, Position für Position — und der gilt dann.',
-            'en' => 'This is an estimate, not a quote. I will send you the binding price within 24 hours, item by item — and that one holds.',
+            'it' => 'Questa è una stima, non un preventivo. Il prezzo definitivo, voce per voce, glielo mando entro un giorno lavorativo dopo il questionario completo — e vale quello.',
+            'de' => 'Das ist eine Schätzung, kein Angebot. Den verbindlichen Preis, Position für Position, schicke ich Ihnen innerhalb eines Werktags, nachdem der Fragebogen fertig ist — und der gilt dann.',
+            'en' => 'This is an estimate, not a quote. I will send you the binding price, item by item, within one working day once the questionnaire is complete — and that one holds.',
         ],
         'ergebnisMonat' => [
             'it' => 'più {betrag} al mese per l’assistenza, se la desidera. È un contratto a parte e può decidere dopo.',
@@ -2511,9 +2563,9 @@ final class Texte
         ],
 
         'danke' => [
-            'it' => 'Grazie! Ho ricevuto tutto. Le scrivo entro 24 ore con il preventivo.',
-            'de' => 'Danke! Alles angekommen. Ich melde mich binnen 24 Stunden mit dem Angebot.',
-            'en' => 'Thank you! I have everything. I will come back to you within 24 hours with the quote.',
+            'it' => 'Grazie! Ho ricevuto tutto. Le scrivo entro un giorno lavorativo con il preventivo.',
+            'de' => 'Danke! Alles angekommen. Ich melde mich innerhalb eines Werktags mit dem Angebot.',
+            'en' => 'Thank you! I have everything. I will come back to you within one working day with the quote.',
         ],
         'pflicht' => [
             'it' => 'Mi servono almeno il nome e un indirizzo e-mail valido.',
@@ -4945,7 +4997,9 @@ final class Texte
     /* Terminbuchung (27.09.2026): termin.php und die Mails dazu. */
     public const AKQ_TERMIN = [
         'meta_titel' => ['it' => 'Prenotare una chiamata · Vecom Design', 'de' => 'Gesprächstermin buchen · Vecom Design', 'en' => 'Book a call · Vecom Design'],
-        'zeile' => ['it' => '15 minuti, senza impegno', 'de' => '15 Minuten, unverbindlich', 'en' => '15 minutes, no obligation'],
+        /* Die Dauer kommt aus der Einstellung akq_termin_dauer (06.10.2026) -- hier
+           stand fest „15 Minuten“, gebucht wurden 30. */
+        'zeile' => ['it' => '{dauer} minuti, senza impegno', 'de' => '{dauer} Minuten, unverbindlich', 'en' => '{dauer} minutes, no obligation'],
         'h1' => ['it' => 'Parliamo del suo sito', 'de' => 'Sprechen wir über Ihre Website', 'en' => 'Let’s talk about your website'],
         'lead' => ['it' => 'Scelga un orario libero. La chiamiamo al telefono o in video, nella sua lingua.', 'de' => 'Wählen Sie eine freie Zeit. Wir rufen Sie an oder sprechen per Video, in Ihrer Sprache.', 'en' => 'Pick a free time. We’ll call you or meet by video, in your language.'],
         'zeitzone' => ['it' => 'Orari dell’Italia (come in Germania).', 'de' => 'Uhrzeiten in italienischer Zeit (gleich wie in Deutschland).', 'en' => 'Times in Italian time (same as Germany).'],
@@ -5202,7 +5256,7 @@ final class Texte
         'wege' => [
             'check' => [['it' => 'Verificare il suo sito', 'de' => 'Ihre Website prüfen', 'en' => 'Check your website'], ['it' => 'Gratis, in un minuto: cosa va e cosa no.', 'de' => 'Kostenlos, in einer Minute: was gut ist und was nicht.', 'en' => 'Free, in a minute: what works and what doesn’t.']],
             'preis' => [['it' => 'Il prezzo in 2 minuti', 'de' => 'Preis in 2 Minuten', 'en' => 'Price in 2 minutes'], ['it' => 'Poche domande, e vede subito quanto costa.', 'de' => 'Ein paar Fragen, und Sie sehen sofort, was es kostet.', 'en' => 'A few questions and you see the cost right away.']],
-            'termin' => [['it' => 'Prenotare una chiacchierata', 'de' => 'Gespräch buchen', 'en' => 'Book a call'], ['it' => '15 minuti al telefono o in video, all’orario che sceglie lei.', 'de' => '15 Minuten am Telefon oder per Video, zur Zeit Ihrer Wahl.', 'en' => '15 minutes by phone or video, at a time you choose.']],
+            'termin' => [['it' => 'Prenotare una chiacchierata', 'de' => 'Gespräch buchen', 'en' => 'Book a call'], ['it' => 'Una breve chiacchierata al telefono o in video, all’orario che sceglie lei.', 'de' => 'Ein kurzes Gespräch am Telefon oder per Video, zur Zeit Ihrer Wahl.', 'en' => 'A short call by phone or video, at a time you choose.']],
         ],
         'ds' => ['it' => 'Trattiamo i suoi dati solo per questa richiesta.', 'de' => 'Wir verwenden Ihre Angaben nur für diese Anfrage.', 'en' => 'We use your details only for this request.'],
         'ds_link' => ['it' => 'Informativa privacy', 'de' => 'Datenschutzerklärung', 'en' => 'Privacy policy'],
@@ -6998,6 +7052,171 @@ final class Texte
             'it' => "Buongiorno! Ho visto che il canale {kanal} accoglie collaborazioni con attività locali. Sono {inhaber} di Vecom Design ad Aragona (AG): realizziamo siti web per attività e aziende e nel nostro canale Telegram pubblichiamo novità, esempi e consigli. Le interesserebbe una menzione reciproca? Presenteremmo volentieri il suo canale ai nostri iscritti.\n\nIl nostro canale: {link}\n\nGrazie e buona giornata!",
             'de' => "Guten Tag! Ich habe gesehen, dass {kanal} Kooperationen mit lokalen Betrieben anbietet. Ich bin {inhaber} von Vecom Design in Aragona (AG): Wir bauen Websites für Betriebe und Unternehmen und zeigen in unserem Telegram-Kanal Neuigkeiten, Beispiele und Tipps. Hätten Sie Interesse an einer gegenseitigen Erwähnung? Wir stellen Ihren Kanal gern unseren Abonnenten vor.\n\nUnser Kanal: {link}\n\nDanke und einen schönen Tag!",
             'en' => "Hello! I saw that {kanal} welcomes collaborations with local businesses. I am {inhaber} from Vecom Design in Aragona (Agrigento): we build websites for businesses and companies and share news, examples and tips in our Telegram channel. Would you be interested in a mutual mention? We would be happy to introduce your channel to our subscribers.\n\nOur channel: {link}\n\nThank you and have a nice day!",
+        ],
+    ];
+
+    /* ======================================================================
+       ERKLÄRHILFEN AUF DER KUNDENSEITE (06.10.2026)
+       ----------------------------------------------------------------------
+       Uwe: „den Ablauf erklären, damit der Kunde besser versteht, wie es
+       läuft, wenn er sein Dashboard bekommt“. Bis hierher erklärte nur der
+       eine Kasten oben, was gerade dran ist -- was davor und danach kommt,
+       stand nirgends. Drei Stücke, alle aus denselben Tatsachen wie der
+       Code: die sechs Schritte zum Aufklappen (KUNDE_ABLAUF), die Tour hinter
+       dem „?“ (KUNDE_TOUR) und die häufigen Fragen (KUNDE_FAQ).
+
+       Zahlen, die hier stehen, stehen auch im Code oder in den AGB:
+       14 Tage Angebot (angebot_gueltig_tage), 7 Tage je Rate (Events),
+       Anzahlung meist 50 % (anzahlung_prozent), Fristen ab vollständigem
+       Material (AGB 4), Nutzungsrecht mit vollständiger Zahlung (AGB 5),
+       Betreuung 12 Monate, danach zum Monatsende (Abo). Wer eine davon
+       ändert, ändert sie hier mit.
+       ====================================================================== */
+    public const KUNDE_ABLAUF = [
+        'titel' => ['it' => 'Come funziona — tutti e sei i passi', 'de' => 'So läuft es — alle sechs Schritte', 'en' => 'How it works — all six steps'],
+        'tipp'  => ['it' => 'Tocchi un passo per leggere cosa succede.', 'de' => 'Tippen Sie auf einen Schritt, dann lesen Sie, was dort passiert.', 'en' => 'Tap a step to read what happens there.'],
+        'jetzt' => ['it' => 'Siete qui', 'de' => 'Hier stehen Sie', 'en' => 'You are here'],
+        'schritte' => [
+            'anfrage' => [
+                'wer' => ['it' => 'Lei · qualche minuto, si può fermare e riprendere', 'de' => 'Sie · ein paar Minuten, mit Pausen', 'en' => 'You · a few minutes, pause any time'],
+                'text' => ['it' => 'Otto brevi domande, subito dopo il suo prezzo indicativo. Poi i dati per il preventivo — quasi tutto da cliccare. Si salva da solo.',
+                           'de' => 'Acht kurze Fragen, gleich danach Ihr Richtpreis. Dann die Angaben für das Angebot — fast alles zum Anklicken. Es speichert von selbst.',
+                           'en' => 'Eight short questions, then right away your guide price. After that the details for the quote — almost all clicks. It saves on its own.'],
+            ],
+            'angebot' => [
+                'wer' => ['it' => 'Prima io, poi Lei · preventivo entro un giorno lavorativo', 'de' => 'Erst ich, dann Sie · Angebot innerhalb eines Werktags', 'en' => 'First me, then you · quote within one working day'],
+                'text' => ['it' => 'Il preventivo arriva qui, voce per voce, ed è valido 14 giorni. Lo accetta, lo cambia o mi dice cosa non va. Con l’accettazione arriva l’acconto (di solito il 50 %), da pagare entro 7 giorni.',
+                           'de' => 'Das Angebot kommt hierher, Position für Position, und gilt 14 Tage. Sie nehmen es an, ändern es oder sagen mir, was nicht passt. Mit der Annahme kommt die Anzahlung (meist 50 %), fällig innerhalb von 7 Tagen.',
+                           'en' => 'The quote arrives here, item by item, and is valid for 14 days. You accept it, change it or tell me what doesn’t fit. With acceptance comes the deposit (usually 50%), due within 7 days.'],
+            ],
+            'arbeit' => [
+                'wer' => ['it' => 'Io · Lei carica il materiale', 'de' => 'Ich · Sie liefern das Material', 'en' => 'Me · you send the material'],
+                'text' => ['it' => 'Costruisco il suo sito. Per farlo mi servono logo, foto e testi — vanno bene anche foto fatte col telefono. I tempi partono dal giorno in cui il materiale è completo.',
+                           'de' => 'Ich baue Ihre Seite. Dafür brauche ich Logo, Fotos und Texte — Handyfotos sind in Ordnung. Die Zeit läuft ab dem Tag, an dem das Material vollständig da ist.',
+                           'en' => 'I build your site. For that I need your logo, photos and texts — phone photos are fine. The clock starts on the day the material is complete.'],
+            ],
+            'entwurf' => [
+                'wer' => ['it' => 'Lei · guarda e dice cosa cambiare', 'de' => 'Sie · ansehen und sagen, was anders werden soll', 'en' => 'You · look and say what should change'],
+                'text' => ['it' => 'Vede la bozza prima di chiunque altro. Le modifiche nel perimetro concordato sono comprese; se un desiderio va oltre, glielo dico prima, con il prezzo. Solo quando tutto va bene preme «Va bene così — si può pubblicare».',
+                           'de' => 'Sie sehen den Entwurf, bevor ihn jemand anders sieht. Änderungen im vereinbarten Umfang sind enthalten; geht ein Wunsch darüber hinaus, sage ich es vorher, mit Preis. Erst wenn alles passt, drücken Sie „Passt so — veröffentlichen“.',
+                           'en' => 'You see the draft before anyone else. Changes within the agreed scope are included; if a wish goes beyond it, I tell you first, with the price. Only when everything fits do you press “Looks good — publish it”.'],
+            ],
+            'freigabe' => [
+                'wer' => ['it' => 'Lei · entro 7 giorni', 'de' => 'Sie · innerhalb von 7 Tagen', 'en' => 'You · within 7 days'],
+                'text' => ['it' => 'Con «Va bene così» il sito è approvato e scade la seconda parte del prezzo. Il link per pagarla arriva per e-mail e compare qui.',
+                           'de' => 'Mit „Passt so“ ist die Seite abgenommen, und der zweite Teil des Preises wird fällig. Den Zahlungslink bekommen Sie per E-Mail, er steht dann auch hier.',
+                           'en' => 'With “Looks good” the site is approved and the second part of the price is due. The payment link comes by email and appears here too.'],
+            ],
+            'online' => [
+                'wer' => ['it' => 'Fatto', 'de' => 'Erledigt', 'en' => 'Done'],
+                'text' => ['it' => 'Appena il saldo è arrivato, il sito va online e i diritti d’uso sono suoi. L’assistenza mensile è un contratto a parte, facoltativo. Questa pagina resta: qui mi scrive anche dopo.',
+                           'de' => 'Sobald die Restzahlung da ist, geht Ihre Seite online, und die Nutzungsrechte gehören Ihnen. Die monatliche Betreuung ist ein eigener, freiwilliger Vertrag. Diese Seite bleibt: Hier schreiben Sie mir auch danach.',
+                           'en' => 'As soon as the final payment is in, your site goes live and the usage rights are yours. Monthly care is a separate, optional contract. This page stays: you can write to me here afterwards too.'],
+            ],
+        ],
+    ];
+
+    /** Die Tour hinter dem „?“ auf der Kundenseite (KundeTour baut daraus die Daten für partner-tour.js). */
+    public const KUNDE_TOUR = [
+        'knoepfe' => [
+            'weiter' => ['it' => 'Avanti', 'de' => 'Weiter', 'en' => 'Next'],
+            'zurueck' => ['it' => 'Indietro', 'de' => 'Zurück', 'en' => 'Back'],
+            'ueberspringen' => ['it' => 'Salta', 'de' => 'Überspringen', 'en' => 'Skip'],
+            'fertig' => ['it' => 'Ho capito', 'de' => 'Verstanden', 'en' => 'Got it'],
+            'von' => ['it' => '{a} di {b}', 'de' => '{a} von {b}', 'en' => '{a} of {b}'],
+            'fehlt' => ['it' => 'Questo punto appare appena c’è qualcosa da mostrare.', 'de' => 'Diese Stelle erscheint, sobald es hier etwas gibt.', 'en' => 'This spot appears as soon as there is something here.'],
+            'hilfe' => ['it' => 'Aiuto', 'de' => 'Hilfe', 'en' => 'Help'],
+            'hilfe_aria' => ['it' => 'Aiuto per questa pagina', 'de' => 'Hilfe zu dieser Seite', 'en' => 'Help for this page'],
+            'tour_bereich' => ['it' => 'Mi mostri la pagina', 'de' => 'Zeigen Sie mir die Seite', 'en' => 'Show me the page'],
+            'tour_ganz' => ['it' => 'Mi mostri la pagina', 'de' => 'Zeigen Sie mir die Seite', 'en' => 'Show me the page'],
+            'schliessen' => ['it' => 'Chiudi', 'de' => 'Schließen', 'en' => 'Close'],
+        ],
+        'hilfe' => ['it' => 'Su questa pagina vede sempre a che punto è il suo progetto e cosa può fare adesso. Le domande frequenti sono in fondo.',
+                    'de' => 'Auf dieser Seite sehen Sie immer, wo Ihr Projekt steht und was Sie gerade tun können. Die häufigen Fragen stehen weiter unten.',
+                    'en' => 'This page always shows where your project stands and what you can do right now. Frequent questions are further down.'],
+        'schritte' => [
+            ['k' => 'hallo', 'ziel' => [],
+             'titel' => ['it' => 'Benvenuto sulla sua pagina', 'de' => 'Willkommen auf Ihrer Seite', 'en' => 'Welcome to your page'],
+             'text' => ['it' => 'Qui succede tutto fino alla consegna del suo sito. Nessun account, nessuna password: questo link è il suo accesso. Lo salvi tra i preferiti.',
+                        'de' => 'Hier läuft alles bis zur Übergabe Ihrer Website. Kein Konto, kein Passwort: Dieser Link ist Ihr Zugang. Legen Sie ihn als Lesezeichen an.',
+                        'en' => 'Everything happens here until your website is handed over. No account, no password: this link is your access. Bookmark it.']],
+            ['k' => 'leiste', 'ziel' => ['leiste'],
+             'titel' => ['it' => 'Dove siete', 'de' => 'Wo Sie stehen', 'en' => 'Where you are'],
+             'text' => ['it' => 'Sei passi, dal questionario fino a online. Quello illuminato è quello di adesso. Toccando un passo legge cosa succede lì.',
+                        'de' => 'Sechs Schritte, vom Fragebogen bis online. Der leuchtende ist der aktuelle. Tippen Sie auf einen Schritt, dann lesen Sie, was dort passiert.',
+                        'en' => 'Six steps, from the questionnaire to going live. The lit one is the current one. Tap a step to read what happens there.']],
+            ['k' => 'dran', 'ziel' => ['dran'],
+             'titel' => ['it' => 'Chi deve fare qualcosa', 'de' => 'Wer gerade dran ist', 'en' => 'Whose turn it is'],
+             'text' => ['it' => 'Se in alto c’è «Tocca a Lei», qui trova il pulsante per il prossimo passo. Se c’è «Ci penso io», non deve fare nulla: le scrivo appena si va avanti.',
+                        'de' => 'Steht oben „Jetzt sind Sie gefragt“, finden Sie hier den Knopf für den nächsten Schritt. Steht dort „Ich bin dran“, müssen Sie nichts tun: Sie bekommen eine E-Mail, sobald es weitergeht.',
+                        'en' => 'If it says “Over to you”, the button for the next step is here. If it says “I am on it”, you don’t need to do anything: you’ll get an email as soon as things move on.']],
+            ['k' => 'material', 'ziel' => ['material'],
+             'titel' => ['it' => 'Il suo materiale', 'de' => 'Ihr Material', 'en' => 'Your material'],
+             'text' => ['it' => 'Logo, foto, testi, anche foto fatte col telefono: si caricano qui. Prima arrivano, prima posso cominciare.',
+                        'de' => 'Logo, Fotos, Texte, auch Handyfotos: Hier laden Sie sie hoch. Je früher sie da sind, desto früher kann ich anfangen.',
+                        'en' => 'Logo, photos, texts, phone photos too: you upload them here. The sooner they arrive, the sooner I can start.']],
+            ['k' => 'nachricht', 'ziel' => ['nachricht'],
+             'titel' => ['it' => 'Mi scriva qui', 'de' => 'Schreiben Sie mir hier', 'en' => 'Write to me here'],
+             'text' => ['it' => 'Domande e modifiche le scriva qui, così non si perde niente. Rispondo di solito entro un giorno lavorativo e la avviso per e-mail.',
+                        'de' => 'Fragen und Änderungswünsche schreiben Sie am besten hier, dann geht nichts verloren. Ich antworte meist innerhalb eines Werktags und sage per E-Mail Bescheid.',
+                        'en' => 'Questions and change requests are best written here, so nothing gets lost. I usually answer within one working day and let you know by email.']],
+            ['k' => 'fragen', 'ziel' => ['fragen'],
+             'titel' => ['it' => 'Domande frequenti', 'de' => 'Häufige Fragen', 'en' => 'Frequent questions'],
+             'text' => ['it' => 'Pagamento, tempi, modifiche, link perso: le risposte sono qui.',
+                        'de' => 'Bezahlung, Dauer, Änderungen, Link verloren: Die Antworten stehen hier.',
+                        'en' => 'Payment, timing, changes, lost link: the answers are here.']],
+            ['k' => 'sprache', 'ziel' => ['sprache'],
+             'titel' => ['it' => 'La sua lingua', 'de' => 'Ihre Sprache', 'en' => 'Your language'],
+             'text' => ['it' => 'Italiano, Deutsch o English: la scelta vale anche per tutte le e-mail. Per rivedere questa guida tocchi «?» in alto.',
+                        'de' => 'Italiano, Deutsch oder English: Die Wahl gilt auch für alle E-Mails. Diese Einführung sehen Sie jederzeit wieder über das „?“ oben.',
+                        'en' => 'Italiano, Deutsch or English: the choice also applies to all emails. You can replay this guide any time with the “?” at the top.']],
+        ],
+    ];
+
+    /** Häufige Fragen auf der Kundenseite. {anzahlung} = Prozent der Anzahlung, {max} = größte Datei. */
+    public const KUNDE_FAQ = [
+        'titel' => ['it' => 'Domande frequenti', 'de' => 'Häufige Fragen', 'en' => 'Frequent questions'],
+        'fragen' => [
+            [['it' => 'Quando pago, e quanto?', 'de' => 'Wann zahle ich, und wie viel?', 'en' => 'When do I pay, and how much?'],
+             ['it' => 'Il prezzo è nel preventivo, voce per voce — è quello. Si paga in due parti: {anzahlung} % quando accetta, il resto quando ha approvato il sito finito. Ogni rata va pagata entro 7 giorni. Il preventivo e il colloquio sono senza impegno.',
+              'de' => 'Der Preis steht im Angebot, Position für Position — und der gilt. Bezahlt wird in zwei Teilen: {anzahlung} % bei der Annahme, der Rest, wenn Sie die fertige Seite freigegeben haben. Jede Rate ist innerhalb von 7 Tagen fällig. Angebot und Gespräch sind unverbindlich.',
+              'en' => 'The price is in the quote, item by item — and that’s the price. You pay in two parts: {anzahlung}% when you accept, the rest once you have approved the finished site. Each instalment is due within 7 days. The quote and the call are free of obligation.']],
+            [['it' => 'Quanto ci vuole?', 'de' => 'Wie lange dauert es?', 'en' => 'How long does it take?'],
+             ['it' => 'Dipende da quanto è grande il sito e da quando arriva il materiale: i tempi partono dal giorno in cui è completo. Se ha una data che conta, la scriva nel questionario — le dico se ce la facciamo.',
+              'de' => 'Das hängt vom Umfang ab und davon, wann Ihr Material da ist: Die Zeit läuft ab dem Tag, an dem es vollständig vorliegt. Haben Sie einen Termin, der zählt, schreiben Sie ihn in den Fragebogen — ich sage Ihnen, ob es klappt.',
+              'en' => 'It depends on the size of the site and on when your material arrives: the clock starts on the day it is complete. If you have a date that matters, put it in the questionnaire — I’ll tell you whether we can make it.']],
+            [['it' => 'Cosa le serve da me?', 'de' => 'Was brauchen Sie von mir?', 'en' => 'What do you need from me?'],
+             ['it' => 'Logo, foto e testi — vanno bene anche foto fatte col telefono, un PDF o il vecchio volantino. Si caricano sotto «Il suo materiale», ogni file fino a {max}. Il logo anche come SVG, EPS, AI o PDF.',
+              'de' => 'Logo, Fotos und Texte — Handyfotos, ein PDF oder der alte Flyer sind in Ordnung. Hochladen unter „Ihr Material“, jede Datei bis {max}. Das Logo gern auch als SVG, EPS, AI oder PDF.',
+              'en' => 'Your logo, photos and texts — phone photos, a PDF or the old flyer are fine. Upload them under “Your material”, each file up to {max}. The logo can also be SVG, EPS, AI or PDF.']],
+            [['it' => 'Posso far cambiare qualcosa?', 'de' => 'Kann ich etwas ändern lassen?', 'en' => 'Can I have things changed?'],
+             ['it' => 'Sì. Mentre lavoriamo alla bozza, le modifiche nel perimetro concordato sono comprese. Se un desiderio va oltre, glielo dico prima e le mando un preventivo con il prezzo — senza il suo sì non succede niente.',
+              'de' => 'Ja. Solange wir am Entwurf arbeiten, sind Änderungen im vereinbarten Umfang enthalten. Geht ein Wunsch darüber hinaus, sage ich es Ihnen vorher und schicke ein Angebot mit Preis — ohne Ihr Ja passiert nichts.',
+              'en' => 'Yes. While we work on the draft, changes within the agreed scope are included. If a wish goes beyond it, I tell you first and send a quote with the price — nothing happens without your yes.']],
+            [['it' => 'Cosa succede quando premo «Va bene così»?', 'de' => 'Was passiert, wenn ich „Passt so“ drücke?', 'en' => 'What happens when I press “Looks good”?'],
+             ['it' => 'Il sito è approvato: scade la seconda parte del prezzo e, appena è pagata, il sito va online. Per questo il pulsante compare solo quando la bozza è davvero finita.',
+              'de' => 'Dann ist die Seite abgenommen: Der zweite Teil des Preises wird fällig, und sobald er bezahlt ist, geht die Seite online. Deshalb erscheint der Knopf erst, wenn der Entwurf wirklich fertig ist.',
+              'en' => 'Then the site is approved: the second part of the price is due, and once it is paid the site goes live. That is why the button only appears when the draft is really finished.']],
+            [['it' => 'Di chi è il sito?', 'de' => 'Wem gehört die Website?', 'en' => 'Who owns the website?'],
+             ['it' => 'A Lei. Con il pagamento completo riceve il diritto d’uso senza limiti di tempo e di luogo, e codice, file e grafiche le vengono consegnati.',
+              'de' => 'Ihnen. Mit der vollständigen Zahlung erhalten Sie das zeitlich und räumlich unbeschränkte Nutzungsrecht, und Code, Projektdateien und Grafiken werden übergeben.',
+              'en' => 'You. With full payment you receive the right of use, unlimited in time and place, and the code, project files and graphics are handed over.']],
+            [['it' => 'Devo prendere l’assistenza mensile?', 'de' => 'Muss ich die Betreuung nehmen?', 'en' => 'Do I have to take the monthly care?'],
+             ['it' => 'No. È un contratto a parte e facoltativo: 12 mesi di durata minima, poi disdicibile a fine mese. Il sito resta suo anche senza.',
+              'de' => 'Nein. Sie ist ein eigener, freiwilliger Vertrag: 12 Monate Mindestlaufzeit, danach jederzeit zum Monatsende kündbar. Die Website gehört Ihnen auch ohne.',
+              'en' => 'No. It is a separate, optional contract: 12 months minimum, then cancellable at the end of any month. The website is yours without it too.']],
+            [['it' => 'Ho perso il link a questa pagina.', 'de' => 'Ich habe den Link zu dieser Seite verloren.', 'en' => 'I lost the link to this page.'],
+             ['it' => 'Nessun problema: inserisca il suo indirizzo e-mail su vecom-design.it («Inviarmi la dashboard») e riceve di nuovo lo stesso link.',
+              'de' => 'Kein Problem: Tragen Sie Ihre E-Mail-Adresse auf vecom-design.it ein („Mein Dashboard zusenden“), dann bekommen Sie denselben Link noch einmal.',
+              'en' => 'No problem: enter your email address on vecom-design.it (“Send me my dashboard”) and you’ll get the same link again.']],
+            [['it' => 'Posso recedere?', 'de' => 'Kann ich widerrufen?', 'en' => 'Can I withdraw?'],
+             ['it' => 'Come consumatore entro 14 giorni, senza motivo. Se ha chiesto di cominciare subito, il diritto si estingue quando il lavoro è completo; prima si paga solo la parte già fatta. Basta un messaggio chiaro a kontakt@vecom-design.it.',
+              'de' => 'Als Verbraucher innerhalb von 14 Tagen, ohne Angabe von Gründen. Haben Sie verlangt, dass die Arbeit sofort beginnt, erlischt das Recht, sobald die Leistung vollständig erbracht ist; vorher wird nur der schon geleistete Teil berechnet. Eine eindeutige Nachricht an kontakt@vecom-design.it genügt.',
+              'en' => 'As a consumer within 14 days, without giving a reason. If you asked for work to start right away, the right ends once the work is complete; before that only the part already done is charged. A clear message to kontakt@vecom-design.it is enough.']],
+            [['it' => 'Come la raggiungo?', 'de' => 'Wie erreiche ich Sie?', 'en' => 'How do I reach you?'],
+             ['it' => 'Qui sotto in «Mi scriva» — rispondo di solito entro un giorno lavorativo. Oppure a voce: la finestra in basso a destra la mette in contatto con Manuela, la nostra assistente.',
+              'de' => 'Unten unter „Schreiben Sie mir“ — ich antworte meist innerhalb eines Werktags. Oder mit der Stimme: Das Sprachfenster unten rechts verbindet Sie mit Manuela, unserer Assistentin.',
+              'en' => 'Below under “Write to me” — I usually answer within one working day. Or by voice: the window in the bottom right connects you with Manuela, our assistant.']],
         ],
     ];
 }

@@ -155,6 +155,27 @@ final class Fragen
     }
 
     /**
+     * Wie viele Kernfragen noch fehlen -- sichtbar und unbeantwortet.
+     *
+     * Fuer die Kundenseite (06.10.2026). Dort stand „12 / 69 Felder
+     * ausgefuellt“: gezaehlt wurden alle Felder samt freiwilliger und
+     * Freizeilen, obwohl nur der Kern fuer das Angebot noetig ist. Wer
+     * 12 von 69 liest, glaubt, er habe ein Sechstel geschafft -- und hoert
+     * auf, obwohl ihm vielleicht noch drei Antworten fehlen.
+     */
+    public static function kernOffen(array $daten): int
+    {
+        $n = 0;
+        foreach (Texte::FRAGEBOGEN as $abschnitt) {
+            foreach ((array) ($abschnitt['felder'] ?? []) as $name => $feld) {
+                if (!self::istKern($name) || !self::zeigen($feld, $daten)) { continue; }
+                if (!self::beantwortet($name, $feld, $daten)) { $n++; }
+            }
+        }
+        return $n;
+    }
+
+    /**
      * Ungefaehre Minuten fuer die noch offenen KERN-Fragen ab diesem Schritt
      * (B6). "Schritt 3 von 6" sagt nicht, wie lange es noch dauert -- und die
      * Frage, ob sich das Weitermachen lohnt, ist eine nach der Zeit.

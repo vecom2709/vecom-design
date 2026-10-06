@@ -492,6 +492,45 @@ foreach ((array) ($v['zahlungen'] ?? []) as $z) {
     if ($z['status'] !== 'bezahlt' && !empty($z['link_url'])) { $offen = $z; break; }
 }
 
+/* DIE RATE, DIE JETZT DRAN IST -- AUCH OHNE ZAHLUNGSLINK (06.10.2026)
+   ------------------------------------------------------------------------
+   $offen kennt nur Raten mit Link. Nach „Angebot annehmen“ gibt es die
+   Anzahlung aber schon, nur noch ohne Link -- den erzeugt Uwe von Hand.
+   Bis dahin stand der Kunde vor „Ihr Angebot steht“ und dem Satz „Bezahlt
+   wird auf einer Seite von Stripe“, ohne Knopf und ohne Zeitangabe. Und
+   wenn Stripe nicht kassieren kann, gab es für Anzahlung und Restzahlung
+   gar keinen Weg: die Überweisungsdaten standen nur beim Monatsvertrag.
+   Welche Rate gemeint ist, sagt die Stufe: vor dem Bau die Anzahlung,
+   nach der Abnahme die Restzahlung. */
+$faellig = null;
+if (in_array($stufe ?? '', ['angebot', 'freigabe'], true)) {
+    $fArten = $stufe === 'freigabe' ? ['restzahlung', 'gesamt'] : ['anzahlung', 'gesamt'];
+    foreach ((array) ($v['zahlungen'] ?? []) as $z) {
+        if (in_array((string) $z['status'], ['bezahlt', 'storniert', 'erstattet'], true)) { continue; }
+        if (in_array((string) ($z['art'] ?? 'gesamt'), $fArten, true)) { $faellig = $z; break; }
+    }
+}
+/* Angenommen, aber der Zahlungslink ist noch nicht da: Er soll lesen, dass
+   er nichts versäumt hat und wann es weitergeht. */
+$wartetAufLink = ($stufe ?? '') === 'angebot' && !$angebotOffen && !$offen && $faellig !== null;
+
+/* Kann Stripe wirklich kassieren? Dieselbe Prüfung wie beim Monatsvertrag.
+   Wenn nicht, führt ein Zahlungslink ins Leere -- dann zählt die Überweisung. */
+$stripeKann = (bool) sicherLesen(static function (): bool {
+    require_once __DIR__ . '/app/src/Zahlung/Anbieter.php';
+    require_once __DIR__ . '/app/src/Zahlung/Stripe.php';
+    $st = new StripeAnbieter();
+    $test = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+    return $st->bereit() && $st->webhookBereit() && ($st->modus() === 'live' || $test);
+}, false);
+require_once __DIR__ . '/app/src/Firma.php';
+/* Die Überweisung für die Projektrate. Nur mit IBAN -- eine Aufforderung
+   ohne Kontonummer wäre eine Sackgasse. Steht ein funktionierender
+   Kartenlink da, bleibt die Überweisung trotzdem sichtbar: Nicht jeder
+   Betrieb zahlt mit Karte, und die Zahlung wird an der Kundennummer im
+   Verwendungszweck erkannt. */
+$ueRate = ($faellig !== null && Firma::get('iban') !== '') ? $faellig : null;
+
 Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 ?><!doctype html>
 <html lang="<?= $h($sprache) ?>" <?= Sprache::marken($sprache) ?>>
@@ -505,6 +544,8 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 <link rel="stylesheet" href="/assets/css/fonts.css">
 <link rel="stylesheet" href="/assets/css/kunde.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/kunde.css') ?>">
 <link rel="stylesheet" href="/assets/css/vorschau.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/vorschau.css') ?>">
+<?php /* Einführung (06.10.2026): dieselbe Tour wie bei den Partnern, eigene Daten (KundeTour). */ ?>
+<link rel="stylesheet" href="/assets/css/partner-tour.css?v=<?= (int) @filemtime(__DIR__ . '/assets/css/partner-tour.css') ?>">
 <style>
   /* Die Fortschrittsleiste: waagerecht, damit sie auf dem Handy nicht
      die halbe Seite frisst. Sieben Punkte, der aktuelle traegt die Farbe. */
@@ -567,6 +608,47 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     font-size:12px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
   .sprachwahl a:hover{color:var(--dim)}
   .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
+  /* Erklärhilfen (06.10.2026): das „?“, die Leiste zum Antippen, die sechs
+     Schritte und die häufigen Fragen. Gleiche Formen wie die Kästen darunter. */
+  .kunde-hilfe{width:36px;height:36px;font-size:16px;flex:0 0 36px}
+  .kopf-rechts{display:flex;align-items:center;gap:10px;flex:0 0 auto}
+  .kopf-rechts .knr{font-size:12px;line-height:1.35;color:var(--leise);text-align:right;
+    font-variant-numeric:tabular-nums;white-space:nowrap}
+  .kopf-rechts .knr b{font-weight:500;color:var(--dim)}
+  .weg li a{color:inherit;text-decoration:none;display:block}
+  .weg li a:focus-visible{outline:2px solid var(--cyan);outline-offset:3px;border-radius:3px}
+  @media (max-width:640px){
+    /* Am Handy ist der Balken 3 px hoch -- die Fläche zum Antippen größer machen,
+       ohne den Balken zu verändern. */
+    .weg li{position:relative}
+    .weg li a{position:absolute;left:0;right:0;top:-14px;height:31px}
+  }
+  details.ablauf{margin:-6px 0 20px}
+  details.ablauf>summary{cursor:pointer;list-style:none;font-size:13px;color:var(--cyan);display:inline-block}
+  details.ablauf>summary::-webkit-details-marker{display:none}
+  details.ablauf>summary::before{content:"▸ ";color:var(--leise)}
+  details.ablauf[open]>summary::before{content:"▾ "}
+  details.ablauf ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
+  details.ablauf li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--linie);
+    border-radius:12px;scroll-margin-top:16px}
+  details.ablauf li .nr{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;
+    font-weight:650;border:1.5px solid var(--linie2,rgba(224,206,156,.26));color:var(--dim)}
+  details.ablauf li.durch .nr{background:var(--blau);border-color:var(--blau);color:#fff}
+  details.ablauf li.jetzt{border-color:var(--cyan)}
+  details.ablauf li.jetzt .nr{background:var(--cyan);border-color:var(--cyan);color:#1a1405}
+  details.ablauf li b{font-size:15px}
+  details.ablauf li .hier{margin-left:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
+  details.ablauf li .wer{display:block;font-size:12.5px;color:var(--leise);margin:2px 0 4px}
+  details.ablauf li p{margin:0;font-size:14px;line-height:1.55;color:var(--dim)}
+  details.ablauf li:target{box-shadow:0 0 0 2px var(--cyan)}
+  .fragen-liste{margin-top:10px;display:grid;gap:2px}
+  /* Eigener Klassenname: „.frage“ ist in kunde.css schon das Kästchen der Bestätigungen. */
+  details.faq-frage{border-top:1px solid var(--linie);padding:10px 0}
+  details.faq-frage>summary{cursor:pointer;list-style:none;font-size:14.5px;color:var(--text)}
+  details.faq-frage>summary::-webkit-details-marker{display:none}
+  details.faq-frage>summary::after{content:" +";color:var(--leise)}
+  details.faq-frage[open]>summary::after{content:" –"}
+  details.faq-frage p{margin:8px 0 2px;font-size:14px;line-height:1.6;color:var(--dim)}
 </style>
 </head>
 <body>
@@ -575,7 +657,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <img src="/assets/img/logo-mark.webp?v=gold2609" alt="" width="58" height="46" fetchpriority="high">
     <span class="wort"><b>VECOM</b> DESIGN</span>
     <?php if ($kunde && !$panne): ?>
-      <span class="sprachwahl" role="group" aria-label="Lingua / Sprache / Language">
+      <span class="sprachwahl" role="group" aria-label="Lingua / Sprache / Language" data-tour="sprache">
         <?php foreach (['it' => 'IT', 'de' => 'DE', 'en' => 'EN'] as $sl => $wort): ?>
           <a href="<?= $h($hier . '&lang=' . $sl . '&sw=1') ?>"
              class="<?= $sprache === $sl ? 'jetzt' : '' ?>"
@@ -588,7 +670,27 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 <?php if ($panne || !$kunde): ?>
   <div class="block">
     <div class="hinweis schlecht"><?= $h($T('nichtGefunden')) ?></div>
-    <a class="knopf haupt" href="<?= $h($basis) ?>">Vecom Design</a>
+    <?php /* LINK NEU ANFORDERN, GLEICH HIER (06.10.2026)
+             Vorher stand hier nur „Schreiben Sie mir kurz“ und ein Knopf zur
+             Startseite -- ohne Adresse und ohne Feld. Wer seinen Link verloren
+             hat, musste raten, wo er einen neuen bekommt. Das Feld schickt an
+             denselben Einstieg wie die Startseite: Ist die Adresse schon
+             Kunde, kommt dort genau sein Link („derselbe wie bisher“), sonst
+             ein neuer Zugang. Für jede Adresse dieselbe Antwort, damit
+             niemand herausfindet, wer Kunde ist. Bei einer Panne (Datenbank
+             weg) bleibt nur der Weg zur Startseite. */ ?>
+    <?php if (!$panne): ?>
+      <form method="post" action="/zugang.php?lang=<?= $h($sprache) ?>" style="margin:14px 0 0">
+        <input type="hidden" name="sprache" value="<?= $h($sprache) ?>">
+        <label class="mini" for="neu_email" style="display:block;margin:0 0 6px"><?= $h($T('neuFeld')) ?></label>
+        <input id="neu_email" name="email" type="email" autocomplete="email" inputmode="email" required
+               style="width:100%;max-width:360px" placeholder="<?= $h($T('neuFeld')) ?>">
+        <button class="knopf haupt" type="submit" style="margin-top:10px"><?= $h($T('neuKnopf')) ?></button>
+      </form>
+      <p class="mini" style="margin-top:12px"><?= $h($T('neuOderMail')) ?></p>
+    <?php else: ?>
+      <a class="knopf haupt" href="<?= $h($basis) ?>">Vecom Design</a>
+    <?php endif; ?>
   </div>
 <?php else: ?>
 
@@ -599,10 +701,16 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php /* Seine Nummer, dieselbe wie auf Angebot, Vertragsblatt und Beleg.
              Er soll sie nennen koennen, ohne ein PDF aufzumachen. */ ?>
     <?php $knr = trim((string) sicherLesen(fn() => Kunde::nummer((int) $kunde['id']), '')); ?>
-    <?php if ($knr !== ''): ?>
-      <span style="font-size:12.5px;color:var(--leise);white-space:nowrap;
-                   font-variant-numeric:tabular-nums"><?= $h($T('kundennr')) ?> <?= $h($knr) ?></span>
-    <?php endif; ?>
+    <?php /* Nummer und „?“ rechts in einer Spalte (06.10.2026). Oben neben der
+             Sprachwahl rutschte das „?“ am Handy in eine eigene Zeile, und die
+             einzeilige Nummer drückte „Guten Tag Giulia“ auf zwei Zeilen. */ ?>
+    <div class="kopf-rechts">
+      <?php if ($knr !== ''): ?>
+        <span class="knr"><?= $h($T('kundennr')) ?><br><b><?= $h($knr) ?></b></span>
+      <?php endif; ?>
+      <?php /* Das „?“: ein Satz zur Seite und die Einführung (partner-tour.js) */ ?>
+      <button type="button" class="tour-hilfe-knopf kunde-hilfe" data-tour="hilfe">?</button>
+    </div>
   </div>
 
   <?php foreach ($fehler as $x): ?><div class="hinweis schlecht"><?= $h($x) ?></div><?php endforeach; ?>
@@ -715,21 +823,49 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         $wegNr = (int) array_search($echte, $wegReihe, true);
     }
   ?>
-  <ul class="weg">
+  <ul class="weg" data-tour="leiste">
     <?php foreach ($wegReihe as $i => $s): ?>
-      <li class="<?= $i < $wegNr ? 'durch' : ($i === $wegNr ? 'jetzt' : '') ?>"><?= $h($TS($s, 'kurz')) ?></li>
+      <li class="<?= $i < $wegNr ? 'durch' : ($i === $wegNr ? 'jetzt' : '') ?>"><a href="#ablauf-<?= $h($s) ?>" data-ablauf><?= $h($TS($s, 'kurz')) ?></a></li>
     <?php endforeach; ?>
   </ul>
   <div class="wegzahl"><?= $h(strtr(Texte::h(Texte::SEITE['schritt'] ?? [], $sprache, 'Schritt {n} von {g}'),
       ['{n}' => (string) ($wegNr + 1), '{g}' => (string) count($wegReihe)])) ?></div>
 
+  <?php /* SO LÄUFT ES (06.10.2026)
+           Die Leiste sagte, WO er steht, aber nicht, was die anderen Felder
+           bedeuten. Hier steht zu jedem Schritt ein Satz: was passiert, wer
+           handelt, wie lange. Zugeklappt, damit der eine Kasten darunter das
+           Wichtigste bleibt; ein Tipp auf die Leiste klappt es auf. */ ?>
+  <?php $AB = Texte::KUNDE_ABLAUF; ?>
+  <details class="ablauf" id="ablauf">
+    <summary><?= $h(Texte::h($AB['titel'], $sprache)) ?></summary>
+    <ol>
+      <?php foreach ($wegReihe as $i => $s): $abS = $AB['schritte'][$s] ?? null; if (!$abS) { continue; } ?>
+        <li id="ablauf-<?= $h($s) ?>" class="<?= $i < $wegNr ? 'durch' : ($i === $wegNr ? 'jetzt' : '') ?>">
+          <span class="nr"><?= $i + 1 ?></span>
+          <div>
+            <b><?= $h($TS($s, 'kurz')) ?></b>
+            <?php if ($i === $wegNr): ?><span class="hier"><?= $h(Texte::h($AB['jetzt'], $sprache)) ?></span><?php endif; ?>
+            <span class="wer"><?= $h(Texte::h($abS['wer'], $sprache)) ?></span>
+            <p><?= $h(Texte::h($abS['text'], $sprache)) ?></p>
+          </div>
+        </li>
+      <?php endforeach; ?>
+    </ol>
+  </details>
+
   <?php /* ---------- Der eine Schritt ---------- */ ?>
-  <div class="dran <?= $seite['dran'] === 'kunde' ? '' : 'warten' ?>">
+  <div class="dran <?= $seite['dran'] === 'kunde' ? '' : 'warten' ?>" data-tour="dran">
     <div class="wer"><?= $h($seite['dran'] === 'kunde' ? $T('duBistDran')
         : ($seite['dran'] === 'niemand' ? $T('nichtsOffen') : $T('wirSindDran'))) ?></div>
     <?php /* Fragebogen fertig, Angebot noch nicht da: Er soll lesen, was
              jetzt passiert und bis wann -- nicht „Ihre Anfrage ist da“. */
           $angebotKommt = ($echte ?? '') === 'anfrage' && !empty($fbFertig); ?>
+    <?php if ($wartetAufLink): ?>
+    <h2><?= $h(Texte::h(Texte::SEITE['angenommenTitel'] ?? [], $sprache)) ?></h2>
+    <p><?= $h(strtr(Texte::h(Texte::SEITE[$ueRate ? 'angenommenTextUe' : 'angenommenText'] ?? [], $sprache),
+        ['{betrag}' => Fmt::geld((int) $faellig['amount_cents'], (string) $faellig['currency'])])) ?></p>
+    <?php else: ?>
     <h2><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommt'] ?? [], $sprache) : $TS($stufe)) ?></h2>
     <p><?= $h($angebotKommt ? (!empty($seite['vorab'])
           ? strtr(Texte::h(Texte::SEITE['vorabKommtText'] ?? [], $sprache), ['{preis}' => Fmt::geld((int) $seite['vorab']['preis_cents'])])
@@ -737,6 +873,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
         : ($stufe === 'angebot' && $angebotOffen && !$offen
         ? Texte::h(Texte::SEITE['angebotText'] ?? [], $sprache)
         : $TS($stufe, 'text'))) ?></p>
+    <?php endif; ?>
     <?php if ($angebotKommt && !empty($seite['vorab']['leistungen'])): ?>
       <p class="mini" style="margin-top:-4px"><?= $h(Texte::h(Texte::SEITE['vorabLeistungen'] ?? [], $sprache)) ?> <?= $h((string) $seite['vorab']['leistungen']) ?></p>
     <?php endif; ?>
@@ -794,9 +931,19 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
               $rpG((int) $rp['von_cents']) . ' – ' . $rpG((int) $rp['bis_cents'])])) ?>
             · <?= $h(Texte::h(Texte::SEITE['richtpreisHilfe'] ?? [], $sprache)) ?></span>
         <?php endif; ?>
-        <?php if ($fbVoll > 0 && $fbAlle > 0): ?>
-          <span class="mini" style="flex-basis:100%"><?= (int) $fbVoll ?> / <?= (int) $fbAlle ?>
-            <?= $h(Texte::h(['it' => 'campi compilati', 'de' => 'Felder ausgefüllt', 'en' => 'fields filled in'], $sprache)) ?></span>
+        <?php /* Gezählt werden nur die Pflichtangaben (06.10.2026). Vorher
+                 stand hier „12 / 69 Felder ausgefüllt“ -- alle Felder samt
+                 freiwilliger. Das entmutigt, obwohl oft nur drei Antworten
+                 fehlen. Was fehlt und wie lange es dauert, ist die Frage,
+                 die sich jemand stellt, der gerade aufhören will. */
+              require_once __DIR__ . '/app/src/Fragen.php';
+              $fbKern = $fbVoll > 0 ? sicherLesen(static fn() => Fragen::kernOffen($fbDaten), null) : null;
+              $fbMin  = $fbKern ? sicherLesen(static fn() => Fragen::restMinuten($fbDaten, 1), 0) : 0; ?>
+        <?php if ($fbKern !== null): ?>
+          <span class="mini" style="flex-basis:100%"><?= $h($fbKern === 0
+              ? Texte::h(Texte::SEITE['kernFertig'] ?? [], $sprache)
+              : strtr(Texte::h(Texte::SEITE[$fbKern === 1 ? 'kernEins' : 'kernOffen'] ?? [], $sprache),
+                  ['{n}' => (string) $fbKern, '{m}' => (string) max(1, (int) $fbMin)])) ?></span>
         <?php endif; ?>
         <?php /* Der Fragebogen geht auch am Telefon: Das Sprachfenster haengt
                  unten rechts an genau dieser Seite, und Manuela erkennt, wer
@@ -847,6 +994,38 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php elseif (($stufe === 'online' || $stufe === 'fertig') && $seite['live'] !== ''): ?>
         <a class="knopf haupt" href="<?= $h($seite['live']) ?>" target="_blank" rel="noopener">
           <?= $h($T('seiteAnsehen')) ?></a>
+      <?php endif; ?>
+
+      <?php if (($stufe ?? '') === 'freigabe' && !$offen && $faellig !== null): ?>
+        <span class="mini" style="flex-basis:100%"><?= $h(strtr(Texte::h(Texte::SEITE['restOhneLink'] ?? [], $sprache),
+            ['{betrag}' => Fmt::geld((int) $faellig['amount_cents'], (string) $faellig['currency'])])) ?></span>
+      <?php endif; ?>
+
+      <?php /* Überweisung für Anzahlung oder Restzahlung (06.10.2026).
+               Offen, solange es keinen Kartenweg gibt; mit Kartenlink
+               zugeklappt darunter -- ein Weg führt, der andere bleibt
+               erreichbar. Der Verwendungszweck trägt Kunden- und
+               Bestellnummer, daran wird die Zahlung zugeordnet. */ ?>
+      <?php if ($ueRate): ?>
+        <?php $ueOffenStandard = !($offen && $stripeKann);
+              $ueKnr = trim((string) sicherLesen(fn() => Kunde::nummer((int) $kunde['id']), ''));
+              $ueZweck = implode(' · ', array_filter([$ueKnr, (string) ($v['bestellnr'] ?? ''),
+                  (string) ($ueRate['bezeichnung'] ?? '')], static fn($x) => trim($x) !== '')); ?>
+        <details class="ueberweisung" <?= $ueOffenStandard ? 'open' : '' ?>
+                 style="flex-basis:100%;margin-top:6px;padding:13px 15px;border:1px solid var(--linie);border-radius:12px">
+          <summary class="mini" style="font-weight:650;cursor:pointer"><?= $h($ueOffenStandard
+              ? $T('ueberweisung') : Texte::h(Texte::SEITE['lieberUeberweisen'] ?? [], $sprache)) ?></summary>
+          <p class="mini" style="margin:8px 0 10px;color:var(--dim)"><?= $h($T('ueberweisungHilfe')) ?></p>
+          <div class="mini" style="line-height:1.75">
+            <?php $ueFirma = Firma::get('name'); if ($ueFirma !== ''): ?>
+              <?= $h($T('ueEmpf')) ?>: <b><?= $h($ueFirma) ?></b><br><?php endif; ?>
+            <?php $ueBank = Firma::get('bank'); if ($ueBank !== ''): ?>
+              <?= $h($T('ueBank')) ?>: <?= $h($ueBank) ?><br><?php endif; ?>
+            IBAN: <b style="font-variant-numeric:tabular-nums;user-select:all"><?= $h(Firma::get('iban')) ?></b><br>
+            <?= $h(Texte::h(Texte::SEITE['ueBetrag'] ?? [], $sprache)) ?>: <b><?= Fmt::geld((int) $ueRate['amount_cents'], (string) $ueRate['currency']) ?></b><br>
+            <?= $h($T('ueZweck')) ?>: <b style="user-select:all"><?= $h($ueZweck) ?></b>
+          </div>
+        </details>
       <?php endif; ?>
 
       <?php /* MATERIAL, WO ER OHNEHIN HINSIEHT
@@ -1259,7 +1438,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
               <div class="mini" style="font-weight:650;margin-bottom:5px"><?= $h($T('ueberweisung')) ?></div>
               <p class="mini" style="margin:0 0 10px;color:var(--dim)"><?= $h($T('ueberweisungHilfe')) ?></p>
               <div class="mini" style="line-height:1.75">
-                <?php $ueFirma = Firma::get('firma'); if ($ueFirma !== ''): ?>
+                <?php $ueFirma = Firma::get('name'); if ($ueFirma !== ''): ?>
                   <?= $h($T('ueEmpf')) ?>: <b><?= $h($ueFirma) ?></b><br><?php endif; ?>
                 <?php $ueBank = Firma::get('bank'); if ($ueBank !== ''): ?>
                   <?= $h($T('ueBank')) ?>: <?= $h($ueBank) ?><br><?php endif; ?>
@@ -1472,7 +1651,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
            Offen und hervorgehoben, solange das Material den Fortschritt
            bestimmt. Danach klappt er zu wie jeder andere Kasten: Was
            erledigt ist, braucht keine Aufmerksamkeit mehr. */ ?>
-  <details id="material" class="klapp <?= $materialDran ? 'dranfaellig' : '' ?>" <?= $materialDran ? 'open' : '' ?>>
+  <details id="material" data-tour="material" class="klapp <?= $materialDran ? 'dranfaellig' : '' ?>" <?= $materialDran ? 'open' : '' ?>>
     <summary><?= $h($T('dateien')) ?><?= $dateien ? ' (' . count($dateien) . ')' : '' ?></summary>
     <?php if ($materialDran && $vomKunden === 0): ?>
       <div class="materialruf">
@@ -1527,7 +1706,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
        hinterlassen. Ein eigenes zweites Formular waere dieselbe Sache an
        zwei Stellen -- und zwei Postfaecher fuer denselben Satz. */ ?>
   <?php $imEntwurf = ($stufe === 'entwurf'); ?>
-  <details id="nachricht" class="klapp" <?= (!$nachrichten || $imEntwurf) ? 'open' : '' ?>>
+  <details id="nachricht" data-tour="nachricht" class="klapp" <?= (!$nachrichten || $imEntwurf) ? 'open' : '' ?>>
     <summary><?= $h($T('gespraech')) ?><?= $nachrichten ? ' (' . count($nachrichten) . ')' : '' ?></summary>
     <p class="mini" style="margin-top:10px"><?= $h($T('gespraechHilfe')) ?></p>
     <?php if ($imEntwurf): ?>
@@ -1613,6 +1792,25 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     </details>
   <?php endif; ?>
 
+  <?php /* HÄUFIGE FRAGEN (06.10.2026). Zahlen aus denselben Quellen wie der
+           Ablauf; die Anzahlung aus dem Angebot, sonst die Regel (50 %). */
+        $FQ = Texte::KUNDE_FAQ;
+        $fqAnz = (int) (sicherLesen(static fn() => (int) Db::wert(
+            "SELECT anzahlung_prozent FROM angebote WHERE customer_id = ? ORDER BY id DESC LIMIT 1",
+            [(int) $kunde['id']], 0), 0) ?: 50);
+        $fqMax = Fmt::bytes(sicherLesen(static fn() => Ablage::grenze(), Ablage::MAX_BYTES)); ?>
+  <details class="klapp fragen" id="fragen" data-tour="fragen">
+    <summary class="summe"><?= $h(Texte::h($FQ['titel'], $sprache)) ?></summary>
+    <div class="fragen-liste">
+      <?php foreach ($FQ['fragen'] as [$fqF, $fqA]): ?>
+        <details class="faq-frage">
+          <summary><?= $h(Texte::h($fqF, $sprache)) ?></summary>
+          <p><?= $h(strtr(Texte::h($fqA, $sprache), ['{anzahlung}' => (string) $fqAnz, '{max}' => $fqMax])) ?></p>
+        </details>
+      <?php endforeach; ?>
+    </div>
+  </details>
+
   <p class="mini" style="margin-top:26px;text-align:center"><?= $h($T('lesenswert')) ?></p>
 
 <?php endif; ?>
@@ -1621,6 +1819,29 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
          Der Aenderungsstempel sorgt dafuer, dass eine neue Fassung auch
          ankommt und nicht aus dem Speicher des Browsers kommt. */ ?>
 <script src="/assets/js/frage.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/frage.js') ?>" defer></script>
+<?php if ($kunde && !$panne): ?>
+<?php require_once __DIR__ . '/app/src/KundeTour.php';
+      $tourDaten = sicherLesen(static fn() => KundeTour::daten($sprache, $hier), null); ?>
+<?php if ($tourDaten): ?>
+<script type="application/json" id="tour-daten"><?= json_encode($tourDaten, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<script src="/assets/js/partner-tour.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-tour.js') ?>" defer></script>
+<?php endif; ?>
+<script>
+/* Ein Tipp auf ein Feld der Leiste klappt „So läuft es“ auf und springt zu
+   diesem Schritt. Ohne Skript tut der Anker dasselbe, nur ohne Aufklappen. */
+document.addEventListener('click', function (e) {
+  var a = e.target.closest ? e.target.closest('a[data-ablauf]') : null;
+  if (!a) { return; }
+  var d = document.getElementById('ablauf'), z = document.querySelector(a.getAttribute('href'));
+  if (!d || !z) { return; }
+  e.preventDefault();
+  d.open = true;
+  z.scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  try { history.replaceState(null, '', a.getAttribute('href')); } catch (x) { }
+});
+if (/^#ablauf-/.test(location.hash)) { var d0 = document.getElementById('ablauf'); if (d0) { d0.open = true; } }
+</script>
+<?php endif; ?>
 <?php if (!empty($skizze)): ?><script type="module" src="/assets/js/vorschau.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/vorschau.js') ?>"></script><?php endif; ?>
 <?php /* Impressum, Datenschutz und AGB — auch unter den Seiten, die man nur
          mit Schluessel erreicht. Sie waren bisher nur auf den oeffentlichen

@@ -275,7 +275,38 @@ final class Hosting
                 'preis_cents' => self::preisCents(),
             ]);
             Events::protokoll('hosting_vorschlag', 'Wunschdomain frei: ' . $frei, $kundeId, null, $projektId ?: null);
+            self::vorschlagMelden($kundeId, $frei, 'neu');
         });
+    }
+
+    /**
+     * Sagt dem Kunden, dass auf seiner Seite ein Hosting-Angebot liegt.
+     *
+     * Bis zum 06.10.2026 entstand der Kasten still: Nach Fragebogen und
+     * Anzahlung stand „Ja, zahlungspflichtig bestellen“ auf seiner Seite,
+     * aber keine Mail sagte es -- nur der Handweg in der Verwaltung schickte
+     * eine. Wer die Seite nicht von selbst oeffnete, entschied nie, und Uwe
+     * wartete auf eine Antwort, die niemand geben konnte.
+     *
+     * Eine Mail, kein Bestellen: Gekauft wird weiter nur mit dem Knopf.
+     * Scheitert der Versand, bleibt das Angebot trotzdem stehen.
+     */
+    private static function vorschlagMelden(int $kundeId, string $domain, string $aktion): void
+    {
+        try {
+            require_once __DIR__ . '/Mail.php';
+            require_once __DIR__ . '/Texte.php';
+            require_once __DIR__ . '/Kundenzugang.php';
+            $k = Db::one('SELECT * FROM customers WHERE id = ?', [$kundeId]);
+            if (!$k || trim((string) $k['email']) === '') { return; }
+            $sp = in_array((string) ($k['sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $k['sprache'] : 'it';
+            $anlass = $aktion === 'neu' ? 'hosting_angebot' : 'hosting_hinweis';
+            [$b, $t] = Texte::mail($anlass, $sp, [
+                'name' => (string) $k['name'], 'domain' => $domain, 'link' => Kundenzugang::linkFuer($kundeId),
+            ]);
+            Mail::senden($anlass, (string) $k['email'], $b, $t,
+                ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+        } catch (Throwable $e) { /* das Angebot steht trotzdem auf seiner Seite */ }
     }
 
     /**
@@ -327,6 +358,7 @@ final class Hosting
         ]);
         Events::protokoll('hosting_vorschlag', 'Hosting bei Vecom gewählt: ' . $domain
             . ' (Domain ' . $aktion . ', E-Mail ' . $mail . ')', $kundeId, null, $projektId ?: null);
+        self::vorschlagMelden($kundeId, $domain, $aktion);
     }
 
     /** Sagt der Fragebogen: keine Website, Domain neu, Wuensche vorhanden? */
