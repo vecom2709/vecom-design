@@ -1942,22 +1942,10 @@ if ($post) {
                 require_once __DIR__ . '/src/Angebot.php';
                 $wartetS = Angebot::wartetAufZusage((int) $bst['id']);
                 if ($wartetS !== null) { throw new RuntimeException(Angebot::warumKeinZahlungslink($wartetS)); }
-                $spr = (string) ($bst['kunde_sprache'] ?: 'it');
-                $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo',
-                                 'gesamt' => 'il pagamento', 'nachtrag' => 'le voci aggiunte'],
-                        'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung',
-                                 'gesamt' => 'die Zahlung', 'nachtrag' => 'die zusätzlich gewünschten Punkte'],
-                        'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance',
-                                 'gesamt' => 'the payment', 'nachtrag' => 'the additional items']
-                       ][$spr][(string) $z['art']] ?? (string) $z['art'];
-                [$betreff, $text] = Texte::mail('zahlungslink', $spr, [
-                    'name' => (string) $bst['kunde'], 'paket' => (string) $bst['package_name'],
-                    'was' => $was, 'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
-                    // Die dauerhafte Adresse, nicht die Stripe-Seite: die lebt 24 Stunden.
-                    'link' => Bezahllink::fuer($zid),
-                ]);
-                Mail::senden('zahlungslink', (string) $bst['kunde_email'], $betreff, $text,
-                    ['customer_id' => (int) $bst['customer_id'], 'order_id' => (int) $bst['id'], 'payment_id' => $zid]);
+                // Die Mail selbst steht seit dem 06.10.2026 in Nachricht -- derselbe Text
+                // fuer diesen Knopf und fuer den automatischen Weg nach der Annahme.
+                require_once __DIR__ . '/src/Nachricht.php';
+                Nachricht::zahlungslinkMail($zid);
                 // Keine Meldung: Der Knopf wurde gerade gedrueckt, und die
                 // gruene Zeile oben sagt es schon. Dass die Mail rausging,
                 // steht im Mailprotokoll des Vorgangs.

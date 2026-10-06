@@ -402,6 +402,95 @@ final class Nachricht
     }
 
     /**
+     * Der Zahlungslink fuer die Anzahlung -- gleich nach der Annahme, von selbst.
+     *
+     * Uwe, 06.10.2026: „mache alles automatisch“. Bis hierher erzeugte und
+     * schickte er den Link von Hand; nach „Angebot annehmen“ stand der Kunde
+     * vor „Ich melde mich gleich mit dem Link“ und wartete, manchmal einen
+     * Tag. Die Restzahlung ging schon immer von selbst raus (siehe unten) --
+     * jetzt die Anzahlung auch.
+     *
+     * Nur wenn Stripe wirklich kassieren kann: freigeschaltet, Webhook da,
+     * Livemodus (oder ausdruecklich der Testschalter). Sonst bleibt alles
+     * beim Handweg, und die Kundenseite sagt, dass der Link per E-Mail kommt.
+     * Ein Link, der ins Leere fuehrt, ist schlimmer als einer, der spaeter kommt.
+     *
+     * Dieselben Riegel wie am Knopf in der Verwaltung: kein Link vor dem
+     * grossen Fragebogen, keiner, solange ein Angebot auf die Zusage wartet,
+     * und genau eine Mail je Rate.
+     */
+    public static function anzahlungAnfordern(int $bestellId): bool
+    {
+        require_once __DIR__ . '/Zahlung/Anbieter.php';
+        require_once __DIR__ . '/Zahlung/Stripe.php';
+        require_once __DIR__ . '/Angebot.php';
+        $stripe = new StripeAnbieter();
+        $test = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
+        if (!($stripe->bereit() && $stripe->webhookBereit() && ($stripe->modus() === 'live' || $test))) { return false; }
+
+        $z = Db::one("SELECT * FROM payments WHERE order_id = ? AND art IN ('anzahlung','gesamt')
+                       AND status IN ('ausstehend','fehlgeschlagen')
+                     ORDER BY FIELD(art, 'anzahlung', 'gesamt'), id LIMIT 1", [$bestellId]);
+        if (!$z || !empty($z['link_url'])) { return false; }
+        if (Mail::schonGeschickt('zahlungslink', 'payment_id', (int) $z['id'])) { return false; }
+        if (Onboarding::brauchtVorPreis($bestellId)) {
+            $kid = (int) Db::wert('SELECT customer_id FROM orders WHERE id = ?', [$bestellId], 0);
+            if (!Onboarding::fertig($kid)) { return false; }
+        }
+        if (Angebot::wartetAufZusage($bestellId) !== null) { return false; }
+
+        $b = Db::one('SELECT * FROM orders WHERE id = ?', [$bestellId]);
+        $k = $b ? Db::one('SELECT * FROM customers WHERE id = ?', [(int) $b['customer_id']]) : null;
+        if (!$b || !$k) { return false; }
+        try {
+            $url = $stripe->bezahlseite($z, $b, $k);
+            Db::update('payments', (int) $z['id'], [
+                'provider' => 'stripe', 'status' => 'in_bearbeitung',
+                'provider_sitzung' => $stripe->letzteSitzung(),
+                'link_url' => $url, 'link_bis' => date('Y-m-d H:i:s', strtotime('+' . Events::LINK_GILT_TAGE . ' days')),
+            ]);
+        } catch (Throwable $e) {
+            Events::melden('integration_fehler', 'Zahlungslink für die Anzahlung ging nicht', 'warnung',
+                $e->getMessage() . ' — bitte in der Bestellung von Hand erzeugen.', '/bestellungen/' . $bestellId);
+            return false;
+        }
+        Events::protokoll('zahlungslink', 'Zahlungslink automatisch erstellt: ' . ($z['bezeichnung'] ?: 'Zahlung')
+            . ' · ' . Fmt::geld((int) $z['amount_cents']), (int) $b['customer_id'], $bestellId);
+        return self::zahlungslinkMail((int) $z['id']);
+    }
+
+    /**
+     * Die Mail mit dem Zahlungslink -- dieselbe fuer den Knopf in der
+     * Verwaltung und fuer den automatischen Weg. In die Mail kommt die
+     * dauerhafte Adresse (bezahlen.php), nicht die Stripe-Seite: die lebt
+     * 24 Stunden.
+     */
+    public static function zahlungslinkMail(int $zid): bool
+    {
+        require_once __DIR__ . '/Bezahllink.php';
+        $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zid]);
+        $bst = $z ? Db::one('SELECT o.*, c.name AS kunde, c.email AS kunde_email, c.sprache AS kunde_sprache
+                               FROM orders o JOIN customers c ON c.id = o.customer_id WHERE o.id = ?',
+                            [(int) $z['order_id']]) : null;
+        if (!$z || !$bst || !$z['link_url']) { return false; }
+        $spr = in_array((string) ($bst['kunde_sprache'] ?? ''), ['it', 'de', 'en'], true) ? (string) $bst['kunde_sprache'] : 'it';
+        $was = ['it' => ['anzahlung' => 'l’acconto', 'restzahlung' => 'il saldo',
+                         'gesamt' => 'il pagamento', 'nachtrag' => 'le voci aggiunte'],
+                'de' => ['anzahlung' => 'die Anzahlung', 'restzahlung' => 'die Restzahlung',
+                         'gesamt' => 'die Zahlung', 'nachtrag' => 'die zusätzlich gewünschten Punkte'],
+                'en' => ['anzahlung' => 'the deposit', 'restzahlung' => 'the balance',
+                         'gesamt' => 'the payment', 'nachtrag' => 'the additional items']
+               ][$spr][(string) $z['art']] ?? (string) $z['art'];
+        [$betreff, $text] = Texte::mail('zahlungslink', $spr, [
+            'name' => (string) $bst['kunde'], 'paket' => (string) $bst['package_name'],
+            'was' => $was, 'betrag' => Fmt::geld((int) $z['amount_cents'], (string) $z['currency']),
+            'link' => Bezahllink::fuer($zid),
+        ]);
+        return Mail::senden('zahlungslink', (string) $bst['kunde_email'], $betreff, $text,
+            ['customer_id' => (int) $bst['customer_id'], 'order_id' => (int) $bst['id'], 'payment_id' => $zid]);
+    }
+
+    /**
      * Fordert die zweite Haelfte an. Bewusst bei der finalen Freigabe und
      * nicht erst, wenn die Seite online ist: Danach hat man nichts mehr in
      * der Hand.

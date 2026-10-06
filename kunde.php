@@ -523,13 +523,10 @@ $stripeKann = (bool) sicherLesen(static function (): bool {
     $test = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'direktkauf_test'", [], '0') === '1';
     return $st->bereit() && $st->webhookBereit() && ($st->modus() === 'live' || $test);
 }, false);
-require_once __DIR__ . '/app/src/Firma.php';
-/* Die Überweisung für die Projektrate. Nur mit IBAN -- eine Aufforderung
-   ohne Kontonummer wäre eine Sackgasse. Steht ein funktionierender
-   Kartenlink da, bleibt die Überweisung trotzdem sichtbar: Nicht jeder
-   Betrieb zahlt mit Karte, und die Zahlung wird an der Kundennummer im
-   Verwendungszweck erkannt. */
-$ueRate = ($faellig !== null && Firma::get('iban') !== '') ? $faellig : null;
+/* Keine Kontonummer für Anzahlung und Restzahlung (Uwe, 06.10.2026: „Kontonummer
+   zum Überweisen braucht nicht angezeigt werden, mit Stripe über den Zahlungslink
+   ist es eh mit drin“). Bezahlt wird über den Link; die Bezahlseite bietet die
+   Zahlarten an, die im Stripe-Konto freigeschaltet sind. */
 
 Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
 ?><!doctype html>
@@ -610,6 +607,15 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
   /* Erklärhilfen (06.10.2026): das „?“, die Leiste zum Antippen, die sechs
      Schritte und die häufigen Fragen. Gleiche Formen wie die Kästen darunter. */
+  /* EIN DING JE BILDSCHIRM (06.10.2026): Gold trägt nur der Knopf im Kasten
+     oben -- das, was gerade dran ist. In den Kästen darunter sahen nach dem
+     Onlinegang fünf Knöpfe gleich golden aus („Website öffnen“ zweimal,
+     „Absenden“ dreimal). Dort bleiben sie sichtbar und anklickbar, aber in
+     der ruhigen Form. Ausnahme: ein Kasten, der selbst gerade dran ist
+     (Material, solange es fehlt). */
+  details.klapp:not(.dranfaellig) .knopf.haupt{background:rgba(255,255,255,.04);color:var(--text);
+    border-color:var(--linie2);box-shadow:none;font-weight:600}
+  details.klapp:not(.dranfaellig) .knopf.haupt:hover{box-shadow:none;border-color:var(--cyan)}
   .kunde-hilfe{width:36px;height:36px;font-size:16px;flex:0 0 36px}
   .kopf-rechts{display:flex;align-items:center;gap:10px;flex:0 0 auto}
   .kopf-rechts .knr{font-size:12px;line-height:1.35;color:var(--leise);text-align:right;
@@ -861,9 +867,14 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php /* Fragebogen fertig, Angebot noch nicht da: Er soll lesen, was
              jetzt passiert und bis wann -- nicht „Ihre Anfrage ist da“. */
           $angebotKommt = ($echte ?? '') === 'anfrage' && !empty($fbFertig); ?>
-    <?php if ($wartetAufLink): ?>
+    <?php if (($stufe ?? '') === 'angebot' && !$angebotOffen && $offen): ?>
+    <?php /* Angenommen, Link da (automatisch seit 06.10.2026): Danke sagen statt
+             „Ihr Angebot steht“ -- das Angebot ist ja schon angenommen. */ ?>
     <h2><?= $h(Texte::h(Texte::SEITE['angenommenTitel'] ?? [], $sprache)) ?></h2>
-    <p><?= $h(strtr(Texte::h(Texte::SEITE[$ueRate ? 'angenommenTextUe' : 'angenommenText'] ?? [], $sprache),
+    <p><?= $h(Texte::h(Texte::SEITE['angenommenMitLink'] ?? [], $sprache)) ?></p>
+    <?php elseif ($wartetAufLink): ?>
+    <h2><?= $h(Texte::h(Texte::SEITE['angenommenTitel'] ?? [], $sprache)) ?></h2>
+    <p><?= $h(strtr(Texte::h(Texte::SEITE['angenommenText'] ?? [], $sprache),
         ['{betrag}' => Fmt::geld((int) $faellig['amount_cents'], (string) $faellig['currency'])])) ?></p>
     <?php else: ?>
     <h2><?= $h($angebotKommt ? Texte::h(Texte::SEITE['angebotKommt'] ?? [], $sprache) : $TS($stufe)) ?></h2>
@@ -904,7 +915,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php elseif ($stufe === 'angebot' && $offen): ?>
         <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
           <?= $h((string) ($offen['bezeichnung'] ?: 'Zahlung')) ?> ·
-          <?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></a>
+          <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></a>
 
       <?php elseif ($stufe === 'angaben' && $fragebogen && $fbToken !== ''): ?>
         <?php
@@ -989,7 +1000,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php elseif ($stufe === 'freigabe' && $offen): ?>
         <a class="knopf haupt" href="<?= $h(sicherLesen(fn() => Bezahllink::fuer((int) $offen['id']), (string) $offen['link_url'])) ?>">
           <?= $h((string) ($offen['bezeichnung'] ?: 'Restzahlung')) ?> ·
-          <?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></a>
+          <span style="white-space:nowrap"><?= Fmt::geld((int) $offen['amount_cents'], (string) $offen['currency']) ?></span></a>
 
       <?php elseif (($stufe === 'online' || $stufe === 'fertig') && $seite['live'] !== ''): ?>
         <a class="knopf haupt" href="<?= $h($seite['live']) ?>" target="_blank" rel="noopener">
@@ -999,33 +1010,6 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
       <?php if (($stufe ?? '') === 'freigabe' && !$offen && $faellig !== null): ?>
         <span class="mini" style="flex-basis:100%"><?= $h(strtr(Texte::h(Texte::SEITE['restOhneLink'] ?? [], $sprache),
             ['{betrag}' => Fmt::geld((int) $faellig['amount_cents'], (string) $faellig['currency'])])) ?></span>
-      <?php endif; ?>
-
-      <?php /* Überweisung für Anzahlung oder Restzahlung (06.10.2026).
-               Offen, solange es keinen Kartenweg gibt; mit Kartenlink
-               zugeklappt darunter -- ein Weg führt, der andere bleibt
-               erreichbar. Der Verwendungszweck trägt Kunden- und
-               Bestellnummer, daran wird die Zahlung zugeordnet. */ ?>
-      <?php if ($ueRate): ?>
-        <?php $ueOffenStandard = !($offen && $stripeKann);
-              $ueKnr = trim((string) sicherLesen(fn() => Kunde::nummer((int) $kunde['id']), ''));
-              $ueZweck = implode(' · ', array_filter([$ueKnr, (string) ($v['bestellnr'] ?? ''),
-                  (string) ($ueRate['bezeichnung'] ?? '')], static fn($x) => trim($x) !== '')); ?>
-        <details class="ueberweisung" <?= $ueOffenStandard ? 'open' : '' ?>
-                 style="flex-basis:100%;margin-top:6px;padding:13px 15px;border:1px solid var(--linie);border-radius:12px">
-          <summary class="mini" style="font-weight:650;cursor:pointer"><?= $h($ueOffenStandard
-              ? $T('ueberweisung') : Texte::h(Texte::SEITE['lieberUeberweisen'] ?? [], $sprache)) ?></summary>
-          <p class="mini" style="margin:8px 0 10px;color:var(--dim)"><?= $h($T('ueberweisungHilfe')) ?></p>
-          <div class="mini" style="line-height:1.75">
-            <?php $ueFirma = Firma::get('name'); if ($ueFirma !== ''): ?>
-              <?= $h($T('ueEmpf')) ?>: <b><?= $h($ueFirma) ?></b><br><?php endif; ?>
-            <?php $ueBank = Firma::get('bank'); if ($ueBank !== ''): ?>
-              <?= $h($T('ueBank')) ?>: <?= $h($ueBank) ?><br><?php endif; ?>
-            IBAN: <b style="font-variant-numeric:tabular-nums;user-select:all"><?= $h(Firma::get('iban')) ?></b><br>
-            <?= $h(Texte::h(Texte::SEITE['ueBetrag'] ?? [], $sprache)) ?>: <b><?= Fmt::geld((int) $ueRate['amount_cents'], (string) $ueRate['currency']) ?></b><br>
-            <?= $h($T('ueZweck')) ?>: <b style="user-select:all"><?= $h($ueZweck) ?></b>
-          </div>
-        </details>
       <?php endif; ?>
 
       <?php /* MATERIAL, WO ER OHNEHIN HINSIEHT

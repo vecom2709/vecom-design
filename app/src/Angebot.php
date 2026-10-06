@@ -939,6 +939,15 @@ final class Angebot
                 $a['kunde'] . ' — ' . Fmt::geld((int) $a['summe_cents']), '/bestellungen/' . $bestellId);
         } catch (Throwable $e) { /* Beiwerk */ }
 
+        /* Der Zahlungslink fuer die Anzahlung geht von selbst raus, wenn Stripe
+           kassieren kann (06.10.2026, Uwe: „mache alles automatisch“). Sonst
+           bleibt der Knopf in der Verwaltung -- an der Bestellung aendert das
+           nichts. */
+        try {
+            require_once __DIR__ . '/Nachricht.php';
+            Nachricht::anzahlungAnfordern($bestellId);
+        } catch (Throwable $e) { /* der Handweg bleibt */ }
+
         return $bestellId;
     }
 

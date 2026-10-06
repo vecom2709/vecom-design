@@ -91,7 +91,12 @@ if ($a && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 'sprache' => $sprache,
                 'text'    => trim(strip_tags((string) $W['agb'])) . "\n" . trim((string) $W['wid']),
             ]);
-            header('Location: ' . $adresse($bestellId !== null ? 'danke' : 'panne')); exit;
+            /* Ist der Zahlungslink schon automatisch raus (06.10.2026), sagt der
+               Satz das -- statt „ich melde mich gleich“. */
+            $mitLink = $bestellId !== null && (int) Db::wert(
+                "SELECT COUNT(*) FROM payments WHERE order_id = ? AND link_url IS NOT NULL AND link_url <> ''",
+                [$bestellId], 0) > 0;
+            header('Location: ' . $adresse($bestellId === null ? 'panne' : ($mitLink ? 'dankelink' : 'danke'))); exit;
         }
         if ($tat === 'ablehnen') {
             Angebot::ablehnen($token, (string) ($_POST['grund'] ?? ''));
@@ -286,6 +291,7 @@ $datum = static function (?string $d): string {
 <?php else: ?>
   <?php if ($m === 'wunsch'): ?><div class="hinweis gut"><?= $h($T('aendernDanke')) ?></div><?php endif; ?>
   <?php if ($m === 'danke'): ?><div class="hinweis gut"><?= $h($T('dankeAn')) ?></div><?php endif; ?>
+  <?php if ($m === 'dankelink'): ?><div class="hinweis gut"><?= $h($T('dankeAnLink')) ?></div><?php endif; ?>
   <?php if ($m === 'abgelehnt'): ?><div class="hinweis"><?= $h($T('dankeAb')) ?></div><?php endif; ?>
   <?php if ($m === 'panne'): ?><div class="hinweis schlecht"><?= $h($T('panne')) ?></div><?php endif; ?>
   <?php if ($m === 'zustimmung'): ?><div class="hinweis warnung"><?= $h($T('fehlerZust')) ?></div><?php endif; ?>

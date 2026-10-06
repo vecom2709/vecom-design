@@ -27297,9 +27297,9 @@ foreach ($khIds as $khId) { if ($khId > 0) { Db::run('DELETE FROM files WHERE id
 
 // 10/11: Nach der Annahme ohne Link ein Satz mit Zeitangabe, die Überweisung für Projektraten.
 pruefe('angenommen ohne Zahlungslink: eigener Satz statt „Bezahlt wird auf einer Seite von Stripe“',
-    str_contains($khQuelle, '$wartetAufLink') && isset(Texte::SEITE['angenommenTitel'], Texte::SEITE['angenommenText'], Texte::SEITE['angenommenTextUe']));
-pruefe('die Überweisung gibt es auch für Anzahlung und Restzahlung, nur mit IBAN',
-    str_contains($khQuelle, "\$ueRate = (\$faellig !== null && Firma::get('iban') !== '')"));
+    str_contains($khQuelle, '$wartetAufLink') && isset(Texte::SEITE['angenommenTitel'], Texte::SEITE['angenommenText']));
+pruefe('für Anzahlung und Restzahlung steht keine Kontonummer da — bezahlt wird über den Link (Uwe, 06.10.2026)',
+    !str_contains($khQuelle, '$ueRate') && !str_contains($khQuelle, 'class="ueberweisung"'));
 
 // 16: Wer den Link verloren hat, fordert ihn auf der Fehlerseite neu an.
 pruefe('die Fehlerseite hat das Feld zum Neuanfordern', str_contains($khQuelle, 'action="/zugang.php?lang=') && str_contains($khQuelle, "\$T('neuKnopf')"));
@@ -27347,6 +27347,19 @@ foreach (Texte::KUNDE_FAQ['fragen'] as [$khF, $khA]) {
     }
 }
 pruefe('die häufigen Fragen sind in drei Sprachen ganz, ohne offene Platzhalter', $khPlatz === [], implode(', ', $khPlatz));
+// Uwe: „mache alles automatisch“ -- der Zahlungslink der Anzahlung geht nach der Annahme von selbst raus.
+require_once $wurzel . '/src/Nachricht.php';
+$khAq = (string) file_get_contents($wurzel . '/src/Angebot.php');
+pruefe('nach der Annahme wird die Anzahlung von selbst angefordert', str_contains($khAq, 'Nachricht::anzahlungAnfordern($bestellId)'));
+$khOrd = (int) Db::wert("SELECT order_id FROM payments WHERE art = 'anzahlung' AND status = 'ausstehend' AND (link_url IS NULL OR link_url = '') ORDER BY id DESC LIMIT 1", [], 0);
+$khMailVor = (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zahlungslink'", [], 0);
+pruefe('ohne kassierfähiges Stripe geht kein Link raus, und nichts zerbricht',
+    $khOrd === 0 || (Nachricht::anzahlungAnfordern($khOrd) === false
+        && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'zahlungslink'", [], 0) === $khMailVor),
+    'Bestellung ' . $khOrd);
+pruefe('ohne Link schickt die Mail-Funktion nichts', Nachricht::zahlungslinkMail(0) === false);
+pruefe('der Knopf in der Verwaltung benutzt dieselbe Mail', str_contains((string) file_get_contents($wurzel . '/index.php'), 'Nachricht::zahlungslinkMail($zid)'));
+pruefe('der Dank nach der Annahme kennt den schon verschickten Link', isset(Texte::ANGEBOT['dankeAnLink']));
 pruefe('die Zugangsmail nennt alle sechs Schritte', str_contains(Texte::mail('zugang', 'de', ['name' => '', 'link' => 'x', 'tage' => '7'])[1], '6. Online'));
 
 /* ============================================================================
