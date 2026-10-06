@@ -4,6 +4,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/Db.php';
 require_once __DIR__ . '/Events.php';
 require_once __DIR__ . '/Bausperre.php';
+require_once __DIR__ . '/BauPruefung.php';
 
 /**
  * AutoBuild Phase 5 — die Bau-Warteschlange (06.10.2026, Uwe: „ja“).
@@ -24,9 +25,18 @@ final class BauAuftrag
     public const ARTEN = [
         'analyse'       => ['Analyse', 'Machbarkeit, Risiken, Aufwand und offene Fragen — nur intern.'],
         'pflichtenheft' => ['Pflichtenheft', 'Ziel, Seiten, Funktionen, Inhalte und Abnahmekriterien — Grundlage für den Bau.'],
+        /* AutoBuild Phase 7 (06.10.2026): Builder und Reviewer. */
+        'bauen'         => ['Website bauen', 'Claude baut aus dem übernommenen Pflichtenheft eine neue Fassung — danach Tests und Review automatisch.'],
+        'review'        => ['Review', 'Ein zweiter Claude-Lauf prüft eine Fassung gegen Pflichtenheft und Tests.'],
     ];
-    /** Arten, die bauen oder ändern — brauchen später Annahme + Anzahlung. Noch leer. */
-    public const BAUEN = [];
+    /** Diese Arten stehen als Knopf auf der Karte; „review“ läuft nach jedem Bau von selbst (oder je Fassung). */
+    public const STARTBAR = ['analyse', 'pflichtenheft', 'bauen'];
+    /** Arten, die bauen oder ändern — brauchen Annahme + Anzahlung (Bausperre). */
+    public const BAUEN = ['bauen'];
+    /** Nachbesserungsrunden Builder → Reviewer, dann entscheidet ein Mensch. */
+    public const MAX_VERSUCHE = 3;
+    /** So viel Quelltext bekommt Claude von einer Fassung zu sehen. */
+    public const MAX_QUELLTEXT = 300_000;
     public const STATUS = ['wartet' => 'wartet auf deinen PC', 'laeuft' => 'Claude arbeitet', 'fertig' => 'fertig',
                            'fehler' => 'nicht geklappt', 'abgebrochen' => 'abgebrochen'];
     /** Schutz fürs Claude-Abo. */
@@ -46,7 +56,7 @@ final class BauAuftrag
     }
 
     /** @return int|string  Auftragsnummer oder Hinweis */
-    public static function anlegen(int $pid, string $art, string $wer, string $hinweis = ''): int|string
+    public static function anlegen(int $pid, string $art, string $wer, string $hinweis = '', array $parameter = [], int $versuch = 1, bool $auto = false): int|string
     {
         if (!isset(self::ARTEN[$art])) { return 'Unbekannte Auftragsart.'; }
         $p = Db::one('SELECT * FROM projects WHERE id = ?', [$pid]);
@@ -54,12 +64,20 @@ final class BauAuftrag
         $bs = Bausperre::darfBauen($p);
         if ($bs['stopp']) { return $bs['grund'] . ' Es wird kein Auftrag angelegt.'; }
         if (in_array($art, self::BAUEN, true) && !$bs['ok']) { return $bs['grund']; }
+        if ($art === 'bauen' && trim((string) ($p['pflichtenheft'] ?? '')) === '') { return 'Erst ein Pflichtenheft übernehmen — gebaut wird nur dagegen.'; }
+        if (isset($parameter['version_id'])) {
+            require_once __DIR__ . '/Versionen.php';
+            $pv = Versionen::laden((int) $parameter['version_id']);
+            if (!$pv || (int) $pv['project_id'] !== $pid) { return 'Diese Fassung gehört nicht zu diesem Projekt.'; }
+        } elseif ($art === 'review') { return 'Welche Fassung soll geprüft werden?'; }
         self::aufraeumen();
         $offen = Db::one("SELECT status FROM bau_auftraege WHERE project_id = ? AND art = ? AND status IN ('wartet','laeuft') LIMIT 1", [$pid, $art]);
         if ($offen) { return self::name($art) . ($offen['status'] === 'laeuft' ? ' läuft gerade schon.' : ' wartet schon auf deinen PC.'); }
-        if (self::heute() >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Bau-Aufträge gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
+        if (!$auto && self::heute() >= self::PRO_TAG) { return 'Heute sind schon ' . self::PRO_TAG . ' Bau-Aufträge gelaufen — das schont dein Claude-Abo. Morgen geht es weiter.'; }
         $hinweis = mb_substr(trim(strip_tags($hinweis)), 0, 500);
-        $id = (int) Db::insert('bau_auftraege', ['project_id' => $pid, 'art' => $art, 'hinweis' => $hinweis !== '' ? $hinweis : null, 'von' => mb_substr($wer, 0, 120)]);
+        $hinweis = mb_substr($hinweis, 0, $auto ? 500 : 500);
+        $id = (int) Db::insert('bau_auftraege', ['project_id' => $pid, 'art' => $art, 'hinweis' => $hinweis !== '' ? $hinweis : null, 'von' => mb_substr($wer, 0, 120),
+            'parameter' => $parameter ? json_encode($parameter) : null, 'versuch' => max(1, min(9, $versuch))]);
         Events::pruefspur('bau_auftrag', 'bau_auftraege', $id, [], ['projekt' => $pid, 'art' => $art, 'von' => $wer]);
         Events::protokoll('bau_auftrag', self::name($art) . ' angestoßen: ' . (string) $p['name'], (int) $p['customer_id'] ?: null, null, $pid, ['auftrag_id' => $id]);
         return $id;
@@ -147,7 +165,29 @@ final class BauAuftrag
         require_once __DIR__ . '/Standard.php';
         $haus = (string) self::still(static fn() => Standard::text(), '');
         $bs = Bausperre::darfBauen($p);
-        return [
+        $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+        $zusatz = [];
+        if (in_array($a['art'], ['bauen', 'review'], true) && !empty($param['version_id'])) {
+            require_once __DIR__ . '/Versionen.php';
+            $v = Versionen::laden((int) $param['version_id']);
+            if ($v) {
+                $zusatz['fassung'] = ['nummer' => (int) $v['nummer'], 'dateien' => Versionen::quelltext((int) $v['id'], self::MAX_QUELLTEXT),
+                    'tests' => json_decode((string) ($v['tests'] ?? ''), true) ?: [], 'review' => (string) ($v['review_text'] ?? '')];
+            }
+        }
+        if ($a['art'] === 'bauen') {
+            /* Die Website zeigt die Geschäftskontakte des Kunden — nur beim Bauen, nie beim Planen. */
+            $zusatz['kontakt'] = ['telefon' => (string) ($k['phone'] ?? ''), 'email' => (string) ($k['email'] ?? ''),
+                                  'adresse' => trim((string) ($k['street'] ?? '') . ', ' . (string) ($k['zip'] ?? '') . ' ' . (string) ($k['city'] ?? ''), ', ')];
+        }
+        $regel = match ((string) $a['art']) {
+            'bauen'  => 'Baue die Website als statische Dateien und liefere sie zurück. Nichts veröffentlichen, nichts hochladen, niemanden kontaktieren — die Verwaltung legt eine neue Fassung an, testet sie, und erst ein Mensch schaltet sie frei.',
+            'review' => 'Nur lesen und beurteilen. Nichts ändern, nichts veröffentlichen.',
+            default  => 'Nur lesen, analysieren und planen. Nichts bauen, nichts an einer Website ändern, nichts veröffentlichen, niemanden kontaktieren.',
+        };
+        return $zusatz + [
+            'versuch' => (int) ($a['versuch'] ?? 1), 'max_versuche' => self::MAX_VERSUCHE,
+            'grenzen' => ['dateien' => BauPruefung::MAX_DATEIEN, 'bytes' => 1_500_000, 'endungen' => BauPruefung::TEXT],
             'id' => (int) $a['id'], 'art' => (string) $a['art'], 'projekt' => $pid,
             'beschreibung' => self::name((string) $a['art']) . ' · ' . (string) $p['name'],
             'titel' => (string) $p['name'],
@@ -161,7 +201,7 @@ final class BauAuftrag
             'analyse' => (string) ($p['analyse'] ?? ''),
             'pflichtenheft' => (string) ($p['pflichtenheft'] ?? ''),
             'bau_erlaubt' => $bs['ok'],
-            'regel' => 'Nur lesen, analysieren und planen. Nichts bauen, nichts an einer Website ändern, nichts veröffentlichen, niemanden kontaktieren.',
+            'regel' => $regel,
         ];
     }
 
@@ -209,8 +249,51 @@ final class BauAuftrag
         $text = (string) ($d['text'] ?? '');
         $text = str_replace("\r\n", "\n", $text);
         $text = trim(preg_replace('~<\s*(script|iframe|style|object|embed)\b[^>]*>.*?<\s*/\s*\1\s*>~is', '', $text) ?? '');
-        if ($ok && mb_strlen($text) < 200) { $ok = false; $d['fehler'] = 'Claude hat zu wenig geliefert (unter 200 Zeichen).'; }
         $p = Db::one('SELECT id, name, customer_id FROM projects WHERE id = ?', [(int) $a['project_id']]) ?: ['id' => 0, 'name' => '?', 'customer_id' => null];
+        $art = (string) $a['art'];
+        $meldung = 'Entwurf von Claude — bitte lesen und übernehmen.';
+        $link = 'projekte/' . (int) $p['id'] . '#bauen';
+        $mindest = in_array($art, ['bauen'], true) ? 20 : 200;
+        if ($ok && mb_strlen($text) < $mindest) { $ok = false; $d['fehler'] = 'Claude hat zu wenig geliefert (unter ' . $mindest . ' Zeichen).'; }
+
+        /* Phase 7: Der Builder liefert Dateien → neue Fassung, Tests, Review von selbst. */
+        if ($ok && $art === 'bauen') {
+            try { $vid = self::fassungAnlegen($a, is_array($d['dateien'] ?? null) ? $d['dateien'] : [], $text); }
+            catch (RuntimeException $e) { $ok = false; $d['fehler'] = $e->getMessage(); }
+            if ($ok) {
+                require_once __DIR__ . '/Versionen.php';
+                $v = Versionen::laden($vid);
+                $text = 'V' . (int) $v['nummer'] . ' gebaut' . ((int) $v['tests_ok'] === 1 ? ', Tests bestanden' : ', Tests mit Mängeln') . ".\n\n" . $text;
+                $meldung = 'V' . (int) $v['nummer'] . ' ist gebaut — das Review läuft jetzt von selbst.';
+                $link = 'projekte/' . (int) $p['id'] . '#versionen';
+                self::anlegen((int) $p['id'], 'review', 'Claude (automatisch)', '', ['version_id' => $vid], (int) $a['versuch'], true);
+            }
+        }
+        /* Phase 7: Der Reviewer urteilt — bei Mängeln baut Claude nach, höchstens MAX_VERSUCHE Runden. */
+        if ($ok && $art === 'review') {
+            $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+            require_once __DIR__ . '/Versionen.php';
+            $v = Versionen::laden((int) ($param['version_id'] ?? 0));
+            if (!$v) { $ok = false; $d['fehler'] = 'Fassung nicht mehr da.'; }
+            else {
+                $urteil = ($d['urteil'] ?? '') === 'bestanden' && (int) $v['tests_ok'] === 1 ? 'bestanden' : 'nachbessern';
+                $maengel = array_values(array_filter(array_map(static fn($m) => mb_substr(trim(strip_tags((string) $m)), 0, 300), (array) ($d['maengel'] ?? [])), static fn($m) => $m !== ''));
+                foreach (json_decode((string) ($v['tests'] ?? ''), true) ?: [] as $tt) { if (!empty($tt['schwer']) && empty($tt['ok'])) { $maengel[] = 'Test: ' . $tt['name'] . ($tt['detail'] !== '' ? ' — ' . $tt['detail'] : ''); } }
+                Db::update('projekt_versionen', (int) $v['id'], ['review_urteil' => $urteil, 'review_text' => mb_substr($text, 0, self::MAX_ERGEBNIS), 'review_am' => date('Y-m-d H:i:s')]);
+                Events::pruefspur('version_review', 'projekt_versionen', (int) $v['id'], [], ['urteil' => $urteil, 'versuch' => (int) $a['versuch'], 'maengel' => count($maengel)]);
+                $link = 'projekte/' . (int) $p['id'] . '#versionen';
+                if ($urteil === 'bestanden') {
+                    $meldung = 'V' . (int) $v['nummer'] . ': Tests und Review bestanden — jetzt auf die Testfassung und selbst ansehen.';
+                } elseif ((int) $a['versuch'] < self::MAX_VERSUCHE && (int) $v['auftrag_id'] > 0) {
+                    $nach = self::anlegen((int) $p['id'], 'bauen', 'Claude (automatisch)', mb_substr("Nachbessern (Runde " . ((int) $a['versuch'] + 1) . "):\n- " . implode("\n- ", array_slice($maengel, 0, 12)), 0, 500),
+                        ['version_id' => (int) $v['id']], (int) $a['versuch'] + 1, true);
+                    $meldung = 'V' . (int) $v['nummer'] . ': Review fand ' . count($maengel) . ' Mängel — Claude bessert nach' . (is_int($nach) ? ' (Runde ' . ((int) $a['versuch'] + 1) . ').' : ': ' . $nach);
+                } else {
+                    $meldung = 'V' . (int) $v['nummer'] . ': nach ' . (int) $a['versuch'] . ' Runde(n) noch Mängel — bitte selbst ansehen und entscheiden.';
+                }
+            }
+        }
+
         if ($ok) {
             Db::update('bau_auftraege', $id, ['status' => 'fertig', 'ergebnis' => mb_substr($text, 0, self::MAX_ERGEBNIS), 'fehler' => null, 'fertig_am' => date('Y-m-d H:i:s')]);
         } else {
@@ -218,11 +301,59 @@ final class BauAuftrag
             Db::update('bau_auftraege', $id, ['status' => 'fehler', 'fehler' => $f, 'fertig_am' => date('Y-m-d H:i:s')]);
         }
         self::still(static fn() => Events::melden('bau_auftrag_fertig',
-            ($ok ? self::name((string) $a['art']) . ' fertig: ' : self::name((string) $a['art']) . ' nicht geklappt: ') . (string) $p['name'],
+            ($ok ? self::name($art) . ' fertig: ' : self::name($art) . ' nicht geklappt: ') . (string) $p['name'],
             $ok ? 'gut' : 'info',
-            $ok ? 'Entwurf von Claude — bitte lesen und übernehmen.' : (string) ($d['fehler'] ?? ''),
-            'projekte/' . (int) $p['id'] . '#bauen'), null);
+            $ok ? $meldung : (string) ($d['fehler'] ?? ''),
+            $link), null);
         return ['ok' => true];
+    }
+
+    /**
+     * Die Lieferung des Builders zur Fassung machen: Pfade und Endungen
+     * prüfen, Binärdateien der Ausgangsfassung (Bilder, Schriften) mitnehmen,
+     * ZIP ablegen, V-Nummer vergeben, Tests laufen lassen.
+     * @param list<array{pfad?:string,inhalt?:string}> $lieferung
+     */
+    public static function fassungAnlegen(array $a, array $lieferung, string $zusammenfassung): int
+    {
+        require_once __DIR__ . '/Versionen.php';
+        require_once __DIR__ . '/Ablage.php';
+        $pid = (int) $a['project_id'];
+        Bausperre::pruefen($pid);
+        $dateien = [];
+        $summe = 0;
+        foreach ($lieferung as $f) {
+            $pfad = BauPruefung::pfadOk((string) ($f['pfad'] ?? ''));
+            if ($pfad === null || !in_array(strtolower(pathinfo($pfad, PATHINFO_EXTENSION)), BauPruefung::TEXT, true)) {
+                throw new RuntimeException('Unzulässige Datei in der Lieferung: ' . mb_substr((string) ($f['pfad'] ?? ''), 0, 80));
+            }
+            $inhalt = (string) ($f['inhalt'] ?? '');
+            $summe += strlen($inhalt);
+            $dateien[$pfad] = $inhalt;
+        }
+        if (!$dateien) { throw new RuntimeException('Claude hat keine Dateien geliefert.'); }
+        if (count($dateien) > BauPruefung::MAX_DATEIEN || $summe > 1_500_000) { throw new RuntimeException('Die Lieferung ist zu groß (' . count($dateien) . ' Dateien, ' . round($summe / 1024) . ' KB).'); }
+        $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
+        if (!empty($param['version_id'])) {   // Nachbessern: Bilder und Schriften der Ausgangsfassung bleiben
+            foreach (Versionen::dateien((int) $param['version_id'], false) as $pfad => $inhalt) {
+                if (!isset($dateien[$pfad]) && !in_array(strtolower(pathinfo($pfad, PATHINFO_EXTENSION)), BauPruefung::TEXT, true)) { $dateien[$pfad] = $inhalt; }
+            }
+        }
+        $tests = BauPruefung::pruefen($dateien);
+        $p = Db::one('SELECT customer_id, name FROM projects WHERE id = ?', [$pid]);
+        $zip = sys_get_temp_dir() . '/vecom-bau-' . bin2hex(random_bytes(6)) . '.zip';
+        $z = new ZipArchive();
+        if ($z->open($zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) { throw new RuntimeException('ZIP nicht anlegbar.'); }
+        ksort($dateien);
+        foreach ($dateien as $pfad => $inhalt) { $z->addFromString($pfad, $inhalt); }
+        $z->close();
+        try {
+            $nr = (int) Db::wert('SELECT COALESCE(MAX(nummer), 0) + 1 FROM projekt_versionen WHERE project_id = ?', [$pid], 1);
+            $fid = Ablage::ausDatei($zip, 'claude-v' . $nr . '-' . date('Y-m-d-Hi') . '.zip', $pid, (int) $p['customer_id'], 'werkstatt', 50 * 1024 * 1024, 'paket');
+        } finally { @unlink($zip); }
+        $vid = Versionen::erfassen($pid, $fid, 'ki', mb_substr('Runde ' . (int) $a['versuch'] . ': ' . preg_replace('~\s+~', ' ', $zusammenfassung), 0, 300));
+        Db::update('projekt_versionen', $vid, ['tests' => json_encode($tests, JSON_UNESCAPED_UNICODE), 'tests_ok' => BauPruefung::bestanden($tests) ? 1 : 0, 'auftrag_id' => (int) $a['id']]);
+        return $vid;
     }
 
     /**
@@ -256,6 +387,7 @@ final class BauAuftrag
     {
         $a = Db::one('SELECT * FROM bau_auftraege WHERE id = ?', [$id]);
         if (!$a || $a['status'] !== 'fertig' || trim((string) $a['ergebnis']) === '') { throw new RuntimeException('Nur fertige Ergebnisse lassen sich übernehmen.'); }
+        if (!in_array($a['art'], ['analyse', 'pflichtenheft'], true)) { throw new RuntimeException('Übernehmen gibt es nur für Analyse und Pflichtenheft — Fassungen gehen über Testfassung und „geprüft“.'); }
         $spalte = $a['art'] === 'pflichtenheft' ? 'pflichtenheft' : 'analyse';
         $pid = (int) $a['project_id'];
         $vorher = (string) Db::wert('SELECT ' . $spalte . ' FROM projects WHERE id = ?', [$pid], '');

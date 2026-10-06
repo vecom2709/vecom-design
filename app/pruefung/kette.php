@@ -4528,6 +4528,77 @@ pruefe('Abbrechen nur wartend; Not-Aus am Projekt: kein neuer Auftrag, ein warte
     json_encode([$baAb1, $baGestopptAnlegen, $baGestopptHolen, $baAb2, $baRechte], JSON_UNESCAPED_UNICODE));
 Db::run('DELETE FROM bau_auftraege WHERE project_id = ?', [$wsProjekt]);
 Db::run('UPDATE projects SET pflichtenheft = NULL, pflichtenheft_am = NULL WHERE id = ?', [$wsProjekt]);
+
+/* AutoBuild Phase 7 (06.10.2026): Builder → Tests → Reviewer, höchstens drei Runden. */
+require_once $wurzel . '/src/BauPruefung.php'; require_once $wurzel . '/src/Versionen.php';
+$b7Ohne = BauAuftrag::anlegen($wsProjekt, 'bauen', 'Uwe Admin');
+Db::run("UPDATE projects SET pflichtenheft = '# Pflichtenheft\n## Seitenstruktur\n- Start\n## Nicht enthalten\n- Shop\n## Abnahmekriterien\n- Kontakt sichtbar', pflichtenheft_am = NOW() WHERE id = ?", [$wsProjekt]);
+$b7A1 = BauAuftrag::anlegen($wsProjekt, 'bauen', 'Uwe Admin', 'Bitte ruhig und hell');
+$b7H1 = BauAuftrag::holen()['auftrag'] ?? [];
+$b7Boese = BauAuftrag::melden(['id' => $b7A1, 'ok' => true, 'text' => 'Seite gebaut, alles drin.', 'dateien' => [['pfad' => 'index.html', 'inhalt' => '<!doctype html>'], ['pfad' => '../.htaccess', 'inhalt' => 'x']]]);
+$b7VorAnz = (int) Db::wert('SELECT COUNT(*) FROM projekt_versionen WHERE project_id = ?', [$wsProjekt], 0);
+pruefe('Builder: ohne übernommenes Pflichtenheft kein Bau; abgeholt mit Pflichtenheft, Geschäftskontakt und Bau-Regel; unzulässige Datei → Fehler, keine Fassung; Übernehmen gibt es für Bauen nicht',
+    is_string($b7Ohne) && str_contains($b7Ohne, 'Pflichtenheft') && is_int($b7A1) && ($b7H1['art'] ?? '') === 'bauen' && str_contains((string) $b7H1['pflichtenheft'], 'Abnahmekriterien')
+    && isset($b7H1['kontakt']['email']) && str_contains((string) $b7H1['regel'], 'statische Dateien') && in_array('bauen', BauAuftrag::BAUEN, true)
+    && (string) Db::wert('SELECT status FROM bau_auftraege WHERE id = ?', [$b7A1], '') === 'fehler' && str_contains((string) Db::wert('SELECT fehler FROM bau_auftraege WHERE id = ?', [$b7A1], ''), 'Unzulässige')
+    && $b7VorAnz === 0 && (static function () use ($b7A1): bool { try { BauAuftrag::uebernehmen($b7A1, 'Uwe'); return false; } catch (RuntimeException $e) { return true; } })(),
+    json_encode([$b7Ohne, $b7A1, array_keys($b7H1), $b7Boese], JSON_UNESCAPED_UNICODE));
+$b7Seite = static fn(string $h1, string $text) => '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Bar Prova — Start</title><meta name="description" content="Bar Prova in Agrigento: colazione e aperitivo."><link rel="stylesheet" href="css/stil.css"></head><body>' . $h1 . '<p>' . $text . '</p><a href="privacy.html">Privacy</a></body></html>';
+$b7A2 = BauAuftrag::anlegen($wsProjekt, 'bauen', 'Uwe Admin'); BauAuftrag::holen();
+BauAuftrag::melden(['id' => $b7A2, 'ok' => true, 'text' => 'Onepager mit Kontakt gebaut.', 'dateien' => [
+    ['pfad' => 'index.html', 'inhalt' => $b7Seite('', 'Lorem ipsum dolor sit amet') . '<a href="menu.html">Menü</a>'], ['pfad' => 'css/stil.css', 'inhalt' => 'body{margin:0}'],
+    ['pfad' => 'privacy.html', 'inhalt' => $b7Seite('<h1>Privacy</h1>', 'Informativa.')]]]);
+$b7V1 = Versionen::neueste($wsProjekt);
+$b7T1 = json_decode((string) $b7V1['tests'], true);
+$b7Fehl = array_column(array_filter($b7T1, static fn($x) => !$x['ok']), 'name');
+$b7R1 = Db::one("SELECT * FROM bau_auftraege WHERE project_id = ? AND art = 'review' AND status = 'wartet' ORDER BY id DESC LIMIT 1", [$wsProjekt]);
+pruefe('Lieferung → neue Fassung „von Claude gebaut“, Tests erkennen Platzhalter, toten Link, fehlende H1; das Review steht von selbst an',
+    $b7V1 && $b7V1['quelle'] === 'ki' && (int) $b7V1['auftrag_id'] === $b7A2 && (int) $b7V1['tests_ok'] === 0
+    && in_array('Keine Platzhalter (Lorem ipsum, TODO, example.com …)', $b7Fehl, true) && in_array('Keine toten internen Links oder fehlenden Dateien', $b7Fehl, true) && in_array('Genau eine H1 je Seite', $b7Fehl, true)
+    && $b7R1 && (int) (json_decode((string) $b7R1['parameter'], true)['version_id'] ?? 0) === (int) $b7V1['id'] && (int) $b7R1['versuch'] === 1,
+    json_encode([$b7Fehl, $b7R1['id'] ?? null], JSON_UNESCAPED_UNICODE));
+$b7HR = BauAuftrag::holen()['auftrag'] ?? [];
+BauAuftrag::melden(['id' => (int) $b7HR['id'], 'ok' => true, 'urteil' => 'bestanden', 'maengel' => [], 'text' => "# Review V" . (int) $b7V1['nummer'] . "\n" . str_repeat('Sieht gut aus. ', 20)]);
+$b7N = Db::one("SELECT * FROM bau_auftraege WHERE project_id = ? AND art = 'bauen' AND status = 'wartet' ORDER BY id DESC LIMIT 1", [$wsProjekt]);
+pruefe('Reviewer bekommt Quelltext und Tests; sagt er „bestanden“, obwohl ein schwerer Test fehlt, gilt „nachbessern“ — Claude baut automatisch nach (Runde 2, Mängel aus den Tests, Ausgangsfassung dabei)',
+    ($b7HR['art'] ?? '') === 'review' && in_array('index.html', array_column((array) ($b7HR['fassung']['dateien'] ?? []), 'pfad'), true) && count((array) $b7HR['fassung']['tests']) >= 10
+    && (string) Db::wert('SELECT review_urteil FROM projekt_versionen WHERE id = ?', [(int) $b7V1['id']], '') === 'nachbessern'
+    && $b7N && (int) $b7N['versuch'] === 2 && str_contains((string) $b7N['hinweis'], 'Platzhalter') && (int) (json_decode((string) $b7N['parameter'], true)['version_id'] ?? 0) === (int) $b7V1['id'],
+    json_encode([$b7N], JSON_UNESCAPED_UNICODE));
+$b7H2 = BauAuftrag::holen()['auftrag'] ?? [];
+BauAuftrag::melden(['id' => (int) $b7H2['id'], 'ok' => true, 'text' => 'Mängel behoben: H1, Menü-Seite, keine Platzhalter.', 'dateien' => [
+    ['pfad' => 'index.html', 'inhalt' => $b7Seite('<h1>Bar Prova</h1>', 'Colazione e aperitivo in centro.') . '<a href="menu.html">Menü</a>'], ['pfad' => 'css/stil.css', 'inhalt' => 'body{margin:0}'],
+    ['pfad' => 'menu.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Menü', $b7Seite('<h1>Menü</h1>', 'Caffè e cornetti.'))],
+    ['pfad' => 'privacy.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Privacy', $b7Seite('<h1>Privacy</h1>', 'Informativa.'))]]]);
+$b7V2 = Versionen::neueste($wsProjekt);
+$b7HR2 = BauAuftrag::holen()['auftrag'] ?? [];
+BauAuftrag::melden(['id' => (int) $b7HR2['id'], 'ok' => true, 'urteil' => 'bestanden', 'maengel' => [], 'text' => "# Review V" . (int) $b7V2['nummer'] . "\n" . str_repeat('Alle Abnahmekriterien erfüllt. ', 10)]);
+$b7V2 = Versionen::laden((int) $b7V2['id']);
+$b7Weiter = (int) Db::wert("SELECT COUNT(*) FROM bau_auftraege WHERE project_id = ? AND status = 'wartet'", [$wsProjekt], 0);
+$b7Live = Versionen::liveSperre($b7V2);
+pruefe('Runde 2: neue Fassung besteht Tests und Review — kein weiterer Auftrag, Meldung an Uwe; live trotzdem erst nach Testfassung und „geprüft“ (Mensch entscheidet)',
+    ($b7H2['fassung']['nummer'] ?? 0) === (int) $b7V1['nummer'] && (int) $b7V2['nummer'] === (int) $b7V1['nummer'] + 1 && (int) $b7V2['tests_ok'] === 1 && $b7V2['review_urteil'] === 'bestanden'
+    && $b7Weiter === 0 && $b7Live !== null && str_contains($b7Live, 'Testfassung')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE body LIKE '%Tests und Review bestanden%'", [], 0) >= 1,
+    json_encode([$b7V2['tests'] ?? null, $b7Weiter, $b7Live], JSON_UNESCAPED_UNICODE));
+$b7R3 = BauAuftrag::anlegen($wsProjekt, 'review', 'Claude (automatisch)', '', ['version_id' => (int) $b7V1['id']], 3, true); BauAuftrag::holen();
+BauAuftrag::melden(['id' => (int) $b7R3, 'ok' => true, 'urteil' => 'nachbessern', 'maengel' => ['Kontrast zu schwach'], 'text' => "# Review\n" . str_repeat('Noch nicht. ', 25)]);
+$b7NachDrei = (int) Db::wert("SELECT COUNT(*) FROM bau_auftraege WHERE project_id = ? AND status = 'wartet'", [$wsProjekt], 0);
+$b7Fremd = BauAuftrag::anlegen($wsProjekt, 'review', 'Uwe', '', ['version_id' => 999999]);
+$_SESSION['rolle'] = 'mitarbeit'; $b7Rechte = [Rechte::darfTat('bau_auftrag'), Rechte::darfTat('version_review')];
+pruefe('Nach drei Runden baut Claude nicht weiter — Uwe entscheidet; fremde Fassung abgelehnt; Bauen anstoßen darf Mitarbeit, Review je Fassung nur Admin; nur startbare Arten über den Knopf',
+    $b7NachDrei === 0 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE body LIKE '%nach 3 Runde(n) noch Mängel%'", [], 0) >= 1 && is_string($b7Fremd)
+    && $b7Rechte === [true, false] && str_contains((string) file_get_contents($wurzel . '/index.php'), 'BauAuftrag::STARTBAR'),
+    json_encode([$b7NachDrei, $b7Fremd, $b7Rechte], JSON_UNESCAPED_UNICODE));
+pruefe('Tests im Detail: Pfade aus der Lieferung (kein .., kein Punkt-Ordner, keine PHP), Links auflösen, fremde Skripte erkannt',
+    BauPruefung::pfadOk('css/stil.css') === 'css/stil.css' && BauPruefung::pfadOk('../x.html') === null && BauPruefung::pfadOk('.git/config') === null && BauPruefung::pfadOk('x.php') === null
+    && BauPruefung::aufloesen('seiten/a.html', '../index.html') === 'index.html' && BauPruefung::aufloesen('index.html', '../../x') === null && BauPruefung::aufloesen('a/b.html', '/') === ''
+    && !BauPruefung::bestanden(BauPruefung::pruefen(['index.html' => $b7Seite('<h1>X</h1>', 'ok') . '<script src="https://cdn.example.net/x.js"></script>', 'css/stil.css' => '', 'privacy.html' => $b7Seite('<h1>P</h1>', 'ok')]))
+    && BauPruefung::bestanden(BauPruefung::pruefen(['index.html' => $b7Seite('<h1>X</h1>', 'ok'), 'css/stil.css' => '', 'privacy.html' => $b7Seite('<h1>P</h1>', 'ok')])));
+foreach (Db::all('SELECT f.id, f.stored_name FROM projekt_versionen v JOIN files f ON f.id = v.file_id WHERE v.project_id = ?', [$wsProjekt]) as $b7F) { @unlink(Ablage::ordner() . '/' . $b7F['stored_name']); Db::run('DELETE FROM files WHERE id = ?', [(int) $b7F['id']]); }
+Db::run('DELETE FROM projekt_versionen WHERE project_id = ?', [$wsProjekt]);
+Db::run('DELETE FROM bau_auftraege WHERE project_id = ?', [$wsProjekt]);
+Db::run('UPDATE projects SET pflichtenheft = NULL, pflichtenheft_am = NULL WHERE id = ?', [$wsProjekt]);
 $_SESSION = $bsSess;
 
 // Vorschau eintragen — und eben NICHT freischalten.

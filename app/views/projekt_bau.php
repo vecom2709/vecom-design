@@ -40,19 +40,23 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
   $pbOffen = [];
   foreach ($pbListe as $pbA) { if (in_array($pbA['status'], ['wartet', 'laeuft'], true)) { $pbOffen[$pbA['art']] = true; } }
   ?>
-  <h3 style="margin:16px 0 4px;font-size:16px">Claude-Aufträge <span style="font-size:12px;color:var(--leise);font-weight:500">laufen auf deinem PC · ändern an keiner Website etwas</span></h3>
+  <h3 style="margin:16px 0 4px;font-size:16px">Claude-Aufträge <span style="font-size:12px;color:var(--leise);font-weight:500">laufen auf deinem PC · live geht nichts ohne deinen Klick</span></h3>
   <?php if (!$pbB['stopp']): ?>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-    <?php foreach (BauAuftrag::ARTEN as $pbArt => [$pbName, $pbWas]): ?>
+    <?php foreach (BauAuftrag::STARTBAR as $pbArt): [$pbName, $pbWas] = BauAuftrag::ARTEN[$pbArt]; ?>
       <div style="flex:1 1 280px;border:1px solid var(--linie, #ddd);border-radius:10px;padding:10px 12px">
         <b style="font-size:15px"><?= Fmt::h($pbName) ?></b>
-        <?php $pbAm = $pbStand[$pbArt . '_am'] ?? null; ?>
+        <?php if ($pbArt !== 'bauen'): $pbAm = $pbStand[$pbArt . '_am'] ?? null; ?>
         <span class="akq-klein" style="color:var(--leise)"> · <?= $pbAm ? 'übernommen am ' . Fmt::h(Fmt::datum((string) $pbAm)) : 'noch keine' ?></span>
+        <?php endif; ?>
         <p style="font-size:13px;margin:4px 0 0;color:var(--dim)"><?= Fmt::h($pbWas) ?></p>
-        <?php if (!empty($pbOffen[$pbArt])): ?>
+        <?php $pbSperre = $pbArt !== 'bauen' ? null : (!$pbB['ok'] ? 'Erst wenn die Bausperre gefallen ist (Angebot angenommen + Anzahlung).' : (empty($pbStand['pflichtenheft_am']) ? 'Erst ein Pflichtenheft übernehmen — gebaut wird nur dagegen.' : null)); ?>
+        <?php if (!empty($pbOffen[$pbArt]) || ($pbArt === 'bauen' && !empty($pbOffen['review']))): ?>
           <p style="font-size:13px;margin:6px 0 0"><b>⏳ läuft oder wartet schon</b></p>
+        <?php elseif ($pbSperre !== null): ?>
+          <p style="font-size:13px;margin:6px 0 0">🔒 <?= Fmt::h($pbSperre) ?></p>
         <?php else: ?>
-          <?= $pbForm('bau_auftrag', '<input type="hidden" name="art" value="' . $pbArt . '"><input name="hinweis" maxlength="500" placeholder="Zusatzwunsch (optional)" style="flex:1 1 180px"><button class="knopf">' . Fmt::h($pbName) . ' erstellen</button>') ?>
+          <?= $pbForm('bau_auftrag', '<input type="hidden" name="art" value="' . $pbArt . '"><input name="hinweis" maxlength="500" placeholder="Zusatzwunsch (optional)" style="flex:1 1 180px"><button class="knopf">' . Fmt::h($pbArt === 'bauen' ? 'Website bauen lassen' : $pbName . ' erstellen') . '</button>') ?>
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
@@ -76,9 +80,11 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
         <?php elseif (in_array($pbA['status'], ['fehler', 'abgebrochen'], true) && (string) $pbA['fehler'] !== ''): ?>
           <p style="font-size:13px;margin:6px 0;color:var(--rot, #c0392b)"><?= Fmt::h((string) $pbA['fehler']) ?></p>
         <?php elseif ($pbA['status'] === 'fertig'): ?>
-          <p class="akq-klein" style="margin:6px 0;color:var(--leise)">Entwurf von Claude — erst lesen, dann übernehmen. Nichts davon ist geprüft oder zugesagt.</p>
+          <?php $pbIstPlan = in_array($pbA['art'], ['analyse', 'pflichtenheft'], true); ?>
+          <p class="akq-klein" style="margin:6px 0;color:var(--leise)"><?= $pbIstPlan ? 'Entwurf von Claude — erst lesen, dann übernehmen. Nichts davon ist geprüft oder zugesagt.' : 'Runde ' . (int) ($pbA['versuch'] ?? 1) . ' von ' . BauAuftrag::MAX_VERSUCHE . ' · die Fassung steht unten unter „Fassungen“ — live erst nach Testfassung und deinem „geprüft“.' ?></p>
           <div style="font-size:15px;line-height:1.55;max-height:560px;overflow:auto;border:1px solid var(--linie, #eee);border-radius:8px;padding:8px 14px;background:var(--flaeche, transparent)"><?= BauAuftrag::alsHtml((string) $pbA['ergebnis']) ?></div>
-          <?php if (($pbStand[$pbA['art'] . '_md5'] ?? null) === md5((string) $pbA['ergebnis'])): ?><p style="font-size:14px;margin:8px 0 0;color:var(--gruen, #2e7d32)"><b>✓ Diese Fassung gilt für das Projekt.</b></p>
+          <?php if (!$pbIstPlan): ?><p style="margin:8px 0 0"><a href="#versionen">→ zu den Fassungen</a></p>
+          <?php elseif (($pbStand[$pbA['art'] . '_md5'] ?? null) === md5((string) $pbA['ergebnis'])): ?><p style="font-size:14px;margin:8px 0 0;color:var(--gruen, #2e7d32)"><b>✓ Diese Fassung gilt für das Projekt.</b></p>
           <?php elseif ($pbAdmin): ?><?= $pbForm('bau_uebernehmen', '<input type="hidden" name="auftrag" value="' . (int) $pbA['id'] . '"><button class="knopf">Gelesen — als ' . Fmt::h(BauAuftrag::name((string) $pbA['art'])) . ' übernehmen</button>') ?>
           <?php else: ?><p class="akq-klein" style="margin:6px 0 0">Übernehmen kann nur ein Admin.</p><?php endif; ?>
         <?php endif; ?>

@@ -3,6 +3,7 @@
    Die Regeln stehen in Versionen.php und Veroeffentlichung::stand(); hier wird nur gezeigt und bedient. */
 require_once dirname(__DIR__) . '/src/Versionen.php';
 require_once dirname(__DIR__) . '/src/Veroeffentlichung.php';
+require_once dirname(__DIR__) . '/src/BauAuftrag.php';
 $pvListe = Versionen::liste((int) $p['id']);
 $pvLive = (int) ($p['live_version_id'] ?? Db::wert('SELECT live_version_id FROM projects WHERE id = ?', [(int) $p['id']], 0));
 $pvAdmin = Auth::istAdmin();
@@ -25,6 +26,19 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
         · <?= !empty($pv['geprueft_am']) ? '✓ geprüft von ' . Fmt::h((string) $pv['geprueft_von']) . ' am ' . Fmt::h(Fmt::datum((string) $pv['geprueft_am'])) : '✗ nicht geprüft' ?>
         <?= !empty($pv['live_am']) ? ' · zuletzt live ' . Fmt::h(Fmt::datum((string) $pv['live_am'])) : '' ?>
       </div>
+      <?php /* Phase 7: automatische Tests und Review */ $pvT = json_decode((string) ($pv['tests'] ?? ''), true) ?: []; ?>
+      <?php if ($pvT || !empty($pv['review_urteil'])): ?>
+        <details style="margin-top:4px">
+          <summary style="cursor:pointer;font-size:13px">
+            <?php if ($pvT): $pvFehl = array_filter($pvT, static fn($x) => empty($x['ok'])); ?><?= (int) $pv['tests_ok'] === 1 ? '✓ Tests bestanden' : '✗ Tests mit Mängeln' ?> (<?= count($pvT) - count($pvFehl) ?>/<?= count($pvT) ?>)<?php endif; ?>
+            <?php if (!empty($pv['review_urteil'])): ?> · <?= $pv['review_urteil'] === 'bestanden' ? '✓ Review bestanden' : '✗ Review: nachbessern' ?><?php endif; ?>
+          </summary>
+          <?php if ($pvT): ?><ul style="margin:6px 0 0 18px;padding:0;font-size:13px">
+            <?php foreach ($pvT as $pvX): ?><li style="color:<?= !empty($pvX['ok']) ? 'var(--dim)' : (!empty($pvX['schwer']) ? 'var(--rot, #c0392b)' : 'var(--gelb, #b7791f)') ?>"><?= !empty($pvX['ok']) ? '✓' : '✗' ?> <?= Fmt::h((string) $pvX['name']) ?><?= !empty($pvX['detail']) && empty($pvX['ok']) ? ' — ' . Fmt::h((string) $pvX['detail']) : '' ?></li><?php endforeach; ?>
+          </ul><?php endif; ?>
+          <?php if (!empty($pv['review_text'])): ?><div style="font-size:14px;line-height:1.5;max-height:420px;overflow:auto;border:1px solid var(--linie, #eee);border-radius:8px;padding:6px 12px;margin-top:6px"><?= BauAuftrag::alsHtml((string) $pv['review_text']) ?></div><?php endif; ?>
+        </details>
+      <?php endif; ?>
       <?php if ($pvAdmin): ?>
         <div>
         <?php if (empty($pv['live_am'])): ?>
@@ -32,6 +46,7 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
           <?php $pvFeld = $pvForm('version_staging', (int) $pv['id'], '<input name="url" required placeholder="Testadresse, z. B. kunde-v' . (int) $pv['nummer'] . '.netlify.app" style="min-width:min(280px,100%)"><button class="knopf klein">Testadresse eintragen</button>'); ?>
           <?php if (empty($pv['staging_url'])): ?><?= $pvFeld ?>
           <?php else: ?><details style="display:inline-block;margin:4px 6px 0 0"><summary style="cursor:pointer;font-size:13px">Testadresse ändern</summary><?= $pvFeld ?></details><?php endif; ?>
+          <?php if (empty($pv['review_am'])): ?><?= $pvForm('version_review', (int) $pv['id'], '<button class="knopf klein">Review durch Claude</button>') ?><?php endif; ?>
           <?php if (!empty($pv['staging_url']) && empty($pv['geprueft_am'])): ?>
             <?= $pvForm('version_geprueft', (int) $pv['id'], '<button class="knopf klein">Angesehen — geprüft</button>') ?>
           <?php endif; ?>

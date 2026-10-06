@@ -2540,6 +2540,7 @@ if ($post) {
             case 'version_netlify':
             case 'version_staging':
             case 'version_geprueft':
+            case 'version_review':
                 require_once __DIR__ . '/src/Versionen.php';
                 $vrV = Versionen::laden((int) ($_POST['version'] ?? 0));
                 $vrPid = (int) ($_POST['id'] ?? 0);
@@ -2550,6 +2551,9 @@ if ($post) {
                 } elseif ($tat === 'version_staging') {
                     Versionen::stagingEintragen((int) $vrV['id'], (string) ($_POST['url'] ?? ''), Auth::name());
                     $_SESSION['gut'] = 'Testadresse für V' . (int) $vrV['nummer'] . ' eingetragen — ansehen, dann „geprüft“.';
+                } elseif ($tat === 'version_review') {   // Phase 7: Review von Hand für eine Fassung
+                    $vrR = Versionen::reviewAnstossen((int) $vrV['id'], Auth::name());
+                    $_SESSION[is_int($vrR) ? 'gut' : 'fehler'] = is_int($vrR) ? 'Review für V' . (int) $vrV['nummer'] . ' wartet auf deinen PC.' : $vrR;
                 } else {
                     Versionen::geprueft((int) $vrV['id'], Auth::name());
                     $_SESSION['gut'] = 'V' . (int) $vrV['nummer'] . ' ist als geprüft markiert und darf live.';
@@ -2900,7 +2904,8 @@ if ($post) {
                 require_once __DIR__ . '/src/BauAuftrag.php';
                 $baPid = (int) ($_POST['id'] ?? 0);
                 if ($tat === 'bau_auftrag') {
-                    $baErg = BauAuftrag::anlegen($baPid, (string) ($_POST['art'] ?? ''), Auth::name(), (string) ($_POST['hinweis'] ?? ''));
+                    $baArt = (string) ($_POST['art'] ?? '');
+                    $baErg = in_array($baArt, BauAuftrag::STARTBAR, true) ? BauAuftrag::anlegen($baPid, $baArt, Auth::name(), (string) ($_POST['hinweis'] ?? '')) : 'Diese Auftragsart lässt sich hier nicht anstoßen.';
                     if (is_string($baErg)) { $_SESSION['fehler'] = $baErg; zurueck('projekte/' . $baPid . '#bauen'); }
                     $_SESSION['gut'] = BauAuftrag::name((string) $_POST['art']) . ' wartet auf deinen PC — er holt den Auftrag innerhalb von fünf Minuten ab.';
                 } elseif ($tat === 'bau_auftrag_abbrechen') {

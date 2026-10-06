@@ -28,7 +28,7 @@ require_once __DIR__ . '/Bausperre.php';
 final class Versionen
 {
     public const API = 'https://api.netlify.com/api/v1';
-    public const QUELLEN = ['werkstatt' => 'aus der Werkstatt', 'hand' => 'von Hand', 'bestand' => 'vor den Versionen'];
+    public const QUELLEN = ['werkstatt' => 'aus der Werkstatt', 'hand' => 'von Hand', 'bestand' => 'vor den Versionen', 'ki' => 'von Claude gebaut'];
 
     /** @var null|callable(string $methode, string $url, array $kopf, ?string $koerper): array{0:int,1:mixed} Für die Prüfkette austauschbar. */
     public static $http = null;
@@ -191,6 +191,62 @@ final class Versionen
         Db::update('projects', (int) $v['project_id'], ['live_version_id' => $id]);
         Events::pruefspur($vorher > 0 && (int) Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vorher], 0) > (int) $v['nummer'] ? 'version_zurueckgerollt' : 'version_live',
             'projekt_versionen', $id, ['live_version' => $vorher], ['live_version' => $id, 'nummer' => (int) $v['nummer']]);
+    }
+
+    /**
+     * Die Dateien einer Fassung aus dem ZIP lesen (gemeinsamer Oberordner fällt weg, wie beim Veröffentlichen).
+     * @return array<string,string> Pfad => Inhalt
+     */
+    public static function dateien(int $id, bool $nurText = true, int $maxBytes = 20_000_000): array
+    {
+        $v = self::laden($id);
+        if (!$v) { return []; }
+        require_once __DIR__ . '/BauPruefung.php';
+        $z = new ZipArchive();
+        if ($z->open(Ablage::ordner() . '/' . $v['stored_name']) !== true) { return []; }
+        $namen = [];
+        for ($i = 0; $i < $z->numFiles; $i++) {
+            $n = str_replace('\\', '/', (string) $z->getNameIndex($i));
+            if (str_ends_with($n, '/') || preg_match('~(^|/)(__MACOSX|\.DS_Store|Thumbs\.db)(/|$)~i', $n)) { continue; }
+            $namen[$i] = $n;
+        }
+        $ersteTeile = array_unique(array_map(static fn($n) => explode('/', $n)[0], $namen));
+        $weg = (count($ersteTeile) === 1 && !in_array('index.html', $namen, true) && str_contains((string) reset($namen), '/')) ? reset($ersteTeile) . '/' : '';
+        $aus = []; $summe = 0;
+        foreach ($namen as $i => $n) {
+            $rel = BauPruefung::pfadOk($weg !== '' ? substr($n, strlen($weg)) : $n);
+            if ($rel === null) { continue; }
+            $istText = in_array(strtolower(pathinfo($rel, PATHINFO_EXTENSION)), BauPruefung::TEXT, true);
+            if ($nurText && !$istText) { continue; }
+            $inhalt = $z->getFromIndex($i);
+            if ($inhalt === false || ($summe += strlen($inhalt)) > $maxBytes) { break; }
+            $aus[$rel] = $inhalt;
+        }
+        $z->close();
+        ksort($aus);
+        return $aus;
+    }
+
+    /** Quelltext für Claude (Builder beim Nachbessern, Reviewer). @return list<array{pfad:string,inhalt:string}> */
+    public static function quelltext(int $id, int $maxBytes): array
+    {
+        $r = [];
+        foreach (self::dateien($id, true, $maxBytes) as $pfad => $inhalt) { $r[] = ['pfad' => $pfad, 'inhalt' => $inhalt]; }
+        return $r;
+    }
+
+    /** Review für eine Fassung von Hand anstoßen. @return int|string */
+    public static function reviewAnstossen(int $id, string $wer): int|string
+    {
+        $v = self::laden($id);
+        if (!$v) { return 'Fassung nicht gefunden.'; }
+        require_once __DIR__ . '/BauAuftrag.php';
+        if ($v['tests'] === null) {   // Fassung von Hand oder aus der Werkstatt: Tests jetzt nachholen
+            require_once __DIR__ . '/BauPruefung.php';
+            $t = BauPruefung::pruefen(self::dateien($id, false));
+            Db::update('projekt_versionen', $id, ['tests' => json_encode($t, JSON_UNESCAPED_UNICODE), 'tests_ok' => BauPruefung::bestanden($t) ? 1 : 0]);
+        }
+        return BauAuftrag::anlegen((int) $v['project_id'], 'review', $wer, '', ['version_id' => $id]);
     }
 
     /** @return array{0:int,1:mixed} */
