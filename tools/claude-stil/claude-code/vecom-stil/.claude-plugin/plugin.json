@@ -1,0 +1,10 @@
+{
+  "name": "vecom-stil",
+  "version": "1.0.0",
+  "description": "Claude Code im Stil von vecom-design.it: V-Zeichen beim Start, Gold für das, was gerade läuft, deutsche Wörter.",
+  "author": {
+    "name": "Vecom Design",
+    "url": "https://vecom-design.it"
+  },
+  "types": "./types/index.d.ts"
+}

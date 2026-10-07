@@ -1,0 +1,11 @@
+{
+  "name": "vecom",
+  "owner": { "name": "Vecom Design", "url": "https://vecom-design.it" },
+  "plugins": [
+    {
+      "name": "vecom-stil",
+      "source": "./vecom-stil",
+      "description": "Claude Code im Stil von vecom-design.it: V-Zeichen beim Start, Gold für das, was gerade läuft, deutsche Wörter."
+    }
+  ]
+}
