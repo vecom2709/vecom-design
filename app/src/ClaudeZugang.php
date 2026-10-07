@@ -88,7 +88,7 @@ final class ClaudeZugang
             'authorization_servers' => [self::basis()],
             'scopes_supported' => self::UMFAENGE,
             'bearer_methods_supported' => ['header'],
-            'resource_name' => 'Vecom Verwaltung (nur lesen)',
+            'resource_name' => 'Vecom Verwaltung',
         ];
     }
 

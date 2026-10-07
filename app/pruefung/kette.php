@@ -14708,7 +14708,7 @@ $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', '
                 // Das Vecom-Fenster in Telegram (01.10.2026): eigener schlichter Rahmen in Telegram, die Sprache kommt aus dem Kanal-Knopf
                 'telegram-menue.php',
                 // Claudes Erlaubnis-Tür (AI Office Stufe 2): Fehlerseite nur für Uwe, wenn Claude falsch fragt — deutsch, ohne Skript
-                'oauth.php', 'mcp.php'];
+                'claude-oauth.php', 'claude-mcp.php'];
 $jsFehlt = [];
 foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
     $jsName = basename($jsPhp);
@@ -27598,16 +27598,21 @@ pruefe('ein falsches Argument ist ein lesbarer Werkzeugfehler', ClaudeWerkzeuge:
 $czLage = ClaudeWerkzeuge::rufen('lage_heute', []);
 pruefe('lage_heute liefert dieselben Teile wie das Briefing', $czLage['ok'] && isset($czLage['daten']['wartet'], $czLage['daten']['geld'], $czLage['daten']['technik'], $czLage['daten']['akquise']));
 Db::run('DELETE FROM customers WHERE id = ?', [$czKid]);
-// Die Tür nach außen: mcp.php, oauth.php, .htaccess, Deploy.
-$czMcp = (string) file_get_contents($oben . '/mcp.php');
+// Die Tür nach außen: claude-mcp.php, claude-oauth.php, .htaccess, Deploy.
+$czMcp = (string) file_get_contents($oben . '/claude-mcp.php');
 $czHt = (string) file_get_contents($oben . '/.htaccess');
 pruefe('mcp.php: 401 mit Steckbrief-Adresse, nur POST, Origin geprüft, Kopf gegen Rumpf (2026-07-28)', str_contains($czMcp, 'resource_metadata=')
     && str_contains($czMcp, "header('Allow: POST')") && str_contains($czMcp, 'HTTP_ORIGIN') && str_contains($czMcp, '-32020') && str_contains($czMcp, "'initialize'"));
 pruefe('.htaccess: /mcp, /oauth/… und die Steckbriefe gehen an die Tür, der Authorization-Kopf wird weitergereicht',
-    str_contains($czHt, 'RewriteRule ^mcp/?$ mcp.php') && str_contains($czHt, 'oauth-protected-resource|oauth-authorization-server')
+    str_contains($czHt, 'RewriteRule ^mcp/?$ claude-mcp.php') && str_contains($czHt, 'oauth-protected-resource|oauth-authorization-server')
     && preg_match('~RewriteRule \^\(mcp[^\n]*E=HTTP_AUTHORIZATION~', $czHt) === 1);
 $czDeploy = (string) file_get_contents($oben . '/.github/workflows/ftp-deploy.yml');
-pruefe('der Deploy lädt mcp.php und oauth.php hoch', !str_contains($czDeploy, 'mcp\.php') && !str_contains($czDeploy, 'oauth\.php'));
+pruefe('der Deploy lädt claude-mcp.php und claude-oauth.php hoch', !str_contains($czDeploy, 'claude-mcp\.php') && !str_contains($czDeploy, 'claude-oauth\.php'));
+// MultiViews (07.10.2026): Eine Datei mcp.* oder oauth.* im Wurzelordner fängt /mcp und /oauth/… ab,
+// bevor die .htaccess greift — bei „Accept: application/json“ antwortete Apache Claude mit 406.
+$czMv = array_values(array_filter((array) scandir($oben), static fn($f) => (bool) preg_match('~^(mcp|oauth)\.~i', (string) $f)));
+pruefe('kein mcp.* und kein oauth.* im Wurzelordner (MultiViews würde /mcp und /oauth/… abfangen: 406)', $czMv === []);
+pruefe('die alten mcp.php und oauth.php stehen in der Abrissliste', str_contains($czDeploy, 'rm -f $DIR/mcp.php;') && str_contains($czDeploy, 'rm -f $DIR/oauth.php;'));
 $czIdx = (string) file_get_contents($wurzel . '/index.php');
 pruefe('Erlauben nur als Admin und nur nach der eigenen Anmeldung', !in_array('claude-erlauben', Rechte::SEITEN, true)
     && !array_filter(Rechte::TATEN_MITARBEIT, static fn($t) => str_starts_with('claude_erlauben', $t)) && str_contains($czIdx, "claude-erlauben\\?a=[a-f0-9]{32}"));
@@ -27811,7 +27816,7 @@ pruefe('Eintragen kennt keinen Versand, kein Löschen, kein Genehmigen und kein 
 pruefe('jedes Eintragen-Werkzeug ist als nicht zerstörend und nur im Haus gekennzeichnet', array_filter(ClaudeEintragen::liste(), static fn($w) =>
     ($w['annotations']['destructiveHint'] ?? true) !== false || ($w['annotations']['openWorldHint'] ?? true) !== false) === []
     && array_intersect(ClaudeEintragen::namen(), ClaudeWerkzeuge::namen()) === []);
-$e3Mcp = (string) file_get_contents($oben . '/mcp.php');
+$e3Mcp = (string) file_get_contents($oben . '/claude-mcp.php');
 pruefe('mcp.php: Eintragen nur mit dem Umfang, sonst 403 insufficient_scope; die Liste hängt am Umfang',
     str_contains($e3Mcp, 'insufficient_scope') && str_contains($e3Mcp, "ClaudeZugang::darf(\$verbindung, ClaudeZugang::EINTRAGEN)") && str_contains($e3Mcp, 'ClaudeEintragen::liste()'));
 // Die Werkzeuge an echten Zeilen.

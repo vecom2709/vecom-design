@@ -1,7 +1,15 @@
 <?php
 declare(strict_types=1);
 /* ==========================================================================
-   mcp.php — Claudes Lesezugang zur Verwaltung (AI Office Stufe 2, 07.10.2026).
+   claude-mcp.php — Claudes Lesezugang zur Verwaltung (AI Office Stufe 2, 07.10.2026).
+
+   WARUM NICHT mcp.php (07.10.2026, gemessen): Der Webspace hat MultiViews an.
+   Liegt eine mcp.php im Wurzelordner, beantwortet Apache /mcp selbst, noch vor
+   der .htaccess — und weil Claude „Accept: application/json“ schickt, der
+   Variante aber der Typ application/x-httpd-php anhängt, kam 406 Not Acceptable.
+   Mit curl (das jede Antwortart nimmt) fiel es nicht auf. Ein Name, der nicht mit „mcp.“
+   beginnt, lässt /mcp bis zur RewriteRule durch. Die alte mcp.php nimmt die
+   Abrissliste im Deploy vom Webspace — solange sie dort liegt, bleibt der Fehler.
 
    Die Adresse, die Uwe bei Claude als Connector einträgt:
        https://vecom-design.it/mcp
@@ -18,7 +26,7 @@ declare(strict_types=1);
    zwischen zwei Anfragen gemerkt werden müsste.
 
    Ohne gültigen Schlüssel: 401 mit dem Hinweis, wo es den gibt (RFC 9728) —
-   daran erkennt Claude, dass es um Erlaubnis fragen muss. Wie: oauth.php.
+   daran erkennt Claude, dass es um Erlaubnis fragen muss. Wie: claude-oauth.php.
    Was gelesen werden darf: app/src/ClaudeWerkzeuge.php.
    ========================================================================== */
 

@@ -1,7 +1,9 @@
 <?php
 declare(strict_types=1);
 /* ==========================================================================
-   oauth.php — die Tür, durch die Claude um Erlaubnis fragt (AI Office Stufe 2, 07.10.2026).
+   claude-oauth.php — die Tür, durch die Claude um Erlaubnis fragt (AI Office Stufe 2, 07.10.2026).
+   Früher oauth.php; umbenannt wegen MultiViews (406 auf /oauth/… bei Accept: application/json)
+   — Begründung in claude-mcp.php oben.
 
    Aufgerufen von Claude (claude.ai), nicht von Besuchern. Die .htaccess
    leitet hierher:
@@ -58,7 +60,7 @@ $schritt = '';
 $pfad = (string) parse_url((string) ($_SERVER['REQUEST_URI'] ?? ''), PHP_URL_PATH);
 if (preg_match('~^/\.well-known/(oauth-protected-resource|oauth-authorization-server)(/mcp)?/?$~', $pfad, $m)) { $schritt = $m[1]; }
 elseif (preg_match('~^/oauth/(register|authorize|token|revoke)/?$~', $pfad, $m)) { $schritt = $m[1]; }
-elseif ($pfad === '/oauth.php') { $schritt = (string) ($_GET['schritt'] ?? ''); }
+elseif ($pfad === '/claude-oauth.php') { $schritt = (string) ($_GET['schritt'] ?? ''); }
 $methode = (string) ($_SERVER['REQUEST_METHOD'] ?? 'GET');
 $kopf = (string) ($_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '');
 

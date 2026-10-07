@@ -4910,7 +4910,7 @@ switch ($route) {
 
     case 'claude-erlauben':
         /* Claude fragt um Lesezugang (AI Office Stufe 2, 07.10.2026). Uwe sieht, wer fragt, was erlaubt
-           wird und wie lange — und sagt Ja oder Nein. Die Anfrage selbst hat oauth.php geprüft. */
+           wird und wie lange — und sagt Ja oder Nein. Die Anfrage selbst hat claude-oauth.php geprüft. */
         require_once __DIR__ . '/src/ClaudeZugang.php';
         unset($_SESSION['nach_anmeldung']);
         ansicht('claude_erlauben', [

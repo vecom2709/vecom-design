@@ -228,6 +228,8 @@ jobs:
             rm -f $DIR/assets/js/world/raum.js;
             rm -f $DIR/assets/js/world/raum-beats.js;
             rm -f $DIR/assets/img/work/showroom-3d.webp;
+            rm -f $DIR/mcp.php;
+            rm -f $DIR/oauth.php;
             bye"
 
       - name: Cockpit-Schutz nachsehen
