@@ -26617,7 +26617,10 @@ pruefe('Priorität: ohne Website + Ansprechperson + Kontaktweg zählt; Gründe n
 Db::insert('akq_antworten', ['firma_id' => $crB, 'eingang_am' => '2001-01-01 10:00:00', 'klasse' => 'PRICE_REQUEST', 'klasse_quelle' => 'hand', 'erledigt' => 0, 'created_at' => '2001-01-01 10:00:00']);
 $crPb2 = AkquisePrio::aktualisieren($crB);
 $crUpd = (string) Db::wert('SELECT updated_at FROM akq_firmen WHERE id = ?', [$crA], '');
-Db::run("UPDATE akq_firmen SET prio_am = '2000-01-01' WHERE id = ?", [$crA]);
+/* updated_at = updated_at (07.10.2026): Ohne das setzte schon DIESES Zurückdatieren „zuletzt geändert“
+   neu, sobald zwischen dem Lesen darüber und hier die Sekunde wechselte — die Prüfung riss dann
+   zufällig (in CI einmal von zwei Läufen), obwohl AkquisePrio::lauf richtig rechnet. */
+Db::run("UPDATE akq_firmen SET prio_am = '2000-01-01', updated_at = updated_at WHERE id = ?", [$crA]);
 $crLauf = AkquisePrio::lauf(5000);
 pruefe('Priorität: eine offene positive Antwort macht „Jetzt kontaktieren“; der Cron rechnet nach, ohne „zuletzt geändert“ zu verfälschen; „Warum interessant?“ nennt die stärksten Gründe',
     $crPb2['stufe'] === 'jetzt' && $crPb2['gruende'][0] === 'Positive Antwort wartet auf Bearbeitung' && $crLauf['gerechnet'] > 0
