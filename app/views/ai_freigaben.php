@@ -6,6 +6,7 @@ $offen = $offen ?? []; $ruhend = $ruhend ?? []; $entschieden = $entschieden ?? [
 $statusWort = ['ausgefuehrt' => ['erledigt', 'gut'], 'fehlgeschlagen' => ['fehlgeschlagen', 'schlecht'], 'abgelehnt' => ['abgelehnt', ''],
                'von_hand' => ['per Knopf erledigt', 'gut'], 'laeuft' => ['läuft', 'warnung']];
 $link = static function (array $f): string {
+    if ($f['art'] === 'akquise_werbung') { $wd = json_decode((string) $f['daten'], true); return !empty($wd['firma']) ? url('akquise/' . (int) $wd['firma']) : ''; }
     if (!empty($f['projekt_id'])) { return url('projekte/' . (int) $f['projekt_id']); }
     if (!empty($f['kunde_id'])) { return url('kunden/' . (int) $f['kunde_id']); }
     if (!empty($f['partner_id'])) { return url('partner/' . (int) $f['partner_id']); }
@@ -40,6 +41,9 @@ $link = static function (array $f): string {
         if (empty($f[$k])) { continue; } ?>
         <tr><td style="width:24%;color:var(--dim)"><?= Fmt::h($w) ?></td><td><?= nl2br(Fmt::h((string) $f[$k])) ?></td></tr>
       <?php endforeach; ?>
+      <?php if ($f['art'] === 'akquise_werbung' && !empty($d['flyer'])): ?>
+        <tr><td style="color:var(--dim)">Anhang</td><td><a href="<?= Fmt::h(url('akquise/werbung-flyer')) ?>?slug=<?= rawurlencode((string) $d['flyer']) ?>&amp;sp=<?= rawurlencode((string) ($d['sprache'] ?? 'it')) ?>" target="_blank" rel="noopener">Flyer ansehen (PDF), wie er anhängt →</a></td></tr>
+      <?php endif; ?>
       <tr><td style="color:var(--dim)">Risiko</td><td><?= Fmt::h($r['frage']) ?></td></tr>
     </tbody></table>
 

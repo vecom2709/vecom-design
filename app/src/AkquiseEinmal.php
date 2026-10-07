@@ -104,7 +104,7 @@ final class AkquiseEinmal
     }
 
     /** Was jede Rechnung braucht — einmal geladen statt je Betrieb gefragt. */
-    private static function lage(array $grenzen): array
+    public static function lage(array $grenzen): array
     {
         $firmen = Db::all("SELECT * FROM akq_firmen WHERE email IS NOT NULL AND email <> '' ORDER BY id LIMIT " . (self::HOECHSTENS + 1));
         $gekappt = count($firmen) > self::HOECHSTENS;
@@ -125,7 +125,7 @@ final class AkquiseEinmal
     }
 
     /** Warum ein Betrieb draußen bleibt — null heißt: er bekäme die Mail. Dieselben Regeln wie beim echten Versand. */
-    private static function grund(array $f, array $kann, array $l): ?string
+    public static function grund(array $f, array $kann, array $l): ?string
     {
         $id = (int) $f['id'];
         if (AkquiseMail::nichtKontaktieren($f) || $kann['status'] === AkquiseMail::NICHT) { return 'nicht'; }

@@ -271,6 +271,15 @@ final class PartnerFlyer
     }
 
     /** Der Flyer als PDF: Bild als Seite, Code als Vektor, 148 mm breit. */
+    /**
+     * Derselbe Flyer ohne Partner (07.10.2026, Werbe-Mail aus „Kunden finden“): Der QR-Code führt auf Uwes eigenen
+     * Einstieg, darunter die Adresse zum Abtippen. Keine Partner-Kennung im PDF.
+     */
+    public static function pdfMitZiel(string $slug, ?string $sp, string $ziel, string $kurz): string
+    {
+        return self::pdf(['_ziel' => $ziel, '_kurz' => $kurz], $slug, $sp);
+    }
+
     public static function pdf(array $p, string $slug, ?string $sp = null): string
     {
         if (!self::gibt($slug)) { return ''; }
@@ -292,7 +301,7 @@ final class PartnerFlyer
 
         [$qx, $qy, $qb, $qh] = $f['q'];
         $pdf->flaeche($qx * $k, $qy * $k, $qb * $k, $qh * $k, [1, 1, 1]);
-        [$n, $r] = self::raster(self::link($p));
+        [$n, $r] = self::raster((string) ($p['_ziel'] ?? self::link($p)));
         $pl = self::platz($f, $k);
         $m = $pl['s'] / $n;
         // Läufe je Zeile zusammenfassen und minimal überlappen: keine Haarlinien im Betrachter.
@@ -308,7 +317,7 @@ final class PartnerFlyer
 
         if ($f['u'] !== null) {
             [$ur, $ug, $ub] = sscanf((string) ($f['u']['farbe'] ?? '#fbf7ef'), '#%02x%02x%02x');
-            $pdf->text($f['u']['x'] * $k, $f['u']['y'] * $k, self::kurz($p), $f['u']['gr'] * $k * 0.95, true,
+            $pdf->text($f['u']['x'] * $k, $f['u']['y'] * $k, (string) ($p['_kurz'] ?? self::kurz($p)), $f['u']['gr'] * $k * 0.95, true,
                 ['mitte' => 'mitte', 'rechts' => 'rechts'][$f['u']['anker'] ?? ''] ?? 'links', [$ur / 255, $ug / 255, $ub / 255]);
             $a = ['passt' => false];
         } else {
@@ -318,7 +327,7 @@ final class PartnerFlyer
             $hell = 0.0;
             if ($roh || (function_exists('imagecreatefromjpeg') && ($roh = @imagecreatefromjpeg(self::datei($slug, $sp))))) { $hell = self::hellUnten($roh, $f); }
             $farbe = $hell > 0.55 ? [0.15, 0.12, 0.07] : [0.97, 0.9, 0.68];
-            $pdf->text($a['rechts'] * $k, $a['grund'] * $k, self::kurz($p), $a['gr'] * $k * 0.95, true, 'rechts', $farbe);
+            $pdf->text($a['rechts'] * $k, $a['grund'] * $k, (string) ($p['_kurz'] ?? self::kurz($p)), $a['gr'] * $k * 0.95, true, 'rechts', $farbe);
         }
         if ($roh) { imagedestroy($roh); }
         return $pdf->fertig();

@@ -107,7 +107,7 @@ final class Automation
         // Akquise
         'akquise_signale' => ['Signale und Wiedervorlagen', 'akquise', 'A', false, 'Sieht drei Websites je Lauf nach, fällige Wiedervorlagen als Meldung.'],
         'akquise_postfach' => ['Akquise-Postfach lesen', 'akquise', 'A', false, 'Ordnet Antworten zu — beantwortet nichts.'],
-        'akquise_folgen' => ['Akquise-Folgemails', 'akquise', 'A', true, 'Fällige Folgeschritte nach Einwilligung, soweit Schalter, Gate und Grenzen es zulassen.'],
+        'akquise_folgen' => ['Akquise-Folgemails', 'akquise', 'A', true, 'Fällige Folgeschritte nach Einwilligung und genehmigte Werbe-Mails mit Flyer, soweit Schalter, Gate und Grenzen es zulassen.'],
         'akquise_berichte' => ['Berichte und Branchenzahlen', 'akquise', 'A', false, 'Rechnet Berichte und Branchen-Statistik nach.'],
         'akquise_tipp'   => ['Website-Tipp der Woche', 'akquise', 'A', true, 'Dienstags, nur an bestätigte Abos.'],
         'akquise_termine' => ['Termin-Erinnerung', 'akquise', 'A', true, 'Am Vortag eine Erinnerung an den Gebuchten, genau einmal.'],

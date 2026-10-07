@@ -56,10 +56,13 @@ final class Freigabe
         'exit_link_senden'      => ['tat' => 'exit_link_senden',      'pflicht' => ['paket'],            'aenderbar' => [], 'wort' => 'Exit-Paket-Link schicken'],
         // KI-Texte (07.10.2026, Vorschlag 7): Antwortentwurf auf die Nachricht eines Betriebs.
         'akquise_antwort'       => ['tat' => 'akquise_antwort',       'pflicht' => ['antwort', 'kanal', 'text'], 'aenderbar' => ['betreff', 'text'], 'wort' => 'Antwort an einen Betrieb'],
+        /* Werbe-Mail mit Branchen-Flyer an einen Betrieb mit Zustimmung (07.10.2026, Uwe: „schlage vor ich sage ja oder nein“). */
+        'akquise_werbung'       => ['tat' => 'akquise_werbung',       'pflicht' => ['firma', 'vorlage', 'betreff', 'text'], 'aenderbar' => ['betreff', 'text'], 'wort' => 'Werbe-Mail mit Flyer an einen Betrieb',
+                                   'frage' => 'Der Betrieb bekommt die Mail mit Branchen-Flyer als PDF, über den Server und mit Abmeldelink. Er hat zugestimmt. Ist das Tageslimit voll, geht sie am nächsten Tag.', 'ja' => 'Ja, Mail schicken'],
     ];
 
     /** Arten, die nur die Verwaltung selbst vorschlägt — nie Claude über den Connector. */
-    public const NUR_VERWALTUNG = ['exit_link_senden', 'akquise_antwort'];
+    public const NUR_VERWALTUNG = ['exit_link_senden', 'akquise_antwort', 'akquise_werbung'];
 
     /** Prüfnaht für die Kette: ersetzt die Telegram-Nachricht an Uwe. */
     public static $telegram = null;
@@ -98,6 +101,8 @@ final class Freigabe
             'vorgeschlagen_von' => $s('von', 80) ?? 'Claude',
         ]);
         self::spur('freigabe_vorgeschlagen', $id, [], ['art' => $art, 'von' => $meta['von'] ?? 'Claude']);
+        /* 'still' (07.10.2026): Viele Vorschläge auf einmal (Werbe-Mails) melden sich einmal gesammelt — nicht je Stück in Telegram. */
+        if (!empty($meta['still'])) { return $id; }
         try {
             require_once __DIR__ . '/Events.php';
             Events::melden('ai_freigabe', 'Freigabe wartet: ' . mb_substr((string) ($s('titel', 200) ?? $a['wort']), 0, 200), 'hinweis',
@@ -110,7 +115,7 @@ final class Freigabe
     /** Nummern als Zahl, Schlüssel sortiert — damit „5“ und 5 derselbe Vorschlag sind. */
     private static function norm(array $d): array
     {
-        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe', 'paket', 'antwort'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
+        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe', 'paket', 'antwort', 'firma', 'vorlage'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
         ksort($d);
         return $d;
     }
@@ -176,7 +181,8 @@ final class Freigabe
     public static function rueckfrage(array $f): array
     {
         $tat = self::ARTEN[$f['art']]['tat'] ?? '';
-        return Ablauf::rueckfrage($tat) ?? ['gewicht' => Ablauf::RAUS, 'frage' => 'Das geht an den Empfänger.', 'ja' => 'Ja, ausführen'];
+        $a = self::ARTEN[$f['art']] ?? [];
+        return Ablauf::rueckfrage($tat) ?? ['gewicht' => Ablauf::RAUS, 'frage' => $a['frage'] ?? 'Das geht an den Empfänger.', 'ja' => $a['ja'] ?? 'Ja, ausführen'];
     }
 
     /* ------------------------------------------------------------- Entscheiden */
@@ -290,6 +296,9 @@ final class Freigabe
             case 'akquise_antwort':
                 require_once __DIR__ . '/KiAntwort.php';
                 return KiAntwort::senden((int) $d['antwort'], (string) $d['kanal'] === 'whatsapp' ? 'whatsapp' : 'email', (string) ($d['betreff'] ?? ''), (string) $d['text']);
+            case 'akquise_werbung':
+                require_once __DIR__ . '/AkquiseWerbung.php';
+                return AkquiseWerbung::einplanen($d);
             case 'exit_link_senden':
                 require_once __DIR__ . '/ExitPaket.php';
                 $r = ExitPaket::linkSenden((int) $d['paket']);

@@ -252,6 +252,18 @@ if ($post) {
                 }
                 header('Location: ' . $r['link'], true, 303);
                 exit;
+            case 'akq_werbung_vorschlagen':   // Werbe-Mails mit Flyer an Betriebe mit Zustimmung vorschlagen (07.10.2026) — es geht nichts raus
+                require_once __DIR__ . '/src/AkquiseWerbung.php';
+                $wbR = AkquiseWerbung::vorschlagen();
+                $_SESSION['gut'] = $wbR['vorgeschlagen'] > 0
+                    ? $wbR['vorgeschlagen'] . ' Werbe-Mails warten in AI Freigaben auf dein Ja oder Nein.' . ($wbR['rest'] > 0 ? ' Noch ' . $wbR['rest'] . ' — dafür noch einmal klicken.' : '')
+                        . ($wbR['ohne_flyer'] > 0 ? ' ' . $wbR['ohne_flyer'] . ' ohne Flyer (keiner für Branche und Sprache).' : '')
+                    : 'Kein neuer Vorschlag — alle mit Zustimmung sind schon vorgeschlagen oder angeschrieben.';
+                if ($wbR['uebersprungen']) {
+                    $_SESSION['gut'] .= ' ' . count($wbR['uebersprungen']) . ' übersprungen (meist fehlt das Audit): '
+                        . implode(', ', array_map(static fn($w) => $w['name'], array_slice($wbR['uebersprungen'], 0, 5))) . (count($wbR['uebersprungen']) > 5 ? ' …' : '') . '.';
+                }
+                weiter('akquise/regeln#werbung');
             case 'akq_einmal_naechste':   // „Einmal an alle“ im eigenen Mailprogramm (07.10.2026): nur suchen und Text vorbereiten, gesendet wird nichts
                 require_once __DIR__ . '/src/AkquiseEinmal.php';
                 $eaWeg = array_slice(array_map('intval', array_filter(explode(',', (string) ($_POST['weg'] ?? '')))), 0, 2000);
@@ -917,6 +929,20 @@ if ($teil === 'qrkarte') {
     exit;
 }
 
+/* Der Flyer zur Werbe-Mail, wie er angehängt wird (07.10.2026) — zum Ansehen vor dem Ja. */
+if ($teil === 'werbung-flyer') {
+    require_once __DIR__ . '/src/AkquiseWerbung.php';
+    require_once __DIR__ . '/src/PartnerFlyer.php';
+    $wfS = (string) ($_GET['slug'] ?? ''); $wfL = (string) ($_GET['sp'] ?? '');
+    if (!PartnerFlyer::gibt($wfS) || !in_array($wfL, PartnerFlyer::sprachen($wfS), true)) { http_response_code(404); exit; }
+    $wfPdf = AkquiseWerbung::flyerPdf($wfS, $wfL);
+    if ($wfPdf === '') { http_response_code(404); exit; }
+    header('Content-Type: application/pdf'); header('Cache-Control: private, no-store');
+    header('Content-Disposition: inline; filename="' . AkquiseWerbung::dateiname($wfS, $wfL) . '"');
+    echo $wfPdf;
+    exit;
+}
+
 if ($teil === 'regeln') {
     $einmal = $_SESSION['akq_schluessel_einmal'] ?? null;
     unset($_SESSION['akq_schluessel_einmal']);
@@ -931,6 +957,7 @@ if ($teil === 'regeln') {
         'heute' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'gesendet' AND created_at >= CURDATE()"),
         'blockiert' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'blockiert' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"),
         // „Einmal an alle“ — nur der Probelauf, nur auf Knopfdruck (07.10.2026): rechnet, sendet nichts.
+        'werbungStand' => sicher(static function () { require_once __DIR__ . '/src/AkquiseWerbung.php'; return AkquiseWerbung::stand(); }, null),
         'einmalProbe' => ($_GET['probe'] ?? '') === '1'
             ? sicher(static function () { require_once __DIR__ . '/src/AkquiseEinmal.php'; return AkquiseEinmal::probelauf(); }, null) : null,
     ]);

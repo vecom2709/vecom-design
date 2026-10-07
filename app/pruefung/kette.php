@@ -28571,6 +28571,73 @@ pruefe('Seite: die Reihe öffnet über die bestehende Tat akq_mail_mailto, das H
     str_contains($eaRoute, "case 'akq_einmal_naechste':") && str_contains($eaSeite, "tat: 'akq_mail_mailto'") && str_contains($eaSeite, '<input type="checkbox" id="ea-ohne">')
     && str_contains($eaSeite, 'Hinweise gelesen — im Mailprogramm öffnen') && str_contains($eaSeite, 'du drückst dort selbst auf Senden'));
 
+/* ---- Werbe-Mail mit Branchen-Flyer an Betriebe mit Zustimmung (07.10.2026, Uwe: „schlage vor ich sage ja oder nein“) ---- */
+abschnitt('Kunden finden: Werbe-Mail mit Flyer — Vorschlag, Ja, Plan, einmalig');
+require_once $wurzel . '/src/AkquiseWerbung.php';
+require_once $wurzel . '/src/Freigabe.php';
+$wbVorher = [];
+foreach (['akq_versand_an' => '1', 'akq_stop' => '0', 'akq_testbetrieb' => '0', 'akq_pause_sekunden' => '0', 'akq_limit_tag' => '1000', 'akq_limit_stunde' => '1000', 'akq_fehler_grenze' => '100', 'akq_bounce_grenze' => '100'] as $wbK => $wbW) {
+    $wbVorher[$wbK] = AkquiseGate::einstellung($wbK, ''); AkquiseGate::setzen($wbK, $wbW);
+}
+$wbText = "Guten Tag,\n\nich habe mir Ihre Website angesehen: Auf dem Handy lädt sie langsam, und die Speisekarte ist schwer zu finden.\n\nEine kurze Analyse sehen Sie hier: https://vecom-design.it\n\nWenn Sie keine weiteren Nachrichten möchten, genügt eine kurze Antwort.\n\nViele Grüße\nUwe";
+$wbVid = (int) Db::insert('akq_vorlagen', ['firma_id' => $eaMit, 'sprache' => 'de', 'kanal' => 'email', 'betreff' => 'Ihre Website, kurz angesehen', 'text' => $wbText, 'fingerabdruck' => hash('sha256', 'werbung-' . $eaMit), 'status' => 'entwurf']);
+pruefe('Flyer: zur Branche in der Sprache des Betriebs — und keiner, wo es keinen in dieser Sprache gibt',
+    (bool) preg_match('~^[a-d]-(restaurant|gastro)$~', (string) AkquiseWerbung::flyerFuer(['id' => 7, 'branche' => 'restaurant'], 'it'))
+    && in_array('it', PartnerFlyer::sprachen((string) AkquiseWerbung::flyerFuer(['id' => 7, 'branche' => 'restaurant'], 'it')), true)
+    && AkquiseWerbung::flyerFuer(['id' => 7, 'branche' => 'dienstleister'], 'de') === null);
+$wbPdf = AkquiseWerbung::flyerPdf('a-restaurant', 'it');
+pruefe('Flyer-PDF: ohne Partner, mit Uwes Einstieg im QR-Code — kein Partner-Merkmal im Dokument',
+    str_starts_with($wbPdf, '%PDF') && strlen($wbPdf) < 5 * 1048576 && !str_contains($wbPdf, '/Keywords'));
+$wbZahl = static fn(): array => [(int) Db::wert('SELECT COUNT(*) FROM akq_versand', [], 0), (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0)];
+$wbZ0 = $wbZahl();
+$wbR = AkquiseWerbung::vorschlagen();
+$wbF = Db::all("SELECT * FROM ai_freigaben WHERE art = 'akquise_werbung' ORDER BY id");
+$wbMeine = array_values(array_filter($wbF, static fn($x) => (int) (json_decode((string) $x['daten'], true)['firma'] ?? 0) === $eaMit));
+$wbD = $wbMeine ? json_decode((string) $wbMeine[0]['daten'], true) : [];
+pruefe('Vorschlag: der Betrieb mit Zustimmung landet in AI Freigaben — mit Betreff, Text samt Flyer-PS und Flyer seiner Branche; gesendet wird nichts',
+    $wbR['vorgeschlagen'] >= 1 && count($wbMeine) === 1 && $wbD['betreff'] === 'Ihre Website, kurz angesehen' && str_contains((string) $wbD['text'], 'PS: Im Anhang finden Sie unseren Flyer')
+    && (bool) preg_match('~^[a-d]-(restaurant|gastro)$~', (string) $wbD['flyer']) && $wbD['sprache'] === 'de' && $wbZahl() === $wbZ0 && $wbMeine[0]['status'] === 'offen');
+pruefe('Vorschlag: nie an Betriebe ohne Zustimmung, nie doppelt — und nicht als Lawine in Telegram',
+    !array_filter($wbF, static fn($x) => in_array((int) (json_decode((string) $x['daten'], true)['firma'] ?? 0), [$eaOhne, $eaNicht, $eaSchon, $eaBounce], true))
+    && AkquiseWerbung::vorschlagen()['vorgeschlagen'] === 0 && in_array('akquise_werbung', Freigabe::NUR_VERWALTUNG, true)
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE title LIKE 'Freigabe wartet: Werbe-Mail%'", [], 0) === 0);
+$wbPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$wbPost): bool { $wbPost[] = [$an, $b, $t, $o]; return true; };
+$wbG = Freigabe::genehmigen((int) $wbMeine[0]['id'], 'Uwe', ['betreff' => 'Ihre Website — kurz angesehen', 'text' => (string) $wbD['text']]);
+AkquiseVersand::$postbote = null;
+$wbPlan = Db::one('SELECT * FROM akq_werbung_plan WHERE firma_id = ?', [$eaMit]);
+pruefe('Ja: geht über den einen Akquise-Weg raus, mit Uwes Betreff, Abmeldelink und dem Flyer als PDF-Anhang',
+    $wbG['ok'] && count($wbPost) === 1 && $wbPost[0][1] === 'Ihre Website — kurz angesehen' && str_contains($wbPost[0][2], 'widerspruch.php?t=')
+    && str_ends_with((string) ($wbPost[0][3]['anhaenge'][0]['name'] ?? ''), '-de.pdf') && str_starts_with((string) ($wbPost[0][3]['anhaenge'][0]['daten'] ?? ''), '%PDF'),
+    $wbG['text'] ?? '');
+pruefe('Ja: im Plan als gesendet, mit der Freigabe und wer Ja sagte — der Text ist danach benutzt',
+    $wbPlan && $wbPlan['status'] === 'gesendet' && (int) $wbPlan['freigabe_id'] === (int) $wbMeine[0]['id'] && $wbPlan['wer'] === 'Uwe'
+    && (string) Db::wert('SELECT status FROM akq_vorlagen WHERE id = ?', [$wbVid], '') === 'gesendet');
+$wbDoppelt = '';
+try { AkquiseWerbung::einplanen($wbD); } catch (RuntimeException $e) { $wbDoppelt = $e->getMessage(); }
+pruefe('Einmalig: ein zweites Ja zum selben Betrieb plant nichts mehr ein', $wbDoppelt !== '' && (int) Db::wert('SELECT COUNT(*) FROM akq_werbung_plan WHERE firma_id = ?', [$eaMit], 0) === 1);
+/* Tageslimit voll: genehmigt bleibt geplant und geht mit dem nächsten Lauf */
+$wbF2 = $eaF('EA00000009', 'IT', ['einwilligung' => 'Messe ' . date('d.m.Y'), 'einwilligung_kanaele' => 'email', 'branche' => 'hotel']);
+Db::insert('akq_vorlagen', ['firma_id' => $wbF2, 'sprache' => 'it', 'kanal' => 'email', 'betreff' => 'Il vostro sito', 'text' => "Buongiorno,\n\nho visto il vostro sito: sul telefono si carica lentamente. Analisi: https://vecom-design.it\n\nSe non desiderate altri messaggi, basta una risposta.\n\nCordiali saluti\nUwe", 'fingerabdruck' => hash('sha256', 'werbung-' . $wbF2), 'status' => 'entwurf']);
+AkquiseWerbung::vorschlagen();
+$wbId2 = (int) Db::wert("SELECT id FROM ai_freigaben WHERE art = 'akquise_werbung' AND JSON_EXTRACT(daten, '$.firma') = ?", [$wbF2], 0);
+AkquiseGate::setzen('akq_limit_tag', '0');
+$wbPost = []; AkquiseVersand::$postbote = static function (string $an, string $b, string $t, array $o = []) use (&$wbPost): bool { $wbPost[] = [$an, $b, $t, $o]; return true; };
+$wbG2 = Freigabe::genehmigen($wbId2, 'Uwe');
+pruefe('Tageslimit voll: das Ja plant ein, schickt aber nichts', $wbG2['ok'] && $wbPost === [] && str_starts_with($wbG2['text'], 'Eingeplant')
+    && (string) Db::wert('SELECT status FROM akq_werbung_plan WHERE firma_id = ?', [$wbF2], '') === 'geplant', $wbG2['text']);
+AkquiseGate::setzen('akq_limit_tag', '1000');
+$wbL = AkquiseWerbung::lauf();
+AkquiseVersand::$postbote = null;
+pruefe('Nächster Lauf: das Geplante geht raus — italienisch, mit italienischem Flyer',
+    $wbL['gesendet'] === 1 && count($wbPost) === 1 && str_ends_with((string) ($wbPost[0][3]['anhaenge'][0]['name'] ?? ''), '-it.pdf')
+    && (string) Db::wert('SELECT status FROM akq_werbung_plan WHERE firma_id = ?', [$wbF2], '') === 'gesendet');
+$wbSeite = (string) file_get_contents($wurzel . '/views/akquise_regeln.php');
+$wbCron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Seite, Cron und AI Freigaben: Knopf schlägt nur vor, der Cron schickt Genehmigtes, die Freigabe zeigt den Flyer',
+    str_contains($wbSeite, 'value="akq_werbung_vorschlagen"') && str_contains($wbCron, 'AkquiseWerbung::lauf()')
+    && str_contains((string) file_get_contents($wurzel . '/views/ai_freigaben.php'), 'werbung-flyer'));
+foreach ($wbVorher as $wbK => $wbW) { AkquiseGate::setzen($wbK, $wbW); }
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

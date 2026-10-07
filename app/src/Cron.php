@@ -455,6 +455,8 @@ final class Cron
                 /* Beiträge (28.09.2026, Z4) — seit 01.10.2026 (G4, Uwe: „ein Facebook-Weg“) keine eigenen Entwürfe mehr:
                    Beiträge entstehen nur noch im Marketing (Start › Diese Woche werben, Autopilot) und gehen über
                    MkVeroeffentlichen raus. So postet nie etwas doppelt. Alte Entwürfe unter Akquise › Beiträge bleiben bedienbar. */
+                /* Werbe-Mails mit Flyer nach Uwes Ja (07.10.2026): innerhalb derselben Grenzen, wenige je Lauf. */
+                try { require_once __DIR__ . '/AkquiseWerbung.php'; $wa['werbung'] = AkquiseWerbung::lauf(); } catch (Throwable $e) { $wa['werbung_fehler'] = mb_substr($e->getMessage(), 0, 120); }
                 return AkquiseFolge::lauf() + $wa;
             },
             /* Ausführliche Berichte (28.09.2026, A1–A10): für Betriebe mit Bereich nachholen, alte anonyme löschen.

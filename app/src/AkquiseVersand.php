@@ -171,7 +171,7 @@ final class AkquiseVersand
      *
      * @param string $pruefvermerk Bei REVIEW_REQUIRED Pflicht: Wer hat was geprueft.
      */
-    public static function senden(int $vorlageId, string $pruefvermerk = ''): int
+    public static function senden(int $vorlageId, string $pruefvermerk = '', array $anhaenge = []): int
     {
         require_once __DIR__ . '/Mail.php';
         $v = Db::one('SELECT * FROM akq_vorlagen WHERE id = ?', [$vorlageId]);
@@ -193,7 +193,7 @@ final class AkquiseVersand
         if ($sperre !== null) { self::blockiert($f, $vorlageId, 'email', $gate['status'], $sperre); }
 
         $r = self::rausschicken($f, (string) $v['betreff'], (string) $v['text'], (string) $v['sprache'], $vorlageId, $gate['status'],
-            $gate['status'] === AkquiseGate::PRUEFEN ? 'Prüfvermerk: ' . trim($pruefvermerk) : null);
+            $gate['status'] === AkquiseGate::PRUEFEN ? 'Prüfvermerk: ' . trim($pruefvermerk) : null, $anhaenge ? ['anhaenge' => $anhaenge] : []);
         $versandId = $r['id'];
         if ($r['simuliert']) { return $versandId; }
         Db::update('akq_vorlagen', $vorlageId, ['status' => 'gesendet']);
@@ -244,7 +244,8 @@ final class AkquiseVersand
             'abmelde_token' => $token, 'actor' => $actor,
         ]);
         /* $optionen (06.10.2026): absender/antwortAn für den Direktversand aus der Verwaltung -- Mail::senden lässt nur die eigene Domain zu. */
-        $optionen = array_intersect_key($optionen, ['absender' => 1, 'antwortAn' => 1]);
+        /* anhaenge (07.10.2026): der Branchen-Flyer zur Werbe-Mail nach Uwes Ja (AkquiseWerbung). */
+        $optionen = array_intersect_key($optionen, ['absender' => 1, 'antwortAn' => 1, 'anhaenge' => 1]);
         $ok = self::$postbote ? (bool) (self::$postbote)((string) $f['email'], $betreff, $text . $zusatz, $optionen) : Mail::senden('akquise', (string) $f['email'], $betreff, $text . $zusatz, [
             'kopfzeilen' => ['List-Unsubscribe' => '<' . $abmelden . '>', 'List-Unsubscribe-Post' => 'List-Unsubscribe=One-Click'],
             'sprache' => $sprache,

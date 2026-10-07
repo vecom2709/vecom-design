@@ -221,7 +221,7 @@ $blick = [
 <?php /* EINMAL AN ALLE — PROBELAUF (07.10.2026, Uwe: „in kunden finden soll automatisch jetzt alle emails versenden
          einmalig nur“ — nach dem Hinweis zu Art. 130 Codice Privacy, § 7 UWG und Brevo: „Erst Probelauf“).
          Der Probelauf rechnet nur. Geöffnet wird darunter in der Reihe im eigenen Mailprogramm. */
-  require_once dirname(__DIR__) . '/src/AkquiseEinmal.php'; $ep = $einmalProbe ?? null; ?>
+  require_once dirname(__DIR__) . '/src/AkquiseEinmal.php'; require_once dirname(__DIR__) . '/src/AkquiseWerbung.php'; $ep = $einmalProbe ?? null; ?>
 <div class="block" id="einmal">
   <h2>Einmal an alle</h2>
   <p class="rg-erkl">Rechnet, was ein einmaliger Versand an jeden Betrieb mit E-Mail-Adresse träfe — <b>es wird nichts gesendet</b>.
@@ -266,6 +266,24 @@ $blick = [
     <p class="akq-klein" style="margin-top:12px">Gerechnet <?= Fmt::h(Fmt::zeit($ep['am'])) ?> · <a href="<?= Fmt::h(url('akquise/regeln')) ?>?probe=1#einmal">neu rechnen</a>.
       Gesendet wurde nichts.</p>
   <?php endif; ?>
+
+  <?php /* WERBE-MAIL MIT FLYER (07.10.2026, Uwe: „bei den betrieben wo zustimmung erlaubt ist mache passend zum betrieb eine
+           professionelle email mit branchen flyer … schlage vor ich sage ja oder nein“). Der Knopf schlägt nur vor. */
+        $wb = $werbungStand ?? null; ?>
+  <div class="ea-reihe" id="werbung">
+    <h3>Mit Zustimmung: Werbe-Mail mit Branchen-Flyer — du sagst Ja oder Nein</h3>
+    <p class="rg-erkl">Für jeden Betrieb mit dokumentierter Zustimmung entsteht eine Mail aus seinem eigenen Audit, in seiner Sprache,
+      mit dem Flyer seiner Branche als PDF (der QR-Code führt zu seiner kostenlosen Analyse). Jede landet in <b>AI Freigaben</b> —
+      erst nach deinem Ja geht sie über den Server raus, innerhalb des Tageslimits. Wer Nein bekommt, wird nicht wieder vorgeschlagen.</p>
+    <?php if ($wb): ?>
+      <p class="akq-klein"><b><?= (int) $wb['offen'] ?></b> warten auf dich · <b><?= (int) $wb['geplant'] ?></b> genehmigt und eingeplant · <b><?= (int) $wb['gesendet'] ?></b> gesendet<?= $wb['abgelehnt'] ? ' · ' . (int) $wb['abgelehnt'] . ' abgelehnt' : '' ?><?= $wb['liegen'] ? ' · <span style="color:var(--rot)">' . (int) $wb['liegen'] . ' liegen geblieben</span>' : '' ?></p>
+    <?php endif; ?>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="display:flex;flex-wrap:wrap;gap:8px;align-items:center"><?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="akq_werbung_vorschlagen">
+      <button class="knopf haupt">Vorschläge erstellen (bis <?= AkquiseWerbung::JE_KLICK ?>)</button>
+      <?php if ($wb && $wb['offen']): ?><a class="knopf" href="<?= Fmt::h(url('ai-freigaben')) ?>">Zu AI Freigaben →</a><?php endif; ?>
+    </form>
+  </div>
 
   <?php /* DIE REIHE IM EIGENEN MAILPROGRAMM (07.10.2026, Uwe: „sendn im mailprogramm öffnen mach es darüber“).
            Der Server verschickt nichts: Er sucht den Nächsten, bereitet Text und Prüfung vor, und „Öffnen“ geht über
