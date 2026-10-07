@@ -438,10 +438,18 @@ final class Cron
                 $wa = [];
                 try {
                     require_once __DIR__ . '/WhatsAppCloud.php';
+                    /* Neue Vorlagen (z. B. die persönlichen Fassungen vom 07.10.2026) reicht die Verwaltung selbst bei Meta ein —
+                       höchstens einmal am Tag und nur, wenn welche auf „neu“ stehen (Uwe: „mache alles automatisch“). */
+                    WhatsAppCloud::vorlagenAnlegen();
+                    if (WhatsAppCloud::bereit() && (int) Db::wert("SELECT COUNT(*) FROM akq_wa_vorlagen WHERE meta_status = 'neu'", [], 0) > 0
+                        && (string) AkquiseGate::einstellung('wa_einreichen_am', '') !== date('Y-m-d')) {
+                        AkquiseGate::setzen('wa_einreichen_am', date('Y-m-d'));
+                        $wa['whatsapp_eingereicht'] = WhatsAppCloud::anmelden()['eingereicht'];
+                    }
                     if (WhatsAppCloud::bereit() && (int) Db::wert("SELECT COUNT(*) FROM akq_wa_vorlagen WHERE meta_status = 'PENDING'", [], 0) > 0
                         && (int) AkquiseGate::einstellung('wa_stand_am', '0') < time() - 3600) {
                         AkquiseGate::setzen('wa_stand_am', (string) time());
-                        $wa = ['whatsapp_stand' => WhatsAppCloud::standAbrufen()];
+                        $wa['whatsapp_stand'] = WhatsAppCloud::standAbrufen();
                     }
                 } catch (Throwable $e) { $wa = ['whatsapp_fehler' => mb_substr($e->getMessage(), 0, 120)]; }
                 /* Beiträge (28.09.2026, Z4) — seit 01.10.2026 (G4, Uwe: „ein Facebook-Weg“) keine eigenen Entwürfe mehr:
