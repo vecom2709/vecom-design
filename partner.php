@@ -2318,10 +2318,16 @@ if ($p && isset($_GET['karte'])) {
       <?php /* Eigene App (07.10.2026): Android als APK (Trusted Web Activity, Quelle in android/),
                iPhone als Profil mit Web-Clip — Apple lässt keine App-Datei außerhalb des App Store zu.
                Beide öffnen nur diese Seite; was der Partner sieht, entsteht weiter allein hier. */ ?>
+      <?php /* 07.10.2026 ausgeblendet (Uwe: „ja“): APK 1.0 schließt bei jedem Start — im Manifest fehlt die
+               ManageDataLauncherActivity, die LauncherActivity bei jedem Start ein-/ausschaltet. Wieder auf
+               true, sobald die signierte 1.1 unter assets/app liegt. Bis dahin: Installieren über Chrome. */
+            $apkAn = false; ?>
+      <?php if ($apkAn): ?>
       <a class="knopf" id="app_apk" href="/assets/app/vecom-partner.apk?v=<?= (int) @filemtime(__DIR__ . '/assets/app/vecom-partner.apk') ?>" download="vecom-partner.apk"><?= $h($T('app_apk')) ?></a>
+      <?php endif; ?>
       <a class="knopf" id="app_ios_profil" href="/assets/app/vecom-partner.mobileconfig"><?= $h($T('app_ios_profil')) ?></a>
     </div>
-    <p class="klein" id="app_apk_hilfe" style="margin-top:10px"><?= $h($T('app_apk_hilfe')) ?></p>
+    <?php if ($apkAn): ?><p class="klein" id="app_apk_hilfe" style="margin-top:10px"><?= $h($T('app_apk_hilfe')) ?></p><?php endif; ?>
     <p class="klein" id="app_ios_hilfe"><?= $h($T('app_ios_profil_hilfe')) ?></p>
     <p class="klein" id="app_hilfe" style="margin-top:10px"></p>
     <?php if ($p): /* Chrome-Absprung: dieselbe persönliche Adresse, die schon in der Adresszeile steht. */ ?>
