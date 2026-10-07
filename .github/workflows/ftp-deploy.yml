@@ -29,9 +29,13 @@ on:
         type: boolean
         default: false
 
+# Ein laufender Deploy läuft zu Ende (07.10.2026). Mit cancel-in-progress brach jeder neue
+# Push das Hochladen mittendrin ab — 3 von 6 Deploys —, und auf dem Webspace lag eine halb
+# neue, halb alte Seite. Jetzt wartet der neueste Stand; GitHub hält je Gruppe nur EINEN
+# wartenden Lauf, ein noch neuerer ersetzt ihn. Es geht also nichts verloren und nichts doppelt.
 concurrency:
   group: ftp-deploy
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   # ==========================================================================
