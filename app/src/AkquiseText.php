@@ -234,7 +234,7 @@ final class AkquiseText
         'kein_cta_oben', 'copyright_alt', 'title_schwach'];
 
     /** Verbotene Wendungen (Angstverkauf, Uebertreibung). Kleinbuchstaben, Regex. */
-    private const VERBOTEN = [
+    public const VERBOTEN = [
         '~verlier\w*\s+(jeden tag|täglich|tausende|kunden)~u', '~tausende?\s+euro~u', '~konkurrenz\s+(ist\s+)?(ihnen\s+)?(weit\s+)?voraus~u',
         '~keine kunden gewinnen~u', '~(ihre|die) website ist (schlecht|hässlich|veraltet und)~u', '~sieht (schlecht|furchtbar|schrecklich) aus~u',
         '~perd\w*\s+(clienti|migliaia)~u', '~migliaia di euro~u', '~concorren\w+\s+(è\s+)?(molto\s+)?avanti~u', '~non (potete|può) (acquisire|trovare) clienti~u',
@@ -243,7 +243,7 @@ final class AkquiseText
     ];
 
     /** Interne Woerter, die nie rausgehen. */
-    private const INTERN = ['score', 'opportunity', 'lead', 'unverified', 'verified', 'akquise', 'top opportunity', 'kaltakquise'];
+    public const INTERN = ['score', 'opportunity', 'lead', 'unverified', 'verified', 'akquise', 'top opportunity', 'kaltakquise'];
 
     /* ================================================================== */
     /*  Sprache                                                           */

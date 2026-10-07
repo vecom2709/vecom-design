@@ -32,7 +32,8 @@ final class KundeMails
         $grenze = max(1, min(500, $grenze));
         $mitInhalt = self::spalteDa();
         $felder = 'id, anlass, empfaenger, betreff, status, fehler, created_at' . ($mitInhalt ? ', anhaenge, (inhalt IS NOT NULL OR html IS NOT NULL) AS hat_inhalt' : '')
-            . (self::spurDa() ? ', ausloeser, ausloeser_ref, ausloeser_id, ausloeser_wer' : '');
+            . (self::spurDa() ? ', ausloeser, ausloeser_ref, ausloeser_id, ausloeser_wer' : '')
+            . (self::kiDa() ? ', ki_teil' : '');
         $zeilen = Db::all(
             "SELECT $felder FROM mails
               WHERE customer_id = ?
@@ -76,7 +77,7 @@ final class KundeMails
         foreach (self::liste($kundeId, 500) as $e) {
             if ($e['quelle'] === 'mail' && $e['id'] === $mailId) {
                 $voll = Db::one('SELECT * FROM mails WHERE id = ?', [$mailId]);
-                return $voll ? $e + ['text' => (string) ($voll['inhalt'] ?? ''), 'html' => (string) ($voll['html'] ?? '')] : null;
+                return $voll ? $e + ['text' => (string) ($voll['inhalt'] ?? ''), 'html' => (string) ($voll['html'] ?? ''), 'ki' => trim((string) ($voll['ki_teil'] ?? ''))] : null;
             }
         }
         return null;
@@ -93,6 +94,8 @@ final class KundeMails
             'anlass' => (string) $z['anlass'],
             'anhaenge' => is_array($anh) ? array_values(array_map(static fn($a) => ['name' => (string) ($a['name'] ?? ''), 'groesse' => (int) ($a['groesse'] ?? 0)], $anh)) : [],
             'inhalt' => !empty($z['hat_inhalt']),
+            // KI-Texte (07.10.2026, Vorschlag 13): welcher Absatz von der KI stammt.
+            'ki' => trim((string) ($z['ki_teil'] ?? '')),
             // Mail-Spur (07.10.2026): wodurch sie rausging — AI Freigabe, Knopf, automatisch oder Ablauf.
             'wer' => (static function () use ($z): string { require_once __DIR__ . '/MailSpur.php'; return MailSpur::wer($z); })(),
             'freigabe' => (string) ($z['ausloeser'] ?? '') === 'freigabe' ? (int) ($z['ausloeser_id'] ?? 0) : 0];
@@ -112,5 +115,13 @@ final class KundeMails
         if (self::$spalte !== null) { return self::$spalte; }
         try { Db::wert('SELECT inhalt FROM mails LIMIT 1', [], null); return self::$spalte = true; }
         catch (Throwable $e) { return self::$spalte = false; }
+    }
+
+    private static ?bool $ki = null;
+    private static function kiDa(): bool
+    {
+        if (self::$ki !== null) { return self::$ki; }
+        try { Db::wert('SELECT ki_teil FROM mails LIMIT 1', [], null); return self::$ki = true; }
+        catch (Throwable $e) { return self::$ki = false; }
     }
 }

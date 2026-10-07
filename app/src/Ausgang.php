@@ -61,8 +61,9 @@ final class Ausgang
         $ids = [];
         foreach (['customer_id', 'project_id', 'order_id', 'payment_id'] as $k) { $ids[] = (string) ($bezug[$k] ?? ''); }
         $ids[] = (string) ($bezug['nachher']['id'] ?? '');
+        $fuerFinger = !empty($bezug['ki_teil']) ? str_replace((string) $bezug['ki_teil'], '', $text) : $text;   // der KI-Absatz ist bei jedem Versuch anders
         $finger = hash('sha256', $anlass . "\0" . mb_strtolower($an) . "\0" . preg_replace('~\d+~', '#', $betreff) . "\0"
-            . implode(',', $ids) . "\0" . preg_replace('~\d+~', '#', $text));
+            . implode(',', $ids) . "\0" . preg_replace('~\d+~', '#', $fuerFinger));
         try {
             Db::run('INSERT IGNORE INTO ausgang_gehalten
                 (kanal, anlass, empfaenger, betreff, nutzlast, fingerabdruck, herkunft, customer_id)

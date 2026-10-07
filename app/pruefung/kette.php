@@ -14031,8 +14031,8 @@ $v3E = WhatsAppCloud::einstellungen();
 pruefe('V3: eingerichtet — Schlüssel verschlüsselt abgelegt, nie im Klartext in settings',
     WhatsAppCloud::bereit() && $v3E['token'] && $v3E['app_geheim'] && (int) Db::wert("SELECT COUNT(*) FROM settings WHERE svalue LIKE '%EAAG-test%'", [], 0) === 0);
 $v3R = WhatsAppCloud::anmelden();
-pruefe('V3: 15 Vorlagen (5 Schritte × 3 Sprachen) bestehen die Textprüfung und gehen als MARKETING mit Abmeldehinweis an Meta',
-    $v3R['eingereicht'] === 15 && $v3R['fehler'] === [] && ($v3Anfragen[0][2]['category'] ?? '') === 'MARKETING'
+pruefe('V3: 30 Vorlagen (5 Schritte × 3 Sprachen, je alt und persönlich mit {{3}}) bestehen die Textprüfung und gehen als MARKETING mit Abmeldehinweis an Meta',
+    $v3R['eingereicht'] === 30 && count(array_filter($v3Anfragen, static fn($a) => str_contains((string) ($a[2]['components'][0]['text'] ?? ''), '{{3}}') && count($a[2]['components'][0]['example']['body_text'][0] ?? []) === 3)) === 15 && $v3R['fehler'] === [] && ($v3Anfragen[0][2]['category'] ?? '') === 'MARKETING'
     && ($v3Anfragen[0][2]['components'][1]['type'] ?? '') === 'FOOTER' && str_contains((string) $v3Anfragen[0][2]['components'][1]['text'], 'STOP'), json_encode($v3R));
 WhatsAppCloud::standAbrufen();
 pruefe('V3: Genehmigung abgerufen — Schritt 1 genehmigt, Schritt 2 abgelehnt mit Grund',
@@ -28366,6 +28366,148 @@ pruefe('Schema-Selbstheilung: eine fehlende Spalte aus einer vermerkten Migratio
     in_array('214_erstattung_betrag.sql', $p51S['nachgezogen'], true) && $p51S['fehler'] === []
     && (int) Db::wert("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'akq_firmen' AND COLUMN_NAME = 'rpo_frei_am'", [], 0) === 1
     && Einrichtung::schemaNachziehen()['nachgezogen'] === [], json_encode($p51S, JSON_UNESCAPED_UNICODE));
+
+/* ============================================================================
+   KI-Texte (07.10.2026, Uwe: „jede email oder whatsapp soll individuell angepasst und intelligent sein“)
+   ============================================================================ */
+abschnitt('KI-Texte: persönlich, geprüft, mit Rückfall auf die Vorlage');
+foreach (['Ki', 'KiPruefer', 'KiKontext', 'KiText', 'KiAntwort', 'Freigabe', 'AkquiseFolge', 'Mail'] as $kiK) { require_once $wurzel . "/src/$kiK.php"; }
+$kiAltSchluessel = Db::wert("SELECT svalue FROM settings WHERE skey = 'ki_texte_an'", [], null);
+Db::run("DELETE FROM settings WHERE skey LIKE 'ki\\_%'");
+Db::run('DELETE FROM ki_verbrauch');
+/* a) Der Prüfer */
+pruefe('Prüfer: eine erfundene Zahl, ein „du“, ein Link, eine doppelte Anrede und ein Versprechen fallen durch',
+    KiPruefer::pruefen('In 3 Tagen ist alles fertig.', 'Kunde: Rossi', 'de') !== []
+    && KiPruefer::pruefen('Danke, dass du die Fotos geschickt hast.', 'Kunde: Rossi', 'de') !== []
+    && KiPruefer::pruefen('Mehr unter https://beispiel.example/x.', 'Kunde: Rossi', 'de') !== []
+    && KiPruefer::pruefen('Guten Tag Herr Rossi, schön von Ihnen zu hören.', 'Kunde: Rossi', 'de') !== []
+    && KiPruefer::pruefen('Das ist garantiert in Ordnung.', 'Kunde: Rossi', 'de') !== []
+    && KiPruefer::pruefen('Grazie, ti scrivo presto.', 'Cliente: Rossi', 'it') !== []);
+pruefe('Prüfer: ein sauberer Satz mit belegter Zahl und der eigenen Domain darf raus',
+    KiPruefer::pruefen('Danke für die Fotos vom Gastraum — sie kommen auf die Startseite von trattoria-rossi.it. Für die 2 offenen Angaben genügen wenige Minuten.',
+        "Kunde: Rossi\nWebsite: trattoria-rossi.it\nNoch 2 Angaben offen", 'de') === []);
+
+/* b) Kunden-Mail: persönlicher Absatz nach der Anrede, gespeichert als ki_teil */
+$kiRufe = 0; $kiLetzt = '';
+Ki::$antwort = static function (string $sys, string $nutzer, string $zweck) use (&$kiRufe, &$kiLetzt): ?string {
+    $kiRufe++; $kiLetzt = $nutzer;
+    return 'Danke für Ihre Nachricht zur Speisekarte — die Vorschau zeigt sie jetzt auf der Startseite. Schauen Sie bitte hinein und sagen Sie mir, ob etwas fehlt.';
+};
+$kiK = (int) Db::insert('customers', ['name' => 'Giulia Rossi', 'email' => 'giulia.ki@pruefung.example', 'company' => 'Trattoria Rossi', 'industry' => 'Ristorante',
+    'city' => 'Favara', 'sprache' => 'de', 'token' => bin2hex(random_bytes(12))]);
+Db::insert('messages', ['customer_id' => $kiK, 'sender' => 'kunde', 'body' => 'Können Sie die Speisekarte oben zeigen?']);
+$kiText = "Guten Tag Giulia Rossi,\n\ndie Vorschau Ihrer Website ist sichtbar.\n\nUwe Vetter · Vecom Design";
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+$kiM = Db::one('SELECT inhalt, ki_teil FROM mails WHERE id = ?', [(int) Mail::$letzteId]);
+pruefe('Kunden-Mail: Die KI kennt Branche, Ort und seine letzte Nachricht; ihr Absatz steht nach der Anrede, der feste Teil bleibt, die Akte merkt sich den Absatz',
+    $kiRufe === 1 && str_contains($kiLetzt, 'Ristorante') && str_contains($kiLetzt, 'Favara') && str_contains($kiLetzt, 'Speisekarte oben')
+    && str_starts_with((string) $kiM['inhalt'], "Guten Tag Giulia Rossi,\n\nDanke für Ihre Nachricht") && str_contains((string) $kiM['inhalt'], 'die Vorschau Ihrer Website ist sichtbar.')
+    && str_contains((string) $kiM['ki_teil'], 'Speisekarte'), json_encode($kiM, JSON_UNESCAPED_UNICODE));
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+Db::run("UPDATE mails SET status = 'gesendet' WHERE customer_id = ?", [$kiK]);   // ohne Brevo-Schlüssel gelten sie sonst als nicht gesendet
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+pruefe('Gedächtnis: Bei der nächsten Mail sieht die KI, was im letzten KI-Absatz schon stand', str_contains($kiLetzt, 'darin stand schon'));
+
+/* c) Rückfall: Fällt der Text durch, geht die Vorlage unverändert */
+Ki::$antwort = static fn() => 'Ihre Seite ist in 3 Tagen online, versprochen.';
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+$kiM2 = Db::one('SELECT inhalt, ki_teil FROM mails WHERE id = ?', [(int) Mail::$letzteId]);
+pruefe('Rückfall: Erfundene Frist → der Prüfer verwirft, die Vorlage geht unverändert, gezählt als verworfen',
+    (string) $kiM2['inhalt'] === $kiText && $kiM2['ki_teil'] === null && Ki::verbrauch()['abgelehnt'] >= 1 && str_contains((string) KiText::$letzterGrund, 'Zahl ohne Beleg'));
+
+/* d) Nicht ausgewählte Anlässe, abgeschaltete Kunden, Deckel */
+$kiRufe = 0;
+Ki::$antwort = static function () use (&$kiRufe): ?string { $kiRufe++; return 'Ein Satz.'; };
+Mail::senden('beleg', 'giulia.ki@pruefung.example', 'Beleg', $kiText, ['customer_id' => $kiK]);
+Db::run('UPDATE customers SET ki_aus = 1 WHERE id = ?', [$kiK]);
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+Db::run('UPDATE customers SET ki_aus = 0 WHERE id = ?', [$kiK]);
+pruefe('Beleg (Rechtstext) bleibt fest, und für einen Kunden mit „KI aus“ fragt niemand die KI', $kiRufe === 0);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('ki_budget_cent', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+Db::run('UPDATE ki_verbrauch SET kosten_hcent = 500 WHERE monat = ?', [Ki::monat()]);
+pruefe('Deckel: Ist das Monatsbudget erreicht, schreibt die KI nichts, und Uwe bekommt einmal eine Meldung',
+    Ki::schreiben('kunde', 's', 'n') === null && $kiRufe === 0 && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'ki_deckel'", [], 0) >= 1);
+Db::run("DELETE FROM settings WHERE skey = 'ki_budget_cent'");
+Db::run('UPDATE ki_verbrauch SET kosten_hcent = 0 WHERE monat = ?', [Ki::monat()]);
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('ki_bereich_kunde', '0') ON DUPLICATE KEY UPDATE svalue = '0'");
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+pruefe('Ein Bereich lässt sich einzeln abschalten (Kunden-Mails aus → keine Anfrage)', $kiRufe === 0);
+Db::run("DELETE FROM settings WHERE skey = 'ki_bereich_kunde'");
+
+/* e) Zurückgehalten im Not-Aus: beim späteren Senden kein zweiter Absatz */
+Ki::$antwort = static function () use (&$kiRufe): ?string { $kiRufe++; return 'Danke für Ihre Geduld mit der Speisekarte.'; };
+Automation::automatischAb('kette'); Db::run("INSERT INTO settings (skey, svalue) VALUES ('auto_notaus', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+$kiRufe = 0;
+Mail::senden('vorschau', 'giulia.ki@pruefung.example', 'Ihre Vorschau', $kiText, ['customer_id' => $kiK]);
+$kiGeh = Db::one("SELECT * FROM ausgang_gehalten WHERE empfaenger = 'giulia.ki@pruefung.example' ORDER BY id DESC LIMIT 1");
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'auto_notaus'"); Automation::automatischZuruecksetzen();
+$kiGehN = json_decode((string) ($kiGeh['nutzlast'] ?? ''), true) ?: [];
+pruefe('Not-Aus: Die zurückgehaltene Mail trägt ihren Absatz schon in sich und „ki_fertig“ — beim Senden kommt kein zweiter dazu',
+    $kiRufe === 1 && !empty($kiGehN['bezug']['ki_fertig']) && substr_count((string) ($kiGehN['text'] ?? ''), 'Speisekarte') === 1);
+if ($kiGeh) { Db::run('DELETE FROM ausgang_gehalten WHERE id = ?', [(int) $kiGeh['id']]); }
+
+/* f) Partner-Mail mit Zahlen */
+$kiP = Partner::laden(Partner::anlegen(['name' => 'Paola KI', 'email' => 'paola.ki@partner.example', 'code' => 'PAOLAKI', 'sprache' => 'it', 'status' => 'aktiv']));
+$kiLetzt = '';
+Ki::$antwort = static function (string $sys, string $nutzer) use (&$kiLetzt): ?string { $kiLetzt = $nutzer; return 'Questa settimana il suo link ha portato visite: è il momento giusto per una telefonata.'; };
+Mail::senden('partner_ruhend', 'paola.ki@partner.example', 'Il suo link', "Buongiorno Paola KI,\n\nil suo link non è stato aperto da un po’.\n\nVecom Design", ['partner_id' => (int) $kiP['id'], 'sprache' => 'it', 'empfaengerArt' => 'partner']);
+pruefe('Partner-Mail: Die KI bekommt seine Zahlen der letzten sieben Tage und schreibt einen Tipp dazu',
+    str_contains($kiLetzt, 'Letzte 7 Tage') && str_contains((string) Db::wert('SELECT ki_teil FROM mails WHERE id = ?', [(int) Mail::$letzteId], ''), 'telefonata'));
+
+/* g) Folge-Mails: je ein neuer Befund, keiner doppelt */
+$kiF = (int) Db::insert('akq_firmen', ['kennung' => 'K' . bin2hex(random_bytes(4)), 'name' => 'Bar Prova KI', 'name_norm' => 'bar prova ki', 'land' => 'IT', 'stadt' => 'Favara', 'domain' => 'barprovaki.it']);
+$kiAu = (int) Db::insert('akq_audits', ['firma_id' => $kiF, 'status' => 'fertig', 'gestartet_am' => date('Y-m-d H:i:s')]);
+$kiB1 = (int) Db::insert('akq_befunde', ['audit_id' => $kiAu, 'firma_id' => $kiF, 'kategorie' => 'mobile', 'code' => 'tel_nicht_klickbar', 'schwere' => 4, 'titel' => 'Telefonnummer nicht antippbar', 'status' => 'VERIFIED', 'erkannt_am' => date('Y-m-d H:i:s')]);
+$kiB2 = (int) Db::insert('akq_befunde', ['audit_id' => $kiAu, 'firma_id' => $kiF, 'kategorie' => 'seo', 'code' => 'kein_title', 'schwere' => 2, 'titel' => 'Seitentitel fehlt', 'status' => 'VERIFIED', 'erkannt_am' => date('Y-m-d H:i:s')]);
+$kiFo = (int) Db::insert('akq_folgen', ['firma_id' => $kiF, 'sprache' => 'it', 'status' => 'laeuft', 'schritt' => 1, 'gestartet_am' => date('Y-m-d H:i:s')]);
+$kiFoZ = static fn() => Db::one('SELECT * FROM akq_folgen WHERE id = ?', [$kiFo]);
+$kiN1 = AkquiseFolge::naechsterBefund(['id' => $kiF], $kiFoZ());
+AkquiseFolge::befundVermerken($kiFoZ(), $kiN1);
+$kiN2 = AkquiseFolge::naechsterBefund(['id' => $kiF], $kiFoZ());
+AkquiseFolge::befundVermerken($kiFoZ(), $kiN2);
+pruefe('Folge-Mails: erst der schwerste Befund, dann der nächste, danach keiner mehr (dann entfällt der Schritt)',
+    (int) $kiN1['id'] === $kiB1 && (int) $kiN2['id'] === $kiB2 && AkquiseFolge::naechsterBefund(['id' => $kiF], $kiFoZ()) === null
+    && str_contains((string) file_get_contents($wurzel . '/src/AkquiseFolge.php'), "entfallen: kein neuer Befund"));
+Ki::$antwort = static fn() => 'Sul sito barprovaki.it il numero di telefono non si può toccare dal cellulare: chi vi cerca deve copiarlo a mano.';
+$kiAbs = KiText::folgeAbsatz(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$kiF]), 2, 'it', "Buongiorno,\n\nha già visto l’analisi?", Db::one('SELECT * FROM akq_befunde WHERE id = ?', [$kiB1]), '');
+pruefe('Folge-Absatz: nennt den Befund und darf die Domain des Betriebs nennen', is_string($kiAbs) && str_contains($kiAbs, 'telefono'));
+Ki::$antwort = static fn() => 'Il numero di telefono non si può toccare.';
+pruefe('WhatsApp: ein Satz ohne Zeilenumbruch für den Platzhalter der persönlichen Vorlage',
+    KiText::waSatz(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$kiF]), 2, 'it', null) === 'Il numero di telefono non si può toccare.'
+    && WhatsAppCloud::vorlageName(12, 'it') === 'vecom_folge2p_it' && isset(WhatsAppCloud::TEXTE_P[12]['de']) && str_contains(WhatsAppCloud::TEXTE_P[12]['de'], '{{3}}'));
+
+/* h) Antworten: Entwurf in AI Freigaben; WhatsApp im Fenster direkt */
+Db::update('akq_firmen', $kiF, ['email' => 'info@barprovaki.it', 'einwilligung' => 'ja', 'einwilligung_kanaele' => 'email,whatsapp', 'whatsapp' => '+39 333 1234567']);
+Ki::$antwort = static fn() => "Betreff: Il sito di Bar Prova KI\n\nBuongiorno,\n\ngrazie per il messaggio. Il prezzo indicativo lo trova in due minuti nel suo spazio personale; se preferisce, ne parliamo al telefono.\n\nUwe Vetter · Vecom Design";
+$kiA1 = (int) Db::insert('akq_antworten', ['firma_id' => $kiF, 'eingang_am' => date('Y-m-d H:i:s'), 'von' => 'info@barprovaki.it', 'betreff' => 'Re', 'text' => 'Quanto costa?', 'klasse' => 'PRICE_REQUEST']);
+$kiE1 = KiAntwort::nachEingang($kiA1, 'email');
+$kiFr = Db::one("SELECT * FROM ai_freigaben WHERE art = 'akquise_antwort' ORDER BY id DESC LIMIT 1");
+pruefe('Antwort per Mail: fertiger Entwurf (ohne Preis) wartet in AI Freigaben, nichts ist raus',
+    $kiE1 === 'entwurf' && $kiFr && (string) $kiFr['status'] === 'offen' && str_contains((string) $kiFr['daten'], 'spazio personale')
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE firma_id = ? AND compliance = 'antwort'", [$kiF], 0) === 0, json_encode([$kiE1, KiText::$letzterGrund], JSON_UNESCAPED_UNICODE));
+$kiWa = [];
+KiAntwort::$waSenden = static function (string $an, string $t) use (&$kiWa): bool { $kiWa[] = [$an, $t]; return true; };
+$kiTermin = KiAntwort::links(Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$kiF]), 'it')['termin'];
+Ki::$antwort = static fn() => "Buongiorno, volentieri! Scelga qui un orario per una breve telefonata: $kiTermin — Uwe";
+$kiA2 = (int) Db::insert('akq_antworten', ['firma_id' => $kiF, 'eingang_am' => date('Y-m-d H:i:s'), 'von' => '+393331234567', 'betreff' => 'WhatsApp', 'text' => 'Mi chiami pure', 'klasse' => 'CALL_REQUEST']);
+$kiE2 = KiAntwort::nachEingang($kiA2, 'whatsapp');
+pruefe('WhatsApp im 24-Stunden-Fenster: Anrufwunsch sofort beantwortet, mit dem erlaubten Terminlink, vermerkt',
+    $kiE2 === 'direkt' && count($kiWa) === 1 && str_contains($kiWa[0][1], 'termin.php') && (int) Db::wert('SELECT erledigt FROM akq_antworten WHERE id = ?', [$kiA2], 0) === 1,
+    json_encode([$kiE2, KiText::$letzterGrund, $kiWa], JSON_UNESCAPED_UNICODE));
+Db::update('akq_antworten', $kiA2, ['eingang_am' => date('Y-m-d H:i:s', time() - 2 * 86400)]);
+$kiFenster = 'durch'; try { KiAntwort::senden($kiA2, 'whatsapp', '', 'Hallo'); } catch (RuntimeException $e) { $kiFenster = $e->getMessage(); }
+pruefe('Nach 24 Stunden geht keine freie WhatsApp mehr (Metas Regel)', str_contains($kiFenster, '24-Stunden'));
+$kiA3 = (int) Db::insert('akq_antworten', ['firma_id' => $kiF, 'eingang_am' => date('Y-m-d H:i:s'), 'von' => 'info@barprovaki.it', 'text' => 'Non mi interessa', 'klasse' => 'NOT_INTERESTED']);
+pruefe('„Kein Interesse“ bekommt keinen Entwurf', KiAntwort::nachEingang($kiA3, 'email') === null);
+pruefe('Freigabe-Art „akquise_antwort“: nur aus der Verwaltung, nicht über den Claude-Connector, mit Tragweite RAUS',
+    isset(Freigabe::ARTEN['akquise_antwort']) && in_array('akquise_antwort', Freigabe::NUR_VERWALTUNG, true) && Freigabe::rueckfrage(['art' => 'akquise_antwort'])['gewicht'] === Ablauf::RAUS);
+$_SESSION['rolle'] = 'mitarbeit';
+pruefe('KI-Einstellungen und „KI aus“ je Kunde nur für den Admin', !Rechte::darfTat('ki_texte_speichern') && !Rechte::darfTat('kunde_ki_schalten'));
+$_SESSION['rolle'] = 'admin';
+Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE art = 'akquise_antwort' AND status = 'offen'");
+KiAntwort::$waSenden = null;
+Ki::$antwort = null;
+Db::run("DELETE FROM settings WHERE skey LIKE 'ki\\_%'");
 
 /* ============================================================================
    Aufräumen und Bilanz

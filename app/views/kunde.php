@@ -154,7 +154,12 @@ $eing = !empty($eingebettet);
   <?php /* Alle E-Mails an den Kunden (07.10.2026, Uwe: „in den jeweiligen Kundenakten sollen auch alle
      versendeten E-Mails angezeigt werden“). Inhalt per Klick, so wie er hinausging. */
     require_once __DIR__ . '/../src/KundeMails.php'; $kmListe = $kundenMails ?? []; ?>
-  <div class="block" id="emails"><h2>E-Mails <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500"><?= count($kmListe) ?></span></h2>
+  <div class="block" id="emails"><h2>E-Mails <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500"><?= count($kmListe) ?></span>
+    <?php $kKiAus = (int) ($k['ki_aus'] ?? 0) === 1; ?>
+    <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline;margin-left:10px">
+      <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_ki_schalten"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>"><input type="hidden" name="aus" value="<?= $kKiAus ? '0' : '1' ?>">
+      <button class="knopf klein" title="<?= $kKiAus ? 'Die KI schreibt für diesen Kunden nichts dazu.' : 'Die KI schreibt zu ausgewählten Mails einen persönlichen Absatz aus der Akte.' ?>"><?= $kKiAus ? 'KI-Absatz: aus — einschalten' : 'KI-Absatz: an — für diesen Kunden aus' ?></button>
+    </form></h2>
     <?php if (!$kmListe): ?><div class="leer">Noch keine E-Mail an diesen Kunden.</div><?php else: ?>
     <div class="tabellenrahmen"><table style="font-size:14px"><thead><tr><th>Wann</th><th>Betreff</th><th>Stand</th><th>Anhänge</th></tr></thead><tbody>
       <?php foreach (array_slice($kmListe, 0, 60) as $km): $kmSt = KundeMails::STATUS[$km['status']] ?? [ucfirst($km['status']), '']; ?>
@@ -163,7 +168,8 @@ $eing = !empty($eingebettet);
           <td><?php if ($km['quelle'] === 'mail'): ?><a href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '/mail/' . $km['id'])) ?>"><?= Fmt::h(Fmt::name($km['betreff'], 'E-Mail ohne Betreff')) ?></a><?php else: ?><?= Fmt::h($km['betreff']) ?><?php endif; ?>
             <?php if (($km['wer'] ?? '') !== ''): ?><div class="akq-klein" style="color:var(--dim)">↳ <?= Fmt::h(ucfirst((string) $km['wer'])) ?><?php if (!empty($km['freigabe'])): ?> · <a href="<?= Fmt::h(url('ai-freigaben')) ?>#f<?= (int) $km['freigabe'] ?>">Freigabe ansehen</a><?php endif; ?></div><?php endif; ?>
             <div class="akq-klein" style="color:var(--leise)">an <?= Fmt::h($km['an']) ?><?= $km['quelle'] === 'mail' && !$km['inhalt'] ? ' · Inhalt nicht gespeichert (vor 07.10.2026)' : '' ?><?= $km['quelle'] === 'akq' ? ' · Inhalt nicht gespeichert (aus Ihrem Mailprogramm)' : '' ?></div>
-            <?php if ($km['status'] !== 'gesendet' && $km['fehler'] !== ''): ?><div class="akq-klein" style="color:var(--rot)"><?= Fmt::h($km['fehler']) ?></div><?php endif; ?></td>
+            <?php if ($km['status'] !== 'gesendet' && $km['fehler'] !== ''): ?><div class="akq-klein" style="color:var(--rot)"><?= Fmt::h($km['fehler']) ?></div><?php endif; ?>
+            <?php if (($km['ki'] ?? '') !== ''): ?><div class="akq-klein" style="margin-top:4px;border-left:3px solid var(--cyan);padding-left:8px;color:var(--dim)"><span class="marke2">KI-Absatz</span> <?= Fmt::h(mb_strimwidth((string) $km['ki'], 0, 220, '…')) ?></div><?php endif; ?></td>
           <td><span class="marke2 <?= Fmt::h($kmSt[1]) ?>"><?= Fmt::h($kmSt[0]) ?></span></td>
           <td><?= $km['anhaenge'] ? Fmt::h(implode(', ', array_map(static fn($a) => '📎 ' . $a['name'], $km['anhaenge']))) : '—' ?></td>
         </tr>

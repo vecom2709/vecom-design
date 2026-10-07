@@ -112,3 +112,43 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
   }
   .mb-vorschau{white-space:normal;font-size:var(--fs-klein);line-height:1.6;padding:12px 14px;border:1px solid var(--linie,rgba(255,255,255,.08));border-radius:10px;max-width:640px}
 </style>
+
+<?php /* KI-TEXTE (07.10.2026, Uwe: „jede email oder whatsapp soll individuell angepasst und intelligent sein“ — Ja zu allen 13).
+         Schalter je Bereich, Monatsbudget, Verbrauch. Der Schlüssel steht nur in app/config.local.php. */
+$ki = $ki ?? null;
+if (is_array($ki)): $kiV = $ki['verbrauch']; ?>
+<div class="block" id="ki"><h2>KI-Texte <span class="mehr"><span class="marke2 <?= $ki['an'] && $ki['schluessel'] ? 'gut' : ($ki['an'] ? 'warnung' : 'schlecht') ?>"><?=
+    !$ki['an'] ? 'aus' : ($ki['schluessel'] ? 'schreibt mit' : 'Schlüssel fehlt') ?></span></span></h2>
+  <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.65;margin-bottom:12px">
+    Jede ausgewählte Mail bekommt zu ihrem festen Teil (Betrag, Link, Frist, Rechtstext) einen persönlichen Absatz aus der Akte und genau einen Satz,
+    was jetzt zu tun ist. Jeder KI-Satz geht durch einen Prüfer: keine erfundenen Zahlen, Termine, Preise oder Zusagen, keine Links, immer gesiezt.
+    Fällt er durch oder antwortet die KI nicht, geht die feste Vorlage unverändert raus. In der Kundenakte siehst du bei jeder Mail, welcher Teil von der KI stammt,
+    und kannst sie dort je Kunde abschalten.
+  </p>
+  <?php if (!$ki['schluessel']): ?>
+    <div class="hinweis warnung" style="margin:0 0 12px">Es fehlt der Schlüssel: In <code>app/config.local.php</code> <code>'ki_schluessel' =&gt; '…'</code> eintragen
+      (derselbe wie für den Academy-Simulator). Bis dahin gehen nur die festen Vorlagen raus.</div>
+  <?php endif; ?>
+  <div class="karten" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin:0 0 14px">
+    <div class="karte"><h3>Diesen Monat</h3><div style="font-size:26px;font-weight:700;margin:4px 0"><?= Fmt::h(number_format($kiV['kosten_cent'] / 100, 2, ',', '.')) ?> €</div>
+      <small style="color:var(--leise)">von <?= Fmt::h(number_format($ki['budget_cent'] / 100, 2, ',', '.')) ?> € Budget</small></div>
+    <div class="karte"><h3>Texte</h3><div style="font-size:26px;font-weight:700;margin:4px 0"><?= (int) $kiV['angenommen'] ?></div>
+      <small style="color:var(--leise)">angenommen · <?= (int) $kiV['abgelehnt'] ?> vom Prüfer verworfen · <?= (int) $kiV['fehler'] ?> ohne Antwort</small></div>
+    <div class="karte"><h3>Vormonat</h3><div style="font-size:26px;font-weight:700;margin:4px 0"><?= Fmt::h(number_format($ki['vormonat']['kosten_cent'] / 100, 2, ',', '.')) ?> €</div>
+      <small style="color:var(--leise)"><?= (int) $ki['vormonat']['angenommen'] ?> Texte · Modell <?= Fmt::h((string) $ki['modell']) ?></small></div>
+  </div>
+  <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
+    <?= Csrf::feld() ?><input type="hidden" name="tat" value="ki_texte_speichern">
+    <label style="display:flex;gap:10px;align-items:center;justify-content:flex-start;margin:0 0 10px;font-weight:600;font-size:15px"><input type="checkbox" name="an" value="1" style="width:18px;height:18px;margin:0;flex:0 0 auto"<?= $ki['an'] ? ' checked' : '' ?>> <span>KI-Texte einschalten</span></label>
+    <fieldset style="border:1px solid var(--linie);border-radius:10px;padding:10px 14px;margin:0 0 12px"><legend style="color:var(--dim);font-size:var(--fs-klein);padding:0 6px">Bereiche</legend>
+      <?php foreach (Ki::BEREICHE as $kiK => $kiW): ?>
+        <label style="display:flex;gap:10px;align-items:flex-start;justify-content:flex-start;margin:8px 0;font-weight:400;font-size:15px;color:var(--text)"><input type="checkbox" name="bereich[<?= Fmt::h($kiK) ?>]" value="1" style="width:18px;height:18px;margin:2px 0 0;flex:0 0 auto"<?= !empty($ki['bereiche'][$kiK]) ? ' checked' : '' ?>> <span><?= Fmt::h($kiW) ?></span></label>
+      <?php endforeach; ?>
+    </fieldset>
+    <div class="feld" style="max-width:260px"><label for="ki-budget">Monatsbudget in €</label>
+      <input id="ki-budget" name="budget_euro" inputmode="decimal" value="<?= Fmt::h(number_format($ki['budget_cent'] / 100, 2, ',', '')) ?>">
+      <small style="color:var(--leise);font-size:var(--fs-klein)">Ist es erreicht, gehen bis Monatsende die festen Vorlagen. Ein Text kostet Bruchteile eines Cents.</small></div>
+    <button class="knopf haupt">KI-Texte speichern</button>
+  </form>
+</div>
+<?php endif; ?>

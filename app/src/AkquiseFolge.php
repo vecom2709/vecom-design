@@ -171,6 +171,54 @@ final class AkquiseFolge
     }
 
     /** Platzhalter füllen. */
+    /* ------------------------------------------------------------------ */
+    /*  Individuell (07.10.2026, Vorschläge 6 und 9)                       */
+    /* ------------------------------------------------------------------ */
+
+    private static function kiAn(): bool
+    {
+        require_once __DIR__ . '/Ki.php';
+        return Ki::bereichAn('folge');
+    }
+
+    /** Der nächste belegte Befund, den noch keine Folge-Nachricht genannt hat — oder null. */
+    public static function naechsterBefund(array $f, array $fo): ?array
+    {
+        try {
+            $audit = Akquise::letzterAudit((int) $f['id']);
+            if (!$audit || ($audit['status'] ?? '') !== 'fertig') { return null; }
+            $schon = array_map('intval', json_decode((string) ($fo['ki_befunde'] ?? ''), true) ?: []);
+            foreach (Akquise::befunde((int) $audit['id']) as $b) {
+                if (($b['status'] ?? '') === 'VERIFIED' && !in_array((int) $b['id'], $schon, true)) { return $b; }
+            }
+        } catch (Throwable $e) { }
+        return null;
+    }
+
+    public static function befundVermerken(array $fo, array $b): void
+    {
+        $schon = array_map('intval', json_decode((string) ($fo['ki_befunde'] ?? ''), true) ?: []);
+        $schon[] = (int) $b['id'];
+        try { Db::update('akq_folgen', (int) $fo['id'], ['ki_befunde' => json_encode(array_values(array_unique($schon)))]); } catch (Throwable $e) { }
+    }
+
+    /** Was dieser Betrieb von uns schon bekommen hat (Text der letzten Mails). */
+    public static function vorher(int $firmaId): string
+    {
+        try {
+            $z = Db::all("SELECT m.inhalt, m.created_at FROM akq_versand v JOIN mails m ON m.id = v.mail_id
+                           WHERE v.firma_id = ? AND v.status IN ('gesendet','von_hand') ORDER BY v.id DESC LIMIT 3", [$firmaId]);
+            return implode("\n---\n", array_map(static fn($r) => mb_substr((string) $r['inhalt'], 0, 1200), array_reverse($z)));
+        } catch (Throwable $e) { return ''; }
+    }
+
+    private static function kiAbsatz(array $f, array $fo, int $schritt, string $vorlage, ?array $befund): ?string
+    {
+        if (!self::kiAn()) { return null; }
+        require_once __DIR__ . '/KiText.php';
+        return KiText::folgeAbsatz($f, $schritt, (string) $fo['sprache'], $vorlage, $befund, self::vorher((int) $f['id']));
+    }
+
     public static function fuellen(string $s, array $f, string $sprache): string
     {
         $abs = AkquiseText::absender();
@@ -303,7 +351,7 @@ final class AkquiseFolge
 
     private static function laufGesperrt(): array
     {
-        $bilanz = ['geschickt' => 0, 'simuliert' => 0, 'beendet' => 0, 'pausiert' => 0, 'wartet' => 0];
+        $bilanz = ['geschickt' => 0, 'simuliert' => 0, 'beendet' => 0, 'pausiert' => 0, 'wartet' => 0, 'uebersprungen' => 0];
         /* Erst aufräumen -- auch bei ausgeschaltetem Schalter: Eine Antwort
            pausiert sofort, eine Abmeldung beendet sofort, nicht erst, wenn
            der nächste Schritt fällig wäre. Das verschickt nichts. */
@@ -339,6 +387,18 @@ final class AkquiseFolge
                 continue;
             }
             if ($test && (int) $fo['simuliert'] >= $schritt) { continue; }   // diesen Schritt schon durchgespielt
+            /* Individuell (07.10.2026, Vorschlag 6): Die Schritte 1–3 nennen je einen neuen, echten Befund.
+               Gibt es bei laufender KI keinen mehr, entfällt der Schritt — keine Nachricht ohne Neues. */
+            $kiBefund = self::naechsterBefund($f, $fo);
+            if ($kiBefund === null && in_array($schritt, [2, 3], true) && self::kiAn()) {
+                $jetztU = time(); $naechsterU = $schritt + 1;
+                Db::update('akq_folgen', (int) $fo['id'], ['schritt' => $schritt, 'grund' => 'Schritt ' . $schritt . ' entfallen: kein neuer Befund',
+                    'status' => isset(self::TAGE[$naechsterU]) ? 'laeuft' : 'beendet',
+                    'naechst_am' => isset(self::TAGE[$naechsterU]) ? date('Y-m-d H:i:s', $jetztU + (self::TAGE[$naechsterU] - self::TAGE[$schritt]) * 86400) : null]);
+                Akquise::protokoll((int) $f['id'], 'folge', 'Folge ' . $schritt . '/5 entfallen — es gibt keinen neuen Befund, den sie nennen könnte.');
+                $bilanz['uebersprungen']++;
+                continue;
+            }
             $v = Db::one("SELECT * FROM akq_folge_vorlagen WHERE schritt = ? AND sprache = ? AND status = 'freigegeben'", [$schritt, (string) $fo['sprache']]);
             if (!$v && ($roh = Db::one('SELECT * FROM akq_folge_vorlagen WHERE schritt = ? AND sprache = ?', [$schritt, (string) $fo['sprache']])) && self::autoFreigeben($roh)) {
                 $v = Db::one('SELECT * FROM akq_folge_vorlagen WHERE id = ?', [(int) $roh['id']]);
@@ -349,8 +409,11 @@ final class AkquiseFolge
             if (AkquiseGate::schalter('whatsapp') && (int) ($fo['wa_schritt'] ?? 0) < $schritt && AkquiseGate::einwilligungDeckt($f, 'whatsapp')) {
                 require_once __DIR__ . '/WhatsAppCloud.php';
                 if (WhatsAppCloud::bereit() && AkquiseGate::versandSperre($f, true) === null) {
+                    require_once __DIR__ . '/KiText.php';
+                    $waSatz = KiText::waSatz($f, $schritt, (string) $fo['sprache'], $schritt <= 3 ? $kiBefund : null);
                     $wa = WhatsAppCloud::folgeSenden($f, $schritt, (string) $fo['sprache'],
-                        $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $fo['sprache'] : self::dashboardLink($f, (string) $fo['sprache']));
+                        $schritt === 4 ? rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . '/termin.php?lang=' . $fo['sprache'] : self::dashboardLink($f, (string) $fo['sprache']), $waSatz);
+                    if (!empty($wa['ok']) && !empty($wa['persoenlich']) && $kiBefund !== null && $schritt <= 3) { self::befundVermerken($fo, $kiBefund); }
                 }
             }
             if ($wa !== null && $wa['ok']) {
@@ -410,15 +473,19 @@ final class AkquiseFolge
                 $bilanz['wartet']++;
                 break;   // Grenzen gelten für alle -- der nächste Lauf versucht es wieder
             }
+            $folgeText = self::fuellen((string) $v['text'], $f, (string) $fo['sprache']);
+            $kiAbsatz = self::kiAbsatz($f, $fo, $schritt, $folgeText, $schritt <= 3 ? $kiBefund : null);
+            if ($kiAbsatz !== null) { require_once __DIR__ . '/KiText.php'; $folgeText = KiText::nachAnrede($folgeText, $kiAbsatz); }
             try {
                 $r = AkquiseVersand::rausschicken($f, self::fuellen((string) $v['betreff'], $f, (string) $fo['sprache']),
-                    self::fuellen((string) $v['text'], $f, (string) $fo['sprache']), (string) $fo['sprache'], null, $gate['status'],
+                    $folgeText, (string) $fo['sprache'], null, $gate['status'],
                     'Folge-Mail ' . $schritt . '/5 (' . self::SCHRITT_NAME[$schritt] . ', Fassung ' . $v['fassung'] . ')');
             } catch (Throwable $e) {
                 Db::update('akq_folgen', (int) $fo['id'], ['grund' => 'Versand gescheitert: ' . mb_substr($e->getMessage(), 0, 180)]);
                 $bilanz['wartet']++;
                 break;
             }
+            if ($kiAbsatz !== null && $kiBefund !== null && $schritt <= 3) { self::befundVermerken($fo, $kiBefund); }
             if ($r['simuliert']) {
                 Db::update('akq_folgen', (int) $fo['id'], ['simuliert' => $schritt, 'grund' => 'Testbetrieb: Schritt ' . $schritt . ' simuliert']);
                 $bilanz['simuliert']++;

@@ -115,6 +115,12 @@ final class Mail
         }
 
         $sprache = self::spracheVon($bezug);
+        /* Persönlicher Absatz aus der Akte (07.10.2026, Uwe: „jede email … individuell angepasst und intelligent“).
+           Nur für ausgewählte Kunden- und Partner-Mails, nur nach dem Prüfer — sonst bleibt die Vorlage, wie sie ist. */
+        try {
+            require_once __DIR__ . '/KiText.php';
+            $text = KiText::einbauen($anlass, $text, $bezug, $sprache);
+        } catch (Throwable $e) { /* nie an der KI scheitern */ }
         $html = !empty($bezug['nurText']) ? null : self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache, (string) ($bezug['empfaengerArt'] ?? 'kunde'));
         /* Die Kundenakte zeigt jede Mail so, wie sie hinausging (07.10.2026, Uwe: „in den jeweiligen
            Kundenakten sollen auch alle versendeten E-Mails angezeigt werden“): Text, Briefbogen und
@@ -141,6 +147,7 @@ final class Mail
             'ref_art'       => isset($bezug['ref_art']) ? mb_substr((string) $bezug['ref_art'], 0, 20) : null,
             'ref_id'        => isset($bezug['ref_id']) ? (int) $bezug['ref_id'] : null,
             'partner_id'    => isset($bezug['partner_id']) ? (int) $bezug['partner_id'] : null,
+            'ki_teil'       => isset($bezug['ki_teil']) ? mb_substr((string) $bezug['ki_teil'], 0, 2000) : null,
         ];
 
         // Ein anonymisierter Kunde traegt eine Adresse unter .invalid. Die
@@ -336,13 +343,18 @@ final class Mail
         self::$letzteId = null;
         $spur = ['ausloeser' => 1, 'ausloeser_ref' => 1, 'ausloeser_id' => 1, 'ausloeser_wer' => 1, 'ref_art' => 1, 'ref_id' => 1, 'partner_id' => 1];
         try { self::$letzteId = Db::insert('mails', $daten); }
-        catch (Throwable $e) {
+        catch (Throwable $e0) {
+          /* Vor Migration 216 fehlt ki_teil. */
+          try { self::$letzteId = Db::insert('mails', array_diff_key($daten, ['ki_teil' => 1])); }
+          catch (Throwable $e) {
+            $daten = array_diff_key($daten, ['ki_teil' => 1]);
             /* Vor Migration 215 fehlen die Spalten der Spur, vor 210 die für den Inhalt — dann wenigstens die Zeile. */
             try { self::$letzteId = Db::insert('mails', array_diff_key($daten, $spur)); }
             catch (Throwable $e2) {
                 try { self::$letzteId = Db::insert('mails', array_diff_key($daten, $spur + ['inhalt' => 1, 'html' => 1, 'anhaenge' => 1])); }
                 catch (Throwable $e3) { /* Protokoll ist Beiwerk */ }
             }
+          }
         }
 
         /* Der Stand auf der Seite "Integrationen" wurde bisher nur von der

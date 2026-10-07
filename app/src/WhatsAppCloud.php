@@ -58,6 +58,29 @@ final class WhatsAppCloud
               'de' => 'Guten Tag, das ist meine letzte Nachricht zur Website von {{1}}. Ihr persönlicher Bereich bleibt hier erreichbar: {{2}}',
               'en' => 'Hello, this is my last message about the {{1}} website. Your personal area remains available here: {{2}}'],
     ];
+    /**
+     * Persönliche Fassungen (07.10.2026, Vorschlag 9): dieselben fünf Schritte mit einem freien
+     * Platzhalter {{3}} für einen Satz, den die KI je Betrieb schreibt. Sie stehen als Schritt 11–15
+     * neben den alten und werden nur benutzt, wenn Meta sie genehmigt hat — bis dahin gehen die alten.
+     */
+    public const TEXTE_P = [
+        11 => ['it' => 'Buongiorno, grazie per la conferma. {{3}} Ecco l’analisi del sito di {{1}} e il suo spazio personale su Vecom Design: {{2}}',
+               'de' => 'Guten Tag, danke für Ihre Bestätigung. {{3}} Hier sind die Analyse der Website von {{1}} und Ihr persönlicher Bereich bei Vecom Design: {{2}}',
+               'en' => 'Hello, thank you for confirming. {{3}} Here are the analysis of the {{1}} website and your personal area at Vecom Design: {{2}}'],
+        12 => ['it' => 'Buongiorno, un’osservazione sul sito di {{1}}: {{3}} Se vuole, le mostriamo una bozza della nuova pagina iniziale, senza impegno: {{2}}',
+               'de' => 'Guten Tag, eine Beobachtung zur Website von {{1}}: {{3}} Wenn Sie möchten, zeigen wir Ihnen eine Skizze der neuen Startseite, unverbindlich: {{2}}',
+               'en' => 'Hello, one observation about the {{1}} website: {{3}} If you like, we can show you a sketch of a new home page, with no obligation: {{2}}'],
+        13 => ['it' => 'Buongiorno, ancora una cosa sul sito di {{1}}: {{3}} Nel suo spazio personale trova esempi e, in due minuti, il prezzo: {{2}}',
+               'de' => 'Guten Tag, noch etwas zur Website von {{1}}: {{3}} In Ihrem persönlichen Bereich finden Sie Beispiele und in zwei Minuten den Preis: {{2}}',
+               'en' => 'Hello, one more thing about the {{1}} website: {{3}} In your personal area you will find examples and, in two minutes, the price: {{2}}'],
+        14 => ['it' => 'Buongiorno, {{3}} Se le va parliamo un quarto d’ora del sito di {{1}}, senza impegno. Scelga un orario qui: {{2}}',
+               'de' => 'Guten Tag, {{3}} Wenn Sie mögen, sprechen wir eine Viertelstunde über die Website von {{1}}, unverbindlich. Einen Termin wählen Sie hier: {{2}}',
+               'en' => 'Hello, {{3}} If you like, we can talk for a quarter of an hour about the {{1}} website, with no obligation. Pick a time here: {{2}}'],
+        15 => ['it' => 'Buongiorno, questo è il mio ultimo messaggio sul sito di {{1}}. {{3}} Il suo spazio personale resta disponibile qui: {{2}}',
+               'de' => 'Guten Tag, das ist meine letzte Nachricht zur Website von {{1}}. {{3}} Ihr persönlicher Bereich bleibt hier erreichbar: {{2}}',
+               'en' => 'Hello, this is my last message about the {{1}} website. {{3}} Your personal area remains available here: {{2}}'],
+    ];
+
     public const FUSS = ['it' => 'Risponda STOP per non ricevere altri messaggi.', 'de' => 'Antworten Sie STOP, um keine Nachrichten mehr zu bekommen.', 'en' => 'Reply STOP to receive no further messages.'];
 
     /* ------------------------------ Einstellungen ------------------------ */
@@ -144,12 +167,15 @@ final class WhatsAppCloud
 
     /* ------------------------------ Vorlagen ----------------------------- */
 
-    public static function vorlageName(int $schritt, string $sprache): string { return 'vecom_folge' . $schritt . '_' . $sprache; }
+    public static function vorlageName(int $schritt, string $sprache): string
+    {
+        return $schritt > 10 ? 'vecom_folge' . ($schritt - 10) . 'p_' . $sprache : 'vecom_folge' . $schritt . '_' . $sprache;
+    }
 
     /** Fehlende Vorlagen anlegen; eine geänderte Vorlage (neuer Text hier) geht zurück auf „neu“. */
     public static function vorlagenAnlegen(): void
     {
-        foreach (self::TEXTE as $schritt => $je) {
+        foreach (self::TEXTE + self::TEXTE_P as $schritt => $je) {
             foreach ($je as $sp => $text) {
                 $alt = Db::one('SELECT * FROM akq_wa_vorlagen WHERE schritt = ? AND sprache = ?', [$schritt, $sp]);
                 if (!$alt) {
@@ -182,13 +208,15 @@ final class WhatsAppCloud
         foreach (self::vorlagen() as $schritt => $je) {
             foreach ($je as $sp => $v) {
                 if (!in_array($v['meta_status'], ['neu', 'fehler', 'REJECTED'], true)) { continue; }
-                $probe = strtr($v['text'], ['{{1}}' => 'Trattoria Esempio', '{{2}}' => 'https://vecom-design.it/zugang.php?t=esempio']) . "\n" . self::FUSS[$sp];
+                $probe = strtr($v['text'], ['{{1}}' => 'Trattoria Esempio', '{{2}}' => 'https://vecom-design.it/zugang.php?t=esempio', '{{3}}' => self::BEISPIEL3[$sp] ?? '']) . "\n" . self::FUSS[$sp];
                 $maengel = array_values(array_filter(AkquiseText::pruefen('WhatsApp', $probe, $sp, [], 'whatsapp'), static fn($m) => !str_contains($m, 'Hinweis, wie man')));
                 if ($maengel) { $fehler[] = $v['name'] . ': ' . $maengel[0]; continue; }
                 $r = self::anfrage('POST', self::API . '/' . AkquiseGate::einstellung('wa_konto_id') . '/message_templates', [
                     'name' => $v['name'], 'language' => $sp, 'category' => 'MARKETING',
                     'components' => [
-                        ['type' => 'BODY', 'text' => $v['text'], 'example' => ['body_text' => [['Trattoria Esempio', 'https://vecom-design.it/zugang.php?t=esempio']]]],
+                        ['type' => 'BODY', 'text' => $v['text'], 'example' => ['body_text' => [str_contains((string) $v['text'], '{{3}}')
+                            ? ['Trattoria Esempio', 'https://vecom-design.it/zugang.php?t=esempio', self::BEISPIEL3[$sp] ?? 'La foto del menu non si apre sul telefono.']
+                            : ['Trattoria Esempio', 'https://vecom-design.it/zugang.php?t=esempio']]]],
                         ['type' => 'FOOTER', 'text' => self::FUSS[$sp]],
                     ],
                 ]);
@@ -229,12 +257,21 @@ final class WhatsAppCloud
      * Gate -- wer diese Methode ruft, kann nichts daran vorbei schicken.
      * @return array{ok:bool, simuliert?:bool, id?:int, grund?:string}
      */
-    public static function folgeSenden(array $f, int $schritt, string $sprache, string $link): array
+    /** Beispielsatz für {{3}}, den Meta bei der Einreichung sehen will. */
+    private const BEISPIEL3 = ['it' => 'Il numero di telefono non si può toccare per chiamare dal cellulare.',
+                               'de' => 'Die Telefonnummer lässt sich auf dem Handy nicht antippen.',
+                               'en' => 'The phone number cannot be tapped to call on a mobile phone.'];
+
+    public static function folgeSenden(array $f, int $schritt, string $sprache, string $link, ?string $satz = null): array
     {
         if (!AkquiseGate::einwilligungDeckt($f, 'whatsapp')) { return ['ok' => false, 'grund' => 'Keine WhatsApp-Einwilligung.']; }
         $gate = AkquiseGate::pruefen($f, 'whatsapp');
         if ($gate['status'] !== AkquiseGate::ERLAUBT) { return ['ok' => false, 'grund' => 'Gate: ' . ($gate['gruende'][0] ?? $gate['status'])]; }
-        $v = Db::one("SELECT * FROM akq_wa_vorlagen WHERE schritt = ? AND sprache = ? AND meta_status = 'APPROVED'", [$schritt, $sprache]);
+        /* Persönliche Fassung, wenn Meta sie genehmigt hat und die KI einen geprüften Satz geliefert hat. */
+        $satz = $satz !== null ? trim((string) preg_replace('~\s+~u', ' ', $satz)) : null;
+        $v = ($satz !== null && $satz !== '') ? Db::one("SELECT * FROM akq_wa_vorlagen WHERE schritt = ? AND sprache = ? AND meta_status = 'APPROVED'", [$schritt + 10, $sprache]) : null;
+        $persoenlich = (bool) $v;
+        $v = $v ?: Db::one("SELECT * FROM akq_wa_vorlagen WHERE schritt = ? AND sprache = ? AND meta_status = 'APPROVED'", [$schritt, $sprache]);
         if (!$v) { return ['ok' => false, 'grund' => 'WhatsApp-Vorlage ' . $schritt . ' (' . strtoupper($sprache) . ') ist bei Meta nicht genehmigt.']; }
         $an = preg_replace('~\D~', '', (string) $f['whatsapp']) ?? '';
         $actor = class_exists('Auth', false) && Auth::angemeldet() ? Auth::name() : 'System';
@@ -247,14 +284,15 @@ final class WhatsAppCloud
         $r = self::anfrage('POST', self::API . '/' . AkquiseGate::einstellung('wa_nummer_id') . '/messages', [
             'messaging_product' => 'whatsapp', 'to' => $an, 'type' => 'template',
             'template' => ['name' => $v['name'], 'language' => ['code' => $sprache],
-                'components' => [['type' => 'body', 'parameters' => [['type' => 'text', 'text' => mb_substr((string) $f['name'], 0, 60)], ['type' => 'text', 'text' => $link]]]]],
+                'components' => [['type' => 'body', 'parameters' => array_merge([['type' => 'text', 'text' => mb_substr((string) $f['name'], 0, 60)], ['type' => 'text', 'text' => $link]],
+                    $persoenlich ? [['type' => 'text', 'text' => mb_substr((string) $satz, 0, 160)]] : [])]]],
         ]);
         $ok = $r['status'] >= 200 && $r['status'] < 300 && !empty($r['json']['messages'][0]['id']);
         $id = (int) Db::insert('akq_versand', ['firma_id' => (int) $f['id'], 'kanal' => 'whatsapp', 'an' => '+' . $an, 'status' => $ok ? 'gesendet' : 'fehler',
             'compliance' => $gate['status'], 'grund' => $ok ? 'WhatsApp ' . $v['name'] . ' · ' . mb_substr((string) $r['json']['messages'][0]['id'], 0, 120)
                 : mb_substr('WhatsApp abgelehnt: ' . (string) ($r['json']['error']['message'] ?? ('HTTP ' . $r['status'])), 0, 255),
             'abmelde_token' => bin2hex(random_bytes(20)), 'actor' => $actor]);
-        return $ok ? ['ok' => true, 'id' => $id] : ['ok' => false, 'id' => $id, 'grund' => 'Meta hat die Nachricht nicht angenommen.'];
+        return $ok ? ['ok' => true, 'id' => $id, 'persoenlich' => $persoenlich] : ['ok' => false, 'id' => $id, 'grund' => 'Meta hat die Nachricht nicht angenommen.'];
     }
 
     /* ------------------------------ Antworten im Gespräch ------------------- */
@@ -489,11 +527,15 @@ final class WhatsAppCloud
             }
         }
         $klasse = AkquiseText::klassifizieren('', $text);
-        Db::insert('akq_antworten', ['firma_id' => (int) $f['id'], 'eingang_am' => date('Y-m-d H:i:s'), 'von' => '+' . preg_replace('~\D~', '', (string) $m['from']),
+        $antwortId = (int) Db::insert('akq_antworten', ['firma_id' => (int) $f['id'], 'eingang_am' => date('Y-m-d H:i:s'), 'von' => '+' . preg_replace('~\D~', '', (string) $m['from']),
             'betreff' => 'WhatsApp', 'text' => mb_substr($text !== '' ? $text : '[' . (string) ($m['type'] ?? 'Nachricht') . ']', 0, 5000), 'klasse' => $klasse]);
         Db::update('akq_firmen', (int) $f['id'], ['antwort_status' => $klasse, 'kontakt_status' => in_array((string) $f['kontakt_status'], ['kunde'], true) ? $f['kontakt_status'] : 'geantwortet']);
         Akquise::protokoll((int) $f['id'], 'antwort', 'Antwort per WhatsApp: „' . mb_substr($text, 0, 120) . '“');
         try { Events::melden('akquise_antwort', 'WhatsApp-Antwort von ' . $f['name'], 'gut', mb_substr($text, 0, 200), 'akquise/' . $f['id']); } catch (Throwable $e) { }
+        /* Vorschlag 8 (07.10.2026): im 24-Stunden-Fenster eindeutige Fälle sofort beantworten, sonst ein Entwurf in AI Freigaben. */
+        if ($text !== '') {
+            try { require_once __DIR__ . '/KiAntwort.php'; KiAntwort::nachEingang($antwortId, 'whatsapp'); } catch (Throwable $e) { }
+        }
         return true;
     }
 }

@@ -1540,6 +1540,24 @@ if ($post) {
                     = 'Verworfen — der Spürhund meldet diese Chance nicht wieder.';
                 zurueck('umsatz-chancen');
 
+            case 'ki_texte_speichern':
+                /* KI-Texte (07.10.2026, Vorschläge 11–13): Schalter je Bereich und Monatsbudget. Den Schlüssel trägt Uwe in config.local.php ein. */
+                require_once __DIR__ . '/src/Ki.php';
+                [$kiV, $kiN] = Ki::speichern($_POST);
+                Events::pruefspur('ki_texte', 'settings', null, ['an' => $kiV['an'], 'budget' => $kiV['budget_cent'], 'bereiche' => $kiV['bereiche']],
+                    ['an' => $kiN['an'], 'budget' => $kiN['budget_cent'], 'bereiche' => $kiN['bereiche']]);
+                $_SESSION['gut'] = 'Gespeichert. ' . ($kiN['an'] ? ($kiN['schluessel'] ? 'Die KI schreibt mit.' : 'Es fehlt noch der Schlüssel in config.local.php (ki_schluessel).') : 'Die KI ist aus — es gehen nur die festen Vorlagen.');
+                zurueck('einstellungen?b=claude#ki');
+
+            case 'kunde_ki_schalten':
+                /* Vorschlag 13: für einen Kunden nur die festen Vorlagen. */
+                $kkId = (int) ($_POST['id'] ?? 0);
+                $kkAus = (string) ($_POST['aus'] ?? '') === '1';
+                Db::run('UPDATE customers SET ki_aus = ? WHERE id = ?', [$kkAus ? 1 : 0, $kkId]);
+                Events::pruefspur('kunde_ki', 'customers', $kkId, [], ['ki_aus' => $kkAus ? 1 : 0]);
+                $_SESSION['gut'] = $kkAus ? 'Für diesen Kunden schreibt die KI nichts mehr dazu — nur die festen Vorlagen.' : 'Die KI schreibt für diesen Kunden wieder mit.';
+                zurueck('kunden/' . $kkId . '#emails');
+
             case 'claude_entziehen':
             case 'claude_zugang_schalten':
             case 'morgenbriefing_jetzt':
@@ -6005,6 +6023,7 @@ switch ($route) {
             $daten['briefing'] = (string) sicher(static fn() => Morgenbriefing::text(Morgenbriefing::daten()), '');
             $daten['briefingZuletzt'] = (string) sicher(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_morgenbriefing'", [], ''), '');
             $daten['telegramVerbunden'] = (bool) sicher(static function () { require_once __DIR__ . '/src/TelegramAdmin.php'; return TelegramAdmin::chat((int) Auth::id()) !== null; }, false);
+            $daten['ki'] = sicher(static function () { require_once __DIR__ . '/src/Ki.php'; return Ki::stand(); }, null);
         }
 
         if ($b === 'daten') {

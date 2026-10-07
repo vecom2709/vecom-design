@@ -422,6 +422,10 @@ final class AkquiseVersand
             Events::melden('akquise_antwort', 'Akquise: ' . AkquiseText::ANTWORT_KLASSEN[$klasse] . ' — ' . $f['name'],
                 'info', null, 'akquise/' . $firmaId);
         }
+        /* Ein fertiger Antwortentwurf in AI Freigaben (07.10.2026, Vorschlag 7) — raus nur mit Uwes Ja. */
+        if ($quelle !== 'hand') {
+            try { require_once __DIR__ . '/KiAntwort.php'; KiAntwort::nachEingang((int) $id, 'email'); } catch (Throwable $e) { }
+        }
         return ['id' => $id, 'klasse' => $klasse];
     }
 }

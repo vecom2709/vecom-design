@@ -9,6 +9,7 @@ $kmSt = KundeMails::STATUS[$m['status']] ?? [ucfirst((string) $m['status']), '']
     <tr><td>Wann</td><td><?= Fmt::h(Fmt::zeit((string) $m['zeit'])) ?></td></tr>
     <tr><td>Stand</td><td><span class="marke2 <?= Fmt::h($kmSt[1]) ?>"><?= Fmt::h($kmSt[0]) ?></span><?= $m['status'] !== 'gesendet' && $m['fehler'] !== '' ? ' <span style="color:var(--rot)">' . Fmt::h((string) $m['fehler']) . '</span>' : '' ?></td></tr>
     <tr><td>Anlass</td><td><?= Fmt::h((string) $m['anlass']) ?></td></tr>
+    <tr><td>KI-Absatz</td><td><?= ($m['ki'] ?? '') !== '' ? '<div style="border-left:3px solid var(--cyan);padding:4px 0 4px 10px;color:var(--dim);white-space:pre-line">' . Fmt::h((string) $m['ki']) . '</div><small style="color:var(--leise)">Dieser Absatz stammt von der KI (geprüft). Alles andere ist die feste Vorlage.</small>' : '— (nur feste Vorlage)' ?></td></tr>
     <tr><td>Anhänge</td><td><?= $m['anhaenge'] ? Fmt::h(implode(', ', array_map(static fn($a) => $a['name'] . ' (' . max(1, (int) round($a['groesse'] / 1024)) . ' KB)', $m['anhaenge']))) : '—' ?></td></tr>
   </tbody></table>
   <?php if ($m['anhaenge']): ?><p class="akq-klein" style="margin:8px 0 0">Die Anhänge selbst liegen in der Akte (Belege, Angebote) und werden dort jederzeit neu erzeugt.</p><?php endif; ?>

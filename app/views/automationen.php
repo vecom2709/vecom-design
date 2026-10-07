@@ -60,6 +60,20 @@ foreach ($liste as $regeln) { foreach ($regeln as $r) {
   </div>
 <?php endif; ?>
 
+<?php /* KI-Texte (07.10.2026, Vorschlag 12): Verbrauch und Deckel auf einen Blick. */
+  $amKi = (static function (): ?array { try { require_once dirname(__DIR__) . '/src/Ki.php'; return Ki::stand(); } catch (Throwable $e) { return null; } })();
+  if ($amKi): $amKv = $amKi['verbrauch']; $amKp = $amKi['budget_cent'] > 0 ? min(100, (int) round($amKv['kosten_cent'] / $amKi['budget_cent'] * 100)) : 0; ?>
+  <div class="block" id="ki-texte">
+    <h2>KI-Texte <span class="mehr"><a href="<?= Fmt::h(url('einstellungen') . '?b=claude#ki') ?>">einstellen</a></span></h2>
+    <p style="font-size:var(--fs-klein);margin:0 0 8px;color:var(--leise)">
+      <?= !$amKi['an'] ? 'Aus — es gehen nur die festen Vorlagen.' : (!$amKi['schluessel'] ? 'An, aber ohne Schlüssel (config.local.php, ki_schluessel) — es gehen nur die festen Vorlagen.' : 'Schreibt persönliche Absätze, Folge-Sätze und Antwortentwürfe — alles geprüft.') ?>
+    </p>
+    <div style="height:10px;border-radius:99px;background:var(--linie);overflow:hidden;max-width:420px" role="img" aria-label="<?= $amKp ?> Prozent des Monatsbudgets verbraucht"><div style="height:100%;width:<?= $amKp ?>%;background:<?= $amKp >= 90 ? 'var(--rot)' : 'var(--cyan)' ?>"></div></div>
+    <p style="font-size:var(--fs-klein);margin:6px 0 0;color:var(--dim)"><?= Fmt::h(number_format($amKv['kosten_cent'] / 100, 2, ',', '.')) ?> € von <?= Fmt::h(number_format($amKi['budget_cent'] / 100, 2, ',', '.')) ?> € diesen Monat ·
+      <?= (int) $amKv['angenommen'] ?> Texte angenommen · <?= (int) $amKv['abgelehnt'] ?> vom Prüfer verworfen</p>
+  </div>
+<?php endif; ?>
+
 <?php $gehalten = $gehalten ?? []; if ($gehalten): /* AI Office Stufe 0 (06.10.2026): was der Not-Aus zurückhielt */ ?>
   <div class="block" id="gehalten">
     <h2>Zurückgehalten: <?= count($gehalten) ?> Mail<?= count($gehalten) === 1 ? '' : 's' ?></h2>

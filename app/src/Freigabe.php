@@ -54,10 +54,12 @@ final class Freigabe
         'mahnung_schicken'      => ['tat' => 'mahnung_schicken',      'pflicht' => ['zahlung', 'stufe'], 'aenderbar' => [], 'wort' => 'Mahnung schicken'],
         // AI Office Stufe 5 (07.10.2026, Uwe: „Link über AI Freigaben“): der Download-Link fürs Exit-Paket.
         'exit_link_senden'      => ['tat' => 'exit_link_senden',      'pflicht' => ['paket'],            'aenderbar' => [], 'wort' => 'Exit-Paket-Link schicken'],
+        // KI-Texte (07.10.2026, Vorschlag 7): Antwortentwurf auf die Nachricht eines Betriebs.
+        'akquise_antwort'       => ['tat' => 'akquise_antwort',       'pflicht' => ['antwort', 'kanal', 'text'], 'aenderbar' => ['betreff', 'text'], 'wort' => 'Antwort an einen Betrieb'],
     ];
 
     /** Arten, die nur die Verwaltung selbst vorschlägt — nie Claude über den Connector. */
-    public const NUR_VERWALTUNG = ['exit_link_senden'];
+    public const NUR_VERWALTUNG = ['exit_link_senden', 'akquise_antwort'];
 
     /** Prüfnaht für die Kette: ersetzt die Telegram-Nachricht an Uwe. */
     public static $telegram = null;
@@ -108,7 +110,7 @@ final class Freigabe
     /** Nummern als Zahl, Schlüssel sortiert — damit „5“ und 5 derselbe Vorschlag sind. */
     private static function norm(array $d): array
     {
-        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe', 'paket'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
+        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe', 'paket', 'antwort'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
         ksort($d);
         return $d;
     }
@@ -285,6 +287,9 @@ final class Freigabe
                 $m = Mahnung::schicken((int) $d['zahlung'], $stufe);
                 if ($m !== 'raus') { throw new RuntimeException($m === 'versand_fehler' ? 'Sie wäre dran gewesen, aber der Versand hat nicht geklappt.' : 'Nichts zu tun: bezahlt, oder diese Stufe ging schon raus.'); }
                 return Mahnung::name($stufe) . ' ist raus — der Kunde hat sie samt frischem Zahlungslink.';
+            case 'akquise_antwort':
+                require_once __DIR__ . '/KiAntwort.php';
+                return KiAntwort::senden((int) $d['antwort'], (string) $d['kanal'] === 'whatsapp' ? 'whatsapp' : 'email', (string) ($d['betreff'] ?? ''), (string) $d['text']);
             case 'exit_link_senden':
                 require_once __DIR__ . '/ExitPaket.php';
                 $r = ExitPaket::linkSenden((int) $d['paket']);

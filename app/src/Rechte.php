@@ -55,7 +55,7 @@ final class Rechte
     public const NUR_ADMIN = [
         'akq_wa_speichern', 'akq_wa_anmelden', 'akq_meta_speichern', 'akq_meta_abo', 'akq_google_schluessel', 'akq_schluessel_neu',
         'akq_schalter_speichern', 'akq_postfach_speichern', 'akq_briefdienst_speichern', 'akq_grenzen_speichern', 'akq_regel_speichern',
-        'akq_brief_senden', 'akq_briefserie_senden', 'akq_brief_schalten', 'akq_sperre_loeschen', 'akq_sperrart_loesen',
+        'akq_brief_senden', 'akq_briefserie_senden', 'akq_brief_schalten', 'akq_sperre_loeschen', 'akq_sperrart_loesen', 'ki_texte_speichern', 'kunde_ki_schalten',
     ];
 
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):

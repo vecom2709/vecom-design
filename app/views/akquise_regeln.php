@@ -323,9 +323,11 @@ $blick = [
       <button class="knopf" style="justify-self:start">Speichern</button>
     </form>
     <?php if ($waV): ?>
-      <table style="margin-top:12px"><thead><tr><th>Schritt</th><th>Vorlage</th><th>Stand bei Meta</th></tr></thead><tbody>
+      <p class="akq-klein" style="margin:12px 0 0">„persönlich“ (07.10.2026): dieselben Schritte mit einem Satz, den die KI je Betrieb schreibt (ein echter Befund, geprüft).
+        Erst wenn Meta sie genehmigt hat, gehen sie statt der alten raus — vorher bleibt alles, wie es ist. Einreichen mit „Vorlagen bei Meta anmelden“.</p>
+      <table style="margin-top:8px"><thead><tr><th>Schritt</th><th>Vorlage</th><th>Stand bei Meta</th></tr></thead><tbody>
         <?php foreach ($waV as $wS => $wJe): foreach ($wJe as $wSp => $wZ): ?>
-          <tr><td class="akq-klein"><?= (int) $wS ?> · <?= strtoupper(Fmt::h($wSp)) ?></td><td class="akq-klein" title="<?= Fmt::h($wZ['text']) ?>"><code><?= Fmt::h($wZ['name']) ?></code></td>
+          <tr><td class="akq-klein"><?= $wS > 10 ? (int) ($wS - 10) . ' persönlich' : (int) $wS ?> · <?= strtoupper(Fmt::h($wSp)) ?></td><td class="akq-klein" title="<?= Fmt::h($wZ['text']) ?>"><code><?= Fmt::h($wZ['name']) ?></code></td>
             <td class="akq-klein" style="color:<?= $waFarbe[$wZ['meta_status']] ?? 'inherit' ?>"><?= Fmt::h($wZ['meta_status']) ?><?= $wZ['meta_grund'] ? ' — ' . Fmt::h((string) $wZ['meta_grund']) : '' ?></td></tr>
         <?php endforeach; endforeach; ?>
       </tbody></table>
