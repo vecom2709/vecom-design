@@ -24,7 +24,7 @@ $zeichen = static fn(string $stand): string => match ($stand) {
 
 <div class="kopf">
   <div><h1>Damit alles läuft</h1>
-    <p style="color:var(--leise);font-size:13px;margin-top:6px;max-width:62ch">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px;max-width:62ch">
       Zehn Dinge, die eingerichtet sein müssen, damit die Verwaltung von allein arbeitet.
       Jede Zeile misst etwas, das wirklich in den Daten steht — kein Haken bedeutet hier
       nur „ist eingetragen".</p></div>
@@ -70,7 +70,7 @@ $zeichen = static fn(string $stand): string => match ($stand) {
   <?php endforeach; ?>
 </div>
 
-<p style="color:var(--leise);font-size:12.5px;max-width:70ch">
+<p style="color:var(--leise);font-size:var(--fs-klein);max-width:70ch">
   Diese Seite ändert nichts von selbst. Sie sieht nur nach — jedes Mal neu, wenn du sie
   aufmachst.
 </p>

@@ -70,7 +70,7 @@ if ($nfVorwahl !== '') {
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       <input id="<?= $nfNr ?>_b" name="betreff" style="flex:1 1 220px;width:auto"
              maxlength="180" placeholder="Worum es geht" value="<?= Fmt::h($nfBetreff) ?>">
-      <span style="white-space:nowrap;font-size:12.5px;letter-spacing:.03em;color:var(--leise);
+      <span style="white-space:nowrap;font-size:var(--fs-klein);letter-spacing:.03em;color:var(--leise);
                    border:1px solid var(--linie);border-radius:8px;padding:8px 11px"
             title="Diese Kennung hängt die Verwaltung an jeden Betreff — damit zusammengehörige Mails zusammenbleiben.">· <?= Fmt::h((string) $nfKennung) ?></span>
     </div>
@@ -84,7 +84,7 @@ if ($nfVorwahl !== '') {
            ist nie "der naechste Schritt". Blau bleibt dem vorbehalten, was
            die Fuehrung gerade meint -- sonst heisst blau bald nichts mehr. */ ?>
   <button class="knopf">An den Kunden senden</button>
-  <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Geht als E-Mail raus und steht auf seiner Seite.</span>
+  <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Geht als E-Mail raus und steht auf seiner Seite.</span>
 </form>
 <?php if ($nfVorlagen): ?>
 <script>

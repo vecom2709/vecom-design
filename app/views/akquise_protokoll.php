@@ -3,7 +3,7 @@
 $akqTeil = 'protokoll';
 ?>
 <div class="kopf"><div><h1>Akquise-Protokoll</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Jeder automatische Schritt: gefunden, Website erkannt, Audit, Befunde, Score,
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Jeder automatische Schritt: gefunden, Website erkannt, Audit, Befunde, Score,
     Text, Compliance, Freigabe, Versand, Antwort. Die letzten 300 Einträge.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <div class="block">

@@ -227,7 +227,18 @@ final class Abo
                naechste_abrechnung auf einen Monat, der schon dasteht, und der
                naechtliche Lauf haengte fuer immer an dieser Stelle fest: Der
                Oktober kaeme nie, weil der September nicht noch einmal
-               angelegt werden kann. */
+               angelegt werden kann.
+
+               Aber NUR beim doppelten Schluessel. Jeder andere Fehler (Spalte
+               fehlt, Verbindung weg) hiess frueher ebenfalls „weiter“ — der
+               Monat war dann still verloren, nie berechnet. Jetzt bleibt die
+               Reihe stehen, und Uwe bekommt eine Meldung (Pruefung 07.10.2026,
+               Punkt 16). */
+            if (!Db::doppelt($e)) {
+                self::still(fn() => Events::melden('abo_fehler', 'Betreuung nicht abgerechnet', 'kritisch',
+                    mb_substr($bezeichnung . ': ' . $e->getMessage(), 0, 400), '/abos'));
+                return null;
+            }
             self::reiheWeiter($a, $monat);
             return null;
         }
@@ -429,6 +440,7 @@ final class Abo
             'customer_id' => (int) $z['customer_id'],
             'payment_id'  => $zahlungId,
             'antwortAn'   => Mail::eigeneAdresse(),
+            'nachher'     => ['tabelle' => 'payments', 'id' => $zahlungId, 'spalte' => 'faellig_am'],
         ]);
         if (!$ok) { return 'versand_fehler'; }
 

@@ -12,26 +12,26 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-reiter a{padding:7px 13px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13.5px}
   .akq-reiter a.an{background:var(--flaeche2);color:var(--text);border-color:var(--linie2)}
   .akq-reiter .rechts{margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-  .akq-score{display:inline-grid;place-items:center;min-width:40px;height:26px;padding:0 8px;border-radius:8px;font-weight:650;font-size:13px;
+  .akq-score{display:inline-grid;place-items:center;min-width:40px;height:26px;padding:0 8px;border-radius:8px;font-weight:650;font-size:var(--fs-klein);
     background:var(--flaeche2);border:1px solid var(--linie)}
   .akq-score.s-top{background:rgba(31,232,255,.14);border-color:rgba(31,232,255,.45);color:var(--cyan)}
   .akq-score.s-sehr_interessant{background:rgba(74,222,128,.12);border-color:rgba(74,222,128,.4);color:var(--gruen)}
   .akq-score.s-interessant{background:rgba(251,191,36,.1);border-color:rgba(251,191,36,.35);color:var(--gelb)}
   .akq-score.s-beobachten,.akq-score.s-gering{color:var(--dim)}
-  .akq-klein{font-size:12.5px;color:var(--leise)}
-  .akq-kontakt{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:13px;color:var(--text);word-break:break-all}
-  .akq-probleme{margin:0;padding-left:16px;font-size:12.5px;color:var(--dim);max-width:340px}
+  .akq-klein{font-size:var(--fs-klein);color:var(--leise)}
+  .akq-kontakt{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:4px;font-size:var(--fs-klein);color:var(--text);word-break:break-all}
+  .akq-probleme{margin:0;padding-left:16px;font-size:var(--fs-klein);color:var(--dim);max-width:340px}
   .akq-probleme li{margin:1px 0}
   .akq-filter{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:12px}
   .akq-filter .breit{grid-column:span 2}
-  .akq-filter label{font-size:11.5px;color:var(--leise);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+  .akq-filter label{font-size:var(--fs-klein);color:var(--leise);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
   .akq-tab td{vertical-align:top}
   .akq-tab tr:hover td{background:rgba(150,180,230,.035)}
   .akq-befund{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--flaeche2)}
   .akq-befund.unbelegt{border-style:dashed;opacity:.85}
   .akq-befund h4{font-size:14.5px;margin:0 0 4px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
   .akq-befund p{font-size:13.5px;color:var(--dim);margin:4px 0 0}
-  .akq-befund .beleg{font-family:ui-monospace,Menlo,monospace;font-size:12px;color:var(--leise);white-space:pre-wrap;word-break:break-word;margin-top:6px}
+  .akq-befund .beleg{font-family:ui-monospace,Menlo,monospace;font-size:var(--fs-klein);color:var(--leise);white-space:pre-wrap;word-break:break-word;margin-top:6px}
   .akq-schwere{display:inline-flex;gap:2px}
   .akq-schwere i{width:6px;height:10px;border-radius:2px;background:var(--linie2);display:inline-block}
   .akq-schwere i.an{background:var(--gelb)}
@@ -41,19 +41,19 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-teil .balken{height:5px;background:var(--linie);border-radius:3px;margin-top:6px;overflow:hidden}
   .akq-teil .balken span{display:block;height:100%;background:linear-gradient(90deg,var(--blau),var(--cyan))}
   .akq-stufen{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}
-  .akq-stufen span{font-size:12.5px;padding:5px 10px;border-radius:999px;border:1px solid var(--linie);color:var(--leise)}
+  .akq-stufen span{font-size:var(--fs-klein);padding:5px 10px;border-radius:999px;border:1px solid var(--linie);color:var(--leise)}
   .akq-stufen span.fertig{color:var(--gruen);border-color:rgba(74,222,128,.35)}
   .akq-stufen span.jetzt{color:var(--text);border-color:var(--cyan);box-shadow:0 0 0 1px rgba(31,232,255,.25) inset}
   .akq-foto{display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start}
   .akq-foto img{border-radius:12px;border:1px solid var(--linie);display:block;max-width:100%;height:auto}
   .akq-text{font-family:inherit;min-height:340px;line-height:1.55}
-  .akq-hinweise{margin:8px 0 0;padding-left:18px;color:var(--rot);font-size:13px}
+  .akq-hinweise{margin:8px 0 0;padding-left:18px;color:var(--rot);font-size:var(--fs-klein)}
   /* --- Einfache Sprache (26.09.2026): Chance, Ampel, fuenf Stufen, ein naechster Schritt --- */
-  .akq-chance{display:inline-flex;gap:6px;align-items:baseline;padding:3px 10px;border-radius:999px;font-size:13px;white-space:nowrap;
+  .akq-chance{display:inline-flex;gap:6px;align-items:baseline;padding:3px 10px;border-radius:999px;font-size:var(--fs-klein);white-space:nowrap;
     background:var(--flaeche2);border:1px solid var(--linie);color:var(--dim)}
   .akq-chance b{font-size:14px;color:var(--text)}
   /* Beim Partner (03.10.2026): wer telefoniert den Betrieb gerade ab */
-  .akq-partner{display:inline-flex;gap:6px;align-items:center;margin:5px 6px 0 0;padding:3px 10px;border-radius:999px;font-size:12.5px;white-space:nowrap;
+  .akq-partner{display:inline-flex;gap:6px;align-items:center;margin:5px 6px 0 0;padding:3px 10px;border-radius:999px;font-size:var(--fs-klein);white-space:nowrap;
     border:1px solid rgba(31,232,255,.45);color:var(--cyan);background:rgba(31,232,255,.07);text-decoration:none}
   .akq-partner b{color:var(--text);font-weight:650}
   .akq-partner.fertig{border-color:rgba(74,222,128,.4);color:var(--gruen);background:rgba(74,222,128,.07)}
@@ -61,15 +61,15 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-chance.s-top,.akq-chance.s-sehr_interessant{border-color:rgba(241,211,139,.5);color:var(--cyan)}
   .akq-chance.s-top b,.akq-chance.s-sehr_interessant b{color:var(--cyan)}
   .akq-chance.s-interessant{border-color:var(--linie2)}
-  .akq-ampel{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:var(--dim);white-space:nowrap}
+  .akq-ampel{display:inline-flex;gap:7px;align-items:center;font-size:var(--fs-klein);color:var(--dim);white-space:nowrap}
   .akq-ampel i{width:11px;height:11px;border-radius:50%;background:var(--leise);flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
   .akq-ampel.gruen i{background:var(--gruen)} .akq-ampel.gelb i{background:#f5c542} .akq-ampel.rot i{background:var(--rot)} .akq-ampel.blau i{background:#6aa8ff}
-  .akq-ampel.klein span{font-size:12px;color:var(--leise)}
+  .akq-ampel.klein span{font-size:var(--fs-klein);color:var(--leise)}
   .akq-stufen5{display:flex;gap:0;list-style:none;margin:12px 0 0;padding:0;flex-wrap:wrap;align-items:center}
-  .akq-stufen5 li{display:block;font-size:12.5px;line-height:1.4;padding:5px 12px;color:var(--leise);border:1px solid var(--linie);margin-left:-1px}
+  .akq-stufen5 li{display:block;font-size:var(--fs-klein);line-height:1.4;padding:5px 12px;color:var(--leise);border:1px solid var(--linie);margin-left:-1px}
   .akq-stufen5 li:first-child{border-radius:999px 0 0 999px;margin-left:0} .akq-stufen5 li:last-child{border-radius:0 999px 999px 0}
   .akq-stufen5 li.st-fertig{color:var(--dim);background:rgba(241,211,139,.05)}
-  .akq-pipeline li{padding:5px 10px;font-size:12px}
+  .akq-pipeline li{padding:5px 10px;font-size:var(--fs-klein)}
   .akq-stufen5 li.st-ueber{color:var(--leise);text-decoration:line-through;text-decoration-color:rgba(255,255,255,.25);opacity:.75}
   .akq-stufen5 li.st-verloren{color:#fff;background:var(--rot);border-color:var(--rot);font-weight:650;border-radius:0 999px 999px 0}
   .akq-pipeline-hand{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:8px 0 0}
@@ -81,24 +81,24 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-unterreiter{display:flex;gap:4px;border-bottom:1px solid var(--linie);margin:0 0 16px;overflow-x:auto}
   .akq-unterreiter a{padding:9px 14px;color:var(--dim);font-size:14px;border-bottom:2px solid transparent;margin-bottom:-1px;white-space:nowrap}
   .akq-unterreiter a.an{color:var(--text);border-bottom-color:var(--cyan)}
-  .akq-beleg{display:inline-block;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--linie);font-weight:500;vertical-align:1px}
+  .akq-beleg{display:inline-block;font-size:var(--fs-klein);padding:1px 8px;border-radius:999px;border:1px solid var(--linie);font-weight:500;vertical-align:1px}
   .akq-beleg.ja{color:var(--gruen);border-color:rgba(74,222,128,.35)} .akq-beleg.nein{color:#f5c542;border-color:rgba(245,197,66,.35);border-style:dashed}
   .akq-drei{margin:0 0 10px;padding-left:20px} .akq-drei li{margin:0 0 10px}
   .akq-fokus{border-color:rgba(241,211,139,.45)}
   .akq-haken{display:flex;gap:9px;align-items:flex-start;font-size:13.5px;margin:0 0 12px;color:var(--dim);cursor:pointer}
   .akq-haken input{width:auto;margin-top:3px;flex:none}
   .akq-weg{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-top:12px}
-  .akq-kat{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--leise);margin:14px 0 8px}
-  .knopf.klein{font-size:12px;padding:4px 10px;min-height:0}
+  .akq-kat{font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.07em;color:var(--leise);margin:14px 0 8px}
+  .knopf.klein{font-size:var(--fs-klein);padding:4px 10px;min-height:0}
   .knopf.akq-los{border-color:rgba(241,211,139,.55);color:var(--cyan);white-space:nowrap}
   .knopf.akq-los:hover{background:rgba(241,211,139,.1)}
   .akq-los-zeile{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
   .akq-los-zeile form{margin:0}
-  .akq-stufe{display:inline-block;margin-top:5px;font-size:11.5px;padding:1px 8px;border-radius:999px;border:1px solid var(--linie);color:var(--leise)}
+  .akq-stufe{display:inline-block;margin-top:5px;font-size:var(--fs-klein);padding:1px 8px;border-radius:999px;border:1px solid var(--linie);color:var(--leise)}
   .akq-stufe.st-bereit{color:var(--cyan);border-color:rgba(241,211,139,.4)} .akq-stufe.st-antwort{color:var(--gruen);border-color:rgba(74,222,128,.4)}
   .akq-chip{display:inline-block;margin:2px 4px 2px 0;padding:2px 10px;border-radius:999px;background:var(--flaeche2);border:1px solid var(--linie);color:var(--text)}
   .akq-suchzeile{display:grid;grid-template-columns:150px 1fr auto;gap:10px;align-items:end}
-  .akq-suchzeile label,.akq-filter label{font-size:11.5px;color:var(--leise);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
+  .akq-suchzeile label,.akq-filter label{font-size:var(--fs-klein);color:var(--leise);display:block;margin-bottom:3px;text-transform:uppercase;letter-spacing:.05em}
   .akq-suchzeile .knopf{min-height:42px}
   .akq-branchen{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:4px 12px;margin-top:8px;font-size:13.5px}
   .akq-branchen label{display:flex;gap:7px;align-items:center;color:var(--dim)} .akq-branchen input{width:auto}
@@ -108,7 +108,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-reiter-mehr{position:relative}
   .akq-reiter-mehr > summary{list-style:none;cursor:pointer;padding:7px 13px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13.5px}
   .akq-reiter-mehr > summary::-webkit-details-marker{display:none}
-  .akq-reiter-mehr > summary::after{content:" ▾";font-size:11px}
+  .akq-reiter-mehr > summary::after{content:" ▾";font-size:var(--fs-klein)}
   .akq-reiter-mehr[open] > summary{color:var(--text);border-color:var(--linie2)}
   .akq-reiter-menue{position:absolute;z-index:20;top:calc(100% + 6px);left:0;min-width:250px;display:grid;padding:6px;border-radius:14px;border:1px solid var(--linie2);background:var(--flaeche);box-shadow:0 18px 40px rgba(0,0,0,.45)}
   .akq-reiter-menue a{border:0!important;border-radius:9px!important;padding:9px 12px!important;color:var(--text)!important}
@@ -129,20 +129,20 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-st-gross{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
   .akq-st-gross b{font-size:28px;line-height:1;color:#f1d38b;font-variant-numeric:tabular-nums}
   .akq-st-gross span{font-size:14px;color:var(--dim)}
-  .akq-st-jetzt{margin-top:6px!important;font-size:12.5px!important;color:var(--leise)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .akq-st-jetzt{margin-top:6px!important;font-size:var(--fs-klein)!important;color:var(--leise)!important;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .akq-st-liste{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:7px}
   .akq-st-liste li{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) auto;gap:10px;align-items:center;font-size:13.5px}
   .akq-st-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-  .akq-st-name small{color:var(--leise);font-size:12px}
+  .akq-st-name small{color:var(--leise);font-size:var(--fs-klein)}
   .akq-st-mini{height:6px;border-radius:3px;background:var(--linie);overflow:hidden}
   .akq-st-mini span{display:block;height:100%;background:linear-gradient(90deg,#b8923f,#f1d38b)}
   .akq-st-liste li.fertig .akq-st-mini span{background:var(--gruen)}
-  .akq-st-zahl{font-variant-numeric:tabular-nums;color:var(--dim);font-size:12.5px;white-space:nowrap}
+  .akq-st-zahl{font-variant-numeric:tabular-nums;color:var(--dim);font-size:var(--fs-klein);white-space:nowrap}
   .akq-st-zahl a{color:var(--gruen)}
   .akq-st-zuletzt{list-style:none;margin:6px 0 0;padding:0;display:grid;gap:6px}
   .akq-st-zuletzt li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap;font-size:13.5px}
   .akq-st-zuletzt a{color:var(--text)}
-  .akq-st-zz{margin-left:auto;color:var(--dim);font-size:12.5px}
+  .akq-st-zz{margin-left:auto;color:var(--dim);font-size:var(--fs-klein)}
   @media (max-width:700px){ .akq-st-reihe{grid-template-columns:1fr} }
   .akq-wahl{display:flex;gap:10px;align-items:flex-start;cursor:pointer}
   .akq-wahl input{width:18px;height:18px;margin-top:2px;flex:none}
@@ -150,7 +150,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
     border:1px solid rgba(241,211,139,.55);border-radius:14px;background:var(--flaeche);box-shadow:0 14px 36px rgba(0,0,0,.5)}
   .akq-uebergabe[hidden]{display:none}
   .akq-uebergabe select{width:auto;min-width:180px}
-  .akq-uebergabe .akq-haken{font-size:12.5px;max-width:440px}
+  .akq-uebergabe .akq-haken{font-size:var(--fs-klein);max-width:440px}
   .akq-weg3{list-style:none;margin:0 0 16px;padding:0;display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
   .akq-weg3 li{border:1px solid var(--linie);border-radius:14px;padding:14px 16px;background:var(--flaeche);display:grid;gap:4px}
   .akq-weg3 b{font-size:15px;color:var(--cyan)}
@@ -162,7 +162,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-mehr > summary{cursor:pointer;font-size:13.5px;color:var(--dim);padding:12px 16px;border:1px solid var(--linie);border-radius:14px;background:var(--flaeche)}
   .akq-mehr[open] > summary{margin-bottom:12px}
   /* Akquise-CRM (06.10.2026): Priorität als Marke — Farbe und Zeichen, nie nur die Farbe. */
-  .crm-prio{display:inline-flex;gap:4px;align-items:center;padding:2px 9px;border-radius:999px;font-size:12.5px;font-weight:650;border:1px solid var(--linie);white-space:nowrap;font-variant-numeric:tabular-nums}
+  .crm-prio{display:inline-flex;gap:4px;align-items:center;padding:2px 9px;border-radius:999px;font-size:var(--fs-klein);font-weight:650;border:1px solid var(--linie);white-space:nowrap;font-variant-numeric:tabular-nums}
   .crm-prio.p-jetzt{border-color:rgba(255,138,138,.5);color:#ffb4a8} .crm-prio.p-gut{border-color:rgba(74,222,128,.45);color:var(--gruen)}
   .crm-prio.p-spaeter{border-color:rgba(245,197,66,.45);color:#f5c542} .crm-prio.p-niedrig{color:var(--leise)} .crm-prio.p-nie{border-color:var(--rot);color:var(--rot)}
   @media (max-width:700px){ .akq-filter .breit{grid-column:span 1} .akq-reiter .rechts{margin-left:0;width:100%}

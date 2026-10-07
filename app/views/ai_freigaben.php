@@ -14,7 +14,7 @@ $link = static function (array $f): string {
 ?>
 <div class="kopf">
   <div><h1>AI Freigaben</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was Claude vorbereitet hat und auf dein Ja wartet. Genehmigen löst genau die Tat aus, die auch dein Knopf
     in der Verwaltung auslöst — mit derselben Rückfrage. Ohne dein Ja passiert nichts.</p></div>
 </div>
@@ -30,7 +30,7 @@ $link = static function (array $f): string {
     <h2 style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><?= Fmt::h((string) $f['titel']) ?>
       <span class="marke2 <?= $schwer ? 'schlecht' : 'warnung' ?>" title="<?= Fmt::h($r['frage']) ?>"><?= $schwer ? 'wiegt schwer' : 'erreicht den Empfänger' ?></span>
       <?php if ($f['status'] === 'zurueckgestellt'): ?><span class="marke2">war zurückgestellt</span><?php endif; ?></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">
       <?= Fmt::h((string) $f['vorgeschlagen_von']) ?> · <?= Fmt::h((string) $f['system_name']) ?> · <?= Fmt::h(Fmt::zeit((string) $f['created_at'])) ?>
       <?php if ($ziel !== ''): ?> · <a href="<?= Fmt::h($ziel) ?>">Akte öffnen</a><?php endif; ?></p>
     <table class="schlicht fr-tabelle"><tbody>
@@ -63,7 +63,7 @@ $link = static function (array $f): string {
         <button class="knopf">Ablehnen</button></form>
       <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="freigabe_zurueckstellen">
         <input type="hidden" name="id" value="<?= (int) $f['id'] ?>"><input type="hidden" name="zurueck" value="ai-freigaben">
-        <span style="color:var(--leise);font-size:12.5px">Zurückstellen:</span>
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Zurückstellen:</span>
         <?php foreach (Freigabe::ZURUECK_TAGE as $tage => $wort): ?>
           <button class="knopf" name="tage" value="<?= (int) $tage ?>">bis <?= Fmt::h($wort) ?></button>
         <?php endforeach; ?></form>
@@ -74,7 +74,7 @@ $link = static function (array $f): string {
 <?php if ($gehalten): ?>
   <div class="block" id="gehalten">
     <h2>Vom Not-Aus zurückgehalten: <?= count($gehalten) ?> Mail<?= count($gehalten) === 1 ? '' : 's' ?></h2>
-    <p style="font-size:13px;margin:0 0 12px;color:var(--leise)">Automationen wollten sie während des Not-Aus verschicken. Nichts davon ist draußen.
+    <p style="font-size:var(--fs-klein);margin:0 0 12px;color:var(--leise)">Automationen wollten sie während des Not-Aus verschicken. Nichts davon ist draußen.
       <?= $notaus ? 'Senden geht erst, wenn der Not-Aus gelöst ist (Einstellungen → Automationen).' : '' ?></p>
     <?php foreach ($gehalten as $g): ?>
       <div class="fr-mail">
@@ -117,6 +117,6 @@ $link = static function (array $f): string {
   .fr-weiter{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:12px}
   .fr-weiter form{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0}
   .fr-mail{display:flex;gap:12px;justify-content:space-between;align-items:center;flex-wrap:wrap;padding:12px 0;border-top:1px solid var(--linie,rgba(255,255,255,.08))}
-  .fr-mail p{margin:4px 0 0;color:var(--leise);font-size:12.5px}
+  .fr-mail p{margin:4px 0 0;color:var(--leise);font-size:var(--fs-klein)}
   .fr-mail form{margin:0}
 </style>

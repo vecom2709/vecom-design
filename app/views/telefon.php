@@ -27,7 +27,7 @@ $filter = (string) ($_GET['f'] ?? '');
 ?>
 
 <div class="kopf"><div><h1>Telefonassistent</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     <?php if ($anzahl > 0): ?>
       <?= (int) $anzahl ?> <?= $anzahl === 1 ? 'Aufruf' : 'Aufrufe' ?> in den letzten 30 Tagen.
     <?php else: ?>
@@ -62,7 +62,7 @@ $filter = (string) ($_GET['f'] ?? '');
         <?= Fmt::h(Fmt::zeit((string) ($o['wann'] ?? ''))) ?></td>
       <td><b><?= Fmt::h((string) ($o['betreff'] ?? $o['titel'] ?? '—')) ?></b>
         <?php foreach ($o['gruende'] as $gr): ?>
-          <div style="color:var(--gelb);font-size:12.5px;margin-top:3px"><?= Fmt::h($gr) ?></div>
+          <div style="color:var(--gelb);font-size:var(--fs-klein);margin-top:3px"><?= Fmt::h($gr) ?></div>
         <?php endforeach; ?>
       </td>
     </tr>
@@ -100,7 +100,7 @@ $filter = (string) ($_GET['f'] ?? '');
 ?>
 <div class="block" style="border-color:<?= $alt ? 'var(--rot)' : 'var(--cyan)' ?>">
   <h2>Heute anrufen <span class="marke2"><?= count($rueckrufe) ?></span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Das Einzige auf dieser Seite, was du persönlich tun musst. Oben steht, was
     dringend ist — das hat der Anrufer selbst gesagt und schlägt jede Rechnung.
     Darunter sortiert, wie weit das Gespräch schon war: wer sechs Fragen beantwortet
@@ -114,7 +114,7 @@ $filter = (string) ($_GET['f'] ?? '');
       <tr<?= $r['ueberfaellig'] ? ' style="background:rgba(255,90,90,.06)"' : '' ?>>
         <td style="white-space:nowrap;vertical-align:top;width:1%">
           <?php if ($r['dringend']): ?><span class="marke2 schlecht">dringend</span><br><?php endif; ?>
-          <span style="color:var(--leise);font-size:12px">
+          <span style="color:var(--leise);font-size:var(--fs-klein)">
             <?= $r['stunden'] < 24
                   ? 'vor ' . (int) $r['stunden'] . ' h'
                   : 'seit ' . (int) round($r['stunden'] / 24) . ' Tag' . (round($r['stunden'] / 24) == 1 ? '' : 'en') ?>
@@ -125,13 +125,13 @@ $filter = (string) ($_GET['f'] ?? '');
             <a href="<?= Fmt::h(url('kunden/' . (int) $r['kunde_id'])) ?>"><?= Fmt::h(Fmt::name($r['wer'])) ?></a>
           <?php else: ?><?= Fmt::h($r['wer']) ?><?php endif; ?></b>
           <?php if ($r['anliegen'] !== ''): ?>
-            <div style="color:var(--leise);font-size:12.5px;margin-top:3px"><?= Fmt::h($r['anliegen']) ?></div>
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:3px"><?= Fmt::h($r['anliegen']) ?></div>
           <?php endif; ?>
           <?php /* Der Grund steht neben der Zahl. Eine Bewertung ohne
                     Begruendung ist eine Behauptung ueber einen Menschen,
                     und die stellt hier keine Software auf. */ ?>
           <?php if (!empty($r['gruende'])): ?>
-            <div style="color:var(--leise);font-size:12px;margin-top:4px">
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px">
               <?= Fmt::h(implode(' · ', $r['gruende'])) ?>
             </div>
           <?php endif; ?>
@@ -144,10 +144,10 @@ $filter = (string) ($_GET['f'] ?? '');
             <span style="color:var(--leise)">keine Nummer</span>
           <?php endif; ?>
           <?php if ($r['erreichbar'] !== ''): ?>
-            <div style="color:var(--leise);font-size:12.5px;margin-top:3px">
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:3px">
               erreichbar: <?= Fmt::h($r['erreichbar']) ?></div>
           <?php else: ?>
-            <div style="color:var(--leise);font-size:12.5px;margin-top:3px">kein Zeitfenster genannt</div>
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:3px">kein Zeitfenster genannt</div>
           <?php endif; ?>
         </td>
         <td style="text-align:right;vertical-align:top;white-space:nowrap">
@@ -181,19 +181,19 @@ $filter = (string) ($_GET['f'] ?? '');
   <?php if ($zz['anrufe'] > 0): ?>
   <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:14px 0 18px">
     <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['echte'] ?></div>
-      <div style="color:var(--leise);font-size:12px">echte Gespräche<br>(ab 30 Sekunden)</div></div>
+      <div style="color:var(--leise);font-size:var(--fs-klein)">echte Gespräche<br>(ab 30 Sekunden)</div></div>
     <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['minuten'] ?> min</div>
-      <div style="color:var(--leise);font-size:12px">Gesprächszeit<br>im Schnitt <?= Fmt::h((string) $zz['schnitt']) ?></div></div>
+      <div style="color:var(--leise);font-size:var(--fs-klein)">Gesprächszeit<br>im Schnitt <?= Fmt::h((string) $zz['schnitt']) ?></div></div>
     <div><div style="font-size:22px;font-weight:600"><?= (int) $zz['bekannt'] ?></div>
-      <div style="color:var(--leise);font-size:12px">von einem<br>bekannten Kunden</div></div>
+      <div style="color:var(--leise);font-size:var(--fs-klein)">von einem<br>bekannten Kunden</div></div>
     <div><div style="font-size:22px;font-weight:600;color:<?= $zz['verstoesse'] > 0 ? 'var(--rot)' : 'inherit' ?>"><?= (int) $zz['verstoesse'] ?></div>
-      <div style="color:var(--leise);font-size:12px">hat gegen ihre<br>Anweisungen gehandelt</div></div>
+      <div style="color:var(--leise);font-size:var(--fs-klein)">hat gegen ihre<br>Anweisungen gehandelt</div></div>
     <div><div style="font-size:22px;font-weight:600;color:<?= $zz['erfunden'] > 0 ? 'var(--rot)' : 'inherit' ?>"><?= (int) $zz['erfunden'] ?></div>
-      <div style="color:var(--leise);font-size:12px">hat etwas<br>erfunden</div></div>
+      <div style="color:var(--leise);font-size:var(--fs-klein)">hat etwas<br>erfunden</div></div>
   </div>
 
   <?php if ($zz['tags']): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 8px">
       Woran es lag — von STRATO je Anruf vermerkt, nicht von uns geraten:</p>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:18px">
       <?php foreach (array_slice($zz['tags'], 0, 10, true) as $t => $n): ?>
@@ -225,7 +225,7 @@ $filter = (string) ($_GET['f'] ?? '');
   </div>
 
   <?php if (!$gespraeche): ?>
-    <p style="color:var(--leise);font-size:13px">
+    <p style="color:var(--leise);font-size:var(--fs-klein)">
       <?= $strato['eingerichtet']
             ? 'In diesem Zeitraum steht nichts. Der Abgleich läuft stündlich mit dem Cronlauf.'
             : 'Noch kein Zugang zu STRATO hinterlegt — dann bleibt hier nur unsere eigene Spur weiter unten.' ?></p>
@@ -249,21 +249,21 @@ $filter = (string) ($_GET['f'] ?? '');
                  nie etwas aus, ohne dass die Seite springt. */ ?>
         <input type="checkbox" name="ids[]" value="<?= Fmt::h((string) $g['id']) ?>"
                onclick="event.stopPropagation()" style="margin:0;flex:0 0 auto">
-        <span style="color:var(--leise);font-size:12.5px;min-width:112px"><?= Fmt::h(Fmt::zeit((string) $g['begonnen'])) ?></span>
+        <span style="color:var(--leise);font-size:var(--fs-klein);min-width:112px"><?= Fmt::h(Fmt::zeit((string) $g['begonnen'])) ?></span>
         <b style="font-size:13.5px"><?= Fmt::h($wer) ?></b>
         <?php if ($g['kunde_id'] !== null): ?>
           <span class="marke2 gut">Kunde</span>
         <?php elseif ($ueberWidget): ?>
           <span class="marke2">über die Website</span>
         <?php endif; ?>
-        <span style="flex:1;color:var(--dim);font-size:13px"><?= Fmt::h((string) $g['betreff'] ?: '—') ?></span>
+        <span style="flex:1;color:var(--dim);font-size:var(--fs-klein)"><?= Fmt::h((string) $g['betreff'] ?: '—') ?></span>
         <?php if ((int) $g['verstoss'] || (int) $g['erfunden']): ?>
           <span class="marke2 schlecht">Verstoß</span>
         <?php endif; ?>
         <?php if ($g['ausgang']): ?>
           <span class="marke2 <?= Fmt::h($w['ton']) ?>"><?= Fmt::h($w['wort']) ?></span>
         <?php endif; ?>
-        <span style="color:var(--leise);font-size:12.5px;min-width:44px;text-align:right"><?= Fmt::h($min) ?></span>
+        <span style="color:var(--leise);font-size:var(--fs-klein);min-width:44px;text-align:right"><?= Fmt::h($min) ?></span>
       </summary>
 
       <div style="padding:14px 0 4px 112px">
@@ -287,14 +287,14 @@ $filter = (string) ($_GET['f'] ?? '');
         </div>
 
         <?php if ((string) $g['notizen'] !== ''): ?>
-          <p style="color:var(--dim);font-size:12.5px;line-height:1.65;margin:0 0 12px;
+          <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.65;margin:0 0 12px;
                     border-left:2px solid var(--linie);padding-left:12px">
             <b style="color:var(--leise)">Auswertung von STRATO:</b><br>
             <?= nl2br(Fmt::h((string) $g['notizen'])) ?></p>
         <?php endif; ?>
 
         <?php if ((int) $g['verstoss'] && (string) $g['verstoss_text'] !== ''): ?>
-          <p style="color:var(--rot);font-size:12.5px;line-height:1.65;margin:0 0 12px;
+          <p style="color:var(--rot);font-size:var(--fs-klein);line-height:1.65;margin:0 0 12px;
                     border-left:2px solid var(--rot);padding-left:12px">
             <b>Gegen ihre Anweisungen:</b><br><?= Fmt::h((string) $g['verstoss_text']) ?></p>
         <?php endif; ?>
@@ -306,16 +306,16 @@ $filter = (string) ($_GET['f'] ?? '');
         <?php $sp = $spuren[(string) $g['id']] ?? []; ?>
         <?php if ($sp): ?>
           <div style="margin-top:6px">
-            <div style="color:var(--leise);font-size:12px;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+            <div style="color:var(--leise);font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
               Was sie dabei getan hat</div>
-            <table style="font-size:12.5px"><tbody>
+            <table style="font-size:var(--fs-klein)"><tbody>
             <?php foreach ($sp as $a):
               $m = json_decode((string) $a['meta'], true) ?: []; ?>
               <tr>
                 <td style="color:var(--leise);white-space:nowrap;width:60px"><?= Fmt::h(substr((string) $a['created_at'], 11, 5)) ?></td>
                 <td><?= Fmt::h((string) $a['title']) ?>
                   <?php if (is_array($m) && $m): ?>
-                    <div style="color:var(--leise);font-size:11.5px;word-break:break-word">
+                    <div style="color:var(--leise);font-size:var(--fs-klein);word-break:break-word">
                       <?= Fmt::h(mb_substr((string) json_encode($m, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 0, 400)) ?></div>
                   <?php endif; ?></td>
               </tr>
@@ -328,12 +328,12 @@ $filter = (string) ($_GET['f'] ?? '');
                    hingeschrieben und nicht verschwiegen: Eine leere Spur, die
                    „nichts getan" bedeutet, und eine leere Spur, die „nicht
                    gefunden" bedeutet, sind zwei verschiedene Dinge. */ ?>
-          <p style="color:var(--leise);font-size:12.5px;margin:0">
+          <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">
             STRATO zählt <?= (int) $g['werkzeuge'] ?> Werkzeugaufrufe, in unserer Spur steht
             zu dieser Zeit keiner. Die beiden werden über die Uhrzeit zusammengeführt —
             gehen die Uhren auseinander, passiert genau das.</p>
         <?php else: ?>
-          <p style="color:var(--leise);font-size:12.5px;margin:0">
+          <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">
             Kein Werkzeugaufruf — sie hat frei gesprochen.</p>
         <?php endif; ?>
       </div>
@@ -353,7 +353,7 @@ $filter = (string) ($_GET['f'] ?? '');
                        ? true
                        : (alert('Nichts ausgewählt — erst ein Kästchen anhaken.'), false)">
         Ausgewählte löschen</button>
-      <span style="color:var(--leise);font-size:12.5px">
+      <span style="color:var(--leise);font-size:var(--fs-klein)">
         Mit der Spur: Was Manuela dabei getan hat, geht mit.</span>
     </div>
   <?php endif; ?>
@@ -366,7 +366,7 @@ $filter = (string) ($_GET['f'] ?? '');
     <p style="color:var(--dim);font-size:13.5px;line-height:1.7;margin:8px 0 14px">
       Alles, was älter ist als der gewählte Zeitraum — Gespräche samt Spur, oder nur den
       Verlauf. Woran noch etwas hängt, bleibt zunächst stehen und wird einzeln gefragt.
-      <br><span style="color:var(--leise);font-size:12.5px">Bei STRATO bleiben die Anrufe
+      <br><span style="color:var(--leise);font-size:var(--fs-klein)">Bei STRATO bleiben die Anrufe
       liegen; daran kommen wir nicht heran. Hier kommen sie nicht wieder.</span>
     </p>
     <div style="display:flex;gap:22px;flex-wrap:wrap">
@@ -405,7 +405,7 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php if ($t): ?>
 <div class="block">
   <h2>Trägt es sich? <span class="mehr" style="font-weight:400;color:var(--leise)">letzte 90 Tage</span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 14px">
     Jede Zeile zählt <b>Gespräche</b>, nicht Dinge: von so vielen Anrufen ging ein
     Link raus, aus so vielen wurde ein ausgefüllter Bedarf, daraus eine Anfrage,
     daraus eine Bestellung. Interessant ist, <b>wo</b> es abreißt. Bleiben Anrufe
@@ -438,7 +438,7 @@ $filter = (string) ($_GET['f'] ?? '');
     <?php $vorher = $zahl; endforeach; ?>
   </div>
   <?php if ((int) ($t['anrufe'] ?? 0) === 0): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
       Noch kein Anruf. Die Zahlen füllen sich, sobald STRATO die Aktionen ruft.</p>
   <?php endif; ?>
 </div>
@@ -448,7 +448,7 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php if (!empty($cli)): ?>
 <div class="block">
   <h2>Kommt die Anrufernummer an?</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Davon hängt ab, ob Manuela Bestandskunden am Telefon erkennt oder ob jeder erst
     Namen und Kundennummer buchstabieren muss. Zwischen dem Anrufer und der Verwaltung
     liegen zwei fremde Systeme — die Weiterleitung beim Telefonanbieter und STRATO.
@@ -485,7 +485,7 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php if ($off): ?>
 <div class="block" style="border-color:var(--rot)">
   <h2>Angefangen und nichts daraus geworden <span class="marke2"><?= count($off) ?></span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     In diesen Gesprächen hat Manuela gearbeitet, aber nichts verschickt und keinen
     Rückruf angelegt. Entweder hat der Anrufer aufgelegt — oder sie hat etwas zugesagt
     und nicht eingelöst. Beides ist einen Anruf wert, solange es frisch ist.</p>
@@ -496,7 +496,7 @@ $filter = (string) ($_GET['f'] ?? '');
         <tr>
           <td style="white-space:nowrap;vertical-align:top">
             <?= Fmt::h(Fmt::zeit((string) $o['wann'])) ?>
-            <div style="color:var(--leise);font-size:12px">
+            <div style="color:var(--leise);font-size:var(--fs-klein)">
               <?= (int) $o['stunden'] < 24
                     ? 'vor ' . (int) $o['stunden'] . ' h'
                     : 'vor ' . (int) round(((int) $o['stunden']) / 24) . ' Tagen' ?></div>
@@ -506,7 +506,7 @@ $filter = (string) ($_GET['f'] ?? '');
               <a href="<?= Fmt::h(url('kunden/' . (int) $o['kunde_id'])) ?>"><?= Fmt::h(Fmt::name($o['wer'])) ?></a>
             <?php else: ?><?= Fmt::h((string) $o['wer']) ?><?php endif; ?>
           </td>
-          <td style="vertical-align:top;color:var(--leise);font-size:12.5px">
+          <td style="vertical-align:top;color:var(--leise);font-size:var(--fs-klein)">
             <?php if ((string) $o['seite'] !== ''): ?>
               Seite angesehen: <b><?= Fmt::h((string) $o['seite']) ?></b><br>
             <?php endif; ?>
@@ -540,7 +540,7 @@ $filter = (string) ($_GET['f'] ?? '');
   <h2>Was sie sich angewöhnt hat
     <span class="mehr" style="font-weight:400;color:var(--leise)">
       <?= (int) ($rb['gespraeche'] ?? 0) ?> Gespräche der letzten <?= (int) ($rb['tage'] ?? 7) ?> Tage</span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Jedes einzelne Gespräch sieht in Ordnung aus — sichtbar wird es erst im Muster.
     Rechts steht der Satz, der es abstellt: bei STRATO unter
     <b>Sprache, Stimme &amp; Verhalten → Verhalten im Telefonat</b> ergänzen.</p>
@@ -556,14 +556,14 @@ $filter = (string) ($_GET['f'] ?? '');
     </tbody>
   </table>
   <?php if (!empty($rb['stand'])): ?>
-    <p style="color:var(--leise);font-size:12px;margin:10px 0 0">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:10px 0 0">
       Stand: <?= Fmt::h(Fmt::zeit((string) $rb['stand'])) ?></p>
   <?php endif; ?>
 </div>
 <?php elseif (is_array($rb)): ?>
 <div class="block">
   <h2>Was sie sich angewöhnt hat</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 0">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 0">
     Nichts aufgefallen in <?= (int) ($rb['gespraeche'] ?? 0) ?> Gesprächen der letzten
     <?= (int) ($rb['tage'] ?? 7) ?> Tage. Der Rückblick läuft einmal die Woche von selbst.</p>
 </div>
@@ -573,7 +573,7 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php if (!empty($haken)): ?>
 <div class="block">
   <h2>Woran es hakt <span class="mehr" style="font-weight:400;color:var(--leise)">letzte 90 Tage</span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Jede Zeile ist jemand, der angerufen hat, weil er nicht weiterkam. Zwanzig Anrufe
     zum Fragebogen sind kein Support-Fall, sondern ein Produktfehler — dann ist nicht
     der Assistent zu verbessern, sondern der Fragebogen.
@@ -604,14 +604,14 @@ $filter = (string) ($_GET['f'] ?? '');
 <?php if (!empty($luecken)): ?>
 <div class="block" style="border-color:var(--cyan)">
   <h2>Was Manuela nicht wusste <span class="marke2"><?= count($luecken) ?></span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Die wertvollste Liste dieser Seite. Jede Zeile ist eine Frage, die ein echter
     Anrufer gestellt hat und auf die es keine Antwort gab. Beantworte sie in der
     Wissensbasis bei STRATO — dann verschwindet sie hier.</p>
   <table class="tab"><tbody>
     <?php foreach ($luecken as $l): ?>
       <tr>
-        <td style="white-space:nowrap;color:var(--leise);font-size:12.5px"><?=
+        <td style="white-space:nowrap;color:var(--leise);font-size:var(--fs-klein)"><?=
           Fmt::h(Fmt::zeit((string) ($l['wann'] ?? ''))) ?></td>
         <td><?= Fmt::h((string) ($l['frage'] ?? '')) ?></td>
         <td style="text-align:right">
@@ -629,12 +629,12 @@ $filter = (string) ($_GET['f'] ?? '');
 
 <div class="block">
   <h2>Was der Assistent getan hat</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Jeder Aufruf steht hier. Ein Assistent, der unbeobachtet in die Verwaltung schreibt,
     ist so viel wert wie das Vertrauen, das man ihm entgegenbringt — und das hält nur,
     solange man nachsehen kann.</p>
   <?php if (!$verlauf): ?>
-    <p style="color:var(--leise);font-size:13px">Noch nichts.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein)">Noch nichts.</p>
   <?php else: ?>
     <table class="tab"><thead><tr><th>Wann</th><th>Was</th><th>Kunde</th></tr></thead><tbody>
       <?php foreach ($verlauf as $z): ?>

@@ -123,7 +123,8 @@ final class PartnerGeraet
         try {
             require_once __DIR__ . '/Mail.php';
             $ok = Mail::senden('partner_geraet', (string) $p['email'], $t('geraet_mail_betreff'),
-                strtr($t('geraet_mail_text'), ['{name}' => (string) $p['name'], '{code}' => $code, '{min}' => (string) self::CODE_MINUTEN, '{geraet}' => $bezeichnung]));
+                strtr($t('geraet_mail_text'), ['{name}' => (string) $p['name'], '{code}' => $code, '{min}' => (string) self::CODE_MINUTEN, '{geraet}' => $bezeichnung]),
+                ['sprache' => in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it', 'empfaengerArt' => 'partner']);
         } catch (Throwable $e) { $ok = false; }
         if ($ok) { return 'gesendet'; }
         /* Mail ging nicht raus: Uwe sieht den Code, damit der Partner nicht ausgesperrt ist.

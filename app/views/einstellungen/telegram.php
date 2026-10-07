@@ -77,7 +77,7 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
     </div>
   <?php endif; ?>
 
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:14px 0 0">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:14px 0 0">
     Adresse, die Telegram aufruft: <code style="user-select:all"><?= Fmt::h((string) ($tg['adresse'] ?? '')) ?></code><br>
     <?php if ($link !== ''): ?>
       Link zum Bot: <a href="<?= Fmt::h($link) ?>" target="_blank" rel="noopener"><?= Fmt::h($link) ?></a>
@@ -202,9 +202,9 @@ $link = !empty($tg['name']) ? 'https://t.me/' . $tg['name'] : '';
           <?php foreach ($tgU as $u): $um = max(1, max(array_column($u['antworten'], 'stimmen') ?: [0])); ?>
             <div style="border:1px solid var(--linie);border-radius:12px;padding:12px 14px">
               <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap"><b style="font-size:14px"><?= Fmt::h((string) $u['frage']) ?></b>
-                <span style="color:var(--leise);font-size:12.5px"><?= Fmt::h(date('d.m.Y', strtotime((string) $u['angelegt_am']))) ?> · <?= (int) $u['gesamt'] ?> Stimmen · <?= $u['status'] === 'beendet' ? 'beendet' : 'läuft' ?></span></div>
+                <span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h(date('d.m.Y', strtotime((string) $u['angelegt_am']))) ?> · <?= (int) $u['gesamt'] ?> Stimmen · <?= $u['status'] === 'beendet' ? 'beendet' : 'läuft' ?></span></div>
               <?php foreach ($u['antworten'] as $an): ?>
-                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin-top:8px;font-size:13px">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;margin-top:8px;font-size:var(--fs-klein)">
                   <span><?= Fmt::h($an['text']) ?></span><span><?= (int) $an['stimmen'] ?><?= (int) $u['gesamt'] > 0 ? ' · ' . round(100 * (int) $an['stimmen'] / (int) $u['gesamt']) . ' %' : '' ?></span>
                   <span style="grid-column:1/-1;height:6px;border-radius:3px;background:var(--linie)"><span style="display:block;height:6px;border-radius:3px;background:var(--gelb);width:<?= (int) round(100 * (int) $an['stimmen'] / $um) ?>%"></span></span>
                 </div>

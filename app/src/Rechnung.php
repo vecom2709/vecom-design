@@ -61,10 +61,45 @@ final class Rechnung
     public static function steuerfall(array $kunde, string $datum): array
     {
         if (!self::istRechnung($datum)) { return ['fall' => 'beleg', 'satz' => 0.0, 'natura' => null]; }
+        /* Vor jeder echten Rechnung: Stehen die Pflichtangaben? Eine Rechnung
+           ohne Anschrift, mit 0 % IVA ohne Natura oder mit falscher P.IVA nimmt
+           die Agenzia nicht an — und eine ausgestellte Nummer laesst sich nicht
+           zuruecknehmen. Dann lieber ein Zahlungsbeleg und eine laute Meldung
+           (Pruefung 07.10.2026, Punkte 15 und 50). */
+        $maengel = self::bereit();
+        if ($maengel !== []) {
+            try {
+                Events::melden('rechnung_nicht_bereit', 'Rechnungsdaten unvollständig — Zahlungsbeleg statt Rechnung', 'kritisch',
+                    mb_substr(implode(' · ', $maengel) . '. Bitte unter Einstellungen → Firma ergänzen; danach den Beleg neu ausstellen.', 0, 480), '/einstellungen');
+            } catch (Throwable $e) { /* ohne Meldung */ }
+            return ['fall' => 'beleg', 'satz' => 0.0, 'natura' => null];
+        }
         $iso = self::landIso((string) ($kunde['country'] ?? ''));
         if ($iso !== 'IT' && trim((string) ($kunde['vat_id'] ?? '')) !== '') { return ['fall' => 'reverse_charge', 'satz' => 0.0, 'natura' => 'N2.1']; }
         if (Firma::regime() === 'forfettario') { return ['fall' => 'forfettario', 'satz' => 0.0, 'natura' => 'N2.2']; }
-        return ['fall' => 'ordinario', 'satz' => Firma::mwstEingetragen(), 'natura' => null];
+        $satz = Firma::mwstEingetragen();
+        return ['fall' => 'ordinario', 'satz' => $satz, 'natura' => null];
+    }
+
+    /**
+     * Was einer echten Rechnung noch fehlt (leer = bereit). Wird nur gefragt,
+     * wenn die Partita IVA steht; geprueft wird das, was auf jeder Rechnung
+     * nach Art. 21 DPR 633/72 und in der FatturaPA Pflicht ist.
+     * @return list<string>
+     */
+    public static function bereit(): array
+    {
+        $m = [];
+        $piva = preg_replace('~\s+~', '', Firma::get('piva'));
+        if (!preg_match('~^(IT)?\d{11}$~i', $piva)) { $m[] = 'Partita IVA hat nicht 11 Ziffern'; }
+        $cf = strtoupper(preg_replace('~\s+~', '', Firma::get('steuernr')));
+        if ($cf === '') { $m[] = 'Codice fiscale fehlt'; }
+        elseif (!preg_match('~^([A-Z0-9]{16}|\d{11})$~', $cf)) { $m[] = 'Codice fiscale hat nicht 16 Zeichen'; }
+        if (trim(Firma::get('strasse')) === '') { $m[] = 'Straße fehlt'; }
+        if (!preg_match('~^\d{5}$~', trim(Firma::get('plz')))) { $m[] = 'PLZ (5 Ziffern) fehlt'; }
+        if (trim(Firma::get('ort')) === '') { $m[] = 'Ort fehlt'; }
+        if (Firma::regime() !== 'forfettario' && Firma::mwstEingetragen() <= 0) { $m[] = 'Regime ordinario, aber kein IVA-Satz'; }
+        return $m;
     }
 
     /** Die Pflichtsätze für dieses Dokument, in der Sprache des Kunden (Gesetzeswortlaut bleibt italienisch). @return list<string> */
@@ -549,9 +584,9 @@ final class Rechnung
         if ($satz > 0) {
             $summen[] = [$wo['netto'], $geld((int) $r['net_cents']) . ' €'];
             $summen[] = ['IVA ' . rtrim(rtrim(number_format($satz, 2, ',', '.'), '0'), ',') . ' %', $geld((int) $r['tax_cents']) . ' €'];
-        } elseif ($typ !== 'beleg') {
+        } elseif ($typ !== 'beleg' && !empty($r['natura'])) {
             $summen[] = [$wo['netto'], $geld((int) $r['net_cents']) . ' €'];
-            $summen[] = ['IVA (' . ($r['natura'] ?? 'N2.2') . ')', '0,00 €'];
+            $summen[] = ['IVA (' . (string) $r['natura'] . ')', '0,00 €'];
         }
         $d->summen($summen, $wo['gesamt'], ($typ === 'gutschrift' ? '− ' : '') . $geld((int) $r['total_cents']) . ' €');
 
@@ -606,6 +641,16 @@ final class Rechnung
      * @return int Id der Gutschrift
      */
     public static function gutschrift(int $invoiceId, int $cents, string $grund, string $wer): int
+    {
+        /* Prüfung 07.10.2026 (Befund 13): Zwei gleichzeitige Gutschriften über den vollen Rest ergaben zusammen mehr
+           als das Original. Eine Sperre je Dokument: summieren und einfügen geschieht nacheinander. */
+        $sperre = 'vecom_gutschrift_' . $invoiceId;
+        if ((int) Db::wert('SELECT GET_LOCK(?, 10)', [$sperre], 0) !== 1) { throw new RuntimeException('Gerade wird schon eine Gutschrift zu diesem Dokument angelegt — bitte gleich noch einmal.'); }
+        try { return self::gutschriftGesperrt($invoiceId, $cents, $grund, $wer); }
+        finally { try { Db::wert('SELECT RELEASE_LOCK(?)', [$sperre], 0); } catch (Throwable $e) { } }
+    }
+
+    private static function gutschriftGesperrt(int $invoiceId, int $cents, string $grund, string $wer): int
     {
         $o = Db::one('SELECT * FROM invoices WHERE id = ?', [$invoiceId]);
         if (!$o) { throw new RuntimeException('Dokument nicht gefunden.'); }
@@ -882,6 +927,7 @@ final class Rechnung
             'order_id'    => $r['order_id'] !== null ? (int) $r['order_id'] : null,
             'antwortAn'   => Mail::eigeneAdresse(),
             'anhaenge'    => $anhaenge,
+            'nachher'     => ['tabelle' => 'invoices', 'id' => (int) $r['id'], 'spalte' => 'sent_at'],
         ]);
         if ($ok) {
             try { Db::update('invoices', (int) $r['id'], ['sent_at' => date('Y-m-d H:i:s')]); }

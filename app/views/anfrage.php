@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1><?= Fmt::h($a['name']) ?></h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Anfrage vom <?= Fmt::h(Fmt::datum($a['created_at'])) ?>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Anfrage vom <?= Fmt::h(Fmt::datum($a['created_at'])) ?>
   <?php if ($a['customer_id']): ?> · <a href="<?= Fmt::h(url('kunden/' . (int) $a['customer_id'])) ?>">Kundenakte</a><?php endif; ?></p></div>
   <a class="knopf" href="<?= Fmt::h(url('anfragen')) ?>">Zurück</a>
 </div>
@@ -15,18 +15,18 @@
 
 <div class="block">
   <h2>Seine private Seite</h2>
-  <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Dieselbe Adresse, die in der Eingangsbestätigung
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Dieselbe Adresse, die in der Eingangsbestätigung
   steht. Dort sieht er seine Anfrage, kann schreiben und Unterlagen hochladen. Kein Konto, kein Passwort —
   wer den Link hat, kommt hinein. Also nur an ihn weitergeben.</p>
   <?php $vorgang = sicher(static fn() => $a['token'] ? Anfrage::link((string) $a['token']) : '', ''); ?>
   <?php if ($vorgang): ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <input type="text" readonly value="<?= Fmt::h($vorgang) ?>" onclick="this.select()"
-             style="flex:1;min-width:280px;font-size:13px">
+             style="flex:1;min-width:280px;font-size:var(--fs-klein)">
       <a class="knopf" href="<?= Fmt::h($vorgang) ?>" target="_blank" rel="noopener">Ansehen</a>
     </div>
   <?php else: ?>
-    <p style="color:var(--leise);font-size:13px;margin:0">Für diese Anfrage gibt es keinen Zugang.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Für diese Anfrage gibt es keinen Zugang.</p>
   <?php endif; ?>
 </div>
 
@@ -68,7 +68,7 @@
             + <?= Fmt::geld((int) $bVorschlag['monatlich_cents']) ?> im Monat</span>
         <?php endif; ?>
       </p>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0">
         Errechnet aus den Antworten, gerundet wie im Angebot. Die fertige Nachricht
         an den Kunden — in seiner Sprache, mit dieser Zahl und den Posten dazu —
         steht beim Bedarf und muss nur noch abgeschickt werden.
@@ -133,7 +133,7 @@
         <input name="domain" value="<?= Fmt::h($hWunsch) ?>" placeholder="wunschdomain.it" required style="min-width:220px">
         <button class="knopf haupt">Prüfen und dem Kunden anbieten &rsaquo;</button>
       </form>
-      <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Nur eine als frei bestätigte Domain wird angeboten.</p>
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0">Nur eine als frei bestätigte Domain wird angeboten.</p>
     <?php endif; ?>
   </div>
 
@@ -187,7 +187,7 @@
   <?php if ($pakete): ?>
     <div class="block">
       <h2>Oder direkt ein Festpreis-Paket</h2>
-      <p style="color:var(--leise);font-size:13px;line-height:1.65">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65">
         Nur, wenn ihr euch schon auf ein Paket geeinigt habt — sonst führt der Weg oben weiter.
         Beim Anlegen entsteht die Anzahlung automatisch; den Zahlungslink erzeugst du danach
         in der Bestellung.</p>

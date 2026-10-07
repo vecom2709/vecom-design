@@ -106,6 +106,59 @@ final class Einrichtung
     }
 
     /**
+     * SELBSTHEILUNG DES SCHEMAS (live gefunden 07.10.2026)
+     *
+     * Migration 190 und 193 standen als „angewandt“ in der Tabelle, live fehlten aber die Spalten
+     * partner.test und akq_firmen.prio_am — jede Minute scheiterten zwei Automationen daran.
+     * Ursache: Eine Migrationsdatei wurde nach dem Einspielen noch ergänzt; neue Zeilen in einer
+     * schon vermerkten Datei laufen nie. Hier wird für jede vermerkte Datei nachgesehen, ob die
+     * Spalten, die sie mit ADD COLUMN IF NOT EXISTS anlegt, wirklich da sind. Fehlt eine, laufen
+     * ihre WIEDERHOLBAREN Anweisungen noch einmal (CREATE … IF NOT EXISTS, ADD … IF NOT EXISTS) —
+     * nie UPDATE, INSERT, DELETE oder DROP.
+     * @return array{nachgezogen:list<string>, fehler:list<string>}
+     */
+    public static function schemaNachziehen(): array
+    {
+        $aus = ['nachgezogen' => [], 'fehler' => []];
+        try {
+            $da = [];
+            foreach (Db::all('SELECT TABLE_NAME AS t, COLUMN_NAME AS c FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE()') as $z) {
+                $da[strtolower((string) $z['t']) . '.' . strtolower((string) $z['c'])] = true;
+            }
+            $vermerkt = array_column(Db::all('SELECT datei FROM migrations'), 'datei');
+        } catch (Throwable $e) { return ['nachgezogen' => [], 'fehler' => [$e->getMessage()]]; }
+        foreach ($vermerkt as $name) {
+            $pfad = dirname(__DIR__) . '/migrations/' . basename((string) $name);
+            if (!is_file($pfad)) { continue; }
+            $sql = preg_replace('~^\s*--.*$~m', '', (string) file_get_contents($pfad)) ?? '';
+            $fehlt = false;
+            foreach (self::anweisungen($sql) as $a) {
+                if (!preg_match('~^\s*ALTER\s+TABLE\s+`?(\w+)`?~i', $a, $t)) { continue; }
+                if (preg_match_all('~ADD\s+COLUMN\s+IF\s+NOT\s+EXISTS\s+`?(\w+)`?~i', $a, $sp)) {
+                    foreach ($sp[1] as $c) { if (!isset($da[strtolower($t[1]) . '.' . strtolower($c)])) { $fehlt = true; break 2; } }
+                }
+            }
+            if (!$fehlt) { continue; }
+            foreach (self::anweisungen($sql) as $a) {
+                $wiederholbar = preg_match('~^\s*CREATE\s+(TABLE|INDEX|UNIQUE\s+INDEX)\s+IF\s+NOT\s+EXISTS~i', $a)
+                    || (preg_match('~^\s*ALTER\s+TABLE~i', $a) && !preg_match('~\b(DROP|RENAME|CHANGE|MODIFY)\b~i', $a)
+                        && preg_match_all('~\bADD\b~i', $a) === preg_match_all('~\bADD\s+(COLUMN\s+)?(INDEX\s+|KEY\s+|UNIQUE\s+(INDEX\s+|KEY\s+)?)?IF\s+NOT\s+EXISTS~i', $a));
+                if (!$wiederholbar) { continue; }
+                try { Db::pdo()->exec($a); }
+                catch (PDOException $e) {
+                    if (!in_array((int) ($e->errorInfo[1] ?? 0), self::SCHON_DA, true)) { $aus['fehler'][] = $name . ': ' . mb_substr($e->getMessage(), 0, 160); }
+                }
+            }
+            $aus['nachgezogen'][] = (string) $name;
+        }
+        if ($aus['nachgezogen']) {
+            try { require_once __DIR__ . '/Events.php'; Events::melden('schema_nachgezogen', 'Datenbank: fehlende Spalten nachgezogen', 'info',
+                implode(', ', $aus['nachgezogen']) . ($aus['fehler'] ? ' — Fehler: ' . implode(' · ', $aus['fehler']) : ''), '/einstellungen?b=daten'); } catch (Throwable $e) { }
+        }
+        return $aus;
+    }
+
+    /**
      * Zerlegt eine Migrationsdatei in einzelne Anweisungen.
      *
      * WARUM DAS NICHT explode(';', ...) SEIN DARF
@@ -239,6 +292,7 @@ final class Einrichtung
             if (self::offene()) {
                 $bilanz['migrationen'] = self::migrieren();
                 if ($bilanz['migrationen']) {
+                    try { $bilanz['schema'] = self::schemaNachziehen(); } catch (Throwable $e) { }
                     $bilanz['texte'] = self::texteNachtragen();
                     // Nach 031: Die Kunden, die es schon gab, bekommen ihre
                     // Nummer in der Reihenfolge ihrer Anlage. Tut nichts,

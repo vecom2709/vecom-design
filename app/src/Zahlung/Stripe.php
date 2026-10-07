@@ -357,8 +357,13 @@ final class StripeAnbieter implements Anbieter
         $pi = isset($a['error']) ? (array) ($a['error']['payment_intent'] ?? []) : $a;
         $status = (string) ($pi['status'] ?? '');
         $grund = (string) ($a['error']['message'] ?? ($pi['last_payment_error']['message'] ?? ''));
+        /* Prüfung 07.10.2026 (Befund 11): Ohne Zahlungsvorgang in der Antwort und ohne Kartenfehler war es keine
+           Ablehnung, sondern eine Störung (5xx, api_error, kaputte Antwort). Dann NICHT als abgelehnt werten — sonst
+           bekäme der Kunde einen zusätzlichen Zahlungslink, obwohl die Abbuchung vielleicht durchging. */
+        $fehlerArt = (string) ($a['error']['type'] ?? '');
+        $abgelehnt = $status === 'requires_payment_method' || $status === 'canceled' || $fehlerArt === 'card_error';
         return [
-            'status'  => $status === 'succeeded' ? 'bezahlt' : ($status === 'processing' ? 'laeuft' : 'abgelehnt'),
+            'status'  => $status === 'succeeded' ? 'bezahlt' : ($status === 'processing' ? 'laeuft' : ($abgelehnt ? 'abgelehnt' : ($status === '' ? 'stoerung' : 'abgelehnt'))),
             'vorgang' => (string) ($pi['id'] ?? ''),
             'grund'   => $grund !== '' ? $grund : $status,
             'betrag'  => (int) ($pi['amount_received'] ?? ($pi['amount'] ?? 0)),
@@ -379,6 +384,7 @@ final class StripeAnbieter implements Anbieter
             'abgelaufen' => in_array($st, ['canceled', 'requires_payment_method'], true),
             'betrag'     => (int) ($a['amount_received'] ?? 0),
             'waehrung'   => strtoupper((string) ($a['currency'] ?? '')),
+            'bezahlt_um' => (int) ($a['created'] ?? 0) ?: null,
         ];
     }
 

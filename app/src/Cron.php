@@ -71,6 +71,23 @@ final class Cron
      */
     public static function laufen(bool $erzwingen = false): array
     {
+        /* Nur EIN Lauf zur Zeit (Pruefung 07.10.2026, Punkt 23). Der Cron ruft alle zehn
+           Minuten; dauert ein Lauf laenger (Jahrespaket, Sicherung, langsamer Fremdserver),
+           startete der naechste daneben — und dieselbe Erinnerung ging zweimal raus. */
+        $sperre = (int) self::stillWert("SELECT GET_LOCK('vecom_cron', 0)", 1);
+        if ($sperre !== 1) { return ['uebersprungen' => true, 'grund' => 'Ein anderer Lauf ist noch dabei.']; }
+        if (function_exists('set_time_limit')) { @set_time_limit(600); }
+        try { return self::laufenGesperrt($erzwingen); }
+        finally { self::stillWert("SELECT RELEASE_LOCK('vecom_cron')", 0); }
+    }
+
+    private static function stillWert(string $sql, int $ersatz): int
+    {
+        try { return (int) Db::wert($sql, [], $ersatz); } catch (Throwable $e) { return $ersatz; }
+    }
+
+    private static function laufenGesperrt(bool $erzwingen): array
+    {
         $zuletzt = self::zuletzt();
         if (!$erzwingen && $zuletzt !== null && (time() - strtotime($zuletzt)) < self::MINDESTABSTAND_SEKUNDEN) {
             return ['uebersprungen' => true, 'grund' => 'Der letzte Lauf ist keine Minute her.'];
@@ -560,6 +577,8 @@ final class Cron
            Block einmal am Tag die gleichnamigen Aufgaben oben — in diesem Lauf entfielen dann
            Meldungen::aufraeumen und Hosting::fortsetzen still. */
         if (self::heuteNochNicht('cron_aufraeumen')) {
+            /* Selbstheilung (07.10.2026): Spalten aus schon vermerkten Migrationen, die live fehlen. */
+            $aufgaben['schema'] = static function () { require_once __DIR__ . '/Einrichtung.php'; return Einrichtung::schemaNachziehen(); };
             $aufgaben['aufgeraeumt'] = static fn() => Monitoring::aufraeumen();
             // Und gelesene Meldungen, die aelter sind als ein Monat. Sonst
             // waechst die Liste ewig — und wo hundert alte Zeilen stehen,
@@ -730,6 +749,8 @@ final class Cron
             $fehler = null;
             try { $bilanz[$name] = $tun(); $fehler = Automation::fehlerAus($bilanz[$name]); }
             catch (Throwable $e) { $bilanz[$name] = ['fehler' => mb_substr($e->getMessage(), 0, 200)]; $fehler = $bilanz[$name]['fehler']; }
+            // Gelaufen (auch mit Fehler — sonst liefe eine kaputte Aufgabe alle zehn Minuten): Tag vermerken.
+            if (isset(self::TAGES_AUFGABEN[$name])) { self::merken(self::TAGES_AUFGABEN[$name], date('Y-m-d')); }
             $laeufe[$name] = ['ms' => (int) round((microtime(true) - $t0) * 1000), 'ergebnis' => Automation::kurz($bilanz[$name]), 'fehler' => $fehler];
         }
         try { Automation::festhalten($laeufe); } catch (Throwable $e) { $bilanz['automation_fehler'] = mb_substr($e->getMessage(), 0, 200); }
@@ -797,13 +818,28 @@ final class Cron
         return true;
     }
 
+    /**
+     * Tagesaufgaben: Erledigt ist der Tag erst, wenn die Aufgabe gelaufen ist. Frueher
+     * wurde VOR dem Lauf vermerkt — stieg der Server mittendrin aus (Zeitlimit beim
+     * Jahrespaket, Sicherung), galt der Tag trotzdem als erledigt, und die Aufgabe fiel
+     * still bis morgen aus (Pruefung 07.10.2026, Punkt 24). Vermerkt wird jetzt in der
+     * Schleife von laufen(), nach der Aufgabe.
+     */
     private static function heuteNochNicht(string $schluessel): bool
     {
         $w = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schluessel], '');
-        if ($w === date('Y-m-d')) { return false; }
-        self::merken($schluessel, date('Y-m-d'));
-        return true;
+        return $w !== date('Y-m-d');
     }
+
+    /** Welche Aufgabe gehört zu welchem Tagesvermerk. */
+    public const TAGES_AUFGABEN = [
+        'schema' => 'cron_aufraeumen', 'aufgeraeumt' => 'cron_aufraeumen', 'meldungen_alt' => 'cron_aufraeumen', 'hosting_abgelaufen' => 'cron_aufraeumen',
+        'versand' => 'cron_versand', 'telegram' => 'cron_telegram', 'telegram_woche' => 'cron_tg_woche',
+        'verzeichnisse' => 'cron_verzeichnisse', 'spur' => 'cron_spur', 'zustellbarkeit' => 'cron_zustellbarkeit',
+        'sicherung' => 'cron_sicherung', 'spuerhund' => 'cron_spuerhund', 'bewertung_vorschlag' => 'cron_bewertung_vorschlag',
+        'morgenbriefing' => 'cron_morgenbriefing', 'claude_zugang' => 'cron_claude_zugang',
+        'sicherung_aussen' => 'cron_sicherung_aussen', 'steuerakte' => 'cron_steuerakte',
+    ];
 
     /**
      * Ein Zahlungslink von Stripe gilt nur eine begrenzte Zeit. Ist er
@@ -910,7 +946,7 @@ final class Cron
                 if ($s['bezahlt']) {
                     // Gebucht wird nur, wenn der Betrag passt -- siehe Events::zahlungVonStripe.
                     $wie = Events::zahlungVonStripe((int) $z['id'], (string) $s['referenz'],
-                        (int) $s['betrag'], (string) $s['waehrung']);
+                        (int) $s['betrag'], (string) $s['waehrung'], $s['bezahlt_um'] ?? null);
                     if ($wie === 'abweichung') {
                         /* Gemeldet ist es. Nicht alle zehn Minuten wieder
                            fragen: Die Seite ist bezahlt, an ihr aendert sich

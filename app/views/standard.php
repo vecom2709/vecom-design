@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Vecom-Standard</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Wie eine Vecom-Seite gebaut ist. Hängt an jedem Briefing — damit Seite 12
     besser wird als Seite 1 und nicht nur anders.</p></div>
   <div class="rechts">
@@ -25,7 +25,7 @@
            value="<?= Fmt::h((string) $projekt) ?>">
     <button class="knopf haupt">Adresse eintragen</button>
   </form>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:10px 0 0">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:10px 0 0">
     <?php if (trim((string) $projekt) === ''): ?>
       Noch nichts eingetragen — die Briefing-Knöpfe öffnen einen freien Chat.
       Leg bei claude.ai einmal ein Projekt an, nenn es „Vecom — Kundenseiten“,
@@ -60,7 +60,7 @@
     <span class="mehr"><?= trim((string) $wSchluessel) !== '' ? 'offen' : 'zu' ?></span></h2>
 
   <?php if (trim((string) $wSchluessel) === ''): ?>
-    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:0 0 12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:0 0 12px">
       Ohne Schlüssel antwortet <code><?= Fmt::h((string) $wAdresse) ?></code> niemandem —
       auch nicht dir. Erzeug einen, wenn du Kundenseiten mit Claude Code bauen willst:
       Es holt sich Briefing, Fragebogen und Hausregeln dann selbst und trägt
@@ -75,9 +75,9 @@
       <input readonly id="wadresse" value="<?= Fmt::h((string) $wAdresse) ?>"></div>
     <div class="feld"><label>Schlüssel</label>
       <input readonly id="wschluessel" value="<?= Fmt::h((string) $wSchluessel) ?>"
-             style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px"></div>
+             style="font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--fs-klein)"></div>
 
-    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:6px 0 10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:6px 0 10px">
       Einmal auf dem Rechner hinterlegen, auf dem du baust — als
       <code>VECOM_WERKSTATT</code> in der Umgebung oder in der Datei, die dein
       Skill dafür liest. Danach reicht am Projekt der Knopf „Befehl für Claude Code".
@@ -87,7 +87,7 @@
              in fuenf Sekunden, was am anderen Ende passiert. */ ?>
     <textarea id="wprobe" readonly rows="4" spellcheck="false"
       style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-             font-size:12px;line-height:1.55;white-space:pre;overflow-x:auto">curl -s <?= Fmt::h((string) $wAdresse) ?> \
+             font-size:var(--fs-klein);line-height:1.55;white-space:pre;overflow-x:auto">curl -s <?= Fmt::h((string) $wAdresse) ?> \
   -H "X-Vecom-Werkstatt: $VECOM_WERKSTATT" \
   -H "Content-Type: application/json" \
   -d '{"aktion":"auftrag","kunde":"K-2026-0001"}'</textarea>
@@ -103,7 +103,7 @@
         <button class="knopf stumm">Tür schließen</button></form>
     </div>
 
-    <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:12px 0 0">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:12px 0 0">
       Was von dort geht: Auftrag holen, Stand setzen, Vorschau- und
       Quelltext-Adresse eintragen, eine Notiz in die Akte legen.
       <strong>Freischalten</strong> geht auch — das ist der einzige Schritt, der beim
@@ -122,11 +122,11 @@
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="standard_speichern">
     <textarea id="standardtext" name="text" rows="26" spellcheck="false"
       style="width:100%;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-             font-size:12.5px;line-height:1.6"><?= Fmt::h((string) $text) ?></textarea>
+             font-size:var(--fs-klein);line-height:1.6"><?= Fmt::h((string) $text) ?></textarea>
 
     <div class="leiste" style="margin-top:12px;gap:14px;flex-wrap:wrap">
       <button class="knopf haupt">Speichern</button>
-      <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--dim)">
+      <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-klein);color:var(--dim)">
         <input type="checkbox" name="anhaengen" value="1" <?= $anhaengen ? 'checked' : '' ?>>
         an jedes Briefing anhängen</label>
     </div>
@@ -141,12 +141,12 @@
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="standard_gesehen">
       <button class="knopf">Passt so</button>
-      <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+      <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">
         Gelesen und nichts zu ändern? Dann hakt das den Punkt auf der Werkstatt ab.</span>
     </form>
   <?php endif; ?>
 
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:12px 0 0">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:12px 0 0">
     Ein leeres Feld heißt „zurück zur Vorgabe“, nicht „keine Hausregeln“ —
     ein leerer Standard fiele erst auf, wenn die Seite fertig ist.
     <br>Liegen die Regeln in der Wissensablage deines Claude-Projekts, kennt sie

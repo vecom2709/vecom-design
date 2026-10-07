@@ -20,7 +20,7 @@
      bleibt es leer — dann sagt die Kachel es und verlinkt sie stattdessen.
      ========================================================================== */ ?>
 <div class="kopf"><div><h1>Werkstatt</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     <?= count($liste) ?> <?= count($liste) === 1 ? 'Kundenseite' : 'Kundenseiten' ?>.
     Klick auf eine Kachel führt ins Projekt.</p></div>
   <div class="rechts">
@@ -55,13 +55,13 @@
             <div style="font-size:13.5px;<?= $pt['fertig'] ? 'color:var(--leise)' : 'font-weight:600' ?>"><?=
               Fmt::h((string) $pt['was']) ?></div>
             <?php if (!$pt['fertig']): ?>
-              <div style="color:var(--dim);font-size:12.5px;line-height:1.6;margin-top:2px"><?=
+              <div style="color:var(--dim);font-size:var(--fs-klein);line-height:1.6;margin-top:2px"><?=
                 Fmt::h((string) $pt['warum']) ?>
                 <?php if (!empty($pt['ziel'])): ?>
                   <a href="<?= Fmt::h(url((string) $pt['ziel'])) ?>"><?= Fmt::h((string) $pt['wohin']) ?></a>
                 <?php endif; ?></div>
             <?php else: ?>
-              <div style="color:var(--leise);font-size:12.5px;margin-top:2px"><?= Fmt::h((string) $pt['stand']) ?></div>
+              <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:2px"><?= Fmt::h((string) $pt['stand']) ?></div>
             <?php endif; ?>
           </div>
         </li>
@@ -97,7 +97,7 @@
       <div style="min-width:0">
         <div style="font-weight:600;font-size:14px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?=
           Fmt::h($wer) ?></div>
-        <div style="color:var(--leise);font-size:12px;font-variant-numeric:tabular-nums">
+        <div style="color:var(--leise);font-size:var(--fs-klein);font-variant-numeric:tabular-nums">
           <?= Fmt::h((string) ($w['kundennr'] ?? '')) ?><?php
           if (trim((string) ($w['kundennr'] ?? '')) !== '' && trim((string) $w['name']) !== ''): ?> · <?php endif; ?>
           <?= Fmt::h((string) $w['name']) ?></div>
@@ -119,9 +119,9 @@
                   border:1px solid var(--linie);background:var(--flaeche2,#0f1a2e)">
         <div style="position:absolute;inset:0;display:flex;flex-direction:column;
                     align-items:center;justify-content:center;gap:6px;padding:12px;text-align:center">
-          <span style="font-size:12.5px;color:var(--dim);word-break:break-all"><?=
+          <span style="font-size:var(--fs-klein);color:var(--dim);word-break:break-all"><?=
             Fmt::h(preg_replace('~^https?://~', '', $adr) ?? $adr) ?></span>
-          <span style="font-size:11.5px;color:var(--leise)">Zum Ansehen klicken</span>
+          <span style="font-size:var(--fs-klein);color:var(--leise)">Zum Ansehen klicken</span>
         </div>
         <?php /* GANZ ZUGESPERRT, MIT ABSICHT
                  "allow-scripts allow-same-origin" waere die treuere Vorschau —
@@ -136,19 +136,19 @@
                 style="position:absolute;left:0;top:0;width:1280px;height:850px;border:0;
                        transform:scale(.2655);transform-origin:0 0;pointer-events:none"></iframe>
         <a href="<?= Fmt::h($adr) ?>" target="_blank" rel="noopener"
-           title="<?= Fmt::h($adr) ?>"
+           title="<?= Fmt::h($adr) ?>" aria-label="Seite öffnen: <?= Fmt::h($adr) ?>"
            style="position:absolute;inset:0"></a>
         <?php if ($istVorschau): ?>
           <span class="marke2" style="position:absolute;left:8px;top:8px">Vorschau</span>
         <?php endif; ?>
       </div>
     <?php else: ?>
-      <div class="leer" style="font-size:12.5px;margin:0">Keine Adresse eingetragen —
+      <div class="leer" style="font-size:var(--fs-klein);margin:0">Keine Adresse eingetragen —
         weder live noch als Vorschau.</div>
     <?php endif; ?>
 
     <?php /* ---------- Der Zustand ---------- */ ?>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:12px">
+    <div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;font-size:var(--fs-klein)">
       <?php if ($lebt === true): ?>
         <span class="marke2 gut">antwortet</span>
       <?php elseif ($lebt === false): ?>
@@ -199,11 +199,11 @@
           style="display:flex;align-items:center;gap:6px;margin:8px 0 0">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="ambition_setzen">
       <input type="hidden" name="id" value="<?= (int) $w['id'] ?>">
-      <span style="font-size:12px;color:var(--leise)"
+      <span style="font-size:var(--fs-klein);color:var(--leise)"
             title="<?= Fmt::h((string) ($stufe['warum'] ?? '')) ?>">Stufe</span>
       <select name="ambition" onchange="this.form.submit()"
               title="<?= Fmt::h((string) ($stufe['warum'] ?? '')) ?>"
-              style="font-size:12.5px;padding:4px 8px;width:auto;min-width:0">
+              style="font-size:var(--fs-klein);padding:4px 8px;width:auto;min-width:0">
         <option value="" <?= empty($w['ambition']) ? 'selected' : '' ?>>gerechnet (<?= Fmt::h((string) $stufe['stufe']) ?>)</option>
         <?php foreach (['A' => 'A · klar und schnell', 'B' => 'B · Premium-UI',
                         'C' => 'C · editorial, Bewegung', 'D' => 'D · immersiv, 3D'] as $sl => $wort): ?>
@@ -266,7 +266,7 @@
 <?php endforeach; ?>
 </div>
 
-<p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:16px 2px 0">
+<p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:16px 2px 0">
   Die Fenster zeigen die Seite so, wie sie gerade steht — geladen wird erst, was
   in den Blick kommt. Steht statt der Seite nur ihre Adresse da, verbietet sie
   das Einbetten; das ist kein Fehler, sondern richtig so, und der Klick öffnet

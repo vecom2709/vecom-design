@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Fürs Finanzamt</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Ein Jahr, eine Datei: jeder Beleg als PDF, jede Eingangsrechnung, die Liste der
     Zahlungseingänge und die Tabellen dazu. Das Paket entsteht jede Nacht von selbst — du musst
     es nur herunterladen. Was es <b>nicht</b> ist, steht unten.</p></div>
@@ -14,7 +14,7 @@
       <td style="width:120px;white-space:nowrap"><?= Fmt::h(Fmt::datum($f['datum'])) ?>
         <br><small style="color:var(--leise)">in <?= (int) $f['tage'] ?> Tagen</small></td>
       <td><b><?= Fmt::h($f['titel']) ?></b>
-        <div style="color:var(--leise);font-size:12.5px;margin-top:3px"><?= Fmt::h($f['text']) ?></div></td>
+        <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:3px"><?= Fmt::h($f['text']) ?></div></td>
     </tr>
   <?php endforeach; ?>
   </tbody></table></div>
@@ -43,7 +43,7 @@
       <div class="tabellenrahmen"><table><tbody>
         <tr><td style="width:38%">Eingegangen <?= (int) $j ?></td>
           <td><b><?= Fmt::h(Fmt::geld((int) $g['summe'], (string) $g['waehrung'])) ?></b>
-            <div style="color:var(--leise);font-size:12.5px;margin-top:4px">Das ist die Zahl, nach der
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px">Das ist die Zahl, nach der
               in Italien besteuert wird — Geld, das angekommen ist, nicht Rechnungen, die geschrieben
               wurden. Rechnung im Dezember, Zahlung im Januar: zählt zum nächsten Jahr.</div></td></tr>
         <tr><td>Ausgestellt <?= (int) $j ?></td>
@@ -55,7 +55,7 @@
         <tr><td>Ausgaben</td>
           <td><?= (int) $a['anzahl'] ?> Belege · <?= Fmt::h(Fmt::geld((int) $a['brutto'])) ?>
             <?php if ((int) $a['rc_netto'] > 0): ?>
-              <div style="color:var(--leise);font-size:12.5px;margin-top:4px">Davon
+              <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px">Davon
                 <?= Fmt::h(Fmt::geld((int) $a['rc_netto'])) ?> aus dem Ausland — Reverse Charge,
                 rechnerisch <?= Fmt::h(Fmt::geld((int) $a['rc_iva'])) ?> IVA.</div>
             <?php endif; ?></td></tr>
@@ -63,7 +63,7 @@
         <tr><td>Nummernreihe</td><td>
           <?php if (!empty($z['luecken'])): ?>
             <span class="marke2 schlecht">Lücken</span>
-            <div style="color:var(--rot);font-size:12.5px;margin-top:5px">
+            <div style="color:var(--rot);font-size:var(--fs-klein);margin-top:5px">
               Es fehlen: <?= Fmt::h(implode(', ', $z['luecken'])) ?>.
               Eine Nummerierung muss im Jahr lückenlos sein — bitte klären, bevor das rausgeht.</div>
           <?php else: ?>
@@ -77,7 +77,7 @@
           <tr><td>Offene Forderungen</td><td>
             <span class="marke2 warnung"><?= (int) $fo['anzahl'] ?></span>
             <?= Fmt::h(Fmt::geld((int) $fo['summe'])) ?>
-            <div style="color:var(--leise);font-size:12.5px;margin-top:5px">
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:5px">
               Bis zum 31.12. fällig und nicht bezahlt. Zählen steuerlich nicht zu
               <?= (int) $j ?> — besteuert wird, was eingegangen ist. Sie stehen hier,
               damit eine Zahlung im Januar dem richtigen Jahr zugeordnet wird.</div></td></tr>

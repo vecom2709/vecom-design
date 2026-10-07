@@ -20,7 +20,7 @@ $mehrOffen = (bool) array_intersect_key(array_filter($filter, static fn($v) => $
 $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http_build_query([$k => $v]);
 ?>
 <div class="kopf"><div><h1>Neue Kunden finden</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Betriebe ohne Website oder mit schwacher Website — dein Rechner findet und prüft sie nachts. Du sprichst sie an.</p></div>
 </div>
 
@@ -106,7 +106,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
               <a class="marke2" href="<?= Fmt::h(AkquiseCheck::link((string) $c['token'])) ?>" target="_blank" rel="noopener">Ergebnis ansehen</a></div></td>
           <td style="width:100px;text-align:right"><form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="akq_check_erledigt"><input type="hidden" name="check" value="<?= (int) $c['id'] ?>">
-            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Erledigt</button></form></td></tr>
+            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:var(--fs-klein)">Erledigt</button></form></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
 </div>
@@ -124,7 +124,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
       <textarea id="pa<?= (int) $pa['id'] ?>" readonly rows="9" style="width:100%;font:13px/1.45 inherit"><?= Fmt::h(AkquisePlattform::antwort((string) $pa['sprache'])) ?></textarea>
       <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin-top:6px"><?= Csrf::feld() ?>
         <input type="hidden" name="tat" value="akq_plattform_erledigt"><input type="hidden" name="anfrage" value="<?= (int) $pa['id'] ?>">
-        <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Im Portal beantwortet — erledigt</button></form>
+        <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:var(--fs-klein)">Im Portal beantwortet — erledigt</button></form>
     </details>
   <?php endforeach; ?>
 </div>
@@ -141,7 +141,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
           <td><?= Fmt::h((string) $sg['text']) ?><div class="akq-klein"><?= Fmt::h(date('d.m.Y', strtotime((string) $sg['created_at']))) ?><?= in_array((string) $sg['kontakt_status'], ['kontaktiert', 'geantwortet'], true) ? ' · schon kontaktiert' : '' ?></div></td>
           <td style="width:90px;text-align:right"><form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="akq_signal_erledigt"><input type="hidden" name="signal" value="<?= (int) $sg['id'] ?>">
-            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:12.5px">Erledigt</button></form></td></tr>
+            <button class="knopf" style="min-height:32px;padding:5px 10px;font-size:var(--fs-klein)">Erledigt</button></form></td></tr>
     <?php endforeach; ?>
   </tbody></table>
 </div>
@@ -286,7 +286,8 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
     <select name="partner" required aria-label="Partner"><option value="">Partner wählen …</option>
       <?php foreach ($akqPartner as $ap): ?><option value="<?= (int) $ap['id'] ?>"><?= Fmt::h((string) $ap['name']) ?></option><?php endforeach; ?></select>
     <label class="akq-haken" style="margin:0"><input type="checkbox" name="vermerk" value="Geprüft: italienische Nummern nicht im Registro Pubblico delle Opposizioni; bei deutschen Betrieben konkreter Anlass für Interesse (keine oder schwache Website)." required>
-      Geprüft: IT-Nummern nicht im Registro delle Opposizioni, bei DE ein Anlass (keine/schwache Website)</label>
+      Heute geprüft: IT-Nummern nicht im Registro delle Opposizioni, bei DE ein Anlass (keine/schwache Website)
+      <small style="display:block;color:var(--leise)">Das Datum wird je Nummer gespeichert. Nach 15 Tagen verschwindet ein italienischer Betrieb aus der Anrufliste, bis du neu prüfst.</small></label>
     <button class="knopf haupt">Zum Abtelefonieren übergeben</button>
   </div>
   <?php endif; ?>

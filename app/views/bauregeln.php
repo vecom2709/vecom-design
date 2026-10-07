@@ -32,7 +32,7 @@ $brForm = static fn(string $tat, string $inhalt, string $stil = 'display:inline-
       <div style="font-size:15.5px"><?= Fmt::h((string) $r['text']) ?></div>
       <div class="akq-klein" style="color:var(--leise)"><?= (int) $r['aktiv'] ? 'gilt' : 'ausgeschaltet' ?> · <?= $r['quelle'] === 'vorschlag' ? 'aus einem Vorschlag' : 'von Hand' ?> · <?= Fmt::h((string) ($r['von'] ?? '')) ?> · <?= Fmt::h(Fmt::datum((string) $r['created_at'])) ?></div>
       <?php if ($admin): ?>
-        <details style="margin-top:4px"><summary style="cursor:pointer;font-size:13px">ändern</summary>
+        <details style="margin-top:4px"><summary style="cursor:pointer;font-size:var(--fs-klein)">ändern</summary>
           <?= $brForm('bauregel_aendern', '<input type="hidden" name="regel" value="' . (int) $r['id'] . '"><textarea name="text" rows="2" maxlength="500" style="min-width:min(520px,100%)">' . Fmt::h((string) $r['text']) . '</textarea><button class="knopf klein">Speichern</button>') ?>
         </details>
         <?= $brForm('bauregel_schalten', '<input type="hidden" name="regel" value="' . (int) $r['id'] . '"><input type="hidden" name="an" value="' . ((int) $r['aktiv'] ? '0' : '1') . '"><button class="knopf klein">' . ((int) $r['aktiv'] ? 'Ausschalten' : 'Wieder einschalten') . '</button>') ?>

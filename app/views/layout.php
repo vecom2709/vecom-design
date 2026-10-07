@@ -319,7 +319,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
 </head>
 <body>
 <div class="huelle">
-  <nav class="nav" id="hauptmenue">
+  <nav class="nav" id="hauptmenue" aria-label="Hauptmenü">
     <div class="marke"><b>VECOM</b> Verwaltung</div>
     <?php /* DIE SUCHE STAND NIE IM MENUE
              ------------------------------------------------------------
@@ -338,10 +338,12 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
     /* Eine Tuer. Zugeklappt eine Zeile mit Wort und Zahl; aufgeklappt
        stehen ihre Unterpunkte darunter, eingerueckt und leiser. */
     foreach ($menue as [$ziel, $wort, $schl, $unter, $summe, $offen]) {
-        printf('<a href="%s" class="nav__tuer%s%s"><span>%s</span>%s</a>',
+        $tuerAn = $aktiv === ($ziel ?: 'heute') || $aktivMenue === $ziel;
+        printf('<a href="%s" class="nav__tuer%s%s"%s><span>%s</span>%s</a>',
             Fmt::h(url($ziel)),
-            $aktiv === ($ziel ?: 'heute') || $aktivMenue === $ziel ? ' an' : '',
+            $tuerAn ? ' an' : '',
             $offen && $unter ? ' auf' : '',
+            $tuerAn ? ' aria-current="page"' : '',
             Fmt::h($wort),
             $summe > 0 ? '<span class="zahl warn">' . $summe . '</span>' : '');
 
@@ -349,9 +351,10 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
         echo '<div class="nav__unter">';
         foreach ($unter as [$uZiel, $uWort, $uSchl]) {
             $n = isset($reiter[$uZiel]) ? $reiterZahl($uZiel) : (int) ($navZahlen[$uSchl] ?? 0);
-            printf('<a href="%s" class="%s"><span>%s</span>%s</a>',
+            printf('<a href="%s" class="%s"%s><span>%s</span>%s</a>',
                 Fmt::h(url($uZiel)),
                 $aktivMenue === $uZiel ? 'an' : '',
+                $aktivMenue === $uZiel ? ' aria-current="page"' : '',
                 Fmt::h($uWort),
                 $n > 0 ? '<span class="zahl warn">' . $n . '</span>' : '');
         }
@@ -612,7 +615,7 @@ $stilStand = (int) @filemtime(dirname(__DIR__) . '/assets/admin.css');
         .mk-oben a{display:inline-flex;gap:10px;align-items:center;min-height:46px;padding:0 20px;border-radius:10px;color:var(--dim);text-decoration:none;font-size:16px;font-weight:600}
         .mk-oben a:hover{color:var(--text,inherit)}
         .mk-oben a[aria-current]{background:var(--metall);color:#16120b;font-weight:750}
-        .mk-oben b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--rot);color:#fff;font-size:12px;display:inline-flex;align-items:center;justify-content:center}
+        .mk-oben b{min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:var(--rot);color:#fff;font-size:var(--fs-klein);display:inline-flex;align-items:center;justify-content:center}
         .mk-oben .mk-flagge{display:inline-block;width:22px;height:15px;border-radius:2px;box-shadow:0 0 0 1px rgba(255,255,255,.3)}
         .mk-oben .mk-flagge--it,.mk-flagge--it{background:linear-gradient(90deg,#009246 0 33.4%,#f4f5f0 33.4% 66.6%,#ce2b37 66.6%)}
         .mk-oben .mk-flagge--de,.mk-flagge--de{background:linear-gradient(180deg,#141414 0 33.4%,#dd0000 33.4% 66.6%,#ffce00 66.6%)}

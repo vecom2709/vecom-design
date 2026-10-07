@@ -108,7 +108,7 @@ require __DIR__ . '/mk_stil.php';
 
 <section id="funde" aria-labelledby="mk-funde-titel">
   <div class="mk-hinweis-zeile" style="margin:6px 0 10px">
-    <h2 id="mk-funde-titel" style="margin:0;font-size:17px">Recherche-Funde für <?= Fmt::h($name) ?> <span class="mehr" style="font-weight:400;color:var(--leise);font-size:13px"><?= count($funde) ?> · Themen, Trends, Fragen, Wettbewerb — jeweils mit Quelle</span></h2>
+    <h2 id="mk-funde-titel" style="margin:0;font-size:17px">Recherche-Funde für <?= Fmt::h($name) ?> <span class="mehr" style="font-weight:400;color:var(--leise);font-size:var(--fs-klein)"><?= count($funde) ?> · Themen, Trends, Fragen, Wettbewerb — jeweils mit Quelle</span></h2>
   </div>
   <form class="mk-filter" method="get" action="<?= Fmt::h(url('zielgruppen')) ?>#funde" aria-label="Funde filtern">
     <input type="hidden" name="land" value="<?= Fmt::h($land) ?>">

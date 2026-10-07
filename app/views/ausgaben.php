@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Ausgaben</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was das Geschäft kostet. Im Regime forfettario wird das nicht einzeln abgezogen — aufbewahren
     und fortlaufend nummerieren muss man es trotzdem (comma 59 der L. 190/2014). Und für alles aus
     dem Ausland — Stripe, Google, Hosting — braucht der Commercialista eine eigene Liste.</p></div>
@@ -9,7 +9,7 @@
 <?php if ($jahre): ?>
 <div class="block" style="padding-bottom:14px">
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-    <span style="color:var(--leise);font-size:12.5px">Jahr:</span>
+    <span style="color:var(--leise);font-size:var(--fs-klein)">Jahr:</span>
     <?php foreach ($jahre as $j): ?>
       <a class="knopf <?= (int) $j === (int) $jahr ? 'haupt' : '' ?>"
          href="<?= Fmt::h(url('ausgaben?jahr=' . (int) $j)) ?>"><?= (int) $j ?></a>
@@ -21,7 +21,7 @@
         <td><b><?= Fmt::h(Fmt::geld((int) $summe['brutto'])) ?></b></td></tr>
     <?php if ((int) $summe['rc_netto'] > 0): ?>
     <tr><td>davon Reverse Charge (netto)</td><td><?= Fmt::h(Fmt::geld((int) $summe['rc_netto'])) ?>
-      <div style="color:var(--leise);font-size:12.5px;margin-top:4px">Darauf fallen rechnerisch
+      <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px">Darauf fallen rechnerisch
         <?= Fmt::h(Fmt::geld((int) $summe['rc_iva'])) ?> italienische IVA an, die zu zahlen und
         nicht abziehbar ist. Den genauen Betrag rechnet der Commercialista — hier steht, worauf.</div></td></tr>
     <?php endif; ?>

@@ -62,7 +62,7 @@ $eing = !empty($eingebettet);
       </select>
       <button class="knopf haupt">Festpreis-Angebot anlegen</button>
     </form>
-    <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0;line-height:1.55">Auch ohne Fragebogen. Danach klickst du die Bausteine hinein; sie teilen sich den Betrag und stehen so auf Angebot und Beleg. Den Fragebogen bekommt der Kunde wie bisher nach der Anzahlung.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0;line-height:1.55">Auch ohne Fragebogen. Danach klickst du die Bausteine hinein; sie teilen sich den Betrag und stehen so auf Angebot und Beleg. Den Fragebogen bekommt der Kunde wie bisher nach der Anzahlung.</p>
   </div>
   <?php endif; ?>
 
@@ -92,9 +92,9 @@ $eing = !empty($eingebettet);
     $gGebeten = (string) sicher(static fn() => Db::wert("SELECT MAX(created_at) FROM mails WHERE anlass = 'bewertung_bitte' AND customer_id = ? AND status = 'gesendet'", [(int) $k['id']], ''), ''); ?>
     <div class="block"><h2>Google-Bewertung</h2>
       <?php if ($gGebeten !== ''): ?>
-        <p style="color:var(--leise);font-size:13px;margin:0">Gebeten am <?= Fmt::h(Fmt::datum($gGebeten)) ?> — ein zweites Mal fragen wir nicht.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Gebeten am <?= Fmt::h(Fmt::datum($gGebeten)) ?> — ein zweites Mal fragen wir nicht.</p>
       <?php else: ?>
-        <p style="color:var(--leise);font-size:13px;margin:0 0 10px">Ist die Seite online und der Kunde zufrieden: eine kurze Mail mit deinem Bewertungslink, in seiner Sprache.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Ist die Seite online und der Kunde zufrieden: eine kurze Mail mit deinem Bewertungslink, in seiner Sprache.</p>
         <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
           <input type="hidden" name="tat" value="bewertung_bitten"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
           <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
@@ -115,18 +115,18 @@ $eing = !empty($eingebettet);
       <div class="leer">Der Datensatz ist anonymisiert — es gibt keine Adresse mehr,
         an die etwas gehen könnte.</div>
     <?php else: ?>
-    <p style="color:var(--leise);font-size:13px;margin:0 0 12px">Geht als E-Mail raus und steht danach hier
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 12px">Geht als E-Mail raus und steht danach hier
       — und auf der Seite des Kunden. Antwortet er dort, landet es ebenfalls hier.</p>
     <?php if ($nachrichten): ?>
       <div style="margin-bottom:14px">
       <?php foreach ($nachrichten as $m): ?>
         <div style="padding:10px 12px;border:1px solid var(--linie);border-radius:10px;margin-bottom:8px;
                     <?= $m['sender'] === 'kunde' ? '' : 'background:var(--flaeche2)' ?>">
-          <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+          <div style="font-size:var(--fs-klein);font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
             <span><?= $m['sender'] === 'kunde' ? Fmt::h($k['name']) : 'du' ?></span>
             <span style="color:var(--leise);font-weight:400"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></span></div>
           <?php if (!empty($m['betreff'])): ?>
-            <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
+            <div style="font-size:var(--fs-klein);color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
           <?php endif; ?>
           <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
         </div>
@@ -145,7 +145,7 @@ $eing = !empty($eingebettet);
   <?php /* Alle E-Mails an den Kunden (07.10.2026, Uwe: „in den jeweiligen Kundenakten sollen auch alle
      versendeten E-Mails angezeigt werden“). Inhalt per Klick, so wie er hinausging. */
     require_once __DIR__ . '/../src/KundeMails.php'; $kmListe = $kundenMails ?? []; ?>
-  <div class="block" id="emails"><h2>E-Mails <span style="font-size:13px;color:var(--leise);font-weight:500"><?= count($kmListe) ?></span></h2>
+  <div class="block" id="emails"><h2>E-Mails <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500"><?= count($kmListe) ?></span></h2>
     <?php if (!$kmListe): ?><div class="leer">Noch keine E-Mail an diesen Kunden.</div><?php else: ?>
     <div class="tabellenrahmen"><table style="font-size:14px"><thead><tr><th>Wann</th><th>Betreff</th><th>Stand</th><th>Anhänge</th></tr></thead><tbody>
       <?php foreach (array_slice($kmListe, 0, 60) as $km): $kmSt = KundeMails::STATUS[$km['status']] ?? [ucfirst($km['status']), '']; ?>
@@ -170,7 +170,7 @@ $eing = !empty($eingebettet);
     <ul style="list-style:none;margin:0;padding:0;font-size:14px">
       <?php foreach ($kDokAkq as $d): ?>
         <li style="border-bottom:1px solid var(--linie);padding:6px 0"><?= (int) $d['wichtig'] ? '★ ' : '' ?><a href="<?= Fmt::h(url('akquise/' . (int) $d['firma_id'] . '/dokument/' . (int) $d['id'])) ?>"><?= Fmt::h((string) $d['orig_name']) ?></a>
-          <span style="color:var(--leise);font-size:12px"> · <?= Fmt::h(AkquiseDokument::ARTEN[(string) $d['art']] ?? (string) $d['art']) ?> · <?= Fmt::h(date('d.m.Y', strtotime((string) $d['created_at']))) ?> ·
+          <span style="color:var(--leise);font-size:var(--fs-klein)"> · <?= Fmt::h(AkquiseDokument::ARTEN[(string) $d['art']] ?? (string) $d['art']) ?> · <?= Fmt::h(date('d.m.Y', strtotime((string) $d['created_at']))) ?> ·
             <a href="<?= Fmt::h(url('akquise/' . (int) $d['firma_id'] . '?ansicht=profil#dokumente')) ?>"><?= Fmt::h((string) $d['firma']) ?></a></span></li>
       <?php endforeach; ?>
     </ul>
@@ -189,7 +189,7 @@ $eing = !empty($eingebettet);
           [(int) $k['id'], (int) $k['id']], ''), '');
     ?>
     <?php if ($altS && in_array((string) $altS['stand'], ['offen', 'laeuft'], true)): ?>
-      <p style="color:var(--dim);font-size:13px;margin:4px 0 10px">Die alte Seite <b><?= Fmt::h((string) $altS['host']) ?></b> wird gerade gesichert
+      <p style="color:var(--dim);font-size:var(--fs-klein);margin:4px 0 10px">Die alte Seite <b><?= Fmt::h((string) $altS['host']) ?></b> wird gerade gesichert
         — <?= count(json_decode((string) $altS['seiten'], true) ?: []) ?> Seiten gelesen. Die ZIP-Datei erscheint hier, sobald alles da ist.</p>
     <?php else: ?>
       <?php if ($altS && (string) $altS['stand'] === 'fehler'): ?>
@@ -201,7 +201,7 @@ $eing = !empty($eingebettet);
         <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
         <input name="adresse" required value="<?= Fmt::h($altVorschlag) ?>" placeholder="alte-seite.it" style="max-width:240px" aria-label="Adresse der alten Seite">
         <button class="knopf">Alte Seite als Vorlage sichern</button>
-        <span style="color:var(--leise);font-size:12.5px">Texte, Bilder, PDFs → eine ZIP-Datei. Die alte Seite bleibt, wie sie ist.</span>
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Texte, Bilder, PDFs → eine ZIP-Datei. Die alte Seite bleibt, wie sie ist.</span>
       </form>
     <?php endif; ?>
     <?php /* Phase 6c: 1:1-Umzug der alten Seite -- angefragt von dir, zugestimmt
@@ -209,7 +209,7 @@ $eing = !empty($eingebettet);
     <?php require_once __DIR__ . '/../src/Seitenumzug.php';
       $sU = sicher(static fn() => Seitenumzug::fuerKunde((int) $k['id']), null); ?>
     <?php if (!$sU || in_array((string) $sU['stand'], ['fertig', 'abgebrochen'], true)): ?>
-      <details style="margin:0 0 10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">Alte Website 1:1 zu uns umziehen …
+      <details style="margin:0 0 10px"><summary style="font-size:var(--fs-klein);color:var(--dim);cursor:pointer">Alte Website 1:1 zu uns umziehen …
         <?php if ($sU): ?><span style="color:var(--leise)">(zuletzt <?= Fmt::h((string) $sU['adresse']) ?>: <?= Fmt::h((string) $sU['stand']) ?>)</span><?php endif; ?></summary>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="seitenumzug_anfragen">
@@ -217,7 +217,7 @@ $eing = !empty($eingebettet);
           <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
           <input name="adresse" required value="<?= Fmt::h($altVorschlag) ?>" placeholder="alte-seite.it" style="max-width:240px" aria-label="Adresse der alten Seite">
           <button class="knopf">Umzug anfragen</button>
-          <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt auf seiner Seite zu und gibt dort den Zugang ein — nie per Mail.</span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Der Kunde stimmt auf seiner Seite zu und gibt dort den Zugang ein — nie per Mail.</span>
         </form></details>
     <?php else: ?>
       <?php $sT = json_decode((string) ($sU['test_json'] ?? ''), true); $sS = json_decode((string) ($sU['schritte'] ?? ''), true) ?: []; ?>
@@ -226,10 +226,10 @@ $eing = !empty($eingebettet);
           <span class="marke2 <?= (string) $sU['stand'] === 'zugang_da' ? 'warnung' : '' ?>" style="margin-left:6px"><?=
             Fmt::h((string) $sU['stand'] === 'angefragt' ? 'wartet auf Zustimmung und Zugang' : 'Zugang ist da') ?></span></div>
         <?php if ((string) $sU['stand'] === 'zugang_da'): ?>
-          <p style="font-size:12.5px;margin:6px 0 0;color:var(--leise)">Zugang wird gelöscht am <?= Fmt::h(Fmt::datum((string) $sU['loeschen_am'])) ?>.
+          <p style="font-size:var(--fs-klein);margin:6px 0 0;color:var(--leise)">Zugang wird gelöscht am <?= Fmt::h(Fmt::datum((string) $sU['loeschen_am'])) ?>.
             Verbindung: <?= is_array($sT) ? '<b>' . Fmt::h((string) ($sT['text'] ?? '')) . '</b>' . (!empty($sT['wordpress']) ? ' · WordPress erkannt' : '') : 'wird im nächsten Cron geprüft' ?></p>
           <?php if (!empty($_SESSION['seitenumzug_zugang'][(int) $sU['id']])): $sZ = $_SESSION['seitenumzug_zugang'][(int) $sU['id']]; unset($_SESSION['seitenumzug_zugang'][(int) $sU['id']]); ?>
-            <div class="hinweis gut" style="margin-top:8px;font-size:13px">
+            <div class="hinweis gut" style="margin-top:8px;font-size:var(--fs-klein)">
               <?php foreach (['ftp_host' => 'FTP-Server', 'ftp_user' => 'FTP-Benutzer', 'ftp_pass' => 'FTP-Passwort', 'db_host' => 'DB-Host',
                               'db_name' => 'DB-Name', 'db_user' => 'DB-Benutzer', 'db_pass' => 'DB-Passwort'] as $sF => $sN): if ((string) ($sZ[$sF] ?? '') === '') { continue; } ?>
                 <?= Fmt::h($sN) ?>: <code style="user-select:all"><?= Fmt::h((string) $sZ[$sF]) ?></code><br>
@@ -265,7 +265,7 @@ $eing = !empty($eingebettet);
       $mUs = sicher(static fn() => Mailumzug::fuerKunde((int) $k['id']), []);
       $mZiel = (string) sicher(static fn() => Db::wert("SELECT CONCAT('" . Hosting::POSTFACH . "@', domain) FROM hosting_auftraege WHERE customer_id = ? AND mail = 'vecom' ORDER BY id DESC LIMIT 1", [(int) $k['id']], ''), ''); ?>
     <?php foreach ($mUs as $mU): if ((string) $mU['stand'] === 'abgebrochen') { continue; } ?>
-      <div style="margin:0 0 10px;padding:10px 14px;border:1px solid var(--linie);border-radius:10px;font-size:13px">
+      <div style="margin:0 0 10px;padding:10px 14px;border:1px solid var(--linie);border-radius:10px;font-size:var(--fs-klein)">
         <b>E-Mail-Umzug</b> <?= Fmt::h((string) $mU['adresse']) ?> → <?= Fmt::h((string) $mU['ziel_adresse']) ?>
         <span class="marke2 <?= ['fertig' => 'gut', 'fehler' => 'schlecht', 'laeuft' => 'warnung'][(string) $mU['stand']] ?? '' ?>" style="margin-left:6px"><?=
           Fmt::h(['angefragt' => 'wartet auf Zustimmung', 'zugang_da' => 'startet im nächsten Cron', 'laeuft' => 'läuft',
@@ -290,9 +290,9 @@ $eing = !empty($eingebettet);
              den er nie geschlossen hatte. */
           $mDarf = (bool) sicher(static fn() => Db::wert("SELECT COUNT(*) FROM hosting_auftraege WHERE customer_id = ?
                        AND status IN ('zugestimmt','in_arbeit','angelegt','aktiv') AND mail = 'vecom'", [(int) $k['id']], 0), false); ?>
-    <details style="margin:0 0 10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">E-Mails aus dem alten Postfach umziehen …</summary>
+    <details style="margin:0 0 10px"><summary style="font-size:var(--fs-klein);color:var(--dim);cursor:pointer">E-Mails aus dem alten Postfach umziehen …</summary>
       <?php if (!$mDarf): ?>
-        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Geht erst, wenn der Kunde Domain &amp; Hosting mit Postfach bei uns zugestimmt hat — vorher gibt es kein Ziel.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0">Geht erst, wenn der Kunde Domain &amp; Hosting mit Postfach bei uns zugestimmt hat — vorher gibt es kein Ziel.</p>
       <?php else: ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="mailumzug_anfragen">
@@ -301,7 +301,7 @@ $eing = !empty($eingebettet);
         <span>→</span>
         <input name="ziel" type="email" value="<?= Fmt::h($mZiel) ?>" placeholder="neue Adresse" style="max-width:230px" aria-label="Neues Postfach">
         <button class="knopf">Umzug anfragen</button>
-        <span style="color:var(--leise);font-size:12.5px">Der Kunde stimmt zu und gibt sein altes Passwort ein — sobald das neue Postfach eingerichtet ist. Danach läuft alles von selbst.</span>
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Der Kunde stimmt zu und gibt sein altes Passwort ein — sobald das neue Postfach eingerichtet ist. Danach läuft alles von selbst.</span>
       </form>
       <?php endif; ?></details>
     <?php if (!$dateien): ?><div class="leer">Noch nichts.</div><?php else: ?>
@@ -404,7 +404,7 @@ $eing = !empty($eingebettet);
       <span class="mehr"><span class="marke2 <?= ['aktiv'=>'gut','gekuendigt'=>'warnung'][$abo['status']] ?? '' ?>">
         <?= Fmt::h(['aktiv'=>'läuft','gekuendigt'=>'gekündigt','beendet'=>'beendet','angelegt'=>'angelegt'][$abo['status']] ?? $abo['status']) ?></span></span>
     <?php endif; ?></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
       Ein eigener Vertrag, getrennt von der Website: monatlich, zwölf Monate Mindestlaufzeit,
       danach zum Monatsende kündbar.</p>
 
@@ -437,7 +437,7 @@ $eing = !empty($eingebettet);
           <?php endif; ?>
         </div>
         <?php if (!$raten): ?>
-          <div class="leer" style="font-size:12.5px">Noch kein Monat abgerechnet. Der nächtliche Lauf legt an,
+          <div class="leer" style="font-size:var(--fs-klein)">Noch kein Monat abgerechnet. Der nächtliche Lauf legt an,
             was fällig wird — anfordern musst du selbst, damit der Kunde davon erfährt.</div>
         <?php else: ?>
           <div class="tabellenrahmen"><table>
@@ -513,7 +513,7 @@ $eing = !empty($eingebettet);
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="abo_kuendigen">
           <input type="hidden" name="id" value="<?= (int) $abo['id'] ?>">
           <button class="knopf">Für den Kunden kündigen</button>
-          <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+          <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">
             Ende wäre der <?= Fmt::h(Fmt::datum((string) $vor['ende'])) ?><?= $vor['mindestlaufzeit'] ? ' (Mindestlaufzeit)' : ' (Monatsende)' ?>.
             Kündigen kann er auch selbst auf seiner Seite.</span>
         </form>
@@ -541,7 +541,7 @@ $eing = !empty($eingebettet);
             <option value="sepa">SEPA-Lastschrift</option>
           </select></div>
         <button class="knopf">Betreuung anlegen</button>
-        <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+        <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">
           Die Mindestlaufzeit beginnt heute.</span>
       </form>
     <?php else: ?>
@@ -604,7 +604,7 @@ $eing = !empty($eingebettet);
         <?php if ($hZust): ?>
           <tr><td>Zustimmung</td><td><details><summary><?= Fmt::h(Fmt::zeit((string) $hZust['created_at'])) ?>
             · Fassung <?= Fmt::h((string) $hZust['fassung']) ?> · <?= Fmt::h(strtoupper((string) $hZust['sprache'])) ?></summary>
-            <p style="white-space:pre-line;color:var(--dim);font-size:12.5px;margin:6px 0 0"><?= Fmt::h((string) $hZust['text']) ?></p>
+            <p style="white-space:pre-line;color:var(--dim);font-size:var(--fs-klein);margin:6px 0 0"><?= Fmt::h((string) $hZust['text']) ?></p>
           </details></td></tr>
         <?php endif; ?>
         <tr><td>Monatlich</td><td><?= Fmt::h(Fmt::geld((int) $hostingA['preis_cents'])) ?><?=
@@ -638,7 +638,7 @@ $eing = !empty($eingebettet);
           <tr><td>Notiz</td><td style="color:var(--dim)"><?= Fmt::h((string) $hostingA['notiz']) ?></td></tr>
         <?php endif; ?>
       </tbody></table></div>
-      <p style="color:var(--leise);font-size:12.5px;margin:10px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:10px 0 0">
         <?php if ((string) $hostingA['status'] === 'vorgeschlagen'): ?>
           Der Kunde hat die Angebots-Mail und entscheidet auf seiner Seite.
         <?php elseif ((string) $hostingA['status'] === 'zugestimmt'): ?>
@@ -708,7 +708,7 @@ $eing = !empty($eingebettet);
           <table class="schlicht" style="margin-top:8px"><tbody>
             <?php foreach ($dbCheck['punkte'] as $dbP): ?>
               <tr><td style="width:1%;white-space:nowrap"><span class="marke2 <?= $dbP['ok'] === true ? 'gut' : ($dbP['ok'] === false ? 'schlecht' : 'warnung') ?>"><?= $dbP['ok'] === true ? '✓' : ($dbP['ok'] === false ? '✗' : '?') ?></span></td>
-                <td style="width:34%"><?= Fmt::h($dbP['punkt']) ?></td><td style="color:var(--dim);font-size:13px"><?= Fmt::h($dbP['text']) ?></td></tr>
+                <td style="width:34%"><?= Fmt::h($dbP['punkt']) ?></td><td style="color:var(--dim);font-size:var(--fs-klein)"><?= Fmt::h($dbP['text']) ?></td></tr>
             <?php endforeach; ?>
           </tbody></table>
           <?php if (!$dbCheck['freigegeben']): ?>
@@ -716,9 +716,9 @@ $eing = !empty($eingebettet);
               <input type="hidden" name="tat" value="domain_bestellung_freigeben"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
               <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
               <button class="knopf"<?= $dbCheck['blocker'] ? ' disabled title="Erst die rot markierten Punkte klären" style="opacity:.45;cursor:not-allowed"' : '' ?>>Bestellung freigeben</button>
-              <span style="color:var(--leise);font-size:12.5px;margin-left:8px"><?= $dbCheck['blocker'] ? 'Erst die rot markierten Punkte klären.' : 'Danach erscheint der Knopf zum Bestellsystem.' ?></span></form>
+              <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px"><?= $dbCheck['blocker'] ? 'Erst die rot markierten Punkte klären.' : 'Danach erscheint der Knopf zum Bestellsystem.' ?></span></form>
           <?php else: ?>
-            <p style="font-size:12.5px;color:var(--leise);margin:8px 0 0">Freigegeben <?= Fmt::h(Fmt::zeit((string) $hostingA['bestell_freigabe_am'])) ?> von <?= Fmt::h((string) $hostingA['bestell_freigabe_von']) ?>.
+            <p style="font-size:var(--fs-klein);color:var(--leise);margin:8px 0 0">Freigegeben <?= Fmt::h(Fmt::zeit((string) $hostingA['bestell_freigabe_am'])) ?> von <?= Fmt::h((string) $hostingA['bestell_freigabe_von']) ?>.
               <?= $dbCheck['bestellt'] ? 'Bestellt am ' . Fmt::h(Fmt::datum((string) $hostingA['domain_bestellt_am'])) . ' — jetzt wartet die Verwaltung auf die Nameserver.' : '' ?></p>
             <?php if (!$dbCheck['bestellt']): ?>
               <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:6px"><?= Csrf::feld() ?>
@@ -735,18 +735,18 @@ $eing = !empty($eingebettet);
             <?php endforeach; ?>
           </tbody></table>
           <?php foreach (['Adresse' => 'Die Adresse fehlt', 'Telefon' => 'Die Telefonnummer fehlt'] as $dbP => $dbS): if (!isset($dbFelder[$dbP])): ?>
-            <p style="color:var(--rot);font-size:12.5px;margin:6px 0 0"><?= Fmt::h($dbS) ?> — das Bestellsystem verlangt sie für den Inhaber. Unter „Bearbeiten“ ergänzen.</p>
+            <p style="color:var(--rot);font-size:var(--fs-klein);margin:6px 0 0"><?= Fmt::h($dbS) ?> — das Bestellsystem verlangt sie für den Inhaber. Unter „Bearbeiten“ ergänzen.</p>
           <?php endif; endforeach; ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_registrierung">
             <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
             <button class="knopf klein">Jetzt nachsehen</button>
-            <span style="color:var(--leise);font-size:12.5px">Das System sieht auch von selbst alle zehn Minuten nach: Sobald die Nameserver auf All-Inkl zeigen,
+            <span style="color:var(--leise);font-size:var(--fs-klein)">Das System sieht auch von selbst alle zehn Minuten nach: Sobald die Nameserver auf All-Inkl zeigen,
               prüft es HTTPS, meldet sich bei dir und schreibt dem Kunden.</span>
           </form>
         </div>
       <?php elseif ((string) ($hostingA['domain_aktion'] ?? '') === 'neu' && !empty($hostingA['domain_registriert_am'])): ?>
-        <p style="color:var(--leise);font-size:12.5px;margin:10px 0 0">Domain registriert erkannt am <?= Fmt::h(Fmt::zeit((string) $hostingA['domain_registriert_am'])) ?>.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:10px 0 0">Domain registriert erkannt am <?= Fmt::h(Fmt::zeit((string) $hostingA['domain_registriert_am'])) ?>.</p>
       <?php endif; ?>
       <?php /* Die Handgriffe zu Speicher, HTTPS und Technik -- klein, unter der Tabelle.
                Keiner davon ist die Hauptsache der Seite, deshalb kein Blau. */ ?>
@@ -779,7 +779,7 @@ $eing = !empty($eingebettet);
           </form>
         <?php endif; ?>
       </div>
-      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px;font-size:13px;color:var(--dim)">
+      <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px;font-size:var(--fs-klein);color:var(--dim)">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_technik">
         <input type="hidden" name="zurueck" value="<?= Fmt::h($hZ) ?>"><input type="hidden" name="id" value="<?= $hId ?>">
         <div style="display:flex;flex-wrap:wrap;gap:6px 14px;align-items:center">
@@ -816,10 +816,10 @@ $eing = !empty($eingebettet);
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $hGesperrt ? 'hosting_entsperren' : 'hosting_sperren' ?>">
             <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
             <?php if ($hGesperrt): ?>
-              <span style="color:var(--leise);font-size:12.5px">KAS-Zugang gesperrt seit <?= Fmt::h(Fmt::datum((string) $hostingA['gesperrt_am'])) ?>.</span>
+              <span style="color:var(--leise);font-size:var(--fs-klein)">KAS-Zugang gesperrt seit <?= Fmt::h(Fmt::datum((string) $hostingA['gesperrt_am'])) ?>.</span>
               <button class="knopf" style="margin-left:8px">Wieder öffnen</button>
             <?php else: ?>
-              <span style="color:var(--rot);font-size:12.5px">Vertrag beendet, KAS-Zugang noch offen.</span>
+              <span style="color:var(--rot);font-size:var(--fs-klein)">Vertrag beendet, KAS-Zugang noch offen.</span>
               <button class="knopf" style="margin-left:8px">Zugang sperren</button>
             <?php endif; ?>
           </form>
@@ -837,17 +837,17 @@ $eing = !empty($eingebettet);
         <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
           <div style="font-weight:650">Umzug <?= Fmt::h((string) $umzugA['domain']) ?>
             <span class="marke2 <?= (string) $umzugA['stand'] === 'fertig' ? 'gut' : ((string) $umzugA['stand'] === 'code_da' ? 'warnung' : '') ?>" style="margin-left:6px"><?= Fmt::h($uStand) ?></span></div>
-          <p style="color:var(--leise);font-size:12.5px;margin:6px 0 0">
+          <p style="color:var(--leise);font-size:var(--fs-klein);margin:6px 0 0">
             Transfersperre: <b><?= Fmt::h(['gesperrt' => 'gesetzt — der Kunde muss sie beim alten Anbieter lösen', 'frei' => 'keine',
                                            'unklar' => 'nicht lesbar (bei .it nur per WHOIS)'][(string) ($umzugA['sperre'] ?? 'unklar')] ?? '—') ?></b>
             <?= $umzugA['sperre_am'] ? ' · geprüft ' . Fmt::h(Fmt::datum((string) $umzugA['sperre_am'])) : '' ?></p>
           <?php $uDns = json_decode((string) ($umzugA['dns_json'] ?? ''), true) ?: []; ?>
           <?php $uDnsSchritt = (array) (($hSchritte ?? [])['dns'] ?? []); ?>
           <?php if ((string) ($uDnsSchritt['status'] ?? '') === 'fertig'): ?>
-            <p style="font-size:12.5px;margin:10px 0 0">✓ <b>DNS automatisch in den KAS übernommen</b>
+            <p style="font-size:var(--fs-klein);margin:10px 0 0">✓ <b>DNS automatisch in den KAS übernommen</b>
               <span style="color:var(--leise)">— <?= Fmt::h((string) $uDnsSchritt['text']) ?></span></p>
           <?php elseif ($uDns && !in_array((string) $umzugA['stand'], ['beantragt', 'fertig'], true)): ?>
-            <p style="font-size:12.5px;margin:10px 0 4px"><b>Vor dem Antrag im KAS-DNS eintragen</b>
+            <p style="font-size:var(--fs-klein);margin:10px 0 4px"><b>Vor dem Antrag im KAS-DNS eintragen</b>
               <span style="color:var(--leise)">— sonst kommen beim Kunden nach dem Umzug keine Mails mehr an. NS nicht übernehmen.</span></p>
             <div class="tabellenrahmen"><table class="schlicht"><tbody>
               <?php foreach ($uDns as $e): ?>
@@ -881,7 +881,7 @@ $eing = !empty($eingebettet);
       <?php $uebrig = array_values(array_filter($hostingWuensche,
           static fn(string $w): bool => strtolower($w) !== strtolower((string) $hostingA['domain']))); ?>
       <?php if ($uebrig): ?>
-        <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0">
           Weitere Wünsche aus dem Fragebogen: <?= Fmt::h(implode(' · ', $uebrig)) ?></p>
       <?php endif; ?>
       <?php if ((string) $hostingA['status'] === 'zugestimmt'): ?>
@@ -892,18 +892,18 @@ $eing = !empty($eingebettet);
           <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
           <input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
           <button class="knopf">Jetzt von Hand anlegen</button>
-          <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+          <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">
             Nur wenn du nicht auf die Automatik warten willst.</span>
         </form>
       <?php endif; ?>
       <?php if ((string) $hostingA['status'] === 'vorgeschlagen'): ?>
         <?php /* Noch nicht beantwortet: Das Angebot darf sich aendern (26.09.2026). */ ?>
-        <details style="margin-top:10px"><summary style="font-size:13px;color:var(--dim);cursor:pointer">Andere Domain anbieten …</summary>
+        <details style="margin-top:10px"><summary style="font-size:var(--fs-klein);color:var(--dim);cursor:pointer">Andere Domain anbieten …</summary>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="hosting_vorschlag">
             <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
             <div class="feld"><label>Neue Wunschdomain</label><input name="domain" placeholder="z. B. trattoria-rossi.it" required></div>
-            <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin:0 0 8px">
+            <label style="display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-klein);color:var(--dim);margin:0 0 8px">
               <input type="checkbox" name="selbst_geprueft" value="1" style="width:auto;margin:0">
               Selbst geprüft, sie ist frei (<a href="https://web-whois.nic.it/" target="_blank" rel="noopener">.it bei NIC.it</a>)</label><br>
             <button class="knopf">Prüfen und neu anbieten</button>
@@ -911,12 +911,12 @@ $eing = !empty($eingebettet);
       <?php endif; ?>
 
     <?php else: ?>
-      <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
         Wunschdomain prüfen und dem Kunden anbieten. Er bekommt sofort die Angebots-Mail
         mit dem Link auf seine Seite — zustimmen muss er dort selbst, erst dann entsteht etwas.</p>
       <?php if ($hostingWuensche): ?>
         <div style="margin:0 0 12px">
-          <div style="font-size:12.5px;color:var(--leise);margin-bottom:6px">
+          <div style="font-size:var(--fs-klein);color:var(--leise);margin-bottom:6px">
             Seine Wünsche aus dem Fragebogen — ein Klick prüft und bietet an:</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
             <?php foreach ($hostingWuensche as $wunsch): ?>
@@ -937,11 +937,11 @@ $eing = !empty($eingebettet);
         <input type="hidden" name="id" value="<?= (int) $k['id'] ?>">
         <div class="feld"><label>Wunschdomain</label>
           <input name="domain" placeholder="z. B. trattoria-rossi.it" required></div>
-        <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin:0 0 8px">
+        <label style="display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-klein);color:var(--dim);margin:0 0 8px">
           <input type="checkbox" name="selbst_geprueft" value="1" style="width:auto;margin:0">
           Selbst geprüft, sie ist frei (<a href="https://web-whois.nic.it/" target="_blank" rel="noopener">.it bei NIC.it</a> oder im Domainbestellsystem)</label><br>
         <button class="knopf">Prüfen und dem Kunden anbieten</button>
-        <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
+        <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">
           Vergebene Domains werden nie angeboten. Lässt sich „frei“ nicht automatisch bestätigen (bei .it häufig), zählt dein Haken.</span>
       </form>
     <?php endif; ?>
@@ -954,7 +954,7 @@ $eing = !empty($eingebettet);
   <?php require_once __DIR__ . '/../src/ExitPaket.php';
         $exListe = sicher(static fn() => ExitPaket::fuerKunde((int) $k['id']), []); ?>
   <div class="block" id="exit"><h2>Exit-Paket</h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Wenn der Kunde geht oder seine Daten haben will: ein ZIP mit Protokoll (SHA-256 je Datei)
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 10px">Wenn der Kunde geht oder seine Daten haben will: ein ZIP mit Protokoll (SHA-256 je Datei)
       und einem LIESMICH in seiner Sprache. Passwörter sind nie drin; die Datenbank gibt KAS nicht heraus. Der Download-Link geht erst nach deinem Ja in AI Freigaben raus.</p>
     <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
       <input type="hidden" name="tat" value="exit_paket_erstellen"><input type="hidden" name="kunde" value="<?= (int) $k['id'] ?>">
@@ -963,7 +963,7 @@ $eing = !empty($eingebettet);
           <label style="display:inline-flex;gap:6px;align-items:center;font-size:13.5px"><input type="checkbox" name="inhalt[]" value="<?= Fmt::h($exK) ?>" checked style="width:auto;margin:0"> <?= Fmt::h($exW) ?></label>
         <?php endforeach; ?>
       </div>
-      <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin-bottom:8px">
+      <label style="display:inline-flex;gap:6px;align-items:center;font-size:var(--fs-klein);color:var(--dim);margin-bottom:8px">
         <input type="checkbox" name="link" value="1" checked style="width:auto;margin:0"> danach den Link-Versand in AI Freigaben legen</label><br>
       <button class="knopf">Paket erstellen</button></form>
     <?php if ($exListe): ?>
@@ -973,8 +973,8 @@ $eing = !empty($eingebettet);
             <td style="min-width:220px"><?= Fmt::h(implode(', ', array_map(static fn($x) => ExitPaket::INHALTE[$x] ?? $x, explode(',', (string) $ex['inhalt'])))) ?>
               <?= $ex['stand'] === 'fertig' ? ' · ' . Fmt::h(ExitPaket::groesse((int) $ex['groesse'])) : '' ?>
               <?php if ($ex['stand'] === 'fehler'): ?><br><small style="color:var(--rot)"><?= Fmt::h((string) $ex['fehler']) ?></small><?php endif; ?>
-              <?php if ($ex['protokoll']): ?><details style="margin-top:4px"><summary style="cursor:pointer;font-size:12.5px;color:var(--dim)">Protokoll</summary>
-                <pre style="font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto"><?= Fmt::h((string) $ex['protokoll']) ?></pre></details><?php endif; ?></td>
+              <?php if ($ex['protokoll']): ?><details style="margin-top:4px"><summary style="cursor:pointer;font-size:var(--fs-klein);color:var(--dim)">Protokoll</summary>
+                <pre style="font-size:var(--fs-klein);white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto"><?= Fmt::h((string) $ex['protokoll']) ?></pre></details><?php endif; ?></td>
             <td style="width:1%;white-space:nowrap">
               <?php if ($ex['stand'] === 'fertig'): ?>
                 <a class="knopf klein" href="<?= Fmt::h(url('dateien/' . (int) $ex['file_id'])) ?>">Herunterladen</a>
@@ -1009,10 +1009,10 @@ $eing = !empty($eingebettet);
   ?>
   <?php if ($kundenlink !== ''): ?>
   <div class="block"><h2>Seine Seite</h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
       bis lange nach dem Onlinegang. Wer den Link hat, kommt hinein — also nur an ihn.</p>
     <div class="feld">
-      <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>" style="font-size:12px"></div>
+      <input readonly onclick="this.select()" value="<?= Fmt::h($kundenlink) ?>" style="font-size:var(--fs-klein)"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <?php /* Der Weg fuer den Kunden, den es hier vorher nicht gab: einen, den
                du selbst angelegt hast, weil ihr euch getroffen oder telefoniert
@@ -1062,7 +1062,7 @@ $eing = !empty($eingebettet);
         <details style="border:1px solid rgba(255,138,138,.3);border-radius:10px;padding:10px 12px">
           <summary style="cursor:pointer;font-weight:650;font-size:13.5px;color:var(--rot)">
             Es war nur ein Testlauf — alles weg, auch die Belege</summary>
-          <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 10px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 10px">
             Nur für Vorgänge, die es nie gegeben hat: dein eigener Probelauf. Dann sind die
             Belege unten keine Dokumente, die du aufbewahren musst, sondern Fehleinträge —
             und sie blockieren deinen Nummernkreis. Nach dem Löschen fängt der nächste Beleg
@@ -1070,7 +1070,7 @@ $eing = !empty($eingebettet);
             <strong style="color:var(--rot)">Hat der Kunde wirklich gezahlt, darfst du das nicht.</strong>
             Dann ist „Anonymisieren" der richtige Weg.</p>
           <?php if ($belege ?? []): ?>
-            <div style="font-size:12.5px;color:var(--dim);border:1px solid var(--linie);
+            <div style="font-size:var(--fs-klein);color:var(--dim);border:1px solid var(--linie);
                         border-radius:10px;padding:9px 11px;margin-bottom:11px">
               <div style="font-weight:650;margin-bottom:5px">Diese Belege würden vernichtet</div>
               <?php foreach ($belege as $b): ?>
@@ -1105,13 +1105,13 @@ $eing = !empty($eingebettet);
         <?= Fmt::h(Fmt::datum((string) $k['anonym_am'])) ?> anonymisiert worden.
         Die personenbezogenen Daten sind weg; Bestellungen, Zahlungen und Belege
         stehen weiter in den Büchern und tragen ihren Empfänger auf dem Dokument.</div>
-      <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:0 0 12px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
         Damit bleibt er in der Liste stehen — und das ist bei einem echten Kunden auch
         richtig so. War es dein eigener Probelauf, geht er unten ganz weg.</p>
       <?php $testweg(); ?>
 
     <?php else: ?>
-      <p style="color:var(--leise);font-size:13px;margin:0 0 12px;line-height:1.6">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 12px;line-height:1.6">
         Zwei Wege, und sie sind nicht dasselbe. <strong style="color:var(--dim)">Löschen</strong>
         ist für Testkunden und Vertipper — alles verschwindet.
         <strong style="color:var(--dim)">Anonymisieren</strong> ist für den echten Kunden,
@@ -1119,7 +1119,7 @@ $eing = !empty($eingebettet);
         Beides lässt sich nicht rückgängig machen.</p>
 
       <?php if ($umfang ?? []): ?>
-        <div style="font-size:12.5px;color:var(--leise);border:1px solid var(--linie);
+        <div style="font-size:var(--fs-klein);color:var(--leise);border:1px solid var(--linie);
                     border-radius:10px;padding:10px 12px;margin-bottom:12px">
           <div style="font-weight:650;color:var(--dim);margin-bottom:6px">An diesem Kunden hängen</div>
           <?= Fmt::h(Kunde::umfangText($umfang)) ?>
@@ -1141,7 +1141,7 @@ $eing = !empty($eingebettet);
       <?php else: ?>
         <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px;margin-bottom:10px">
           <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Vollständig löschen</summary>
-          <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 12px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 12px">
             Der Kunde verschwindet mit allem, was oben aufgezählt ist — samt hochgeladener
             Dateien. Es gibt keine Rechnung und keine eingegangene Zahlung, die dem im Weg
             stünde. Danach ist nichts davon wiederherstellbar.</p>
@@ -1162,7 +1162,7 @@ $eing = !empty($eingebettet);
       <?php /* --- Weg 2 --- */ ?>
       <details style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px">
         <summary style="cursor:pointer;font-weight:650;font-size:13.5px">Anonymisieren (DSGVO-Auskunft)</summary>
-        <p style="color:var(--leise);font-size:13px;line-height:1.6;margin:10px 0 8px">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 8px">
           <strong style="color:var(--dim)">Weg:</strong> Name, Adresse, Telefon, Steuernummern,
           Nachrichten, Dateien, Fragebogen, Anfragen, der Zugang des Kunden und sein Verlauf.<br>
           <strong style="color:var(--dim)">Bleibt:</strong> Bestellungen, Zahlungen und Belege.

@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Kundenstimmen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Kunden schreiben sie auf ihrer eigenen Seite, sobald die Website online ist. Was du hier
     freigibst, steht danach von allein auf vecom-design.it — und was du versteckst, verschwindet
     wieder.</p></div>
@@ -30,7 +30,7 @@
       <?php endif; ?>
       <?php if (!empty($s['foto'])): ?><img src="data:image/webp;base64,<?= base64_encode((string) $s['foto']) ?>" alt="Foto zur Stimme" width="72" height="72" style="border-radius:50%;object-fit:cover;float:right;margin:0 0 8px 12px"><?php endif; ?>
       <p style="white-space:pre-wrap;font-size:15px;line-height:1.65;color:var(--dim)"><?= Fmt::h((string) $s['text']) ?></p>
-      <p style="color:var(--leise);font-size:12.5px">
+      <p style="color:var(--leise);font-size:var(--fs-klein)">
         <?= Fmt::h($s['name']) ?><?= $s['firma'] ? ' · ' . Fmt::h((string) $s['firma']) : '' ?><?= $s['ort'] ? ' · ' . Fmt::h((string) $s['ort']) : '' ?>
         · <?= Fmt::h(strtoupper((string) $s['sprache'])) ?>
         · <?= Fmt::h(Fmt::datum((string) $s['created_at'])) ?></p>

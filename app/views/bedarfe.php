@@ -30,7 +30,7 @@
 <?php if ($zt): ?>
 <div class="block">
   <h2>E-Mail-Einstieg <span class="mehr" style="font-weight:400;color:var(--leise)">letzte <?= (int) $zt['tage'] ?> Tage</span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 14px">
     Jede Stufe zählt Menschen: Adresse eingetragen → Link geöffnet → Vorhaben ausgefüllt →
     Angebot bekommen → Anzahlung bezahlt. Die Prozentzahl sagt, wie viele von der Stufe davor
     es geschafft haben — dort, wo sie einbricht, liegt die Arbeit.</p>
@@ -44,14 +44,14 @@
         <?php $z = $r[$st] ?? null; ?>
         <td><?php if ($z === null): ?><span style="color:var(--leise)">—</span><?php else: ?>
           <?= (int) $z ?><?php if ($vorher !== null && $vorher > 0): ?>
-            <span style="color:var(--leise);font-size:12px"> · <?= (int) round($z / $vorher * 100) ?> %</span><?php endif; ?>
+            <span style="color:var(--leise);font-size:var(--fs-klein)"> · <?= (int) round($z / $vorher * 100) ?> %</span><?php endif; ?>
           <?php $vorher = (int) $z; endif; ?></td>
       <?php endforeach; ?></tr>
     <?php endforeach; ?>
     </tbody>
   </table></div>
   <?php if ((int) ($zt['bestand'] ?? 0) > 0): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Dazu <?= (int) $zt['bestand'] ?>×
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">Dazu <?= (int) $zt['bestand'] ?>×
       hat ein bestehender Kunde seinen Link noch einmal angefordert — das ist kein neuer Zugang.</p>
   <?php endif; ?>
 </div>
@@ -89,11 +89,11 @@
       <?php else: ?>
         <a href="<?= Fmt::h(url('bedarf/' . $b['id'])) ?>"><strong><?= Fmt::h(Fmt::name($b['name'], $b['email'] ?? null, '#' . $b['id'])) ?></strong></a>
         <?php if (($b['firma'] ?? '') !== ''): ?>
-          <div style="color:var(--leise);font-size:12.5px"><?= Fmt::h((string) $b['firma']) ?></div>
+          <div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $b['firma']) ?></div>
         <?php endif; ?>
       <?php endif; ?>
     </td>
-    <td style="font-size:13px;line-height:1.5">
+    <td style="font-size:var(--fs-klein);line-height:1.5">
       <?= $zwecke ? Fmt::h(implode(' · ', $zwecke)) : '<span style="color:var(--leise)">nichts gewählt</span>' ?>
     </td>
     <td class="num">
@@ -109,14 +109,14 @@
         <span class="marke2 warnung">wartet auf Angebot</span>
       <?php endif; ?>
     </td>
-    <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $b['created_at'])) ?></td>
+    <td style="font-size:var(--fs-klein);color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $b['created_at'])) ?></td>
     <td style="text-align:right">
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
             data-frage="Diesen Eintrag löschen?" data-ja="Ja, löschen">
         <?= Csrf::feld() ?>
         <input type="hidden" name="tat" value="bedarf_loeschen">
         <input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
-        <button class="knopf" style="padding:4px 9px;font-size:12px">Löschen</button>
+        <button class="knopf" style="padding:4px 9px;font-size:var(--fs-klein)">Löschen</button>
       </form>
     </td>
   </tr>
@@ -124,7 +124,7 @@
 </tbody></table></div>
 <div class="block" style="margin-top:14px">
   <h2 style="font-size:15px;margin:0 0 6px">Ganz leeren</h2>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 10px">
     Löscht auch abgesendete Anfragen — alles außer dem, woran ein Angebot hängt.
     Gedacht für nach einem Probelauf. Tippe <b>LÖSCHEN</b>, damit ein Klick aus
     Gewohnheit nicht reicht.
@@ -139,7 +139,7 @@
 </div>
 
 <?php if (($leer ?? 0) > 0): ?>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:12px 2px 0">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:12px 2px 0">
     Dazu <?= (int) $leer ?> Mal geöffnet und sofort wieder verlassen, ohne eine
     einzige Antwort. Solche Zeilen entstehen bei jedem Aufruf und stehen hier
     nur als Zahl — sie sagen nichts über einen Kunden, nur etwas über den

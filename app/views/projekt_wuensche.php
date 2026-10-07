@@ -19,7 +19,7 @@ $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d3
             'in_arbeit' => 'var(--gelb, #b7791f)', 'umgesetzt' => 'var(--leise)', 'abgelehnt' => 'var(--rot, #c0392b)'];
 ?>
 <div class="block" id="wuensche">
-  <h2>Wünsche des Kunden <span style="font-size:12px;color:var(--leise);font-weight:500">Scope-Schutz: gebaut wird nur „im Umfang“ oder „Zusatz angenommen“</span></h2>
+  <h2>Wünsche des Kunden <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">Scope-Schutz: gebaut wird nur „im Umfang“ oder „Zusatz angenommen“</span></h2>
   <?php if (!$wuListe): ?>
     <p class="leer" style="margin:0">Noch keine Wünsche. Schreibt der Kunde auf seiner Seite „Ich möchte etwas ändern“, erscheint es hier.</p>
   <?php endif; ?>
@@ -39,7 +39,7 @@ $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d3
   <?php foreach (array_slice($wuListe, 0, 30) as $wu): $wuSt = Wunsch::anzeige($wu); ?>
     <div style="border-top:1px solid var(--linie, #eee);padding:10px 0">
       <div style="font-size:15px;white-space:pre-wrap;overflow-wrap:anywhere"><?= Fmt::h((string) $wu['text']) ?></div>
-      <div style="font-size:13px;margin-top:4px">
+      <div style="font-size:var(--fs-klein);margin-top:4px">
         <b style="color:<?= $wuFarbe[$wuSt] ?? 'var(--leise)' ?>"><?= Fmt::h(Wunsch::STATUS[$wuSt] ?? $wuSt) ?></b>
         <span class="akq-klein" style="color:var(--leise)"> · <?= $wu['quelle'] === 'kunde' ? 'vom Kunden' : 'von Vecom eingetragen' ?> · <?= Fmt::h(Fmt::datum((string) $wu['created_at'])) ?>
           <?= (string) ($wu['eingeordnet_von'] ?? '') !== '' ? ' · eingeordnet von ' . Fmt::h((string) $wu['eingeordnet_von']) : '' ?>
@@ -65,11 +65,11 @@ $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d3
           <?= $wuForm('zusatzangebot', '<input type="hidden" name="wunsch" value="' . (int) $wu['id'] . '"><input name="minuten" type="number" min="15" max="6000" step="15" style="width:90px" title="Aufwand in Minuten" value="' . max(15, (int) ($wu['aufwand_min'] ?? 0) ?: Betrieb::minutenAus((string) ($wu['vorschlag_aufwand'] ?? '')) ?: 60) . '"><button class="knopf klein">Zusatzangebot als Entwurf</button>') ?>
         <?php endif; ?>
         <?php if ($wu['status'] === 'neu' || $wu['status'] === 'zusatz'): ?><?= $wuFeld ?>
-        <?php else: ?><details style="margin-top:2px"><summary style="cursor:pointer;font-size:13px">anders einordnen</summary><?= $wuFeld ?></details><?php endif; ?>
+        <?php else: ?><details style="margin-top:2px"><summary style="cursor:pointer;font-size:var(--fs-klein)">anders einordnen</summary><?= $wuFeld ?></details><?php endif; ?>
       <?php endif; ?>
     </div>
   <?php endforeach; ?>
-  <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px">Wunsch selbst eintragen (z. B. vom Telefon)</summary>
+  <details style="margin-top:8px"><summary style="cursor:pointer;font-size:var(--fs-klein)">Wunsch selbst eintragen (z. B. vom Telefon)</summary>
     <?= $wuForm('wunsch_neu', '<textarea name="text" required maxlength="2000" rows="2" style="min-width:min(460px,100%)" placeholder="Was soll anders sein?"></textarea><button class="knopf klein">Eintragen</button>') ?>
   </details>
 </div>

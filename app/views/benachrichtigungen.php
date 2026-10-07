@@ -14,7 +14,7 @@ $knopf = static function (string $tat, int $id, string $text, string $stil = '')
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= Fmt::h($tat) ?>">
       <input type="hidden" name="id" value="<?= $id ?>">
       <input type="hidden" name="zurueck" value="benachrichtigungen">
-      <button class="knopf" style="padding:3px 9px;min-width:0;font-size:12px;<?= $stil ?>"><?= $text ?></button>
+      <button class="knopf" style="padding:3px 9px;min-width:0;font-size:var(--fs-klein);<?= $stil ?>"><?= $text ?></button>
     </form>
     <?php
 };
@@ -74,7 +74,7 @@ $knopf = static function (string $tat, int $id, string $text, string $stil = '')
       <?php endforeach; ?>
     </ul>
   <?php endif; ?>
-  <p style="color:var(--leise);font-size:12.5px;margin-top:14px;padding-top:12px;border-top:1px solid var(--linie)">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:14px;padding-top:12px;border-top:1px solid var(--linie)">
     Gelesene Meldungen älter als 30 Tage räumt der Cronjob von selbst weg — ungelesene bleiben stehen,
     egal wie alt. Was tatsächlich passiert ist, steht unabhängig davon unter
     <a href="<?= Fmt::h(url('aktivitaeten')) ?>">Aktivitäten</a>.</p>

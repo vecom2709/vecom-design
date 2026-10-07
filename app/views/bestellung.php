@@ -122,11 +122,11 @@
       </div>
 
       <?php if ($wartetAngebot !== null && $z['status'] !== 'bezahlt'): ?>
-        <p style="color:var(--gelb);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+        <p style="color:var(--gelb);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 0">
           <?= Fmt::h(Angebot::warumKeinZahlungslink($wartetAngebot)) ?>
         </p>
       <?php elseif (!$z['link_url'] && $z['status'] !== 'bezahlt'): ?>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 0">
           Noch kein Zahlungslink. Erzeuge ihn oben — danach steht hier die fertige
           Nachricht mit Betrag und Link, so wie sie beim Kunden ankommt, und du
           schickst sie mit einem Knopf.
@@ -142,7 +142,7 @@
       ?>
         <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
           <input readonly value="<?= Fmt::h($zLink) ?>" onclick="this.select()"
-                 style="flex:1;min-width:240px;font-size:12.5px;font-family:ui-monospace,monospace">
+                 style="flex:1;min-width:240px;font-size:var(--fs-klein);font-family:ui-monospace,monospace">
           <a class="knopf" href="<?= Fmt::h($zLink) ?>" target="_blank" rel="noopener">Öffnen</a>
           <?php
             $schonRaus = Mail::schonGeschickt('zahlungslink', 'payment_id', (int) $z['id']);
@@ -201,12 +201,12 @@
             Das geht raus — <?= Fmt::h(Fmt::geld((int) $z['amount_cents'], (string) $z['currency'])) ?>
             auf <?= Fmt::h($zSprWort) ?>
           </summary>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 8px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 8px">
             An <?= Fmt::h((string) $b['kunde_email']) ?>. Die Sprache richtet sich nach dem, was
             beim Kunden hinterlegt ist — ändern kannst du sie in der
             <a href="<?= Fmt::h(url('kunden/' . (int) $b['customer_id'])) ?>">Kundenakte</a>.
           </p>
-          <div style="font-size:12.5px;margin-bottom:6px"><b>Betreff:</b> <?= Fmt::h($zBetreff) ?></div>
+          <div style="font-size:var(--fs-klein);margin-bottom:6px"><b>Betreff:</b> <?= Fmt::h($zBetreff) ?></div>
           <textarea readonly rows="<?= max(6, min(22, substr_count($zText, "\n") + 2)) ?>"
             onclick="this.select()"
             style="width:100%;font:12.5px/1.6 ui-monospace,SFMono-Regular,Menlo,monospace"><?= Fmt::h($zText) ?></textarea>
@@ -215,7 +215,7 @@
     </div>
   <?php endforeach; ?>
 
-  <p style="color:var(--leise);font-size:12.5px;margin-top:12px">Zahlt der Kunde über den Link, meldet Stripe das an den Server —
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:12px">Zahlt der Kunde über den Link, meldet Stripe das an den Server —
   und dieselbe Ereignislogik läuft, die auch „Von Hand buchen“ auslöst: Zahlung, Bestellung, Projekt, Aktivität, Dashboard.
   Kartendaten erreichen diesen Server dabei nie.</p></div>
 

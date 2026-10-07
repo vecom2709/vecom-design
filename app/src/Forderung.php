@@ -139,15 +139,21 @@ final class Forderung
         $p->text($rand, $y, 'ZAHLUNGEN', 7.5, true, 'links', $leise);
         $y += 16;
         foreach ($raten as $z) {
-            $bezahlt = (string) $z['status'] === 'bezahlt';
-            if (!$bezahlt) { $offen += (int) $z['amount_cents']; }
+            $st = (string) $z['status'];
+            $bezahlt = $st === 'bezahlt';
+            /* Offen ist nur, was wirklich noch kommen soll. Erstattete oder
+               abgebrochene Raten standen frueher als Schuld im Mahnschreiben
+               (Pruefung 07.10.2026, Punkt 17). */
+            $istOffen = in_array($st, ['ausstehend', 'in_bearbeitung', 'abbuchung', 'fehlgeschlagen'], true);
+            if ($istOffen) { $offen += (int) $z['amount_cents']; }
             $stand = $bezahlt
                 ? 'bezahlt am ' . Fmt::datum((string) $z['paid_at'])
-                : ($z['faellig_am'] ? 'fällig seit ' . Fmt::datum((string) $z['faellig_am']) : 'offen');
+                : (!$istOffen ? match ($st) { 'rueckerstattet' => 'erstattet', 'teilweise_erstattet' => 'teilweise erstattet', 'abgebrochen' => 'abgebrochen', default => $st }
+                : ($z['faellig_am'] ? 'fällig seit ' . Fmt::datum((string) $z['faellig_am']) : 'offen'));
             $p->text($rand, $y, (string) $z['bezeichnung'], 10, false, 'links', $tinte);
-            $p->text($rand + $breit * 0.52, $y, $stand, 9, false, 'links', $bezahlt ? $grau : $rot);
+            $p->text($rand + $breit * 0.52, $y, $stand, 9, false, 'links', $istOffen ? $rot : $grau);
             $p->text($rechts, $y, Fmt::geld((int) $z['amount_cents'], $w), 10, false, 'rechts',
-                $bezahlt ? $grau : $tinte);
+                $istOffen ? $tinte : $grau);
             $y += 15;
         }
         $y += 4;

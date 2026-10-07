@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+/* Not-Aus gilt auch hier: Was ein Besucher auslöst, ist für Uwe „automatisch“ (Prüfung 07.10.2026, Punkt 19). */
+require_once __DIR__ . '/app/src/Automation.php'; Automation::automatischAb('web-einwilligung');
 /* Sprachweiche im Kopf jeder Ausgabe — die Klasse also vor allem anderen laden
    (04.10.2026: ohne Konfiguration brach die Seite sonst im <html> ab). */
 require_once __DIR__ . '/app/src/Sprache.php';

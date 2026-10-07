@@ -1,9 +1,9 @@
 <div class="kopf"><h1>Bestellungen</h1><div class="rechts">
-<form class="leiste"><input type="search" name="q" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Kunde, Paket">
-<select name="status"><option value="">alle Status</option>
+<form class="leiste"><input type="search" name="q" aria-label="Bestellungen durchsuchen" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Kunde, Paket">
+<select name="status" aria-label="Status"><option value="">alle Status</option>
 <?php foreach (Status::BESTELLUNG as $w => $t): ?><option value="<?= $w ?>" <?= $st === $w ? 'selected' : '' ?>><?= Fmt::h($t) ?></option><?php endforeach; ?>
 </select>
-<select name="sort"><?php foreach (['datum'=>'nach Datum','betrag'=>'nach Betrag','kunde'=>'nach Kunde'] as $w=>$t): ?>
+<select name="sort" aria-label="Sortierung"><?php foreach (['datum'=>'nach Datum','betrag'=>'nach Betrag','kunde'=>'nach Kunde'] as $w=>$t): ?>
 <option value="<?= $w ?>" <?= $sort === $w ? 'selected' : '' ?>><?= $t ?></option><?php endforeach; ?></select>
 <button class="knopf">Anwenden</button></form>
 <a class="knopf haupt" href="<?= Fmt::h(url('bestellungen/neu')) ?>">Bestellung erfassen</a></div></div>

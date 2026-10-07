@@ -137,7 +137,7 @@ $knopf = static function (?array $k, bool $haupt) use ($csrf, $land): string {
   .mk-weg__schritt.dran .mk-weg__nr{background:var(--metall);color:#16120b;border-color:transparent}
   .mk-weg__titel{font-size:17px;display:flex;gap:8px;align-items:baseline;flex-wrap:wrap}
   .mk-weg__titel span{color:var(--dim);font-size:14px}
-  .mk-weg__titel em{font-style:normal;font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#f1d38b}
+  .mk-weg__titel em{font-style:normal;font-size:var(--fs-klein);font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#f1d38b}
   .mk-weg__inhalt p{margin:4px 0 0;line-height:1.5}
   .mk-weg__knopf .knopf{min-height:46px;display:inline-flex;align-items:center}
   @media(max-width:700px){.mk-weg__schritt{grid-template-columns:36px 1fr}.mk-weg__nr{width:36px;height:36px}.mk-weg__knopf{grid-column:1/-1}}

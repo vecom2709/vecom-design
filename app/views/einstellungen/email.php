@@ -80,7 +80,7 @@
     Die trägst du hier ein.
   </p>
 
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 14px">
     Verschickt wird nur, <i>dass</i> etwas ist, und der Link zur Verwaltung — nie ein
     Kundenname, keine Adresse, nicht der Text einer Anfrage. Der Weg läuft über einen
     fremden Dienst, und was dort nicht ankommt, kann dort auch nicht liegen bleiben.
@@ -124,7 +124,7 @@
         <button class="knopf">Handy-Zuruf entfernen</button></form>
     <?php endif; ?>
     <?php if ($zuruf['zuletzt'] !== ''): ?>
-      <span style="color:var(--leise);font-size:12.5px">Zuletzt: <?= Fmt::h($zuruf['zuletzt']) ?></span>
+      <span style="color:var(--leise);font-size:var(--fs-klein)">Zuletzt: <?= Fmt::h($zuruf['zuletzt']) ?></span>
     <?php endif; ?>
   </div>
 </div>

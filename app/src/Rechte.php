@@ -50,6 +50,14 @@ final class Rechte
         'wunsch_neu',
     ];
 
+    /** Prüfung 07.10.2026 (Befund 3): Akquise-Taten, die trotz „akq_“ nur der Admin darf — Zugangsdaten,
+        Echtbetrieb, Regeln/Sperren (Einwilligung!) und alles, was Geld kostet. Gilt VOR der Präfix-Erlaubnis. */
+    public const NUR_ADMIN = [
+        'akq_wa_speichern', 'akq_wa_anmelden', 'akq_meta_speichern', 'akq_meta_abo', 'akq_google_schluessel', 'akq_schluessel_neu',
+        'akq_schalter_speichern', 'akq_postfach_speichern', 'akq_briefdienst_speichern', 'akq_grenzen_speichern', 'akq_regel_speichern',
+        'akq_brief_senden', 'akq_briefserie_senden', 'akq_brief_schalten', 'akq_sperre_loeschen', 'akq_sperrart_loesen',
+    ];
+
     /** Taten, die nur die eigene Person betreffen und jede Rolle braucht (05.10.2026):
         Ohne sie liess sich die Einführung als Mitarbeit oder Nur lesen nicht schließen --
         das Merken wurde abgewiesen, und sie begann bei jedem Laden wieder von vorn. */
@@ -87,6 +95,7 @@ final class Rechte
         if ($r === 'admin') { return true; }
         if ($r !== '' && in_array($tat, self::TATEN_PERSOENLICH, true)) { return true; }
         if ($r !== 'mitarbeit' || $tat === '') { return false; }
+        if (in_array($tat, self::NUR_ADMIN, true) || preg_match('~schluessel|token|geheim|passwort~', $tat)) { return false; }
         // Was den Kunden schwer trifft (Rechnung, Abnahme, Betreuung …), bleibt beim Admin.
         require_once __DIR__ . '/Ablauf.php';
         if ((Ablauf::TRAGWEITE[$tat][0] ?? null) === Ablauf::SCHWER) { return false; }

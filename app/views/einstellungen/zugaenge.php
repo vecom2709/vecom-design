@@ -11,7 +11,7 @@
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="zugang_rolle"><input type="hidden" name="zurueck" value="einstellungen?b=zugaenge"><input type="hidden" name="id" value="<?= (int) $u['id'] ?>">
           <select name="rolle" aria-label="Rolle von <?= Fmt::h($u['name']) ?>"><?php foreach (Rechte::ROLLEN as $rk => $rw): ?><option value="<?= $rk ?>"<?= $u['role'] === $rk ? ' selected' : '' ?>><?= Fmt::h($rw) ?></option><?php endforeach; ?></select>
-          <button class="knopf stumm" style="padding:2px 8px;font-size:12px">Speichern</button></form><?php endif; ?></td>
+          <button class="knopf stumm" style="padding:2px 8px;font-size:var(--fs-klein)">Speichern</button></form><?php endif; ?></td>
       <td style="color:var(--leise)"><?= Fmt::h($u['last_login_at'] ? Fmt::seit($u['last_login_at']) : 'noch nie') ?></td>
       <td style="text-align:right"><?php if ((int) $u['id'] !== Auth::id()): ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -31,18 +31,18 @@
 
   <div class="zwei">
     <div>
-      <h3 style="font-size:13px;color:var(--leise);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Eigenes Passwort ändern</h3>
+      <h3 style="font-size:var(--fs-mini);color:var(--leise);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Eigenes Passwort ändern</h3>
       <form method="post" action="<?= Fmt::h(url('')) ?>">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="passwort_aendern">
         <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
         <div class="feld"><label>Bisheriges Passwort</label><input type="password" name="alt" autocomplete="current-password" required></div>
         <div class="feld"><label>Neues Passwort</label><input type="password" name="neu" autocomplete="new-password" minlength="10" required>
-          <small style="color:var(--leise);font-size:12px">Mindestens zehn Zeichen.</small></div>
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Mindestens zehn Zeichen.</small></div>
         <div class="feld"><label>Noch einmal</label><input type="password" name="neu2" autocomplete="new-password" minlength="10" required></div>
         <button class="knopf haupt">Passwort ändern</button></form>
     </div>
     <div>
-      <h3 style="font-size:13px;color:var(--leise);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weiteren Zugang anlegen</h3>
+      <h3 style="font-size:var(--fs-mini);color:var(--leise);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Weiteren Zugang anlegen</h3>
       <form method="post" action="<?= Fmt::h(url('')) ?>">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="zugang_anlegen">
         <input type="hidden" name="zurueck" value="einstellungen?b=zugaenge">
@@ -51,7 +51,7 @@
         <div class="feld"><label>Passwort</label><input type="password" name="passwort" autocomplete="new-password" minlength="10" required></div>
         <div class="feld"><label>Rolle</label><select name="rolle"><?php foreach (Rechte::ROLLEN as $rk => $rw): ?><option value="<?= $rk ?>"<?= $rk === 'mitarbeit' ? ' selected' : '' ?>><?= Fmt::h($rw) ?></option><?php endforeach; ?></select></div>
         <button class="knopf">Zugang anlegen</button></form>
-      <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
         Mitarbeit sieht Kunden, Akquise, Marketing und Bauen — nichts mit Geld, Preisen, Zugängen oder Einstellungen.</p>
     </div>
   </div>
@@ -144,7 +144,7 @@ $kasFehlt  = Kas::voraussetzung();
     <div class="hinweis schlecht"><?= Fmt::h($kasFehlt) ?></div>
   <?php endif; ?>
 
-  <p style="color:var(--leise);max-width:70ch;font-size:13px">Wichtig: Gemeint ist das
+  <p style="color:var(--leise);max-width:70ch;font-size:var(--fs-klein)">Wichtig: Gemeint ist das
     <b>KAS-Passwort</b> (im KAS unter „Einstellungen“ gesetzt), nicht das Passwort der
     MembersArea. Ohne gesetztes KAS-Passwort nimmt die API nichts an.</p>
 
@@ -176,7 +176,7 @@ $kasFehlt  = Kas::voraussetzung();
   <p style="color:var(--leise);max-width:70ch">Die @vecom-Adressen der Partner liegen im Konto, unter dem vecom-design.it läuft — nicht im Reseller-Vertrag.
     Mit diesem Zugang liest die Verwaltung einmal am Tag die vorhandenen Postfächer und Weiterleitungen und ordnet sie den Partnern zu, wenn es eindeutig ist.
     Sie <b>legt nichts an, ändert nichts und löscht nichts</b>. Login und KAS-Passwort landen nur in der Konfigurationsdatei auf diesem Server.</p>
-  <p style="font-size:13px;color:var(--leise)"><?= $kdZ ? 'Eingetragen: <code>' . Fmt::h($kdZ['login']) . '</code>' : 'Noch kein Zugang eingetragen.' ?>
+  <p style="font-size:var(--fs-klein);color:var(--leise)"><?= $kdZ ? 'Eingetragen: <code>' . Fmt::h($kdZ['login']) . '</code>' : 'Noch kein Zugang eingetragen.' ?>
     · <?= $kdA['am'] !== '' ? count($kdA['adressen']) . ' Adressen, zuletzt gelesen ' . Fmt::h($kdA['am']) : 'noch nicht gelesen' ?></p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap;margin:0">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_domain_zugang">

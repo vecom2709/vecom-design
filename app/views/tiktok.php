@@ -39,8 +39,8 @@ $zuLang = $konto['ok'] && $konto['max_sek'] > 0 && $dauer !== null && $dauer > $
 .tt-haken input{width:auto;margin:0}
 .tt-haken.aus{opacity:.45}
 .tt-schalter{display:flex;gap:10px;align-items:center;justify-content:space-between}
-.tt-hinweis{font-size:13px;margin:6px 0 0 26px;color:var(--text2,#9aa)}
-.tt-erklaerung{font-size:13px;line-height:1.5;margin:10px 0}
+.tt-hinweis{font-size:var(--fs-klein);margin:6px 0 0 26px;color:var(--text2,#9aa)}
+.tt-erklaerung{font-size:var(--fs-klein);line-height:1.5;margin:10px 0}
 .tt-erklaerung a{color:inherit}
 .tt-knoepfe{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 .tt-knoepfe [disabled]{opacity:.5;cursor:not-allowed}

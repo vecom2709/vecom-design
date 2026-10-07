@@ -38,7 +38,7 @@ if (!isset($bereiche[$b])) { $b = 'firma'; }
 ?>
 
 <div class="kopf"><div><h1>Einstellungen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px"><?= Fmt::h($bereiche[$b][1]) ?></p>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px"><?= Fmt::h($bereiche[$b][1]) ?></p>
 </div></div>
 
 <?php

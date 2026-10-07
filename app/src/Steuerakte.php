@@ -87,14 +87,18 @@ final class Steuerakte
         $monate = [];
         $offen = 0;
         foreach ($zeilen as $r) {
-            $summe['netto']  += (int) $r['net_cents'];
-            $summe['steuer'] += (int) $r['tax_cents'];
-            $summe['brutto'] += (int) $r['total_cents'];
+            /* Eine Gutschrift mindert: Ihr Betrag steht positiv in der Zeile,
+               zählt aber abwärts. Und sie ist nie „offen" — ihr Status heißt
+               'gutschrift', nicht 'bezahlt' (Prüfung 07.10.2026, Punkt 14). */
+            $vz = self::vorzeichen($r);
+            $summe['netto']  += $vz * (int) $r['net_cents'];
+            $summe['steuer'] += $vz * (int) $r['tax_cents'];
+            $summe['brutto'] += $vz * (int) $r['total_cents'];
             $m = (int) date('n', strtotime((string) ($r['issued_at'] ?: $r['created_at'])));
             $monate[$m] ??= ['anzahl' => 0, 'brutto' => 0];
             $monate[$m]['anzahl']++;
-            $monate[$m]['brutto'] += (int) $r['total_cents'];
-            if ((string) $r['status'] !== 'bezahlt') { $offen++; }
+            $monate[$m]['brutto'] += $vz * (int) $r['total_cents'];
+            if ($vz > 0 && (string) $r['status'] !== 'bezahlt') { $offen++; }
         }
         ksort($monate);
 
@@ -156,6 +160,12 @@ final class Steuerakte
         return $fehlt;
     }
 
+    /** -1 für Gutschriften, sonst +1. */
+    public static function vorzeichen(array $r): int
+    {
+        return (string) ($r['doc_typ'] ?? '') === 'gutschrift' ? -1 : 1;
+    }
+
     /** @return list<array<string,mixed>> */
     public static function belege(int $jahr): array
     {
@@ -195,6 +205,7 @@ final class Steuerakte
             $bezug = (string) ($r['order_no'] ?? '');
             if ($bezug === '' && ($r['abo_paket'] ?? '') !== '') { $bezug = 'Betreuung: ' . $r['abo_paket']; }
 
+            $vz = self::vorzeichen($r);
             $zeilen[] = [
                 (string) $r['invoice_no'],
                 Fmt::datum((string) ($r['issued_at'] ?: $r['created_at'])),
@@ -202,14 +213,14 @@ final class Steuerakte
                 trim((string) ($r['kunde_firma'] ?: $r['kunde_name'] ?: '—')),
                 $bezug,
                 (string) ($r['titel'] ?? ''),
-                self::zahl((int) $r['net_cents']),
+                self::zahl($vz * (int) $r['net_cents']),
                 number_format((float) $r['tax_rate'], 2, ',', '') . ' %',
-                self::zahl((int) $r['tax_cents']),
-                self::zahl((int) $r['total_cents']),
+                self::zahl($vz * (int) $r['tax_cents']),
+                self::zahl($vz * (int) $r['total_cents']),
                 (string) $r['currency'],
-                (string) $r['status'],
+                $vz < 0 ? 'Gutschrift' : (string) $r['status'],
                 $r['paid_at'] ? Fmt::datum((string) $r['paid_at']) : '',
-                self::artWort((string) ($r['art'] ?? '')),
+                $vz < 0 ? 'Gutschrift' : self::artWort((string) ($r['art'] ?? '')),
             ];
         }
 
@@ -450,25 +461,33 @@ final class Steuerakte
      */
     public static function einnahmen(int $jahr): array
     {
-        return (array) self::still(fn() => Db::all(
-            "SELECT p.id, p.paid_at, p.amount_cents, p.gebuehr_cents, p.currency,
-                    p.art, p.bezeichnung, p.provider, p.provider_ref,
+        /* Auch erstattete Zahlungen: Das Geld kam in diesem Jahr an. Die
+           Erstattung steht als eigene Minuszeile im Jahr, in dem sie zurückging
+           (Prüfung 07.10.2026, Punkt 14) — vorher fiel eine erstattete Zahlung
+           komplett aus der Kassenliste, als hätte es sie nie gegeben. */
+        $basis = "SELECT p.id, %s AS paid_at, %s AS amount_cents, %s AS gebuehr_cents, p.currency,
+                    p.art, %s AS bezeichnung, p.provider, p.provider_ref,
                     i.invoice_no, i.issued_at,
                     o.order_no, c.name AS kunde_name, c.company AS kunde_firma,
                     c.kundennr, c.tax_code, c.vat_id
                FROM payments p
-               LEFT JOIN invoices  i ON i.payment_id = p.id
+               LEFT JOIN invoices  i ON i.payment_id = p.id AND COALESCE(i.doc_typ, 'beleg') <> 'gutschrift'
                LEFT JOIN orders    o ON o.id = p.order_id
                LEFT JOIN abos      a ON a.id = p.abo_id
                /* Der Kunde haengt am Beleg, wenn es einen gibt, sonst an der
-                  Bestellung, sonst am Betreuungsvertrag. Vorher ging es nur
-                  ueber die Bestellung — eine Zahlung ohne Bestellung stand
-                  ohne Kunden in der Kassenliste, und das ist die Liste, nach
-                  der besteuert wird. */
+                  Bestellung, sonst am Betreuungsvertrag. */
                LEFT JOIN customers c ON c.id = COALESCE(i.customer_id, o.customer_id, a.customer_id)
-              WHERE p.status = 'bezahlt' AND p.paid_at IS NOT NULL
-                AND YEAR(p.paid_at) = ?
-              ORDER BY p.paid_at, p.id", [$jahr]), []);
+              WHERE %s";
+        $ein = (array) self::still(fn() => Db::all(sprintf($basis, 'p.paid_at', 'p.amount_cents', 'p.gebuehr_cents', 'p.bezeichnung',
+            "p.status IN ('bezahlt','rueckerstattet','teilweise_erstattet') AND p.paid_at IS NOT NULL AND YEAR(p.paid_at) = ?"), [$jahr]), []);
+        /* Eigene Abfrage: Fehlt die Spalte (Migration 214 noch nicht durch),
+           darf das nicht die ganze Kassenliste leeren. */
+        $raus = (array) self::still(fn() => Db::all(sprintf($basis, 'p.erstattet_am', '-p.erstattet_cents', '0',
+            "CONCAT('Erstattung: ', COALESCE(p.bezeichnung, ''))",
+            "p.erstattet_cents > 0 AND p.erstattet_am IS NOT NULL AND YEAR(p.erstattet_am) = ?"), [$jahr]), []);
+        $alle = array_merge($ein, $raus);
+        usort($alle, static fn($a, $b) => strcmp((string) $a['paid_at'], (string) $b['paid_at']) ?: ((int) $a['id'] <=> (int) $b['id']));
+        return $alle;
     }
 
     /** Die Kassenliste als Tabelle. */

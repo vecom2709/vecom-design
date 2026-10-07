@@ -633,6 +633,27 @@ final class Texte
         ],
     ];
 
+    /** Fehler beim Hochladen, für die Kundenseite (Prüfung 07.10.2026, Punkt 42). Gesiezt. */
+    public const DATEI_FEHLER = [
+        'zu_gross'         => ['it' => 'Il file è più grande di {groesse}. Può inviarlo in più parti o scrivermi.',
+                               'de' => 'Die Datei ist größer als {groesse}. Schicken Sie sie gern in Teilen, oder schreiben Sie mir.',
+                               'en' => 'The file is larger than {groesse}. Feel free to send it in parts, or write to me.'],
+        'leer'             => ['it' => 'Il file è vuoto.', 'de' => 'Die Datei ist leer.', 'en' => 'The file is empty.'],
+        'format'           => ['it' => 'Questo formato non è supportato. Vanno bene immagini (JPG, PNG, WebP), PDF e documenti comuni.',
+                               'de' => 'Dieses Dateiformat nehmen wir nicht an. Bilder (JPG, PNG, WebP), PDF und gängige Dokumente gehen.',
+                               'en' => 'This file type isn’t accepted. Images (JPG, PNG, WebP), PDFs and common documents work.'],
+        'voll'             => ['it' => 'Qui ci sono già {anzahl} file. Mi scriva e trovo una soluzione.',
+                               'de' => 'Hier liegen schon {anzahl} Dateien. Schreiben Sie mir, dann finden wir einen Weg.',
+                               'en' => 'There are already {anzahl} files here. Write to me and we’ll find a way.'],
+        'keine'            => ['it' => 'Non è stato scelto nessun file.', 'de' => 'Es wurde keine Datei ausgewählt.', 'en' => 'No file was selected.'],
+        'nicht_angekommen' => ['it' => 'Il file non è arrivato per intero. Riprovi, per favore.',
+                               'de' => 'Die Datei ist nicht vollständig angekommen. Bitte noch einmal versuchen.',
+                               'en' => 'The file didn’t arrive completely. Please try again.'],
+        'ablage'           => ['it' => 'Il file non si è potuto salvare. Riprovi tra poco.',
+                               'de' => 'Die Datei ließ sich nicht speichern. Bitte gleich noch einmal versuchen.',
+                               'en' => 'The file couldn’t be saved. Please try again shortly.'],
+    ];
+
     public const SEITE = [
         /* Der Knopf zum Vorhaben im Dashboard (24.09.2026) */
         /* Ein Fragebogen statt zwei (26.09.2026, Uwe: „Die 8 Fragen sollen in
@@ -1175,6 +1196,10 @@ final class Texte
         'seitenumzugFtpUser' => ['it' => 'Utente FTP', 'de' => 'FTP-Benutzer', 'en' => 'FTP user'],
         'seitenumzugFtpPass' => ['it' => 'Password FTP', 'de' => 'FTP-Passwort', 'en' => 'FTP password'],
         'seitenumzugDb'      => ['it' => 'Database (se c’è)', 'de' => 'Datenbank (falls vorhanden)', 'en' => 'Database (if any)'],
+        'seitenumzugDbHost'  => ['it' => 'Server del database', 'de' => 'Datenbank-Server', 'en' => 'Database server'],
+        'seitenumzugDbName'  => ['it' => 'Nome del database', 'de' => 'Datenbank-Name', 'en' => 'Database name'],
+        'seitenumzugDbUser'  => ['it' => 'Utente del database', 'de' => 'Datenbank-Benutzer', 'en' => 'Database user'],
+        'seitenumzugDbPass'  => ['it' => 'Password del database', 'de' => 'Datenbank-Passwort', 'en' => 'Database password'],
         'seitenumzugKnopf'   => ['it' => 'Acconsento e invio i dati', 'de' => 'Zustimmen und Zugang übermitteln', 'en' => 'Agree and send access'],
         'seitenumzugDa'      => ['it' => 'Grazie — i dati sono arrivati. Ora prepariamo il trasferimento; il suo sito resta online come prima.', 'de' => 'Danke — der Zugang ist angekommen. Wir bereiten den Umzug vor; Ihre Seite bleibt bis dahin, wie sie ist.', 'en' => 'Thank you — the access has arrived. We are preparing the move; your site stays as it is until then.'],
         'seitenumzugFehlt'   => ['it' => 'Servono almeno server, utente e password FTP.', 'de' => 'Es braucht mindestens FTP-Server, Benutzer und Passwort.', 'en' => 'At least FTP server, user and password are needed.'],

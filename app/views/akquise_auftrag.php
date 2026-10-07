@@ -29,8 +29,8 @@ $auAusBedarf = $auS['bedarf_fertig'] && !array_filter($auA, static fn($a) => (in
 ?>
 <style>
   .au-weg{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:4px;list-style:none;margin:0 0 12px;padding:0}
-  .au-weg li{border:1px solid var(--linie);border-radius:10px;padding:6px 7px;font-size:12px;line-height:1.35;background:var(--flaeche2);hyphens:manual}
-  .au-weg li b{display:block;font-size:12.5px;color:var(--text)}
+  .au-weg li{border:1px solid var(--linie);border-radius:10px;padding:6px 7px;font-size:var(--fs-klein);line-height:1.35;background:var(--flaeche2);hyphens:manual}
+  .au-weg li b{display:block;font-size:var(--fs-klein);color:var(--text)}
   @media (max-width:560px){.au-weg{grid-template-columns:1fr}.au-weg li{display:flex;justify-content:space-between;gap:8px}.au-weg li span{text-align:right}}
   .au-weg li span{color:var(--leise)}
   .au-weg li.ja{border-color:rgba(120,220,160,.45)} .au-weg li.ja b::before{content:"✓ ";color:#7fdca0}
@@ -42,7 +42,7 @@ $auAusBedarf = $auS['bedarf_fertig'] && !array_filter($auA, static fn($a) => (in
   .au-liste .z{font-variant-numeric:tabular-nums;white-space:nowrap}
   .au-form{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end;margin-top:8px}
   .au-form .feld{margin:0} .au-form input{width:130px;padding-top:6px;padding-bottom:6px}
-  .au-prov{font-size:13px;border-left:3px solid var(--linie2);padding:4px 10px;margin:8px 0;color:var(--dim)}
+  .au-prov{font-size:var(--fs-klein);border-left:3px solid var(--linie2);padding:4px 10px;margin:8px 0;color:var(--dim)}
 </style>
 <div class="block" id="auftrag">
   <h2>Vom Interesse zum Auftrag</h2>

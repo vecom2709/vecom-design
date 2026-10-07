@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+/* Not-Aus gilt auch hier: Was ein Besucher auslöst, ist für Uwe „automatisch“ (Prüfung 07.10.2026, Punkt 19). */
+require_once __DIR__ . '/app/src/Automation.php'; Automation::automatischAb('web-angebot');
 /* ==========================================================================
    angebot.php — Das Angebot, so wie der Kunde es sieht und annimmt.
 
@@ -22,7 +24,7 @@ declare(strict_types=1);
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
-if (!is_file($konfig)) { http_response_code(503); exit('Das Angebot ist derzeit nicht erreichbar.'); }
+if (!is_file($konfig)) { http_response_code(503); exit('Momentaneamente non raggiungibile — riprovi tra poco. · Gerade nicht erreichbar — bitte gleich noch einmal. · Not available right now — please try again shortly.'); }
 
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Texte', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
@@ -199,25 +201,25 @@ $datum = static function (?string $d): string {
   .akopf .siegel:focus-visible img{outline:2px solid #f1d38b;outline-offset:4px;border-radius:50%}
   .siegel__hinweis{position:absolute;top:calc(100% + 8px);right:0;width:min(300px,calc(100vw - 40px));padding:11px 13px;border-radius:12px;
     background:#0b1632;border:1px solid rgba(241,211,139,.38);box-shadow:0 18px 40px -16px rgba(0,0,0,.8);
-    font-size:12.5px;line-height:1.55;color:var(--dim);opacity:0;visibility:hidden;translate:0 6px;pointer-events:none;
+    font-size:14px;line-height:1.55;color:var(--dim);opacity:0;visibility:hidden;translate:0 6px;pointer-events:none;
     transition:opacity .18s linear,translate .18s cubic-bezier(.16,1,.3,1),visibility 0s linear .18s}
   .akopf .siegel:hover .siegel__hinweis,.akopf .siegel:focus .siegel__hinweis{opacity:1;visibility:visible;translate:0 0;transition-delay:0s}
   @media (prefers-reduced-motion: reduce){.akopf .siegel img,.siegel__hinweis{transition:none}.akopf .siegel:hover img,.akopf .siegel:focus img{translate:0 0}}
-  .eck{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--leise);margin-top:10px}
+  .eck{display:flex;gap:14px;flex-wrap:wrap;font-size:14px;color:var(--leise);margin-top:10px}
   .eck b{color:var(--dim);font-weight:600}
   .pos{display:flex;gap:12px;padding:12px 0;border-bottom:1px solid var(--linie);align-items:flex-start}
   .pos:last-child{border-bottom:0}
   .pos__wort{flex:1 1 auto;min-width:0}
   .pos__wort strong{font-size:14.5px}
-  .pos__wort p{margin:3px 0 0;color:var(--leise);font-size:12.5px;line-height:1.55}
+  .pos__wort p{margin:3px 0 0;color:var(--leise);font-size:14px;line-height:1.55}
   .pos__geld{flex:0 0 auto;text-align:right;font-size:14.5px;white-space:nowrap}
-  .pos__menge{color:var(--leise);font-size:12.5px}
+  .pos__menge{color:var(--leise);font-size:14px}
   .summe{display:flex;justify-content:space-between;align-items:baseline;gap:12px;
     padding-top:14px;margin-top:4px;border-top:2px solid var(--linie)}
   .summe .wort{font-size:14px;color:var(--dim)}
   .summe .zahl{font-size:clamp(22px,5.5vw,30px);font-weight:600}
   .mtl{display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:14px;color:var(--dim)}
-  .zahlung{color:var(--leise);font-size:13px;line-height:1.65;margin:14px 0 0}
+  .zahlung{color:var(--leise);font-size:14px;line-height:1.65;margin:14px 0 0}
   .tun{display:flex;gap:10px;flex-wrap:wrap;margin-top:4px}
   .tun .knopf{flex:1 1 auto}
   /* Der Sprachumschalter -- dieselbe Gestalt wie auf der Kundenseite. Wer
@@ -226,20 +228,20 @@ $datum = static function (?string $d): string {
   .sprachwahl{margin-left:auto;display:inline-flex;gap:2px;padding:2px;
     border:1px solid var(--linie);border-radius:9px}
   .sprachwahl a{display:inline-block;padding:5px 10px;border-radius:7px;
-    font-size:12px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
+    font-size:14px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
   .sprachwahl a:hover{color:var(--dim)}
   .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
   .neinbox{margin-top:14px;padding-top:14px;border-top:1px solid var(--linie)}
-  .neinbox summary{cursor:pointer;color:var(--leise);font-size:13px}
+  .neinbox summary{cursor:pointer;color:var(--leise);font-size:14px}
   .neinbox textarea{margin-top:10px}
   .zustimmung{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
-    margin:0 0 12px;font-size:12.5px;line-height:1.5;color:var(--dim);cursor:pointer}
+    margin:0 0 12px;font-size:15px;line-height:1.55;color:var(--dim);cursor:pointer}
   .zustimmung input{width:20px;height:20px;margin:1px 0 0;accent-color:var(--cyan);cursor:pointer}
   .zustimmung a{color:var(--cyan)}
-  .widerrufbox{margin:0 0 16px;font-size:12.5px;color:var(--leise)}
+  .widerrufbox{margin:0 0 16px;font-size:15px;line-height:1.6;color:var(--leise)}
   .widerrufbox summary{cursor:pointer;padding:11px 0;color:var(--dim)}
   .widerrufbox p{margin:0;line-height:1.55}
-  .zustkopf{font-size:12px;letter-spacing:.06em;text-transform:uppercase;
+  .zustkopf{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;
     color:var(--leise);margin:0 0 10px}
 
   /* ---- Der Rechner ----------------------------------------------------
@@ -250,7 +252,7 @@ $datum = static function (?string $d): string {
   .wpos:last-of-type{border-bottom:0}
   .wpos input[type=checkbox]{width:20px;height:20px;flex:0 0 auto;accent-color:var(--cyan)}
   .wpos__wort{flex:1 1 auto;min-width:0;font-size:14px}
-  .wpos__wort small{display:block;color:var(--leise);font-size:12px;margin-top:2px}
+  .wpos__wort small{display:block;color:var(--leise);font-size:14px;margin-top:2px}
   .wpos__geld{flex:0 0 auto;text-align:right;font-size:14px;white-space:nowrap;font-variant-numeric:tabular-nums}
   .wmenge{display:inline-flex;align-items:center;gap:6px;margin-left:8px}
   .wmenge button{width:30px;height:30px;border-radius:8px;border:1px solid var(--linie);
@@ -362,7 +364,7 @@ $datum = static function (?string $d): string {
 
     <?php $optPos = array_filter($positionen, static fn($p) => (int) ($p['optional'] ?? 0)); if ($optPos): ?>
       <div style="margin-top:16px;padding:14px 16px;border:1px solid rgba(200,150,62,.45);border-radius:12px;background:rgba(200,150,62,.06)">
-        <div style="font-size:11.5px;letter-spacing:.12em;text-transform:uppercase;color:#a07a2c;font-weight:700"><?= $h($T('optional')) ?></div>
+        <div style="font-size:12.5px;letter-spacing:.12em;text-transform:uppercase;color:#a07a2c;font-weight:700"><?= $h($T('optional')) ?></div>
         <?php foreach ($optPos as $p): ?>
           <div class="mtl"><span><?= $h((string) $p['bezeichnung']) ?><?php if (trim((string) $p['beschreibung']) !== ''): ?><br><small style="color:var(--leise)"><?= $h((string) $p['beschreibung']) ?></small><?php endif; ?></span>
             <span><?= $h(Fmt::geld((int) $p['summe_cents'], (string) $a['currency'])) ?><?= (int) $p['monatlich'] ? ' ' . $h($T('proMonat')) : '' ?></span></div>
@@ -410,7 +412,7 @@ $datum = static function (?string $d): string {
 
       <details class="neinbox">
         <summary><?= $h($T('aendernKopf')) ?></summary>
-        <p class="lead" style="font-size:13.5px;margin:10px 0 0"><?= $h($T('aendernLead')) ?></p>
+        <p class="lead" style="font-size:14px;margin:10px 0 0"><?= $h($T('aendernLead')) ?></p>
 
         <?php if ((int) ($a['wunsch_runden'] ?? 0) >= 2): ?>
           <div class="hinweis warnung" style="margin-top:10px"><?= $h($T('aendernGenug')) ?></div>
@@ -447,7 +449,7 @@ $datum = static function (?string $d): string {
           <?php endforeach; ?>
 
           <?php if ($dazu): ?>
-            <p style="margin:16px 0 2px;font-size:13px;color:var(--leise)"><?= $h($T('aendernDazu')) ?></p>
+            <p style="margin:16px 0 2px;font-size:14px;color:var(--leise)"><?= $h($T('aendernDazu')) ?></p>
             <?php foreach ($dazu as $slug => $bs): ?>
               <?php
                 $anfrage = in_array($slug, Baukasten::NUR_AUF_ANFRAGE, true);

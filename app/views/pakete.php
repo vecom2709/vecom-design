@@ -17,6 +17,6 @@
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_loeschen">
     <input type="hidden" name="zurueck" value="pakete"><input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
     <button class="knopf stumm">Löschen</button></form>
-<?php else: ?><span style="color:var(--leise);font-size:12px">in Verwendung</span><?php endif; ?>
+<?php else: ?><span style="color:var(--leise);font-size:var(--fs-klein)">in Verwendung</span><?php endif; ?>
 </td></tr><?php endforeach; ?>
 </tbody></table></div></div>

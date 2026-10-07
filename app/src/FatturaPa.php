@@ -36,6 +36,7 @@ final class FatturaPa
         $fall = (string) ($r['steuerfall'] ?? 'ordinario');
         $natura = $r['natura'] ?? ($fall === 'forfettario' ? 'N2.2' : ($fall === 'reverse_charge' ? 'N2.1' : null));
         $satz = $natura !== null ? 0.0 : (float) $r['tax_rate'];
+        if ($natura === null && $satz <= 0) { throw new RuntimeException('Rechnung ohne IVA-Satz und ohne Natura — so nimmt die Agenzia sie nicht an. Erst den Satz eintragen.'); }
         $prog = strtoupper(str_pad(base_convert((string) $invoiceId, 10, 36), 5, '0', STR_PAD_LEFT));
 
         $x = new XMLWriter();

@@ -26,7 +26,7 @@ $kaTabelle = static function (array $gruppen, callable $name) use ($kaH, $kaGeld
 ?>
 <div class="kopf"><div><p class="akq-klein"><a href="<?= $kaH(url('akquise/kampagnen')) ?>">← Alle Kampagnen</a></p>
   <h1><?= $kaH((string) $k['name']) ?> <?= $kaAktiv ? '' : '<span class="marke2">beendet</span>' ?></h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Filter beim Anlegen: <?= $kaH($kaFw ? implode(' · ', $kaFw) : '—') ?> · angelegt <?= $kaH(date('d.m.Y', strtotime((string) $k['created_at']))) ?> von <?= $kaH((string) $k['angelegt_von']) ?></p></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Filter beim Anlegen: <?= $kaH($kaFw ? implode(' · ', $kaFw) : '—') ?> · angelegt <?= $kaH(date('d.m.Y', strtotime((string) $k['created_at']))) ?> von <?= $kaH((string) $k['angelegt_von']) ?></p></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
     <?php if ($kaAktiv): ?>
       <a class="knopf haupt" href="<?= $kaH(url('akquise/heute?kampagne=' . (int) $k['id'])) ?>">Damit arbeiten</a>
@@ -39,12 +39,12 @@ $kaTabelle = static function (array $gruppen, callable $name) use ($kaH, $kaGeld
 <style>
   .ka-tab td,.ka-tab th{text-align:right;white-space:nowrap}
   .ka-tab td:first-child,.ka-tab th:first-child{text-align:left;white-space:normal}
-  .ka-tab small{display:block;color:var(--leise);font-size:11.5px}
+  .ka-tab small{display:block;color:var(--leise);font-size:var(--fs-klein)}
   .ka-tr{display:grid;grid-template-columns:150px minmax(0,1fr) 90px;gap:6px 12px;align-items:center;font-size:13.5px}
   .ka-tr i{display:block;height:10px;border-radius:999px;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438)}
   .ka-tr span:nth-child(3n){text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap} .ka-tr small{color:var(--leise);display:inline-block;width:48px;text-align:right}
   .ka-geld{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px;margin-top:14px}
-  .ka-geld div{background:var(--flaeche2);border:1px solid var(--linie);border-radius:10px;padding:9px 11px;font-size:12.5px;color:var(--leise)}
+  .ka-geld div{background:var(--flaeche2);border:1px solid var(--linie);border-radius:10px;padding:9px 11px;font-size:var(--fs-klein);color:var(--leise)}
   .ka-geld b{display:block;font-size:18px;color:var(--text)}
   .ka-zwei{display:grid;grid-template-columns:1fr;gap:0}
   @media (max-width:560px){.ka-tr{grid-template-columns:110px minmax(0,1fr) 70px}}

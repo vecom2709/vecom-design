@@ -26,13 +26,13 @@ $warteText = ['gelb' => 'seit über 24 h', 'rot' => 'seit über 48 h', 'admin' =
   .crm-kachel h3 span{font-size:22px;font-variant-numeric:tabular-nums}
   .crm-betrieb{display:grid;grid-template-columns:1fr auto;gap:2px 10px;padding:9px 0;border-top:1px solid var(--linie)}
   .crm-betrieb a{color:var(--text);font-weight:600;font-size:14px}
-  .crm-betrieb small{grid-column:1/-1;color:var(--leise);font-size:12px;line-height:1.45}
-  .crm-leer{color:var(--leise);font-size:13px;padding:6px 0}
-  .crm-warte{font-size:11.5px;padding:1px 8px;border-radius:999px;margin-left:6px}
+  .crm-betrieb small{grid-column:1/-1;color:var(--leise);font-size:var(--fs-klein);line-height:1.45}
+  .crm-leer{color:var(--leise);font-size:var(--fs-klein);padding:6px 0}
+  .crm-warte{font-size:var(--fs-klein);padding:1px 8px;border-radius:999px;margin-left:6px}
   .crm-warte.gelb{background:rgba(245,197,66,.15);color:#f5c542} .crm-warte.rot,.crm-warte.admin{background:rgba(255,138,138,.15);color:var(--rot)}
 </style>
 <div class="kopf"><div><h1>Akquise · Heute</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px"><?= $offen > 0 ? $offen . ' Dinge warten auf dich.' : 'Nichts Dringendes offen.' ?> Nachrichten gehen nie ungeprüft raus — jede Ansprache folgt den Regeln unter „Regeln & Versand“.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px"><?= $offen > 0 ? $offen . ' Dinge warten auf dich.' : 'Nichts Dringendes offen.' ?> Nachrichten gehen nie ungeprüft raus — jede Ansprache folgt den Regeln unter „Regeln & Versand“.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <?php $kwZiel = 'akquise/heute'; $kampagne = $kampagne ?? null; $kampagnen = $kampagnen ?? []; require __DIR__ . '/akquise_kampagnenwahl.php'; /* Modul H */ ?>
 

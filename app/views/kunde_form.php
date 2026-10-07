@@ -2,15 +2,15 @@
 <div class="block" style="max-width:720px"><form method="post" action="<?= Fmt::h(url('')) ?>">
 <?= Csrf::feld() ?><input type="hidden" name="tat" value="kunde_speichern">
 <input type="hidden" name="zurueck" value="kunden"><input type="hidden" name="id" value="<?= (int) ($k['id'] ?? 0) ?>">
-<div class="reihe"><div class="feld"><label>Name *</label><input name="name" required value="<?= Fmt::h($k['name'] ?? '') ?>"></div>
-<div class="feld"><label>E-Mail *</label><input type="email" name="email" required value="<?= Fmt::h($k['email'] ?? '') ?>"></div></div>
-<div class="reihe"><div class="feld"><label>Telefon</label><input name="phone" value="<?= Fmt::h($k['phone'] ?? '') ?>"></div>
-<div class="feld"><label>Firma</label><input name="company" value="<?= Fmt::h($k['company'] ?? '') ?>"></div></div>
-<div class="reihe"><div class="feld"><label>Branche</label><input name="industry" value="<?= Fmt::h($k['industry'] ?? '') ?>"></div>
-<div class="feld"><label>Straße</label><input name="street" value="<?= Fmt::h($k['street'] ?? '') ?>"></div></div>
-<div class="reihe"><div class="feld"><label>PLZ</label><input name="zip" value="<?= Fmt::h($k['zip'] ?? '') ?>"></div>
-<div class="feld"><label>Ort</label><input name="city" value="<?= Fmt::h($k['city'] ?? '') ?>"></div></div>
-<div class="reihe"><div class="feld"><label>Land</label><input name="country" value="<?= Fmt::h($k['country'] ?? 'Italien') ?>"></div>
+<div class="reihe"><div class="feld"><label for="f_name">Name *</label><input id="f_name" name="name" required value="<?= Fmt::h($k['name'] ?? '') ?>"></div>
+<div class="feld"><label for="f_email">E-Mail *</label><input id="f_email" type="email" name="email" required value="<?= Fmt::h($k['email'] ?? '') ?>"></div></div>
+<div class="reihe"><div class="feld"><label for="f_phone">Telefon</label><input id="f_phone" type="tel" autocomplete="tel" name="phone" value="<?= Fmt::h($k['phone'] ?? '') ?>"></div>
+<div class="feld"><label for="f_company">Firma</label><input id="f_company" name="company" value="<?= Fmt::h($k['company'] ?? '') ?>"></div></div>
+<div class="reihe"><div class="feld"><label for="f_industry">Branche</label><input id="f_industry" name="industry" value="<?= Fmt::h($k['industry'] ?? '') ?>"></div>
+<div class="feld"><label for="f_street">Straße</label><input id="f_street" name="street" value="<?= Fmt::h($k['street'] ?? '') ?>"></div></div>
+<div class="reihe"><div class="feld"><label for="f_zip">PLZ</label><input id="f_zip" name="zip" value="<?= Fmt::h($k['zip'] ?? '') ?>"></div>
+<div class="feld"><label for="f_city">Ort</label><input id="f_city" name="city" value="<?= Fmt::h($k['city'] ?? '') ?>"></div></div>
+<div class="reihe"><div class="feld"><label for="f_country">Land</label><input id="f_country" name="country" value="<?= Fmt::h($k['country'] ?? 'Italien') ?>"></div>
 <div class="feld"><label>Sprache</label>
   <?php $sp = strtolower((string) ($k['sprache'] ?? 'it')); ?>
   <select name="sprache">
@@ -27,15 +27,15 @@
          Speichern -- wer die Sprache oben aendert, sieht die neuen Worte
          nach dem Sichern. */
   $sw = Kunde::steuerworte($k['sprache'] ?? 'it'); ?>
-<div class="reihe"><div class="feld"><label><?= Fmt::h($sw['tax_code']) ?></label><input name="tax_code" value="<?= Fmt::h($k['tax_code'] ?? '') ?>"></div>
-<div class="feld"><label><?= Fmt::h($sw['vat_id']) ?></label><input name="vat_id" value="<?= Fmt::h($k['vat_id'] ?? '') ?>"></div></div>
+<div class="reihe"><div class="feld"><label for="f_tax_code"><?= Fmt::h($sw['tax_code']) ?></label><input id="f_tax_code" name="tax_code" value="<?= Fmt::h($k['tax_code'] ?? '') ?>"></div>
+<div class="feld"><label for="f_vat_id"><?= Fmt::h($sw['vat_id']) ?></label><input id="f_vat_id" name="vat_id" value="<?= Fmt::h($k['vat_id'] ?? '') ?>"></div></div>
 <?php /* Das Feld steht immer im Formular, auch wenn es gerade nicht gilt --
          sonst koennte das Skript unten es beim Umschalten auf Italienisch
          nicht wieder hervorholen. Versteckt bleibt der Wert erhalten. */ ?>
 <div class="feld"<?= $sw['sdi'] === null ? ' hidden' : '' ?>>
-  <label><?= Fmt::h($sw['sdi'] ?? 'Empfängerkode oder PEC (SDI)') ?></label>
-  <input name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>" placeholder="M5UXCR1"></div>
-<p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:-4px 0 14px" id="steuerhinweis"><?= Fmt::h($sw['hinweis']) ?></p>
+  <label for="f_sdi"><?= Fmt::h($sw['sdi'] ?? 'Empfängerkode oder PEC (SDI)') ?></label>
+  <input id="f_sdi" name="sdi" value="<?= Fmt::h($k['sdi'] ?? '') ?>" placeholder="M5UXCR1"></div>
+<p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:-4px 0 14px" id="steuerhinweis"><?= Fmt::h($sw['hinweis']) ?></p>
 
 <?php /* Die Worte wechseln mit der Auswahl, nicht erst nach dem Speichern.
          Wer oben Deutsch einstellt und darunter weiter "Partita IVA" liest,
@@ -68,6 +68,6 @@
   beschriften();
 })();
 </script>
-<div class="feld"><label>Interne Notizen</label><textarea name="notes" rows="4"><?= Fmt::h($k['notes'] ?? '') ?></textarea></div>
+<div class="feld"><label for="f_notes">Interne Notizen</label><textarea id="f_notes" name="notes" rows="4"><?= Fmt::h($k['notes'] ?? '') ?></textarea></div>
 <button class="knopf haupt">Speichern</button> <a class="knopf stumm" href="<?= Fmt::h(url('kunden')) ?>">Abbrechen</a>
 </form></div>

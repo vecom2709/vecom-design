@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Anfragen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Was über das Formular auf der Website hereinkommt.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Was über das Formular auf der Website hereinkommt.
   Der Kunde ist ab dem Absenden angelegt — aus einer Anfrage wird mit einem Knopf eine Bestellung.</p></div>
 </div>
 

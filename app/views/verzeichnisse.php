@@ -46,14 +46,14 @@ require __DIR__ . '/mk_stil.php';
   .vz-eintrag:first-of-type{border-top:0}
   .vz-eintrag > summary{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;cursor:pointer;list-style:none}
   .vz-eintrag > summary::-webkit-details-marker{display:none}
-  .vz-eintrag > summary::before{content:"▸";color:var(--leise);font-size:12px;width:10px}
+  .vz-eintrag > summary::before{content:"▸";color:var(--leise);font-size:var(--fs-klein);width:10px}
   .vz-eintrag[open] > summary::before{content:"▾"}
   .vz-name{font-weight:600}
-  .vz-auf{font-size:12.5px;color:var(--gold,#d9b46a);text-decoration:none;white-space:nowrap}
+  .vz-auf{font-size:var(--fs-klein);color:var(--gold,#d9b46a);text-decoration:none;white-space:nowrap}
   .vz-auf:hover{text-decoration:underline}
   .vz-tun{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .vz-klein{font-size:12.5px;color:var(--leise)}
-  .vz-wirkung{font-size:12.5px;color:var(--dim);margin-left:auto}
+  .vz-klein{font-size:var(--fs-klein);color:var(--leise)}
+  .vz-wirkung{font-size:var(--fs-klein);color:var(--dim);margin-left:auto}
   .vz-eintrag.ruhig > summary .vz-name{color:var(--dim);font-weight:500}
   .vz-innen{display:grid;gap:10px;padding:10px 0 4px 22px;max-width:900px}
   .vz-innen p{margin:0;line-height:1.55}
@@ -112,7 +112,7 @@ $vzGoogle = null; foreach ($liste as $e) { if ($e['schluessel'] === 'google') { 
   .vz-gruppe{border:1px solid var(--linie2);border-radius:12px;padding:12px 14px;display:grid;gap:8px;align-content:start}
   .vz-gruppe h3{margin:0;font-size:15.5px}
   .vz-gruppe p{margin:0;line-height:1.55;font-size:13.5px}
-  .vz-gruppe textarea{width:100%;font-size:13px;line-height:1.5;resize:vertical;min-height:120px}
+  .vz-gruppe textarea{width:100%;font-size:var(--fs-klein);line-height:1.5;resize:vertical;min-height:120px}
   .vz-alles > summary{cursor:pointer;font-weight:600;padding:4px 0}
 </style>
 <div class="vz-einfach">

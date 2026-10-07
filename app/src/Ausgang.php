@@ -27,6 +27,21 @@ require_once __DIR__ . '/Automation.php';
  */
 final class Ausgang
 {
+    /**
+     * EINE Tür für den Not-Aus (Prüfung 07.10.2026, Punkt 48): Darf jetzt etwas über diesen
+     * Kanal an diesen Empfänger? Nein nur, wenn ein automatischer Weg läuft, der Not-Aus steht
+     * und der Empfänger nicht Uwe selbst ist. Neue Kanäle fragen hier, nicht selbst.
+     * @param string $kanal mail | telegram | whatsapp | meta | push | sms | druck | kas
+     * @param bool $anUns der Empfänger ist Uwe selbst (Meldungen an ihn gehen immer)
+     */
+    public const KANAELE = ['mail', 'telegram', 'whatsapp', 'meta', 'push', 'sms', 'druck', 'kas'];
+
+    public static function darf(string $kanal, bool $anUns = false): bool
+    {
+        if ($anUns) { return true; }
+        return !Automation::ausgangGesperrt();
+    }
+
     /** Zurückhalten, wenn ein automatischer Weg während des Not-Aus eine Mail schicken will. */
     public static function mailHalten(string $anlass, string $an, string $betreff, string $text, array $bezug): bool
     {
@@ -40,7 +55,14 @@ final class Ausgang
         $nutzlast = json_encode(['anlass' => $anlass, 'an' => $an, 'betreff' => $betreff, 'text' => $text, 'bezug' => $bezug],
             JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
         if ($nutzlast === false) { return false; }
-        $finger = hash('sha256', $anlass . "\0" . mb_strtolower($an) . "\0" . $betreff . "\0" . $text);
+        /* Fingerabdruck ohne Ziffern im Text: Eine Mail mit „Frist: 21.10.“ war beim nächsten
+           Versuch eine Woche später eine andere Mail und stand dann doppelt in der Liste. Die
+           Bezugsnummern (Kunde, Zahlung, Bestellung …) halten verschiedene Fälle auseinander. */
+        $ids = [];
+        foreach (['customer_id', 'project_id', 'order_id', 'payment_id'] as $k) { $ids[] = (string) ($bezug[$k] ?? ''); }
+        $ids[] = (string) ($bezug['nachher']['id'] ?? '');
+        $finger = hash('sha256', $anlass . "\0" . mb_strtolower($an) . "\0" . preg_replace('~\d+~', '#', $betreff) . "\0"
+            . implode(',', $ids) . "\0" . preg_replace('~\d+~', '#', $text));
         try {
             Db::run('INSERT IGNORE INTO ausgang_gehalten
                 (kanal, anlass, empfaenger, betreff, nutzlast, fingerabdruck, herkunft, customer_id)
@@ -95,7 +117,34 @@ final class Ausgang
             return ['ok' => false, 'text' => 'Die Mail ging nicht raus — sie wartet weiter.'];
         }
         self::spur($id, $z, 'gesendet', $wer);
+        self::nachher((array) ($bezug['nachher'] ?? []));
         return ['ok' => true, 'text' => 'Gesendet an ' . $z['empfaenger'] . '.'];
+    }
+
+    /**
+     * Was der ursprüngliche Weg nach einer gesendeten Mail eingetragen hätte. Während des
+     * Not-Aus kam Mail::senden mit false zurück, also blieb „Fragebogen verschickt“, „Beleg
+     * gesendet“ oder „Zahlung fällig ab“ leer — auch nachdem Uwe die Mail später schickte
+     * (Prüfung 07.10.2026, Punkt 25). Nur diese drei Felder, nichts Freies.
+     */
+    public const NACHHER = [
+        'questionnaires.eingeladen_am' => 'jetzt',
+        'invoices.sent_at'             => 'jetzt',
+        'payments.faellig_am'          => 'frist',
+    ];
+
+    public static function nachher(array $n): void
+    {
+        $schluessel = (string) ($n['tabelle'] ?? '') . '.' . (string) ($n['spalte'] ?? '');
+        $art = self::NACHHER[$schluessel] ?? null;
+        $id = (int) ($n['id'] ?? 0);
+        if ($art === null || $id <= 0) { return; }
+        [$tabelle, $spalte] = explode('.', $schluessel);
+        $wert = $art === 'frist'
+            ? date('Y-m-d', strtotime('+' . (class_exists('Events') ? Events::ZAHLUNGSZIEL_TAGE : 14) . ' days'))
+            : date('Y-m-d H:i:s');
+        try { Db::run("UPDATE `$tabelle` SET `$spalte` = ? WHERE id = ? AND `$spalte` IS NULL", [$wert, $id]); }
+        catch (Throwable $e) { /* dann bleibt es leer, wie vorher */ }
     }
 
     /** @return array{ok:bool, text:string} */

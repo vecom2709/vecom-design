@@ -23,7 +23,7 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
     <li>Name „Vecom Verwaltung“, als Adresse die Zeile oben.</li>
     <li>„Verbinden“ — Claude öffnet diese Verwaltung, du siehst, was erlaubt wird, und klickst „Erlauben“.</li>
   </ol>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">Eine Verbindung hält <?= (int) ClaudeZugang::TAGE ?> Tage. Danach fragt Claude neu.</p>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 12px">Eine Verbindung hält <?= (int) ClaudeZugang::TAGE ?> Tage. Danach fragt Claude neu.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="claude_zugang_schalten"><input type="hidden" name="an" value="<?= $c['an'] ? '0' : '1' ?>">
     <button class="knopf"><?= $c['an'] ? 'Claude-Zugang ausschalten (entzieht alle Verbindungen)' : 'Claude-Zugang einschalten' ?></button>
@@ -75,7 +75,7 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
     <?php if (!$telegramVerbunden): ?>Verbinden unter <a href="<?= Fmt::h(url('einstellungen?b=telegram')) ?>">Einstellungen → Telegram</a> — bis dahin geht es über den Ersatzweg.<?php endif; ?>
   </p>
   <?php if ($briefing !== ''): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 6px">So sähe es jetzt aus:</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 6px">So sähe es jetzt aus:</p>
     <div class="mb-vorschau"><?= nl2br($briefing) /* in Morgenbriefing::text() schon maskiert, nur <b> ist echtes HTML */ ?></div>
   <?php endif; ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"><?= Csrf::feld() ?>
@@ -110,5 +110,5 @@ $aktiv = array_values(array_filter($c['verbindungen'], static fn($v) => $v['entz
     .cz-stapel .cz-knopf{text-align:left;padding-top:8px}
     .cz-nur-schmal{display:inline;color:var(--leise)}
   }
-  .mb-vorschau{white-space:normal;font-size:13px;line-height:1.6;padding:12px 14px;border:1px solid var(--linie,rgba(255,255,255,.08));border-radius:10px;max-width:640px}
+  .mb-vorschau{white-space:normal;font-size:var(--fs-klein);line-height:1.6;padding:12px 14px;border:1px solid var(--linie,rgba(255,255,255,.08));border-radius:10px;max-width:640px}
 </style>

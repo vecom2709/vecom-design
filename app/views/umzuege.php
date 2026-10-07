@@ -13,7 +13,7 @@ $ampel = static fn(string $a): array => match ($a) {
 $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], MigrationCenter::ENDE, true));
 ?>
 <div class="kopf"><div><h1>Umzüge &amp; DNS</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Jeder Umzug eines Kunden als ein Vorgang — Domain, Website und Post zusammen. Bedient werden die Teile weiter in der
     Kundenakte; hier stehen der gemeinsame Stand, der Pre-Flight und jeder festgehaltene DNS-Stand.</p></div></div>
 
@@ -29,7 +29,7 @@ $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], M
     <p style="margin:0 0 8px"><a href="<?= Fmt::h(url('umzuege')) ?>">← Alle Umzüge</a></p>
     <h2><?= Fmt::h((string) ($v['domain'] ?: 'ohne Domain')) ?> · <?= Fmt::h($v['kunde']) ?>
       <span class="mehr"><span class="marke2 <?= $farbe((string) $v['stand']) ?>"><?= Fmt::h(MigrationCenter::STAENDE[$v['stand']] ?? $v['stand']) ?></span></span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">Umzug #<?= (int) $v['id'] ?> · angelegt <?= Fmt::h(Fmt::zeit((string) $v['created_at'])) ?>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 12px">Umzug #<?= (int) $v['id'] ?> · angelegt <?= Fmt::h(Fmt::zeit((string) $v['created_at'])) ?>
       · <a href="<?= Fmt::h(url('kunden/' . (int) $v['customer_id'])) ?>">Kundenakte öffnen</a>
       <?php if ($v['domain']): ?> · <a href="<?= Fmt::h(url('umzuege?dns=' . rawurlencode((string) $v['domain']))) ?>">DNS-Stände</a><?php endif; ?></p>
     <?php if (!empty($v['notiz'])): ?><p style="font-size:13.5px;margin:0 0 12px"><?= Fmt::h((string) $v['notiz']) ?></p><?php endif; ?>
@@ -118,7 +118,7 @@ $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], M
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 12px"><?= Csrf::feld() ?>
       <input type="hidden" name="tat" value="dns_festhalten"><input type="hidden" name="domain" value="<?= Fmt::h($dnsDomain) ?>">
       <button class="knopf">Jetzt festhalten</button>
-      <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Liest das öffentliche DNS (und die KAS-Zone, solange der Zugang des Kunden-Accounts am Auftrag liegt). Ändert nichts.</span></form>
+      <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Liest das öffentliche DNS (und die KAS-Zone, solange der Zugang des Kunden-Accounts am Auftrag liegt). Ändert nichts.</span></form>
     <?php if (!$dnsStaende): ?><p style="margin:0;color:var(--dim)">Noch kein Stand festgehalten.</p><?php endif; ?>
     <?php foreach ($dnsStaende as $i => $s):
         $vorher = $dnsStaende[$i + 1] ?? null;
@@ -140,15 +140,15 @@ $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], M
           <div class="hinweis" style="margin:10px 0">
             <b>Was diese Änderung getan hat</b>
             <?php foreach ((array) ($s['aenderungen']['umgeschrieben'] ?? []) as $u): ?>
-              <div style="font-size:13px">umgeschrieben: <?= Fmt::h($u['typ'] . ' ' . ($u['name'] !== '' ? $u['name'] : '@')) ?> „<?= Fmt::h((string) $u['alt_daten']) ?>“ → „<?= Fmt::h((string) $u['neu_daten']) ?>“</div>
+              <div style="font-size:var(--fs-klein)">umgeschrieben: <?= Fmt::h($u['typ'] . ' ' . ($u['name'] !== '' ? $u['name'] : '@')) ?> „<?= Fmt::h((string) $u['alt_daten']) ?>“ → „<?= Fmt::h((string) $u['neu_daten']) ?>“</div>
             <?php endforeach; ?>
-            <?php foreach ($rw['hand'] as $hz): ?><div style="font-size:13px">hinzugefügt: <?= Fmt::h($hz) ?> <span style="color:var(--leise)">(zurück nur von Hand im KAS)</span></div><?php endforeach; ?>
+            <?php foreach ($rw['hand'] as $hz): ?><div style="font-size:var(--fs-klein)">hinzugefügt: <?= Fmt::h($hz) ?> <span style="color:var(--leise)">(zurück nur von Hand im KAS)</span></div><?php endforeach; ?>
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
               <input type="hidden" name="tat" value="dns_zurueck"><input type="hidden" name="id" value="<?= (int) $s['id'] ?>"><input type="hidden" name="domain" value="<?= Fmt::h($dnsDomain) ?>">
               <button class="knopf">Zurücknehmen</button></form>
           </div>
         <?php elseif ($s['zurueck_am']): ?>
-          <p style="font-size:12.5px;color:var(--leise)">Zurückgenommen <?= Fmt::h(Fmt::zeit((string) $s['zurueck_am'])) ?> von <?= Fmt::h((string) $s['zurueck_von']) ?>: <?= Fmt::h((string) $s['zurueck_text']) ?></p>
+          <p style="font-size:var(--fs-klein);color:var(--leise)">Zurückgenommen <?= Fmt::h(Fmt::zeit((string) $s['zurueck_am'])) ?> von <?= Fmt::h((string) $s['zurueck_von']) ?>: <?= Fmt::h((string) $s['zurueck_text']) ?></p>
         <?php endif; ?>
         <div class="tabellenrahmen"><table class="schlicht"><tbody>
           <?php foreach ($s['oeffentlich'] as $e): ?>
@@ -183,7 +183,7 @@ $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], M
   .uz-zahlen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
   .uz-zahlen div{display:flex;flex-direction:column;gap:2px}
   .uz-zahlen b{font-size:20px}
-  .uz-zahlen span{color:var(--leise);font-size:12.5px}
+  .uz-zahlen span{color:var(--leise);font-size:var(--fs-klein)}
   .uz-h3{font-size:14px;margin:6px 0 8px;font-weight:650}
   .uz-pf{display:flex;flex-direction:column;gap:2px}
   .uz-pf-zeile{display:grid;grid-template-columns:110px 1fr;gap:10px;align-items:start;padding:8px 0;border-top:1px solid var(--linie,rgba(255,255,255,.08))}
@@ -195,7 +195,7 @@ $offen = array_filter($liste, static fn($m) => !in_array((string) $m['stand'], M
   .uz-stand button,.uz-tun button{white-space:nowrap}
   .uz-dns{border:1px solid var(--linie,rgba(255,255,255,.08));border-radius:10px;padding:10px 12px;margin-top:10px}
   .uz-dns summary{cursor:pointer;font-size:13.5px}
-  .uz-diff{font-family:ui-monospace,monospace;font-size:12.5px;margin:10px 0;word-break:break-all}
+  .uz-diff{font-family:ui-monospace,monospace;font-size:var(--fs-klein);margin:10px 0;word-break:break-all}
   .uz-diff .weg{color:var(--rot)} .uz-diff .neu{color:var(--gruen,#5bbf7a)}
   @media (max-width:640px){
     .uz-zahlen{grid-template-columns:repeat(2,minmax(0,1fr))}

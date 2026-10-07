@@ -3,7 +3,7 @@
 $akqTeil = 'recherche';
 ?>
 <div class="kopf"><div><h1>Suchaufträge</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Für den Alltag genügt „Jetzt suchen“ auf der Seite „Betriebe“. Hier geht es genauer:
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Für den Alltag genügt „Jetzt suchen“ auf der Seite „Betriebe“. Hier geht es genauer:
     Ebene und Branchen selbst wählen, Aufträge ansehen und abbrechen. Dein Rechner holt jeden Auftrag nachts ab.</p></div></div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
@@ -66,7 +66,7 @@ $akqTeil = 'recherche';
         <td class="akq-klein"><?= Fmt::h(Fmt::zeit((string) ($l['beendet_am'] ?? $l['gestartet_am'] ?? $l['created_at']))) ?></td>
         <td><?php if (in_array($l['status'], ['wartet', 'laeuft'], true)): ?>
           <form method="post" action="<?= Fmt::h(url('akquise')) ?>"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_lauf_abbrechen">
-            <input type="hidden" name="id" value="<?= (int) $l['id'] ?>"><button class="knopf" style="font-size:12px;padding:4px 10px">Abbrechen</button></form><?php endif; ?></td></tr>
+            <input type="hidden" name="id" value="<?= (int) $l['id'] ?>"><button class="knopf" style="font-size:var(--fs-klein);padding:4px 10px">Abbrechen</button></form><?php endif; ?></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
   <?php endif; ?>

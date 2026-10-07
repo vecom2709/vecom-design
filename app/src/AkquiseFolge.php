@@ -293,6 +293,16 @@ final class AkquiseFolge
      */
     public static function lauf(): array
     {
+        /* Nur ein Lauf zur Zeit, auch wenn er einmal von woanders als dem Cron kommt
+           (Prüfung 07.10.2026, Punkt 23) — sonst bekäme dieselbe Firma Schritt 2 doppelt. */
+        try { $frei = (int) Db::wert("SELECT GET_LOCK('vecom_akq_folge', 0)", [], 1); } catch (Throwable $e) { $frei = 1; }
+        if ($frei !== 1) { return ['geschickt' => 0, 'simuliert' => 0, 'beendet' => 0, 'pausiert' => 0, 'wartet' => 0, 'hinweis' => 'Ein anderer Lauf ist noch dabei.']; }
+        try { return self::laufGesperrt(); }
+        finally { try { Db::wert("SELECT RELEASE_LOCK('vecom_akq_folge')"); } catch (Throwable $e) { } }
+    }
+
+    private static function laufGesperrt(): array
+    {
         $bilanz = ['geschickt' => 0, 'simuliert' => 0, 'beendet' => 0, 'pausiert' => 0, 'wartet' => 0];
         /* Erst aufräumen -- auch bei ausgeschaltetem Schalter: Eine Antwort
            pausiert sofort, eine Abmeldung beendet sofort, nicht erst, wenn

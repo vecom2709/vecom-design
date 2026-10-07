@@ -84,7 +84,7 @@ $h = static fn(?string $s): string => htmlspecialchars((string) $s, ENT_QUOTES, 
 if ($a && isset($_GET['datei'])) {
     $d = Db::one('SELECT * FROM files WHERE id = ? AND customer_id = ?',
         [(int) $_GET['datei'], (int) $a['customer_id']]);
-    if ($d) { Ablage::ausliefern($d); }
+    if ($d && Ablage::darfKunde($d)) { Ablage::ausliefern($d); }   // keine Sicherungen, Paket erst nach Freigabe (Prüfung 07.10.2026)
     http_response_code(404); exit('Nicht gefunden.');
 }
 

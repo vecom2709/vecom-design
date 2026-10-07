@@ -806,6 +806,18 @@ final class Hosting
      */
     public static function weiter(int $auftragId, ?object $kas = null): array
     {
+        /* Nur EIN Aufruf je Auftrag zur Zeit (Prüfung 07.10.2026, Punkt 38): Cron und Uwes Knopf
+           „Wiederholen“ sahen sonst beide den Account-Schritt als dran und legten zwei KAS-Accounts
+           an — und setzten sich gegenseitig laufende Schritte auf „abgebrochen“. */
+        $sperre = 'vecom_hosting_' . $auftragId;
+        try { $frei = (int) Db::wert('SELECT GET_LOCK(?, 0)', [$sperre], 1); } catch (Throwable $e) { $frei = 1; }
+        if ($frei !== 1) { return ['ok' => false, 'text' => 'Wird gerade eingerichtet — gleich noch einmal ansehen.']; }
+        try { return self::weiterGesperrt($auftragId, $kas); }
+        finally { try { Db::wert('SELECT RELEASE_LOCK(?)', [$sperre]); } catch (Throwable $e) { } }
+    }
+
+    private static function weiterGesperrt(int $auftragId, ?object $kas): array
+    {
         if ($kas === null && Kas::probelauf()) {
             return ['ok' => false, 'text' => 'Probelauf ist an — beim KAS wird nichts angelegt. Unter Einstellungen → Server ausschalten.'];
         }
@@ -851,7 +863,11 @@ final class Hosting
             return ['ok' => false, 'text' => 'Account unklar — von Hand prüfen.'];
         }
         if (self::dran($st['account'])) {
-            self::schritt($auftragId, 'account', 'laeuft', null, true);
+            /* Atomar beanspruchen: nur wer offen/fehler auf „läuft“ kippt, legt an. */
+            if (Db::run("UPDATE hosting_schritte SET status = 'laeuft', text = NULL, versuche = versuche + 1
+                          WHERE auftrag_id = ? AND schritt = 'account' AND status IN ('offen','fehler')", [$auftragId])->rowCount() !== 1) {
+                return ['ok' => false, 'text' => 'Der Account wird gerade angelegt.'];
+            }
             /* Alle Grenzen, nicht nur der Speicher: add_account setzt jede
                fehlende auf 0 (Doku) -- ohne sie haette der Account keine
                Domain und kein Postfach anlegen duerfen. */
@@ -1018,8 +1034,12 @@ final class Hosting
             $st = self::schritte($auftragId);
         }
 
-        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach']) || !self::erledigt($st['dns']) || !self::erledigt($st['weiterleitung'])) {
-            return ['ok' => false, 'text' => 'Domain, Postfach, Weiterleitung oder DNS wird noch einmal versucht.'];
+        /* Auch Datenbank und FTP (Prüfung 07.10.2026, Punkt 33): Schlug einer davon einmal fehl,
+           galt der Auftrag trotzdem als angelegt — der Cron versuchte es nie wieder, die Meldung
+           erwähnte es nicht, und die Veröffentlichung fand dauerhaft keinen FTP-Zugang. */
+        if (!self::erledigt($st['domain']) || !self::erledigt($st['postfach']) || !self::erledigt($st['dns']) || !self::erledigt($st['weiterleitung'])
+            || (isset($st['datenbank']) && !self::erledigt($st['datenbank'])) || (isset($st['ftp']) && !self::erledigt($st['ftp']))) {
+            return ['ok' => false, 'text' => 'Domain, Postfach, Weiterleitung, DNS, Datenbank oder FTP wird noch einmal versucht.'];
         }
 
         /* 3. DER MONATSVERTRAG -- ausser er steckt in der Betreuung. Beim
@@ -1439,13 +1459,19 @@ final class Hosting
     public static function berichteSenden(?callable $senden = null, ?string $monat = null): int
     {
         if ((string) self::still(static fn() => Db::wert("SELECT svalue FROM settings WHERE skey = 'hosting_bericht'", [], '1'), '1') === '0') { return 0; }
-        $monat ??= date('Y-m');
+        /* Berichtet wird über den VORMONAT (Prüfung 07.10.2026, Punkt 27): Am 1.10. hieß es
+           sonst „Ihr Oktober im Überblick“, das angehängte PDF zeigte aber den September. */
+        $monat ??= date('Y-m', strtotime('first day of last month'));
+        $altMonat = date('Y-m', strtotime($monat . '-01 +1 month'));   // so hieß der Schlüssel bis 07.10.2026
         $n = 0;
         foreach (Db::all("SELECT * FROM hosting_auftraege WHERE status IN ('angelegt','aktiv') AND gesperrt_am IS NULL
                            AND (angelegt_am IS NULL OR angelegt_am < NOW() - INTERVAL 20 DAY) ORDER BY id") as $a) {
             if ($n >= 10) { break; }   // je Lauf hoechstens zehn -- der naechste Lauf macht weiter
             $schl = 'hosting_bericht_' . (int) $a['id'] . '_' . $monat;
-            if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schl], '') !== '') { continue; }
+            $war = (string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schl], '');
+            /* Ein Fehlversuch darf nach einem Tag noch einmal; alles andere heißt: schon raus. */
+            if ($war !== '' && !(str_starts_with($war, 'fehler ') && strtotime(substr($war, 7)) < time() - 86400)) { continue; }
+            if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', ['hosting_bericht_' . (int) $a['id'] . '_' . $altMonat], '') !== '') { continue; }
             $zeilen = self::berichtZeilen($a);
             if (!$zeilen) { continue; }
             /* AutoBuild Phase 10 (Vorschlag 6): Ist die Seite von uns gebaut und im Betrieb, hängt der Betriebsbericht als PDF an —
@@ -1457,12 +1483,13 @@ final class Hosting
                 $bPdf = (string) self::still(static function () use ($bPid): string { require_once __DIR__ . '/Betrieb.php'; return Betrieb::berichtPdf($bPid); }, '');
                 if ($bPdf !== '') { $anh[] = ['name' => 'Betriebsbericht-' . preg_replace('~[^a-z0-9.-]+~i', '-', (string) $a['domain']) . '-' . date('Y-m', strtotime('first day of last month')) . '.pdf', 'daten' => $bPdf]; }
             }
+            /* VOR dem Senden vermerken: Kam Brevos Antwort nach dem Zeitlimit nicht an, obwohl
+               die Mail angenommen war, ging der Bericht früher alle zehn Minuten noch einmal raus. */
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schl, date('Y-m-d H:i:s')]);
             $ok = self::still(static fn() => self::kundeSchreiben((int) $a['customer_id'], 'hosting_bericht',
                 ['domain' => (string) $a['domain'], 'monat' => $monat, 'zeilen' => $zeilen], $senden, $anh), false);
-            if ($ok) {
-                Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schl, date('Y-m-d H:i:s')]);
-                $n++;
-            }
+            if ($ok) { $n++; }
+            else { Db::run('UPDATE settings SET svalue = ? WHERE skey = ?', ['fehler ' . date('Y-m-d H:i:s'), $schl]); }
         }
         return $n;
     }
@@ -1671,13 +1698,32 @@ final class Hosting
         return ['status' => $st, 'text' => $txt];
     }
 
+    /**
+     * Der Hosting-Auftrag, der zu DIESEM Projekt gehört (Prüfung 07.10.2026, Punkt 30). Früher fiel
+     * die Suche auf den neuesten Auftrag des Kunden zurück — auch wenn der fest an einem anderen
+     * Projekt hing; die Fassung von Seite B landete dann im Webspace von Seite A. Jetzt: zuerst der
+     * Auftrag mit dieser project_id, sonst EIN Auftrag ohne Projekt. Gibt es mehrere ohne Projekt,
+     * entscheidet niemand still — dann null, und der Grund steht in $warum.
+     */
+    public static function auftragFuerProjekt(int $projektId, ?string &$warum = null, string $felder = '*'): ?array
+    {
+        $warum = null;
+        $kunde = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$projektId], 0);
+        if ($kunde <= 0) { return null; }
+        $eigen = Db::one("SELECT $felder FROM hosting_auftraege WHERE customer_id = ? AND project_id = ? AND status IN ('angelegt','aktiv') ORDER BY id DESC LIMIT 1", [$kunde, $projektId]);
+        if ($eigen) { return $eigen; }
+        $frei = Db::all("SELECT $felder FROM hosting_auftraege WHERE customer_id = ? AND project_id IS NULL AND status IN ('angelegt','aktiv') ORDER BY id DESC LIMIT 2", [$kunde]);
+        if (count($frei) === 1) { return $frei[0]; }
+        if (count($frei) > 1) { $warum = 'Der Kunde hat mehrere Hosting-Aufträge ohne Projekt — bitte in der Kundenakte dem richtigen Projekt zuordnen.'; }
+        return null;
+    }
+
     /** Warum ein Projekt noch nicht "online" sein darf -- oder null. */
     public static function httpsSperre(int $projektId): ?string
     {
         $p = Db::one('SELECT customer_id FROM projects WHERE id = ?', [$projektId]);
         if (!$p) { return null; }
-        $h = Db::one("SELECT domain, ssl_status, ssl_text FROM hosting_auftraege WHERE customer_id = ? AND status IN ('angelegt','aktiv')
-                       ORDER BY id DESC LIMIT 1", [(int) $p['customer_id']]);
+        $h = self::auftragFuerProjekt($projektId, $warum, 'domain, ssl_status, ssl_text');
         if (!$h || (string) ($h['ssl_status'] ?? '') === 'ok') { return null; }
         return 'Noch nicht „Online“: HTTPS von ' . $h['domain'] . ' ist nicht bestätigt'
             . (!empty($h['ssl_text']) ? ' (' . $h['ssl_text'] . ')' : ' (noch nicht geprüft)')

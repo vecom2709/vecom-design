@@ -38,7 +38,7 @@ $ohneVorgang  = max(0, $kundenGesamt - (int) ($gezeigt ?? 0));
     <div style="flex:1 1 320px;min-width:0">
       <b><?= $ohneVorgang ?> <?= $ohneVorgang === 1 ? 'Kunde hat' : 'Kunden haben' ?>
         gerade keinen laufenden Vorgang.</b>
-      <div style="color:var(--leise);font-size:13px;margin-top:3px">
+      <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:3px">
         Hier stehen nur Anfragen, Bestellungen und Projekte. Wer von Hand angelegt wurde oder
         fertig ist, steht in der Kundenliste.</div>
     </div>

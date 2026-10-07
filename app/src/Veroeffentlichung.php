@@ -53,8 +53,9 @@ final class Veroeffentlichung
         $g = [];
         $p = Db::one('SELECT * FROM projects WHERE id = ?', [$projektId]);
         if (!$p) { return ['bereit' => false, 'gruende' => ['Projekt nicht gefunden.'], 'projekt' => null, 'auftrag' => null, 'paket' => null, 'ftp' => null, 'version' => null]; }
-        $a = Db::one("SELECT * FROM hosting_auftraege WHERE customer_id = ? AND status IN ('angelegt','aktiv')
-                       ORDER BY (project_id = ?) DESC, id DESC LIMIT 1", [(int) $p['customer_id'], $projektId]);
+        require_once __DIR__ . '/Hosting.php';
+        $a = Hosting::auftragFuerProjekt($projektId, $aWarum);
+        if ($aWarum !== null) { $g[] = $aWarum; }
         /* AutoBuild Phase 6: veröffentlicht wird eine nummerierte Fassung — ohne Angabe die neueste. */
         require_once __DIR__ . '/Versionen.php';
         $version = $versionId !== null ? Versionen::laden($versionId) : Versionen::neueste($projektId);
@@ -80,7 +81,9 @@ final class Veroeffentlichung
         /* AutoBuild Phase 4: beim Not-Aus geht nichts live, auch nicht von Hand. */
         require_once __DIR__ . '/Bausperre.php';
         $bs = Bausperre::darfBauen($p);
-        if ($bs['stopp']) { $g[] = $bs['grund']; }
+        /* Nicht nur der Not-Aus: Auch die Bausperre (Angebot nicht angenommen / Anzahlung offen)
+           hält die Veröffentlichung an (Prüfung 07.10.2026, Punkt 32). */
+        if (!$bs['ok']) { $g[] = $bs['grund']; }
         if (!in_array((string) $p['status'], self::ABGENOMMEN, true)) {
             $g[] = 'Der Kunde hat noch nicht abgenommen (Stand: ' . (string) $p['status'] . ').';
         }
@@ -123,17 +126,29 @@ final class Veroeffentlichung
         $weg = (count($ersteTeile) === 1 && !in_array('index.html', $namen, true) && !in_array('index.php', $namen, true)
                 && str_contains((string) reset($namen), '/')) ? reset($ersteTeile) . '/' : '';
         $aus = [];
+        $geschrieben = 0;
         foreach ($namen as $i => $n) {
-            $rel = $weg !== '' ? substr($n, strlen($weg)) : $n;
+            $n = (string) $z->getNameIndex($i);   // der rohe Name — getStream braucht ihn genau so
+            $rel = $weg !== '' ? substr(str_replace('\\', '/', $n), strlen($weg)) : str_replace('\\', '/', $n);
             if ($rel === '') { continue; }
             $dateiZiel = rtrim($ziel, '/') . '/' . $rel;
             if (!is_dir(dirname($dateiZiel)) && !mkdir(dirname($dateiZiel), 0700, true) && !is_dir(dirname($dateiZiel))) {
                 $z->close(); throw new RuntimeException('Entpacken gescheitert.');
             }
-            $inhalt = $z->getFromIndex($i);
-            if ($inhalt === false || file_put_contents($dateiZiel, $inhalt) === false) {
+            /* Als Strom, nicht im Speicher (Prüfung 07.10.2026, Punkt 37): Ein 250-MB-Video endete
+               sonst mit einem Speicherfehler. Und gezählt wird, was wirklich herauskommt — nicht, was
+               das ZIP behauptet: Eine ZIP-Bombe darf die Platte nicht füllen. */
+            $ein = $z->getStream($n);
+            $datei = $ein !== false ? @fopen($dateiZiel, 'wb') : false;
+            if ($ein === false || $datei === false) {
+                if (is_resource($ein)) { fclose($ein); }
                 $z->close(); throw new RuntimeException('Entpacken gescheitert bei ' . mb_substr($rel, 0, 80));
             }
+            $kopiert = stream_copy_to_stream($ein, $datei, self::MAX_BYTES - $geschrieben + 1);
+            fclose($ein); fclose($datei);
+            if ($kopiert === false) { $z->close(); throw new RuntimeException('Entpacken gescheitert bei ' . mb_substr($rel, 0, 80)); }
+            $geschrieben += $kopiert;
+            if ($geschrieben > self::MAX_BYTES) { $z->close(); throw new RuntimeException('Entpackt größer als ' . Fmt::bytes(self::MAX_BYTES) . ' — das Paket gibt seine Größe falsch an.'); }
             $aus[] = $rel;
         }
         $z->close();
@@ -346,7 +361,19 @@ final class FtpVerbindung
             }
             return $aus;
         }
-        foreach ((array) (@ftp_nlist($this->v, $pfad) ?: []) as $n) {
+        /* false heißt „Liste nicht lesbar“, nicht „leer“ (Prüfung 07.10.2026, Punkt 29). Früher
+           galt ein abgebrochener Abruf als leerer Webspace — dann gab es keine Sicherung, und das
+           Hochladen überschrieb die Live-Seite. Leer ist nur, was es nicht gibt oder wirklich leer ist. */
+        $namen = @ftp_nlist($this->v, $pfad);
+        if ($namen === false) {
+            if (!@ftp_chdir($this->v, $pfad)) { return []; }          // Ordner gibt es nicht: wirklich leer
+            @ftp_chdir($this->v, '/');
+            $roh = @ftp_rawlist($this->v, $pfad);
+            if ($roh === false) { throw new RuntimeException('Der Inhalt von ' . $pfad . ' ließ sich nicht lesen — ohne Sicherung wird nichts überschrieben.'); }
+            if ($roh !== []) { throw new RuntimeException('Die Dateiliste von ' . $pfad . ' kam unvollständig an — ohne Sicherung wird nichts überschrieben.'); }
+            $namen = [];
+        }
+        foreach ($namen as $n) {
             $name = basename((string) $n);
             if ($name === '.' || $name === '..') { continue; }
             $aus[] = ['name' => $name, 'ordner' => @ftp_size($this->v, rtrim($pfad, '/') . '/' . $name) === -1];

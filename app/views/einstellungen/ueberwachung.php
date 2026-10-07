@@ -29,7 +29,7 @@
     <?php endif; ?>
   </p>
   <?php if ($kasProbeEnv): ?>
-    <p style="color:var(--leise);font-size:12.5px">Gesteuert über die Server-Variable <code>KAS_DRY_RUN</code> — der Schalter hier wirkt erst, wenn sie entfernt ist.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein)">Gesteuert über die Server-Variable <code>KAS_DRY_RUN</code> — der Schalter hier wirkt erst, wenn sie entfernt ist.</p>
   <?php else: ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 10px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="<?= $kasProbe ? 'kas_probelauf_aus' : 'kas_probelauf_an' ?>">
@@ -40,7 +40,7 @@
     <table class="schlicht"><tbody>
       <?php foreach ($kasProbeLetzte as $kpl): ?>
         <tr><td style="width:1%;white-space:nowrap;color:var(--leise)"><?= Fmt::h(Fmt::zeit((string) $kpl['created_at'])) ?></td>
-            <td style="font-size:12.5px"><?= Fmt::h((string) $kpl['message']) ?></td></tr>
+            <td style="font-size:var(--fs-klein)"><?= Fmt::h((string) $kpl['message']) ?></td></tr>
       <?php endforeach; ?>
     </tbody></table>
   <?php endif; ?>
@@ -68,7 +68,7 @@
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 12px">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="cron_kas_anlegen">
     <button class="knopf">Im KAS eintragen lassen</button>
-    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Alle zehn Minuten, per HTTPS. Steht er schon da, passiert nichts.</span>
+    <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Alle zehn Minuten, per HTTPS. Steht er schon da, passiert nichts.</span>
   </form>
   <div class="feld"><label>Oder diese Adresse von Hand im KAS eintragen</label>
     <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adresse) ?>"></div>
@@ -79,7 +79,7 @@
     <li>Intervall: <b>alle 10 Minuten</b></li>
     <li>Speichern — fertig</li>
   </ol>
-  <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:12px">
     Der Schlüssel gehört nicht in eine E-Mail und nicht in einen Chat. Wer ihn hat, kann den
     Lauf anstoßen — mehr nicht, aber das reicht als Grund, ihn für sich zu behalten.
   </p>
@@ -95,7 +95,7 @@
     <?php endif; ?>
   </div>
   <?php if ($bilanz): ?>
-    <p style="color:var(--leise);font-size:12px;margin-top:14px;word-break:break-all">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:14px;word-break:break-all">
       Letzte Bilanz: <?= Fmt::h(json_encode($bilanz, JSON_UNESCAPED_UNICODE)) ?></p>
   <?php endif; ?>
 </div>
@@ -142,9 +142,9 @@
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="sicherung_schluessel"><input type="hidden" name="zurueck" value="einstellungen?b=ueberwachung">
     <div class="feld"><label for="sicherung-oeffentlich"><?= $sa['eingerichtet'] ? 'Neuen öffentlichen Schlüssel eintragen' : 'Öffentlicher Schlüssel des Rechners' ?></label>
-      <textarea id="sicherung-oeffentlich" name="oeffentlich" rows="4" placeholder="-----BEGIN PUBLIC KEY-----" style="font-family:monospace;font-size:12px"></textarea></div>
+      <textarea id="sicherung-oeffentlich" name="oeffentlich" rows="4" placeholder="-----BEGIN PUBLIC KEY-----" style="font-family:monospace;font-size:var(--fs-klein)"></textarea></div>
     <button class="knopf<?= $sa['eingerichtet'] ? '' : ' haupt' ?>">Schlüssel eintragen</button>
-    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Steht auf dem Rechner in <code>Vecom-Sicherung\oeffentlich.pem</code>. Nur der öffentliche Teil — er ist kein Geheimnis.</span>
+    <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Steht auf dem Rechner in <code>Vecom-Sicherung\oeffentlich.pem</code>. Nur der öffentliche Teil — er ist kein Geheimnis.</span>
   </form>
   <?php if ($sa['eingerichtet']): ?>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
@@ -167,7 +167,7 @@
       <?php endforeach; ?>
     </tbody></table>
     <?php $dWhois = array_filter($ddiag, static fn($x) => str_ends_with($x['domain'], '.it') && $x['whois'] !== 'unklar'); ?>
-    <p style="font-size:13px;margin-top:8px;color:<?= $dWhois ? 'var(--gruen,#6fcf97)' : 'var(--rot)' ?>">
+    <p style="font-size:var(--fs-klein);margin-top:8px;color:<?= $dWhois ? 'var(--gruen,#6fcf97)' : 'var(--rot)' ?>">
       <?= $dWhois ? 'WHOIS kommt durch — .it wird automatisch geprüft.'
                   : 'WHOIS kommt von diesem Server nicht durch — .it bitte selbst prüfen und beim Anbieten „Selbst geprüft“ anhaken.' ?></p>
   <?php endif; ?>

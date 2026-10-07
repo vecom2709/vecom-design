@@ -30,25 +30,25 @@ $karte = static function (array $z, string $sp) use ($ziele): string {
   .pl-filter .feld{margin:0}
   .pl-tafel{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(230px,1fr);gap:12px;overflow-x:auto;padding-bottom:12px;scroll-snap-type:x proximity}
   .pl-spalte{background:var(--flaeche);border:1px solid var(--linie);border-radius:14px;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:180px;scroll-snap-align:start}
-  .pl-spalte h3{margin:0 0 2px;font-size:13px;display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 6px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
+  .pl-spalte h3{margin:0 0 2px;font-size:var(--fs-klein);display:flex;flex-wrap:wrap;justify-content:space-between;gap:2px 6px;color:var(--dim);text-transform:uppercase;letter-spacing:.05em}
   .pl-spalte h3 span{flex:1;min-width:0}
   .pl-spalte h3 b{color:var(--text);font-variant-numeric:tabular-nums}
   .pl-spalte.ziel-an{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(241,211,139,.25) inset}
-  .pl-spalte.gerechnet h3::after{content:"rechnet das System";flex-basis:100%;font-size:11px;font-weight:400;letter-spacing:0;text-transform:none;color:var(--leise)}
+  .pl-spalte.gerechnet h3::after{content:"rechnet das System";flex-basis:100%;font-size:var(--fs-klein);font-weight:400;letter-spacing:0;text-transform:none;color:var(--leise)}
   .pl-karte{background:var(--flaeche2);border:1px solid var(--linie);border-radius:10px;padding:9px 10px;display:flex;flex-direction:column;gap:4px;cursor:grab}
   .pl-karte[draggable=false]{cursor:default}
   .pl-karte.zieht{opacity:.45}
   .pl-karte a{color:var(--text);font-weight:600;font-size:13.5px;line-height:1.35}
-  .pl-unter{font-size:12px;color:var(--leise)}
+  .pl-unter{font-size:var(--fs-klein);color:var(--leise)}
   .pl-zeile{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .pl-schieben{display:flex;gap:4px;margin:4px 0 0}
-  .pl-schieben select{font-size:12px;padding:3px 6px;min-height:0;flex:1;min-width:0}
-  .pl-mehr{font-size:12px;color:var(--leise);text-align:center}
+  .pl-schieben select{font-size:var(--fs-klein);padding:3px 6px;min-height:0;flex:1;min-width:0}
+  .pl-mehr{font-size:var(--fs-klein);color:var(--leise);text-align:center}
   .pl-seite{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
   @media (hover:hover) and (pointer:fine){ .pl-schieben{display:none} .pl-karte:focus-within .pl-schieben,.pl-karte:hover .pl-schieben{display:flex} }
 </style>
 <div class="kopf"><div><h1>Akquise · Pipeline</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Gefunden bis Interesse rechnet das System aus den Daten; ab „Bedarf geklärt“ setzt du die Stufe — per Ziehen oder „Verschieben“. Sperren nur im Profil, mit Grund.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Gefunden bis Interesse rechnet das System aus den Daten; ab „Bedarf geklärt“ setzt du die Stufe — per Ziehen oder „Verschieben“. Sperren nur im Profil, mit Grund.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 
 <form class="pl-filter" method="get" action="<?= Fmt::h(url('akquise/pipeline')) ?>">

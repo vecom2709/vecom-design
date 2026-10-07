@@ -19,7 +19,7 @@ $monat = 0; $einmal = 0;
 foreach ($offen as $c) { if ($c['wert_cents'] !== null) { if ($c['wert_art'] === 'monat') { $monat += (int) $c['wert_cents']; } else { $einmal += (int) $c['wert_cents']; } } }
 ?>
 <div class="kopf"><div><h1>Umsatz-Chancen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was der Spürhund in deinen eigenen Daten gefunden hat. Er schreibt niemandem — anbieten, nachfassen und antworten
     tust du in der Akte, oder Claude legt dir einen fertigen Vorschlag in AI Freigaben.</p></div></div>
 
@@ -71,11 +71,11 @@ foreach ($offen as $c) { if ($c['wert_cents'] !== null) { if ($c['wert_art'] ===
   .uc-zahlen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
   .uc-zahlen div{display:flex;flex-direction:column;gap:2px}
   .uc-zahlen b{font-size:20px}
-  .uc-zahlen span{color:var(--leise);font-size:12.5px}
+  .uc-zahlen span{color:var(--leise);font-size:var(--fs-klein)}
   .uc-zeile{display:flex;gap:16px;justify-content:space-between;align-items:flex-start;padding:12px 0;border-top:1px solid var(--linie,rgba(255,255,255,.08))}
   .uc-zeile:first-of-type{border-top:0}
   .uc-text p{margin:4px 0 0;font-size:13.5px;line-height:1.55}
-  .uc-leise{color:var(--leise);font-size:12.5px!important}
+  .uc-leise{color:var(--leise);font-size:var(--fs-klein)!important}
   .uc-tun{display:flex;flex-direction:column;gap:8px;align-items:flex-end;min-width:240px}
   .uc-tun form{display:flex;gap:6px;margin:0}
   .uc-tun input{width:auto;min-width:150px}

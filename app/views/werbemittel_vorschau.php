@@ -15,7 +15,7 @@ $wmNurLesen = true;
 $selbst = null;
 ?>
 <div class="kopf"><div><h1>Als Partner ansehen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px;max-width:760px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px;max-width:760px">
     So sieht der Reiter „Marketing Center“ im Partnerbereich aus — nur lesen. Downloads und
     Bestellknöpfe sind hier aus. Produkte mit „für Partner noch aus“ sieht der Partner erst,
     wenn du sie einschaltest.</p></div>

@@ -34,7 +34,7 @@
       <div>
         <div class="feld"><label>Partita IVA</label>
           <input name="firma_piva" placeholder="noch keine" value="<?= Fmt::h((string) ($firma['firma_piva'] ?? '')) ?>">
-          <small style="color:var(--leise);font-size:12px">Leer lassen, solange du keine hast — dann bleiben es Belege.</small></div>
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Leer lassen, solange du keine hast — dann bleiben es Belege.</small></div>
       </div>
       <div>
         <div class="feld"><label>Codice fiscale</label><input name="firma_steuernr" value="<?= Fmt::h((string) ($firma['firma_steuernr'] ?? '')) ?>"></div>
@@ -48,13 +48,13 @@
             <option value="normal" <?= $reg !== 'forfettario' ? 'selected' : '' ?>>Normal — IVA wird ausgewiesen</option>
             <option value="forfettario" <?= $reg === 'forfettario' ? 'selected' : '' ?>>Regime forfettario — keine IVA</option>
           </select>
-          <small style="color:var(--leise);font-size:12px">Wirkt erst mit einer Partita IVA. Im forfettario steht der
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Wirkt erst mit einer Partita IVA. Im forfettario steht der
             gesetzliche Hinweis nach L. 190/2014 automatisch auf der Rechnung, und ab 77,47 € der Vermerk zur Marca da bollo.</small></div>
       </div>
       <div>
         <div class="feld"><label>Mehrwertsteuersatz in Prozent</label>
           <input name="firma_mwst" style="max-width:140px" value="<?= Fmt::h((string) ($firma['firma_mwst'] ?? '0')) ?>">
-          <small style="color:var(--leise);font-size:12px">Die Preise auf der Website gelten als Endpreise — die Steuer
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Die Preise auf der Website gelten als Endpreise — die Steuer
             wird herausgerechnet, nicht aufgeschlagen.</small></div>
       </div>
     </div>
@@ -75,24 +75,32 @@
         <?php endif; ?>
       </div>
     <?php else: ?>
+      <?php require_once dirname(__DIR__, 2) . '/src/Rechnung.php'; $reMaengel = Rechnung::bereit(); ?>
+      <?php if ($reMaengel !== []): ?>
+        <div class="hinweis warnung" style="margin:14px 0 4px">
+          <b>Noch keine echte Rechnung möglich.</b> Bis das ergänzt ist, entstehen weiter Zahlungsbelege (BE-…):
+          <ul style="margin:6px 0 0 18px"><?php foreach ($reMaengel as $rm): ?><li><?= Fmt::h($rm) ?></li><?php endforeach; ?></ul>
+        </div>
+      <?php else: ?>
       <div class="hinweis gut" style="margin:14px 0 4px">
         <b>Partita IVA hinterlegt.</b> Die Dokumente heißen <b>Rechnung</b> (RE-…)
         <?= (string) ($firma['firma_regime'] ?? 'normal') === 'forfettario'
             ? 'und tragen den Hinweis nach L. 190/2014, ohne IVA.'
             : 'und weisen die Steuer aus.' ?>
       </div>
+      <?php endif; ?>
     <?php endif; ?>
     <div class="zwei" style="margin-top:4px">
       <div>
         <div class="feld"><label>Rechnungen ab (Stichtag)</label>
           <input type="date" name="firma_rechnung_ab" style="max-width:200px" value="<?= Fmt::h((string) ($firma['firma_rechnung_ab'] ?? '')) ?>">
-          <small style="color:var(--leise);font-size:12px">Erst Zahlungen ab diesem Tag werden Rechnungen (RE-…). Was davor bezahlt wurde,
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Erst Zahlungen ab diesem Tag werden Rechnungen (RE-…). Was davor bezahlt wurde,
             bleibt Zahlungsbeleg — keine Nummer ändert sich nachträglich. Leer = ab sofort, sobald die Partita IVA steht.</small></div>
       </div>
       <div>
         <div class="feld"><label>PEC (eigene)</label>
           <input name="firma_pec" type="email" placeholder="name@pec.it" value="<?= Fmt::h((string) ($firma['firma_pec'] ?? '')) ?>">
-          <small style="color:var(--leise);font-size:12px">Steht auf Rechnungen und in der FatturaPA. Verschickt wird darüber nichts automatisch.</small></div>
+          <small style="color:var(--leise);font-size:var(--fs-klein)">Steht auf Rechnungen und in der FatturaPA. Verschickt wird darüber nichts automatisch.</small></div>
       </div>
     </div>
     <div class="feld" style="margin-top:6px"><label>Muster ansehen <span style="font-weight:400;color:var(--leise)">(nur Vorschau, nichts wird gespeichert)</span></label>
@@ -101,7 +109,7 @@
           <a class="knopf klein" target="_blank" rel="noopener" href="<?= Fmt::h(url('rechnungsmuster') . '?fall=' . $muF) ?>"><?= Fmt::h($muT) ?></a>
         <?php endforeach; ?>
       </div>
-      <small style="color:var(--leise);font-size:12px">Die Steuertexte bitte einmal vom Commercialista gegenlesen lassen.</small></div>
+      <small style="color:var(--leise);font-size:var(--fs-klein)">Die Steuertexte bitte einmal vom Commercialista gegenlesen lassen.</small></div>
     <div class="feld"><label>Hinweis auf dem Beleg</label>
       <textarea name="firma_hinweis" rows="3" placeholder="Den genauen Wortlaut gibt dir dein Commercialista."><?= Fmt::h((string) ($firma['firma_hinweis'] ?? '')) ?></textarea></div>
     <button class="knopf haupt">Firmendaten speichern</button>

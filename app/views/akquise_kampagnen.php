@@ -7,7 +7,7 @@ $kaH = static fn(?string $s): string => Fmt::h((string) $s);
 $kaGeld = Rechte::geld();
 ?>
 <div class="kopf"><div><h1>Kampagnen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Eine Kampagne ist eine feste Gruppe von Betrieben, zum Beispiel „Restaurants Sciacca Herbst“. Gezählt wird je Betrieb ab seiner Aufnahme.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Eine Kampagne ist eine feste Gruppe von Betrieben, zum Beispiel „Restaurants Sciacca Herbst“. Gezählt wird je Betrieb ab seiner Aufnahme.
     Verschickt wird dadurch nichts — jede Nachricht bleibt einzeln geprüft.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <style>
@@ -16,7 +16,7 @@ $kaGeld = Rechte::geld();
   .ka-form .feld{margin:0} .ka-form select,.ka-form input{width:100%}
   .ka-tab td,.ka-tab th{text-align:right;white-space:nowrap}
   .ka-tab td:first-child,.ka-tab th:first-child{text-align:left;white-space:normal}
-  .ka-tab small{display:block;color:var(--leise);font-size:11.5px}
+  .ka-tab small{display:block;color:var(--leise);font-size:var(--fs-klein)}
   .ka-aus{opacity:.6}
 </style>
 

@@ -10,15 +10,15 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
     . Csrf::feld() . '<input type="hidden" name="tat" value="' . $tat . '"><input type="hidden" name="id" value="' . (int) $p['id'] . '">' . $inhalt . '</form>';
 ?>
 <div class="block" id="bauen" style="border-color:<?= $pbB['stopp'] ? 'var(--rot, #c0392b)' : ($pbB['ok'] ? 'var(--gruen, #2e7d32)' : 'var(--gelb, #b7791f)') ?>">
-  <h2>Bauen <span style="font-size:12px;color:var(--leise);font-weight:500">AutoBuild · Bausperre und Not-Aus</span></h2>
+  <h2>Bauen <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">AutoBuild · Bausperre und Not-Aus</span></h2>
   <?php if ($pbB['stopp']): ?>
     <p style="font-size:15px;margin:0"><b>⛔ <?= Fmt::h($pbB['grund']) ?></b></p>
     <?php if ((int) ($pbP['ki_stopp'] ?? 0) === 1): ?><p class="akq-klein" style="margin:4px 0 0;color:var(--leise)">gestoppt von <?= Fmt::h((string) $pbP['ki_stopp_von']) ?> am <?= Fmt::h(Fmt::datum((string) $pbP['ki_stopp_am'])) ?> — keine Änderungen, keine Vorschau, kein Paket, kein Livegang.</p><?php endif; ?>
   <?php elseif ($pbB['ok']): ?>
-    <p style="font-size:15px;margin:0"><b>🔓 Bauen erlaubt</b> <span style="color:var(--leise);font-size:13px">seit <?= Fmt::h(Fmt::datum((string) $pbB['seit'])) ?> · <?= Fmt::h((string) $pbB['von']) ?></span></p>
+    <p style="font-size:15px;margin:0"><b>🔓 Bauen erlaubt</b> <span style="color:var(--leise);font-size:var(--fs-klein)">seit <?= Fmt::h(Fmt::datum((string) $pbB['seit'])) ?> · <?= Fmt::h((string) $pbB['von']) ?></span></p>
   <?php else: ?>
     <p style="font-size:15px;margin:0"><b>🔒 <?= Fmt::h($pbB['grund']) ?></b></p>
-    <p style="font-size:13px;margin:6px 0 0;color:var(--dim)">Claude darf analysieren und planen, aber nichts bauen, nichts ändern und nichts veröffentlichen.
+    <p style="font-size:var(--fs-klein);margin:6px 0 0;color:var(--dim)">Claude darf analysieren und planen, aber nichts bauen, nichts ändern und nichts veröffentlichen.
       <?= $pbB['angenommen'] ? '✓' : '✗' ?> Angebot angenommen · <?= $pbB['bezahlt'] ? '✓' : '✗' ?> Anzahlung bezahlt</p>
   <?php endif; ?>
 
@@ -28,7 +28,7 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
     <?= $pbForm('bau_stopp', '<input name="grund" maxlength="255" placeholder="Grund (z. B. Kunde wartet auf Rückmeldung, falsche Richtung)" style="min-width:min(360px,100%)"><button class="knopf">⛔ KI für dieses Projekt stoppen</button>') ?>
   <?php endif; ?>
   <?php if (!$pbB['ok'] && !$pbB['stopp'] && $pbAdmin): ?>
-    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:13px">Bausperre von Hand aufheben (nur Admin)</summary>
+    <details style="margin-top:8px"><summary style="cursor:pointer;font-size:var(--fs-klein)">Bausperre von Hand aufheben (nur Admin)</summary>
       <?= $pbForm('bau_von_hand', '<input name="grund" required minlength="10" maxlength="200" placeholder="Warum ohne Annahme und Zahlung im System? (z. B. schriftlicher Auftrag per Mail)" style="min-width:min(420px,100%)"><button class="knopf">Von Hand freigeben</button>') ?>
     </details>
   <?php endif; ?>
@@ -40,7 +40,7 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
   $pbOffen = [];
   foreach ($pbListe as $pbA) { if (in_array($pbA['status'], ['wartet', 'laeuft'], true)) { $pbOffen[$pbA['art']] = true; } }
   ?>
-  <h3 style="margin:16px 0 4px;font-size:16px">Claude-Aufträge <span style="font-size:12px;color:var(--leise);font-weight:500">laufen auf deinem PC · live geht nichts ohne deinen Klick</span></h3>
+  <h3 style="margin:16px 0 4px;font-size:16px">Claude-Aufträge <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">laufen auf deinem PC · live geht nichts ohne deinen Klick</span></h3>
   <?php /* Phase 10: Kostenwächter — sichtbar, bevor jemand auf einen Knopf drückt. */
     require_once dirname(__DIR__) . '/src/Betrieb.php';
     $pbKw = Betrieb::bauLaeufe((int) $p['id']); $pbKg = Betrieb::grenze((int) $p['id']); ?>
@@ -54,12 +54,12 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
         <?php if ($pbArt !== 'bauen'): $pbAm = $pbStand[$pbArt . '_am'] ?? null; ?>
         <span class="akq-klein" style="color:var(--leise)"> · <?= $pbAm ? 'übernommen am ' . Fmt::h(Fmt::datum((string) $pbAm)) : 'noch keine' ?></span>
         <?php endif; ?>
-        <p style="font-size:13px;margin:4px 0 0;color:var(--dim)"><?= Fmt::h($pbWas) ?></p>
+        <p style="font-size:var(--fs-klein);margin:4px 0 0;color:var(--dim)"><?= Fmt::h($pbWas) ?></p>
         <?php $pbSperre = $pbArt !== 'bauen' ? null : (!$pbB['ok'] ? 'Erst wenn die Bausperre gefallen ist (Angebot angenommen + Anzahlung).' : (empty($pbStand['pflichtenheft_am']) ? 'Erst ein Pflichtenheft übernehmen — gebaut wird nur dagegen.' : null)); ?>
         <?php if (!empty($pbOffen[$pbArt]) || ($pbArt === 'bauen' && !empty($pbOffen['review']))): ?>
-          <p style="font-size:13px;margin:6px 0 0"><b>⏳ läuft oder wartet schon</b></p>
+          <p style="font-size:var(--fs-klein);margin:6px 0 0"><b>⏳ läuft oder wartet schon</b></p>
         <?php elseif ($pbSperre !== null): ?>
-          <p style="font-size:13px;margin:6px 0 0">🔒 <?= Fmt::h($pbSperre) ?></p>
+          <p style="font-size:var(--fs-klein);margin:6px 0 0">🔒 <?= Fmt::h($pbSperre) ?></p>
         <?php else: ?>
           <?= $pbForm('bau_auftrag', '<input type="hidden" name="art" value="' . $pbArt . '"><input name="hinweis" maxlength="500" placeholder="Zusatzwunsch (optional)" style="flex:1 1 180px"><button class="knopf">' . Fmt::h($pbArt === 'bauen' ? 'Website bauen lassen' : $pbName . ' erstellen') . '</button>') ?>
         <?php endif; ?>
@@ -83,7 +83,7 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
         <?php if ($pbA['status'] === 'wartet'): ?>
           <?= $pbForm('bau_auftrag_abbrechen', '<input type="hidden" name="auftrag" value="' . (int) $pbA['id'] . '"><button class="knopf klein">Abbrechen</button>') ?>
         <?php elseif (in_array($pbA['status'], ['fehler', 'abgebrochen'], true) && (string) $pbA['fehler'] !== ''): ?>
-          <p style="font-size:13px;margin:6px 0;color:var(--rot, #c0392b)"><?= Fmt::h((string) $pbA['fehler']) ?></p>
+          <p style="font-size:var(--fs-klein);margin:6px 0;color:var(--rot, #c0392b)"><?= Fmt::h((string) $pbA['fehler']) ?></p>
         <?php elseif ($pbA['status'] === 'fertig'): ?>
           <?php $pbIstPlan = in_array($pbA['art'], ['analyse', 'pflichtenheft'], true); ?>
           <p class="akq-klein" style="margin:6px 0;color:var(--leise)"><?= $pbIstPlan ? 'Entwurf von Claude — erst lesen, dann übernehmen. Nichts davon ist geprüft oder zugesagt.' : 'Runde ' . (int) ($pbA['versuch'] ?? 1) . ' von ' . BauAuftrag::MAX_VERSUCHE . ' · die Fassung steht unten unter „Fassungen“ — live erst nach Testfassung und deinem „geprüft“.' ?></p>
@@ -98,7 +98,7 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
     </div>
   <?php endif; ?>
   <?php if ($pbAlle): ?>
-    <p style="margin:10px 0 0;font-size:13px;color:var(--rot, #c0392b)"><b>Alle automatischen Builds sind gestoppt.</b> <?= $pbAdmin ? '' : 'Wieder erlauben kann nur ein Admin.' ?></p>
+    <p style="margin:10px 0 0;font-size:var(--fs-klein);color:var(--rot, #c0392b)"><b>Alle automatischen Builds sind gestoppt.</b> <?= $pbAdmin ? '' : 'Wieder erlauben kann nur ein Admin.' ?></p>
     <?php if ($pbAdmin): ?><?= $pbForm('bau_weiter_alle', '<button class="knopf klein">Alle Builds wieder erlauben</button>') ?><?php endif; ?>
   <?php endif; ?>
 </div>

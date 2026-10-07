@@ -41,7 +41,7 @@ $bildArten = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
 
 <div class="kopf">
   <div><h1>Dateien</h1>
-    <p style="color:var(--leise);font-size:13px;margin-top:6px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
       Alles, was hochgeladen wurde — von dir oder vom Kunden. Hochladen im jeweiligen Projekt.</p></div>
   <div class="rechts">
     <span class="marke2"><?= count($liste) ?> <?= count($liste) === 1 ? 'Datei' : 'Dateien' ?></span>
@@ -144,7 +144,7 @@ $bildArten = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
     <?php endforeach; ?>
     </tbody></table>
     <?php if (count($liste) >= 200): ?>
-      <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:12px">
         Es stehen 200 Dateien in der Liste — ältere findest du über den Filter.</p>
     <?php endif; ?>
   <?php endif; ?>

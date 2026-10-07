@@ -500,10 +500,15 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
         }
         Db::run("DELETE FROM wm_vorlagenfotos WHERE status = 'fehler' AND am < NOW() - INTERVAL 1 DAY");
         $da = [];
-        foreach (Db::all('SELECT vorlage, stil, sprache FROM wm_vorlagenfotos') as $z) { $da[$z['vorlage'] . '|' . $z['stil'] . '|' . $z['sprache']] = true; }
+        foreach (Db::all('SELECT vorlage, stil, sprache FROM wm_vorlagenfotos') as $z) { $da[mb_strtolower($z['vorlage'] . '|' . $z['stil'] . '|' . $z['sprache'])] = true; }
         foreach (self::vorlagenKombis() as [$vorlage, $stil, $l]) {
             if ($neu <= 0) { break; }
-            if (isset($da[$vorlage . '|' . $stil . '|' . $l])) { continue; }
+            /* Schlüssel klein geschrieben: Die Spalten vergleichen ohne Groß/klein — „A“ und „a“ waren
+               für PHP zwei, für die Datenbank eine Zeile, und der zweite Eintrag scheiterte jede
+               Minute am eindeutigen Schlüssel (live seit 07.10.2026). */
+            $schl = mb_strtolower($vorlage . '|' . $stil . '|' . $l);
+            if (isset($da[$schl])) { continue; }
+            $da[$schl] = true;
             $art = self::ARTEN[$vorlage];
             $files = [];
             $gp = self::generatorPlaetze($vorlage);
@@ -515,7 +520,8 @@ final class Printful implements DruckereiAnbieter, DruckereiPreise
             if ($r['code'] === 429) { self::$letzterGrund = self::grund($r); break; }      // Grenze erreicht: nächster Lauf
             $k = (string) (json_decode($r['body'], true)['result']['task_key'] ?? '');
             $ok = $r['code'] === 200 && preg_match('~^[A-Za-z0-9_.:-]{4,80}$~', $k) === 1;
-            Db::run('INSERT INTO wm_vorlagenfotos (vorlage, stil, sprache, task, status) VALUES (?, ?, ?, ?, ?)', [$vorlage, $stil, $l, $ok ? $k : null, $ok ? 'wartet' : 'fehler']);
+            Db::run('INSERT INTO wm_vorlagenfotos (vorlage, stil, sprache, task, status) VALUES (?, ?, ?, ?, ?)
+                     ON DUPLICATE KEY UPDATE task = VALUES(task), status = VALUES(status), am = NOW()', [$vorlage, $stil, $l, $ok ? $k : null, $ok ? 'wartet' : 'fehler']);
             $neu--; $n++;
         }
         return $n;

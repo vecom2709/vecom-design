@@ -18,7 +18,7 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
 
 <div class="block">
   <h2>Betrieb</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 14px">
     Was sie am Telefon über deine Lage sagen darf. „Urlaub" und „ausgelastet" ändern
     ihren Ton und die Termine, die sie anbietet — sie erfindet dazu nichts.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:10px;align-items:flex-end">
@@ -36,7 +36,7 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
 
 <div class="block">
   <h2>Der Schlüssel</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Er öffnet nur, was am Telefon gebraucht wird: nachschlagen, Preis schätzen, Tag und
     Uhrzeit erfahren, Konfigurator-Link schicken, Anliegen melden, Zusammenfassung senden,
     eine offene Frage notieren, jemandem Schritt für Schritt weiterhelfen.
@@ -58,7 +58,7 @@ require_once dirname(__DIR__, 2) . '/src/Telefonwerkzeuge.php';
               f.type = f.type === 'password' ? 'text' : 'password';
               this.textContent = f.type === 'password' ? 'Zeigen' : 'Verbergen';">Zeigen</button>
     </div></div>
-  <p style="color:var(--leise);font-size:12.5px">
+  <p style="color:var(--leise);font-size:var(--fs-klein)">
     Er steht verdeckt da, damit er nicht in ein Bildschirmfoto gerät. Er gehört nicht in eine
     E-Mail und nicht in einen Chat. Kopieren, drüben einfügen, fertig.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"
@@ -79,7 +79,7 @@ $chefAn = Chef::eingerichtet();
     <?php if ($chefAn): ?><span class="marke2 gut" style="margin-left:8px">eingerichtet</span>
     <?php else: ?><span class="marke2" style="margin-left:8px">aus</span><?php endif; ?>
   </h2>
-  <p style="color:var(--leise);font-size:13px;line-height:1.6;margin-bottom:10px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin-bottom:10px">
     Ein geheimes Wort, mit dem du am Telefon Manuelas Chef-Modus öffnest — nur für dich.
     Sagst du es im Gespräch, hilft sie dir statt zu verkaufen: sagt, was heute dran ist,
     erklärt den Stand eines Kunden, legt auf dein „ja" einen Kunden an, nimmt eine Notiz auf.
@@ -100,7 +100,7 @@ $chefAn = Chef::eingerichtet();
     $gesperrtBis = Chef::gesperrtBis();
     $fehlHeute = (int) Db::wert("SELECT COUNT(*) FROM chef_versuche WHERE erfolg = 0 AND created_at >= NOW() - INTERVAL 1 DAY", [], 0);
   ?>
-    <p style="font-size:12.5px;color:var(--leise);margin:12px 0 0;line-height:1.6">
+    <p style="font-size:var(--fs-klein);color:var(--leise);margin:12px 0 0;line-height:1.6">
       Gespeichert ist nur ein Hash — das Wort selbst steht nirgends, auch nicht in der Datenbank.
       Nach <?= Chef::SPERRE_VERSUCHE ?> falschen Wörtern in <?= Chef::SPERRE_FENSTER ?> Minuten ist der Modus
       <?= Chef::SPERRE_DAUER ?> Minuten zu, auch für das richtige.
@@ -146,7 +146,7 @@ if ($freigaben || $merk): ?>
     $v = json_decode((string) $g['vorhaben'], true) ?: []; ?>
     <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin:10px 0">
       <b><?= Fmt::h((string) $g['text']) ?></b>
-      <div style="font-size:12.5px;color:var(--leise);margin-top:4px">
+      <div style="font-size:var(--fs-klein);color:var(--leise);margin-top:4px">
         Am Telefon vorbereitet am <?= Fmt::h(Fmt::datum((string) $g['created_at'])) ?>.
         <?php if (($v['art'] ?? '') === 'hosting_speicher'): ?>
           Folgen: Der vereinbarte Speicher ändert sich in VECOM; im KAS erst nach „KAS auf Vecom-Wert setzen“.
@@ -193,7 +193,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
     <?php elseif ($vWie === 'aelter'): ?><span class="marke2 warnung" style="margin-left:6px">drüben v<?= Fmt::h($vVer) ?></span>
     <?php elseif ($vWie === 'fehlt'): ?><span class="marke2 warnung" style="margin-left:6px">drüben nicht gefunden</span><?php endif; ?>
   </h2>
-  <p style="color:var(--leise);font-size:13px;line-height:1.6;margin-bottom:10px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin-bottom:10px">
     Die Regeln, nach denen Manuela spricht: Sprache halten, nichts erfinden, nachfragen, zurücklesen,
     sauber abschließen, Chef-Modus nur mit Codewort. Er gehört bei STRATO <b>unter</b> Stimme, Begrüßung und
     Persönlichkeit ins Verhaltensfeld. Entweder kopieren und drüben einfügen — oder, wenn STRATO nicht speichert,
@@ -220,13 +220,13 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
         <label style="display:flex;gap:8px;align-items:flex-start;margin:6px 0;cursor:pointer">
           <input type="radio" name="feld" value="<?= Fmt::h($w['pfad']) ?>" <?= $i === 0 ? 'checked' : '' ?> style="width:auto;margin-top:3px">
           <span><code><?= Fmt::h($w['pfad']) ?></code> · <?= (int) $w['laenge'] ?> Zeichen<br>
-            <span style="color:var(--leise);font-size:12.5px">„<?= Fmt::h($w['anfang']) ?> …“</span></span></label>
+            <span style="color:var(--leise);font-size:var(--fs-klein)">„<?= Fmt::h($w['anfang']) ?> …“</span></span></label>
       <?php endforeach; ?>
       <button class="knopf haupt" style="margin-top:8px">In dieses Feld übertragen</button>
     </form>
   <?php endif; ?>
   <textarea id="verhalten_text" readonly rows="14"
-    style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"
+    style="width:100%;font-family:ui-monospace,monospace;font-size:var(--fs-klein);line-height:1.45"
   ><?= Fmt::h(Telefonverhalten::text()) ?></textarea>
 </div>
 
@@ -241,7 +241,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
     Termin</b>. Sie bleibt höflich, sagt in zwei Sätzen, dass Anfragen schriftlich laufen,
     und lässt das Gespräch enden.
   </p>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.65;margin:0 0 16px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.65;margin:0 0 16px">
     Der Anruf steht trotzdem in der Verwaltung — niemand wird heimlich weggeblendet, und du
     siehst, wer angerufen hat. Unhöflich wird sie nicht: Sie urteilt nicht über den Anrufer,
     behauptet nichts über ihn und legt nicht auf. Das wäre in Italien
@@ -257,7 +257,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
       <tr>
         <td><b><?= Fmt::h((string) $m['nummer']) ?></b></td>
         <td style="color:var(--dim)"><?= Fmt::h((string) $m['notiz']) ?: '—' ?></td>
-        <td style="color:var(--leise);font-size:12.5px">
+        <td style="color:var(--leise);font-size:var(--fs-klein)">
           <?php if ((int) $m['getroffen'] > 0): ?>
             <?= (int) $m['getroffen'] ?>× seither<?php if ($m['zuletzt_am']): ?>,
               zuletzt <?= Fmt::h(Fmt::seit((string) $m['zuletzt_am'])) ?><?php endif; ?>
@@ -284,7 +284,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
       <input name="notiz" placeholder="ruft alle zwei Wochen an, nie ein Auftrag"></div>
     <button class="knopf haupt">Auf die Merkliste</button>
   </form>
-  <p style="color:var(--leise);font-size:12px;margin-top:10px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
     Verglichen werden die letzten neun Ziffern — dieselbe Nummer kommt mal mit +39,
     mal mit 0039, mal ohne Vorwahl an.
   </p>
@@ -313,7 +313,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
 
   <?php if ($strato['fehler'] !== ''): ?>
     <div class="hinweis schlecht"><?= Fmt::h($strato['fehler']) ?><br>
-      <span style="font-size:12.5px">
+      <span style="font-size:var(--fs-klein)">
       <?php if (str_contains($strato['fehler'], 'Already Used')): ?>
         Der Token wurde zweimal gleichzeitig benutzt — dann widerruft Supabase die ganze
         Sitzung. Seit dem 7.9. verhindert eine Sperre das; ein einmal widerrufener Zugang
@@ -339,7 +339,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
            ist, ist draußen. */ ?>
   <div style="background:rgba(255,159,90,.10);border:1px solid rgba(255,159,90,.35);
               border-radius:8px;padding:12px 14px;margin:0 0 14px">
-    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
+    <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.7;margin:0">
       <b>Hol den Token aus einem privaten Fenster.</b> Nimmst du ihn aus deinem normalen
       Chrome, teilen sich Browser und Server <b>dieselbe</b> Sitzung — und weil beide den
       Token bei jeder Benutzung austauschen, sperrt der eine irgendwann den anderen aus.
@@ -358,7 +358,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
            einfügen, der Server packt ihn aus. */ ?>
   <div style="background:rgba(241,211,139,.07);border:1px solid var(--linie);
               border-radius:8px;padding:12px 14px;margin:0 0 14px">
-    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0">
+    <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.7;margin:0">
       <b>Du brauchst dafür keinen Code in der Konsole.</b> Kopiere unten einfach den
       <b>ganzen Wert</b> des Cookies <code>sb-…-auth-token</code> — so wie er dasteht, auch
       wenn er mit <code>base64-</code> beginnt und wie Kauderwelsch aussieht. Auspacken macht
@@ -368,8 +368,8 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
   </div>
 
   <details style="margin-bottom:14px">
-    <summary style="cursor:pointer;font-size:13px;color:var(--cyan)">Wo die beiden Angaben stehen</summary>
-    <ol style="color:var(--dim);font-size:13px;line-height:1.9;padding-left:20px;margin:10px 0 0">
+    <summary style="cursor:pointer;font-size:var(--fs-klein);color:var(--cyan)">Wo die beiden Angaben stehen</summary>
+    <ol style="color:var(--dim);font-size:var(--fs-klein);line-height:1.9;padding-left:20px;margin:10px 0 0">
       <li><b>Privates Fenster</b> öffnen (⇧⌘N) und dort bei STRATO anmelden.</li>
       <li>Mit <b>F12</b> die Entwicklerwerkzeuge öffnen, Reiter <b>Application</b> (Firefox: <b>Speicher</b>).</li>
       <li>Links unter <b>Cookies</b> die Adresse von STRATO wählen.</li>
@@ -381,7 +381,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
           der öffentliche Schlüssel steht schon gespeichert.</li>
       <li>Hier eintragen, dann das private Fenster <b>schließen</b> — nicht abmelden.</li>
     </ol>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
       Kein Passwort, nirgends. Der Auffrischungs-Token gilt nur für dieses eine Konto bei
       diesem einen Dienst, wird bei jeder Benutzung ausgetauscht und wird wertlos, sobald sich
       jemand aus dieser Sitzung abmeldet. Er gehört trotzdem nicht in eine E-Mail und nicht in
@@ -397,7 +397,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
     <div class="feld"><label>Auffrischungs-Token<?= $strato['eingerichtet'] ? ' (leer lassen = unverändert)' : '' ?></label>
       <input type="password" name="refresh" autocomplete="new-password"
              placeholder="den ganzen Cookie-Wert einfügen — base64-… ist richtig so">
-      <small style="color:var(--leise);font-size:12px">Der ganze Cookie-Wert genügt; der
+      <small style="color:var(--leise);font-size:var(--fs-klein)">Der ganze Cookie-Wert genügt; der
         Server packt ihn aus und behält nur den Auffrischungs-Token.</small></div>
     <button class="knopf haupt">Zugang hinterlegen und prüfen</button>
   </form>
@@ -415,18 +415,18 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
   ?>
   <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
     <h3 style="font-size:15px;margin:0 0 6px">Wenn der Zugang abläuft</h3>
-    <p style="color:var(--dim);font-size:13px;line-height:1.7;margin:0 0 8px">
+    <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.7;margin:0 0 8px">
       Du bekommst sofort eine Meldung — hier und, wenn der Zuruf eingerichtet ist, aufs Handy.
       Neu hinterlegen: STRATO in einem <b>privaten Fenster</b> öffnen, mit Kundennummer anmelden,
       den Cookie <code>sb-…-auth-token</code> kopieren, oben einfügen, Fenster <b>schließen, nicht abmelden</b>.</p>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
       <input id="strato_adresse" readonly value="https://strato.ai-voicereceptionist.com/" style="max-width:320px">
       <button class="knopf" type="button" data-kopieren="strato_adresse">Adresse kopieren</button>
-      <span style="color:var(--leise);font-size:12px">… und im privaten Fenster einfügen (⇧⌘N / Strg+⇧+N)</span>
+      <span style="color:var(--leise);font-size:var(--fs-klein)">… und im privaten Fenster einfügen (⇧⌘N / Strg+⇧+N)</span>
     </div>
     <?php if ($seit !== '' || $sitzungen): ?>
-      <p style="font-size:13px;margin:0 0 4px"><b>Wie lange die Sitzungen hielten</b></p>
-      <ul style="font-size:12.5px;color:var(--dim);line-height:1.8;margin:0;padding-left:18px">
+      <p style="font-size:var(--fs-klein);margin:0 0 4px"><b>Wie lange die Sitzungen hielten</b></p>
+      <ul style="font-size:var(--fs-klein);color:var(--dim);line-height:1.8;margin:0;padding-left:18px">
         <?php if ($seit !== ''): ?><li>jetzige: seit <?= Fmt::h(Fmt::datum($seit)) ?> (<?= (int) round((time() - strtotime($seit)) / 3600) ?> Std.)</li><?php endif; ?>
         <?php foreach ($sitzungen as $x): $t = intdiv($x['stunden'], 24); ?>
           <li><?= Fmt::h(Fmt::datum($x['von'])) ?> – <?= Fmt::h(Fmt::datum($x['bis'])) ?>:
@@ -436,7 +436,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
       </ul>
       <?php if (count($sitzungen) >= 3):
         $h = array_column($sitzungen, 'stunden'); $spanne = max($h) - min($h); ?>
-        <p style="font-size:12.5px;color:var(--leise);margin:6px 0 0"><?= $spanne <= 6
+        <p style="font-size:var(--fs-klein);color:var(--leise);margin:6px 0 0"><?= $spanne <= 6
           ? 'Die Sitzungen halten fast gleich lang (' . Fmt::h((string) round(array_sum($h) / count($h) / 24, 1)) . ' Tage) — STRATO schaltet nach fester Zeit ab.'
           : 'Die Sitzungen halten verschieden lang — eher ein Abmelden oder eine zweite Sitzung im Browser als eine feste Frist.' ?></p>
       <?php endif; ?>
@@ -457,7 +457,7 @@ $vStand = (string) Db::wert("SELECT svalue FROM settings WHERE skey = 'strato_ve
            sieht, hier fehlt. */ ?>
   <?php if (($strato['gesperrt'] ?? 0) > 0): ?>
     <div style="border-top:1px solid var(--linie);margin-top:16px;padding-top:14px">
-      <p style="color:var(--dim);font-size:13px;line-height:1.65;margin:0 0 10px">
+      <p style="color:var(--dim);font-size:var(--fs-klein);line-height:1.65;margin:0 0 10px">
         <b><?= (int) $strato['gesperrt'] ?></b>
         <?= (int) $strato['gesperrt'] === 1 ? 'Gespräch wurde' : 'Gespräche wurden' ?>
         hier gelöscht und
@@ -512,7 +512,7 @@ $konfigs = Telefonwerkzeuge::json();
         Stimme, Tempo, Begrüßung, Aussprache und der Verhaltenstext drüben bleiben Zeichen für
         Zeichen, wie du sie eingestellt hast. Danach wird nachgelesen, ob es wirklich ankam.
         <?php if (($strato['werkzeuge_am'] ?? '') !== ''): ?>
-          <br><span style="color:var(--leise);font-size:12.5px">Zuletzt übertragen
+          <br><span style="color:var(--leise);font-size:var(--fs-klein)">Zuletzt übertragen
           <?= Fmt::h(Fmt::seit((string) $strato['werkzeuge_am'])) ?>.</span>
         <?php endif; ?>
       </p>
@@ -523,7 +523,7 @@ $konfigs = Telefonwerkzeuge::json();
     </div>
   <?php endif; ?>
 
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 14px">
     Von Hand geht es auch: Bei STRATO unter <b>API-Integration → neu anlegen</b>, für jede
     einzelne den Block kopieren und einfügen. Der Schlüssel steht schon drin.
     <br>Die Antwortmöglichkeiten (<code>enum</code>) sind kein Beiwerk: Der Konfigurator nimmt
@@ -541,7 +541,7 @@ $konfigs = Telefonwerkzeuge::json();
         <button class="knopf" type="button" data-kopieren="k_<?= Fmt::h($name) ?>">Kopieren</button>
       </div>
       <textarea id="k_<?= Fmt::h($name) ?>" readonly rows="8"
-        style="width:100%;font-family:ui-monospace,monospace;font-size:11.5px;line-height:1.45"
+        style="width:100%;font-family:ui-monospace,monospace;font-size:var(--fs-klein);line-height:1.45"
       ><?= Fmt::h($text) ?></textarea>
     </div>
   <?php endforeach; ?>

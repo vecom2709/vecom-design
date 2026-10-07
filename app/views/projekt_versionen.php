@@ -13,15 +13,15 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
 ?>
 <?php if ($pvListe): ?>
 <div id="versionen" style="margin-top:14px">
-  <h3 style="margin:0 0 4px;font-size:16px">Fassungen <span style="font-size:12px;color:var(--leise);font-weight:500">erst Testfassung, dann geprüft, dann live · zurückrollen = frühere Fassung erneut veröffentlichen (vorher Sicherung)</span></h3>
+  <h3 style="margin:0 0 4px;font-size:16px">Fassungen <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">erst Testfassung, dann geprüft, dann live · zurückrollen = frühere Fassung erneut veröffentlichen (vorher Sicherung)</span></h3>
   <?php foreach (array_slice($pvListe, 0, 8) as $pvI => $pv): ?>
     <?php $pvIstLive = (int) $pv['id'] === $pvLive; $pvSt = $pvAdmin ? Veroeffentlichung::stand((int) $p['id'], (int) $pv['id']) : null; ?>
     <div style="border-top:1px solid var(--linie, #eee);padding:10px 0;font-size:14px">
       <b style="font-size:16px">V<?= (int) $pv['nummer'] ?></b>
-      <?php if ($pvIstLive): ?> <span style="background:var(--gruen, #2e7d32);color:#fff;border-radius:6px;padding:1px 8px;font-size:12px;font-weight:600">LIVE</span><?php endif; ?>
+      <?php if ($pvIstLive): ?> <span style="background:var(--gruen, #2e7d32);color:#fff;border-radius:6px;padding:1px 8px;font-size:var(--fs-klein);font-weight:600">LIVE</span><?php endif; ?>
       <a href="<?= Fmt::h(url('dateien/' . (int) $pv['file_id'])) ?>"><?= Fmt::h((string) $pv['orig_name']) ?></a>
       <span class="akq-klein" style="color:var(--leise)"> · <?= Fmt::h(Versionen::QUELLEN[$pv['quelle']] ?? $pv['quelle']) ?> · <?= Fmt::h(Fmt::datum((string) $pv['created_at'])) ?><?= (string) ($pv['notiz'] ?? '') !== '' ? ' · ' . Fmt::h((string) $pv['notiz']) : '' ?></span>
-      <div style="margin-top:4px;font-size:13px;color:var(--dim)">
+      <div style="margin-top:4px;font-size:var(--fs-klein);color:var(--dim)">
         <?= !empty($pv['staging_url']) ? '✓ Testfassung: <a href="' . Fmt::h((string) $pv['staging_url']) . '" target="_blank" rel="noopener">' . Fmt::h(preg_replace('~^https://~', '', (string) $pv['staging_url'])) . '</a>' : '✗ noch nicht auf der Testfassung' ?>
         · <?= !empty($pv['geprueft_am']) ? '✓ geprüft von ' . Fmt::h((string) $pv['geprueft_von']) . ' am ' . Fmt::h(Fmt::datum((string) $pv['geprueft_am'])) : '✗ nicht geprüft' ?>
         <?= !empty($pv['live_am']) ? ' · zuletzt live ' . Fmt::h(Fmt::datum((string) $pv['live_am'])) : '' ?>
@@ -29,11 +29,11 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
       <?php /* Phase 7: automatische Tests und Review */ $pvT = json_decode((string) ($pv['tests'] ?? ''), true) ?: []; ?>
       <?php if ($pvT || !empty($pv['review_urteil'])): ?>
         <details style="margin-top:4px">
-          <summary style="cursor:pointer;font-size:13px">
+          <summary style="cursor:pointer;font-size:var(--fs-klein)">
             <?php if ($pvT): $pvFehl = array_filter($pvT, static fn($x) => empty($x['ok'])); ?><?= (int) $pv['tests_ok'] === 1 ? '✓ Tests bestanden' : '✗ Tests mit Mängeln' ?> (<?= count($pvT) - count($pvFehl) ?>/<?= count($pvT) ?>)<?php endif; ?>
             <?php if (!empty($pv['review_urteil'])): ?> · <?= $pv['review_urteil'] === 'bestanden' ? '✓ Review bestanden' : '✗ Review: nachbessern' ?><?php endif; ?>
           </summary>
-          <?php if ($pvT): ?><ul style="margin:6px 0 0 18px;padding:0;font-size:13px">
+          <?php if ($pvT): ?><ul style="margin:6px 0 0 18px;padding:0;font-size:var(--fs-klein)">
             <?php foreach ($pvT as $pvX): ?><li style="color:<?= !empty($pvX['ok']) ? 'var(--dim)' : (!empty($pvX['schwer']) ? 'var(--rot, #c0392b)' : 'var(--gelb, #b7791f)') ?>"><?= !empty($pvX['ok']) ? '✓' : '✗' ?> <?= Fmt::h((string) $pvX['name']) ?><?= !empty($pvX['detail']) && empty($pvX['ok']) ? ' — ' . Fmt::h((string) $pvX['detail']) : '' ?></li><?php endforeach; ?>
           </ul><?php endif; ?>
           <?php if (!empty($pv['review_text'])): ?><div style="font-size:14px;line-height:1.5;max-height:420px;overflow:auto;border:1px solid var(--linie, #eee);border-radius:8px;padding:6px 12px;margin-top:6px"><?= BauAuftrag::alsHtml((string) $pv['review_text']) ?></div><?php endif; ?>
@@ -45,7 +45,7 @@ $pvForm = static fn(string $tat, int $vid, string $inhalt): string => '<form met
           <?php if ($pvNetlify): ?><?= $pvForm('version_netlify', (int) $pv['id'], '<button class="knopf klein">' . (empty($pv['staging_url']) ? 'Auf die Testfassung (Netlify)' : 'Neu auf die Testfassung') . '</button>') ?><?php endif; ?>
           <?php $pvFeld = $pvForm('version_staging', (int) $pv['id'], '<input name="url" required placeholder="Testadresse, z. B. kunde-v' . (int) $pv['nummer'] . '.netlify.app" style="min-width:min(280px,100%)"><button class="knopf klein">Testadresse eintragen</button>'); ?>
           <?php if (empty($pv['staging_url'])): ?><?= $pvFeld ?>
-          <?php else: ?><details style="display:inline-block;margin:4px 6px 0 0"><summary style="cursor:pointer;font-size:13px">Testadresse ändern</summary><?= $pvFeld ?></details><?php endif; ?>
+          <?php else: ?><details style="display:inline-block;margin:4px 6px 0 0"><summary style="cursor:pointer;font-size:var(--fs-klein)">Testadresse ändern</summary><?= $pvFeld ?></details><?php endif; ?>
           <?php if (empty($pv['review_am'])): ?><?= $pvForm('version_review', (int) $pv['id'], '<button class="knopf klein">Review durch Claude</button>') ?><?php endif; ?>
           <?php if (!empty($pv['staging_url']) && empty($pv['geprueft_am'])): ?>
             <?= $pvForm('version_geprueft', (int) $pv['id'], '<button class="knopf klein">Angesehen — geprüft</button>') ?>

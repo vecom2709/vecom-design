@@ -1509,7 +1509,6 @@ if ($post) {
                 $_SESSION[$frR['ok'] ? 'gut' : 'fehler'] = $frR['text'];
                 zurueck('ai-freigaben#f' . $frId);
 
-            case 'sicherung_schluessel':
             case 'claude_erlauben':
             case 'claude_ablehnen':
                 /* Claudes Lesezugang (AI Office Stufe 2, 07.10.2026): Uwe sagt Ja oder Nein auf der
@@ -1556,7 +1555,11 @@ if ($post) {
                 }
                 zurueck('einstellungen?b=claude');
 
+            /* Prüfung 07.10.2026 (Befund 4): „sicherung_schluessel“ fiel früher in den Zweig von Claudes
+               Erlaubnis durch — der Schlüssel ließ sich nicht eintragen. Jetzt hier, wohin er gehört. */
+            case 'sicherung_schluessel':
             case 'sicherung_schluessel_weg':
+                if (!Auth::istAdmin()) { throw new RuntimeException('Die Sicherung außer Haus richtet nur ein Admin ein.'); }
                 /* Sicherung außer Haus (AI Office Stufe 0, 06.10.2026): nur der Admin, öffentlicher Schlüssel des Rechners. */
                 require_once __DIR__ . '/src/SicherungAussen.php';
                 $siWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
@@ -2972,6 +2975,11 @@ if ($post) {
                 $wartet = Angebot::wartetAufZusage((int) $b['id']);
                 if ($wartet !== null) { throw new RuntimeException(Angebot::warumKeinZahlungslink($wartet)); }
                 $stripe = new StripeAnbieter();
+                /* Erst die alte Bezahlseite fragen (Prüfung 07.10.2026, Befund 10). */
+                require_once __DIR__ . '/src/Bezahllink.php';
+                $zlAlt = Bezahllink::alteSitzungPruefen($z, $stripe);
+                if ($zlAlt === 'bezahlt') { $_SESSION['gut'] = 'Diese Rate ist schon bezahlt — eben gebucht. Kein neuer Link nötig.'; zurueck('bestellungen/' . (int) $b['id']); }
+                if ($zlAlt === 'offen') { $_SESSION['gut'] = 'Die bisherige Bezahlseite gilt noch: ' . (string) $z['link_url']; zurueck('bestellungen/' . (int) $b['id']); }
                 $url = $stripe->bezahlseite($z, $b, $k);
                 Db::update('payments', (int) $z['id'], [
                     'provider' => 'stripe', 'status' => 'in_bearbeitung',
@@ -3094,7 +3102,7 @@ if ($post) {
                     $sperre = sicher(static fn() => Hosting::httpsSperre($pid), null);
                     if ($sperre !== null) { $_SESSION['fehler'] = $sperre; zurueck('projekte/' . $pid); }
                 }
-                Events::projektStatus($pid, $neuerStand);
+                Events::projektStatus($pid, $neuerStand, true, true);   // Uwes eigener Klick: jeder Stand erlaubt
                 // Der Stand sagt "Vorschau", der Kunde hat aber nichts zum
                 // Anklicken: Dann sagen wir es hier, statt ihn auf eine leere
                 // Seite zu schicken.
@@ -3698,7 +3706,14 @@ if ($post) {
                    wird nie geändert oder gelöscht — korrigiert wird mit einem eigenen Dokument. */
                 if (!Auth::istAdmin()) { throw new RuntimeException('Gutschriften stellt nur ein Admin aus.'); }
                 require_once __DIR__ . '/src/Rechnung.php';
-                $gsCent = (int) round(((float) str_replace(',', '.', trim((string) ($_POST['betrag'] ?? '')))) * 100);
+                /* Prüfung 07.10.2026 (Befund 13): „1.234,56“ richtig lesen; „voller Rest“ nur per Haken — ein Tippfehler
+                   ergab früher 0 und damit eine Gutschrift über den ganzen Rest. */
+                require_once __DIR__ . '/src/Ausgabe.php';
+                if (!empty($_POST['alles'])) { $gsCent = 0; }
+                else {
+                    $gsCent = Ausgabe::cents((string) ($_POST['betrag'] ?? ''));
+                    if ($gsCent <= 0) { throw new RuntimeException('Bitte einen Betrag eintragen (z. B. 150,00) — oder „den ganzen offenen Betrag“ anhaken.'); }
+                }
                 $gsId = Rechnung::gutschrift((int) $_POST['id'], $gsCent, (string) ($_POST['grund'] ?? ''), (Auth::name() ?: 'admin'));
                 $_SESSION['gut'] = 'Gutschrift erstellt. Sie geht erst an den Kunden, wenn Sie sie schicken.';
                 zurueck('rechnungen/' . $gsId);
@@ -5596,6 +5611,7 @@ switch ($route) {
         if ($id !== null) {
             $d = Db::one('SELECT * FROM files WHERE id = ?', [$id]);
             if (!$d) { http_response_code(404); exit('Datei nicht gefunden.'); }
+            if (!Ablage::darfVerwaltung($d)) { http_response_code(403); exit('Sicherungen lädt nur ein Admin herunter.'); }
             /* Drei Wege zu derselben Datei: das Bild fuer die Liste, das
                Bild fuer die Grossansicht, und die Datei selbst. Die beiden
                Bilder rechnet Ablage neu — inline geht nur, was wir selbst

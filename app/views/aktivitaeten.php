@@ -10,7 +10,7 @@
      aufgeraeumt ist, kommt aber nicht wieder: dafuer die Rueckfrage.
      ====================================================================== */ ?>
 <div class="kopf"><div><h1>Aktivitäten</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was passiert ist, in der Reihenfolge, in der es passiert ist. Ein reines
     Protokoll — hier hängt keine Frist und keine Zahl daran.</p></div>
 </div>

@@ -247,7 +247,7 @@ $kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' 
         <?php endforeach; ?>
       </select>
       <button class="knopf haupt">Bestellung anlegen</button>
-      <span style="color:var(--leise);font-size:12.5px">Die Anzahlung entsteht dabei automatisch.</span>
+      <span style="color:var(--leise);font-size:var(--fs-klein)">Die Anzahlung entsteht dabei automatisch.</span>
     </form>
 
   <?php elseif ($s !== null && $s['tat'] !== null): ?>
@@ -261,7 +261,7 @@ $kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' 
       <?php endforeach; ?>
       <button class="knopf haupt"><?= Fmt::h($s['knopf']) ?></button>
       <?php if (($s['felder']['status'] ?? '') === 'vorschau'): ?>
-        <span style="color:var(--leise);font-size:12.5px">Trag die Vorschau-Adresse vorher rechts unter „Website“ ein —
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Trag die Vorschau-Adresse vorher rechts unter „Website“ ein —
           sie steht dann in der E-Mail an den Kunden.</span>
       <?php endif; ?>
     </form>
@@ -286,11 +286,11 @@ $kettenWer = static fn(array $p): string => ($p['wer'] ?? 'du') === 'kunde' ? ' 
     <?php /* Der Kunde ist dran, und zwar auf seiner eigenen Seite. Ein
              blauer Knopf hierhin waere ein Klick, der nichts tut --
              schlimmer als kein Knopf (22.09.2026). */ ?>
-    <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
+    <div class="tun"><span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h($s['knopf']) ?>
       — das passiert auf seiner Kundenseite; hier ist nichts zu klicken.</span></div>
 
   <?php elseif ($s !== null): ?>
-    <div class="tun"><span style="color:var(--leise);font-size:13px"><?= Fmt::h($s['knopf']) ?>
+    <div class="tun"><span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h($s['knopf']) ?>
       — dafür ist unten das Feld „Gespräch“.</span></div>
   <?php endif; ?>
 
@@ -446,7 +446,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     <?php if ($v['anfrage_text'] !== ''): ?>
       <div style="border:1px solid var(--linie);border-left:3px solid var(--cyan);border-radius:10px;
                   padding:11px 13px;margin-bottom:12px">
-        <div style="font-size:12px;color:var(--leise);margin-bottom:5px">Aus dem Anfrageformular</div>
+        <div style="font-size:var(--fs-klein);color:var(--leise);margin-bottom:5px">Aus dem Anfrageformular</div>
         <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h($v['anfrage_text']) ?></div>
       </div>
     <?php endif; ?>
@@ -454,11 +454,11 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     <?php foreach ($v['nachrichten'] as $m): ?>
       <div style="padding:10px 12px;border:1px solid var(--linie);border-radius:10px;margin-bottom:8px;
                   <?= $m['sender'] === 'kunde' ? '' : 'background:var(--flaeche2)' ?>">
-        <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+        <div style="font-size:var(--fs-klein);font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
           <span><?= $m['sender'] === 'kunde' ? Fmt::h($v['kunde']) : 'du' ?></span>
           <span style="color:var(--leise);font-weight:400"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></span></div>
         <?php if (!empty($m['betreff'])): ?>
-          <div style="font-size:12.5px;color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
+          <div style="font-size:var(--fs-klein);color:var(--cyan);margin-bottom:5px"><?= Fmt::h((string) $m['betreff']) ?></div>
         <?php endif; ?>
         <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14px;line-height:1.55;color:var(--dim)"><?= Fmt::h((string) $m['body']) ?></div>
       </div>
@@ -497,7 +497,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
   <div class="block">
     <h2>Fragebogen<span class="mehr"><span class="marke2 <?= $fbFertig ? 'gut' : '' ?>">
       <?= $fbFertig ? 'Abgeschlossen' : 'Offen' ?></span></span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 10px">
       Eingeladen: <?= Fmt::h(($fb['eingeladen_am'] ?? null) ? Fmt::datum($fb['eingeladen_am']) : 'noch nicht') ?>
       <?php if ($fb['erinnert_am'] ?? null): ?> · erinnert: <?= Fmt::h(Fmt::datum($fb['erinnert_am'])) ?><?php endif; ?>
       <?php if ($fbFertig): ?> · zurück: <?= Fmt::h(Fmt::datum($fb['submitted_at'])) ?><?php endif; ?>
@@ -508,7 +508,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
         <?php $hat = array_filter($inhalt['felder'],
               static fn($_, $n) => trim((string) ($fbDaten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
         <?php if ($hat): ?>
-          <h3 style="font-size:12px;color:var(--leise);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
+          <h3 style="font-size:var(--fs-klein);color:var(--leise);margin:16px 0 4px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
           <table><tbody>
           <?php foreach ($hat as $name => $feld): ?>
             <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
@@ -535,7 +535,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
         <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
         <input type="hidden" name="id" value="<?= (int) $v['kunde_id'] ?>">
         <button class="knopf<?= (($s['tat'] ?? null) === 'fragebogen_vorab') ? ' haupt' : '' ?>"><?= ($fb['eingeladen_am'] ?? null) ? 'Noch einmal verschicken' : 'Fragebogen-Link schicken' ?></button></form>
-      <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0">
         <?= $fb
             ? 'Er liegt auf der Kundenseite — die Adresse hat der Kunde mit der Eingangsbestätigung bekommen. Diese Mail ist nur der Anstoß, falls er ihn übersieht.'
             : 'Er entsteht beim Verschicken oder sobald der Kunde seine Seite öffnet, vorbelegt mit dem, was er im Konfigurator angekreuzt hat.' ?></p>
@@ -579,7 +579,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     $dranIn('geld')); ?>
 
 <?php if ($v['bestell_id']): ?>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 12px">
     <a href="<?= Fmt::h(url('bestellungen/' . (int) $v['bestell_id'])) ?>">Die Bestellung öffnen</a>
     — dort lässt sich ihr Status von Hand setzen.</p>
 <?php endif; ?>
@@ -605,10 +605,10 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
       <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
         <a class="knopf" href="<?= Fmt::h(url('angebote/' . (int) $a['id'])) ?>">Angebot öffnen</a>
         <?php if (count($v['angebote']) > 1): ?>
-          <span style="color:var(--leise);font-size:12.5px"><?= count($v['angebote']) ?> Fassungen insgesamt</span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)"><?= count($v['angebote']) ?> Fassungen insgesamt</span>
         <?php endif; ?>
         <?php if ($a['gueltig_bis'] !== null && $a['status'] === 'gesendet'): ?>
-          <span style="color:var(--leise);font-size:12.5px">gültig bis <?= Fmt::h(Fmt::datum($a['gueltig_bis'])) ?></span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)">gültig bis <?= Fmt::h(Fmt::datum($a['gueltig_bis'])) ?></span>
         <?php endif; ?>
       </div>
     </div>
@@ -622,7 +622,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
       <div style="border-top:1px solid var(--linie);padding:12px 0">
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
           <div style="min-width:150px"><strong><?= Fmt::h($z['bezeichnung'] ?: ucfirst((string) $z['art'])) ?></strong>
-            <div style="color:var(--leise);font-size:12px"><?= Fmt::h($z['provider'] === 'offen' ? 'noch kein Anbieter' : (string) $z['provider']) ?></div></div>
+            <div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h($z['provider'] === 'offen' ? 'noch kein Anbieter' : (string) $z['provider']) ?></div></div>
           <div style="font-variant-numeric:tabular-nums;font-size:16px;font-weight:600"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></div>
           <span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span>
           <div style="margin-left:auto;display:flex;gap:6px;flex-wrap:wrap">
@@ -657,7 +657,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
              link_url lebt hoechstens 24 Stunden. Siehe Bezahllink.php. */
           require_once __DIR__ . '/../src/Bezahllink.php'; ?>
           <input readonly value="<?= Fmt::h((string) sicher(static fn() => Bezahllink::fuer((int) $z['id']), (string) $z['link_url'])) ?>" onclick="this.select()"
-                 style="margin-top:9px;width:100%;font-size:12px;font-family:ui-monospace,monospace">
+                 style="margin-top:9px;width:100%;font-size:var(--fs-klein);font-family:ui-monospace,monospace">
         <?php endif; ?>
       </div>
     <?php endforeach; ?>
@@ -670,7 +670,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     <?php foreach ($v['belege'] as $r): ?>
       <div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-top:1px solid var(--linie)">
         <a href="<?= Fmt::h(url('rechnungen/' . (int) $r['id'])) ?>"><?= Fmt::h((string) $r['invoice_no']) ?></a>
-        <span style="color:var(--leise);font-size:13px"><?= Fmt::geld((int) $r['total_cents'], (string) $r['currency']) ?></span>
+        <span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::geld((int) $r['total_cents'], (string) $r['currency']) ?></span>
       </div>
     <?php endforeach; ?>
   </div>
@@ -694,7 +694,7 @@ $dranIn = static function (string $welche) use ($s, $schrittTun, $schubladen): b
     })(__DIR__ . '/kunde.php', $akte);
   ?>
   <?php if ($v['kunde_id']): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 14px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 14px">
       <a href="<?= Fmt::h(url('kunden/' . (int) $v['kunde_id'])) ?>">Die ganze Kundenakte öffnen</a></p>
   <?php endif; ?>
   <?php mehr_zu(); ?>
@@ -749,7 +749,7 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
         <span class="marke2">keine Adresse</span>
       <?php endif; ?>
     </span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
       Drei Schritte, und jeder ist eine eigene Entscheidung: <b>Adresse eintragen</b> (sieht nur du),
       <b>zum Ansehen freischalten</b> (er schaut und darf Änderungen wünschen, abnehmen kann er nicht),
       <b>Abnahme freischalten</b> (erst dann steht bei ihm „Passt so“ — und erst dann bekommt er die
@@ -774,7 +774,7 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
       <?php if (!$vs['frei_am']): ?>
         <?php if ($vs['url'] === ''): ?>
           <button class="knopf" disabled title="Erst eine Adresse eintragen">Für den Kunden freischalten</button>
-          <span style="color:var(--leise);font-size:12.5px">Erst die Adresse eintragen — sonst bekäme er
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Erst die Adresse eintragen — sonst bekäme er
             eine E-Mail und fände nichts.</span>
         <?php else: ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -785,11 +785,11 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
                      tut sie erst, wenn die Adresse steht und noch nichts
                      freigeschaltet ist. */ ?>
             <button class="knopf<?= $schrittTun === 'vorschau' ? ' haupt' : '' ?>">Für den Kunden freischalten</button></form>
-          <span style="color:var(--leise);font-size:12.5px">Setzt den Stand auf „Vorschau“
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Setzt den Stand auf „Vorschau“
             und schickt ihm die E-Mail.</span>
         <?php endif; ?>
       <?php else: ?>
-        <span style="color:var(--leise);font-size:12.5px">Zum Ansehen frei seit
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Zum Ansehen frei seit
           <?= Fmt::h(Fmt::zeit((string) $vs['frei_am'])) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
               data-frage="Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?" data-ja="Ja, sperren">
@@ -812,7 +812,7 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
       <?php if (empty($vs['abnahme_am'])): ?>
         <?php if (!$vs['frei_am']): ?>
           <button class="knopf" disabled title="Erst zum Ansehen freischalten">Abnahme freischalten</button>
-          <span style="color:var(--leise);font-size:12.5px">Erst ansehen lassen, dann abnehmen lassen.
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Erst ansehen lassen, dann abnehmen lassen.
             Solange steht bei ihm kein „Passt so“.</span>
         <?php else: ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -820,11 +820,11 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
             <input type="hidden" name="zurueck" value="<?= Fmt::h($hier) ?>">
             <input type="hidden" name="id" value="<?= (int) $pid ?>">
             <button class="knopf<?= $schrittTun === 'vorschau' ? ' haupt' : '' ?>">Abnahme freischalten</button></form>
-          <span style="color:var(--leise);font-size:12.5px">Schickt ihm „die Seite ist fertig“ und
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Schickt ihm „die Seite ist fertig“ und
             zeigt ihm „Passt so“. Bis dahin darf er nur schauen und Änderungen wünschen.</span>
         <?php endif; ?>
       <?php else: ?>
-        <span style="color:var(--leise);font-size:12.5px">Abnahme frei seit
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Abnahme frei seit
           <?= Fmt::h(Fmt::zeit((string) $vs['abnahme_am'])) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
               data-frage="Der Kunde kann danach nicht mehr abnehmen. Fortfahren?" data-ja="Ja, zumachen">
@@ -841,11 +841,11 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
   <?php /* ---------- Seine Seite ---------- */ ?>
   <?php if ($v['link_kunde']): ?>
   <div class="block"><h2>Seine Seite</h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 10px">Eine Adresse, vom ersten Kontakt
       bis lange nach dem Onlinegang. Kein Konto, kein Passwort — wer den Link hat, kommt hinein.
       Also nur an ihn.</p>
     <div class="feld">
-      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $v['link_kunde']) ?>" style="font-size:12px"></div>
+      <input readonly onclick="this.select()" value="<?= Fmt::h((string) $v['link_kunde']) ?>" style="font-size:var(--fs-klein)"></div>
     <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
       <a class="knopf" href="<?= Fmt::h((string) $v['link_kunde']) ?>" target="_blank" rel="noopener">Ansehen</a>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"
@@ -858,10 +858,10 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
     </div>
     <?php if ($v['link_anfrage'] || $v['link_projekt']): ?>
       <details style="margin-top:12px">
-        <summary style="cursor:pointer;color:var(--leise);font-size:12.5px">Ältere Links (leiten weiter)</summary>
+        <summary style="cursor:pointer;color:var(--leise);font-size:var(--fs-klein)">Ältere Links (leiten weiter)</summary>
         <?php foreach (array_filter(['Anfrage' => $v['link_anfrage'], 'Projekt' => $v['link_projekt']]) as $was => $adr): ?>
           <div class="feld" style="margin-top:8px"><label><?= Fmt::h($was) ?></label>
-            <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:12px"></div>
+            <input readonly onclick="this.select()" value="<?= Fmt::h((string) $adr) ?>" style="font-size:var(--fs-klein)"></div>
         <?php endforeach; ?>
       </details>
     <?php endif; ?>
@@ -889,7 +889,7 @@ $pWunsch = ['werkstatt', 'abnahme', 'aufgaben', 'paket', 'eckdaten', 'ablauf', '
 
 <?php foreach ($pWunsch as $t) { echo $pteile[$t] ?? ''; } ?>
 <?php if ($pid): ?>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 14px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 14px">
     <a href="<?= Fmt::h(url('projekte/' . (int) $pid)) ?>">Die ganze Projektseite öffnen</a></p>
 <?php endif; ?>
 

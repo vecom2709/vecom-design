@@ -164,8 +164,15 @@ final class WebTipp
         $grenze = date('Y-m-d H:i:s', $jetzt - 6 * 86400);
         foreach (Db::all("SELECT * FROM akq_tipp_abos WHERE status = 'aktiv' AND (letzter_am IS NULL OR letzter_am < ?) ORDER BY id LIMIT " . self::JE_LAUF, [$grenze]) as $a) {
             [$betreff, $text] = self::mail($a, (int) $a['letzte_nr']);
-            Db::update('akq_tipp_abos', (int) $a['id'], ['letzte_nr' => (int) $a['letzte_nr'] + 1, 'letzter_am' => date('Y-m-d H:i:s', $jetzt)]);
-            try { Mail::senden('tipp_woche', (string) $a['email'], $betreff, $text, ['nurText' => true, 'sprache' => (string) $a['sprache']]); $n++; } catch (Throwable $e) { }
+            /* Erst beanspruchen (nur wer die Nummer weiterzählt, schickt), dann senden. Gezählt
+               wird nur, was wirklich raus ging — vorher zählte jeder Fehlschlag als gesendet
+               (Prüfung 07.10.2026). Nicht zurückgenommen: Kam nur Brevos Antwort nicht an,
+               hätte der Leser denselben Tipp sonst zweimal. */
+            if (Db::run('UPDATE akq_tipp_abos SET letzte_nr = letzte_nr + 1, letzter_am = ? WHERE id = ? AND letzte_nr = ?',
+                    [date('Y-m-d H:i:s', $jetzt), (int) $a['id'], (int) $a['letzte_nr']])->rowCount() !== 1) { continue; }
+            $ok = false;
+            try { $ok = Mail::senden('tipp_woche', (string) $a['email'], $betreff, $text, ['nurText' => true, 'sprache' => (string) $a['sprache']]); } catch (Throwable $e) { }
+            if ($ok) { $n++; }
         }
         return ['geschickt' => $n];
     }

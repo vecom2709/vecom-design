@@ -331,6 +331,13 @@ final class Werkstatt
             return ['ok' => false, 'hinweis' => 'Diesen Stand gibt es nicht.',
                     'moeglich' => array_keys(Status::PROJEKT)];
         }
+        /* Abnahme, Veröffentlichung, Online und Abschluss setzt nur Uwe in der Verwaltung oder der
+           Kunde mit seiner Abnahme — nie die Werkstatt (Prüfung 07.10.2026, Punkt 32). Sonst galt
+           ein Stand ohne Annahme und Zahlung als abgenommen, und Vertrag, Rate und KAS liefen nie. */
+        if (in_array($neu, Events::STATUS_NACH_ABNAHME, true)) {
+            return ['ok' => false, 'hinweis' => '„' . Status::PROJEKT[$neu] . '“ setzt nur Uwe in der Verwaltung (oder der Kunde mit seiner Abnahme).',
+                    'moeglich' => array_values(array_diff(array_keys(Status::PROJEKT), Events::STATUS_NACH_ABNAHME))];
+        }
         Events::projektStatus((int) $p['id'], $neu, false);
         return ['ok' => true, 'projekt' => (int) $p['id'], 'stand' => $neu,
                 'stand_klar' => (string) Status::PROJEKT[$neu],

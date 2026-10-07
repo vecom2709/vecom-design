@@ -72,11 +72,14 @@ final class Nachricht
                     'Nachricht von ' . $k['name'], $text . "\n\n— " . $k['name'] . ' <' . $k['email'] . '>',
                     ['customer_id' => $kundeId]);
             } else {
-                $sprache = (string) ($k['sprache'] ?: 'it');
-                $anrede = ['it' => 'Ciao', 'de' => 'Hallo', 'en' => 'Hello'][$sprache] ?? 'Ciao';
-                $gruss  = ['it' => "A presto\nUwe Vetter · Vecom Design",
-                           'de' => "Herzliche Grüße\nUwe Vetter · Vecom Design",
-                           'en' => "Best regards\nUwe Vetter · Vecom Design"][$sprache] ?? '';
+                /* Gesiezt wie jede andere Kundenpost (Prüfung 07.10.2026, Punkt 28): „Ciao“ duzte im
+                   Italienischen. Und eine unbekannte Sprache fällt auf Italienisch, statt leer zu grüßen. */
+                $sprache = (string) ($k['sprache'] ?? '');
+                if (!in_array($sprache, ['it', 'de', 'en'], true)) { $sprache = 'it'; }
+                $anrede = ['it' => 'Buongiorno', 'de' => 'Guten Tag', 'en' => 'Hello'][$sprache];
+                $gruss  = ['it' => "Cordiali saluti\nUwe Vetter · Vecom Design",
+                           'de' => "Freundliche Grüße\nUwe Vetter · Vecom Design",
+                           'en' => "Best regards\nUwe Vetter · Vecom Design"][$sprache];
                 // Der Link nur, wenn er nicht ohnehin schon im Text steht —
                 // eine Vorlage bringt ihn oft selbst mit.
                 $anhang = ($link && !str_contains($text, $link))

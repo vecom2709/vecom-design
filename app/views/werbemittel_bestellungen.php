@@ -15,7 +15,7 @@ $S = [
 $rekWort = ['neudruck' => 'Neudruck', 'gutschrift' => 'Gutschrift', 'abgelehnt' => 'abgelehnt'];
 ?>
 <div class="kopf"><div><h1>Werbemittel-Bestellungen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px;max-width:760px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px;max-width:760px">
     Zahlweg gerade: <strong><?= $zahlweg === 'stripe' ? 'Stripe (Partner zahlen direkt)' : 'Anfrage (du klärst die Zahlung)' ?></strong>.
     Bezahlt gilt eine Bestellung nur, wenn Stripe es meldet oder du es hier bestätigst. Den Druck beauftragst du
     beim Anbieter selbst — mit der Druckdatei aus der Zeile.</p></div>
@@ -59,7 +59,7 @@ $rekWort = ['neudruck' => 'Neudruck', 'gutschrift' => 'Gutschrift', 'abgelehnt' 
         <?php endif; ?>
         <?php if ($pos && in_array($b['status'], ['angefragt', 'offen', 'bezahlt'], true)):
           $ang = Werbemittel::angebote((int) $pos['variante_id'], (string) ($a['land'] ?? 'IT')); $g = $ang[0] ?? null; ?>
-          <?php if ($g): ?><div style="margin-top:8px;font-size:12.5px;text-align:right">Günstigster Drucker heute für <?= Partner::flagge((string) ($a['land'] ?? 'IT')) ?>:<br>
+          <?php if ($g): ?><div style="margin-top:8px;font-size:var(--fs-klein);text-align:right">Günstigster Drucker heute für <?= Partner::flagge((string) ($a['land'] ?? 'IT')) ?>:<br>
             <?= $g['link'] !== '' ? '<a href="' . Fmt::h($g['link']) . '" target="_blank" rel="noopener"><strong>' . Fmt::h($g['anbieter']) . '</strong></a>' : '<strong>' . Fmt::h($g['anbieter']) . '</strong>' ?>
             · <?= Fmt::h(Werbemittel::euro((int) $g['preis_cent'])) ?><?= Werbemittel::veraltet($g) ? ' <span class="marke2 warnung">Preis neu prüfen</span>' : '' ?></div><?php endif; ?>
         <?php endif; ?>
@@ -105,7 +105,7 @@ $rekWort = ['neudruck' => 'Neudruck', 'gutschrift' => 'Gutschrift', 'abgelehnt' 
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_b_zugestellt"><input type="hidden" name="id" value="<?= (int) $b['id'] ?>">
           <button class="knopf">Ist zugestellt</button></form>
-        <span style="font-size:12.5px;color:var(--leise)">Sonst automatisch <?= WmBestellung::ZUSTELL_TAGE ?> Tage nach dem Versand.</span>
+        <span style="font-size:var(--fs-klein);color:var(--leise)">Sonst automatisch <?= WmBestellung::ZUSTELL_TAGE ?> Tage nach dem Versand.</span>
       <?php endif; ?>
       <?php if (!empty($b['reklamation_am'])): /* Phase 6a: Reklamation mit Grund, Foto und Entscheid */ ?>
         <div style="flex-basis:100%;border:1px solid var(--linie);border-radius:10px;padding:10px 12px;font-size:13.5px;line-height:1.6">

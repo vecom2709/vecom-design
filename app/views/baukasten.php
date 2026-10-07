@@ -61,7 +61,7 @@ $zu = Baukasten::gesperrt();
         </tbody>
       </table></div>
       <?php if ($zu): ?>
-        <p style="color:var(--leise);font-size:12.5px;margin:14px 0 0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:14px 0 0">
           Anheben geht erst, wenn der Baukasten entsperrt ist — der Knopf steht unten.</p>
       <?php else: ?>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:14px"
@@ -93,7 +93,7 @@ $zu = Baukasten::gesperrt();
   <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
     <div style="flex:1 1 300px;min-width:0">
       <h2 style="font-size:15px;margin:0 0 4px"><?= $zu ? 'Preise sind gesperrt' : 'Preise sind offen' ?></h2>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.55;margin:0">
         <?php if ($zu): ?>
           Zum Ändern einmal entsperren. Nach dem Speichern sperrt es sich von selbst wieder —
           eine Sperre, an die man denken muss, ist nach dem dritten Mal offen und bleibt es.
@@ -147,11 +147,11 @@ $zu = Baukasten::gesperrt();
                   (string) ($b['einheit'] ?? 'stueck') === 'seite' ? 'Seite' : 'Stück' ?></span><?php endif; ?>
               <?php if ($b['monatlich']): ?> <span class="marke2 warnung">monatlich</span><?php endif; ?>
               <?php if ($aufAnfrage): ?> <span class="marke2 warnung">nur auf Anfrage</span><?php endif; ?>
-              <div style="color:var(--leise);font-size:12.5px;line-height:1.5;margin-top:3px">
+              <div style="color:var(--leise);font-size:var(--fs-klein);line-height:1.5;margin-top:3px">
                 <?= Fmt::h(Baukasten::text($b, 'de')) ?>
               </div>
               <?php if ($aufAnfrage): ?>
-                <div style="color:var(--leise);font-size:12px;margin-top:4px">
+                <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px">
                   Wird nie automatisch gerechnet. Erscheint beim Bedarf als Vorschlag.
                 </div>
               <?php endif; ?>
@@ -168,7 +168,7 @@ $zu = Baukasten::gesperrt();
                      <?= $zu ? 'disabled' : '' ?>>
             </td>
             <td>
-              <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer">
+              <label style="display:flex;align-items:center;gap:8px;font-size:var(--fs-klein);cursor:pointer">
                 <input type="checkbox" name="aktiv[<?= $id ?>]" value="1"<?= $b['aktiv'] ? ' checked' : '' ?><?= $zu ? ' disabled' : '' ?>>
                 <span>wird verwendet</span>
               </label>
@@ -183,7 +183,7 @@ $zu = Baukasten::gesperrt();
   <?php if (!$zu): ?>
     <div class="block">
       <button class="knopf haupt">Preise speichern</button>
-      <span style="color:var(--leise);font-size:12.5px;margin-left:12px">
+      <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:12px">
         Änderungen gelten für neue Bedarfe. Was ein Kunde schon gesehen hat, bleibt stehen.
         Danach ist der Baukasten wieder zu.
       </span>

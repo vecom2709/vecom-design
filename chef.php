@@ -57,7 +57,7 @@ if (!$d && $_POST) { $d = $_POST; }
 /* Tür 2: das gesprochene Codewort (und die PIN, falls gesetzt). Jeder Aufruf
    wird einzeln geprüft und gezählt; nach zu vielen falschen Wörtern ist der
    Modus eine Stunde zu -- auch für das richtige. Ohne Codewort ist er aus. */
-$codewort = (string) ($d['codewort'] ?? $_GET['codewort'] ?? '');
+$codewort = (string) ($d['codewort'] ?? '');   // nie aus der Adresse (Prüfung 07.10.2026): dort stünde es im Protokoll
 $pin      = (string) ($d['pin'] ?? '');
 try {
     $tuer = Chef::pruefen($codewort, $pin);

@@ -91,6 +91,7 @@ if ($f && isset($_GET['datei'])) {
             [(int) $f['projekt_id']], null);
         if ($freiAm === null) { http_response_code(404); exit('Nicht gefunden.'); }
     }
+    if (!Ablage::darfKunde($d)) { http_response_code(404); exit('Nicht gefunden.'); }   // keine Sicherungen (Prüfung 07.10.2026)
     Ablage::ausliefern($d);
 }
 

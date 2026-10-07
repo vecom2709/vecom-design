@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Website-Monitoring</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     <?php if ($lauf): ?>
       Letzter Lauf: <?= Fmt::h(Fmt::seit($lauf)) ?> (<?= Fmt::h(Fmt::zeit($lauf)) ?>)
       <?php if ($bilanz && isset($bilanz['websites']['geprueft'])): ?>
@@ -14,7 +14,7 @@
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="cron_jetzt">
     <input type="hidden" name="zurueck" value="monitoring">
     <button class="knopf haupt">Jetzt prüfen</button>
-    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Erreichbarkeit, Zertifikate, Cockpit-Schutz — der nächtliche Lauf mit Geld und Post startet hier nicht.</span></form>
+    <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Erreichbarkeit, Zertifikate, Cockpit-Schutz — der nächtliche Lauf mit Geld und Post startet hier nicht.</span></form>
 </div>
 
 <?php /* ---------- Zustellbarkeit der Absenderdomain ---------- */ ?>
@@ -26,7 +26,7 @@
         if (!empty($zustell['geprueft'])): ?> · geprüft <?= Fmt::h(Fmt::seit((string) $zustell['geprueft'])) ?><?php endif; ?>
     </span>
   </h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Ob Postfächer deine Mails als echt erkennen. Diese drei Einträge richtet man einmal ein
     und sieht sie nie wieder an — deshalb fragt der Cronjob täglich nach.</p>
 
@@ -43,7 +43,7 @@
                         'unbekannt' => 'unbekannt'][$p['stand']] ?? (string) $p['stand']) ?></span></td>
         <td><?= Fmt::h((string) $p['text']) ?>
           <?php if (($p['wert'] ?? '') !== ''): ?>
-            <div style="color:var(--leise);font-size:12px;margin-top:4px;word-break:break-all;font-family:ui-monospace,monospace">
+            <div style="color:var(--leise);font-size:var(--fs-klein);margin-top:4px;word-break:break-all;font-family:ui-monospace,monospace">
               <?= Fmt::h(mb_substr((string) $p['wert'], 0, 160)) ?></div>
           <?php endif; ?></td>
       </tr>
@@ -58,7 +58,7 @@
   </div>
 
   <div style="border-top:1px solid var(--linie);margin-top:14px;padding-top:14px">
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">
       Das oben liest nur das DNS. Ob Brevo auch wirklich mit deinem Schlüssel signiert, sagt nur eine
       zugestellte Mail. Der sichere Weg: <a href="https://www.mail-tester.com" target="_blank" rel="noopener">mail-tester.com</a>
       öffnen, die dort angezeigte Adresse hier einsetzen, senden — und auf der Seite nachladen.
@@ -150,7 +150,7 @@
 $cspListe = Csp::liste(40); ?>
 <div class="block" id="csp">
   <h2>Sicherheitsregel für Skripte <span class="mehr" style="font-weight:400;color:var(--leise)">nur melden, nichts blockiert</span></h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
     Verwaltung und Partnerbereich schicken dem Browser eine Regel, welche Skripte, Bilder und Ziele erlaubt sind.
     Noch blockiert sie nichts — der Browser meldet nur, was er blockieren <i>würde</i>. Steht hier nichts Unbekanntes mehr,
     kann die Regel scharf geschaltet werden. Gespeichert wird ohne Adresse und ohne Abfrage.</p>

@@ -3,7 +3,7 @@
          Überschrift, und man weiß beim Blick nach oben nicht, auf welcher
          man steht. */ ?>
 <div class="kopf"><h1>Alle Kunden</h1><div class="rechts">
-  <form class="leiste"><input type="search" name="q" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Name, E-Mail, Firma">
+  <form class="leiste"><input type="search" name="q" aria-label="Kunden durchsuchen" value="<?= Fmt::h($q) ?>" placeholder="Nummer, Name, E-Mail, Firma">
   <button class="knopf">Suchen</button></form>
   <?php /* Phase 9b: mögliche Dubletten — nur ein Hinweis mit Zahl, zusammengeführt wird dort per Klick. */
     $kdN = (int) sicher(static function (): int { require_once dirname(__DIR__) . '/src/KundenDubletten.php'; return KundenDubletten::anzahl(); }, 0);
@@ -18,7 +18,7 @@
 <div class="block"><div class="tabellenrahmen"><table>
 <thead><tr><th>Nummer</th><th>Name</th><th>Firma</th><th>E-Mail</th><th class="num">Bestellungen</th><th class="num">Projekte</th><th>Seit</th></tr></thead>
 <tbody>
-<?php if (!$liste): ?><tr><td colspan="7"><div class="leer">Noch keine Kunden erfasst.</div></td></tr><?php endif; ?>
+<?php if (!$liste): ?><tr><td colspan="7"><div class="leer"><?= trim((string) $q) !== '' ? 'Kein Treffer für „' . Fmt::h((string) $q) . '“.' : 'Noch keine Kunden erfasst.' ?></div></td></tr><?php endif; ?>
 <?php foreach ($liste as $k): ?>
 <tr><td style="font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--dim)"><?=
   Fmt::h(trim((string) ($k['kundennr'] ?? '')) ?: '—') ?></td>

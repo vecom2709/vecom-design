@@ -22,16 +22,16 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
   .an-kopf{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:6px}
   .an-kopf h2{margin:0}
   .an-sprache{display:flex;gap:4px}
-  .an-sprache a{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid var(--linie);color:var(--dim)}
+  .an-sprache a{font-size:var(--fs-klein);padding:3px 9px;border-radius:999px;border:1px solid var(--linie);color:var(--dim)}
   .an-sprache a.an{color:var(--text);border-color:var(--linie2);background:var(--flaeche2)}
   .an-hilfe{font-size:14px;line-height:1.55;color:var(--dim);margin:6px 0 12px}
   .an-wege{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--flaeche2);border:1px solid var(--linie);border-radius:12px;padding:4px;margin-bottom:12px}
   .an-wege button{font:inherit;font-size:13.5px;padding:9px 4px;border-radius:9px;border:0;background:none;color:var(--dim);cursor:pointer;display:flex;gap:6px;justify-content:center;align-items:center}
   .an-wege button[aria-selected="true"]{background:var(--flaeche);color:var(--text);box-shadow:0 0 0 1px var(--linie2) inset}
-  .an-wege button .zu{font-size:11px;opacity:.7}
+  .an-wege button .zu{font-size:var(--fs-klein);opacity:.7}
   .an-wege button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
   .an-feld{margin:0 0 8px}
-  .an-feld label{display:block;font-size:11.5px;color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
+  .an-feld label{display:block;font-size:var(--fs-mini);color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px}
   .an-text{width:100%;box-sizing:border-box;font:inherit;font-size:14px;line-height:1.55;min-height:260px;resize:vertical}
   .an-knoepfe{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:8px}
   .an-zu{border:1px dashed var(--linie2);border-radius:12px;padding:14px;font-size:14px;line-height:1.55;color:var(--dim)}
@@ -39,7 +39,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
   .an-skript{list-style:none;margin:0;padding:0;display:grid;gap:10px}
   .an-skript li{border-left:3px solid var(--linie2);padding:2px 0 2px 12px}
   .an-skript li.satz{border-left-color:var(--cyan)}
-  .an-skript small{display:block;font-size:11.5px;color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
+  .an-skript small{display:block;font-size:var(--fs-mini);color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px}
   .an-skript p{margin:0;font-size:15px;line-height:1.55;color:var(--text)}
   .an-ja{margin-top:16px;border-top:1px solid var(--linie);padding-top:14px}
   .an-ja summary{cursor:pointer;font-weight:650;font-size:15px}

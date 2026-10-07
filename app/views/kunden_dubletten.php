@@ -2,11 +2,11 @@
 /* Mögliche Dubletten (Phase 9b, Uwe: „Vorschlag + Zusammenführen per Klick“). Daten: $paare, $admin.
    Nie automatisch: „Ist dieselbe“ fragt nach, welcher Kunde bleibt, und führt erst dann zusammen. */
 $zeile = static fn(array $k): string => '<a href="' . Fmt::h(url('kunden/' . (int) $k['id'])) . '"><b>' . Fmt::h((string) $k['name']) . '</b></a>'
-    . ' <span style="color:var(--leise);font-size:12px">' . Fmt::h((string) ($k['kundennr'] ?? '')) . '</span>'
-    . '<div style="font-size:12.5px;color:var(--dim);line-height:1.5">' . Fmt::h(implode(' · ', array_filter([(string) $k['company'], (string) $k['email'], (string) $k['phone'], (string) $k['city']]))) . '</div>';
+    . ' <span style="color:var(--leise);font-size:var(--fs-klein)">' . Fmt::h((string) ($k['kundennr'] ?? '')) . '</span>'
+    . '<div style="font-size:var(--fs-klein);color:var(--dim);line-height:1.5">' . Fmt::h(implode(' · ', array_filter([(string) $k['company'], (string) $k['email'], (string) $k['phone'], (string) $k['city']]))) . '</div>';
 ?>
 <div class="kopf"><div><h1>Mögliche Dubletten</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Kunden, die gleich aussehen — gleiche Telefonnummer, P. IVA, E-Mail, Firma oder Firmen-Domain. Zusammengeführt wird nur auf deinen Klick; Rechnungen wandern dabei nie.</p></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Kunden, die gleich aussehen — gleiche Telefonnummer, P. IVA, E-Mail, Firma oder Firmen-Domain. Zusammengeführt wird nur auf deinen Klick; Rechnungen wandern dabei nie.</p></div>
   <div class="rechts"><a class="knopf" href="<?= Fmt::h(url('kunden')) ?>">Alle Kunden</a></div></div>
 
 <?php if (!$paare): ?>

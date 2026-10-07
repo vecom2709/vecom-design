@@ -18,7 +18,7 @@ $erklaerung = [
 <div class="block">
   <?php if ($erklaerung): ?>
     <p style="color:var(--dim);margin-bottom:10px"><?= Fmt::h($erklaerung) ?></p>
-    <p style="color:var(--leise);font-size:13px">Die Tabellen dafür stehen bereits in der Datenbank — dieser Bereich
+    <p style="color:var(--leise);font-size:var(--fs-klein)">Die Tabellen dafür stehen bereits in der Datenbank — dieser Bereich
     kommt in der nächsten Ausbaustufe. Bis dahin bleibt die Navigation vollständig, damit sich nichts verschiebt.</p>
   <?php else: ?>
     <div class="leer">Diese Seite gibt es nicht.</div>

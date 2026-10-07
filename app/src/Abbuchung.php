@@ -230,6 +230,11 @@ final class Abbuchung
             if ($r['status'] === 'bezahlt') {
                 Events::zahlungVonStripe((int) $z['id'], $r['vorgang'], (int) $r['betrag'], (string) $r['waehrung']);
                 $n['bezahlt']++;
+            } elseif ($r['status'] === 'stoerung') {
+                /* Störung bei Stripe: zurück in die Reihe; der nächste Lauf fragt mit demselben Einmal-Schlüssel —
+                   Stripe bucht so höchstens einmal. Kein Zahlungslink an den Kunden. */
+                Db::run("UPDATE payments SET status = 'ausstehend' WHERE id = ?", [(int) $z['id']]);
+                $n['stoerung'] = ($n['stoerung'] ?? 0) + 1;
             } elseif ($r['status'] === 'laeuft') {
                 $n['laeuft']++;   // Lastschrift: der Abgleich bucht, sobald das Geld da ist
             } else {

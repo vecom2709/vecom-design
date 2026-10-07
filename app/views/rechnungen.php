@@ -1,12 +1,12 @@
 <div class="kopf"><div><h1><?= $istRechnung ? 'Rechnungen' : 'Zahlungsbelege' ?></h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Zu jeder bezahlten Rate entsteht ein Dokument — bei der Anzahlung eines, bei der Restzahlung eines.
     <?php if (!$istRechnung): ?><br>
       Solange in den Einstellungen keine Partita IVA steht, sind das <b>Zahlungsbelege</b>, keine Rechnungen
       im steuerlichen Sinn.
     <?php endif; ?>
   </p></div>
-  <div style="text-align:right"><div style="color:var(--leise);font-size:12px">Ausgestellt <?= date('Y') ?></div>
+  <div style="text-align:right"><div style="color:var(--leise);font-size:var(--fs-klein)">Ausgestellt <?= date('Y') ?></div>
     <div style="font-size:20px;font-weight:650"><?= Fmt::h(Fmt::geld((int) $summe)) ?></div></div>
 </div>
 

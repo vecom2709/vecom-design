@@ -250,6 +250,7 @@ final class Onboarding
         $ok = Mail::senden('fragebogen_vorab', (string) $f['kunde_email'], $betreff, $text, [
             'customer_id' => $kundeId,
             'antwortAn'   => Mail::eigeneAdresse(),
+            'nachher'     => ['tabelle' => 'questionnaires', 'id' => $fid, 'spalte' => 'eingeladen_am'],
         ]);
         if ($ok) {
             Db::update('questionnaires', $fid, ['eingeladen_am' => date('Y-m-d H:i:s')]);
@@ -301,6 +302,7 @@ final class Onboarding
             'project_id'  => $projektId,
             'order_id'    => $f['bestell_id'] !== null ? (int) $f['bestell_id'] : null,
             'antwortAn'   => Mail::eigeneAdresse(),
+            'nachher'     => ['tabelle' => 'questionnaires', 'id' => (int) $f['id'], 'spalte' => 'eingeladen_am'],
         ]);
 
         if ($ok) {
@@ -359,6 +361,12 @@ final class Onboarding
         require_once __DIR__ . '/Fragen.php';
         $gezaehlt = 0;
         foreach ($faellig as $f) {
+            /* Erst beanspruchen, dann senden (Prüfung 07.10.2026, Punkt 23): Nur wer die Spalte
+               von leer auf jetzt kippt, schickt. Ein zweiter Lauf daneben findet nichts mehr.
+               Auch ein Fehlschlag bleibt vermerkt — lieber eine Erinnerung zu wenig als jede
+               Stunde dieselbe Mail an dieselbe Adresse. */
+            $spalte = $f['erinnert_am'] === null ? 'erinnert_am' : 'erinnert2_am';
+            if (Db::run("UPDATE questionnaires SET $spalte = NOW() WHERE id = ? AND $spalte IS NULL", [(int) $f['id']])->rowCount() !== 1) { continue; }
             $daten = $f['data'] ? (json_decode((string) $f['data'], true) ?: []) : [];
             [$betreff, $text] = Texte::mail('fragebogen_erinnerung', self::sprache($f), [
                 'name'    => (string) $f['kunde'],
@@ -371,11 +379,6 @@ final class Onboarding
                 'project_id'  => $f['project_id'] !== null ? (int) $f['project_id'] : null,
                 'order_id'    => $f['bestell_id'] !== null ? (int) $f['bestell_id'] : null,
                 'antwortAn'   => Mail::eigeneAdresse(),
-            ]);
-            // Auch ein Fehlschlag wird vermerkt: lieber eine Erinnerung zu
-            // wenig als jede Stunde dieselbe Mail an dieselbe Adresse.
-            Db::update('questionnaires', (int) $f['id'], [
-                ($f['erinnert_am'] === null ? 'erinnert_am' : 'erinnert2_am') => date('Y-m-d H:i:s'),
             ]);
             if ($ok) { $gezaehlt++; }
         }

@@ -124,7 +124,7 @@ textarea:focus-visible,select:focus-visible{
 /* ---------- Felder ---------- */
 .feld{margin-bottom:16px}
 .feld label{
-  display:block; font-size:12.5px; font-weight:600; letter-spacing:.02em;
+  display:block; font-size:14px; font-weight:600; letter-spacing:.01em;
   color:var(--dim); margin-bottom:7px;
 }
 input[type=text],input[type=email],input[type=tel],input[type=password],input:not([type]),
@@ -184,7 +184,7 @@ input[type=file]{
 }
 .nachricht .wer{
   display:flex; justify-content:space-between; gap:12px;
-  font-size:12.5px; font-weight:650; margin-bottom:6px; color:var(--dim);
+  font-size:14px; font-weight:650; margin-bottom:6px; color:var(--dim);
 }
 .nachricht .wer .zeit{font-weight:400; color:var(--leise)}
 .nachricht .text{white-space:pre-wrap; font-size:14.5px; line-height:1.6; color:var(--text)}
@@ -211,7 +211,7 @@ input[type=file]{
 }
 .schritte li > *{grid-column:2}
 .schritte b{display:block; font-size:14.5px; font-weight:650}
-.schritte span{display:block; font-size:13.5px; color:var(--dim); line-height:1.55}
+.schritte span{display:block; font-size:14px; color:var(--dim); line-height:1.55}
 
 /* ---------- Fortschritt (Projektseite) ---------- */
 .stufen{list-style:none; margin:0; padding:0; display:grid; gap:0}
@@ -227,7 +227,7 @@ input[type=file]{
 .kreis{
   width:26px; height:26px; border-radius:50%; display:grid; place-items:center;
   border:1px solid var(--linie2); background:var(--grund2); position:relative; z-index:1;
-  font-size:11px; color:var(--leise);
+  font-size:14px; color:var(--leise);
 }
 .stufen li.durch .kreis{
   background:var(--verlauf); border-color:transparent; color:#fff;
@@ -238,7 +238,7 @@ input[type=file]{
 }
 .stufen li.jetzt > div b{color:var(--cyan)}
 .stufen b{display:block; font-size:14.5px; font-weight:600}
-.stufen span{display:block; font-size:13px; color:var(--leise)}
+.stufen span{display:block; font-size:14px; color:var(--leise)}
 
 /* ---------- Fortschrittsbalken (Fragebogen) ---------- */
 .balken{
@@ -249,7 +249,7 @@ input[type=file]{
   display:block; height:100%; border-radius:99px; background:var(--verlauf);
   transition:width .4s cubic-bezier(.16,1,.3,1);
 }
-.stand{font-size:13px; color:var(--leise)}
+.stand{font-size:14px; color:var(--leise)}
 
 /* ---------- Fragebogen-Abschnitte ---------- */
 .kopfzeile{
@@ -267,7 +267,7 @@ input[type=file]{
 
 /* ---------- Sprachwahl ---------- */
 .sprachen{
-  text-align:center; margin:26px 0 0; font-size:13.5px; color:var(--leise);
+  text-align:center; margin:26px 0 0; font-size:14px; color:var(--leise);
 }
 .sprachen a{
   color:var(--leise); text-decoration:none; padding:11px 10px;
@@ -278,7 +278,7 @@ input[type=file]{
 
 /* ---------- Fuß ---------- */
 .fussleiste{
-  text-align:center; margin-top:30px; font-size:12.5px; color:var(--leise);
+  text-align:center; margin-top:30px; font-size:14px; color:var(--leise);
 }
 .fussleiste a{color:var(--leise); text-decoration:none}
 .fussleiste a:hover{color:var(--dim)}
@@ -315,7 +315,7 @@ tr.fragezeile .frage{margin:0 0 8px}
   display:flex; flex-wrap:wrap; justify-content:center; align-items:center;
   gap:8px; margin:34px auto 8px; padding:16px 20px 0;
   max-width:760px; border-top:1px solid var(--linie);
-  font-size:12.5px; line-height:1.6; color:var(--leise);
+  font-size:14px; line-height:1.6; color:var(--leise);
 }
 .rechtsfuss a{color:var(--leise); text-decoration:none;
   min-height:32px; display:inline-flex; align-items:center}

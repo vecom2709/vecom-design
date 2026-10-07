@@ -22,21 +22,21 @@ $hart = in_array((string) ($f['sperr_art'] ?? ''), AkquiseCrm::SPERR_HART, true)
 <style>
   .pf-gitter{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px 14px}
   .pf-gitter .feld{margin:0 0 10px}
-  .pf-kat{font-size:12px;text-transform:uppercase;letter-spacing:.07em;color:var(--leise);margin:16px 0 8px;grid-column:1/-1}
-  .pf-quelle{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:13px;color:var(--dim);padding:10px 12px;border:1px dashed var(--linie2);border-radius:10px;margin:0 0 14px}
+  .pf-kat{font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.07em;color:var(--leise);margin:16px 0 8px;grid-column:1/-1}
+  .pf-quelle{display:flex;gap:6px 16px;flex-wrap:wrap;font-size:var(--fs-klein);color:var(--dim);padding:10px 12px;border:1px dashed var(--linie2);border-radius:10px;margin:0 0 14px}
   .pf-quelle b{color:var(--text);font-weight:600}
   .pf-kanaele{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px}
-  .pf-kanal{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;background:var(--flaeche2);display:flex;flex-direction:column;gap:6px;font-size:13px}
+  .pf-kanal{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;background:var(--flaeche2);display:flex;flex-direction:column;gap:6px;font-size:var(--fs-klein)}
   .pf-kanal b{font-size:14px}
   .pf-kanal form{margin:0;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-  .pf-kanal input[type=date]{width:auto;padding:4px 8px;min-height:0;font-size:12.5px}
-  .pf-kanal-mehr summary{cursor:pointer;font-size:12.5px;color:var(--cyan)}
+  .pf-kanal input[type=date]{width:auto;padding:4px 8px;min-height:0;font-size:var(--fs-klein)}
+  .pf-kanal-mehr summary{cursor:pointer;font-size:var(--fs-klein);color:var(--cyan)}
   .pf-kanal-mehr[open]{display:flex;flex-direction:column;gap:6px}
   .pf-kanal-mehr[open] summary{margin-bottom:2px}
   .pf-notiz{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;margin:0 0 8px;background:var(--flaeche2)}
   .pf-notiz.an{border-color:rgba(241,211,139,.5)}
   .pf-notiz p{margin:0 0 6px;white-space:pre-wrap;font-size:14px;line-height:1.5}
-  .pf-notiz .unter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--leise)}
+  .pf-notiz .unter{display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:var(--fs-klein);color:var(--leise)}
   .pf-notiz form{margin:0;display:inline}
 </style>
 
@@ -188,8 +188,8 @@ $hart = in_array((string) ($f['sperr_art'] ?? ''), AkquiseCrm::SPERR_HART, true)
     .pf-doks{list-style:none;margin:0 0 10px;padding:0}
     .pf-dok{display:flex;gap:10px;justify-content:space-between;align-items:flex-start;border-bottom:1px solid var(--linie);padding:8px 0;font-size:14px}
     .pf-dok.wichtig a{font-weight:650}
-    .pf-dok .unter{font-size:12px;color:var(--leise);margin-top:2px}
-    .pf-art{font-size:11.5px;margin-left:8px;padding:1px 8px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim)}
+    .pf-dok .unter{font-size:var(--fs-klein);color:var(--leise);margin-top:2px}
+    .pf-art{font-size:var(--fs-klein);margin-left:8px;padding:1px 8px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim)}
     .pf-dok-k{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
     .pf-dok-hoch{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:8px;align-items:end}
     .pf-dok-hoch .breit{grid-column:span 2} .pf-dok-hoch .feld{margin:0} .pf-dok-hoch select,.pf-dok-hoch input[type=text]{width:100%}

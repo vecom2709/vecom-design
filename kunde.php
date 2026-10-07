@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+/* Not-Aus gilt auch hier: Was ein Besucher auslöst, ist für Uwe „automatisch“ (Prüfung 07.10.2026, Punkt 19). */
+require_once __DIR__ . '/app/src/Automation.php'; Automation::automatischAb('web-kunde');
 /* ==========================================================================
    kunde.php — die eine Seite des Kunden.
 
@@ -16,7 +18,7 @@ declare(strict_types=1);
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
-if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.'); }
+if (!is_file($konfig)) { http_response_code(503); exit('Momentaneamente non raggiungibile — riprovi tra poco. · Gerade nicht erreichbar — bitte gleich noch einmal. · Not available right now — please try again shortly.'); }
 
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
@@ -97,7 +99,7 @@ if ($kunde && isset($_GET['datei'])) {
        Systeme stehen (wp-config.php). Die sind fuer die Verwaltung. */
     $d = sicherLesen(fn() => Db::one("SELECT * FROM files WHERE id = ? AND customer_id = ? AND rolle <> 'sicherung'",
         [(int) $_GET['datei'], (int) $kunde['id']]), null);
-    if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$d || !Ablage::darfKunde($d)) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     Ablage::ausliefern($d);
 }
 
@@ -116,7 +118,7 @@ if ($kunde && isset($_GET['einrichtung'])) {
 if ($kunde && isset($_GET['logobild'])) {
     $d = sicherLesen(fn() => Db::one("SELECT * FROM files WHERE id = ? AND customer_id = ? AND rolle = 'logo'",
         [(int) $_GET['logobild'], (int) $kunde['id']]), null);
-    if (!$d) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$d) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     Ablage::vorschauAusliefern($d, Ablage::VORSCHAU_KLEIN);
 }
 
@@ -126,7 +128,7 @@ if ($kunde && isset($_GET['beleg'])) {
         "SELECT * FROM invoices WHERE id = ? AND customer_id = ?
            AND (issued_at IS NOT NULL OR status <> 'entwurf')",
         [(int) $_GET['beleg'], (int) $kunde['id']]), null);
-    if (!$r) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$r) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     $daten = Rechnung::pdf($r);
     header('Content-Type: application/pdf');
     header('Content-Length: ' . strlen($daten));
@@ -144,9 +146,9 @@ if ($kunde && isset($_GET['vertrag'])) {
     require_once __DIR__ . '/app/src/Vertragsblatt.php';
     $bv = sicherLesen(fn() => Db::one('SELECT * FROM orders WHERE id = ? AND customer_id = ?',
         [(int) $_GET['vertrag'], (int) $kunde['id']]), null);
-    if (!$bv) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$bv) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     $daten = (string) sicherLesen(fn() => Vertragsblatt::pdf((int) $bv['id']), '');
-    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    if ($daten === '') { http_response_code(503); exit('Il documento non si può generare in questo momento. · Das Blatt lässt sich gerade nicht erzeugen. · The document can’t be generated right now.'); }
     header('Content-Type: application/pdf');
     header('Content-Length: ' . strlen($daten));
     header('Content-Disposition: attachment; filename="'
@@ -163,9 +165,9 @@ if ($kunde && isset($_GET['abovertrag'])) {
     require_once __DIR__ . '/app/src/Abovertrag.php';
     $ba = sicherLesen(fn() => Db::one('SELECT * FROM abos WHERE id = ? AND customer_id = ?',
         [(int) $_GET['abovertrag'], (int) $kunde['id']]), null);
-    if (!$ba) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$ba) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     $daten = (string) sicherLesen(fn() => Abovertrag::pdf((int) $ba['id']), '');
-    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    if ($daten === '') { http_response_code(503); exit('Il documento non si può generare in questo momento. · Das Blatt lässt sich gerade nicht erzeugen. · The document can’t be generated right now.'); }
     header('Content-Type: application/pdf');
     header('Content-Length: ' . strlen($daten));
     header('Content-Disposition: attachment; filename="'
@@ -179,9 +181,9 @@ if ($kunde && isset($_GET['uebergabe_pdf'])) {
     require_once __DIR__ . '/app/src/Lieferung.php';
     $up = sicherLesen(fn() => Db::one('SELECT id, veroeffentlicht_domain FROM projects WHERE id = ? AND customer_id = ? AND uebergabe_frei_am IS NOT NULL',
         [(int) $_GET['uebergabe_pdf'], (int) $kunde['id']]), null);
-    if (!$up) { http_response_code(404); exit('Nicht gefunden.'); }
+    if (!$up) { http_response_code(404); exit('Non trovato. · Nicht gefunden. · Not found.'); }
     $daten = (string) sicherLesen(fn() => Lieferung::uebergabePdf((int) $up['id']), '');
-    if ($daten === '') { http_response_code(503); exit('Das Blatt lässt sich gerade nicht erzeugen.'); }
+    if ($daten === '') { http_response_code(503); exit('Il documento non si può generare in questo momento. · Das Blatt lässt sich gerade nicht erzeugen. · The document can’t be generated right now.'); }
     header('Content-Type: application/pdf');
     header('Content-Length: ' . strlen($daten));
     header('Content-Disposition: attachment; filename="Uebergabe-' . preg_replace('~[^A-Za-z0-9.-]+~', '-', (string) $up['veroeffentlicht_domain']) . '.pdf"');
@@ -195,7 +197,7 @@ if ($kunde && isset($_GET['uebergabe_pdf'])) {
 if ($kunde && Ablage::zuGrossFuerDenServer()) {
     // Ohne diesen Fall stuende hier eine Meldung ueber ein abgelaufenes
     // Formular — und der Kunde suchte den Fehler an der falschen Stelle.
-    $fehler[] = 'Die Datei ist größer als ' . Fmt::bytes(Ablage::grenze()) . '.';
+    $fehler[] = Ablage::kundenText(new AblageFehler('zu_gross', ''), $sprache);
 } elseif ($kunde && $_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($_SESSION['csrf']) || !hash_equals((string) $_SESSION['csrf'], (string) ($_POST['_csrf'] ?? ''))) {
         $fehler[] = Texte::h(Texte::SEITE['panne'] ?? [], $sprache, 'Bitte noch einmal versuchen.');
@@ -244,7 +246,7 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                    Ansicht. */
                 $st = (string) ($seite['vorgang']['projekt']['status'] ?? '');
                 if (($seite['abnahme_frei'] ?? null) === null) {
-                    $fehler[] = Texte::h(Texte::SEITE['nurSchauen'] ?? [], $sprache,
+                    $fehler[] = Texte::h(Texte::KUNDE['nurSchauen'] ?? [], $sprache,
                         'Die Seite ist noch nicht zur Abnahme freigegeben.');
                 } elseif (in_array($st, ['vorschau', 'kundenfeedback', 'aenderungen'], true)) {
                     Events::protokoll('freigabe', 'Der Kunde hat die Vorschau freigegeben',
@@ -411,9 +413,11 @@ if ($kunde && Ablage::zuGrossFuerDenServer()) {
                 $meldung = Texte::h(Texte::PROJEKT['dateiOk'] ?? [], $sprache, 'Danke, ist angekommen.');
             }
         } catch (Throwable $e) {
-            // Die Meldung darf der Kunde sehen: Sie sagt ihm, was zu tun ist
-            // ("zu groß", "Format nicht angenommen") — keine Serverinterna.
-            $fehler[] = $e->getMessage();
+            /* Ablage-Fehler übersetzt, alles andere nur „hat nicht geklappt“ — Serverinterna
+               gehen nicht auf die Kundenseite (Prüfung 07.10.2026, Punkt 42). Eigene Hinweise
+               dieser Seite (RuntimeException mit Kundentext) bleiben, wie sie sind. */
+            $fehler[] = ($e instanceof AblageFehler || $e instanceof PDOException || !($e instanceof RuntimeException))
+                ? Ablage::kundenText($e, $sprache) : $e->getMessage();
         }
     }
 }
@@ -577,12 +581,12 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   /* Die Fortschrittsleiste: waagerecht, damit sie auf dem Handy nicht
      die halbe Seite frisst. Sieben Punkte, der aktuelle traegt die Farbe. */
   .weg{display:flex;gap:5px;margin:0 0 22px;list-style:none;padding:0}
-  .weg li{flex:1 1 0;min-width:0;font-size:10.5px;letter-spacing:.05em;text-transform:uppercase;
+  .weg li{flex:1 1 0;min-width:0;font-size:14px;letter-spacing:.01em;
     color:var(--leise);padding-top:8px;border-top:3px solid var(--linie);
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .weg li.durch{border-top-color:var(--blau);color:var(--dim)}
   .weg li.jetzt{border-top-color:var(--cyan);color:var(--text);font-weight:650}
-  .wegzahl{font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise);
+  .wegzahl{font-size:14px;letter-spacing:.02em;color:var(--leise);
     margin:0 0 20px}
   /* Auf dem Handy sind sieben Beschriftungen sieben Wortanfaenge mit
      Auslassungspunkten — also weg damit. Die Balken bleiben, und darunter
@@ -597,7 +601,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   .dran{border:1px solid var(--linie2);border-radius:16px;padding:20px 22px;margin-bottom:20px;
     background:linear-gradient(135deg,rgba(68,122,255, .21),rgba(241,211,139,.05))}
   .dran.warten{background:none}
-  .dran .wer{font-size:11.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
+  .dran .wer{font-size:12.5px;letter-spacing:.09em;text-transform:uppercase;color:var(--cyan);margin-bottom:8px}
   .dran.warten .wer{color:var(--leise)}
   .dran h2{font-size:19px;margin:0 0 8px;font-stretch:100%}
   .dran p{color:var(--dim);font-size:14.5px;line-height:1.6;margin:0 0 16px}
@@ -607,7 +611,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   details.klapp>summary::-webkit-details-marker{display:none}
   details.klapp>summary::before{content:"+ ";color:var(--leise)}
   details.klapp[open]>summary::before{content:"– "}
-  .mini{color:var(--leise);font-size:12.5px;line-height:1.55}
+  .mini{color:var(--leise);font-size:14px;line-height:1.55}
   /* Der Kasten fuer etwas, das es noch nicht gibt: dieselbe Form wie die
      anderen, nur ohne Griff daran. Er soll erwartet aussehen, nicht defekt. */
   .klapp.ruht{border:1px dashed var(--linie);border-radius:14px;padding:13px 16px;margin-bottom:12px;opacity:.72}
@@ -620,7 +624,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   .materialruf{border:1px solid var(--cyan);border-radius:12px;padding:13px 15px;margin:10px 0 14px;
     background:rgba(241,211,139,.07)}
   .materialruf b{display:block;font-size:14.5px;line-height:1.55;color:var(--cyan);margin-bottom:5px}
-  .materialruf span{display:block;font-size:12.5px;line-height:1.6;color:var(--dim)}
+  .materialruf span{display:block;font-size:14px;line-height:1.6;color:var(--dim)}
   /* Der Kasten mit dem Material bekommt eine ruhige Betonung, solange er
      dran ist -- offen allein reicht nicht, wenn darueber sechs andere
      Kaesten stehen. */
@@ -632,7 +636,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   .sprachwahl{margin-left:auto;display:inline-flex;gap:2px;padding:2px;
     border:1px solid var(--linie);border-radius:9px}
   .sprachwahl a{display:inline-block;padding:5px 10px;border-radius:7px;
-    font-size:12px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
+    font-size:14px;letter-spacing:.04em;color:var(--leise);text-decoration:none}
   .sprachwahl a:hover{color:var(--dim)}
   .sprachwahl a.jetzt{background:rgba(255,255,255,.09);color:#fff}
   /* Erklärhilfen (06.10.2026): das „?“, die Leiste zum Antippen, die sechs
@@ -648,7 +652,7 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
   details.klapp:not(.dranfaellig) .knopf.haupt:hover{box-shadow:none;border-color:var(--cyan)}
   .kunde-hilfe{width:36px;height:36px;font-size:16px;flex:0 0 36px}
   .kopf-rechts{display:flex;align-items:center;gap:10px;flex:0 0 auto}
-  .kopf-rechts .knr{font-size:12px;line-height:1.35;color:var(--leise);text-align:right;
+  .kopf-rechts .knr{font-size:14px;line-height:1.35;color:var(--leise);text-align:right;
     font-variant-numeric:tabular-nums;white-space:nowrap}
   .kopf-rechts .knr b{font-weight:500;color:var(--dim)}
   .weg li a{color:inherit;text-decoration:none;display:block}
@@ -660,21 +664,21 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     .weg li a{position:absolute;left:0;right:0;top:-14px;height:31px}
   }
   details.ablauf{margin:-6px 0 20px}
-  details.ablauf>summary{cursor:pointer;list-style:none;font-size:13px;color:var(--cyan);display:inline-block}
+  details.ablauf>summary{cursor:pointer;list-style:none;font-size:14px;color:var(--cyan);display:inline-block}
   details.ablauf>summary::-webkit-details-marker{display:none}
   details.ablauf>summary::before{content:"▸ ";color:var(--leise)}
   details.ablauf[open]>summary::before{content:"▾ "}
   details.ablauf ol{list-style:none;margin:12px 0 0;padding:0;display:grid;gap:8px}
   details.ablauf li{display:flex;gap:12px;align-items:flex-start;padding:12px 14px;border:1px solid var(--linie);
     border-radius:12px;scroll-margin-top:16px}
-  details.ablauf li .nr{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:12.5px;
+  details.ablauf li .nr{flex:0 0 26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:14px;
     font-weight:650;border:1.5px solid var(--linie2,rgba(224,206,156,.26));color:var(--dim)}
   details.ablauf li.durch .nr{background:var(--blau);border-color:var(--blau);color:#fff}
   details.ablauf li.jetzt{border-color:var(--cyan)}
   details.ablauf li.jetzt .nr{background:var(--cyan);border-color:var(--cyan);color:#1a1405}
   details.ablauf li b{font-size:15px}
-  details.ablauf li .hier{margin-left:8px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
-  details.ablauf li .wer{display:block;font-size:12.5px;color:var(--leise);margin:2px 0 4px}
+  details.ablauf li .hier{margin-left:8px;font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--cyan)}
+  details.ablauf li .wer{display:block;font-size:14px;color:var(--leise);margin:2px 0 4px}
   details.ablauf li p{margin:0;font-size:14px;line-height:1.55;color:var(--dim)}
   details.ablauf li:target{box-shadow:0 0 0 2px var(--cyan)}
   .fragen-liste{margin-top:10px;display:grid;gap:2px}
@@ -1511,10 +1515,10 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
           </div>
           <details style="margin-top:8px"><summary class="mini"><?= $h($T('seitenumzugDb')) ?></summary>
             <div style="display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-top:8px">
-              <input name="db_host" placeholder="Host" aria-label="Datenbank Host" spellcheck="false">
-              <input name="db_name" placeholder="Name" aria-label="Datenbank Name" spellcheck="false">
-              <input name="db_user" placeholder="User" aria-label="Datenbank User" spellcheck="false">
-              <input name="db_pass" type="password" placeholder="Password" aria-label="Datenbank Passwort" autocomplete="new-password">
+              <input name="db_host" placeholder="<?= $h($T('seitenumzugDbHost')) ?>" aria-label="<?= $h($T('seitenumzugDbHost')) ?>" spellcheck="false">
+              <input name="db_name" placeholder="<?= $h($T('seitenumzugDbName')) ?>" aria-label="<?= $h($T('seitenumzugDbName')) ?>" spellcheck="false">
+              <input name="db_user" placeholder="<?= $h($T('seitenumzugDbUser')) ?>" aria-label="<?= $h($T('seitenumzugDbUser')) ?>" spellcheck="false">
+              <input name="db_pass" type="password" placeholder="<?= $h($T('seitenumzugDbPass')) ?>" aria-label="<?= $h($T('seitenumzugDbPass')) ?>" autocomplete="new-password">
             </div></details>
           <button class="knopf haupt" style="margin-top:10px"><?= $h($T('seitenumzugKnopf')) ?></button>
         </form>
@@ -1739,11 +1743,11 @@ Csrf::feld();   // erzeugt das Sitzungsgeheimnis, falls noch keines da ist
     <?php foreach ($nachrichten as $m): ?>
       <div style="padding:11px 13px;border:1px solid var(--linie);border-radius:12px;margin:9px 0;
                   <?= $m['sender'] === 'kunde' ? '' : 'background:var(--flaeche2)' ?>">
-        <div style="font-size:12.5px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
+        <div style="font-size:14px;font-weight:650;display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
           <span><?= $m['sender'] === 'kunde' ? $h(explode(' ', (string) $kunde['name'])[0]) : 'Vecom Design' ?></span>
           <span style="color:var(--leise);font-weight:400"><?= $h(Fmt::datum($m['created_at'])) ?></span></div>
         <?php if (!empty($m['betreff'])): ?>
-          <div style="font-size:13px;color:var(--cyan);margin-bottom:5px"><?= $h((string) $m['betreff']) ?></div>
+          <div style="font-size:14px;color:var(--cyan);margin-bottom:5px"><?= $h((string) $m['betreff']) ?></div>
         <?php endif; ?>
         <div style="white-space:pre-wrap;overflow-wrap:anywhere;font-size:14.5px;line-height:1.6;color:var(--dim)"><?= $h((string) $m['body']) ?></div>
       </div>

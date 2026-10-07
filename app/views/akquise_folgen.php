@@ -22,7 +22,7 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
   .fo-erkl{color:var(--dim);font-size:14px;line-height:1.55;max-width:72ch;margin:6px 0 0}
   .fo-stand{display:flex;gap:10px;align-items:flex-start;padding:14px 16px;border:1px solid var(--linie);border-radius:14px;background:var(--flaeche);margin:0 0 16px;font-size:14.5px}
   .fo-stand .akq-ampel{white-space:normal;align-items:flex-start}.fo-stand .akq-ampel i{margin-top:5px}
-  .fo-zahlen{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--leise)}
+  .fo-zahlen{display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:var(--fs-klein);color:var(--leise)}
   .fo-schritt{border:1px solid var(--linie);border-radius:14px;margin:0 0 12px;background:var(--flaeche)}
   .fo-schritt>summary{cursor:pointer;padding:14px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-size:14.5px}
   .fo-schritt>summary b{min-width:64px}
@@ -31,8 +31,8 @@ $statusWort = ['laeuft' => ['gut', 'läuft'], 'pausiert' => ['warnung', 'pausier
   .fo-sprachen form{margin:0}
   .fo-sprachen textarea{min-height:230px;font-size:13.5px;line-height:1.5}
   .fo-kopf{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
-  .fo-platz{font-size:12.5px;color:var(--leise);margin:0 0 14px}
-  .fo-platz code{font-size:12px;background:var(--flaeche2);padding:1px 5px;border-radius:5px;margin-right:2px}
+  .fo-platz{font-size:var(--fs-klein);color:var(--leise);margin:0 0 14px}
+  .fo-platz code{font-size:var(--fs-klein);background:var(--flaeche2);padding:1px 5px;border-radius:5px;margin-right:2px}
   .fo-knoepfe{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
 </style>
 

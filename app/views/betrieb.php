@@ -9,7 +9,7 @@ $btZahl = array_count_values(array_map(static fn($r) => $r['ampel'], $liste));
     Repariert wird nichts von selbst. Eine offene Zahlung schaltet nie eine Seite ab — sie steht nur hier.</p></div></div>
 
 <div class="block">
-  <h2>Live-Seiten <span style="font-size:13px;font-weight:500;color:var(--leise)"><?= count($liste) ?> · <?php foreach (['rot', 'gelb', 'gruen'] as $a): ?><span style="color:<?= $btFarbe[$a] ?>">● <?= (int) ($btZahl[$a] ?? 0) ?></span> <?php endforeach; ?></span></h2>
+  <h2>Live-Seiten <span style="font-size:var(--fs-klein);font-weight:500;color:var(--leise)"><?= count($liste) ?> · <?php foreach (['rot', 'gelb', 'gruen'] as $a): ?><span style="color:<?= $btFarbe[$a] ?>">● <?= (int) ($btZahl[$a] ?? 0) ?></span> <?php endforeach; ?></span></h2>
   <?php if (!$liste): ?><div class="leer">Noch keine Seite im Betrieb. Nach dem ersten Livegang erscheint sie hier.</div><?php else: ?>
   <div class="tabellenrahmen"><table style="font-size:14.5px"><thead><tr><th style="width:110px">Stand</th><th>Projekt</th><th>Domain</th><th>Live</th><th>Was auffällt</th></tr></thead><tbody>
   <?php foreach ($liste as $r): $s = $r['stand']; ?>

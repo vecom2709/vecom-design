@@ -379,7 +379,7 @@ final class Zustellbarkeit
         // Bewusst ohne customer_id: Diese Mail gehoert zu keinem Kunden, und
         // im Betreff hat eine Kundennummer hier nichts verloren.
         $ok = Mail::senden('zustellbarkeit_probe', $an,
-            'Probenachricht von ' . $domain, $text, []);
+            'Probenachricht von ' . $domain, $text, ['sprache' => 'de']);   // an Uwes Testadresse: Deutsch
 
         return $ok
             ? ['ok' => true, 'text' => 'Probenachricht an ' . $an . ' ist raus.']

@@ -124,7 +124,7 @@ try {
             }
             // Gebucht wird nur, wenn der Betrag zur Rate passt -- siehe Events::zahlungVonStripe.
             Events::zahlungVonStripe($zahlungId, (string) ($o['payment_intent'] ?? $o['id']),
-                (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''));
+                (int) ($o['amount_total'] ?? -1), (string) ($o['currency'] ?? ''), (int) ($ereignis['daten']['created'] ?? 0) ?: null);
             break;
 
         case 'account.updated':
@@ -141,7 +141,7 @@ try {
                checkout.session.completed, sonst stuende alles doppelt an. */
             if (($o['metadata']['art'] ?? '') === 'abbuchung' && (int) ($o['metadata']['zahlung_id'] ?? 0) > 0) {
                 Events::zahlungVonStripe((int) $o['metadata']['zahlung_id'], (string) ($o['id'] ?? ''),
-                    (int) ($o['amount_received'] ?? -1), (string) ($o['currency'] ?? ''));
+                    (int) ($o['amount_received'] ?? -1), (string) ($o['currency'] ?? ''), (int) ($ereignis['daten']['created'] ?? 0) ?: null);
             }
             break;
 
@@ -163,6 +163,24 @@ try {
             if ($z) {
                 $voll = (int) ($o['amount_refunded'] ?? 0) >= (int) ($o['amount'] ?? 0);
                 Db::update('payments', (int) $z['id'], ['status' => $voll ? 'rueckerstattet' : 'teilweise_erstattet']);
+                // Betrag und Tag der Erstattung — für die Kassenliste (Migration 214).
+                try {
+                    Db::update('payments', (int) $z['id'], ['erstattet_cents' => (int) ($o['amount_refunded'] ?? 0),
+                        'erstattet_am' => date('Y-m-d H:i:s', (int) ($ereignis['daten']['created'] ?? 0) ?: time())]);
+                } catch (Throwable $e) { /* Spalte fehlt noch */ }
+                // Gibt es zum Geld einen Beleg, braucht die Erstattung eine Gutschrift
+                // (Prüfung 07.10.2026, Punkt 49). Die schreibt Uwe — hier nur die Erinnerung.
+                try {
+                    $beleg = Db::one("SELECT id, invoice_no FROM invoices WHERE payment_id = ? AND COALESCE(doc_typ,'beleg') <> 'gutschrift' ORDER BY id LIMIT 1", [(int) $z['id']]);
+                    if ($beleg) {
+                        $gs = (int) Db::wert("SELECT COALESCE(SUM(total_cents),0) FROM invoices WHERE storno_von = ? AND doc_typ = 'gutschrift'", [(int) $beleg['id']], 0);
+                        if ($gs < (int) ($o['amount_refunded'] ?? 0)) {
+                            Events::melden('gutschrift_fehlt', 'Gutschrift fehlt zu ' . (string) $beleg['invoice_no'], 'warnung',
+                                'Stripe hat ' . Fmt::geld((int) ($o['amount_refunded'] ?? 0)) . ' erstattet, gutgeschrieben sind ' . Fmt::geld($gs)
+                                . '. Bitte im Beleg „Gutschrift“ ausstellen, sonst stimmt die Steuerakte nicht.', '/rechnungen/' . (int) $beleg['id']);
+                        }
+                    }
+                } catch (Throwable $e) { /* dann ohne Erinnerung */ }
 
                 // Eine erstattete Zahlung nimmt die Empfehlung mit, die an ihr
                 // haengt. Nur bei voller Erstattung: Wer die Haelfte zurueck

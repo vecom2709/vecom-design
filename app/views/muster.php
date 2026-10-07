@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Bausteine</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was zum dritten Mal gebaut wird, gehört benannt. Das Briefing schlägt
     passende von selbst vor.</p></div>
   <div class="rechts">
@@ -27,9 +27,9 @@
           <?php if ((int) $m['aktiv'] === 0): ?>
             <span class="marke2">stillgelegt</span>
           <?php endif; ?></td>
-        <td style="color:var(--dim);font-size:13px"><?= Fmt::h((string) ($m['zweck'] ?? '')) ?></td>
-        <td style="font-size:13px"><?= Fmt::h((string) ($m['laeuft_bei'] ?? '')) ?: '<span style="color:var(--leise)">— noch nirgends</span>' ?></td>
-        <td style="color:var(--leise);font-size:12.5px"><?= Fmt::h((string) ($m['passt_zu'] ?? '')) ?: 'überall' ?></td>
+        <td style="color:var(--dim);font-size:var(--fs-klein)"><?= Fmt::h((string) ($m['zweck'] ?? '')) ?></td>
+        <td style="font-size:var(--fs-klein)"><?= Fmt::h((string) ($m['laeuft_bei'] ?? '')) ?: '<span style="color:var(--leise)">— noch nirgends</span>' ?></td>
+        <td style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) ($m['passt_zu'] ?? '')) ?: 'überall' ?></td>
         <td style="text-align:right"><a class="knopf stumm" href="<?= Fmt::h(url('muster/' . (int) $m['id'])) ?>">Ansehen</a></td>
       </tr>
     <?php endforeach; ?>

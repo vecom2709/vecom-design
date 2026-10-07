@@ -134,6 +134,7 @@ final class Automation
         'claude_zugang'  => ['Claude-Zugang aufräumen', 'system', 'A', false, 'Löscht abgelaufene Anfragen und Schlüssel, ungenutzte Programmanmeldungen und die Spur nach 180 Tagen.'],
         'meldungen'      => ['Erledigte Meldungen', 'system', 'A', false, 'Meldungen, deren Anlass vorbei ist, gelten als gelesen.'],
         'meldungen_alt'  => ['Alte Meldungen löschen', 'system', 'A', false, 'Gelesene Meldungen nach einem Monat.'],
+        'schema'         => ['Datenbank-Spalten nachziehen', 'system', 'A', false, 'Legt Spalten an, die eine schon eingespielte Migration verlangt, live aber fehlen.'],
         'aufgeraeumt'    => ['Alte Prüfungen löschen', 'system', 'A', false, 'Räumt alte Prüfergebnisse weg.'],
         'cockpit'        => ['Cockpit-Schutz', 'system', 'A', false, 'Merkt, ob /cockpit/ geschützt ist.'],
         'zurufe'         => ['Zurufe an dich', 'system', 'A', false, 'Liegengebliebene Zurufe aufs Handy, zweiter Versuch.'],
@@ -310,7 +311,9 @@ final class Automation
     /** Aus dem Rückgabewert einer Aufgabe: Fehlertext oder null. */
     public static function fehlerAus(mixed $ergebnis): ?string
     {
-        if (is_array($ergebnis) && isset($ergebnis['fehler']) && $ergebnis['fehler'] !== '' && $ergebnis['fehler'] !== 0 && $ergebnis['fehler'] !== false) {
+        /* Eine leere Fehlerliste ist kein Fehler (live 07.10.2026: die Steuerakte meldete jeden Tag
+           „Fehler gemeldet ([])“, obwohl alles lief). */
+        if (is_array($ergebnis) && isset($ergebnis['fehler']) && $ergebnis['fehler'] !== '' && $ergebnis['fehler'] !== 0 && $ergebnis['fehler'] !== false && $ergebnis['fehler'] !== []) {
             return is_string($ergebnis['fehler']) ? $ergebnis['fehler'] : 'Fehler gemeldet (' . json_encode($ergebnis['fehler']) . ')';
         }
         return null;

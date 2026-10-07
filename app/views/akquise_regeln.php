@@ -66,10 +66,10 @@ $blick = [
   .rg-schritte{margin:0 0 16px;padding-left:20px;font-size:14px;color:var(--dim);line-height:1.6}
   .rg-raster{width:100%;border-collapse:collapse;font-size:14px}
   .rg-raster th,.rg-raster td{padding:10px 12px;border-bottom:1px solid var(--linie);text-align:left;vertical-align:top}
-  .rg-raster thead th{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--leise);font-weight:600}
+  .rg-raster thead th{font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.06em;color:var(--leise);font-weight:600}
   .rg-raster tbody th{font-weight:600;white-space:nowrap}
   .rg-zeile{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:0 0 4px}
-  .rg-legende{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:8px 24px;margin:14px 0 0;font-size:13px;color:var(--dim)}
+  .rg-legende{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:8px 24px;margin:14px 0 0;font-size:var(--fs-klein);color:var(--dim)}
   .rg-legende div{display:flex;gap:10px;align-items:baseline}.rg-legende .marke2{flex:none;min-width:104px;justify-content:center}
   .rg-auf{margin-top:14px;border-top:1px solid var(--linie);padding-top:12px}
   .rg-auf>summary{cursor:pointer;font-size:14px;color:var(--dim)}
@@ -78,10 +78,10 @@ $blick = [
   .rg-regel{border:1px solid var(--linie);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--flaeche2)}
   .rg-regel>summary{cursor:pointer;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13.5px}
   .rg-regel[open]>summary{margin-bottom:10px}
-  .rg-abschnitt{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--leise);margin:26px 0 10px;font-weight:600}
+  .rg-abschnitt{font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.08em;color:var(--leise);margin:26px 0 10px;font-weight:600}
   .rg-drei{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px;align-items:start}
   .rg-drei .block{margin:0}
-  .rg-stand{font-size:13px;margin:0 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .rg-stand{font-size:var(--fs-klein);margin:0 0 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .rg-grenzen{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:0 12px}
   .rg-grenzen .akq-klein{display:block;margin-top:3px}
   .rg-sperre{max-height:420px;overflow:auto}
@@ -90,7 +90,7 @@ $blick = [
   @media (max-width:560px){ .rg-drei{grid-template-columns:1fr}
     .rg-raster thead{display:none} .rg-raster tr{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid var(--linie);padding:8px 0}
     .rg-raster th,.rg-raster td{border:0;padding:4px 6px} .rg-raster tbody th{grid-column:1/-1}
-    .rg-raster td::before{content:attr(data-land);display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--leise);margin-bottom:4px}
+    .rg-raster td::before{content:attr(data-land);display:block;font-size:var(--fs-mini);text-transform:uppercase;letter-spacing:.06em;color:var(--leise);margin-bottom:4px}
     .rg-legende .marke2{min-width:96px} }
 </style>
 

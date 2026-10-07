@@ -43,13 +43,13 @@ $rGsSumme = array_sum(array_map(static fn($g) => (int) $g['total_cents'], $rGs))
         <td style="text-align:right;font-weight:650;font-size:16px"><?= Fmt::h(Fmt::geld((int) $r['total_cents'], (string) $r['currency'])) ?></td></tr>
     </tbody></table>
     <?php if ((string) ($r['titel'] ?? '') === 'Zahlungsbeleg'): ?>
-      <p style="color:var(--leise);font-size:12.5px;margin-top:14px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:14px">
         Dies ist ein Zahlungsbeleg, keine Rechnung im steuerlichen Sinn. Sobald in den
         <a href="<?= Fmt::h(url('einstellungen')) ?>">Einstellungen</a> eine Partita IVA steht,
         stellt die Verwaltung Rechnungen aus — mit eigenem Nummernkreis, beginnend bei 1.</p>
     <?php endif; ?>
     <?php if ($r['hinweis']): ?>
-      <p style="color:var(--dim);font-size:13px;margin-top:10px;white-space:pre-wrap"><?= Fmt::h((string) $r['hinweis']) ?></p>
+      <p style="color:var(--dim);font-size:var(--fs-klein);margin-top:10px;white-space:pre-wrap"><?= Fmt::h((string) $r['hinweis']) ?></p>
     <?php endif; ?>
   </div>
 </div><div>
@@ -69,8 +69,9 @@ $rGsSumme = array_sum(array_map(static fn($g) => (int) $g['total_cents'], $rGs))
     <p class="akq-klein" style="margin:0 0 8px">Eine ausgestellte <?= $rDoc === 'rechnung' ? 'Rechnung' : 'Quittung' ?> wird nie geändert oder gelöscht. Korrigiert wird mit einer Gutschrift<?= $rDoc === 'rechnung' ? ' (Nota di credito)' : '' ?> — ganz oder zum Teil.</p>
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;flex-direction:column;gap:8px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="rechnung_gutschrift"><input type="hidden" name="id" value="<?= (int) $r['id'] ?>">
-      <label style="font-size:14px">Betrag in Euro <span class="akq-klein">(leer = alles, höchstens <?= Fmt::h(Fmt::geld((int) $r['total_cents'] - $rGsSumme, (string) $r['currency'])) ?>)</span>
+      <label style="font-size:14px">Betrag in Euro <span class="akq-klein">(höchstens <?= Fmt::h(Fmt::geld((int) $r['total_cents'] - $rGsSumme, (string) $r['currency'])) ?>)</span>
         <input name="betrag" inputmode="decimal" placeholder="z. B. 150,00"></label>
+      <label style="font-size:14px;display:flex;gap:8px;align-items:center"><input type="checkbox" name="alles" value="1" style="width:20px;height:20px;min-width:0;flex:0 0 20px"> den ganzen offenen Betrag gutschreiben</label>
       <label style="font-size:14px">Grund <span class="akq-klein">(steht auf der Gutschrift)</span>
         <input name="grund" required minlength="5" maxlength="500" placeholder="z. B. Auftrag storniert / Teilleistung entfällt"></label>
       <button class="knopf">Gutschrift ausstellen</button>

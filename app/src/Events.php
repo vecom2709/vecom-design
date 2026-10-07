@@ -435,9 +435,13 @@ final class Events
      * Projekt wird. Wird spaeter genauso vom Webhook aufgerufen wie heute von
      * Hand — deshalb steht die Logik hier und nicht in der Ansicht.
      */
-    public static function zahlungBestaetigen(int $zahlungId, ?string $referenz = null, string $anbieter = 'manuell'): void
+    public static function zahlungBestaetigen(int $zahlungId, ?string $referenz = null, string $anbieter = 'manuell', ?int $bezahltUm = null): void
     {
-        $nachlauf = Db::transaktion(static function () use ($zahlungId, $referenz, $anbieter) {
+        /* Prüfung 07.10.2026 (Befund 18): als Zahltag gilt, wann der Kunde gezahlt hat (Stripe-Zeitpunkt), nicht wann
+           gebucht wurde — sonst landet eine Zahlung vom 31.12. im neuen Steuerjahr und eine Zahlung vor dem Stichtag als
+           Rechnung. Nie in der Zukunft, höchstens 60 Tage zurück (sonst lieber jetzt). */
+        $zahltag = ($bezahltUm !== null && $bezahltUm <= time() && $bezahltUm > time() - 60 * 86400) ? date('Y-m-d H:i:s', $bezahltUm) : date('Y-m-d H:i:s');
+        $nachlauf = Db::transaktion(static function () use ($zahlungId, $referenz, $anbieter, $zahltag) {
             /* FOR UPDATE: Kommen Webhook, Abgleich und ein Klick auf den
                Bezahllink gleichzeitig, lasen bisher alle drei "noch offen" und
                buchten alle drei. Der Beleg war durch seinen Schluessel
@@ -450,7 +454,7 @@ final class Events
 
             Db::update('payments', $zahlungId, [
                 'status'       => 'bezahlt',
-                'paid_at'      => date('Y-m-d H:i:s'),
+                'paid_at'      => $zahltag,
                 'provider'     => $anbieter,
                 'provider_ref' => $referenz,
             ]);
@@ -678,11 +682,25 @@ final class Events
      *
      * @return string 'gebucht' | 'schon' | 'abweichung'
      */
-    public static function zahlungVonStripe(int $zahlungId, string $referenz, int $betrag, string $waehrung): string
+    public static function zahlungVonStripe(int $zahlungId, string $referenz, int $betrag, string $waehrung, ?int $bezahltUm = null): string
     {
         $z = Db::one('SELECT * FROM payments WHERE id = ?', [$zahlungId]);
         if (!$z) { throw new RuntimeException('Zahlung nicht gefunden.'); }
-        if ((string) $z['status'] === 'bezahlt') { return 'schon'; }
+        if ((string) $z['status'] === 'bezahlt') {
+            /* Prüfung 07.10.2026 (Befund 12): Schon bezahlt — aber mit einem ANDEREN Vorgang? Dann ist das Geld
+               womöglich zweimal da (von Hand gebucht + Stripe, oder zwei Bezahlseiten). Laut melden, einmal je Vorgang. */
+            $alt = trim((string) ($z['provider_ref'] ?? ''));
+            if ($referenz !== '' && $alt !== $referenz && $betrag > 0) {
+                $kennung = 'Vorgang ' . $referenz . ', Rate #' . $zahlungId;
+                if ((int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'doppelzahlung' AND body LIKE ?", ['%' . $kennung . '%'], 0) === 0) {
+                    self::melden('doppelzahlung', 'Mögliche Doppelzahlung', 'schlecht',
+                        'Stripe meldet ' . Fmt::geld($betrag, strtoupper($waehrung) ?: 'EUR') . ' für eine Rate, die schon bezahlt ist ('
+                        . ($alt !== '' ? 'bisher ' . $alt : 'von Hand gebucht') . '). Bei Stripe ansehen und gegebenenfalls erstatten. ' . $kennung . '.',
+                        $z['order_id'] !== null ? '/bestellungen/' . (int) $z['order_id'] : '/zahlungen');
+                }
+            }
+            return 'schon';
+        }
 
         $soll  = (int) $z['amount_cents'];
         $sollW = strtoupper((string) $z['currency']);
@@ -707,7 +725,7 @@ final class Events
             return 'abweichung';
         }
 
-        self::zahlungBestaetigen($zahlungId, $referenz, 'stripe');
+        self::zahlungBestaetigen($zahlungId, $referenz, 'stripe', $bezahltUm);
         return 'gebucht';
     }
 
@@ -840,11 +858,24 @@ final class Events
      * Einziger Weg, einen Projektstatus zu aendern. Setzt den Fortschritt,
      * zieht Bestellung und Website nach und schreibt Aktivitaet und Meldung.
      */
-    public static function projektStatus(int $projektId, string $neu, bool $melden = true): void
+    /** Diese Stände setzen eine Abnahme voraus (Prüfung 07.10.2026, Punkt 52). */
+    public const STATUS_NACH_ABNAHME = ['finale_freigabe', 'veroeffentlichung', 'online', 'abgeschlossen'];
+    /** Von hier aus darf es dorthin gehen — vorher gab es nichts zum Abnehmen. */
+    public const STATUS_VOR_ABNAHME_OK = ['vorschau', 'kundenfeedback', 'aenderungen', 'finale_freigabe', 'veroeffentlichung', 'online', 'abgeschlossen'];
+
+    /**
+     * @param bool $sprung Uwes eigener Klick in der Verwaltung darf jeden Stand setzen (Altprojekte,
+     *                     Korrekturen). Alle anderen Wege — Werkstatt, Kundenseite, Automatik — nicht.
+     */
+    public static function projektStatus(int $projektId, string $neu, bool $melden = true, bool $sprung = false): void
     {
         if (!isset(Status::PROJEKT[$neu])) { throw new InvalidArgumentException('Unbekannter Projektstatus.'); }
         $p = Db::one('SELECT * FROM projects WHERE id = ?', [$projektId]);
         if (!$p || $p['status'] === $neu) { return; }
+        if (!$sprung && in_array($neu, self::STATUS_NACH_ABNAHME, true) && !in_array((string) $p['status'], self::STATUS_VOR_ABNAHME_OK, true)) {
+            throw new RuntimeException('Von „' . (Status::PROJEKT[(string) $p['status']] ?? $p['status']) . '“ geht es nicht direkt nach „'
+                . Status::PROJEKT[$neu] . '“ — vorher braucht es eine Vorschau, die der Kunde abnehmen kann.');
+        }
 
         Db::update('projects', $projektId, ['status' => $neu, 'progress' => Status::fortschritt($neu)]);
 

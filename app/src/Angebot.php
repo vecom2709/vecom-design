@@ -862,23 +862,30 @@ final class Angebot
     /** Der gemeinsame Rumpf: Aus dem Angebot wird eine Bestellung. */
     private static function zusagen(array $a, array $zustimmung = []): ?int
     {
+        /* Prüfung 07.10.2026 (Befund 9): erst das Angebot BEANSPRUCHEN, dann die Bestellung anlegen. Ein Doppelklick
+           (zwei Anfragen in 100 ms) ergab sonst zwei Bestellungen und zwei Zahlungslinks. Nur wer die Zeile von
+           „gesendet/abgelaufen“ auf „angenommen“ umstellt, darf weiter. */
+        $vorher = (string) $a['status'];
+        if (Db::run("UPDATE angebote SET status = 'angenommen', angenommen_am = NOW() WHERE id = ? AND status IN ('gesendet','abgelaufen')",
+                [(int) $a['id']])->rowCount() !== 1) { return null; }
         $paketId = self::internesPaket();
         $notiz   = 'Aus Angebot ' . $a['nummer'] . ".\n" . self::alsText((int) $a['id']);
 
-        $bestellId = Events::bestellungAnlegen(
-            (int) $a['customer_id'],
-            $paketId,
-            $notiz,
-            (int) $a['summe_cents'],
-            (int) $a['anzahlung_prozent'],
-            (string) ($a['titel'] !== '' ? $a['titel'] : 'Individuelles Angebot')
-        );
+        try {
+            $bestellId = Events::bestellungAnlegen(
+                (int) $a['customer_id'],
+                $paketId,
+                $notiz,
+                (int) $a['summe_cents'],
+                (int) $a['anzahlung_prozent'],
+                (string) ($a['titel'] !== '' ? $a['titel'] : 'Individuelles Angebot')
+            );
+        } catch (Throwable $e) {
+            Db::run('UPDATE angebote SET status = ?, angenommen_am = NULL WHERE id = ?', [$vorher, (int) $a['id']]);
+            throw $e;
+        }
 
-        Db::update('angebote', (int) $a['id'], [
-            'status'        => 'angenommen',
-            'angenommen_am' => date('Y-m-d H:i:s'),
-            'order_id'      => $bestellId,
-        ]);
+        Db::update('angebote', (int) $a['id'], ['order_id' => $bestellId]);
 
         /* WAS DER KUNDE BEIM ANNEHMEN BESTAETIGT HAT
            ----------------------------------------------------------------

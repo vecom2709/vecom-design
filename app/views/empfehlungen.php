@@ -21,7 +21,7 @@ $stufen = [
     <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
       <div style="flex:1 1 320px;min-width:0">
         <h2 style="font-size:15px;margin:0 0 4px">Verwaiste Empfehlungen<span class="mehr"><?= (int) $verwaist ?></span></h2>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.55;margin:0">
           Auf diese Zeilen zeigt nichts mehr — der Kunde dahinter ist gelöscht.
           Nennungen, die nur auf eine Zuordnung warten, bleiben stehen.</p>
       </div>
@@ -38,7 +38,7 @@ $stufen = [
 <?php if ($offen): ?>
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 6px">Diese Namen warten auf eine Zuordnung</h2>
-    <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 14px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 14px">
       Jemand hat einen Namen genannt, statt über einen Empfehlungslink zu kommen.
       Wer gemeint ist, entscheidest du — raten wäre hier der teuerste Fehler.
       Hat die Bestellung schon bezahlt, wird die Gutschrift beim Zuordnen nachgeholt.
@@ -51,10 +51,10 @@ $stufen = [
           <td><strong><?= Fmt::h((string) $o['genannt_als']) ?></strong></td>
           <td><?= Fmt::h((string) ($o['geworbener'] ?? '—')) ?>
             <?php if (($o['geworbener_firma'] ?? '') !== ''): ?>
-              <div style="color:var(--leise);font-size:12px"><?= Fmt::h((string) $o['geworbener_firma']) ?></div>
+              <div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $o['geworbener_firma']) ?></div>
             <?php endif; ?>
           </td>
-          <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::datum((string) $o['created_at'])) ?></td>
+          <td style="font-size:var(--fs-klein);color:var(--leise)"><?= Fmt::h(Fmt::datum((string) $o['created_at'])) ?></td>
           <td>
             <form method="post" action="<?= Fmt::h(url('')) ?>" class="reihe" style="gap:8px;margin:0">
               <?= Csrf::feld() ?>
@@ -97,25 +97,25 @@ $stufen = [
           <?php if ($z['empfehler_id']): ?>
             <a href="<?= Fmt::h(url('kunden/' . $z['empfehler_id'])) ?>"><strong><?= Fmt::h(Fmt::name($z['empfehler'])) ?></strong></a>
             <?php if (($z['code'] ?? '') !== ''): ?>
-              <div style="color:var(--leise);font-size:12px;font-family:ui-monospace,monospace"><?= Fmt::h((string) $z['code']) ?></div>
+              <div style="color:var(--leise);font-size:var(--fs-klein);font-family:ui-monospace,monospace"><?= Fmt::h((string) $z['code']) ?></div>
             <?php endif; ?>
           <?php else: ?>
             <span style="color:var(--leise)">„<?= Fmt::h((string) $z['genannt_als']) ?>" — noch niemand</span>
           <?php endif; ?>
         </td>
-        <td style="font-size:13px">
+        <td style="font-size:var(--fs-klein)">
           <?php if ($z['empfehler_id'] && ($z['rabatt_bis'] ?? null) && (int) $z['rabatt_prozent'] > 0): ?>
             <?= (int) $z['rabatt_prozent'] ?> % bis <?= Fmt::h(Fmt::datum((string) $z['rabatt_bis'])) ?>
           <?php else: ?><span style="color:var(--leise)">—</span><?php endif; ?>
         </td>
         <td><?= Fmt::h((string) ($z['geworbener'] ?? '—')) ?></td>
-        <td style="font-size:12.5px;color:var(--leise)"><?= $z['quelle'] === 'link' ? 'Link' : 'genannt' ?></td>
+        <td style="font-size:var(--fs-klein);color:var(--leise)"><?= $z['quelle'] === 'link' ? 'Link' : 'genannt' ?></td>
         <td><span class="marke2 <?= Fmt::h($farbe) ?>"><?= Fmt::h($wort) ?></span>
           <?php if (($z['grund'] ?? '') !== ''): ?>
-            <div style="color:var(--leise);font-size:12px"><?= Fmt::h((string) $z['grund']) ?></div>
+            <div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $z['grund']) ?></div>
           <?php endif; ?>
         </td>
-        <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $z['created_at'])) ?></td>
+        <td style="font-size:var(--fs-klein);color:var(--leise)"><?= Fmt::h(Fmt::seit((string) $z['created_at'])) ?></td>
       </tr>
     <?php endforeach; ?>
     </tbody>

@@ -40,7 +40,7 @@
                Wer hier den Stand von Hand setzt, weiss, was er tut -- der
                blaue Knopf gehoert dem Schritt, den die Fuehrung meint. */ ?>
       <button class="knopf">Stand ändern</button></form>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Der Projektstatus zieht die Bestellung sinngemäß mit.
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">Der Projektstatus zieht die Bestellung sinngemäß mit.
     Der technische Website-Status bleibt davon unberührt — er wird nur vom Monitoring gesetzt.</p></div>
 
 <?php /* ======================================================================
@@ -65,7 +65,7 @@
       <?= $mehrbedarf['abgeschlossen'] ? 'Der Kunde hat abgeschickt.' : 'Der Kunde füllt noch aus.' ?></p>
 
     <?php if ($mehrbedarf['mehr']): ?>
-      <h3 style="font-size:13px;color:var(--leise);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Zusätzlich gewünscht</h3>
+      <h3 style="font-size:var(--fs-klein);color:var(--leise);margin:0 0 6px;text-transform:uppercase;letter-spacing:.06em">Zusätzlich gewünscht</h3>
       <table style="margin-bottom:14px"><tbody>
         <?php foreach ($mehrbedarf['mehr'] as $z): ?>
           <tr>
@@ -116,7 +116,7 @@
         <input type="hidden" name="signatur" value="<?= Fmt::h((string) $mehrbedarf['signatur']) ?>">
         <button class="knopf">Ist besprochen</button></form>
     </div>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
       Der Nachtrag wird eine zweite Rate auf derselben Bestellung — Zahlungslink, Mail und Beleg
       laufen danach über dieselben Knöpfe wie Anzahlung und Restzahlung.
       „Ist besprochen“ hakt nur ab; kreuzt der Kunde später etwas Weiteres an, meldet sich die Führung von selbst wieder.</p>
@@ -183,10 +183,10 @@
       <div class="leiste" style="gap:8px;flex-wrap:wrap;margin-top:10px;
                                  padding-top:10px;border-top:1px solid var(--linie)">
         <input readonly id="cccode" value="<?= Fmt::h($ruf) ?>"
-               style="flex:1;min-width:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12.5px">
+               style="flex:1;min-width:240px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--fs-klein)">
         <button class="knopf" data-kopieren="cccode">Befehl für Claude Code</button>
       </div>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:8px 0 0">
         In Claude Code einfügen. Es holt sich Briefing, Fragebogen und Hausregeln
         selbst und trägt Vorschau-Adresse und Stand hinterher von allein hier ein.
         Freigeschaltet wird nichts ohne dein ausdrückliches Ja.
@@ -196,9 +196,9 @@
     <?php if ($hatBriefing): ?>
       <textarea id="briefingtext" readonly rows="12" spellcheck="false"
         style="width:100%;margin-top:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
-               font-size:12px;line-height:1.55;white-space:pre;overflow-wrap:normal;overflow-x:auto"><?=
+               font-size:var(--fs-klein);line-height:1.55;white-space:pre;overflow-wrap:normal;overflow-x:auto"><?=
         Fmt::h((string) $p['briefing']) ?></textarea>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:8px 0 0">
         Die erste Zeile ist der Titel — danach benennt Claude das Gespräch, und
         du findest es später wieder.
         <?php if (trim((string) sicher(static fn() => Standard::claudeProjekt(), '')) === ''): ?>
@@ -217,11 +217,11 @@
                value="<?= Fmt::h((string) ($p['chat_url'] ?? '')) ?>">
         <button class="knopf">Gespräch merken</button>
       </form>
-      <p style="color:var(--leise);font-size:12.5px;margin:6px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:6px 0 0">
         Einmal eingefügt, führt der Knopf oben direkt dorthin zurück — statt
         durch eine Liste von vierzig Gesprächen zu suchen.</p>
     <?php else: ?>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 0">
         Baut aus Fragebogen, Angebot und Eckdaten einen fertigen Auftrag —
         <?php if (!$fragebogen || trim((string) ($fragebogen['data'] ?? '')) === ''): ?>
           allerdings ist der Fragebogen noch leer. Das Briefing sagt das dann
@@ -259,7 +259,7 @@
           <input type="hidden" name="zurueck" value="projekte/<?= (int) $p['id'] ?>?tun=abnahme">
           <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
           <button class="knopf<?= $ab ? '' : ' haupt' ?>"><?= $ab ? 'Neu prüfen' : 'Jetzt prüfen' ?></button></form>
-        <span style="color:var(--leise);font-size:12.5px;align-self:center">
+        <span style="color:var(--leise);font-size:var(--fs-klein);align-self:center">
           <?= Fmt::h($zuPruefen) ?><?= trim((string) ($website['url'] ?? '')) === '' ? ' (Vorschau)' : '' ?></span>
       </div>
 
@@ -291,17 +291,17 @@
                   : ($pt['stand'] === 'schlecht' ? 'var(--rot,#e5484d)' : 'var(--leise)') ?>"><?=
                 $pt['stand'] === 'gut' ? '✓' : ($pt['stand'] === 'schlecht' ? '✗' : '·') ?></td>
               <td style="width:30%"><?= Fmt::h((string) $pt['was']) ?></td>
-              <td style="color:var(--dim);font-size:13px"><?= Fmt::h((string) $pt['befund']) ?></td>
+              <td style="color:var(--dim);font-size:var(--fs-klein)"><?= Fmt::h((string) $pt['befund']) ?></td>
             </tr>
           <?php endforeach; ?>
         </tbody></table></div>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 0">
           Geprüft wird die Seite, die unter der Adresse steht — nicht jede
           Unterseite. Für die Pflichtangaben im Fuß reicht das, weil der Fuß
           überall derselbe ist; was nur auf einer Unterseite schiefliegt,
           findet weiterhin nur das Auge.</p>
       <?php else: ?>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:10px 0 0">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:10px 0 0">
           Holt die Seite ab und sieht nach: Titel, Beschreibung, Handy-Ansicht,
           Impressum und Datenschutz im Fuß, Sprachfassungen, Bildmaße und
           Alt-Texte, robots.txt und sitemap.xml, Verschlüsselung ohne gemischte
@@ -356,7 +356,7 @@
         <?php foreach (Texte::FRAGEBOGEN as $abschnitt => $inhalt): ?>
           <?php $hat = array_filter($inhalt['felder'], static fn($_, $n) => trim((string) ($fbDaten[$n] ?? '')) !== '', ARRAY_FILTER_USE_BOTH); ?>
           <?php if ($hat): ?>
-            <h3 style="font-size:13px;color:var(--leise);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
+            <h3 style="font-size:var(--fs-klein);color:var(--leise);margin:18px 0 6px;text-transform:uppercase;letter-spacing:.06em"><?= Fmt::h(Texte::h($inhalt, 'de')) ?></h3>
             <table><tbody>
             <?php foreach ($hat as $name => $feld): ?>
               <tr><td style="width:38%"><?= Fmt::h(Texte::h($feld, 'de')) ?></td>
@@ -384,7 +384,7 @@
         <button class="knopf">Übliche zwölf Schritte einfügen</button></form>
     <?php else: ?>
       <?php $offen = 0; foreach ($aufgaben as $a) { if (!(int) $a['done']) { $offen++; } } ?>
-      <p style="color:var(--leise);font-size:12.5px;margin-bottom:10px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin-bottom:10px">
         <?= count($aufgaben) - $offen ?> von <?= count($aufgaben) ?> erledigt</p>
       <table><tbody>
       <?php foreach ($aufgaben as $a): ?>
@@ -399,7 +399,7 @@
                 title="<?= $fertig ? 'Wieder offen' : 'Erledigt' ?>"><?= $fertig ? '✓' : '&nbsp;&nbsp;' ?></button></form>
           </td>
           <td style="<?= $fertig ? 'color:var(--leise);text-decoration:line-through' : '' ?>"><?= Fmt::h($a['title']) ?></td>
-          <td style="text-align:right;white-space:nowrap;color:var(--leise);font-size:12.5px">
+          <td style="text-align:right;white-space:nowrap;color:var(--leise);font-size:var(--fs-klein)">
             <?= Fmt::h($a['due_date'] ? Fmt::datum($a['due_date']) : '') ?></td>
           <td style="width:34px;text-align:right">
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -431,7 +431,7 @@
         <div style="padding:11px 13px;border-radius:11px;margin-bottom:9px;border:1px solid var(--linie);
                     background:<?= $vomKunden ? 'var(--flaeche2)' : 'transparent' ?>">
           <div style="display:flex;justify-content:space-between;gap:10px;margin-bottom:5px">
-            <b style="font-size:12.5px;color:<?= $vomKunden ? 'var(--cyan)' : 'var(--leise)' ?>">
+            <b style="font-size:var(--fs-klein);color:<?= $vomKunden ? 'var(--cyan)' : 'var(--leise)' ?>">
               <?= $vomKunden ? Fmt::h((string) $p['kunde']) : 'Du' ?>
               <?php if ($vomKunden && $n['read_at'] === null): ?><span class="marke2 warnung" style="margin-left:6px">neu</span><?php endif; ?>
             </b>
@@ -493,7 +493,7 @@
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_frei">
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <button class="knopf">Dem Kunden freigeben</button></form>
-          <span style="color:var(--leise);font-size:12.5px">Er sieht es noch nicht.</span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Er sieht es noch nicht.</span>
         <?php else: ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_mail">
@@ -503,7 +503,7 @@
             <?= Csrf::feld() ?><input type="hidden" name="tat" value="paket_zu">
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <button class="knopf">Freigabe zurücknehmen</button></form>
-          <span style="color:var(--leise);font-size:12.5px">
+          <span style="color:var(--leise);font-size:var(--fs-klein)">
             Freigegeben <?= Fmt::h(Fmt::seit((string) $p['paket_frei_am'])) ?> — er findet es auf seiner Projektseite.</span>
         <?php endif; ?>
       </div>
@@ -520,7 +520,7 @@
       <div style="margin-top:14px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
         <b>Auf <?= Fmt::h((string) $vs['auftrag']['domain']) ?> veröffentlichen</b>
         <?php if (!empty($p['veroeffentlicht_am'])): ?>
-          <span style="color:var(--leise);font-size:12.5px"> — zuletzt <?= Fmt::h(Fmt::zeit((string) $p['veroeffentlicht_am'])) ?></span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)"> — zuletzt <?= Fmt::h(Fmt::zeit((string) $p['veroeffentlicht_am'])) ?></span>
         <?php endif; ?>
         <?php if ($vs['bereit']): ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px">
@@ -529,16 +529,16 @@
             <?php /* Kein zweites Blau: "Herunterladen" steht schon als Hauptknopf daneben. */ ?>
             <?php if (!empty($vs['version'])): ?><input type="hidden" name="version" value="<?= (int) $vs['version']['id'] ?>"><?php endif; ?>
             <button class="knopf"><?= !empty($vs['version']) ? 'V' . (int) $vs['version']['nummer'] . ' ' : '' ?><?= empty($p['veroeffentlicht_am']) ? 'veröffentlichen' : 'als neue Fassung veröffentlichen' ?></button>
-            <span style="color:var(--leise);font-size:12.5px;margin-left:8px">„<?= Fmt::h((string) $vs['paket']['orig_name']) ?>“ — was dort liegt, wird vorher gesichert, gelöscht wird nichts.</span>
+            <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">„<?= Fmt::h((string) $vs['paket']['orig_name']) ?>“ — was dort liegt, wird vorher gesichert, gelöscht wird nichts.</span>
           </form>
         <?php else: ?>
-          <ul style="margin:6px 0 0;padding-left:18px;color:var(--dim);font-size:13px">
+          <ul style="margin:6px 0 0;padding-left:18px;color:var(--dim);font-size:var(--fs-klein)">
             <?php foreach ($vs['gruende'] as $vg): ?><li><?= Fmt::h($vg) ?></li><?php endforeach; ?>
           </ul>
         <?php endif; ?>
         <?php $vSich = sicher(static fn() => Db::all("SELECT * FROM files WHERE project_id = ? AND rolle = 'sicherung' ORDER BY id DESC LIMIT 3", [(int) $p['id']]), []); ?>
         <?php if ($vSich): ?>
-          <div style="margin-top:8px;font-size:12.5px;color:var(--leise)">Sicherungen:
+          <div style="margin-top:8px;font-size:var(--fs-klein);color:var(--leise)">Sicherungen:
             <?php foreach ($vSich as $vS): ?><a href="<?= Fmt::h(url('dateien/' . (int) $vS['id'])) ?>"><?= Fmt::h((string) $vS['orig_name']) ?></a> <?php endforeach; ?></div>
         <?php endif; ?>
       </div>
@@ -551,7 +551,7 @@
       <div class="feld"><label><?= ($paket ?? null) ? 'Neue Fassung hochladen' : 'Paket hochladen' ?> (.zip)</label>
         <input type="file" name="datei" accept=".zip,application/zip" required></div>
       <button class="knopf">Hochladen</button></form>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
       Die E-Mail trägt einen Link auf seine Projektseite, nicht das ZIP im Anhang:
       Dreißig Megabyte kommen bei den meisten Postfächern gar nicht an.</p>
   </div>
@@ -582,7 +582,7 @@
       <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
       <div class="feld"><label>Datei hinterlegen</label><input type="file" name="datei" required></div>
       <button class="knopf">Hochladen</button></form>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">
       Der Kunde sieht diese Dateien auf seiner Projektseite und kann selbst welche schicken.</p>
   </div>
 
@@ -638,7 +638,7 @@
       <?php elseif ($vsUrl !== ''): ?><span class="marke2 warnung">nur für dich</span>
       <?php else: ?><span class="marke2">keine Adresse</span><?php endif; ?>
     </span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
       Drei Schritte, jeder eine eigene Entscheidung: <b>Adresse eintragen</b> (sieht nur du),
       <b>zum Ansehen freischalten</b> (er schaut und darf Änderungen wünschen, abnehmen kann er nicht),
       <b>Abnahme freischalten</b> (erst dann steht bei ihm „Passt so“ — und erst dann bekommt er die
@@ -673,7 +673,7 @@
       <?php if (!$vsFrei): ?>
         <?php if ($vsUrl === ''): ?>
           <button class="knopf" disabled title="Erst eine Adresse eintragen">Zum Ansehen freischalten</button>
-          <span style="color:var(--leise);font-size:12.5px">Erst die Adresse — sonst bekäme er eine
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Erst die Adresse — sonst bekäme er eine
             E-Mail und fände nichts.</span>
         <?php else: ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0">
@@ -681,11 +681,11 @@
             <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <button class="knopf haupt">Zum Ansehen freischalten</button></form>
-          <span style="color:var(--leise);font-size:12.5px">Setzt den Stand auf „Vorschau“ und
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Setzt den Stand auf „Vorschau“ und
             schickt ihm die E-Mail. Abnehmen kann er damit noch nicht.</span>
         <?php endif; ?>
       <?php else: ?>
-        <span style="color:var(--leise);font-size:12.5px">Zum Ansehen frei seit
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Zum Ansehen frei seit
           <?= Fmt::h(Fmt::zeit((string) $vsFrei)) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
               data-frage="Der Kunde sieht den Entwurf danach nicht mehr. Fortfahren?" data-ja="Ja, sperren">
@@ -702,7 +702,7 @@
       <?php if (!$abFrei): ?>
         <?php if (!$vsFrei): ?>
           <button class="knopf" disabled title="Erst zum Ansehen freischalten">Abnahme freischalten</button>
-          <span style="color:var(--leise);font-size:12.5px">Erst ansehen lassen, dann abnehmen lassen.</span>
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Erst ansehen lassen, dann abnehmen lassen.</span>
         <?php else: ?>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
                 data-frage="Danach kann der Kunde die Seite abnehmen — daran hängt die Restzahlung. Fertig?"
@@ -711,11 +711,11 @@
             <input type="hidden" name="zurueck" value="<?= Fmt::h($zurueckHier) ?>">
             <input type="hidden" name="id" value="<?= (int) $p['id'] ?>">
             <button class="knopf haupt">Abnahme freischalten</button></form>
-          <span style="color:var(--leise);font-size:12.5px">Schickt ihm „die Seite ist fertig“ und
+          <span style="color:var(--leise);font-size:var(--fs-klein)">Schickt ihm „die Seite ist fertig“ und
             zeigt ihm „Passt so“.</span>
         <?php endif; ?>
       <?php else: ?>
-        <span style="color:var(--leise);font-size:12.5px">Abnahme frei seit
+        <span style="color:var(--leise);font-size:var(--fs-klein)">Abnahme frei seit
           <?= Fmt::h(Fmt::zeit((string) $abFrei)) ?></span>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"
               data-frage="Der Kunde kann danach nicht mehr abnehmen. Fortfahren?" data-ja="Ja, zumachen">
@@ -761,14 +761,14 @@
         <button class="knopf">Jetzt prüfen</button></form>
 
       <?php if ($pruefungen): ?>
-        <h3 style="font-size:12.5px;color:var(--leise);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.06em">Letzte Prüfungen</h3>
+        <h3 style="font-size:var(--fs-klein);color:var(--leise);margin:16px 0 6px;text-transform:uppercase;letter-spacing:.06em">Letzte Prüfungen</h3>
         <table><tbody>
         <?php foreach ($pruefungen as $k): ?>
           <tr>
             <td style="width:22px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:<?= (int) $k['ok'] ? 'var(--gruen)' : 'var(--rot)' ?>"></span></td>
-            <td style="color:var(--dim);font-size:13px"><?= Fmt::h(Fmt::seit($k['checked_at'])) ?>
+            <td style="color:var(--dim);font-size:var(--fs-klein)"><?= Fmt::h(Fmt::seit($k['checked_at'])) ?>
               <?php if ($k['error']): ?><br><small style="color:var(--rot)"><?= Fmt::h($k['error']) ?></small><?php endif; ?></td>
-            <td style="text-align:right;color:var(--leise);font-size:12.5px;white-space:nowrap">
+            <td style="text-align:right;color:var(--leise);font-size:var(--fs-klein);white-space:nowrap">
               <?= $k['http_status'] ? (int) $k['http_status'] : '—' ?><?= $k['response_ms'] !== null ? ' · ' . (int) $k['response_ms'] . ' ms' : '' ?></td>
           </tr>
         <?php endforeach; ?>

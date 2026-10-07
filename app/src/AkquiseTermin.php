@@ -234,16 +234,19 @@ final class AkquiseTermin
         $n = 0;
         foreach (Db::all("SELECT * FROM akq_termine WHERE status = 'gebucht' AND erinnert_am IS NULL AND beginn BETWEEN ? AND ?",
                      [date('Y-m-d H:i:s', $jetzt + 12 * 3600), date('Y-m-d H:i:s', $jetzt + 30 * 3600)]) as $t) {
-            Db::update('akq_termine', (int) $t['id'], ['erinnert_am' => date('Y-m-d H:i:s', $jetzt)]);
-            self::mail($t, 'erinnerung_betreff', 'erinnerung_text', 'termin_erinnerung');
-            $n++;
+            if (Db::run('UPDATE akq_termine SET erinnert_am = ? WHERE id = ? AND erinnert_am IS NULL', [date('Y-m-d H:i:s', $jetzt), (int) $t['id']])->rowCount() !== 1) { continue; }
+            if (self::mail($t, 'erinnerung_betreff', 'erinnerung_text', 'termin_erinnerung')) { $n++; continue; }
+            /* Nicht raus: Uwe erfährt es und kann selbst kurz erinnern. Nicht automatisch noch
+               einmal — kam nur Brevos Antwort nicht an, hätte der Kunde sonst zwei Erinnerungen. */
+            try { Events::melden('termin_erinnerung_fehler', 'Terminerinnerung ging nicht raus: ' . (string) $t['name'], 'warnung',
+                'Termin ' . date('d.m. H:i', strtotime((string) $t['beginn'])) . ' — bitte selbst kurz erinnern.', '/akquise/termine'); } catch (Throwable $e) { }
         }
         return $n;
     }
 
-    private static function mail(array $t, string $betreffK, string $textK, string $anlass): void
+    private static function mail(array $t, string $betreffK, string $textK, string $anlass): bool
     {
-        if (empty($t['email'])) { return; }
+        if (empty($t['email'])) { return false; }
         require_once __DIR__ . '/Mail.php';
         require_once __DIR__ . '/AkquiseText.php';
         $sp = (string) $t['sprache'];
@@ -253,8 +256,8 @@ final class AkquiseTermin
         $ersatz = ['{name}' => (string) $t['name'], '{zeit}' => self::zeitText($b, $sp), '{uhr}' => date('H:i', $b),
                    '{art}' => $T('art_' . $t['art']), '{thema}' => $T('thema_' . $t['thema']), '{link}' => self::link((string) $t['token']),
                    '{buchen}' => self::link('', $sp), '{absender}' => (string) $abs['firma'], '{inhaber}' => (string) $abs['inhaber']];
-        try { Mail::senden($anlass, (string) $t['email'], strtr($T($betreffK), $ersatz), strtr($T($textK), $ersatz), ['nurText' => true, 'sprache' => $sp]); }
-        catch (Throwable $x) { }
+        try { return Mail::senden($anlass, (string) $t['email'], strtr($T($betreffK), $ersatz), strtr($T($textK), $ersatz), ['nurText' => true, 'sprache' => $sp]); }
+        catch (Throwable $x) { return false; }
     }
 
     /** „Di 30.09. · 10:00“ in der Sprache des Buchenden. */

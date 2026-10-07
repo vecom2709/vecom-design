@@ -64,6 +64,25 @@ try {
 try {
     Db::run("INSERT INTO settings (skey, svalue) VALUES ('cron_weg', ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)", [$cronWeg]);
 } catch (Throwable $e) { /* nur Anzeige */ }
+/* Prüfung 07.10.2026 (Vorschlag 8): Kommt der Schlüssel noch über die Adresse, steht er in jedem Zugriffsprotokoll.
+   Abschalten würde den Cronjob anhalten (KAS ruft genau diese Adresse) — deshalb einmal pro Woche eine Meldung
+   mit dem Handgriff im KAS, bis der Weg „passwort“ ist. Danach wird die Adresse nicht mehr angenommen. */
+if ($cronWeg === 'adresse') {
+    try {
+        if ((string) Db::wert("SELECT svalue FROM settings WHERE skey = 'cron_passwort_seit'", [], '') !== '') {
+            http_response_code(404); exit("Nicht gefunden.\n");   // einmal umgestellt: die Adresse gilt nicht mehr
+        }
+        $cwSchl = 'cron_weg_hinweis_' . date('o-W');
+        if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$cwSchl], '') === '') {
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?)', [$cwSchl, date('Y-m-d H:i:s')]);
+            require_once __DIR__ . '/app/src/Events.php';
+            Events::melden('cron_weg', 'Cronjob-Schlüssel steht noch in der Adresse', 'info',
+                'Im KAS unter Tools → Cronjobs beim Vecom-Cronjob „Benutzer“ (z. B. cron) und „Passwort“ = den bisherigen Schlüssel eintragen und ?schluessel=… aus der Adresse nehmen. Danach steht der Schlüssel in keinem Protokoll mehr, und die Adresse wird nicht mehr angenommen.', '/monitoring');
+        }
+    } catch (Throwable $e) { /* nur Hinweis */ }
+} elseif ($cronWeg === 'passwort') {
+    try { Db::run("INSERT IGNORE INTO settings (skey, svalue) VALUES ('cron_passwort_seit', ?)", [date('Y-m-d H:i:s')]); } catch (Throwable $e) { }
+}
 
 /* --------------------------------------------------------------------------
    Zuerst: die Datenbank nachziehen.

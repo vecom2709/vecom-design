@@ -21,7 +21,7 @@ $awEinw = $awOffen ? AkquiseAntwort::einwaende((string) $awOffen['betreff'] . ' 
   .aw-zus{margin:0;padding:0 0 0 18px;font-size:13.5px;line-height:1.6;color:var(--dim)}
   .aw-zitat{border-left:3px solid var(--linie2);padding:6px 10px;margin:8px 0;font-size:13.5px;line-height:1.5;color:var(--text);white-space:pre-wrap;max-height:180px;overflow:auto;background:var(--flaeche2);border-radius:0 8px 8px 0}
   .aw-chips{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0}
-  .aw-chip{font-size:12px;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,200,90,.4);color:var(--gelb)}
+  .aw-chip{font-size:var(--fs-klein);padding:3px 9px;border-radius:999px;border:1px solid rgba(255,200,90,.4);color:var(--gelb)}
   .aw-kopf{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
   .aw-kopf select{width:auto}
   .aw-wv{display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end}

@@ -9,7 +9,7 @@ $btFarbe = ['entwurf' => 'var(--cyan)', 'gepostet' => 'var(--gruen)', 'fehler' =
 $btWort = ['entwurf' => 'wartet auf dich', 'gepostet' => 'gepostet', 'fehler' => 'nicht geklappt', 'verworfen' => 'verworfen'];
 ?>
 <div class="kopf"><div><h1>Beiträge</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Ältere Entwürfe für Facebook und Instagram. Neue Beiträge entstehen im Marketing.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Ältere Entwürfe für Facebook und Instagram. Neue Beiträge entstehen im Marketing.</p></div></div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 

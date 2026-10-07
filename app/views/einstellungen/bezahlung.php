@@ -35,7 +35,7 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
     <div class="feld"><label>Öffentlicher Schlüssel<?= $stripe->oeffentlich() !== '' ? ' (leer lassen = unverändert, „-“ = entfernen)' : '' ?></label>
       <input type="text" name="oeffentlich" autocomplete="off" spellcheck="false" placeholder="pk_test_… bzw. pk_live_…"></div>
     <button class="knopf haupt">Speichern</button>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Alles findest du im Stripe-Konto:
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">Alles findest du im Stripe-Konto:
       der geheime Schlüssel unter <em>Entwickler → API-Schlüssel</em>, das Webhook-Geheimnis unter
       <em>Entwickler → Webhooks</em> beim Eintrag für
       <code>https://vecom-design.it/stripe-webhook.php</code>. Für den Stand der Partnerkonten dort einen zweiten
@@ -55,11 +55,11 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
       <input type="checkbox" name="an" style="width:auto" <?= $testSichtbar ? 'checked' : '' ?>>
       Kaufknopf auf der Website auch im Testmodus zeigen</label>
     <button class="knopf">Übernehmen</button>
-    <span style="color:var(--leise);font-size:12.5px">Nur zum Ausprobieren. Solange das an ist, sehen auch
+    <span style="color:var(--leise);font-size:var(--fs-klein)">Nur zum Ausprobieren. Solange das an ist, sehen auch
       Besucher den Knopf — und landen auf einer Bezahlseite, auf der kein echtes Geld fließt.</span>
   </form>
 
-  <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:12px">
     Kartendaten erreichen diesen Server nie — bezahlt wird auf einer Seite, die Stripe selbst ausliefert.
     Eingehende Meldungen werden auf ihre Unterschrift geprüft und können durch den Eindeutigkeitsschlüssel
     auf Anbieter&nbsp;+&nbsp;Ereignis-Nummer nicht doppelt verarbeitet werden.
@@ -76,7 +76,7 @@ $zeichen = ['verarbeitet' => '🟢', 'empfangen' => '🟡', 'fehler' => '🔴'];
         <td><?= Fmt::h($e['event_type']) ?></td>
         <td><?= Fmt::h($e['provider']) ?></td>
         <td style="white-space:nowrap;color:var(--dim)"><?= Fmt::h(Fmt::seit($e['received_at'])) ?></td>
-        <td style="color:var(--rot);font-size:12.5px"><?= Fmt::h($e['error'] ?? '') ?></td>
+        <td style="color:var(--rot);font-size:var(--fs-klein)"><?= Fmt::h($e['error'] ?? '') ?></td>
       </tr><?php endforeach; ?>
     </tbody></table></div><?php endif; ?>
   </div>

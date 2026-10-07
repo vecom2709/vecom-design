@@ -16,7 +16,7 @@ $lgForm = static fn(string $tat, string $inhalt, string $stil = 'display:inline-
 ?>
 <?php if ($lgListe): ?>
 <div class="block" id="livegang">
-  <h2>Livegang <span style="font-size:12px;color:var(--leise);font-weight:500">Lieferprüfung → veröffentlichen (Sicherung vorher) → Live-Prüfung → Übergabe</span></h2>
+  <h2>Livegang <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">Lieferprüfung → veröffentlichen (Sicherung vorher) → Live-Prüfung → Übergabe</span></h2>
   <?php if ($lgV): $lgAuto = Lieferung::automatisch((int) $p['id'], $lgV); $lgL = Lieferung::fuer((int) $lgV['id']); $lgSt = Veroeffentlichung::stand((int) $p['id'], (int) $lgV['id']); ?>
     <h3 style="margin:4px 0;font-size:16px">Lieferprüfung für V<?= (int) $lgV['nummer'] ?></h3>
     <ul style="list-style:none;margin:0;padding:0;font-size:14px">

@@ -291,9 +291,11 @@ final class BauAuftrag
                 require_once __DIR__ . '/Versionen.php';
                 $v = Versionen::laden($vid);
                 $text = 'V' . (int) $v['nummer'] . ' gebaut' . ((int) $v['tests_ok'] === 1 ? ', Tests bestanden' : ', Tests mit Mängeln') . ".\n\n" . $text;
-                $meldung = 'V' . (int) $v['nummer'] . ' ist gebaut — das Review läuft jetzt von selbst.';
                 $link = 'projekte/' . (int) $p['id'] . '#versionen';
-                self::anlegen((int) $p['id'], 'review', 'Claude (automatisch)', '', ['version_id' => $vid], (int) $a['versuch'], true);
+                $rv = self::anlegen((int) $p['id'], 'review', 'Claude (automatisch)', '', ['version_id' => $vid], (int) $a['versuch'], true);
+                /* Kam das Review nicht zustande (Kostengrenze, schon eins in der Schlange), stand hier
+                   trotzdem „läuft jetzt von selbst“ — Prüfung 07.10.2026, Punkt 34. */
+                $meldung = 'V' . (int) $v['nummer'] . ' ist gebaut — ' . (is_int($rv) ? 'das Review läuft jetzt von selbst.' : 'das Review startet NICHT: ' . $rv);
             }
         }
         /* Phase 8: Vorschläge zur Einordnung der Wünsche — nur Vorschläge. */
@@ -373,9 +375,25 @@ final class BauAuftrag
         if (!$dateien) { throw new RuntimeException('Claude hat keine Dateien geliefert.'); }
         if (count($dateien) > BauPruefung::MAX_DATEIEN || $summe > 1_500_000) { throw new RuntimeException('Die Lieferung ist zu groß (' . count($dateien) . ' Dateien, ' . round($summe / 1024) . ' KB).'); }
         $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
-        if (!empty($param['version_id'])) {   // Nachbessern: Bilder und Schriften der Ausgangsfassung bleiben
-            foreach (Versionen::dateien((int) $param['version_id'], false) as $pfad => $inhalt) {
-                if (!isset($dateien[$pfad]) && !in_array(strtolower(pathinfo($pfad, PATHINFO_EXTENSION)), BauPruefung::TEXT, true)) { $dateien[$pfad] = $inhalt; }
+        /* Nachbessern: Alles aus der Ausgangsfassung, was Claude nicht neu geliefert hat, bleibt —
+           auch Textdateien (Prüfung 07.10.2026, Punkt 36). Claude sieht beim Nachbessern nur einen
+           Teil des Quelltexts; ungesehene CSS-, JS- und HTML-Dateien fehlten früher still in V+1.
+           Binärdateien (Bilder, Schriften) werden direkt von ZIP zu ZIP kopiert, ohne Speicher. */
+        $mitnehmen = ['zip' => null, 'eintraege' => []];
+        $uebernommenText = 0;
+        if (!empty($param['version_id'])) {
+            $mitnehmen = Versionen::eintraege((int) $param['version_id']);
+            $mitnehmen['eintraege'] = array_values(array_filter($mitnehmen['eintraege'], static fn($x) => !isset($dateien[$x['pfad']])));
+            if ($mitnehmen['zip'] !== null) {
+                $quelle = new ZipArchive();
+                if ($quelle->open($mitnehmen['zip']) === true) {
+                    foreach ($mitnehmen['eintraege'] as $k => $x) {
+                        if (!$x['text'] || $x['groesse'] > Versionen::MAX_EINTRAG) { continue; }
+                        $inhalt = $quelle->getFromIndex($x['i']);
+                        if ($inhalt !== false) { $dateien[$x['pfad']] = $inhalt; $uebernommenText++; unset($mitnehmen['eintraege'][$k]); }
+                    }
+                    $quelle->close();
+                }
             }
         }
         $tests = BauPruefung::pruefen($dateien);
@@ -385,12 +403,32 @@ final class BauAuftrag
         if ($z->open($zip, ZipArchive::CREATE | ZipArchive::OVERWRITE) !== true) { throw new RuntimeException('ZIP nicht anlegbar.'); }
         ksort($dateien);
         foreach ($dateien as $pfad => $inhalt) { $z->addFromString($pfad, $inhalt); }
+        $temp = [];
+        if ($mitnehmen['zip'] !== null && $mitnehmen['eintraege']) {
+            $quelle = new ZipArchive();
+            if ($quelle->open($mitnehmen['zip']) === true) {
+                foreach ($mitnehmen['eintraege'] as $x) {
+                    $ein = $quelle->getStream($quelle->getNameIndex($x['i']));
+                    if ($ein === false) { continue; }
+                    $t = tempnam(sys_get_temp_dir(), 'vbau');
+                    $aus = fopen($t, 'wb');
+                    stream_copy_to_stream($ein, $aus, 200 * 1024 * 1024);   // je Datei höchstens 200 MB
+                    fclose($aus); fclose($ein);
+                    $z->addFile($t, $x['pfad']);
+                    $temp[] = $t;
+                }
+                $quelle->close();
+            }
+        }
         $z->close();
+        foreach ($temp as $t) { @unlink($t); }
         try {
             $nr = (int) Db::wert('SELECT COALESCE(MAX(nummer), 0) + 1 FROM projekt_versionen WHERE project_id = ?', [$pid], 1);
             $fid = Ablage::ausDatei($zip, 'claude-v' . $nr . '-' . date('Y-m-d-Hi') . '.zip', $pid, (int) $p['customer_id'], 'werkstatt', 50 * 1024 * 1024, 'paket');
         } finally { @unlink($zip); }
-        $vid = Versionen::erfassen($pid, $fid, 'ki', mb_substr('Runde ' . (int) $a['versuch'] . ': ' . preg_replace('~\s+~', ' ', $zusammenfassung), 0, 300));
+        $vid = Versionen::erfassen($pid, $fid, 'ki', mb_substr('Runde ' . (int) $a['versuch'] . ': '
+            . ($uebernommenText > 0 ? $uebernommenText . ' Textdatei(en) unverändert aus der Ausgangsfassung · ' : '')
+            . preg_replace('~\s+~', ' ', $zusammenfassung), 0, 300));
         Db::update('projekt_versionen', $vid, ['tests' => json_encode($tests, JSON_UNESCAPED_UNICODE), 'tests_ok' => BauPruefung::bestanden($tests) ? 1 : 0, 'auftrag_id' => (int) $a['id']]);
         if (!empty($param['wunsch_ids'])) { require_once __DIR__ . '/Wunsch.php'; Wunsch::fassungGebaut((array) $param['wunsch_ids'], $vid, $pid); }
         return $vid;

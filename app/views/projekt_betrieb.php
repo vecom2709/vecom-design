@@ -10,7 +10,7 @@ $btZeile = static fn(bool|null $ok, string $titel, string $text): string => '<li
 ?>
 <?php if ($bt['im_betrieb']): ?>
 <div class="block" id="betrieb">
-  <h2>Betrieb <span style="font-size:12px;color:var(--leise);font-weight:500">live seit <?= Fmt::h(Fmt::datum((string) $bt['seit'])) ?> auf <?= Fmt::h($bt['domain']) ?> · V<?= (int) ($bt['live']['nummer'] ?? 0) ?></span></h2>
+  <h2>Betrieb <span style="font-size:var(--fs-klein);color:var(--leise);font-weight:500">live seit <?= Fmt::h(Fmt::datum((string) $bt['seit'])) ?> auf <?= Fmt::h($bt['domain']) ?> · V<?= (int) ($bt['live']['nummer'] ?? 0) ?></span></h2>
   <ul style="list-style:none;margin:0;padding:0;font-size:14.5px">
     <?php
       $ws = (string) ($bt['website']['status'] ?? '');
@@ -24,7 +24,7 @@ $btZeile = static fn(bool|null $ok, string $titel, string $text): string => '<li
       $k = $bt['kontingent'];
       echo $btZeile(null, 'Betreuung:', $k['vertrag'] === null ? 'kein Vertrag' . ($k['in_nachbesserung'] ? ' · Nachbesserung bis ' . Fmt::h(Fmt::datum((string) $k['nachbesserung_bis'])) : ' · neue Wünsche sind Zusatz') : Fmt::h((string) $k['vertrag']) . ' · ' . (int) $k['verbraucht'] . ' / ' . (int) $k['minuten'] . ' Min. in diesem Monat');
       echo $btZeile($bt['offene_wuensche'] === 0, 'Offene Wünsche:', (string) (int) $bt['offene_wuensche']);
-      echo $btZeile($bt['zahlung_offen'] === 0, 'Überfällige Raten:', (string) (int) $bt['zahlung_offen'] . ($bt['zahlung_offen'] > 0 ? ' — die Seite bleibt online; Sie entscheiden.' : ''));
+      echo $btZeile($bt['zahlung_offen'] === 0, 'Überfällige Raten:', (string) (int) $bt['zahlung_offen'] . ($bt['zahlung_offen'] > 0 ? ' — die Seite bleibt online; du entscheidest.' : ''));
       echo $btZeile($bt['bau_laeufe'] < $bt['grenze'], 'Kostenwächter:', (int) $bt['bau_laeufe'] . ' von ' . (int) $bt['grenze'] . ' Bauläufen');
     ?>
   </ul>

@@ -17,6 +17,12 @@ declare(strict_types=1);
  * Ausgeliefert wird nur ueber PHP, und nur an den, der es darf: den
  * angemeldeten Admin oder den Kunden mit seinem Projektschluessel.
  */
+/** Ein Fehler beim Ablegen, mit einer Art, die die Kundenseite übersetzen kann. */
+final class AblageFehler extends RuntimeException
+{
+    public function __construct(public readonly string $art, string $text) { parent::__construct($text); }
+}
+
 final class Ablage
 {
     /** Was wir zulassen wollen. Der Server kann strenger sein — siehe grenze(). */
@@ -107,16 +113,16 @@ final class Ablage
         if (!is_file($pfad)) { throw new RuntimeException('Die Datei gibt es nicht.'); }
         $groesse = (int) filesize($pfad);
         if ($groesse <= 0 || $groesse > $hoechstens) {
-            throw new RuntimeException('Die Datei ist leer oder größer als ' . Fmt::bytes($hoechstens) . '.');
+            throw new AblageFehler('zu_gross', 'Die Datei ist leer oder größer als ' . Fmt::bytes($hoechstens) . '.');
         }
         $typ = (string) (new finfo(FILEINFO_MIME_TYPE))->file($pfad);
         if (!isset(self::ERLAUBT[$typ])) {
-            throw new RuntimeException('Dieses Dateiformat nehmen wir nicht an (' . $typ . ').');
+            throw new AblageFehler('format', 'Dieses Dateiformat nehmen wir nicht an (' . $typ . ').');
         }
         $abgelegt = bin2hex(random_bytes(16)) . '.bin';
         $ziel = self::ordner() . '/' . $abgelegt;
         if (!@rename($pfad, $ziel) && !@copy($pfad, $ziel)) {
-            throw new RuntimeException('Die Datei ließ sich nicht ablegen.');
+            throw new AblageFehler('ablage', 'Die Datei ließ sich nicht ablegen.');
         }
         @chmod($ziel, 0644);
         return Db::insert('files', [
@@ -127,7 +133,10 @@ final class Ablage
             'uploaded_by' => in_array($wer, ['admin', 'werkstatt', 'kunde'], true) ? $wer : 'werkstatt',
             /* 'sicherung' (26.09.2026): was vor einer Veroeffentlichung auf dem
                Webspace lag -- nur fuer die Verwaltung, siehe kunde.php. */
-            'rolle' => $rolle === 'sicherung' ? 'sicherung' : 'material',
+            /* 'paket' (Prüfung 07.10.2026, Punkt 31): Claudes Bau-ZIPs zählten als Material vom
+               Kunden — gegen die 40-Dateien-Grenze, im Briefing unter „Material vom Kunden“ und
+               für den Kunden herunterladbar, bevor Uwe die Fassung freigab. */
+            'rolle' => in_array($rolle, ['sicherung', 'paket'], true) ? $rolle : 'material',
         ]);
     }
 
@@ -194,19 +203,19 @@ final class Ablage
     {
         $fehlercode = (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE);
         if ($fehlercode !== UPLOAD_ERR_OK) {
-            throw new RuntimeException(self::fehlerText($fehlercode));
+            throw new AblageFehler(self::fehlerArt($fehlercode), self::fehlerText($fehlercode));
         }
         $tmp = (string) ($datei['tmp_name'] ?? '');
         if ($tmp === '' || !is_uploaded_file($tmp)) {
-            throw new RuntimeException('Die Datei ist nicht richtig angekommen.');
+            throw new AblageFehler('nicht_angekommen', 'Die Datei ist nicht richtig angekommen.');
         }
 
         $istPaket = $rolle === 'paket';
 
         $groesse = (int) filesize($tmp);
         $grenze  = $istPaket ? self::grenzePaket() : self::grenze();
-        if ($groesse <= 0)        { throw new RuntimeException('Die Datei ist leer.'); }
-        if ($groesse > $grenze)   { throw new RuntimeException('Die Datei ist größer als ' . Fmt::bytes($grenze) . '.'); }
+        if ($groesse <= 0)        { throw new AblageFehler('leer', 'Die Datei ist leer.'); }
+        if ($groesse > $grenze)   { throw new AblageFehler('zu_gross', 'Die Datei ist größer als ' . Fmt::bytes($grenze) . '.'); }
 
         /* Die Stueckzahl begrenzt die Ablage des Kunden, nicht das Ergebnis.
            Ein Projekt, an dem vierzig Mal Material hochgeladen wurde, soll
@@ -216,7 +225,7 @@ final class Ablage
                 ? (int) Db::wert("SELECT COUNT(*) FROM files WHERE project_id = ? AND rolle <> 'paket'", [$projektId])
                 : (int) Db::wert('SELECT COUNT(*) FROM files WHERE customer_id = ? AND project_id IS NULL', [$kundeId]);
             if ($wieViele >= self::MAX_JE_PROJEKT) {
-                throw new RuntimeException('Hier liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
+                throw new AblageFehler('voll', 'Hier liegen schon ' . self::MAX_JE_PROJEKT . ' Dateien.');
             }
         }
 
@@ -224,14 +233,14 @@ final class Ablage
         $finfo = new finfo(FILEINFO_MIME_TYPE);
         $typ = (string) $finfo->file($tmp);
         if (!isset(self::ERLAUBT[$typ])) {
-            throw new RuntimeException('Dieses Dateiformat nehmen wir nicht an (' . $typ . ').');
+            throw new AblageFehler('format', 'Dieses Dateiformat nehmen wir nicht an (' . $typ . ').');
         }
 
         $name = self::namenSaeubern((string) ($datei['name'] ?? 'datei'));
         $abgelegt = bin2hex(random_bytes(16)) . '.bin';
         $ziel = self::ordner() . '/' . $abgelegt;
         if (!move_uploaded_file($tmp, $ziel)) {
-            throw new RuntimeException('Die Datei ließ sich nicht ablegen.');
+            throw new AblageFehler('ablage', 'Die Datei ließ sich nicht ablegen.');
         }
         @chmod($ziel, 0644);
 
@@ -256,9 +265,9 @@ final class Ablage
     public static function ablegen(array $datei): array
     {
         $fehlercode = (int) ($datei['error'] ?? UPLOAD_ERR_NO_FILE);
-        if ($fehlercode !== UPLOAD_ERR_OK) { throw new RuntimeException(self::fehlerText($fehlercode)); }
+        if ($fehlercode !== UPLOAD_ERR_OK) { throw new AblageFehler(self::fehlerArt($fehlercode), self::fehlerText($fehlercode)); }
         $tmp = (string) ($datei['tmp_name'] ?? '');
-        if ($tmp === '' || !is_uploaded_file($tmp)) { throw new RuntimeException('Die Datei ist nicht richtig angekommen.'); }
+        if ($tmp === '' || !is_uploaded_file($tmp)) { throw new AblageFehler('nicht_angekommen', 'Die Datei ist nicht richtig angekommen.'); }
         return self::ablegenAus($tmp, (string) ($datei['name'] ?? 'datei'), true);
     }
 
@@ -266,14 +275,14 @@ final class Ablage
     public static function ablegenAus(string $pfad, string $name, bool $hochgeladen = false): array
     {
         $groesse = (int) @filesize($pfad);
-        if ($groesse <= 0) { throw new RuntimeException('Die Datei ist leer.'); }
-        if ($groesse > self::grenze()) { throw new RuntimeException('Die Datei ist größer als ' . Fmt::bytes(self::grenze()) . '.'); }
+        if ($groesse <= 0) { throw new AblageFehler('leer', 'Die Datei ist leer.'); }
+        if ($groesse > self::grenze()) { throw new AblageFehler('zu_gross', 'Die Datei ist größer als ' . Fmt::bytes(self::grenze()) . '.'); }
         $typ = (string) (new finfo(FILEINFO_MIME_TYPE))->file($pfad);
-        if (!isset(self::ERLAUBT[$typ])) { throw new RuntimeException('Dieses Dateiformat nehmen wir nicht an (' . $typ . ').'); }
+        if (!isset(self::ERLAUBT[$typ])) { throw new AblageFehler('format', 'Dieses Dateiformat nehmen wir nicht an (' . $typ . ').'); }
         $abgelegt = bin2hex(random_bytes(16)) . '.bin';
         $ziel = self::ordner() . '/' . $abgelegt;
         $ok = $hochgeladen ? move_uploaded_file($pfad, $ziel) : @copy($pfad, $ziel);
-        if (!$ok) { throw new RuntimeException('Die Datei ließ sich nicht ablegen.'); }
+        if (!$ok) { throw new AblageFehler('ablage', 'Die Datei ließ sich nicht ablegen.'); }
         @chmod($ziel, 0644);
         return ['stored_name' => $abgelegt, 'orig_name' => self::namenSaeubern($name), 'mime' => $typ, 'size_bytes' => $groesse];
     }
@@ -285,6 +294,30 @@ final class Ablage
         $name = preg_replace('~[\x00-\x1f\x7f]~u', '', $name) ?? $name;
         $name = trim($name) !== '' ? $name : 'datei';
         return mb_substr($name, 0, 200);
+    }
+
+    private static function fehlerArt(int $code): string
+    {
+        return match ($code) {
+            UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'zu_gross',
+            UPLOAD_ERR_NO_FILE   => 'keine',
+            default              => 'nicht_angekommen',
+        };
+    }
+
+    /**
+     * Was der Kunde lesen darf — in seiner Sprache (Prüfung 07.10.2026, Punkt 42). Ablage-Fehler
+     * haben eine Art und werden übersetzt; alles andere (Datenbank, Platte …) ist für den Kunden
+     * nur „hat nicht geklappt“ — Serverinterna gehen nicht auf seine Seite.
+     */
+    public static function kundenText(Throwable $e, string $sprache): string
+    {
+        require_once __DIR__ . '/Texte.php';
+        $sp = in_array($sprache, ['it', 'de', 'en'], true) ? $sprache : 'it';
+        if ($e instanceof AblageFehler && isset(Texte::DATEI_FEHLER[$e->art])) {
+            return strtr(Texte::DATEI_FEHLER[$e->art][$sp], ['{groesse}' => Fmt::bytes(self::grenze()), '{anzahl}' => (string) self::MAX_JE_PROJEKT]);
+        }
+        return Texte::SEITE['panne'][$sp];
     }
 
     private static function fehlerText(int $code): string
@@ -303,6 +336,28 @@ final class Ablage
      * Liefert eine Datei aus. Der Aufrufer hat vorher zu pruefen, ob der
      * Anfragende sie sehen darf — diese Methode prueft das nicht.
      */
+    /**
+     * EIN Weg für Downloads (Prüfung 07.10.2026, Vorschlag 47 — schließt Befund 1, 2 und 7):
+     *  - Kunde (kunde.php, projekt.php, vorgang.php): nie Sicherungen (darin können Zugangsdaten alter
+     *    Systeme stehen), Website-Pakete erst nach der Freigabe (paket_frei_am).
+     *  - Verwaltung: Sicherungen nur für den Admin.
+     */
+    public static function darfKunde(array $d): bool
+    {
+        $rolle = (string) ($d['rolle'] ?? 'material');
+        if ($rolle === 'sicherung') { return false; }
+        if ($rolle === 'paket') {
+            if (empty($d['project_id'])) { return false; }
+            return Db::wert('SELECT paket_frei_am FROM projects WHERE id = ?', [(int) $d['project_id']], null) !== null;
+        }
+        return true;
+    }
+
+    public static function darfVerwaltung(array $d): bool
+    {
+        return (string) ($d['rolle'] ?? 'material') !== 'sicherung' || (class_exists('Auth') && Auth::istAdmin());
+    }
+
     public static function ausliefern(array $datei): never
     {
         $pfad = self::ordner() . '/' . basename((string) $datei['stored_name']);

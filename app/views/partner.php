@@ -53,7 +53,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <?php else: ?><span class="marke2" style="margin-left:6px">keine</span><?php endif; ?></summary>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:12px"><?= Csrf::feld() ?>
     <input type="hidden" name="tat" value="partner_aktion">
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Ein Satz, der auf jeder Partnerseite oben steht und den Partner als fertigen Beitrag bekommen — mit Enddatum und „Noch X Tage“. Nur versprechen, was es wirklich gibt.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Ein Satz, der auf jeder Partnerseite oben steht und den Partner als fertigen Beitrag bekommen — mit Enddatum und „Noch X Tage“. Nur versprechen, was es wirklich gibt.</p>
     <div class="reihe">
       <div class="feld"><label><input type="checkbox" name="an" value="1" style="width:auto"<?= !empty($akRoh['an']) ? ' checked' : '' ?>> Aktion zeigen</label></div>
       <div class="feld"><label>Läuft bis einschließlich</label><input type="date" name="bis" value="<?= Fmt::h((string) ($akRoh['bis'] ?? '')) ?>"></div>
@@ -73,9 +73,9 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Wer</th><th>Wo er empfehlen will</th><th>Seit</th><th></th></tr></thead><tbody>
     <?php foreach ($bewerbungen as $p): ?>
-      <tr><td><strong><?= Fmt::h($p['name']) ?></strong><div style="color:var(--leise);font-size:12px"><?= Fmt::h($p['email']) ?><?= $p['firma'] !== '' ? ' · ' . Fmt::h($p['firma']) : '' ?></div></td>
-          <td style="font-size:13px"><?= Fmt::h($p['kanal']) ?></td>
-          <td style="font-size:12.5px;color:var(--leise)"><?= Fmt::h(Fmt::datum((string) $p['created_at'])) ?></td>
+      <tr><td><strong><?= Fmt::h($p['name']) ?></strong><div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h($p['email']) ?><?= $p['firma'] !== '' ? ' · ' . Fmt::h($p['firma']) : '' ?></div></td>
+          <td style="font-size:var(--fs-klein)"><?= Fmt::h($p['kanal']) ?></td>
+          <td style="font-size:var(--fs-klein);color:var(--leise)"><?= Fmt::h(Fmt::datum((string) $p['created_at'])) ?></td>
           <td><a class="knopf" href="<?= Fmt::h(url('partner/' . (int) $p['id'])) ?>">Ansehen</a></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
@@ -93,7 +93,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-bottom:10px">
       <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_sepa">
       <button class="knopf haupt">SEPA-Datei herunterladen</button>
-      <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Im Online-Banking hochladen; wenn die Bank ausgeführt hat, unten „ausgeführt“ klicken.</span>
+      <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Im Online-Banking hochladen; wenn die Bank ausgeführt hat, unten „ausgeführt“ klicken.</span>
     </form>
   <?php endif; ?>
   <?php if ($verr): ?>
@@ -119,7 +119,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 
 <div class="block">
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 10px">
-    <h2 style="font-size:15px;margin:0">Alle Partner<?php $klSeit = Partner::klicksSeit(); if ($klSeit): ?> <span style="font-weight:400;color:var(--leise);font-size:12.5px">Klicks gezählt seit <?= Fmt::h(Fmt::datum($klSeit)) ?></span><?php endif; ?></h2>
+    <h2 style="font-size:15px;margin:0">Alle Partner<?php $klSeit = Partner::klicksSeit(); if ($klSeit): ?> <span style="font-weight:400;color:var(--leise);font-size:var(--fs-klein)">Klicks gezählt seit <?= Fmt::h(Fmt::datum($klSeit)) ?></span><?php endif; ?></h2>
     <span style="display:flex;gap:8px;flex-wrap:wrap">
     <?php if ($uebrige): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_klicks_null">
@@ -132,7 +132,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     </span>
   </div>
   <?php if (!$uebrige): ?>
-    <p style="color:var(--leise);font-size:13px">Noch keine. Bewerbungen kommen über
+    <p style="color:var(--leise);font-size:var(--fs-klein)">Noch keine. Bewerbungen kommen über
       <a href="<?= Fmt::h($website) ?>/partner.php" target="_blank" rel="noopener"><?= Fmt::h($website) ?>/partner.php</a>; einladen kannst du unten.</p>
   <?php else: ?>
   <div class="tabellenrahmen"><table>
@@ -149,16 +149,16 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
           <?php /* Land und Stripe (28.09.2026): Ampel aus der Datenbank, ohne Stripe zu fragen. */ $amp = Partner::stripeAmpel($p); ?>
           <td><?= !empty($p['land']) ? Fmt::h((string) $p['land']) : '<span style="color:var(--leise)">—</span>' ?></td>
           <td><?php if (empty($p['stripe_konto'])): ?>—<?php else: ?><span class="marke2 <?= Fmt::h($amp['farbe']) ?>"><?= Fmt::h($amp['wort']) ?></span>
-            <span style="color:var(--leise);font-size:12px"><?= Fmt::h((string) ($p['stripe_land'] ?: '?')) ?>-Konto</span><?php endif; ?></td></tr>
+            <span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) ($p['stripe_land'] ?: '?')) ?>-Konto</span><?php endif; ?></td></tr>
     <?php endforeach; ?>
   </tbody></table></div>
   <?php endif; ?>
   <?php if (!empty($geloescht)): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px"><?= count($geloescht) ?> gelöschte<?= count($geloescht) === 1 ? 'r' : '' ?> Partner, deren Belege aufbewahrt werden:
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px"><?= count($geloescht) ?> gelöschte<?= count($geloescht) === 1 ? 'r' : '' ?> Partner, deren Belege aufbewahrt werden:
       <?php foreach ($geloescht as $g): ?><a href="<?= Fmt::h(url('partner/' . (int) $g['id'])) ?>"><?= Fmt::h($g['name']) ?></a> <?php endforeach; ?></p>
   <?php endif; ?>
   <?php if ($einbehaltMonat > 0 && Rechte::geld()): ?>
-    <p style="color:var(--leise);font-size:12.5px;margin-top:10px">Steuereinbehalt im Vormonat: <b><?= Fmt::h(Rechte::betrag($einbehaltMonat)) ?></b> — per F24 abführen.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:10px">Steuereinbehalt im Vormonat: <b><?= Fmt::h(Rechte::betrag($einbehaltMonat)) ?></b> — per F24 abführen.</p>
   <?php endif; ?>
 </div>
 
@@ -168,10 +168,10 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   $stille = count(array_filter($rangliste ?? [], static fn($z) => $z['still'])); ?>
 <?php if (!empty($rangliste)): ?>
 <div class="block" id="rangliste">
-  <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:12.5px">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
-    <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px">Vorlagen pflegen</a>
-    <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Mediathek</a>
-    <?php if (Rechte::geld()): ?><a class="knopf" href="<?= Fmt::h(url('auszahlungen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:12.5px;margin-right:6px">Auszahlungslauf</a><?php endif; ?></h2>
+  <h2 style="font-size:15px;margin:0 0 6px">Rangliste <span style="font-weight:400;color:var(--leise);font-size:var(--fs-klein)">letzte 12 Monate<?= $stille ? ' · ' . $stille . ' still (30 Tage ohne Klick)' : '' ?><?= !empty($klSeit) ? ' · Klicks seit ' . Fmt::h(Fmt::datum($klSeit)) : '' ?></span>
+    <a class="knopf" href="<?= Fmt::h(url('partner/vorlagen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:var(--fs-klein)">Vorlagen pflegen</a>
+    <a class="knopf" href="<?= Fmt::h(url('partner/mediathek')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:var(--fs-klein);margin-right:6px">Mediathek</a>
+    <?php if (Rechte::geld()): ?><a class="knopf" href="<?= Fmt::h(url('auszahlungen')) ?>" style="float:right;min-height:32px;padding:4px 12px;font-size:var(--fs-klein);margin-right:6px">Auszahlungslauf</a><?php endif; ?></h2>
   <div class="tabellenrahmen"><table>
     <thead><tr><th><?= $sortLink('name', 'Partner') ?></th><th style="text-align:right"><?= $sortLink('klicks', 'Klicks') ?></th><th style="text-align:right">30 Tage</th>
                <th style="text-align:right"><?= $sortLink('kunden', 'Kunden') ?></th><th style="text-align:right"><?= $sortLink('umsatz', 'Umsatz (netto)') ?></th>
@@ -186,17 +186,17 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
             <?php if ($z['still']): ?><span class="marke2 warnung" style="margin-left:4px" title="<?= $z['weckruf_am'] ? 'Weckruf zuletzt ' . Fmt::h(Fmt::datum((string) $z['weckruf_am'])) : ($z['push'] ? 'Weckruf kommt automatisch' : 'Hinweise aus — kein Weckruf möglich') ?>">still</span><?php endif; ?></td>
           <td style="text-align:right"><?= (int) $z['klicks'] ?></td><td style="text-align:right"><?= (int) $z['klicks30'] ?></td><td style="text-align:right"><?= (int) $z['kunden'] ?></td>
           <td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['umsatz'])) ?></td><td style="text-align:right"><?= Fmt::h(Rechte::betrag((int) $z['provision'])) ?></td>
-          <td style="font-size:12.5px;color:var(--dim);white-space:nowrap"><?= $z['letzte'] ? Fmt::h(Fmt::datum((string) $z['letzte'])) : '—' ?></td>
-          <td style="font-size:12px;color:var(--dim)"><?= Fmt::h(implode(' · ', array_map(static fn($k) => $k['kanal'] . ' ' . $k['klicks'] . '/' . $k['kunden'], $z['kanaele']))) ?: '—' ?></td></tr>
+          <td style="font-size:var(--fs-klein);color:var(--dim);white-space:nowrap"><?= $z['letzte'] ? Fmt::h(Fmt::datum((string) $z['letzte'])) : '—' ?></td>
+          <td style="font-size:var(--fs-klein);color:var(--dim)"><?= Fmt::h(implode(' · ', array_map(static fn($k) => $k['kanal'] . ' ' . $k['klicks'] . '/' . $k['kunden'], $z['kanaele']))) ?: '—' ?></td></tr>
     <?php endforeach; ?></tbody></table></div>
-  <p style="color:var(--leise);font-size:12px;margin-top:6px">Kanäle: Klicks/Kunden. Umsatz = bezahlte Beträge der Kunden dieses Partners (netto), ohne Erstattetes.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Kanäle: Klicks/Kunden. Umsatz = bezahlte Beträge der Kunden dieses Partners (netto), ohne Erstattetes.
     „Still“: aktiv, älter als 30 Tage, kein Klick in 30 Tagen — bekommt automatisch höchstens einmal im Monat einen Weckruf aufs Handy (wenn Hinweise an).</p>
 </div>
 <?php endif; ?>
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Partner einladen</h2>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
     Er bekommt sofort eine E-Mail mit Link, Code und seiner Partnerseite. Den Code (und damit den Link
     <code>/p/CODE</code>) kannst du selbst wählen oder vergeben lassen. Die Vereinbarung bestätigt er dort —
     vorher wird nichts ausgezahlt.</p>
@@ -218,7 +218,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 <?php $an = array_map('trim', explode(',', Partner::einstellung('partner_wege'))); ?>
 <div class="block" id="wege">
   <h2 style="font-size:15px;margin:0 0 6px">Auszahlungswege</h2>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">Der Partner wählt auf seiner Seite unter den eingeschalteten.
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 10px">Der Partner wählt auf seiner Seite unter den eingeschalteten.
     Ein Weg erscheint dort nur, wenn er auch technisch bereit ist.</p>
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="partner_wege">
@@ -229,7 +229,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
         <span><b><?= Fmt::h($wort) ?></b>
           <?= in_array($w, PartnerWege::AUTOMATISCH, true) ? '<span class="marke2" style="margin-left:4px">automatisch</span>' : '<span class="marke2" style="margin-left:4px">von Hand</span>' ?>
           <?= $tech ? '' : '<span class="marke2 warnung" style="margin-left:4px">noch nicht eingerichtet</span>' ?>
-          <br><span style="color:var(--leise);font-size:12px"><?= Fmt::h([
+          <br><span style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h([
             'stripe' => 'Stripe Connect: im Stripe-Dashboard einmal „Connect“ aktivieren.',
             'sepa' => 'Die Verwaltung baut eine SEPA-Datei für dein Online-Banking. Braucht deine IBAN unter Einstellungen → Firma.',
             'paypal' => 'Braucht ein PayPal-Geschäftskonto mit freigeschalteten „Payouts“; client_id und secret in config.local.php (paypal).',
@@ -247,11 +247,11 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
              springt die Seite zu #wege, die Meldung lag außerhalb des Bildes,
              und Uwe sah nur das Schild (26.09.2026). */
       $cGrund = Partner::einstellung('partner_stripe_connect_grund'); if ($cGrund !== ''): ?>
-      <p class="<?= $connect === 'ok' ? '' : 'hinweis schlecht' ?>" style="font-size:13px;line-height:1.6;margin:6px 0 8px"><?= Fmt::h($cGrund) ?>
+      <p class="<?= $connect === 'ok' ? '' : 'hinweis schlecht' ?>" style="font-size:var(--fs-klein);line-height:1.6;margin:6px 0 8px"><?= Fmt::h($cGrund) ?>
         <span style="color:var(--leise)"> · geprüft <?= Fmt::h(Partner::einstellung('partner_stripe_connect_am')) ?></span></p>
     <?php endif; ?>
-    <details <?= $connect !== 'ok' ? 'open' : '' ?>><summary style="cursor:pointer;font-size:13px;color:var(--cyan)">So schaltest du Connect frei (einmalig, ca. 10 Minuten)</summary>
-      <ol style="color:var(--dim);font-size:13px;line-height:1.8;padding-left:20px;margin:8px 0">
+    <details <?= $connect !== 'ok' ? 'open' : '' ?>><summary style="cursor:pointer;font-size:var(--fs-klein);color:var(--cyan)">So schaltest du Connect frei (einmalig, ca. 10 Minuten)</summary>
+      <ol style="color:var(--dim);font-size:var(--fs-klein);line-height:1.8;padding-left:20px;margin:8px 0">
         <li>Im Stripe-Dashboard links auf <b>Connect</b> (bzw. „Verbundene Konten“) → <b>Loslegen</b>.</li>
         <li>Als Modell <b>Plattform / Marktplatz</b> wählen; Konten verwaltet <b>Stripe</b> (Express), Verluste trägt die Plattform.</li>
         <li><b>Plattform-Profil</b> ausfüllen: Was du tust („Provisionen an Empfehlungspartner für Webdesign-Aufträge“), Website vecom-design.it.</li>
@@ -266,7 +266,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
 
 <div class="block" id="bedingungen">
   <h2 style="font-size:15px;margin:0 0 6px">Bedingungen für alle</h2>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
     Gilt für jeden Partner, der keine eigenen Bedingungen hat — und nur für künftige Provisionen. Basis ist immer der
     <b>tatsächlich bezahlte Nettobetrag</b>. Eine Provision wartet die Widerrufsfrist ab (mindestens 14 Tage); wird vorher
     erstattet, entfällt sie. Wird danach erstattet, holt Stripe sie zurück, solange sie beim Partner noch liegt — sonst
@@ -302,13 +302,13 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
         <div class="feld" style="flex:0 0 150px"><label>Gold ab (Verkäufe)</label><input name="partner_gold_ab" type="number" min="2" value="<?= (int) $e('partner_gold_ab') ?>"></div>
         <div class="feld" style="flex:0 0 120px"><label>Gold (%)</label><input name="partner_gold_bp" value="<?= Fmt::h($pz((int) $e('partner_gold_bp'))) ?>"></div>
         <div class="feld" style="flex:0 0 150px"><label>Platin ab (Verkäufe)</label><input name="partner_platin_ab" type="number" min="3" value="<?= (int) $e('partner_platin_ab') ?>"></div>
-        <p style="flex:1 1 220px;color:var(--leise);font-size:12px;margin:0 0 6px">Platin: Satz wie Gold, dazu Vorteile — Anfragen aus seiner Gegend zuerst, Abzeichen auf seiner Seite, direkter Draht zu dir.</p>
+        <p style="flex:1 1 220px;color:var(--leise);font-size:var(--fs-klein);margin:0 0 6px">Platin: Satz wie Gold, dazu Vorteile — Anfragen aus seiner Gegend zuerst, Abzeichen auf seiner Seite, direkter Draht zu dir.</p>
       </div>
     </div>
     <div style="border:1px solid var(--linie);border-radius:10px;padding:12px 14px;margin-bottom:12px">
       <label style="font-size:13.5px;display:inline-flex;align-items:center"><input type="checkbox" style="width:auto;margin:0 6px 0 0;vertical-align:middle" name="partner_auto_auszahlen" value="1" <?= $e('partner_auto_auszahlen') === '1' ? 'checked' : '' ?>>
         <b>Automatisch über Stripe auszahlen</b></label>
-      <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 8px">
+      <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:6px 0 8px">
         Nach der Wartezeit geht die Provision ohne Klick raus — nur an Partner mit bestätigter Vereinbarung und von Stripe
         geprüftem Konto, nur wenn die Kundenzahlung in dem Moment noch bezahlt ist, nur ab dem Mindestbetrag.
         Über dem Tageslimit wartet sie auf deinen Klick.</p>
@@ -317,7 +317,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     </div>
     <button class="knopf haupt">Bedingungen speichern</button>
   </form>
-  <p style="color:var(--leise);font-size:12px;line-height:1.6;margin-top:12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin-top:12px">
     Voraussetzung für Stripe: In deinem Stripe-Konto unter <b>Connect</b> einmal das Plattform-Profil ausfüllen und
     „Überweisungen (Recipient)“ für Italien/EU freischalten. Ob ein Steuereinbehalt (Ritenuta) nötig ist, sagt dein
     Commercialista — Standard ist 0 %. Die Vereinbarung ist ein Entwurf: bitte einmal rechtlich lesen lassen.</p>
@@ -331,7 +331,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
   $sPen = $e('partner_penale_cents'); $sDom = PartnerSchutz::fallenDomain(); ?>
 <div class="block" id="schutz">
   <h2 style="font-size:15px;margin:0 0 6px">Schutz der Unterlagen</h2>
-  <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
     Jeder Partnerbereich ist zu, bis der Partner der Vereinbarung (Fassung <?= Fmt::h(Partner::VEREINBARUNG_VERSION) ?>) mit beiden Haken
     zugestimmt hat <b>und</b> du ihn freischaltest. Sein Link zählt die ganze Zeit weiter.</p>
   <div style="display:flex;gap:18px;flex-wrap:wrap;font-size:13.5px;margin-bottom:12px">
@@ -344,7 +344,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
     <table class="tabelle" style="margin-bottom:12px"><tbody>
     <?php foreach ($sStand['wartet'] as $sw): ?>
       <tr><td><a href="<?= Fmt::h(url('partner/' . (int) $sw['id'])) ?>"><?= Fmt::h($sw['name']) ?></a></td>
-        <td style="color:var(--leise);font-size:12.5px">zugestimmt <?= Fmt::h(Fmt::datum((string) $sw['vereinbarung_klauseln_am'])) ?></td>
+        <td style="color:var(--leise);font-size:var(--fs-klein)">zugestimmt <?= Fmt::h(Fmt::datum((string) $sw['vereinbarung_klauseln_am'])) ?></td>
         <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?>
           <input type="hidden" name="tat" value="partner_freischalten"><input type="hidden" name="id" value="<?= (int) $sw['id'] ?>"><input type="hidden" name="zurueck" value="liste">
           <button class="knopf haupt">Freischalten</button></form></td></tr>
@@ -358,7 +358,7 @@ $website = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/'
       <div class="feld" style="flex:0 0 170px"><label>Kundenschutz (Monate)</label><input name="partner_kundenschutz_monate" value="<?= Fmt::h($e('partner_kundenschutz_monate')) ?>"></div>
       <div class="feld" style="flex:1 1 240px"><label>Domain der Kontrolladressen (leer = aus)</label><input name="partner_fallen_domain" value="<?= Fmt::h($e('partner_fallen_domain')) ?>" placeholder="z. B. vecom-kontrolle.it"></div>
     </div>
-    <p style="color:var(--leise);font-size:12px;line-height:1.6;margin:4px 0 10px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:4px 0 10px">
       Strafe und Monate stehen in der Vereinbarung. Wer schon zugestimmt hat, behält seine Fassung, bis es eine neue gibt.
       Kontrolleinträge brauchen eine Domain, deren Sammeladresse (Catch-all) ins Akquise-Postfach läuft
       <?= $sDom !== '' ? '— <span class="marke2 gut">an: @' . Fmt::h($sDom) . '</span>' : '— <span class="marke2 warnung">aus</span>' ?>.</p>

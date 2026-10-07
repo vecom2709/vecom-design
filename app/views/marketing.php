@@ -180,7 +180,7 @@ $quellen = array_diff_key($a['plattformen'], ['Direkt / unbekannt' => 0]);
   <div class="block">
     <h2>Woher die Aufrufe kommen <a class="mehr" href="<?= Fmt::h(url('statistiken')) ?>">Besucher →</a></h2>
     <?php $balken($a['plattformen'], $a['da'] ? 'Keine Aufrufe im Zeitraum.' : 'Die Zähldatei besuche.csv gibt es hier noch nicht.'); ?>
-    <?php if ($a['kampagnen']): ?><h3 class="leise" style="margin:16px 0 8px;font-size:12px">Kampagnen-Kennung (utm_source)</h3><?php $balken($a['kampagnen'], '', 6); ?><?php endif; ?>
+    <?php if ($a['kampagnen']): ?><h3 class="leise" style="margin:16px 0 8px;font-size:var(--fs-klein)">Kampagnen-Kennung (utm_source)</h3><?php $balken($a['kampagnen'], '', 6); ?><?php endif; ?>
   </div>
   <div class="block">
     <h2>Wie Leads hereinkommen</h2>
@@ -203,7 +203,7 @@ $quellen = array_diff_key($a['plattformen'], ['Direkt / unbekannt' => 0]);
   $breite = 100 / max(1, $sn); $heuteK = $jeWoche ? date('Y-m-d', strtotime('monday this week')) : date('Y-m-d');
 ?>
 <div class="block">
-  <h2>Verlauf <span class="leise mk-inline" style="font-weight:400;font-size:12.5px"><?= $jeWoche ? 'je Woche' : 'je Tag' ?></span>
+  <h2>Verlauf <span class="leise mk-inline" style="font-weight:400;font-size:var(--fs-klein)"><?= $jeWoche ? 'je Woche' : 'je Tag' ?></span>
     <span class="mk-legende"><span><i></i>Aufrufe</span><span><i class="p"></i>neue Leads</span></span></h2>
   <?php if ($sn > 1): ?>
   <svg class="mk-verlauf" viewBox="0 0 100 60" preserveAspectRatio="none" role="img" aria-label="Aufrufe und neue Leads im Verlauf">

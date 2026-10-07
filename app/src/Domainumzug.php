@@ -196,7 +196,18 @@ final class Domainumzug
         }
 
         $n = 0;
-        foreach (Db::all("SELECT * FROM domain_umzuege WHERE stand = 'beantragt' ORDER BY id LIMIT 20") as $u) {
+        /* Zufällige Auswahl statt der zwanzig ältesten (Prüfung 07.10.2026, Punkt 40): Ein abgelehnter
+           Antrag verlässt „beantragt“ nie — ab zwanzig solchen wurde kein neuerer Umzug mehr geprüft.
+           Und wer seit 21 Tagen beantragt ist, bekommt eine Meldung (einmal). */
+        foreach (Db::all("SELECT id, domain, customer_id FROM domain_umzuege WHERE stand = 'beantragt' AND beantragt_am < NOW() - INTERVAL 21 DAY") as $alt) {
+            $k = 'umzug_haengt_' . (int) $alt['id'];
+            if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$k], '') !== '') { continue; }
+            Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$k, date('Y-m-d')]);
+            try { Events::melden('domain_haengt', 'Domainumzug hängt: ' . $alt['domain'], 'warnung',
+                'Seit drei Wochen beantragt, die Nameserver zeigen noch nicht auf All-Inkl. Im KAS nachsehen, ob der Antrag abgelehnt wurde (falscher Auth-Code, Sperre).',
+                '/kunden/' . (int) $alt['customer_id']); } catch (Throwable $e) { }
+        }
+        foreach (Db::all("SELECT * FROM domain_umzuege WHERE stand = 'beantragt' ORDER BY RAND() LIMIT 20") as $u) {
             $ns = array_map(static fn($r) => mb_strtolower(rtrim((string) ($r['target'] ?? ''), '.')), $dns((string) $u['domain'], DNS_NS));
             if (!$ns || array_filter($ns, static fn($x) => !str_ends_with($x, self::ZIEL_NS))) { continue; }
             $geaendert = Db::run("UPDATE domain_umzuege SET stand = 'fertig', fertig_am = NOW() WHERE id = ? AND stand = 'beantragt'",

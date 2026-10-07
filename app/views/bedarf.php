@@ -53,7 +53,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
 <?php if ($b['customer_id'] && !$kundeDa): ?>
   <div class="block" style="border-color:var(--warnung,#8a6d3b)">
     <strong>Der Kunde zu diesem Bedarf ist gelöscht.</strong>
-    <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:6px 0 0">
+    <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:6px 0 0">
       Die Antworten und die Rechnung stehen unten weiter — nur senden und ein
       Angebot erstellen geht nicht, weil beides einen Kunden braucht. Leg ihn
       unter <a href="<?= Fmt::h(url('kunden')) ?>">Kunden</a> neu an, wenn daraus
@@ -133,7 +133,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
       <p style="font-size:22px;font-weight:600;margin:0 0 4px">
         <?= Fmt::geld($gesehenVon) ?> – <?= Fmt::geld($gesehenBis) ?>
       </p>
-      <p style="color:var(--leise);font-size:12.5px;margin:0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">
         So hat der Kunde sie gesehen — nach außen gerundet, damit sie wie eine
         Schätzung aussieht und nicht wie eine Rechnung.
       </p>
@@ -160,7 +160,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
         <p style="font-size:28px;font-weight:600;margin:0 0 4px;letter-spacing:-.01em">
           <?= Fmt::geld((int) $vorschlag['summe_cents']) ?>
         </p>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
           Die Mitte jeder Spanne, gerundet wie im Angebot. Nennst du diese Zahl,
           steht später dieselbe im Angebot — nachrechnen musst du nichts.
         </p>
@@ -197,7 +197,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
             <h2 style="font-size:15px;margin:0">Briefing zum Bauen</h2>
             <button type="button" class="knopf" data-kopieren="#bauprompt">Kopieren</button>
           </div>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:8px 0 10px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:8px 0 10px">
             Alles aus dem Konfigurator, fertig als Auftrag an Claude — samt der Liste,
             was <em>nicht</em> gebaut werden soll. Kopieren, einfügen, loslegen.
           </p>
@@ -213,7 +213,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
                  und der Knopf, der es besorgt. */ ?>
         <div class="block" data-tun="preis">
           <h2 style="font-size:15px;margin:0 0 6px">Erst der Fragebogen, dann der Preis</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 10px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 10px">
             Die Zahl oben ist die Rechnung des Konfigurators — noch kein Preis für den Kunden.
             Der geht erst raus, wenn er den großen Fragebogen abgeschickt hat; erst seine
             Antworten legen fest, was gebaut wird. Der Fragebogen liegt auf seiner Kundenseite,
@@ -234,7 +234,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
                  "lies drueber und sende", und die hat kein eigenes Wort. */ ?>
         <div class="block" data-tun="preis">
           <h2 style="font-size:15px;margin:0 0 6px">Als Nachricht an den Kunden</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 4px">
             Fertig formuliert auf <?= Fmt::h($spracheLang) ?> — mit derselben Zahl wie oben und den
             Posten, aus denen sie besteht. Lies drüber, ändere was du willst, sende.
             Die Nachricht geht als E-Mail raus und steht auf seiner Seite.
@@ -258,7 +258,7 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
     <?php if (!empty($rechnung['vorschlaege'])): ?>
       <div class="block">
         <h2 style="font-size:15px;margin:0 0 6px">Könntest du anbieten</h2>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
           Steht bewusst nicht in der Spanne. Danach wurde nicht gefragt —
           aber die Antworten sprechen dafür.
         </p>
@@ -267,11 +267,11 @@ $abweichung = $gesehenVon !== $jetzt['von_cents'] || $gesehenBis !== $jetzt['bis
           <div class="reihe" style="align-items:flex-start;gap:10px">
             <div style="flex:1 1 auto">
               <strong><?= Fmt::h(Baukasten::name($v, 'de')) ?></strong>
-              <div style="color:var(--leise);font-size:12.5px;line-height:1.5">
+              <div style="color:var(--leise);font-size:var(--fs-klein);line-height:1.5">
                 <?= Fmt::h(Baukasten::text($v, 'de')) ?>
               </div>
             </div>
-            <div class="num" style="white-space:nowrap;font-size:13px">
+            <div class="num" style="white-space:nowrap;font-size:var(--fs-klein)">
               <?= Fmt::geld((int) $v['preis_cents']) ?>
               <?= (int) $v['preis_bis_cents'] ? ' – ' . Fmt::geld((int) $v['preis_bis_cents']) : '' ?>
             </div>

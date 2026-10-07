@@ -83,6 +83,7 @@ try {
             $q = $methode === 'POST' ? $_POST : $_GET;
             $e = ClaudeZugang::anfrageAnnehmen(is_array($q) ? $q : []);
             if ($e['art'] === 'fehler') { oauthSeite($e['text']); }
+            if ($e['art'] === 'weiter' && preg_match('~claude-erlauben\?a=([a-f0-9]{32})$~', (string) $e['ziel'], $km)) { ClaudeZugang::browserMerken($km[1]); }
             header('Cache-Control: no-store');
             header('Location: ' . $e['ziel'], true, 302);
             exit;

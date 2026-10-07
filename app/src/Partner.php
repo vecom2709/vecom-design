@@ -1868,7 +1868,8 @@ final class Partner
         [$betreff, $text] = Texte::mail($anlass, $sp, $werte);
         if ($betreff === '') { return false; }
         $senden ??= [Mail::class, 'senden'];
-        return (bool) self::still(static fn() => $senden($anlass, (string) $p['email'], $betreff, $text, ['antwortAn' => Mail::eigeneAdresse()]), false);
+        return (bool) self::still(static fn() => $senden($anlass, (string) $p['email'], $betreff, $text,
+            ['antwortAn' => Mail::eigeneAdresse(), 'sprache' => $sp, 'empfaengerArt' => 'partner']), false);
     }
 
     /**

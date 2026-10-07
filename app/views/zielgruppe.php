@@ -164,7 +164,7 @@ require __DIR__ . '/mk_stil.php';
     <div class="kachel"><span>Kampagnen (12 Monate)</span><b><?= $n((int) $daten['kampagnen']['anzahl']) ?></b><span class="leise"><?= $n((int) $daten['kampagnen']['leads']) ?> Leads · <?= $n((int) $daten['kampagnen']['kunden']) ?> Kunden</span></div>
   </div>
   <?php if ($daten['befunde']): ?>
-    <h3 class="leise" style="margin:6px 0 8px;font-size:12px">Häufigste belegte Befunde auf ihren Websites</h3>
+    <h3 class="leise" style="margin:6px 0 8px;font-size:var(--fs-klein)">Häufigste belegte Befunde auf ihren Websites</h3>
     <div class="balkenliste">
       <?php foreach ($daten['befunde'] as $b): ?>
         <div class="bl__zeile" title="<?= Fmt::h($b['titel'] . ': ' . $b['n'] . ' Betriebe') ?>"><span class="bl__wort"><?= Fmt::h($b['titel']) ?></span><span class="bl__spur"><i style="width:<?= min(100, round($b['anteil'])) ?>%"></i></span><b class="bl__zahl"><?= number_format($b['anteil'], 0, ',', '.') ?> %</b></div>
@@ -210,7 +210,7 @@ require __DIR__ . '/mk_stil.php';
 </div>
 
 <section id="funde" aria-labelledby="mk-zg-funde">
-  <h2 id="mk-zg-funde" style="font-size:17px;margin:6px 0 10px">Recherche zu dieser Zielgruppe <span class="mehr" style="font-weight:400;color:var(--leise);font-size:13px"><?= count($funde) ?> · Claude nutzt gemerkte Funde zuerst</span></h2>
+  <h2 id="mk-zg-funde" style="font-size:17px;margin:6px 0 10px">Recherche zu dieser Zielgruppe <span class="mehr" style="font-weight:400;color:var(--leise);font-size:var(--fs-klein)"><?= count($funde) ?> · Claude nutzt gemerkte Funde zuerst</span></h2>
   <?php if ($funde): ?>
     <?php $fundeZurueck = 'zielgruppen/' . (int) $z['id']; require __DIR__ . '/mk_funde.php'; ?>
   <?php else: ?>

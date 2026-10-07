@@ -432,12 +432,35 @@ final class Seitenblick
     /** @return array<string,mixed> */
     private static function einAbruf(string $url, int $limit): array
     {
+        /* Prüfung 07.10.2026 (Befund 5, SSRF): Jede Adresse — auch jede Weiterleitung — muss auf öffentliche
+           IPs zeigen, und curl verbindet genau mit der geprüften IP (CURLOPT_RESOLVE). Sonst könnte eine eigene
+           Domain, die auf 127.0.0.1 oder 169.254.169.254 zeigt, den Server interne Adressen abrufen lassen. */
+        require_once __DIR__ . '/PartnerCheck.php';
+        for ($sprung = 0; $sprung <= 5; $sprung++) {
+            $t = parse_url($url);
+            $schema = strtolower((string) ($t['scheme'] ?? ''));
+            $host = mb_strtolower((string) ($t['host'] ?? ''));
+            $port = (int) ($t['port'] ?? ($schema === 'https' ? 443 : 80));
+            $ips = in_array($schema, ['http', 'https'], true) && $host !== '' && in_array($port, [80, 443], true) ? PartnerCheck::oeffentlicheIps($host) : [];
+            if (!$ips) { return ['erreichbar' => false, 'status' => null, 'ms' => 0]; }
+            $r = self::einAbrufDirekt($url, $limit, $host . ':' . $port . ':' . $ips[0]);
+            if (!empty($r['weiter'])) { $url = (string) $r['weiter']; continue; }
+            unset($r['weiter']);
+            return $r;
+        }
+        return ['erreichbar' => false, 'status' => null, 'ms' => 0];
+    }
+
+    /** @return array<string,mixed> */
+    private static function einAbrufDirekt(string $url, int $limit, string $resolve): array
+    {
         $kopf = [];
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_FOLLOWLOCATION => true,
-            CURLOPT_MAXREDIRS      => 5,
+            CURLOPT_FOLLOWLOCATION => false,
+            CURLOPT_RESOLVE        => [$resolve],
+            CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
             CURLOPT_TIMEOUT        => $limit,
             CURLOPT_CONNECTTIMEOUT => 3,
             CURLOPT_USERAGENT      => 'Vecom-Design-Seitenblick/2.0 (+https://vecom-design.it)',
@@ -463,8 +486,10 @@ final class Seitenblick
         $ms     = (int) round((microtime(true) - $anfang) * 1000);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $endUrl = (string) curl_getinfo($ch, CURLINFO_EFFECTIVE_URL);
+        $weiter = (string) curl_getinfo($ch, CURLINFO_REDIRECT_URL);
         $fehler = curl_errno($ch);
         curl_close($ch);
+        if ($fehler === 0 && $status >= 300 && $status < 400 && $weiter !== '') { return ['weiter' => $weiter]; }
 
         $abgeschnitten = $fehler === CURLE_ABORTED_BY_CALLBACK;
         if (($fehler !== 0 && !$abgeschnitten) || $status >= 400 || $status === 0) {
@@ -526,11 +551,18 @@ final class Seitenblick
         $mh = curl_multi_init();
         $griffe = [];
         foreach ($adressen as $u) {
+            /* Unterseiten: derselbe Name, aber jede einzeln gegen öffentliche IPs geprüft und fest aufgelöst (SSRF, Prüfung 07.10.2026). */
+            $uh = mb_strtolower((string) (parse_url($u, PHP_URL_HOST) ?? ''));
+            $us = strtolower((string) (parse_url($u, PHP_URL_SCHEME) ?? ''));
+            require_once __DIR__ . '/PartnerCheck.php';
+            $uips = $uh !== '' && in_array($us, ['http', 'https'], true) ? PartnerCheck::oeffentlicheIps($uh) : [];
+            if (!$uips) { continue; }
             $ch = curl_init($u);
             curl_setopt_array($ch, [
                 CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS      => 3,
+                CURLOPT_FOLLOWLOCATION => false,
+                CURLOPT_RESOLVE        => [$uh . ':' . ($us === 'https' ? 443 : 80) . ':' . $uips[0]],
+                CURLOPT_PROTOCOLS      => CURLPROTO_HTTP | CURLPROTO_HTTPS,
                 CURLOPT_TIMEOUT        => self::ZEITLIMIT_VERSUCH,
                 CURLOPT_CONNECTTIMEOUT => 3,
                 CURLOPT_SSL_VERIFYPEER => false,

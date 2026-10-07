@@ -7,7 +7,7 @@ $wt = [1 => 'Montag', 2 => 'Dienstag', 3 => 'Mittwoch', 4 => 'Donnerstag', 5 => 
 $themen = ['neu' => 'Neue Website', 'ueberarbeiten' => 'Website erneuern', 'analyse' => 'Analyse besprechen', 'preis' => 'Preise und Ablauf', 'sonst' => 'Etwas anderes'];
 ?>
 <div class="kopf"><div><h1>Termine</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Interessenten buchen selbst unter
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Interessenten buchen selbst unter
     <a href="/termin.php" target="_blank" rel="noopener" style="text-decoration:underline">vecom-design.it/termin.php</a> — aus deinen Sprechzeiten unten.
     Bestätigung und Erinnerung am Vortag gehen automatisch raus.</p></div></div>
 

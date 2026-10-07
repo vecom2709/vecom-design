@@ -83,7 +83,7 @@ $zeile = static function (array $v, bool $vorne = false) {
           if (!$heuteNotAus && Rechte::darfTat('automation_notaus')): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:inline">
         <?= Csrf::feld() ?><input type="hidden" name="tat" value="automation_notaus"><input type="hidden" name="zurueck" value="heute">
-        <button class="knopf" id="heute-notaus" title="Hält jede Automation an, die Kunden oder Partner erreicht oder Geld bewegt" style="font-size:12px;padding:4px 10px">Not-Aus</button>
+        <button class="knopf" id="heute-notaus" title="Hält jede Automation an, die Kunden oder Partner erreicht oder Geld bewegt" style="font-size:var(--fs-klein);padding:4px 10px">Not-Aus</button>
       </form>
     <?php endif; ?>
     <a class="knopf" href="<?= Fmt::h(url('vorgaenge')) ?>">Alle Kunden</a>
@@ -156,7 +156,7 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
   <div class="block" style="border-color:rgba(255,138,138,.32)">
     <h2 style="color:var(--rot)">Was gerade hängt<span class="mehr"><?= count($haengt) ?><?php
       if (($hGesamt ?? 0) > count($haengt)): ?> von <?= (int) $hGesamt ?><?php endif; ?></span></h2>
-    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:-4px 0 12px">
       Nicht alles davon ist ein Fehler. Manches hat nur eine Frist, und manches
       liegt einfach seit Wochen still — das meldet sonst niemand.</p>
 
@@ -189,7 +189,7 @@ foreach ($liste['du'] as $eins) { if (!empty($eins['erstantwort'])) { $erst++; }
       </div>
     <?php endforeach; ?>
 
-    <p style="color:var(--leise);font-size:12.5px;margin-top:12px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:12px">
       <?php if (($hGesamt ?? 0) > count($haengt)): ?>
         <?= (int) $hGesamt - count($haengt) ?> weitere stehen unter
         <a href="<?= Fmt::h(url('benachrichtigungen')) ?>">Meldungen</a>.
@@ -258,7 +258,7 @@ $einmal = sicher(static fn() => Einmalig::offen(), []); ?>
          Wer nichts zu tun hat, sucht als Naechstes, wo es hakt. */ ?>
 <details class="block klapp" <?= !$liste['du'] ? 'open' : '' ?>>
   <summary><h2>Der Kunde ist dran<span class="mehr"><?= count($liste['kunde']) ?></span></h2></summary>
-  <p style="color:var(--leise);font-size:12.5px;margin:2px 0 10px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:2px 0 10px">
     Hier musst du nichts tun — außer nachfassen, wenn es zu lange still ist.</p>
   <?php if (!$liste['kunde']): ?>
     <div class="leer">Niemand lässt dich warten.</div>

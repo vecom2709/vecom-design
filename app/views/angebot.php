@@ -75,7 +75,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
                   <?php if ((int) ($p['optional'] ?? 0)): ?> <span class="marke2">optional</span><?php endif; ?>
                   <?php if (!empty($p['von_hand']) && Angebot::istFestpreis($a)): ?> <span class="marke2" title="Preis von dir gesetzt — die anderen Zeilen gleichen aus">von Hand</span><?php endif; ?>
                   <?php if (trim((string) $p['beschreibung']) !== ''): ?>
-                    <div style="color:var(--leise);font-size:12.5px;line-height:1.5;margin-top:3px">
+                    <div style="color:var(--leise);font-size:var(--fs-klein);line-height:1.5;margin-top:3px">
                       <?= Fmt::h((string) $p['beschreibung']) ?></div>
                   <?php endif; ?>
                 </td>
@@ -138,7 +138,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
           <input type="hidden" name="zurueck" value="angebote/<?= (int) $a['id'] ?>">
           <input name="bezeichnung" placeholder="Eigene Leistung" style="flex:1 1 auto" required>
           <input name="preis" placeholder="0,00" inputmode="decimal" style="width:110px;text-align:right" aria-label="Preis">
-          <label style="display:flex;align-items:center;gap:6px;font-size:13px;white-space:nowrap">
+          <label style="display:flex;align-items:center;gap:6px;font-size:var(--fs-klein);white-space:nowrap">
             <input type="checkbox" name="monatlich" value="1"> monatlich</label>
           <button class="knopf">Freie Zeile</button>
         </form>
@@ -157,8 +157,8 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <?php if ($agFirma): ?><p style="font-size:13.5px;margin:0 0 6px">Aus „Neue Kunden finden“: <a href="<?= Fmt::h(url('akquise/' . (int) $agFirma['id'] . '#auftrag')) ?>"><?= Fmt::h((string) $agFirma['name']) ?></a></p><?php endif; ?>
       <?php if ($agProv): ?><p style="font-size:13.5px;margin:0">Partner <a href="<?= Fmt::h(url('partner/' . $agProv['pid'])) ?>"><?= Fmt::h($agProv['partner']) ?></a> · Satz <?= Fmt::h($agProv['satz']) ?>
         <?= $agProv['hinweis'] ? ' — ' . Fmt::h($agProv['hinweis']) : (AkquiseKunde::betrag($a) > 0 ? ' · voraussichtlich <b>' . Fmt::geld($agProv['cents']) . '</b>' : '') ?></p>
-        <p style="color:var(--leise);font-size:12px;margin:4px 0 0">Netto gerechnet wie bei der Buchung. Gebucht wird erst, wenn der Kunde zahlt.</p>
-      <?php else: ?><p style="color:var(--leise);font-size:12.5px;margin:0">Kein Partner zugeordnet — keine Provision.</p><?php endif; ?>
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:4px 0 0">Netto gerechnet wie bei der Buchung. Gebucht wird erst, wenn der Kunde zahlt.</p>
+      <?php else: ?><p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Kein Partner zugeordnet — keine Provision.</p><?php endif; ?>
     </div>
     <?php endif; endif; ?>
     <?php $istFest = Angebot::istFestpreis($a); $festHinweis = $istFest ? Angebot::verteilen((int) $a['id']) : null; ?>
@@ -171,10 +171,10 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <?php endif; ?>
       <?php if ($istFest): ?>
         <p style="font-size:20px;font-weight:600;margin:0 0 4px"><?= Fmt::geld((int) $a['festpreis_cents'], (string) $a['currency']) ?></p>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0 0 8px">Die einmaligen Zeilen teilen sich diesen Betrag im Verhältnis der Baustein-Preise, auf ganze Euro. Änderst du einen Zeilenpreis, bleibt er fest und die übrigen gleichen aus. Monatliches zählt extra. Geht auch ohne Fragebogen raus — mit dem Angebot als PDF in der Mail.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.55;margin:0 0 8px">Die einmaligen Zeilen teilen sich diesen Betrag im Verhältnis der Baustein-Preise, auf ganze Euro. Änderst du einen Zeilenpreis, bleibt er fest und die übrigen gleichen aus. Monatliches zählt extra. Geht auch ohne Fragebogen raus — mit dem Angebot als PDF in der Mail.</p>
         <?php if ($festHinweis !== null): ?><div class="hinweis" style="margin:0 0 8px"><?= Fmt::h($festHinweis) ?></div><?php endif; ?>
       <?php else: ?>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.55;margin:0 0 8px">Betrag eintragen, dann teilen die Zeilen ihn unter sich auf — so stehen die Positionen mit ihren Beträgen auf Angebot und Beleg.</p>
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.55;margin:0 0 8px">Betrag eintragen, dann teilen die Zeilen ihn unter sich auf — so stehen die Positionen mit ihren Beträgen auf Angebot und Beleg.</p>
       <?php endif; ?>
       <?php if ($aenderbar): ?>
       <form method="post" action="<?= Fmt::h(url('')) ?>" class="reihe" style="gap:8px;margin:0">
@@ -195,7 +195,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <p style="font-size:24px;font-weight:600;margin:0 0 2px">
         <?= Fmt::geld((int) $a['summe_cents'], (string) $a['currency']) ?>
       </p>
-      <p style="color:var(--leise);font-size:12.5px;margin:0">
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:0">
         Anzahlung <?= (int) $a['anzahlung_prozent'] ?> % = <?= Fmt::geld($anzahlung, (string) $a['currency']) ?>
       </p>
       <?php if ((int) $a['monatlich_cents'] > 0): ?>
@@ -231,7 +231,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
     <?php if ($aenderbar): ?>
       <div class="block">
         <h2 style="font-size:15px;margin:0 0 10px">Verschicken</h2>
-        <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+        <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
           Danach lässt sich nichts mehr ändern — was beim Kunden liegt, darf sich
           nicht hinter seinem Rücken bewegen. Die Frist von 14 Tagen läuft ab jetzt.
         </p>
@@ -253,7 +253,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
                  dem Angebot und nicht darin. */ ?>
         <div class="block" data-tun="angebot_wunsch" style="border-left:3px solid var(--cyan)">
           <h2 style="font-size:15px;margin:0 0 6px">Sein Gegenvorschlag</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
             Eingegangen <?= Fmt::h(Fmt::seit((string) $a['wunsch_am'])) ?><?php
               if ((int) $a['wunsch_runden'] > 1): ?> · <?= (int) $a['wunsch_runden'] ?>. Runde<?php endif; ?>.
             Ein Klick macht daraus die neue Fassung — mit genau diesen Posten, du liest drüber und schickst.
@@ -290,7 +290,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <?php if ((string) $a['status'] === 'gesendet'): ?>
         <div class="block" data-tun="angebot_zusage">
           <h2 style="font-size:15px;margin:0 0 10px">Er hat zugesagt</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
             Für die Zusage am Telefon. Über seinen Link geht es von selbst — kommt sie
             mündlich, klick hier: Daraus entsteht die Bestellung mit
             <b><?= Fmt::h($eur($a['summe_cents']) . ' €') ?></b> und den Posten von oben,
@@ -309,7 +309,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <?php if ($neufassbar): ?>
         <div class="block" data-tun="angebot_neufassung">
           <h2 style="font-size:15px;margin:0 0 10px">Der Kunde will etwas anders</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 12px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 12px">
             Eine Seite mehr, die Speisekarte doch nicht: Dieses Blatt bleibt, wie es ist —
             der Kunde hat es gelesen. Stattdessen entsteht eine zweite Fassung als Entwurf,
             mit allen Posten von hier drin. Du änderst nur das eine und schickst sie.
@@ -329,8 +329,8 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
       <div class="block" data-tun="angebot_link">
         <h2 style="font-size:15px;margin:0 0 10px">Link für den Kunden</h2>
         <input readonly value="<?= Fmt::h(Angebot::link($a)) ?>"
-               style="width:100%;font-size:12.5px" onclick="this.select()">
-        <p style="color:var(--leise);font-size:12.5px;margin:10px 0 0">
+               style="width:100%;font-size:var(--fs-klein)" onclick="this.select()">
+        <p style="color:var(--leise);font-size:var(--fs-klein);margin:10px 0 0">
           Zum Kopieren anklicken. Wer den Link hat, sieht das Angebot — kein Konto nötig.
         </p>
         <a class="knopf" style="margin-top:12px"
@@ -343,7 +343,7 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
                    Vorlage vorgewaehlt. */ ?>
           <hr style="border:0;border-top:1px solid var(--linie);margin:16px 0">
           <h2 style="font-size:15px;margin:0 0 4px">Dem Kunden schicken</h2>
-          <p style="color:var(--leise);font-size:12.5px;line-height:1.6;margin:0 0 4px">
+          <p style="color:var(--leise);font-size:var(--fs-klein);line-height:1.6;margin:0 0 4px">
             Der Link kommt nicht von allein an. Die Vorlage steht schon drin —
             lies drüber und sende.
           </p>

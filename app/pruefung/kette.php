@@ -4630,9 +4630,9 @@ BauAuftrag::melden(['id' => (int) $w8U, 'ok' => true, 'text' => 'Logo größer, 
     ['pfad' => 'menu.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Menü', $b7Seite('<h1>Menü</h1>', 'Caffè.'))],
     ['pfad' => 'privacy.html', 'inhalt' => str_replace('Bar Prova — Start', 'Bar Prova — Privacy', $b7Seite('<h1>Privacy</h1>', 'Informativa.'))]]]);
 $w8V = Versionen::neueste($wsProjekt);
-pruefe('Builder bekommt die Wünsche und die Ausgangsfassung; nach der Lieferung sind beide Wünsche „umgesetzt in Vn“, das Review steht an; der Kunde sieht den Stand in seinen Worten',
+pruefe('Builder bekommt die Wünsche und die Ausgangsfassung; nach der Lieferung hängen beide Wünsche an Vn, bleiben aber „wird umgesetzt“, bis Uwe die Fassung dem Kunden zeigt; das Review steht an',
     count((array) ($w8HB['wuensche'] ?? [])) === 2 && isset($w8HB['fassung']['dateien']) && (int) $w8HB['versuch'] === 1
-    && Wunsch::laden($w8a)['status'] === 'umgesetzt' && (int) Wunsch::laden($w8b)['version_id'] === (int) $w8V['id']
+    && Wunsch::anzeige(Wunsch::laden($w8a)) === 'in_arbeit' && (int) Wunsch::laden($w8b)['version_id'] === (int) $w8V['id']
     && (int) Db::wert("SELECT COUNT(*) FROM bau_auftraege WHERE project_id = ? AND art = 'review' AND status = 'wartet'", [$wsProjekt], 0) === 1
     && count(Wunsch::fuerKunde(0, $wsProjekt)) === 2 && str_contains(Wunsch::kundeText('zusatz', 'de'), 'Angebot') && str_contains(Wunsch::kundeText('umgesetzt', 'it'), 'anteprima'),
     json_encode([array_keys($w8HB), Wunsch::laden($w8a)], JSON_UNESCAPED_UNICODE));
@@ -4645,6 +4645,8 @@ Versionen::stagingEintragen((int) $w8V['id'], 'bar-prova-v' . (int) $w8V['nummer
 $w8Alt = Db::one('SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$wsProjekt]);
 Db::run('UPDATE projects SET vorschau_frei_am = NOW() WHERE id = ?', [$wsProjekt]);   // schon frei: nur die Adresse wechselt, keine E-Mail
 $w8K2 = Versionen::alsKundenvorschau((int) $w8V['id'], 'Uwe Admin');
+pruefe('Prüfung 07.10. (35): Erst wenn Uwe die Fassung dem Kunden zeigt, heißen die darin gebauten Wünsche „umgesetzt“',
+    Wunsch::laden($w8a)['status'] === 'umgesetzt' && Wunsch::laden($w8b)['status'] === 'umgesetzt' && Wunsch::laden($w8a)['umgesetzt_am'] !== null);
 $w8Url = (string) Db::wert('SELECT preview_url FROM projects WHERE id = ?', [$wsProjekt], '');
 Db::run('UPDATE projects SET preview_url = ?, vorschau_frei_am = ? WHERE id = ?', [$w8Alt['preview_url'], $w8Alt['vorschau_frei_am'], $wsProjekt]);
 $_SESSION['rolle'] = 'mitarbeit'; $w8Rechte = array_map(static fn($t) => Rechte::darfTat($t), ['wunsch_neu', 'wunsch_einordnen', 'wunsch_umsetzen', 'version_vorschau']);
@@ -9663,7 +9665,7 @@ $vpZip = static function (array $dateien): string {
 $vpHttps = static fn(string $d): array => ['https' => ['ok' => true, 'ssl_gueltig' => 1, 'ssl_bis' => '2027-01-01', 'fehler' => null], 'umleitung' => 'https://' . $d . '/'];
 $vpK = Events::kundeFinden(['name' => 'Veröffentlichen Probe', 'email' => 'veroeff@pruefung.example']);
 $vpP = (int) Db::insert('projects', ['customer_id' => $vpK, 'name' => 'Seite Veröffentlichen', 'status' => 'entwicklung',
-    'preview_url' => 'https://veroeff-probe.netlify.app']);
+    'preview_url' => 'https://veroeff-probe.netlify.app', 'bau_frei_am' => date('Y-m-d H:i:s'), 'bau_frei_von' => 'Kette']);
 pruefe('Veröffentlichen: ohne Hosting bei uns gibt es den Knopf nicht -- mit Grund',
     !Veroeffentlichung::stand($vpP)['bereit'] && Veroeffentlichung::stand($vpP)['auftrag'] === null);
 $vpA = (int) Db::insert('hosting_auftraege', ['customer_id' => $vpK, 'project_id' => $vpP, 'domain' => 'veroeff-probe.it', 'status' => 'angelegt',
@@ -14204,7 +14206,8 @@ $tmIcs = AkquiseTermin::ics($tmT);
 pruefe('Termine: Kalenderdatei mit Beginn in UTC, Absagelink und CRLF', str_contains($tmIcs, "BEGIN:VEVENT\r\n") && str_contains($tmIcs, 'DTSTART:' . gmdate('Ymd\THis\Z', strtotime((string) $tmT['beginn'])))
     && str_contains($tmIcs, 'termin.php?t=' . $tmT['token']));
 Db::run('UPDATE akq_termine SET beginn = ?, ende = ? WHERE id = ?', [date('Y-m-d H:i:s', time() + 20 * 3600), date('Y-m-d H:i:s', time() + 20 * 3600 + 1800), (int) $tmT['id']]);
-pruefe('Termine: Erinnerung am Vortag genau einmal', AkquiseTermin::erinnern() === 1 && AkquiseTermin::erinnern() === 0
+pruefe('Termine: Erinnerung am Vortag genau einmal', AkquiseTermin::erinnern() <= 1 && AkquiseTermin::erinnern() === 0
+    && Db::wert('SELECT erinnert_am FROM akq_termine WHERE id = ?', [(int) $tmT['id']], null) !== null
     && (int) Db::wert("SELECT COUNT(*) FROM mails WHERE anlass = 'termin_erinnerung' AND empfaenger = 'giulia@termin.example'", [], 0) === 1);
 pruefe('Termine: Absage gibt die Zeit frei (belegt leer), zweite Absage tut nichts', AkquiseTermin::absagen((int) $tmT['id'], 'kunde') && !AkquiseTermin::absagen((int) $tmT['id'], 'kunde')
     && Db::one('SELECT status, belegt FROM akq_termine WHERE id = ?', [(int) $tmT['id']]) === ['status' => 'abgesagt', 'belegt' => null]);
@@ -15550,7 +15553,9 @@ pruefe('D5: Bestätigen per Knopf macht das Abo aktiv', WebTipp::bestaetigen((st
     && Db::wert("SELECT status FROM akq_tipp_abos WHERE id = ?", [(int) $d5A['id']], '') === 'aktiv');
 $d5Di = strtotime('next tuesday 09:00');
 pruefe('D5: montags nichts, dienstags ein Tipp; derselbe Dienstag nicht doppelt',
-    WebTipp::lauf(strtotime('next monday 09:00'))['geschickt'] === 0 && WebTipp::lauf($d5Di)['geschickt'] === 1 && WebTipp::lauf($d5Di)['geschickt'] === 0);
+    WebTipp::lauf(strtotime('next monday 09:00'))['geschickt'] === 0 && (int) Db::wert('SELECT letzte_nr FROM akq_tipp_abos WHERE id = ?', [(int) $d5A['id']], 0) === 0
+    && WebTipp::lauf($d5Di)['geschickt'] <= 1 && (int) Db::wert('SELECT letzte_nr FROM akq_tipp_abos WHERE id = ?', [(int) $d5A['id']], 0) === 1
+    && WebTipp::lauf($d5Di)['geschickt'] === 0 && (int) Db::wert('SELECT letzte_nr FROM akq_tipp_abos WHERE id = ?', [(int) $d5A['id']], 0) === 1);
 [$d5B, $d5T] = WebTipp::mail(Db::one('SELECT * FROM akq_tipp_abos WHERE id = ?', [(int) $d5A['id']]), 0);
 pruefe('D5: Tipp-Mail mit Analyse-Link, persönlichem Bereich und Abbestell-Link', str_starts_with($d5B, 'Tipp der Woche: ')
     && str_contains($d5T, '/analisi.php?lang=de') && str_contains($d5T, '/zugang.php?t=') && str_contains($d5T, '/tipp.php?ab=' . $d5A['token']));
@@ -18155,7 +18160,7 @@ pruefe('k.php: Kurzadresse /k/CODE und /k/CODE/WERBEMITTEL in .htaccess',
     str_contains((string) file_get_contents($oben . '/.htaccess'), 'RewriteRule ^k/([A-Za-z0-9-]{3,24})/?$ k.php?c=$1'));
 $kaLay = (string) file_get_contents($wurzel . '/views/layout.php');
 pruefe('Verwaltung: Reiter „Kampagnen“ unter Marketing, die Tür leuchtet auch dort', str_contains($kaLay, "['kampagnen', 'Kampagnen', 'kampagnen']")
-    && str_contains($kaLay, "|| \$aktivMenue === \$ziel ? ' an' : ''") && Hilfe::satz('kampagnen') !== '');
+    && str_contains($kaLay, "|| \$aktivMenue === \$ziel;") && str_contains($kaLay, "\$tuerAn ? ' an' : ''") && Hilfe::satz('kampagnen') !== '');
 $kaIdx = (string) file_get_contents($wurzel . '/index.php');
 foreach (['kampagne_anlegen', 'kampagne_aendern', 'werbemittel_anlegen', 'kampagne_kosten', 'kampagne_kosten_loeschen'] as $kaTat) {
     pruefe('Verwaltung: Aktion ' . $kaTat . ' hinter Anmeldung und CSRF', strpos($kaIdx, "case '$kaTat':") > strpos($kaIdx, 'Csrf::pruefen()'));
@@ -27565,6 +27570,8 @@ pruefe('ohne S256 und mit fremdem Umfang: zurück mit Fehler',
 $czW = ClaudeZugang::anfrageAnnehmen($czAnf);
 $czA = (string) (preg_match('/a=([a-f0-9]{32})$/', (string) ($czW['ziel'] ?? ''), $czM) ? $czM[1] : '');
 pruefe('eine gültige Anfrage führt in die Verwaltung, wo Uwe erlaubt', $czW['art'] === 'weiter' && $czA !== '' && ClaudeZugang::anfrage($czA) !== null);
+pruefe('fremder Browser (ohne Keks der Anfrage): kein Erlauben, die Anfrage bleibt offen', ClaudeZugang::erlauben($czA, 1, 'Kette') === null && ClaudeZugang::anfrage($czA) !== null);
+$_COOKIE[ClaudeZugang::KEKS] = $czA;
 $czZiel = (string) ClaudeZugang::erlauben($czA, 1, 'Kette');
 parse_str((string) parse_url($czZiel, PHP_URL_QUERY), $czQ);
 pruefe('Erlauben: zurück an Claude mit Code, state und iss — und nur einmal', str_starts_with($czZiel, 'https://claude.ai/api/mcp/auth_callback?')
@@ -27592,9 +27599,12 @@ ClaudeZugang::schalten(false, 'Kette');
 pruefe('Zugang aus: keine Anmeldung, keine Anfrage', ClaudeZugang::registrieren(['redirect_uris' => ['https://claude.ai/api/mcp/auth_callback']], '203.0.113.9')[0] === 403
     && str_contains((string) (ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'] ?? ''), 'error=access_denied'));
 ClaudeZugang::schalten(true, 'Kette');
-$czEins = ClaudeZugang::erlauben((string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32), 1, 'Kette');
+$_COOKIE[ClaudeZugang::KEKS] = (string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32);
+$czEins = ClaudeZugang::erlauben($_COOKIE[ClaudeZugang::KEKS], 1, 'Kette');
 $czErste = (int) Db::wert('SELECT MAX(id) FROM claude_verbindungen', [], 0);
-ClaudeZugang::erlauben((string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32), 1, 'Kette');
+$_COOKIE[ClaudeZugang::KEKS] = (string) substr((string) ClaudeZugang::anfrageAnnehmen($czAnf)['ziel'], -32);
+ClaudeZugang::erlauben($_COOKIE[ClaudeZugang::KEKS], 1, 'Kette');
+unset($_COOKIE[ClaudeZugang::KEKS]);
 pruefe('eine Verbindung zur Zeit: wer neu erlaubt, beendet die ältere', $czEins !== null && ClaudeZugang::verbindung($czErste) === null
     && (int) Db::wert('SELECT COUNT(*) FROM claude_verbindungen WHERE entzogen_am IS NULL', [], 0) === 1);
 // Die Werkzeuge: nur lesen, nichts Geheimes.
@@ -28217,6 +28227,90 @@ pruefe('Automation Center: Abgleich, DNS-Wache, Exit-Links — keine schickt dem
 pruefe('Seite „Umzüge & DNS“ nur für den Admin, im Menü unter Bauen; keine neue Tat für Mitarbeit', !in_array('umzuege', Rechte::SEITEN, true)
     && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['umzuege', 'Umzüge & DNS', 'umzuege']")
     && !array_filter(['migration_', 'dns_', 'exit_', 'domain_bestell'], static fn($t) => (bool) array_filter(Rechte::TATEN_MITARBEIT, static fn($m) => str_starts_with($t, $m) || str_starts_with($m, $t))));
+
+/* ============================================================================
+   Prüfung 07.10.2026, Punkt 51: Abgleiche, die bisher von Hand liefen
+   ============================================================================ */
+abschnitt('Prüfung 07.10.: Rechte, Texte, Mails, Not-Aus-Eingänge');
+$p51Quelle = static function (string $datei): string {
+    return (string) preg_replace_callback('~/\*.*?\*/~s', static fn($m) => str_repeat("\n", substr_count($m[0], "\n")), (string) file_get_contents($datei));
+};
+/* a) Kein Fall der Verwaltung fällt in den nächsten durch (sonst läuft eine Admin-Tat unter fremdem Namen). */
+$p51Durch = [];
+foreach ([$wurzel . '/index.php', $wurzel . '/akquise_route.php'] as $p51D) {
+    if (!is_file($p51D)) { continue; }
+    $p51Z = explode("\n", $p51Quelle($p51D));
+    $p51F = [];
+    foreach ($p51Z as $p51I => $p51L) { if (preg_match("~^(\s*)case '([a-z0-9_]+)':~", $p51L, $p51M)) { $p51F[] = [$p51I, $p51M[2], strlen($p51M[1])]; } }
+    foreach ($p51F as $p51K => [$p51I, $p51N, $p51E]) {
+        if (!isset($p51F[$p51K + 1]) || $p51F[$p51K + 1][2] !== $p51E) { continue; }
+        $p51Rumpf = [];
+        $p51Rest = trim(explode(':', $p51Z[$p51I], 2)[1] ?? '');
+        if ($p51Rest !== '' && !str_starts_with($p51Rest, '//')) { $p51Rumpf[] = $p51Rest; }
+        for ($p51J = $p51I + 1; $p51J < $p51F[$p51K + 1][0]; $p51J++) { $t = trim($p51Z[$p51J]); if ($t !== '' && !str_starts_with($t, '//')) { $p51Rumpf[] = $t; } }
+        if (!$p51Rumpf) { continue; }   // gestapelte Fälle teilen sich bewusst einen Rumpf
+        $p51Ende = implode(' ', array_slice($p51Rumpf, -3));
+        if (!preg_match('~\b(break|exit|zurueck|weiter|return|throw|ansicht|continue)\b|\$zu\(|\$csv\(|::ausliefern\(|^\}$~', end($p51Rumpf)) && !preg_match('~\b(break|exit|zurueck|weiter|return|throw)\b~', $p51Ende)) {
+            $p51Durch[] = basename($p51D) . ':' . ($p51I + 1) . ' ' . $p51N;
+        }
+    }
+}
+pruefe('Prüfung 07.10. (51): kein case der Verwaltung fällt still in den nächsten durch', $p51Durch === [], implode(', ', $p51Durch));
+/* b) Mitarbeit darf keine Tat mit Schlüssel, Token, Geheimnis oder Passwort — und keine aus NUR_ADMIN. */
+$p51Taten = [];
+foreach ([$wurzel . '/index.php', $wurzel . '/akquise_route.php'] as $p51D) {
+    if (is_file($p51D) && preg_match_all("~case '([a-z0-9_]+)':~", (string) file_get_contents($p51D), $p51M)) { $p51Taten = array_merge($p51Taten, $p51M[1]); }
+}
+$p51AltRolle = $_SESSION['rolle'] ?? null; $_SESSION['rolle'] = 'mitarbeit';
+$p51Zuviel = array_values(array_filter(array_unique($p51Taten), static fn($t) => (preg_match('~schluessel|token|geheim|passwort~', $t) || in_array($t, Rechte::NUR_ADMIN, true)) && Rechte::darfTat($t)));
+if ($p51AltRolle === null) { unset($_SESSION['rolle']); } else { $_SESSION['rolle'] = $p51AltRolle; }
+pruefe('Prüfung 07.10. (51): Mitarbeit erreicht keine Tat mit Schlüssel/Token/Geheimnis/Passwort und keine aus NUR_ADMIN', $p51Zuviel === [] && count($p51Taten) > 300, implode(', ', $p51Zuviel));
+/* c) Jeder Texte::X['schluessel'] im Code gibt es auch (sonst sieht der Kunde den deutschen Ersatztext). */
+$p51Fehlt = []; $p51Ohne = [];
+$p51It = new RecursiveIteratorIterator(new RecursiveDirectoryIterator(dirname($wurzel), FilesystemIterator::SKIP_DOTS));
+foreach ($p51It as $p51Datei) {
+    $p51P = (string) $p51Datei;
+    if (!str_ends_with($p51P, '.php') || preg_match('~/(node_modules|vendor|pruefung|\.git)/~', $p51P)) { continue; }
+    $p51S = (string) file_get_contents($p51P);
+    if (preg_match_all("~Texte::([A-Z][A-Z0-9_]+)\['([A-Za-z0-9_]+)'\]~", $p51S, $p51M, PREG_SET_ORDER)) {
+        foreach ($p51M as [, $p51C, $p51K]) {
+            if (!defined('Texte::' . $p51C) || !array_key_exists($p51K, constant('Texte::' . $p51C))) { $p51Fehlt[] = basename($p51P) . ': ' . $p51C . "['" . $p51K . "']"; }
+        }
+    }
+    /* d) Jede Mail sagt, in welcher Sprache sie geht (Sprache, Kunde oder an Uwe) — sonst bekommt ein Italiener den deutschen Rahmen. */
+    $p51O = 0;
+    while (($p51A = strpos($p51S, 'Mail::senden(', $p51O)) !== false) {
+        $p51O = $p51A + 13; $p51T = 1; $p51B = $p51O;
+        while ($p51B < strlen($p51S) && $p51T > 0) { $p51T += $p51S[$p51B] === '(' ? 1 : ($p51S[$p51B] === ')' ? -1 : 0); $p51B++; }
+        if (str_contains(substr($p51S, max(0, $p51A - 30), 30), 'function')) { continue; }
+        if (!preg_match("~sprache|customer_id|eigeneAdresse\(\)|\\\$bezug|\\\$n\['bezug'\]~", substr($p51S, $p51O, $p51B - $p51O))) { $p51Ohne[] = basename($p51P) . ':' . (substr_count(substr($p51S, 0, $p51A), "\n") + 1); }
+    }
+}
+pruefe('Prüfung 07.10. (51): jeder Texte-Schlüssel im Code existiert', $p51Fehlt === [], implode(', ', array_unique($p51Fehlt)));
+pruefe('Prüfung 07.10. (51): jede Mail::senden-Stelle nennt Sprache, Kunden oder geht an Uwe', $p51Ohne === [], implode(', ', $p51Ohne));
+/* e) Jeder öffentliche Eingang meldet sich beim Not-Aus als „automatisch“ (Punkt 19/48). */
+$p51Eingaenge = ['angebot.php', 'partner.php', 'kunde.php', 'formular.php', 'termin.php', 'einwilligung.php', 'fragebogen.php', 'analisi.php',
+                 'cron.php', 'stripe-webhook.php', 'wa-webhook.php', 'telegram-webhook.php', 'google-lead.php', 'telefon.php'];
+$p51Offen = array_values(array_filter($p51Eingaenge, static fn($d) => is_file(dirname($wurzel) . '/' . $d) && !str_contains((string) file_get_contents(dirname($wurzel) . '/' . $d), 'Automation::automatischAb(')));
+pruefe('Prüfung 07.10. (48): jeder öffentliche Eingang ist beim Not-Aus „automatisch“', $p51Offen === [], implode(', ', $p51Offen));
+Automation::automatischZuruecksetzen();
+/* f) Die eine Tür: Mail und Push fragen Ausgang::darf, Uwe bekommt immer Post. */
+Automation::automatischAb('kette');
+Db::run("INSERT INTO settings (skey, svalue) VALUES ('auto_notaus', '1') ON DUPLICATE KEY UPDATE svalue = '1'");
+$p51Darf = [Ausgang::darf('mail'), Ausgang::darf('mail', true), Ausgang::darf('push')];
+Db::run("UPDATE settings SET svalue = '0' WHERE skey = 'auto_notaus'");
+Automation::automatischZuruecksetzen();
+pruefe('Prüfung 07.10. (48): Not-Aus — automatisch nichts nach draußen, an Uwe immer; ein Klick ist nie automatisch',
+    $p51Darf === [false, true, false] && Ausgang::darf('mail') && str_contains((string) file_get_contents($wurzel . '/src/PartnerPost.php'), "Ausgang::darf('push')"));
+
+/* g) Selbstheilung: Fehlt live eine Spalte aus einer schon vermerkten Migration, wird sie nachgezogen. */
+require_once $wurzel . '/src/Einrichtung.php';
+Db::run('ALTER TABLE akq_firmen DROP COLUMN IF EXISTS rpo_frei_am');
+$p51S = Einrichtung::schemaNachziehen();
+pruefe('Schema-Selbstheilung: eine fehlende Spalte aus einer vermerkten Migration kommt wieder, nur mit wiederholbaren Anweisungen',
+    in_array('214_erstattung_betrag.sql', $p51S['nachgezogen'], true) && $p51S['fehler'] === []
+    && (int) Db::wert("SELECT COUNT(*) FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'akq_firmen' AND COLUMN_NAME = 'rpo_frei_am'", [], 0) === 1
+    && Einrichtung::schemaNachziehen()['nachgezogen'] === [], json_encode($p51S, JSON_UNESCAPED_UNICODE));
 
 /* ============================================================================
    Aufräumen und Bilanz

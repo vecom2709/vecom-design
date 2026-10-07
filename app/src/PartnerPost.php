@@ -136,6 +136,9 @@ final class PartnerPost
             require_once __DIR__ . '/PartnerAutomatik.php';
             if (self::still(static fn() => PartnerAutomatik::ruhig($partnerId), false)) { return 0; }
         }
+        /* Not-Aus: Auch ein Hinweis aufs Partner-Handy geht nach draußen (Prüfung 07.10.2026, Punkt 22). */
+        require_once __DIR__ . '/Ausgang.php';
+        if (!Ausgang::darf('push')) { return 0; }
         $n = 0;
         foreach (self::still(static fn() => Db::all('SELECT * FROM partner_push WHERE partner_id = ?', [$partnerId]), []) as $abo) {
             $r = self::still(static fn() => WebPush::senden($abo, ['titel' => $titel, 'text' => $text, 'link' => $link]),

@@ -1,5 +1,5 @@
 <div class="kopf"><div><h1>Fragebögen</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Nach der Anzahlung geht der Fragebogen von allein raus.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Nach der Anzahlung geht der Fragebogen von allein raus.
   Wer nach <?= (int) Onboarding::ERINNERUNG_NACH_TAGEN ?> Tagen nicht geantwortet hat, bekommt einmal eine Erinnerung.</p></div>
   <form method="post" action="<?= Fmt::h(url('')) ?>">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="fragebogen_erinnern">

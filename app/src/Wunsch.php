@@ -163,8 +163,22 @@ final class Wunsch
     public static function fassungGebaut(array $wunschIds, int $versionId, int $pid): void
     {
         if (!$wunschIds) { return; }
-        Db::run("UPDATE projekt_wuensche SET status = 'umgesetzt', version_id = ?, umgesetzt_am = NOW() WHERE project_id = ? AND (bau_auftrag_id IS NOT NULL OR status = 'umgesetzt') AND id IN ("
+        /* Nur die Fassung vermerken — „umgesetzt“ erst, wenn Uwe sie dem Kunden zeigt oder sie live
+           geht (Prüfung 07.10.2026, Punkt 35). Früher las der Kunde „Erledigt — Sie sehen es in der
+           Vorschau“, während V5 noch mit Mängeln im Review hing und die Vorschau unverändert war.
+           Bis dahin bleibt die Anzeige „Wird gerade umgesetzt“ (bau_auftrag_id bleibt gesetzt). */
+        Db::run("UPDATE projekt_wuensche SET version_id = ? WHERE project_id = ? AND (bau_auftrag_id IS NOT NULL OR status = 'umgesetzt') AND id IN ("
             . implode(',', array_map('intval', $wunschIds)) . ')', [$versionId, $pid]);
+    }
+
+    /** Die Fassung ist beim Kunden (Vorschau) oder live: Was in ihr (oder davor) gebaut wurde, ist umgesetzt. */
+    public static function fassungBeimKunden(int $versionId): int
+    {
+        $pid = (int) Db::wert('SELECT project_id FROM projekt_versionen WHERE id = ?', [$versionId], 0);
+        if ($pid <= 0) { return 0; }
+        return Db::run("UPDATE projekt_wuensche SET status = 'umgesetzt', umgesetzt_am = NOW()
+                         WHERE project_id = ? AND version_id IS NOT NULL AND version_id <= ? AND status IN ('im_umfang','zusatz_angenommen')",
+            [$pid, $versionId])->rowCount();
     }
 
     /** Scheitert ein Wunsch-Auftrag endgültig, gehen die Wünsche zurück in die Liste. */

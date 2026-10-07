@@ -16,22 +16,22 @@ $prozent = $woche['ziel'] > 0 ? min(100, (int) round($woche['erreicht'] / $woche
 $wt = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
 ?>
 <div class="kopf"><div><h1>Auswertung</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Wie viele Betriebe von Stufe zu Stufe kommen — gezählt je Betrieb, nicht je Nachricht.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Wie viele Betriebe von Stufe zu Stufe kommen — gezählt je Betrieb, nicht je Nachricht.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <style>
   .akq-ziel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:14px;align-items:center}
   .akq-ziel .balken{height:14px;border-radius:999px;background:var(--flaeche2);border:1px solid var(--linie);overflow:hidden}
   .akq-ziel .balken i{display:block;height:100%;background:linear-gradient(115deg,#b98a31,#f7e6ae 45%,#c49438)}
   .akq-tage{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px}
-  .akq-tage div{text-align:center;border:1px solid var(--linie);border-radius:10px;padding:6px 0;font-size:12.5px;color:var(--leise)}
+  .akq-tage div{text-align:center;border:1px solid var(--linie);border-radius:10px;padding:6px 0;font-size:var(--fs-klein);color:var(--leise)}
   .akq-tage b{display:block;font-size:17px;color:var(--text)}
   .akq-tage .heute{border-color:var(--linie2)}
   .akq-tr td,.akq-tr th{text-align:right;white-space:nowrap}
   .akq-tr td:first-child,.akq-tr th:first-child{text-align:left;white-space:normal}
-  .akq-tr small{display:block;color:var(--leise);font-size:11.5px}
+  .akq-tr small{display:block;color:var(--leise);font-size:var(--fs-klein)}
   .akq-tr tfoot td{font-weight:650;border-top:1px solid var(--linie2)}
   .akq-wahl{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-  .akq-wahl a{padding:6px 12px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13px}
+  .akq-wahl a{padding:6px 12px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:var(--fs-klein)}
   .akq-wahl a.an{background:var(--flaeche2);color:var(--text);border-color:var(--linie2)}
 </style>
 

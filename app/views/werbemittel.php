@@ -49,7 +49,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 <?php };
 ?>
 <div class="kopf"><div><h1>Marketing Center</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px;max-width:760px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px;max-width:760px">
     Werbemittel, die Partner mit ihrem Namen, ihrer ID und ihrem QR-Code bestellen können.
     Hier trägst du den Einkauf ein; der Preis für den Partner entsteht aus Einkauf und Marge.
     Partner sehen nur den Endpreis — nie Einkauf, Marge oder Anbieter.
@@ -72,7 +72,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
   <p style="font-size:14px;margin:0"><?php if (Gelato::bereit()): ?><span class="marke2 gut">Schlüssel eingetragen</span> Bezahlte Bestellungen gehen per Klick als Entwurf an Gelato; gedruckt wird erst nach deiner Bestätigung im Gelato-Dashboard.
     <?php else: ?><span class="marke2 warnung">Kein Schlüssel</span> In <code>app/config.local.php</code> eintragen: <code>'gelato' => ['api' => '…']</code>. Bis dahin beauftragst du den Druck von Hand.<?php endif; ?></p>
   <?php $wmPfF = Printful::druckflaechen(); if ($wmPfF['flaechen']): ?>
-    <details style="margin:8px 0 0"><summary style="font-size:13px;color:var(--leise);cursor:pointer">Printful-Druckflächen (abgefragt <?= Fmt::h($wmPfF['am']) ?>)</summary>
+    <details style="margin:8px 0 0"><summary style="font-size:var(--fs-klein);color:var(--leise);cursor:pointer">Printful-Druckflächen (abgefragt <?= Fmt::h($wmPfF['am']) ?>)</summary>
       <div class="tabellenrahmen"><table id="pf-druckflaechen"><thead><tr><th>Produkt</th><th>Druckstelle</th><th class="num">Breite px</th><th class="num">Höhe px</th><th class="num">dpi</th><th>Füllung</th><th>unser Bild</th></tr></thead><tbody>
       <?php foreach ($wmPfF['flaechen'] as $wmFn => $wmFp): foreach ($wmFp as $wmPl => $wmFf): $wmSoll = Printful::ARTEN[$wmFn]['px'] ?? null; ?>
         <tr><td><?= Fmt::h($wmFn) ?></td><td><?= Fmt::h($wmPl) ?></td><td class="num"><?= (int) $wmFf['b'] ?></td><td class="num"><?= (int) $wmFf['h'] ?></td><td class="num"><?= (int) $wmFf['dpi'] ?></td><td><?= Fmt::h($wmFf['fill']) ?><?= $wmFf['drehen'] ? ' · drehbar' : '' ?></td>
@@ -80,15 +80,15 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
       <?php endforeach; endforeach; ?></tbody></table></div></details>
   <?php endif; ?>
   <?php $wmGk = Gelato::kandidaten(); if ($wmGk['artikel']): ?>
-    <details style="margin:8px 0 0"><summary style="font-size:13px;color:var(--leise);cursor:pointer">Gelato-Artikel für neue Produkte (gesucht <?= Fmt::h($wmGk['am']) ?>)</summary>
+    <details style="margin:8px 0 0"><summary style="font-size:var(--fs-klein);color:var(--leise);cursor:pointer">Gelato-Artikel für neue Produkte (gesucht <?= Fmt::h($wmGk['am']) ?>)</summary>
       <div class="tabellenrahmen"><table id="gelato-kandidaten"><thead><tr><th>Produkt</th><th>Artikelnummer (productUid)</th><th>Merkmale</th><th>liefert nach</th></tr></thead><tbody>
       <?php foreach ($wmGk['artikel'] as $wmGn => $wmGl): foreach ($wmGl as $wmGa): ?>
-        <tr><td><?= Fmt::h($wmGn) ?></td><td><code style="font-size:12px;word-break:break-all"><?= Fmt::h($wmGa['uid']) ?></code></td>
-          <td style="font-size:12.5px"><?= Fmt::h(implode(' · ', array_map(static fn($k, $v) => $k . ': ' . $v, array_keys((array) $wmGa['merkmale']), (array) $wmGa['merkmale']))) ?></td>
+        <tr><td><?= Fmt::h($wmGn) ?></td><td><code style="font-size:var(--fs-klein);word-break:break-all"><?= Fmt::h($wmGa['uid']) ?></code></td>
+          <td style="font-size:var(--fs-klein)"><?= Fmt::h(implode(' · ', array_map(static fn($k, $v) => $k . ': ' . $v, array_keys((array) $wmGa['merkmale']), (array) $wmGa['merkmale']))) ?></td>
           <td><?= Fmt::h(implode(', ', (array) $wmGa['laender'])) ?: '—' ?></td></tr>
       <?php endforeach; endforeach; ?></tbody></table></div></details>
   <?php endif; ?>
-  <p style="color:var(--leise);font-size:12.5px;margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:8px 0 0">Je Auflage unten die Gelato-Artikelnummer (productUid) und die Menge eintragen — ohne Zuordnung geht keine Bestellung an Gelato.</p>
   <?php $auto = WmBestellung::automatik(); ?>
   <p style="font-size:14px;margin:12px 0 6px"><strong>Automatik:</strong> <?= $auto ? '<span class="marke2 gut">an</span> Nach der Zahlung geht der Auftrag von selbst an die Druckerei der Bestellung (wenn angebunden); die Sendungsnummer kommt von dort, der Partner bekommt die Mail. Je Land gewinnt dann die günstigste <em>angebundene</em> Druckerei.' : '<span class="marke2">aus</span> Du gibst jeden Auftrag selbst frei.' ?></p>
   <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -112,8 +112,8 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
       <div class="feld"><label>Zahlungskosten Stripe (%)</label><input name="zahlkosten_prozent" inputmode="decimal" value="<?= number_format($zk['zehntel'] / 10, 1, ',', '') ?>"></div>
       <div class="feld"><label>+ fest je Zahlung (€)</label><input name="zahlkosten_fix_eur" inputmode="decimal" value="<?= $eur((int) $zk['fix_cent']) ?>"></div>
     </div>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 6px">Preis = Einkauf (inkl. Versand und MwSt) + Marge — nie weniger als die Mindestmarge — und darauf die Stripe-Gebühr, damit dir die Marge ganz bleibt; aufgerundet auf 10 Cent. Bleibt nach allem weniger als <?= Werbemittel::euro(Werbemittel::MIN_GEWINN_CENT) ?> Gewinn, ist die Auflage gesperrt. Preise der Druckereien gelten <?= Werbemittel::FRISCH_TAGE ?> Tage.</p>
-    <p id="wm-beispiel" style="font-size:13px;margin:0 0 10px"></p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 6px">Preis = Einkauf (inkl. Versand und MwSt) + Marge — nie weniger als die Mindestmarge — und darauf die Stripe-Gebühr, damit dir die Marge ganz bleibt; aufgerundet auf 10 Cent. Bleibt nach allem weniger als <?= Werbemittel::euro(Werbemittel::MIN_GEWINN_CENT) ?> Gewinn, ist die Auflage gesperrt. Preise der Druckereien gelten <?= Werbemittel::FRISCH_TAGE ?> Tage.</p>
+    <p id="wm-beispiel" style="font-size:var(--fs-klein);margin:0 0 10px"></p>
     <button class="knopf haupt">Speichern</button>
   </form>
 </div>
@@ -149,16 +149,16 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
         if (isset(Printful::ARTEN[$p['vorlage']])):
           $wmVfDa = Werbemittel::vorlagenfotosDa((string) $p['vorlage']);
           $wmVfSoll = count(array_filter(Printful::vorlagenKombis(), static fn($k) => $k[0] === $p['vorlage'])); ?>
-        <details class="wm-vf"<?= $wmVfDa ? ' open' : '' ?>><summary style="font-size:13px;color:var(--leise);cursor:pointer">Produktfotos von Printful (wie der Partner sie sieht): <?= count($wmVfDa) ?> von <?= $wmVfSoll ?> da<?= count($wmVfDa) < $wmVfSoll ? ' — der Rest kommt von selbst, 2 je Cron-Lauf' : '' ?></summary>
+        <details class="wm-vf"<?= $wmVfDa ? ' open' : '' ?>><summary style="font-size:var(--fs-klein);color:var(--leise);cursor:pointer">Produktfotos von Printful (wie der Partner sie sieht): <?= count($wmVfDa) ?> von <?= $wmVfSoll ?> da<?= count($wmVfDa) < $wmVfSoll ? ' — der Rest kommt von selbst, 2 je Cron-Lauf' : '' ?></summary>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin:8px 0">
             <?php foreach ($wmVfDa as $wmVfK): [$wmVfS, $wmVfL] = explode('|', $wmVfK); $wmVfU = url('werbemittel/vorlagenfoto') . '?' . http_build_query(['v' => $p['vorlage'], 'st' => $wmVfS, 'l' => $wmVfL]); ?>
-              <a href="<?= Fmt::h($wmVfU) ?>" target="_blank" rel="noopener" style="display:grid;gap:2px;text-align:center;font-size:11.5px;color:var(--leise)">
+              <a href="<?= Fmt::h($wmVfU) ?>" target="_blank" rel="noopener" style="display:grid;gap:2px;text-align:center;font-size:var(--fs-klein);color:var(--leise)">
                 <img src="<?= Fmt::h($wmVfU) ?>" alt="" width="110" height="110" loading="lazy" style="width:110px;height:110px;object-fit:cover;border-radius:8px;background:#f3f2f0">
                 <?= Fmt::h(strtoupper($wmVfS) . ' · ' . strtoupper($wmVfL)) ?></a>
             <?php endforeach; ?>
           </div></details>
       <?php endif; ?>
-      <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">Regel: <?= (int) $p['regel']['marge_prozent'] ?> %, mindestens <?= Fmt::h(Werbemittel::euro((int) $p['regel']['mindestmarge_cent'])) ?>
+      <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 8px">Regel: <?= (int) $p['regel']['marge_prozent'] ?> %, mindestens <?= Fmt::h(Werbemittel::euro((int) $p['regel']['mindestmarge_cent'])) ?>
         <?= $p['marge_prozent'] === null && $p['mindestmarge_cent'] === null ? '(Standard)' : '(eigene Regel)' ?></p>
 
       <div class="tabellenrahmen"><table>
@@ -181,7 +181,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
                   foreach ($v['laender'] as $l => $x) {
                       if ($x[$was] <= 0) { $o[] = Partner::flagge($l) . ' <span style="color:var(--leise)">—</span>'; continue; }
                       $t = Partner::flagge($l) . ' ' . Fmt::h($was === 'einkauf_cent' ? $eur((int) $x[$was]) : Werbemittel::euro((int) $x[$was]));
-                      if ($was === 'einkauf_cent' && $x['anbieter']) { $t .= '<br><span style="font-size:11px;color:var(--leise)">' . Fmt::h((string) $x['anbieter']) . '</span>'; }
+                      if ($was === 'einkauf_cent' && $x['anbieter']) { $t .= '<br><span style="font-size:var(--fs-klein);color:var(--leise)">' . Fmt::h((string) $x['anbieter']) . '</span>'; }
                       $o[] = $t;
                   }
                   return implode('<br>', $o);
@@ -196,7 +196,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
                 <?php if (!empty($x['veraltet'])): ?><span class="marke2 warnung" title="Preis älter als <?= Werbemittel::FRISCH_TAGE ?> Tage">Preis alt · gesperrt</span>
                 <?php elseif ((int) $x['einkauf_cent'] <= 0): ?><span style="color:var(--leise)">—</span>
                 <?php else: ?><span class="wm-g"<?= !empty($x['gesperrt']) ? ' style="color:var(--rot,#e5484d)"' : '' ?>><?= Fmt::h(Werbemittel::euro((int) $x['gewinn_cent'])) ?></span>
-                  <span class="wm-h" style="font-size:11px;color:var(--leise)"><?= !empty($x['gesperrt']) ? 'gesperrt' : (!empty($x['mindest_greift']) ? 'Mindestmarge greift' : '') ?></span><?php endif; ?></div>
+                  <span class="wm-h<?= !empty($x['mindest_greift']) && empty($x['gesperrt']) ? ' marke2' : '' ?>" style="font-size:var(--fs-klein);color:var(--leise)"><?= !empty($x['gesperrt']) ? 'gesperrt' : (!empty($x['mindest_greift']) ? 'Mindestmarge greift' : '') ?></span><?php endif; ?></div>
             <?php endforeach; endif; ?></td>
             <?php $ga = $v ? Gelato::artikel((int) $v['id']) : null; ?>
             <td><div style="display:flex;gap:4px"><input form="<?= $fid ?>" name="gelato_artikel" value="<?= Fmt::h((string) ($ga['artikel'] ?? '')) ?>" placeholder="productUid" style="min-width:150px">
@@ -209,7 +209,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 
       <?php /* Preisvergleich (04.10.2026): je Auflage die geprüften Angebote; der Einkauf ist das günstigste. */ ?>
       <div style="margin-top:12px"><strong style="font-size:13.5px">Druckereien im Vergleich</strong>
-        <span style="color:var(--leise);font-size:12.5px"> — Preis so, wie Vecom zahlt: inkl. Versand ins Lieferland und inkl. Mehrwertsteuer (ohne Partita IVA ist sie Kosten). Je Land gewinnt das günstigste. Gleiche Qualität vorausgesetzt — das Papier steht daneben.</span>
+        <span style="color:var(--leise);font-size:var(--fs-klein)"> — Preis so, wie Vecom zahlt: inkl. Versand ins Lieferland und inkl. Mehrwertsteuer (ohne Partita IVA ist sie Kosten). Je Land gewinnt das günstigste. Gleiche Qualität vorausgesetzt — das Papier steht daneben.</span>
         <div class="tabellenrahmen" style="margin-top:6px"><table>
           <thead><tr><th>Auflage</th><th>Land</th><th>Druckerei</th><th class="num">Vecom zahlt</th><th class="num">netto</th><th>Papier</th><th>Lieferung</th><th>geprüft</th><th></th></tr></thead><tbody>
           <?php $keinAngebot = true; foreach ($p['varianten'] as $v): $vorLand = ''; foreach (Werbemittel::angebote((int) $v['id']) as $an): $keinAngebot = false;
@@ -219,7 +219,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
                 <?= $ai === 0 ? ' <span class="marke2 gut">günstigster</span>' : '' ?></td>
               <td class="num"><?= Fmt::h(Werbemittel::euro((int) $an['preis_cent'])) ?></td>
               <td class="num"><?= $an['netto_cent'] !== null ? Fmt::h(Werbemittel::euro((int) $an['netto_cent'])) : '—' ?></td>
-              <td><?= Fmt::h($an['papier']) ?></td><td style="font-size:12.5px"><?= Fmt::h($an['lieferung']) ?></td>
+              <td><?= Fmt::h($an['papier']) ?></td><td style="font-size:var(--fs-klein)"><?= Fmt::h($an['lieferung']) ?></td>
               <td><?= Fmt::h(Fmt::datum((string) $an['geprueft_am'])) ?><?= Werbemittel::veraltet($an) ? ' <span class="marke2 warnung">neu prüfen</span>' : '' ?></td>
               <td style="text-align:right"><form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0"><?= Csrf::feld() ?>
                 <input type="hidden" name="tat" value="wm_angebot_weg"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
@@ -229,7 +229,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           <?php if ($keinAngebot): ?><tr><td colspan="9"><div class="leer">Noch kein Angebot — dann gilt der Einkauf oben.</div></td></tr><?php endif; ?>
           </tbody></table></div>
         <?php foreach (['helloprint' => ['HelloPrint (variantKey)', 'productKey~sku', 'Menge'], 'printful' => ['Printful (variant_id; Menge = Zahl der Packs zu 50/100)', 'z. B. 18555', 'Packs']] as $dKey => [$dTitel, $dMuster, $dMenge]): ?>
-        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Artikelnummern bei <?= Fmt::h($dTitel) ?></summary>
+        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:var(--fs-klein)">Artikelnummern bei <?= Fmt::h($dTitel) ?></summary>
           <div style="display:grid;gap:6px;margin-top:8px">
           <?php foreach ($p['varianten'] as $v): $hp = Druckerei::artikel((int) $v['id'], $dKey); ?>
             <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0;display:flex;gap:6px;align-items:center;flex-wrap:wrap"><?= Csrf::feld() ?>
@@ -241,7 +241,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
               <button class="knopf stumm">Speichern</button></form>
           <?php endforeach; ?></div></details>
         <?php endforeach; ?>
-        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Angebot eintragen oder aktualisieren</summary>
+        <details style="margin-top:6px"><summary style="cursor:pointer;color:var(--leise);font-size:var(--fs-klein)">Angebot eintragen oder aktualisieren</summary>
           <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
             <input type="hidden" name="tat" value="wm_angebot"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
             <div class="reihe">
@@ -261,7 +261,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
           </form></details>
       </div>
 
-      <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--leise);font-size:13px">Produkt bearbeiten</summary>
+      <details style="margin-top:10px"><summary style="cursor:pointer;color:var(--leise);font-size:var(--fs-klein)">Produkt bearbeiten</summary>
         <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
           <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_produkt"><input type="hidden" name="zurueck" value="werbemittel#wm-<?= $pid ?>">
           <input type="hidden" name="id" value="<?= $pid ?>">
@@ -274,7 +274,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
 
 <?php /* Phase 2: was Partner freigegeben haben. Gedruckt wird nur, was hier steht. */ $freigaben = $freigaben ?? []; ?>
 <div class="block"><h2>Freigegebene Druckdateien</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">Jede Datei hat der Partner selbst geprüft und freigegeben. „ersetzt“ heißt: Er hat danach eine neuere freigegeben.</p>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 8px">Jede Datei hat der Partner selbst geprüft und freigegeben. „ersetzt“ heißt: Er hat danach eine neuere freigegeben.</p>
   <?php if (!$freigaben): ?><div class="leer">Noch keine Freigabe.</div>
   <?php else: ?><div class="tabellenrahmen"><table>
     <thead><tr><th>Freigegeben</th><th>Partner</th><th>Produkt</th><th>Wahl</th><th>Zustand</th><th></th></tr></thead><tbody>
@@ -293,7 +293,7 @@ $produktFelder = static function (?array $p) use ($kats, $eur, $mm): void { ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:10px">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="wm_produkt"><input type="hidden" name="zurueck" value="werbemittel"><input type="hidden" name="id" value="0">
     <?php $produktFelder(null); ?>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Die VEC-Nummer wird beim Anlegen vergeben. Danach Varianten mit Einkaufspreis eintragen.</p>
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Die VEC-Nummer wird beim Anlegen vergeben. Danach Varianten mit Einkaufspreis eintragen.</p>
     <button class="knopf haupt">Anlegen</button>
   </form></details></div>
 

@@ -196,6 +196,7 @@ final class Versionen
         if (empty($v['staging_url']) || empty($v['geprueft_am'])) { return ['ok' => false, 'text' => 'Erst auf die Testfassung und als geprüft markieren — der Kunde sieht nur, was du selbst angesehen hast.']; }
         $p = Db::one('SELECT preview_url, vorschau_frei_am FROM projects WHERE id = ?', [$pid]) ?: [];
         Db::update('projects', $pid, ['preview_url' => mb_substr((string) $v['staging_url'], 0, 255)]);
+        try { require_once __DIR__ . '/Wunsch.php'; Wunsch::fassungBeimKunden($id); } catch (Throwable $e) { }
         Events::pruefspur('version_kundenvorschau', 'projekt_versionen', $id, ['preview_url' => $p['preview_url'] ?? null], ['preview_url' => $v['staging_url'], 'von' => $wer]);
         if (($p['vorschau_frei_am'] ?? null) !== null) {
             return ['ok' => true, 'text' => 'V' . (int) $v['nummer'] . ' ist jetzt die Vorschau des Kunden — er sieht sie ab sofort (keine neue E-Mail).'];
@@ -213,6 +214,7 @@ final class Versionen
         $vorher = (int) Db::wert('SELECT live_version_id FROM projects WHERE id = ?', [(int) $v['project_id']], 0);
         Db::update('projekt_versionen', $id, ['live_am' => date('Y-m-d H:i:s')]);
         Db::update('projects', (int) $v['project_id'], ['live_version_id' => $id]);
+        try { require_once __DIR__ . '/Wunsch.php'; Wunsch::fassungBeimKunden($id); } catch (Throwable $e) { }
         Events::pruefspur($vorher > 0 && (int) Db::wert('SELECT nummer FROM projekt_versionen WHERE id = ?', [$vorher], 0) > (int) $v['nummer'] ? 'version_zurueckgerollt' : 'version_live',
             'projekt_versionen', $id, ['live_version' => $vorher], ['live_version' => $id, 'nummer' => (int) $v['nummer']]);
     }
@@ -221,30 +223,61 @@ final class Versionen
      * Die Dateien einer Fassung aus dem ZIP lesen (gemeinsamer Oberordner fällt weg, wie beim Veröffentlichen).
      * @return array<string,string> Pfad => Inhalt
      */
-    public static function dateien(int $id, bool $nurText = true, int $maxBytes = 20_000_000): array
+    /** Größer als das wird ein einzelner Eintrag nie in den Speicher gelesen (Prüfung 07.10.2026, Punkt 37). */
+    public const MAX_EINTRAG = 16_000_000;
+
+    /** Was bei der letzten dateien()-Abfrage wegen der Grenzen ausgelassen wurde. @var list<string> */
+    public static array $ausgelassen = [];
+
+    /**
+     * Die Einträge eines Fassungs-ZIPs mit bereinigtem Pfad — ohne sie zu lesen.
+     * @return array{zip:?string, eintraege:list<array{i:int,pfad:string,groesse:int,text:bool}>}
+     */
+    public static function eintraege(int $id): array
     {
         $v = self::laden($id);
-        if (!$v) { return []; }
+        if (!$v) { return ['zip' => null, 'eintraege' => []]; }
         require_once __DIR__ . '/BauPruefung.php';
+        $pfad = Ablage::ordner() . '/' . $v['stored_name'];
         $z = new ZipArchive();
-        if ($z->open(Ablage::ordner() . '/' . $v['stored_name']) !== true) { return []; }
-        $namen = [];
+        if ($z->open($pfad) !== true) { return ['zip' => null, 'eintraege' => []]; }
+        $namen = []; $groesse = [];
         for ($i = 0; $i < $z->numFiles; $i++) {
-            $n = str_replace('\\', '/', (string) $z->getNameIndex($i));
+            $st = $z->statIndex($i);
+            $n = str_replace('\\', '/', (string) ($st['name'] ?? ''));
             if (str_ends_with($n, '/') || preg_match('~(^|/)(__MACOSX|\.DS_Store|Thumbs\.db)(/|$)~i', $n)) { continue; }
-            $namen[$i] = $n;
+            $namen[$i] = $n; $groesse[$i] = (int) ($st['size'] ?? 0);
         }
+        $z->close();
         $ersteTeile = array_unique(array_map(static fn($n) => explode('/', $n)[0], $namen));
         $weg = (count($ersteTeile) === 1 && !in_array('index.html', $namen, true) && str_contains((string) reset($namen), '/')) ? reset($ersteTeile) . '/' : '';
-        $aus = []; $summe = 0;
+        $aus = [];
         foreach ($namen as $i => $n) {
             $rel = BauPruefung::pfadOk($weg !== '' ? substr($n, strlen($weg)) : $n);
             if ($rel === null) { continue; }
-            $istText = in_array(strtolower(pathinfo($rel, PATHINFO_EXTENSION)), BauPruefung::TEXT, true);
-            if ($nurText && !$istText) { continue; }
-            $inhalt = $z->getFromIndex($i);
-            if ($inhalt === false || ($summe += strlen($inhalt)) > $maxBytes) { break; }
-            $aus[$rel] = $inhalt;
+            $aus[] = ['i' => $i, 'pfad' => $rel, 'groesse' => $groesse[$i], 'text' => in_array(strtolower(pathinfo($rel, PATHINFO_EXTENSION)), BauPruefung::TEXT, true)];
+        }
+        return ['zip' => $pfad, 'eintraege' => $aus];
+    }
+
+    public static function dateien(int $id, bool $nurText = true, int $maxBytes = 20_000_000): array
+    {
+        self::$ausgelassen = [];
+        $e = self::eintraege($id);
+        if ($e['zip'] === null) { return []; }
+        $z = new ZipArchive();
+        if ($z->open($e['zip']) !== true) { return []; }
+        $aus = []; $summe = 0;
+        foreach ($e['eintraege'] as $x) {
+            if ($nurText && !$x['text']) { continue; }
+            /* Vorher prüfen, nicht nachher: getFromIndex liest den ganzen Eintrag in den Speicher —
+               ein 250-MB-Video oder eine ZIP-Bombe beendete sonst schon das Öffnen der Projektseite.
+               Und weitermachen statt abbrechen: Ein großes Bild ließ früher alle folgenden Dateien fallen. */
+            if ($x['groesse'] > self::MAX_EINTRAG || $summe + $x['groesse'] > $maxBytes) { self::$ausgelassen[] = $x['pfad']; continue; }
+            $inhalt = $z->getFromIndex($x['i'], self::MAX_EINTRAG + 1);
+            if ($inhalt === false || strlen($inhalt) > self::MAX_EINTRAG) { self::$ausgelassen[] = $x['pfad']; continue; }
+            $summe += strlen($inhalt);
+            $aus[$x['pfad']] = $inhalt;
         }
         $z->close();
         ksort($aus);

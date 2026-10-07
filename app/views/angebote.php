@@ -29,14 +29,14 @@ $stufen = [
   <tr>
     <td><a href="<?= Fmt::h(url('angebote/' . $a['id'])) ?>"><strong><?= Fmt::h((string) $a['nummer']) ?></strong></a>
       <?php if (trim((string) $a['titel']) !== ''): ?>
-        <div style="color:var(--leise);font-size:12.5px"><?= Fmt::h((string) $a['titel']) ?></div>
+        <div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $a['titel']) ?></div>
       <?php endif; ?>
     </td>
     <td><?= Fmt::h((string) ($a['kunde'] ?? '—')) ?></td>
     <td class="num"><?= Fmt::geld((int) $a['summe_cents'], (string) $a['currency']) ?></td>
     <td class="num"><?= (int) $a['monatlich_cents'] ? Fmt::geld((int) $a['monatlich_cents']) . '/Mon.' : '—' ?></td>
     <td><span class="marke2 <?= Fmt::h($farbe) ?>"><?= Fmt::h($wort) ?></span></td>
-    <td style="font-size:12.5px;<?= $laeuftAus ? 'color:var(--warn,#d19a2a)' : 'color:var(--leise)' ?>">
+    <td style="font-size:var(--fs-klein);<?= $laeuftAus ? 'color:var(--warn,#d19a2a)' : 'color:var(--leise)' ?>">
       <?= $a['gueltig_bis'] ? Fmt::h(Fmt::datum((string) $a['gueltig_bis'])) : '—' ?>
       <?php if ($laeuftAus): ?><br>läuft bald aus<?php endif; ?>
     </td>

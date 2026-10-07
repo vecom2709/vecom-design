@@ -34,6 +34,17 @@ final class PartnerAnrufliste
     public const JE_UEBERGABE = 50;
     /** Nach so vielen „Nicht erreicht“ fällt der Betrieb aus der Liste (Uwe, 29.09.2026). */
     public const MAX_VERSUCHE = 3;
+    /** So alt darf die Prüfung im Registro delle Opposizioni höchstens sein (Prüfung 07.10.2026, Punkt 21). */
+    public const RPO_TAGE = 15;
+
+    /** Italienische Nummer ohne gültige RPO-Prüfung? Dann darf sie nicht angerufen werden. */
+    public static function rpoFehlt(array $f, ?int $heute = null): bool
+    {
+        if (strtoupper((string) ($f['land'] ?? '')) !== 'IT') { return false; }
+        $am = (string) ($f['rpo_frei_am'] ?? '');
+        if ($am === '') { return true; }
+        return strtotime($am) < strtotime('-' . self::RPO_TAGE . ' days', strtotime(date('Y-m-d', $heute ?? time())));
+    }
 
     /**
      * Betriebe einem Partner übergeben.
@@ -60,6 +71,13 @@ final class PartnerAnrufliste
             if ($r && (int) $r['partner_id'] !== $partnerId && strtotime((string) $r['bis']) >= strtotime('today')) { $weg[$name] = 'reserviert von einem anderen Partner'; continue; }
             $g = AkquiseGate::pruefen(['id' => null] + $f, 'telefon');   // ohne id: die eigene Reservierung zählt hier nicht
             if (!in_array($g['status'], [AkquiseGate::ERLAUBT, AkquiseGate::PRUEFEN], true)) { $weg[$name] = 'Anruf nicht erlaubt: ' . ($g['gruende'][0] ?? ''); continue; }
+            /* Der Haken beim Übergeben ist Uwes Bestätigung von HEUTE — sie wird je Nummer mit
+               Datum gespeichert und läuft nach 15 Tagen ab (dann verschwindet der Betrieb aus der
+               Anrufliste, bis Uwe neu prüft und neu übergibt). */
+            if (strtoupper((string) ($f['land'] ?? '')) === 'IT') {
+                try { Db::run('UPDATE akq_firmen SET rpo_frei_am = CURDATE() WHERE id = ?', [$fid]); }
+                catch (Throwable $e) { $weg[$name] = 'RPO-Prüfung lässt sich nicht speichern (Migration 214 fehlt)'; continue; }
+            }
             Db::run('INSERT INTO partner_reservierungen (firma_id, partner_id, bis, herkunft, anruf_status, versuche, vermerk)
                      VALUES (?, ?, DATE_ADD(CURDATE(), INTERVAL ' . self::TAGE . " DAY), 'vecom', 'offen', 0, ?)
                      ON DUPLICATE KEY UPDATE partner_id = VALUES(partner_id), bis = VALUES(bis), herkunft = 'vecom', anruf_status = 'offen',
@@ -80,6 +98,15 @@ final class PartnerAnrufliste
 
     /** Die offenen Anrufe des Partners (zuerst die noch nicht versuchten). @return list<array<string,mixed>> */
     public static function liste(int $partnerId): array
+    {
+        /* Italienische Nummern nur mit RPO-Prüfung, die höchstens 15 Tage alt ist. */
+        try {
+            return array_values(array_filter(self::listeRoh($partnerId), static fn(array $f): bool => !self::rpoFehlt($f)));
+        } catch (Throwable $e) { return []; }
+    }
+
+    /** @return list<array<string,mixed>> */
+    private static function listeRoh(int $partnerId): array
     {
         try {
             return Db::all("SELECT f.*, r.anruf_status, r.versuche, r.anruf_am, r.bis

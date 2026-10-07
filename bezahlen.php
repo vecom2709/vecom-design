@@ -13,7 +13,7 @@ declare(strict_types=1);
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
-if (!is_file($konfig)) { http_response_code(503); exit('Gerade nicht erreichbar.'); }
+if (!is_file($konfig)) { http_response_code(503); exit('Momentaneamente non raggiungibile — riprovi tra poco. · Gerade nicht erreichbar — bitte gleich noch einmal. · Not available right now — please try again shortly.'); }
 
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events', 'Kundenzugang', 'Bezahllink'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";

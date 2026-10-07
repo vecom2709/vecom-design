@@ -266,6 +266,9 @@ final class Abnahme
             try {
                 $erg = self::fuerProjekt((int) $p['id']);
             } catch (Throwable $e) {
+                /* Trotzdem vermerken (Prüfung 07.10.2026, Punkt 40): Sonst standen 25 kaputte Projekte
+                   jede Nacht vorn und kein anderes wurde mehr geprüft. */
+                self::still(static fn() => Db::run('UPDATE projects SET abnahme_am = NOW() WHERE id = ?', [(int) $p['id']]), null);
                 continue;   // keine Adresse, kein Projekt — der naechste ist dran
             }
             $n++;

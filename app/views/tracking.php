@@ -53,13 +53,13 @@ $trichter = static function (array $stufen): void { $max = max(1, (int) ($stufen
 <style>
   .st-filter{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin:0 0 16px}
   .st-chips{display:flex;flex-wrap:wrap;gap:6px}
-  .st-chips a{padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim);font-size:13px;text-decoration:none}
+  .st-chips a{padding:6px 12px;border-radius:999px;border:1px solid var(--linie2);color:var(--dim);font-size:var(--fs-klein);text-decoration:none}
   .st-chips a[aria-current]{border-color:transparent;background:var(--metall);color:#16120b;font-weight:650}
-  .st-filter select,.st-filter input[type=date]{width:auto;min-width:0;padding:7px 10px;font-size:13px}
+  .st-filter select,.st-filter input[type=date]{width:auto;min-width:0;padding:7px 10px;font-size:var(--fs-klein)}
   .st-filter .feld{margin:0}
   .st-live{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-  .st-live article{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche2);font-size:13px;line-height:1.6}
-  .st-live article b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .st-live article{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche2);font-size:var(--fs-klein);line-height:1.6}
+  .st-live article b{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:var(--fs-klein)}
   .st-live dl{display:grid;grid-template-columns:auto 1fr;gap:0 10px;margin:6px 0 0}
   .st-live dt{color:var(--leise)} .st-live dd{margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .st-punkt{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gruen);margin-right:6px;box-shadow:0 0 0 3px rgba(74,222,128,.18)}

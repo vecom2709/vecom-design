@@ -19,24 +19,24 @@ $rs = is_array($rsStand) ? Kas::resellerAuswerten($rsStand, $rsVecom) : null;
 $rsZahl = static fn(?int $n): string => $n === null ? '—' : ($n < 0 ? 'unbegrenzt' : number_format($n, 0, ',', '.'));
 ?>
 <div class="block"><h2>Reseller (KAS)
-  <?php if ($rs): ?><span class="mehr" style="color:var(--leise);font-size:12.5px;font-weight:400">Stand <?= Fmt::h(Fmt::zeit((string) $rsStand['am'])) ?></span><?php endif; ?></h2>
+  <?php if ($rs): ?><span class="mehr" style="color:var(--leise);font-size:var(--fs-klein);font-weight:400">Stand <?= Fmt::h(Fmt::zeit((string) $rsStand['am'])) ?></span><?php endif; ?></h2>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin:0 0 14px">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="kas_reseller_lesen">
     <button class="knopf<?= $rs ? '' : ' haupt' ?>"><?= $rs ? 'Neu auslesen' : 'Jetzt auslesen' ?></button>
-    <span style="color:var(--leise);font-size:12.5px;margin-left:8px">Nur lesen — im KAS wird nichts verändert. Dauert etwa zehn Sekunden.</span>
+    <span style="color:var(--leise);font-size:var(--fs-klein);margin-left:8px">Nur lesen — im KAS wird nichts verändert. Dauert etwa zehn Sekunden.</span>
   </form>
   <?php if (!Kas::bereit()): ?>
     <p class="hinweis">Noch kein KAS-Zugang hinterlegt — unter <a href="<?= Fmt::h(url('einstellungen?b=zugaenge')) ?>">Zugänge &amp; Schutz</a> eintragen.</p>
   <?php endif; ?>
   <?php if ($rs): ?>
-    <?php foreach ((array) ($rsStand['fehler'] ?? []) as $rsF): ?><p class="hinweis schlecht" style="font-size:13px"><?= Fmt::h((string) $rsF) ?></p><?php endforeach; ?>
-    <?php foreach ((array) ($rsStand['hinweise'] ?? []) as $rsF): ?><p style="color:var(--leise);font-size:12.5px"><?= Fmt::h((string) $rsF) ?></p><?php endforeach; ?>
+    <?php foreach ((array) ($rsStand['fehler'] ?? []) as $rsF): ?><p class="hinweis schlecht" style="font-size:var(--fs-klein)"><?= Fmt::h((string) $rsF) ?></p><?php endforeach; ?>
+    <?php foreach ((array) ($rsStand['hinweise'] ?? []) as $rsF): ?><p style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $rsF) ?></p><?php endforeach; ?>
 
     <div class="kacheln" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin:6px 0 16px">
       <?php foreach ([['Kunden-Accounts', count($rs['kunden'])], ['Domains (Hauptaccount)', $rs['domains']],
                       ['Subdomains (Hauptaccount)', $rs['subdomains']], ['Postfächer (Hauptaccount)', $rs['postfaecher']]] as [$rsN, $rsW]): ?>
         <div style="border:1px solid var(--linie);border-radius:10px;padding:10px 12px">
-          <div style="font-size:22px;font-weight:700"><?= (int) $rsW ?></div><div style="color:var(--leise);font-size:12.5px"><?= Fmt::h($rsN) ?></div></div>
+          <div style="font-size:22px;font-weight:700"><?= (int) $rsW ?></div><div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h($rsN) ?></div></div>
       <?php endforeach; ?>
     </div>
 
@@ -56,7 +56,7 @@ $rsZahl = static fn(?int $n): string => $n === null ? '—' : ($n < 0 ? 'unbegre
              Sie gilt fuer jedes neue Angebot; Zugestimmtes behaelt seinen Wert. */
           $rsV = Hosting::kontingentAus((array) ($rsStand['ressourcen'] ?? [])); ?>
     <h3 style="font-size:14px;margin:18px 0 6px">Jeder Kunde bekommt</h3>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 8px">
       Der Vertrag geteilt durch <b><?= (int) $rsV['plaetze'] ?> Kunden-Plätze</b>, abgerundet — so ist auch mit dem letzten Platz nichts überbucht.
       Gilt für jedes neue Angebot; wem ein Kunde schon zugestimmt hat, bleibt, wie vereinbart.</p>
     <div class="tabellenrahmen"><table><tbody>
@@ -68,7 +68,7 @@ $rsZahl = static fn(?int $n): string => $n === null ? '—' : ($n < 0 ? 'unbegre
     </tbody></table></div>
 
     <h3 style="font-size:14px;margin:18px 0 6px">Speicher je Kunde — Vecom gegen KAS</h3>
-    <p style="color:var(--leise);font-size:12.5px;margin:0 0 8px">
+    <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 8px">
       Vereinbart sind zusammen <b><?= Fmt::h(Hosting::gb((int) $rs['summe_vereinbart_mb'])) ?></b><?=
         $rs['pool_mb'] !== null ? ' von ' . Fmt::h(Hosting::gb((int) $rs['pool_mb'])) . ' im Reseller-Vertrag' : '' ?>.
       <?php if ($rs['ueberbucht']): ?><span class="marke2 schlecht">mehr vereinbart, als der Vertrag hat</span><?php endif; ?></p>
@@ -85,7 +85,7 @@ $rsZahl = static fn(?int $n): string => $n === null ? '—' : ($n < 0 ? 'unbegre
       <?php if (!$rs['kunden']): ?><tr><td colspan="6" style="color:var(--leise)">Im Reseller-Vertrag gibt es noch keinen Kunden-Account.</td></tr><?php endif; ?>
     </tbody></table></div>
     <?php if ($rs['vecom_ohne_kas']): ?>
-      <p class="hinweis schlecht" style="font-size:13px;margin-top:10px">Bei Vecom eingetragen, im KAS nicht gefunden: <?= Fmt::h(implode(', ', $rs['vecom_ohne_kas'])) ?></p>
+      <p class="hinweis schlecht" style="font-size:var(--fs-klein);margin-top:10px">Bei Vecom eingetragen, im KAS nicht gefunden: <?= Fmt::h(implode(', ', $rs['vecom_ohne_kas'])) ?></p>
     <?php endif; ?>
   <?php endif; ?>
 </div>

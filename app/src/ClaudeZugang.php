@@ -223,6 +223,24 @@ final class ClaudeZugang
         return ['art' => 'weiter', 'ziel' => self::basis() . Config::basis() . '/claude-erlauben?a=' . $id];
     }
 
+    /**
+     * Prüfung 07.10.2026 (Befund 6): Die Erlaubnis gilt nur in dem Browser, in dem die Anfrage begonnen hat.
+     * claude-oauth.php setzt beim Weiterleiten einen Keks mit der Anfragenummer; die Erlaubnis-Seite verlangt ihn.
+     * Ein fremder Erlaubnis-Link, den jemand Uwe schickt, trägt diesen Keks nicht — dann gibt es keinen Knopf.
+     */
+    public const KEKS = 'vd_claude_anfrage';
+
+    public static function browserMerken(string $anfrageId): void
+    {
+        if (headers_sent() || !preg_match('/^[a-f0-9]{32}$/', $anfrageId)) { return; }
+        setcookie(self::KEKS, $anfrageId, ['expires' => time() + self::ANFRAGE_SEKUNDEN, 'path' => '/', 'secure' => true, 'httponly' => true, 'samesite' => 'Lax']);
+    }
+
+    public static function ausDiesemBrowser(string $anfrageId): bool
+    {
+        return $anfrageId !== '' && hash_equals($anfrageId, (string) ($_COOKIE[self::KEKS] ?? ''));
+    }
+
     /** Eine offene Anfrage samt Programm, oder null (abgelaufen, schon beantwortet, unbekannt). */
     public static function anfrage(string $id): ?array
     {
@@ -236,6 +254,7 @@ final class ClaudeZugang
     public static function erlauben(string $anfrageId, int $userId, string $wer): ?string
     {
         if (!self::an()) { return null; }
+        if (!self::ausDiesemBrowser($anfrageId)) { return null; }
         $a = self::anfrage($anfrageId);
         if ($a === null) { return null; }
         if (Db::run('DELETE FROM claude_anfragen WHERE id = ?', [$anfrageId])->rowCount() !== 1) { return null; }

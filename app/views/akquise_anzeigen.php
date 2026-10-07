@@ -9,7 +9,7 @@
 $akqTeil = 'anzeigen';
 ?>
 <div class="kopf"><div><h1>Anzeigen &amp; Branchen-Seiten</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Jeden Montag fertige Anzeigentexte mit echten Durchschnittswerten je Branche und Ort — anonym, ab <?= BranchenStatistik::MIN ?> geprüften Betrieben.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Jeden Montag fertige Anzeigentexte mit echten Durchschnittswerten je Branche und Ort — anonym, ab <?= BranchenStatistik::MIN ?> geprüften Betrieben.
     Nichts wird geschaltet: kopieren, im Werbekonto einfügen, Budget selbst wählen.</p></div></div>
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 <style>
@@ -17,9 +17,9 @@ $akqTeil = 'anzeigen';
   .az-karte{border:1px solid var(--linie);border-radius:12px;padding:12px 14px;background:var(--flaeche2)}
   .az-karte.erledigt{opacity:.55}
   .az-kopf{display:flex;gap:10px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:8px}
-  .az-karte label{display:block;font-size:11.5px;color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 3px}
+  .az-karte label{display:block;font-size:var(--fs-mini);color:var(--leise);text-transform:uppercase;letter-spacing:.05em;margin:8px 0 3px}
   .az-karte textarea{width:100%;box-sizing:border-box;font-size:13.5px;line-height:1.5;padding:8px 10px;resize:vertical}
-  .az-zahl{font-size:12px;color:var(--leise)}
+  .az-zahl{font-size:var(--fs-klein);color:var(--leise)}
   .az-seiten td,.az-seiten th{white-space:nowrap}
 </style>
 

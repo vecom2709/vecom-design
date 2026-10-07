@@ -74,6 +74,27 @@ final class Bezahllink
      * @return array{ziel:string, grund:string}
      *   grund: offen | neu | eben_bezahlt | abweichung | bezahlt | zu | aus | fremd
      */
+    /**
+     * Vor jeder NEUEN Bezahlseite die alte fragen (Prüfung 07.10.2026, Befund 10). Sonst überschreibt eine Mahnung
+     * oder der Knopf „Zahlungslink“ eine Sitzung, die schon bezahlt, aber (Webhook ausgefallen) noch nicht gebucht
+     * ist — der Abgleich fragt danach nur noch die neue, und der Kunde wird weiter gemahnt.
+     * @return 'bezahlt'|'offen'|null  bezahlt = eben gebucht; offen = die alte Seite gilt noch; null = neue anlegen
+     */
+    public static function alteSitzungPruefen(array $z, object $stripe): ?string
+    {
+        $sitzung = trim((string) ($z['provider_sitzung'] ?? ''));
+        if ($sitzung === '') { return null; }
+        try {
+            $s = $stripe->sitzungLesen($sitzung);
+            if (!empty($s['bezahlt'])) {
+                Events::zahlungVonStripe((int) $z['id'], (string) $s['referenz'], (int) $s['betrag'], (string) $s['waehrung']);
+                return 'bezahlt';
+            }
+            if (($s['status'] ?? '') === 'open' && trim((string) ($z['link_url'] ?? '')) !== '') { return 'offen'; }
+        } catch (Throwable $e) { /* Stripe kennt sie nicht mehr: neue Seite */ }
+        return null;
+    }
+
     public static function oeffnen(string $token, int $zahlungId, ?object $anbieter = null): array
     {
         require_once __DIR__ . '/Kundenzugang.php';

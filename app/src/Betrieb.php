@@ -228,11 +228,15 @@ final class Betrieb
         foreach ($dateien as $pfad => $inhalt) {
             [$st, $body] = $http($basis . ($pfad === 'index.html' ? '' : implode('/', array_map('rawurlencode', explode('/', $pfad)))));
             $n++;
-            if ($st === 0) { $netz++; continue; }
+            /* Antwortet die Domain einmal nicht, nicht noch 39 Mal je 15 s warten (Prüfung 07.10.2026, Punkt 39). */
+            if ($st === 0) { $netz++; break; }
             if ($st === 404 || $st === 410) { $fehlt[] = $pfad; continue; }
             if ($st !== 200 || !self::gleich($inhalt, $body)) { $geaendert[] = $pfad . ($st !== 200 ? ' (' . $st . ')' : ''); }
         }
-        if ($n > 0 && $netz === $n) {
+        if ($netz > 0) {
+            /* Trotzdem vermerken, wann versucht wurde — sonst stand dasselbe Projekt beim nächsten Lauf
+               wieder ganz vorn und blockierte die anderen. Das letzte Ergebnis bleibt stehen. */
+            Db::update('projects', $pid, ['abweichung_am' => date('Y-m-d H:i:s')]);
             return ['ok' => true, 'geprueft' => 0, 'geaendert' => [], 'fehlt' => [], 'text' => 'Keine Verbindung — dieser Lauf zählt nicht.'];
         }
         $ok = !$geaendert && !$fehlt;
@@ -291,9 +295,10 @@ final class Betrieb
         }
         $tot = []; $i = 0;
         foreach ($intern as $ziel => $von) {
-            if (++$i > self::MAX_VERWEISE) { break; }
+            if (++$i > self::MAX_VERWEISE || $st === 0) { break; }   // Startseite stumm: keine 60 Abrufe à 15 s
             [$s] = $http($basis . implode('/', array_map('rawurlencode', explode('/', $ziel))));
-            if ($s !== 200 && $s !== 0) { $tot[] = $von . ' → ' . $ziel . ' (' . $s . ')'; }
+            if ($s === 0) { break; }
+            if ($s !== 200) { $tot[] = $von . ' → ' . $ziel . ' (' . $s . ')'; }
         }
         $add('Keine kaputten internen Links oder fehlenden Dateien', !$tot, true, implode(', ', array_slice($tot, 0, 8)));
         $weg = [];
@@ -320,21 +325,31 @@ final class Betrieb
     public static function taeglich(?callable $http = null): int
     {
         $n = 0;
+        $start = microtime(true);
         foreach ((array) self::still(static fn() => Db::all("SELECT id FROM projects WHERE veroeffentlicht_am IS NOT NULL AND live_version_id IS NOT NULL
               AND (abweichung_am IS NULL OR abweichung_am < CURDATE()) ORDER BY abweichung_am IS NULL DESC, abweichung_am LIMIT 20"), []) as $r) {
+            if (microtime(true) - $start > self::ZEITBUDGET) { break; }   // der nächste Lauf macht weiter
             self::still(static fn() => self::abweichung((int) $r['id'], $http), null);
+            // Auch bei einem Absturz mittendrin: heute ist dieses Projekt dran gewesen.
+            self::still(static fn() => Db::run('UPDATE projects SET abweichung_am = NOW() WHERE id = ? AND (abweichung_am IS NULL OR abweichung_am < CURDATE())', [(int) $r['id']]), null);
             $n++;
         }
         return $n;
     }
 
+    /** Höchstens so viele Sekunden je Cron-Aufgabe (Abweichung, Seitenprüfung). */
+    public const ZEITBUDGET = 90;
+
     /** Cron, wöchentlich je Seite: Seitenprüfung (höchstens 5 je Lauf). */
     public static function woechentlich(?callable $http = null): int
     {
         $n = 0;
+        $start = microtime(true);
         foreach ((array) self::still(static fn() => Db::all("SELECT id FROM projects WHERE veroeffentlicht_am IS NOT NULL AND live_version_id IS NOT NULL
               AND (seitencheck_am IS NULL OR seitencheck_am < NOW() - INTERVAL 7 DAY) ORDER BY seitencheck_am IS NULL DESC, seitencheck_am LIMIT 5"), []) as $r) {
+            if (microtime(true) - $start > self::ZEITBUDGET) { break; }
             self::still(static fn() => self::seitencheck((int) $r['id'], $http), null);
+            self::still(static fn() => Db::run('UPDATE projects SET seitencheck_am = NOW() WHERE id = ? AND (seitencheck_am IS NULL OR seitencheck_am < NOW() - INTERVAL 7 DAY)', [(int) $r['id']]), null);
             $n++;
         }
         return $n;

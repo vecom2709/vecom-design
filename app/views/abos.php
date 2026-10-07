@@ -2,7 +2,7 @@
          monatlich kommt, das Hosting und was davon auf Uwe wartet, auf einer
          Seite. Hier wird nur gelesen; die Taten stehen in der Kundenakte. */ ?>
 <div class="kopf"><div><h1>Verträge</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">
     Was jeden Monat läuft: Betreuung und Hosting. Website und Betreuung sind zwei getrennte
     Verträge — die Website steht bei den Bestellungen.</p></div>
 </div>
@@ -56,7 +56,7 @@
             ? Fmt::h(Fmt::datum((string) $a['naechste_abrechnung'])) : '—' ?></td>
       <td><span class="marke2 <?= Fmt::h($ton) ?>"><?= Fmt::h($wort) ?></span>
         <?php if ($a['laeuft_bis']): ?>
-          <div style="color:var(--leise);font-size:12px">bis <?= Fmt::h(Fmt::datum((string) $a['laeuft_bis'])) ?></div>
+          <div style="color:var(--leise);font-size:var(--fs-klein)">bis <?= Fmt::h(Fmt::datum((string) $a['laeuft_bis'])) ?></div>
         <?php endif; ?></td>
     </tr>
   <?php endforeach; ?>
@@ -97,7 +97,7 @@
       <td><?= $h['inklusive'] ? '<span style="color:var(--leise)">in Betreuung</span>' : Fmt::h(Fmt::geld((int) $h['preis_cents'])) ?></td>
       <td><span class="marke2 <?= Fmt::h($hTon) ?>"><?= Fmt::h($hWort) ?></span>
         <?php if ((int) $h['schritte'] > 0 && !in_array((string) $h['status'], ['vorgeschlagen', 'zugestimmt'], true)): ?>
-          <div style="color:var(--leise);font-size:12px"><?= (int) $h['erledigt'] ?>/<?= (int) $h['schritte'] ?> Schritte<?=
+          <div style="color:var(--leise);font-size:var(--fs-klein)"><?= (int) $h['erledigt'] ?>/<?= (int) $h['schritte'] ?> Schritte<?=
             (int) $h['hand'] > 0 ? ' · ' . (int) $h['hand'] . ' von Hand' : '' ?></div>
         <?php endif; ?></td>
     </tr>

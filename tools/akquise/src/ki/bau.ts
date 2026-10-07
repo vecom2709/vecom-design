@@ -136,10 +136,10 @@ export function bauenText(a: BauAuftrag): string {
   const g = a.grenzen ?? { dateien: 120, bytes: 1_500_000, endungen: ['html', 'css', 'js', 'svg', 'txt', 'xml', 'json', 'webmanifest'] };
   const repar = (a.versuch ?? 1) > 1;
   const nach = a.fassung ? (repar ? `\nNACHBESSERN — RUNDE ${a.versuch} VON ${a.max_versuche ?? 3}
-Ausgangsfassung ist V${a.fassung.nummer}. Behebe die Mängel unten, ändere sonst nur, was dafür nötig ist, und liefere wieder ALLE Textdateien vollständig.
+Ausgangsfassung ist V${a.fassung.nummer}. Behebe die Mängel unten, ändere sonst nur, was dafür nötig ist, und liefere jede Textdatei, die du änderst oder neu anlegst, vollständig. Was du nicht lieferst, bleibt unverändert aus V${a.fassung.nummer}.
 MÄNGEL:\n${a.hinweis || '(siehe Review)'}
 ${a.fassung.review ? `REVIEW DER AUSGANGSFASSUNG:\n${a.fassung.review.slice(0, 15000)}\n` : ''}` : `\nÄNDERUNG AUF BASIS VON V${a.fassung.nummer}
-Behalte Gestaltung, Aufbau und Inhalte von V${a.fassung.nummer}; ändere nur, was die Wünsche bzw. der Hinweis verlangen, und liefere wieder ALLE Textdateien vollständig.
+Behalte Gestaltung, Aufbau und Inhalte von V${a.fassung.nummer}; ändere nur, was die Wünsche bzw. der Hinweis verlangen, und liefere jede Textdatei, die du änderst oder neu anlegst, vollständig. Was du nicht lieferst, bleibt unverändert aus V${a.fassung.nummer}.
 ${a.hinweis ? `HINWEIS: ${a.hinweis}\n` : ''}`) + `
 QUELLTEXT V${a.fassung.nummer}:\n${quelltextBlock(a.fassung.dateien)}\n` : (a.hinweis ? `\nZUSATZWUNSCH VON UWE: ${a.hinweis}\n` : '');
   return `Du baust für Vecom Design (Webdesign, Uwe Vetter) die Website eines Kunden — als statische Dateien.

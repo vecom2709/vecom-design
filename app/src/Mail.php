@@ -102,7 +102,7 @@ final class Mail
         }
 
         $sprache = self::spracheVon($bezug);
-        $html = !empty($bezug['nurText']) ? null : self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache);
+        $html = !empty($bezug['nurText']) ? null : self::alsHtml($text, self::knopfwort($anlass, $sprache), $sprache, (string) ($bezug['empfaengerArt'] ?? 'kunde'));
         /* Die Kundenakte zeigt jede Mail so, wie sie hinausging (07.10.2026, Uwe: „in den jeweiligen
            Kundenakten sollen auch alle versendeten E-Mails angezeigt werden“): Text, Briefbogen und
            die Namen der Anhänge. Die Anhänge selbst nicht — Belege und Angebote liegen ohnehin in der
@@ -145,8 +145,8 @@ final class Mail
            KI-Telefon oder der Cron wollen während des Not-Aus eine Mail an Kunden oder Partner
            schicken: Sie wartet in Ausgang, bis Uwe sie sendet oder verwirft. Mails an Uwe selbst
            gehen immer — eine Störung muss ihn gerade dann erreichen. */
-        if (Automation::ausgangGesperrt() && !self::anUns($an, $z)) {
-            require_once __DIR__ . '/Ausgang.php';
+        require_once __DIR__ . '/Ausgang.php';
+        if (!Ausgang::darf('mail', Automation::ausgangGesperrt() && self::anUns($an, $z))) {
             $gehalten = Ausgang::mailHalten($anlass, $an, $betreff, $text, $bezug);
             self::vermerken($eintrag + ['status' => 'gehalten', 'fehler' => $gehalten
                 ? 'Not-Aus — zurückgehalten, bis Uwe entscheidet.' : 'Not-Aus — nicht verschickt.']);
@@ -487,7 +487,7 @@ final class Mail
      * @param string $sprache Fuer die Zeile im Fuss. Alles andere ist Daten.
      */
     public static function alsHtml(string $text, string $knopfwort = 'Öffnen',
-                                   string $sprache = 'de'): string
+                                   string $sprache = 'de', string $empfaengerArt = 'kunde'): string
     {
         require_once __DIR__ . '/Firma.php';
 
@@ -602,7 +602,7 @@ final class Mail
             . ';font-size:15.5px;color:' . self::TEXT . '">'
             . $rumpf
             . '</td></tr>'
-            . self::fuss($sprache, $schrift)
+            . self::fuss($sprache, $schrift, $empfaengerArt)
             . '</table></td></tr></table></body></html>';
     }
 
@@ -644,7 +644,7 @@ final class Mail
      * aus Firma, damit es an einer Stelle gepflegt wird und nicht in
      * siebzehn Mailtexten steht.
      */
-    private static function fuss(string $sprache, string $schrift): string
+    private static function fuss(string $sprache, string $schrift, string $empfaengerArt = 'kunde'): string
     {
         $zeilen = (array) self::still(static fn() => Firma::anschrift(), []);
 
@@ -672,6 +672,13 @@ final class Mail
                  'de' => 'Sie erhalten diese E-Mail, weil wir an Ihrem Projekt zusammenarbeiten.',
                  'en' => 'You’re receiving this email because we’re working on your project together.',
                 ][$sprache] ?? '';
+        /* Partner arbeiten nicht an „ihrem Projekt“ mit uns (Prüfung 07.10.2026, Punkt 26). */
+        if ($empfaengerArt === 'partner') {
+            $satz = ['it' => 'Riceve questa e-mail perché collabora con Vecom Design come partner.',
+                     'de' => 'Sie erhalten diese E-Mail, weil Sie als Partner mit Vecom Design zusammenarbeiten.',
+                     'en' => 'You’re receiving this email because you work with Vecom Design as a partner.',
+                    ][$sprache] ?? '';
+        }
 
         $inhalt = '';
         if ($zeilen) {

@@ -1,5 +1,7 @@
 <?php
 declare(strict_types=1);
+/* Not-Aus gilt auch hier: Was ein Besucher auslöst, ist für Uwe „automatisch“ (Prüfung 07.10.2026, Punkt 19). */
+require_once __DIR__ . '/app/src/Automation.php'; Automation::automatischAb('web-fragebogen');
 /* ==========================================================================
    Der Fragebogen des Kunden -- seit dem 26.09.2026 der eine Fragebogen:
    Er beginnt mit den acht Fragen (bedarf.php, danach der Richtpreis) und
@@ -28,7 +30,7 @@ declare(strict_types=1);
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
-if (!is_file($konfig)) { http_response_code(503); exit('Der Fragebogen ist derzeit nicht erreichbar.'); }
+if (!is_file($konfig)) { http_response_code(503); exit('Momentaneamente non raggiungibile — riprovi tra poco. · Gerade nicht erreichbar — bitte gleich noch einmal. · Not available right now — please try again shortly.'); }
 
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
@@ -132,7 +134,7 @@ if ($f && $_SERVER['REQUEST_METHOD'] === 'POST') {
                 Ablage::annehmen($eine, $f['project_id'] !== null ? (int) $f['project_id'] : null, (int) $f['customer_id'], 'kunde',
                     ($_POST['datei_rolle'] ?? '') === 'logo' ? 'logo' : 'material');
                 $angekommen++;
-            } catch (Throwable $e) { $dateiFehler = $e->getMessage(); }
+            } catch (Throwable $e) { $dateiFehler = Ablage::kundenText($e, $sprache); }
         }
         if ($dateiFehler !== '') { $_SESSION['fb_datei'] = ['schlecht', $dateiFehler]; }
         elseif ($angekommen > 0) { $_SESSION['fb_datei'] = ['gut', '']; }
@@ -307,15 +309,15 @@ $gruppenWort = [
      wie viel noch kommt — und dass es wenig ist. */
   .richtpreis{margin:12px 0 0;padding:10px 14px;border-radius:10px;background:rgba(192,136,24,.09);
     border:1px solid rgba(192,136,24,.28);font-size:14px;line-height:1.5;color:var(--text)}
-  .richtpreis span{display:block;margin-top:2px;font-size:12.5px;color:var(--dim)}
+  .richtpreis span{display:block;margin-top:2px;font-size:14px;color:var(--dim)}
   .punkte{display:flex;gap:6px;margin:14px 0 4px;list-style:none;padding:0}
   .punkte li{flex:1 1 0;height:4px;border-radius:2px;background:var(--linie)}
   .punkte li.durch{background:var(--blau)}
   /* Die acht Fragen samt Richtpreis: ein Teil, doppelt breit, schon erledigt */
   .punkte li.vorlauf{flex-grow:2}
   .punkte li.jetzt{background:var(--cyan)}
-  .zaehler{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
-  .beiseite{color:var(--leise);font-size:12.5px;line-height:1.6;margin-top:10px}
+  .zaehler{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .beiseite{color:var(--leise);font-size:14px;line-height:1.6;margin-top:10px}
   .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .leiste2 .rechts{margin-left:auto}
   /* Auf dem Rechner haben Knoepfe ihre eigene Breite, auf dem Handy die
@@ -327,7 +329,7 @@ $gruppenWort = [
      halbe Auftragsumfang stand, ohne dass jemand ihn vergleichen konnte. */
   .zahlfeld{max-width:110px}
   .hakengruppe{margin:14px 0 0}
-  .hakengruppe h4{font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;
+  .hakengruppe h4{font-size:12.5px;letter-spacing:.08em;text-transform:uppercase;
                   color:var(--leise);margin:0 0 8px;font-weight:600}
   .haken{display:flex;gap:11px;align-items:flex-start;padding:11px 12px;margin-bottom:7px;
          border:1px solid var(--linie);border-radius:10px;cursor:pointer;
@@ -339,14 +341,14 @@ $gruppenWort = [
   .haken input{margin:2px 0 0;width:17px;height:17px;flex:0 0 auto;accent-color:var(--blau)}
   .haken span{flex:1 1 auto;min-width:0;display:block;font-size:14px;line-height:1.45}
   .haken span b{display:block;font-weight:600}
-  .haken span i{display:block;font-style:normal;font-weight:400;font-size:12.5px;
+  .haken span i{display:block;font-style:normal;font-weight:400;font-size:14px;
                 color:var(--leise);margin-top:2px}
   /* "Im Angebot" ist die wichtigste Auskunft auf dieser Seite: Sie sagt dem
      Kunden, was er schon hat, und uns, woran wir seine Kreuze messen. */
-  .haken em.drin{flex:0 0 auto;align-self:center;font-style:normal;font-size:11px;
+  .haken em.drin{flex:0 0 auto;align-self:center;font-style:normal;font-size:12.5px;
                  letter-spacing:.05em;text-transform:uppercase;color:var(--blau);
                  border:1px solid currentColor;border-radius:999px;padding:3px 9px;white-space:nowrap}
-  .feld p.mehr,.feld p.weniger{margin:12px 0 0;font-size:13px;line-height:1.55;
+  .feld p.mehr,.feld p.weniger{margin:12px 0 0;font-size:14px;line-height:1.55;
          border-radius:9px;padding:10px 12px}
   .feld p.mehr{color:var(--cyan);background:rgba(241,211,139,.07);border:1px solid rgba(241,211,139,.3)}
   .feld p.weniger{color:var(--dim);background:rgba(127,127,127,.07);border:1px solid var(--linie)}
@@ -379,13 +381,13 @@ $gruppenWort = [
   details.kuer[open]>summary{margin-bottom:10px}
   /* B2 Chips, B4 Diktieren, B5 Hochladen */
   .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
-  .chip{font:inherit;font-size:13px;padding:6px 11px;border-radius:99px;cursor:pointer;
+  .chip{font:inherit;font-size:14px;padding:6px 11px;border-radius:99px;cursor:pointer;
     border:1px solid var(--linie,rgba(255,255,255,.18));background:transparent;color:var(--dim)}
   .chip.an{border-color:var(--akzent,#dca434);color:var(--text,#fff)}
-  .diktat{font:inherit;font-size:13px;margin-top:8px;padding:6px 12px;border-radius:99px;cursor:pointer;
+  .diktat{font:inherit;font-size:14px;margin-top:8px;padding:6px 12px;border-radius:99px;cursor:pointer;
     border:1px dashed var(--linie,rgba(255,255,255,.25));background:transparent;color:var(--dim)}
   .diktat.laeuft{border-style:solid;border-color:#e0605a;color:#fff}
-  .hochladen input[type=file]{max-width:100%;font-size:13px}
+  .hochladen input[type=file]{max-width:100%;font-size:14px}
   /* Die Kernfrage, die beim Absenden noch fehlte. */
   .feld.fehlt{outline:2px solid var(--akzent,#dca434);outline-offset:8px;border-radius:6px}
   .freizeile::placeholder{color:var(--leise)}
@@ -405,14 +407,14 @@ $gruppenWort = [
   @media (max-width:620px){ .standwahl{grid-template-columns:repeat(2,1fr)} }
 
   /* ---- Die Antwort neben der Wunschadresse ------------------------------ */
-  .pruefung{margin:7px 0 0;font-size:13px;line-height:1.5;padding:8px 11px;border-radius:9px}
+  .pruefung{margin:7px 0 0;font-size:14px;line-height:1.5;padding:8px 11px;border-radius:9px}
   .pruefung.frei{color:#7ee3a8;background:rgba(126,227,168,.09);border:1px solid rgba(126,227,168,.32)}
   .pruefung.vergeben{color:#ff9d8a;background:rgba(255,157,138,.09);border:1px solid rgba(255,157,138,.32)}
   .pruefung.unklar,.pruefung.ungueltig,.pruefung.laeuft{color:var(--leise);
         background:rgba(127,127,127,.07);border:1px solid var(--linie)}
   .standwahl label{display:flex;align-items:center;justify-content:center;
                    gap:6px;padding:8px 8px;border:1px solid var(--linie);border-radius:8px;
-                   font-size:12.5px;cursor:pointer;white-space:nowrap;
+                   font-size:14px;cursor:pointer;white-space:nowrap;
                    transition:border-color .14s ease, background .14s ease, color .14s ease}
   .standwahl label:hover{border-color:var(--cyan)}
   .standwahl label.an,

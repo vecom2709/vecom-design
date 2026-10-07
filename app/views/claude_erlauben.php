@@ -7,7 +7,7 @@ $wohin = $anfrage ? (string) parse_url((string) $anfrage['redirect_uri'], PHP_UR
 $eintragen = $anfrage && in_array(ClaudeZugang::EINTRAGEN, explode(' ', (string) $anfrage['scope']), true);
 ?>
 <div class="kopf"><div><h1>Claude-Zugang erlauben</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px"><?= $eintragen ? 'Claude möchte deine Verwaltung lesen und im Haus eintragen.' : 'Claude möchte deine Verwaltung lesen.' ?></p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px"><?= $eintragen ? 'Claude möchte deine Verwaltung lesen und im Haus eintragen.' : 'Claude möchte deine Verwaltung lesen.' ?></p></div></div>
 
 <?php if (!$an): ?>
   <div class="block"><p style="margin:0">Der Claude-Zugang ist ausgeschaltet. Einschalten kannst du ihn unter
@@ -15,6 +15,9 @@ $eintragen = $anfrage && in_array(ClaudeZugang::EINTRAGEN, explode(' ', (string)
 <?php elseif ($anfrage === null): ?>
   <div class="block"><p style="margin:0">Diese Anfrage gilt nicht mehr — sie hält zehn Minuten und lässt sich nur einmal beantworten.
     In Claude einfach noch einmal „Verbinden“ wählen.</p></div>
+<?php elseif (!ClaudeZugang::ausDiesemBrowser((string) $anfrage['id'])): ?>
+  <div class="block"><p style="margin:0;font-size:15px"><b>Diese Anfrage wurde nicht in diesem Browser gestartet.</b> Zur Sicherheit gibt es hier keinen Knopf:
+    Erlauben geht nur in dem Browser, in dem Sie in Claude auf „Verbinden“ geklickt haben. Hat Ihnen jemand diesen Link geschickt, ignorieren Sie ihn.</p></div>
 <?php else: ?>
   <div class="block ce-karte">
     <table class="schlicht ce-tabelle"><tbody>

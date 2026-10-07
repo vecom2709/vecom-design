@@ -14,7 +14,7 @@ $sprachen = ['alle' => 'Alle Sprachen', 'it' => 'Italienisch', 'de' => 'Deutsch'
 $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1, ',', '') . ' MB' : max(1, (int) round($b / 1024)) . ' KB';
 ?>
 <div class="kopf"><h1>Partner Academy</h1>
-  <p style="color:var(--leise);margin:4px 0 0;font-size:13px">Verkaufstraining der Partner · letzte 30 Tage · nur Zahlen, keine Namen</p></div>
+  <p style="color:var(--leise);margin:4px 0 0;font-size:var(--fs-klein)">Verkaufstraining der Partner · letzte 30 Tage · nur Zahlen, keine Namen</p></div>
 
 <div class="karten">
   <div class="karte"><h3>Partner aktiv in der Academy</h3><div class="wert"><?= (int) $st['partner_aktiv'] ?></div></div>
@@ -24,14 +24,14 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 8px">Module — Fortschritt und Schalter</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Ein abgeschaltetes Modul verschwindet für Partner sofort (auch seine Unterlage). „Reihe“ leer = Nummer aus der Datei.</p>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Ein abgeschaltetes Modul verschwindet für Partner sofort (auch seine Unterlage). „Reihe“ leer = Nummer aus der Datei.</p>
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Nr.</th><th>Modul</th><th>Begonnen</th><th>Fertig</th><th>Aktiv</th><th>Pflicht</th><th>Reihe</th><th></th></tr></thead>
     <tbody>
     <?php foreach ($module as $m): $sw = $schalter[$m['slug']] ?? null; $jm = $jeModul[$m['slug']] ?? ['begonnen' => 0, 'fertig' => 0]; $fid = 'am-' . $m['slug']; ?>
       <tr<?= $m['aktiv'] ? '' : ' style="opacity:.55"' ?>>
         <td><?= (int) $m['nr'] ?></td>
-        <td><b><?= Fmt::h($m['titel']) ?></b><br><a href="<?= Fmt::h(url('academy?vorschau=' . rawurlencode(array_search($m['slug'], array_map(static fn($d) => $d[0], Academy::DOKUMENTE), true) ?: ''))) ?>" target="_blank" rel="noopener" style="font-size:12px">PDF ansehen</a></td>
+        <td><b><?= Fmt::h($m['titel']) ?></b><br><a href="<?= Fmt::h(url('academy?vorschau=' . rawurlencode(array_search($m['slug'], array_map(static fn($d) => $d[0], Academy::DOKUMENTE), true) ?: ''))) ?>" target="_blank" rel="noopener" style="font-size:var(--fs-klein)">PDF ansehen</a></td>
         <td><?= (int) $jm['begonnen'] ?></td>
         <td><?= (int) $jm['fertig'] ?></td>
         <td><input form="<?= $fid ?>" type="checkbox" name="aktiv" value="1" <?= $m['aktiv'] ? 'checked' : '' ?> aria-label="Aktiv"></td>
@@ -52,21 +52,21 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
 <div class="raster2" style="display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))">
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 8px">Häufigste Einwände</h2>
-    <?php if (!$st['einwaende']): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zahlen.</p><?php endif; ?>
+    <?php if (!$st['einwaende']): ?><p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Noch keine Zahlen.</p><?php endif; ?>
     <ol style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.7">
       <?php foreach ($st['einwaende'] as $z): ?><li>„<?= Fmt::h($deE[$z['ziel']] ?? $z['ziel']) ?>“ — <b><?= (int) $z['n'] ?></b></li><?php endforeach; ?>
     </ol>
   </div>
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 8px">Meistgenutzte Unterlagen</h2>
-    <?php if (!$st['pdfs']): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zahlen.</p><?php endif; ?>
+    <?php if (!$st['pdfs']): ?><p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Noch keine Zahlen.</p><?php endif; ?>
     <ol style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.7">
       <?php foreach ($st['pdfs'] as $z): ?><li><?= Fmt::h($docTitel[$z['ziel']] ?? $z['ziel']) ?> — <b><?= (int) $z['n'] ?></b></li><?php endforeach; ?>
     </ol>
   </div>
   <div class="block">
     <h2 style="font-size:15px;margin:0 0 8px">Am meisten geöffnet</h2>
-    <?php if (!$st['oft']): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zahlen.</p><?php endif; ?>
+    <?php if (!$st['oft']): ?><p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Noch keine Zahlen.</p><?php endif; ?>
     <ol style="margin:0;padding-left:20px;font-size:13.5px;line-height:1.7">
       <?php foreach (array_slice($st['oft'], 0, 8) as $z): ?><li><?= Fmt::h($z['art']) ?>: <?= Fmt::h($z['ziel']) ?> — <b><?= (int) $z['n'] ?></b></li><?php endforeach; ?>
     </ol>
@@ -75,7 +75,7 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">PDF-Bibliothek</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Die eingebauten Unterlagen entstehen aus den Modulen — immer aktuell, in der Sprache des Partners, mit seinem Provisionssatz.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Die eingebauten Unterlagen entstehen aus den Modulen — immer aktuell, in der Sprache des Partners, mit seinem Provisionssatz.
     Eigene PDFs (höchstens <?= Academy::PDF_MAX >> 20 ?> MB) kommen dazu; „Ersetzen“ macht eine neue Version, „Archivieren“ blendet aus.</p>
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Unterlage</th><th>Art</th><th>Sprache</th><th>Version</th><th></th></tr></thead>
@@ -115,10 +115,10 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">„Neue Schulung verfügbar“ melden</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Alle freigeschalteten Partner bekommen einen Hinweis aufs Handy (wer die App hat), jeder in seiner Sprache.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Alle freigeschalteten Partner bekommen einen Hinweis aufs Handy (wer die App hat), jeder in seiner Sprache.
     Auf der Academy-Startseite steht der Hinweis 14 Tage. Vorher fragt die Seite nach.</p>
   <?php if ($neu): $nz = Academy::meldeZiel($neu['ziel'], 'de'); ?>
-    <p style="font-size:13px;margin:0 0 10px">Zuletzt gemeldet: <b><?= Fmt::h($nz['titel'] ?? $neu['ziel']) ?></b> am <?= Fmt::h(Fmt::datum($neu['am'])) ?></p>
+    <p style="font-size:var(--fs-klein);margin:0 0 10px">Zuletzt gemeldet: <b><?= Fmt::h($nz['titel'] ?? $neu['ziel']) ?></b> am <?= Fmt::h(Fmt::datum($neu['am'])) ?></p>
   <?php endif; ?>
   <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
     <?= Csrf::feld() ?><input type="hidden" name="tat" value="academy_melden"><input type="hidden" name="zurueck" value="academy">
@@ -134,12 +134,12 @@ $kb = static fn(int $b): string => $b >= 1048576 ? number_format($b / 1048576, 1
 $vs = $versuche + ['n' => 0, 'b' => 0]; ?>
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Abschlusstest und Zertifikate</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px"><?= Academy::ABSCHLUSS_ANZAHL ?> Fragen aus allen Modulen, ab <?= Academy::ABSCHLUSS_GRENZE ?> % bestanden. Erst nach allen Pflichtmodulen.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px"><?= Academy::ABSCHLUSS_ANZAHL ?> Fragen aus allen Modulen, ab <?= Academy::ABSCHLUSS_GRENZE ?> % bestanden. Erst nach allen Pflichtmodulen.
     Bisher <?= (int) $vs['n'] ?> Versuche, <?= (int) $vs['b'] ?> bestanden. Prüfseite für Dritte: <a href="/zertifikat.php" target="_blank" rel="noopener">/zertifikat.php</a>
     · Muster ansehen: <a href="<?= Fmt::h(url('academy?zert_muster=1')) ?>" target="_blank" rel="noopener">Deutsch</a>,
     <a href="<?= Fmt::h(url('academy?zert_muster=1&sprache=it')) ?>" target="_blank" rel="noopener">Italienisch</a>,
     <a href="<?= Fmt::h(url('academy?zert_muster=1&sprache=en')) ?>" target="_blank" rel="noopener">Englisch</a></p>
-  <?php if (!$zertifikate): ?><p style="color:var(--leise);font-size:13px;margin:0">Noch keine Zertifikate.</p><?php else: ?>
+  <?php if (!$zertifikate): ?><p style="color:var(--leise);font-size:var(--fs-klein);margin:0">Noch keine Zertifikate.</p><?php else: ?>
   <div class="tabellenrahmen"><table>
     <thead><tr><th>Prüfnummer</th><th>Name</th><th>Ergebnis</th><th>Ausgestellt</th><th></th></tr></thead>
     <tbody>
@@ -157,7 +157,7 @@ $vs = $versuche + ['n' => 0, 'b' => 0]; ?>
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Audio und Video je Lektion</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Jede Lektion hat eine Sprecherstimme (Kie.ai) in it/de/en, sonst liest das Gerät vor. Hier kommen eigene Videos oder Audios dazu
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Jede Lektion hat eine Sprecherstimme (Kie.ai) in it/de/en, sonst liest das Gerät vor. Hier kommen eigene Videos oder Audios dazu
     (MP4/WebM, MP3/M4A, höchstens <?= Academy::MEDIEN_MAX >> 20 ?> MB).</p>
   <?php if ($medien): ?>
   <div class="tabellenrahmen"><table>
@@ -188,7 +188,7 @@ $vs = $versuche + ['n' => 0, 'b' => 0]; ?>
 
 <div class="block">
   <h2 style="font-size:15px;margin:0 0 6px">Gesprächssimulator (KI)</h2>
-  <p style="color:var(--leise);font-size:12.5px;margin:0 0 10px">Partner üben ein Verkaufsgespräch mit einem KI-Betriebsinhaber (<?= count(Academy::inhalte('de')['sim']) ?> Szenen) und bekommen eine Rückmeldung.
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin:0 0 10px">Partner üben ein Verkaufsgespräch mit einem KI-Betriebsinhaber (<?= count(Academy::inhalte('de')['sim']) ?> Szenen) und bekommen eine Rückmeldung.
     Gespräche werden nicht gespeichert, Kontaktdaten vorher entfernt, höchstens <?= AcademySimulator::TAG_MAX ?> Nachrichten je Partner und Tag.
     Er läuft erst, wenn alle drei Punkte erfüllt sind:</p>
   <ul style="font-size:13.5px;line-height:1.8;margin:0 0 12px;padding-left:20px">

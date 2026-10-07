@@ -33,7 +33,7 @@ declare(strict_types=1);
    ========================================================================== */
 
 $konfig = __DIR__ . '/app/config.local.php';
-if (!is_file($konfig)) { http_response_code(503); exit('Der Konfigurator ist derzeit nicht erreichbar.'); }
+if (!is_file($konfig)) { http_response_code(503); exit('Momentaneamente non raggiungibile — riprovi tra poco. · Gerade nicht erreichbar — bitte gleich noch einmal. · Not available right now — please try again shortly.'); }
 
 foreach (['Config', 'Db', 'Status', 'Csrf', 'Auth', 'Fmt', 'Texte', 'Events'] as $k) {
     require_once __DIR__ . "/app/src/$k.php";
@@ -378,13 +378,13 @@ $geld = static function (int $cents) use ($sprache): string {
   .punkte li.jetzt{background:var(--cyan)}
   /* Die Angaben nach dem Richtpreis: ein Teil desselben Fragebogens */
   .punkte li.angaben{flex-grow:3}
-  .zaehler{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
-  .beiseite{color:var(--leise);font-size:12.5px;line-height:1.6;margin-top:10px}
+  .zaehler{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .beiseite{color:var(--leise);font-size:14px;line-height:1.6;margin-top:10px}
 
   .frage{margin-bottom:22px}
   .frage:last-child{margin-bottom:0}
   .frage h2{font-size:18px;margin:0 0 4px}
-  .frage .hilfe{color:var(--leise);font-size:13px;line-height:1.55;margin:0 0 12px}
+  .frage .hilfe{color:var(--leise);font-size:14px;line-height:1.55;margin:0 0 12px}
 
   /* Ganze Flaechen statt kleiner Kreise: Auf dem Handy trifft der Daumen
      einen 20-Pixel-Radiobutton nicht zuverlaessig. Hier ist die ganze Zeile
@@ -414,24 +414,24 @@ $geld = static function (int $cents) use ($sprache): string {
   .ergebnis .klein{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
   .ergebnis .zahl{font-size:clamp(28px,7vw,40px);font-weight:600;margin:10px 0 6px;line-height:1.15}
   .ergebnis .monat{color:var(--dim);font-size:14px;line-height:1.6;margin:0}
-  .ergebnis .erklaerung{color:var(--leise);font-size:13px;line-height:1.65;margin:14px auto 0;max-width:44ch}
+  .ergebnis .erklaerung{color:var(--leise);font-size:14px;line-height:1.65;margin:14px auto 0;max-width:44ch}
 
   .knapp{margin:16px auto 0;max-width:44ch;padding:10px 14px;border-radius:10px;
     background:rgba(192,136,24,.09);border:1px solid rgba(192,136,24,.28);
-    font-size:13.5px;line-height:1.55;color:var(--dim)}
-  .knapp span{display:block;margin-top:4px;color:var(--leise);font-size:12.5px}
+    font-size:14px;line-height:1.55;color:var(--dim)}
+  .knapp span{display:block;margin-top:4px;color:var(--leise);font-size:14px}
   .erkannt{margin:4px 0 0;padding:10px 14px;border-radius:10px;
     background:rgba(192,136,24,.09);border:1px solid rgba(192,136,24,.28);
-    font-size:13.5px;color:var(--dim)}
+    font-size:14px;color:var(--dim)}
   /* Live-Richtpreis: unten angeheftet, damit er bei jedem Klick sichtbar bleibt */
   .livepreis{position:sticky;bottom:0;z-index:5;margin:14px -4px 0;padding:12px 16px calc(12px + env(safe-area-inset-bottom));
     border:1px solid rgba(192,136,24,.45);border-radius:14px 14px 0 0;background:rgba(9,17,39, .96);
     box-shadow:0 -10px 30px rgba(0,0,0,.45);display:grid;gap:2px}
-  .livepreis .lp-t{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
+  .livepreis .lp-t{font-size:12.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--leise)}
   .livepreis .lp-z{font-size:clamp(22px,6vw,28px);font-weight:600;line-height:1.2;color:var(--text);transition:color .3s}
   .livepreis .lp-z.neu{color:var(--cyan)}
   .livepreis .lp-d{font-size:14px;color:var(--cyan);min-height:1.2em}
-  .livepreis .lp-m,.livepreis .lp-h{font-size:12.5px;color:var(--leise);line-height:1.5}
+  .livepreis .lp-m,.livepreis .lp-h{font-size:14px;color:var(--leise);line-height:1.5}
   @media (prefers-reduced-motion:reduce){.livepreis .lp-z{transition:none}}
   .leiste2{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
   .leiste2 .rechts{margin-left:auto}
@@ -471,7 +471,7 @@ $geld = static function (int $cents) use ($sprache): string {
 <?php else: ?>
   <div class="bkopf">
     <?php if ($imDashboard): ?>
-      <a href="<?= $h($dashLink) ?>" style="display:inline-block;margin:0 0 10px;font-size:13.5px;color:var(--dim)"><?= $h($T('zumDashboard')) ?></a>
+      <a href="<?= $h($dashLink) ?>" style="display:inline-block;margin:0 0 10px;font-size:14px;color:var(--dim)"><?= $h($T('zumDashboard')) ?></a>
     <?php endif; ?>
     <?php /* Im Dashboard sind die acht Fragen der Anfang des einen
              Fragebogens (26.09.2026): gleiche Überschrift, ein letzter,

@@ -7,14 +7,14 @@ $q = static fn(array $mehr = []): string => url('pruefspur') . '?' . http_build_
   .ps-filter{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}
   .ps-filter .feld{margin:0}
   .ps-z td{vertical-align:top}
-  .ps-aend{margin:0;padding:0;list-style:none;font-size:12.5px;line-height:1.5}
+  .ps-aend{margin:0;padding:0;list-style:none;font-size:var(--fs-klein);line-height:1.5}
   .ps-aend li{word-break:break-word}
   .ps-aend s{color:var(--rot);text-decoration-color:rgba(255,138,138,.6)}
   .ps-aend ins{color:var(--gruen);text-decoration:none}
   .ps-aend b{color:var(--dim);font-weight:500}
 </style>
 <div class="kopf"><div><h1>Prüfspur</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Wer hat wann was getan — aus der Verwaltung, dem Partnerbereich und den Automationen. Nur lesen. Passwörter, Schlüssel und Tokens sind geschwärzt.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Wer hat wann was getan — aus der Verwaltung, dem Partnerbereich und den Automationen. Nur lesen. Passwörter, Schlüssel und Tokens sind geschwärzt.</p></div></div>
 
 <div class="block">
   <form class="ps-filter" method="get" action="<?= Fmt::h(url('pruefspur')) ?>">
@@ -39,11 +39,11 @@ $q = static fn(array $mehr = []): string => url('pruefspur') . '?' . http_build_
       <thead><tr><th>Wann</th><th>Wer</th><th>Tat</th><th>Objekt</th><th>Was sich änderte</th></tr></thead><tbody>
       <?php foreach ($spur['zeilen'] as $z): ?>
         <tr class="ps-z">
-          <td style="white-space:nowrap;font-size:12.5px"><?= Fmt::h(date('d.m.Y H:i:s', strtotime((string) $z['created_at']))) ?><?php if ($z['ip']): ?><div style="color:var(--leise);font-size:11.5px"><?= Fmt::h((string) $z['ip']) ?></div><?php endif; ?></td>
-          <td style="font-size:13px"><a href="<?= Fmt::h($q(['wer' => (string) $z['actor'], 'vor' => null])) ?>"><?= Fmt::h((string) $z['actor']) ?></a></td>
-          <td style="font-size:13px"><code><?= Fmt::h((string) $z['action']) ?></code></td>
-          <td style="font-size:13px;white-space:nowrap"><a href="<?= Fmt::h($q(['objekt' => (string) $z['entity'], 'objekt_id' => $z['entity_id'] !== null ? (int) $z['entity_id'] : '', 'vor' => null])) ?>"><?= Fmt::h((string) $z['entity']) ?><?= $z['entity_id'] !== null ? ' ' . (int) $z['entity_id'] : '' ?></a></td>
-          <td><?php if (!$z['aenderung']): ?><span style="color:var(--leise);font-size:12.5px">—</span><?php else: ?>
+          <td style="white-space:nowrap;font-size:var(--fs-klein)"><?= Fmt::h(date('d.m.Y H:i:s', strtotime((string) $z['created_at']))) ?><?php if ($z['ip']): ?><div style="color:var(--leise);font-size:var(--fs-klein)"><?= Fmt::h((string) $z['ip']) ?></div><?php endif; ?></td>
+          <td style="font-size:var(--fs-klein)"><a href="<?= Fmt::h($q(['wer' => (string) $z['actor'], 'vor' => null])) ?>"><?= Fmt::h((string) $z['actor']) ?></a></td>
+          <td style="font-size:var(--fs-klein)"><code><?= Fmt::h((string) $z['action']) ?></code></td>
+          <td style="font-size:var(--fs-klein);white-space:nowrap"><a href="<?= Fmt::h($q(['objekt' => (string) $z['entity'], 'objekt_id' => $z['entity_id'] !== null ? (int) $z['entity_id'] : '', 'vor' => null])) ?>"><?= Fmt::h((string) $z['entity']) ?><?= $z['entity_id'] !== null ? ' ' . (int) $z['entity_id'] : '' ?></a></td>
+          <td><?php if (!$z['aenderung']): ?><span style="color:var(--leise);font-size:var(--fs-klein)">—</span><?php else: ?>
             <ul class="ps-aend"><?php foreach (array_slice($z['aenderung'], 0, 8) as $a): ?>
               <li><b><?= Fmt::h($a['feld']) ?>:</b> <?php if ($a['vorher'] !== null): ?><s><?= Fmt::h($a['vorher']) ?></s> → <?php endif; ?><ins><?= $a['nachher'] !== null ? Fmt::h($a['nachher']) : '(leer)' ?></ins></li>
             <?php endforeach; ?><?php if (count($z['aenderung']) > 8): ?><li style="color:var(--leise)">… und <?= count($z['aenderung']) - 8 ?> weitere Felder</li><?php endif; ?></ul>

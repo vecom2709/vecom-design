@@ -151,6 +151,9 @@ final class Mahnung
             // Betreuung haben keine — die fuehren auf die Kundenseite, wo
             // der Stand steht und der Kunde antworten kann.
             if ($stripe->bereit() && $z['order_id'] !== null) {
+                require_once __DIR__ . '/Bezahllink.php';
+                $alt = Bezahllink::alteSitzungPruefen($z, $stripe);
+                if ($alt !== null) { return Bezahllink::fuer((int) $z['id']); }   // bezahlt (gerade gebucht) oder alte Seite gilt noch
                 $b = Db::one('SELECT * FROM orders WHERE id = ?', [(int) $z['order_id']]);
                 $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $z['customer_id']]);
                 $url = $stripe->bezahlseite($z, $b, $k);

@@ -11,15 +11,15 @@ $branchen = Akquise::branchen();
   .as-frage{display:grid;grid-template-columns:1fr auto;gap:10px;margin:0 0 12px}
   .as-frage input{font-size:17px;min-height:52px}
   .as-knoepfe{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
-  .as-knoepfe a{padding:7px 12px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:13px}
+  .as-knoepfe a{padding:7px 12px;border-radius:999px;border:1px solid var(--linie);color:var(--dim);font-size:var(--fs-klein)}
   .as-knoepfe a.an{background:var(--flaeche2);color:var(--text);border-color:rgba(241,211,139,.5)}
   .as-filter{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-top:10px}
   .as-filter select{width:auto;min-width:150px}
-  .as-erkannt{font-size:12.5px;color:var(--leise);margin:8px 0 0}
+  .as-erkannt{font-size:var(--fs-klein);color:var(--leise);margin:8px 0 0}
   @media (max-width:560px){ .as-frage{grid-template-columns:1fr} }
 </style>
 <div class="kopf"><div><h1>Assistent</h1>
-  <p style="color:var(--leise);font-size:13px;margin-top:6px">Frag in eigenen Worten oder nimm eine der festen Fragen. Die Antworten kommen aus deinen Daten — nichts wird geschätzt oder erfunden.</p></div></div>
+  <p style="color:var(--leise);font-size:var(--fs-klein);margin-top:6px">Frag in eigenen Worten oder nimm eine der festen Fragen. Die Antworten kommen aus deinen Daten — nichts wird geschätzt oder erfunden.</p></div></div>
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 
