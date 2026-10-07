@@ -27,6 +27,16 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
 
 <?php require __DIR__ . '/akquise_reiter.php'; ?>
 
+<?php /* „Einmal an alle“ gut sichtbar in der Verwaltung (07.10.2026, Uwe: „in verwaltung wichtig“). */
+  $eaOffen = 0; try { $eaOffen = (int) Db::wert("SELECT COUNT(*) FROM ai_freigaben WHERE art = 'akquise_werbung' AND status IN ('offen','zurueckgestellt')", [], 0); } catch (Throwable $e) { } ?>
+<div class="block" id="einmal-kurz" style="display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;justify-content:space-between">
+  <div><b>Einmal an alle</b> <span class="akq-klein">— Werbe-Mail mit Branchen-Flyer an alle mit Zustimmung (du sagst Ja oder Nein), oder Betrieb für Betrieb im eigenen Mailprogramm.</span></div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap">
+    <?php if ($eaOffen > 0): ?><a class="knopf" href="<?= Fmt::h(url('ai-freigaben')) ?>"><?= $eaOffen ?> warten auf dein Ja</a><?php endif; ?>
+    <a class="knopf haupt" href="<?= Fmt::h(url('akquise/regeln')) ?>#einmal">Öffnen</a>
+  </div>
+</div>
+
 <?php /* So läuft es (29.09.2026, Uwe: Ja zu K1) */ ?>
 <ol class="akq-weg3" aria-label="So läuft es">
   <li><b>1 · Betrieb aussuchen</b><span>Unten in der Liste — zuerst die ohne Website oder mit großer Chance.</span></li>

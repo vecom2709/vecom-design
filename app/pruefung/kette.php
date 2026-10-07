@@ -28636,6 +28636,8 @@ $wbCron = (string) file_get_contents($wurzel . '/src/Cron.php');
 pruefe('Seite, Cron und AI Freigaben: Knopf schlägt nur vor, der Cron schickt Genehmigtes, die Freigabe zeigt den Flyer',
     str_contains($wbSeite, 'value="akq_werbung_vorschlagen"') && str_contains($wbCron, 'AkquiseWerbung::lauf()')
     && str_contains((string) file_get_contents($wurzel . '/views/ai_freigaben.php'), 'werbung-flyer'));
+pruefe('Verwaltung: „Einmal an alle“ steht gut sichtbar auf der Startseite von Kunden finden, mit Weg zu den wartenden Freigaben',
+    str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'id="einmal-kurz"') && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "url('akquise/regeln')) ?>#einmal"));
 foreach ($wbVorher as $wbK => $wbW) { AkquiseGate::setzen($wbK, $wbW); }
 
 /* ============================================================================
