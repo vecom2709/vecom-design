@@ -28638,6 +28638,10 @@ pruefe('Seite, Cron und AI Freigaben: Knopf schlägt nur vor, der Cron schickt G
     && str_contains((string) file_get_contents($wurzel . '/views/ai_freigaben.php'), 'werbung-flyer'));
 pruefe('Verwaltung: „Einmal an alle“ steht gut sichtbar auf der Startseite von Kunden finden, mit Weg zu den wartenden Freigaben',
     str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), 'id="einmal-kurz"') && str_contains((string) file_get_contents($wurzel . '/views/akquise.php'), "url('akquise/regeln')) ?>#einmal"));
+$wbKu = $eaF('EA00000010', 'IT', ['einwilligung' => 'Anruf', 'einwilligung_kanaele' => 'email', 'markierung' => 'kunde']);
+pruefe('Schon Kunde (Kunden finden markiert ihn): kein Probelauf-Treffer, keine Reihe, kein Werbe-Vorschlag',
+    AkquiseEinmal::probelauf()['aus']['kunde'] >= 1 && AkquiseEinmal::naechste(true, array_values(array_diff($eaAndere, [$wbKu])))['naechste'] === null
+    && AkquiseWerbung::vorschlagen()['vorgeschlagen'] === 0);
 foreach ($wbVorher as $wbK => $wbW) { AkquiseGate::setzen($wbK, $wbW); }
 
 /* ============================================================================

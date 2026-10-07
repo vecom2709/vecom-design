@@ -32,6 +32,7 @@ final class AkquiseEinmal
         'schon'   => 'Schon angeschrieben (E-Mail, eigenes Programm oder Brief)',
         'bounce'  => 'Adresse kam schon einmal unzustellbar zurück',
         'domain'  => 'An dieselbe Domain ging in der Sperrfrist schon etwas',
+        'kunde'   => 'Schon Kunde oder Dublette eines anderen Betriebs (Kunden finden)',
     ];
 
     /**
@@ -130,6 +131,7 @@ final class AkquiseEinmal
         $id = (int) $f['id'];
         if (AkquiseMail::nichtKontaktieren($f) || $kann['status'] === AkquiseMail::NICHT) { return 'nicht'; }
         if (AkquiseGate::trifftSperrliste($f) !== null) { return 'sperre'; }
+        if (in_array((string) ($f['markierung'] ?? ''), ['kunde', 'dublette'], true)) { return 'kunde'; }   // Migration 217 (KundenFinden)
         if (isset($l['schon'][$id])) { return 'schon'; }
         if (isset($l['bounce'][$id])) { return 'bounce'; }
         if (!empty($f['domain']) && isset($l['domain'][mb_strtolower((string) $f['domain'])])) { return 'domain'; }
