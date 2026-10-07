@@ -11,6 +11,10 @@ $wuBau = Bausperre::darfBauen($p);
 $wuOffen = (bool) Db::wert("SELECT COUNT(*) FROM bau_auftraege WHERE project_id = ? AND art = 'wuensche' AND status IN ('wartet','laeuft')", [(int) $p['id']], 0);
 $wuForm = static fn(string $tat, string $inhalt): string => '<form method="post" action="' . Fmt::h(url('')) . '" style="display:inline-flex;gap:6px;flex-wrap:wrap;align-items:center;margin:4px 6px 0 0">'
     . Csrf::feld() . '<input type="hidden" name="tat" value="' . $tat . '"><input type="hidden" name="id" value="' . (int) $p['id'] . '">' . $inhalt . '</form>';
+/* Phase 10: nach dem Livegang zählt das Kontingent der Betreuung. */
+require_once dirname(__DIR__) . '/src/Betrieb.php';
+$wuBetrieb = Betrieb::imBetrieb($p + (Db::one('SELECT veroeffentlicht_am, veroeffentlicht_domain, live_version_id, betrieb_seit FROM projects WHERE id = ?', [(int) $p['id']]) ?: []));
+$wuKont = $wuBetrieb ? Betrieb::kontingent((int) $p['id']) : null;
 $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d32)', 'zusatz_angenommen' => 'var(--gruen, #2e7d32)', 'zusatz' => 'var(--cyan, #2b7bb9)',
             'in_arbeit' => 'var(--gelb, #b7791f)', 'umgesetzt' => 'var(--leise)', 'abgelehnt' => 'var(--rot, #c0392b)'];
 ?>
@@ -18,6 +22,9 @@ $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d3
   <h2>Wünsche des Kunden <span style="font-size:12px;color:var(--leise);font-weight:500">Scope-Schutz: gebaut wird nur „im Umfang“ oder „Zusatz angenommen“</span></h2>
   <?php if (!$wuListe): ?>
     <p class="leer" style="margin:0">Noch keine Wünsche. Schreibt der Kunde auf seiner Seite „Ich möchte etwas ändern“, erscheint es hier.</p>
+  <?php endif; ?>
+  <?php if ($wuKont): ?>
+    <p style="font-size:14px;margin:4px 0 6px">Seite ist live — <?php if ($wuKont['in_nachbesserung']): ?>Nachbesserung bis <?= Fmt::h(Fmt::datum((string) $wuKont['nachbesserung_bis'])) ?>: alles „im Umfang“ ist frei.<?php elseif ($wuKont['vertrag'] === null): ?>kein Betreuungsvertrag: neue Wünsche sind Zusatz (Angebot vorher).<?php else: ?>Kontingent <?= Fmt::h((string) $wuKont['vertrag']) ?>: <b><?= (int) $wuKont['verbraucht'] ?> / <?= (int) $wuKont['minuten'] ?> Min.</b> in diesem Monat · kleine Inhaltsänderungen (Texte, Fotos, Öffnungszeiten, Kontakt) mit 0 Min. sind immer enthalten.<?php endif; ?></p>
   <?php endif; ?>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 4px">
     <?php if ($wuNeu > 0 && !$wuOffen && !$wuBau['stopp']): ?>
@@ -53,7 +60,10 @@ $wuFarbe = ['neu' => 'var(--gelb, #b7791f)', 'im_umfang' => 'var(--gruen, #2e7d3
           unset($wuWahl[$wu['status']]);
           $wuOpt = ''; foreach ($wuWahl as $k => $l) { $wuOpt .= '<option value="' . $k . '"' . ($k === ($wu['vorschlag'] ?? '') ? ' selected' : '') . '>' . Fmt::h($l) . '</option>'; }
         ?>
-        <?php $wuFeld = $wuForm('wunsch_einordnen', '<input type="hidden" name="wunsch" value="' . (int) $wu['id'] . '"><select name="status">' . $wuOpt . '</select><input name="grund" maxlength="500" placeholder="Begründung für den Kunden (bei Zusatz/abgelehnt)" style="min-width:min(300px,100%)" value="' . Fmt::h($wu['status'] === 'neu' && ($wu['vorschlag'] ?? '') !== 'im_umfang' ? (string) ($wu['vorschlag_grund'] ?? '') : '') . '"><button class="knopf klein">Einordnen</button>'); ?>
+        <?php $wuFeld = $wuForm('wunsch_einordnen', '<input type="hidden" name="wunsch" value="' . (int) $wu['id'] . '"><select name="status">' . $wuOpt . '</select>' . ($wuBetrieb ? '<input name="minuten" type="number" min="0" max="6000" step="5" style="width:90px" title="Aufwand in Minuten — zählt gegen das Kontingent; 0 = kleine Inhaltsänderung" placeholder="Min." value="' . Betrieb::minutenAus((string) ($wu['vorschlag_aufwand'] ?? '')) . '">' : '') . '<input name="grund" maxlength="500" placeholder="Begründung für den Kunden (bei Zusatz/abgelehnt)" style="min-width:min(300px,100%)" value="' . Fmt::h($wu['status'] === 'neu' && ($wu['vorschlag'] ?? '') !== 'im_umfang' ? (string) ($wu['vorschlag_grund'] ?? '') : '') . '"><button class="knopf klein">Einordnen</button>'); ?>
+        <?php if ($wu['status'] === 'zusatz'): ?>
+          <?= $wuForm('zusatzangebot', '<input type="hidden" name="wunsch" value="' . (int) $wu['id'] . '"><input name="minuten" type="number" min="15" max="6000" step="15" style="width:90px" title="Aufwand in Minuten" value="' . max(15, (int) ($wu['aufwand_min'] ?? 0) ?: Betrieb::minutenAus((string) ($wu['vorschlag_aufwand'] ?? '')) ?: 60) . '"><button class="knopf klein">Zusatzangebot als Entwurf</button>') ?>
+        <?php endif; ?>
         <?php if ($wu['status'] === 'neu' || $wu['status'] === 'zusatz'): ?><?= $wuFeld ?>
         <?php else: ?><details style="margin-top:2px"><summary style="cursor:pointer;font-size:13px">anders einordnen</summary><?= $wuFeld ?></details><?php endif; ?>
       <?php endif; ?>

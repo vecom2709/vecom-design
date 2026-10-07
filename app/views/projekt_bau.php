@@ -41,6 +41,11 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
   foreach ($pbListe as $pbA) { if (in_array($pbA['status'], ['wartet', 'laeuft'], true)) { $pbOffen[$pbA['art']] = true; } }
   ?>
   <h3 style="margin:16px 0 4px;font-size:16px">Claude-Aufträge <span style="font-size:12px;color:var(--leise);font-weight:500">laufen auf deinem PC · live geht nichts ohne deinen Klick</span></h3>
+  <?php /* Phase 10: Kostenwächter — sichtbar, bevor jemand auf einen Knopf drückt. */
+    require_once dirname(__DIR__) . '/src/Betrieb.php';
+    $pbKw = Betrieb::bauLaeufe((int) $p['id']); $pbKg = Betrieb::grenze((int) $p['id']); ?>
+  <p class="akq-klein" style="margin:0 0 6px">Kostenwächter: <?= $pbKw ?> von <?= $pbKg ?> Bauläufen<?php if ($pbKw >= $pbKg): ?> — <b>neue Aufträge warten auf Freigabe</b>
+    <?php if (Auth::istAdmin()): ?><?= $pbForm('betrieb_grenze', '<button class="knopf klein">' . Betrieb::GRENZE_SCHRITT . ' weitere freigeben</button>') ?><?php endif; ?><?php endif; ?></p>
   <?php if (!$pbB['stopp']): ?>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
     <?php foreach (BauAuftrag::STARTBAR as $pbArt): [$pbName, $pbWas] = BauAuftrag::ARTEN[$pbArt]; ?>
@@ -99,3 +104,4 @@ $pbForm = static fn(string $tat, string $inhalt, string $attr = ''): string => '
 </div>
 <?php require __DIR__ . '/projekt_wuensche.php'; /* AutoBuild Phase 8: Kundenwünsche */ ?>
 <?php require __DIR__ . '/projekt_livegang.php'; /* AutoBuild Phase 9: Livegang */ ?>
+<?php require __DIR__ . '/projekt_betrieb.php'; /* AutoBuild Phase 10: Betrieb */ ?>

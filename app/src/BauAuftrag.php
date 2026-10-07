@@ -78,6 +78,10 @@ final class BauAuftrag
             require_once __DIR__ . '/Wunsch.php';
             if (!Wunsch::neue($pid)) { return 'Es gibt keine neuen Wünsche zum Einordnen.'; }
         }
+        /* Kostenwächter (Phase 10): ab der Grenze wartet jeder neue Auftrag — auch Claudes Nachbessern —, bis ein Admin freigibt. */
+        require_once __DIR__ . '/Betrieb.php';
+        $kw = Betrieb::bauSperre($pid);
+        if ($kw !== null) { return $kw; }
         self::aufraeumen();
         $offen = Db::one("SELECT status FROM bau_auftraege WHERE project_id = ? AND art = ? AND status IN ('wartet','laeuft') LIMIT 1", [$pid, $art]);
         if ($offen) { return self::name($art) . ($offen['status'] === 'laeuft' ? ' läuft gerade schon.' : ' wartet schon auf deinen PC.'); }
@@ -176,6 +180,9 @@ final class BauAuftrag
         if ($briefing === '') { $briefing = (string) self::still(static fn() => Briefing::speichern($pid), ''); }
         require_once __DIR__ . '/Standard.php';
         $haus = (string) self::still(static fn() => Standard::text(), '');
+        /* Phase 10: Uwes Bauregeln (versioniert) gehören mit dazu — der PC baut immer nach der aktuellen Fassung. */
+        $bauregeln = (string) self::still(static function (): string { require_once __DIR__ . '/BauRegeln.php'; return BauRegeln::alsText(); }, '');
+        if ($bauregeln !== '') { $haus = $bauregeln . "\n\n" . $haus; }
         $bs = Bausperre::darfBauen($p);
         $param = json_decode((string) ($a['parameter'] ?? ''), true) ?: [];
         $zusatz = [];
@@ -306,6 +313,9 @@ final class BauAuftrag
                 $maengel = array_values(array_filter(array_map(static fn($m) => mb_substr(trim(strip_tags((string) $m)), 0, 300), (array) ($d['maengel'] ?? [])), static fn($m) => $m !== ''));
                 foreach (json_decode((string) ($v['tests'] ?? ''), true) ?: [] as $tt) { if (!empty($tt['schwer']) && empty($tt['ok'])) { $maengel[] = 'Test: ' . $tt['name'] . ($tt['detail'] !== '' ? ' — ' . $tt['detail'] : ''); } }
                 Db::update('projekt_versionen', (int) $v['id'], ['review_urteil' => $urteil, 'review_text' => mb_substr($text, 0, self::MAX_ERGEBNIS), 'review_am' => date('Y-m-d H:i:s')]);
+                /* Phase 10: die Mängel als Liste — daraus lernt BauRegeln (wiederkehrend über Projekte → Vorschlag). */
+                self::still(static fn() => Db::update('projekt_versionen', (int) $v['id'], ['review_maengel' => json_encode(array_slice($maengel, 0, 24), JSON_UNESCAPED_UNICODE)]), null);
+                self::still(static function (): void { require_once __DIR__ . '/BauRegeln.php'; BauRegeln::vorschlaegeAktualisieren(); }, null);
                 Events::pruefspur('version_review', 'projekt_versionen', (int) $v['id'], [], ['urteil' => $urteil, 'versuch' => (int) $a['versuch'], 'maengel' => count($maengel)]);
                 $link = 'projekte/' . (int) $p['id'] . '#versionen';
                 if ($urteil === 'bestanden') {

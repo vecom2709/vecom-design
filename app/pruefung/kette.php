@@ -9809,6 +9809,116 @@ $vpKQ = (string) file_get_contents($wurzel . '/../kunde.php');
 pruefe('Veröffentlichen: Sicherungen erscheinen nie auf der Kundenseite -- weder in der Liste noch zum Herunterladen',
     substr_count($vpKQ, "rolle <> 'sicherung'") >= 2);
 
+/* AutoBuild Phase 10 (07.10.2026, Uwe: „mache mit den offenen Phasen weiter“): Betrieb, Kontingent, Kostenwächter, Bauregeln. */
+require_once $wurzel . '/src/Betrieb.php'; require_once $wurzel . '/src/BauRegeln.php'; require_once $wurzel . '/src/BauAuftrag.php';
+$b10P = Db::one('SELECT * FROM projects WHERE id = ?', [$vpP]);
+pruefe('Betrieb: nach Livegang und freigegebener Übergabe ist das Projekt „im Betrieb“ (betrieb_seit gesetzt)',
+    Betrieb::imBetrieb($b10P) && !empty($b10P['betrieb_seit']) && Betrieb::kontingent($vpP)['in_nachbesserung']);
+$b10Dat = Versionen::dateien((int) $b10P['live_version_id'], true);
+$b10Echt = static function (string $u) use ($b10Dat): array {
+    $pfad = (string) preg_replace('~^https://veroeff-probe\.it/~', '', $u); $pfad = $pfad === '' ? 'index.html' : rawurldecode($pfad);
+    return isset($b10Dat[$pfad]) ? [200, $b10Dat[$pfad]] : [404, ''];
+};
+$b10A1 = Betrieb::abweichung($vpP, $b10Echt);
+$b10Meld0 = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'betrieb_abweichung'", [], 0);
+$b10Gehackt = static fn(string $u): array => str_ends_with($u, 'veroeff-probe.it/') ? [200, '<html>gehackt</html>'] : $b10Echt($u);
+$b10A2 = Betrieb::abweichung($vpP, $b10Gehackt);
+$b10A3 = Betrieb::abweichung($vpP, $b10Gehackt);
+$b10Meld = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'betrieb_abweichung'", [], 0) - $b10Meld0;
+$b10Netz = Betrieb::abweichung($vpP, static fn(string $u): array => [0, '']);
+pruefe('Abweichungswächter: gleiche Dateien = ok; geänderte Startseite = Abweichung mit EINER Meldung (nicht jeden Tag neu); ohne Verbindung zählt der Lauf nicht',
+    $b10A1['ok'] && $b10A1['geprueft'] === count($b10Dat) && !$b10A2['ok'] && in_array('index.html', $b10A2['geaendert'], true) && !$b10A3['ok'] && $b10Meld === 1
+    && $b10Netz['geprueft'] === 0 && empty(json_decode((string) Db::wert('SELECT abweichung FROM projects WHERE id = ?', [$vpP], ''), true)['ok']),
+    json_encode([$b10A1, $b10A2, $b10Meld, $b10Netz], JSON_UNESCAPED_UNICODE));
+$b10Liste = Betrieb::uebersicht();
+$b10Zeile = array_values(array_filter($b10Liste, static fn($r) => (int) $r['id'] === $vpP))[0] ?? null;
+pruefe('Übersicht: die Live-Seite steht drin — mit Abweichung rot und dem Grund dazu, Rot vor Grün',
+    $b10Zeile !== null && $b10Zeile['ampel'] === 'rot' && str_contains(implode(' ', $b10Zeile['gruende']), 'weicht von V') && $b10Liste[0]['ampel'] === 'rot');
+$b10S1 = Betrieb::seitencheck($vpP, $b10Echt);
+$b10S2 = Betrieb::seitencheck($vpP, static fn(string $u): array => str_contains($u, 'privacy') ? [404, ''] : $b10Echt($u));
+$b10Name = static fn(array $s, string $n): ?array => array_values(array_filter($s['punkte'], static fn($x) => str_contains($x['name'], $n)))[0] ?? null;
+pruefe('Seitenprüfung: Startseite und Datenschutz ok, fehlender Kontaktweg ist ein Befund; ein toter Link wird gefunden',
+    ($b10Name($b10S1, 'Startseite')['ok'] ?? false) && ($b10Name($b10S1, 'Impressum')['ok'] ?? false) && !($b10Name($b10S1, 'Kontaktweg')['ok'] ?? true) && !$b10S1['ok']
+    && ($b10Name($b10S1, 'kaputten')['ok'] ?? false) && !($b10Name($b10S2, 'kaputten')['ok'] ?? true) && str_contains((string) ($b10Name($b10S2, 'kaputten')['detail'] ?? ''), 'privacy.html'),
+    json_encode([$b10S1, $b10S2], JSON_UNESCAPED_UNICODE));
+/* Kontingent */
+$b10W1 = Wunsch::erfassen($vpP, 'Öffnungszeiten ändern', 'kunde');
+Wunsch::einordnen($b10W1, 'im_umfang', 'Uwe Admin', '', 0);
+Db::run('UPDATE projects SET betrieb_seit = NOW() - INTERVAL 40 DAY WHERE id = ?', [$vpP]);
+$b10W2 = Wunsch::erfassen($vpP, 'Neue Seite Galerie', 'kunde');
+$b10F1 = ''; try { Wunsch::einordnen($b10W2, 'im_umfang', 'Uwe Admin', '', 30); } catch (RuntimeException $e) { $b10F1 = $e->getMessage(); }
+$b10Pk = (int) Db::wert("SELECT id FROM packages WHERE slug = 'betreuung-plus'", [], 0);
+$b10Abo = (int) Db::insert('abos', ['customer_id' => (int) $b10P['customer_id'], 'project_id' => $vpP, 'package_id' => $b10Pk ?: null, 'paket_slug' => 'betreuung-plus', 'paket_name' => 'Betreuung Plus',
+    'betrag_cents' => 6900, 'currency' => 'EUR', 'zahlart' => 'karte', 'status' => 'aktiv', 'beginn' => date('Y-m-d'), 'mindestlaufzeit_bis' => date('Y-m-d', strtotime('+1 year')), 'naechste_abrechnung' => date('Y-m-d', strtotime('+1 month'))]);
+Wunsch::einordnen($b10W2, 'im_umfang', 'Uwe Admin', '', 45);
+$b10W3 = Wunsch::erfassen($vpP, 'Formular einbauen', 'kunde');
+$b10F2 = ''; try { Wunsch::einordnen($b10W3, 'im_umfang', 'Uwe Admin', '', 30); } catch (RuntimeException $e) { $b10F2 = $e->getMessage(); }
+$b10W4 = Wunsch::erfassen($vpP, 'Telefonnummer korrigieren', 'kunde');
+Wunsch::einordnen($b10W4, 'im_umfang', 'Uwe Admin', '', 0);
+$b10K = Betrieb::kontingent($vpP);
+pruefe('Kontingent: in der Nachbesserung frei; danach ohne Vertrag nur Zusatz; mit Betreuung Plus 60 Min. — 45 passen, weitere 30 nicht, kleine Inhaltsänderung (0 Min.) immer',
+    $b10Pk > 0 && str_contains($b10F1, 'kein Betreuungsvertrag') && str_contains($b10F2, 'reicht es nicht') && $b10K['minuten'] === 60 && $b10K['verbraucht'] === 45 && $b10K['rest'] === 15
+    && (string) Db::wert('SELECT status FROM projekt_wuensche WHERE id = ?', [$b10W4], '') === 'im_umfang' && (string) Db::wert('SELECT kontingent_monat FROM projekt_wuensche WHERE id = ?', [$b10W2], '') === date('Y-m'),
+    json_encode([$b10F1, $b10F2, $b10K], JSON_UNESCAPED_UNICODE));
+/* Zusatzangebot */
+Wunsch::einordnen($b10W3, 'zusatz', 'Uwe Admin', 'Formular ist nicht im Paket.', 90);
+$b10Mails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$b10Z0 = Betrieb::zusatzangebot($b10W3, 90, 'Uwe Admin');
+Betrieb::einstellungenSpeichern(5000, Betrieb::GRENZE_VORGABE, 'kette');
+$b10Z = Betrieb::zusatzangebot($b10W3, 90, 'Uwe Admin');
+$b10ZA = is_int($b10Z) ? Db::one('SELECT * FROM angebote WHERE id = ?', [$b10Z]) : null;
+pruefe('Zusatzangebot: ohne Stundensatz ein Hinweis; mit 50 €/Std. ein ENTWURF über 75 € (90 Min.) mit dem Wunsch drin — verschickt wird nichts',
+    is_string($b10Z0) && str_contains($b10Z0, 'Stundensatz') && $b10ZA && $b10ZA['status'] === 'entwurf' && (int) $b10ZA['summe_cents'] === 7500 && str_contains((string) $b10ZA['einleitung'], 'Formular einbauen')
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $b10Mails, json_encode([$b10Z0, $b10ZA], JSON_UNESCAPED_UNICODE));
+/* Kostenwächter */
+if (Betrieb::bauLaeufe($vpP) === 0) { Db::insert('bau_auftraege', ['project_id' => $vpP, 'art' => 'analyse', 'status' => 'fertig', 'von' => 'kette']); }
+Db::update('projects', $vpP, ['bau_grenze' => Betrieb::bauLaeufe($vpP)]);
+$b10Meld1 = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'bau_grenze'", [], 0);
+$b10Kw = BauAuftrag::anlegen($vpP, 'analyse', 'Uwe Admin');
+$b10Kw2 = BauAuftrag::anlegen($vpP, 'analyse', 'Claude (automatisch)', '', [], 1, true);
+$b10Meld2 = (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'bau_grenze'", [], 0) - $b10Meld1;
+$b10Neu = Betrieb::grenzeErhoehen($vpP, 'Uwe Admin');
+pruefe('Kostenwächter: an der Grenze wartet jeder neue Auftrag — auch Claudes automatischer —, EINE Meldung; Freigabe erhöht um 10',
+    is_string($b10Kw) && str_contains($b10Kw, 'Kostenwächter') && is_string($b10Kw2) && $b10Meld2 === 1 && $b10Neu === Betrieb::bauLaeufe($vpP) + Betrieb::GRENZE_SCHRITT
+    && Betrieb::bauSperre($vpP) === null, json_encode([$b10Kw, $b10Kw2, $b10Meld2, $b10Neu]));
+/* Bauregeln */
+$b10V0 = BauRegeln::version();
+$b10R = BauRegeln::hinzufuegen('Öffnungszeiten immer als Tabelle, nie als Fließtext.', 'Uwe Admin');
+$b10Doppelt = ''; try { BauRegeln::hinzufuegen('Öffnungszeiten immer als Tabelle, nie als Fließtext.', 'Uwe Admin'); } catch (RuntimeException $e) { $b10Doppelt = $e->getMessage(); }
+$b10Pc = BauAuftrag::fuerPc(['id' => 0, 'art' => 'analyse', 'project_id' => $vpP, 'parameter' => null, 'hinweis' => '', 'versuch' => 1]);
+BauRegeln::aendern($b10R, 'Öffnungszeiten immer als Tabelle (Tag | Zeit), nie als Fließtext.', 'Uwe Admin');
+BauRegeln::schalten($b10R, false, 'Uwe Admin');
+pruefe('Bauregeln: neue Regel = neue Version, doppelt geht nicht; der PC bekommt sie vor den Hausregeln; Ändern und Ausschalten sind je eine Version, ausgeschaltet fehlt sie',
+    BauRegeln::version() === $b10V0 + 3 && str_contains($b10Doppelt, 'gibt es schon') && str_starts_with((string) ($b10Pc['hausregeln'] ?? ''), 'BAUREGELN VON UWE')
+    && str_contains((string) $b10Pc['hausregeln'], 'Öffnungszeiten immer als Tabelle') && !str_contains(BauRegeln::alsText(), 'Öffnungszeiten'),
+    json_encode([BauRegeln::version(), $b10V0, mb_substr((string) ($b10Pc['hausregeln'] ?? ''), 0, 200)], JSON_UNESCAPED_UNICODE));
+/* Aus Fehlern lernen */
+$b10Andere = (int) Db::wert('SELECT id FROM projekt_versionen WHERE project_id <> ? ORDER BY id DESC LIMIT 1', [$vpP], 0);
+if ($b10Andere === 0) {
+    $b10AP = (int) Db::wert('SELECT id FROM projects WHERE id <> ? ORDER BY id LIMIT 1', [$vpP], 0);
+    $b10Andere = $b10AP > 0 ? (int) Db::insert('projekt_versionen', ['project_id' => $b10AP, 'nummer' => 1, 'file_id' => (int) Db::insert('files', ['customer_id' => (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$b10AP], 0), 'project_id' => $b10AP,
+        'stored_name' => 'kette-' . bin2hex(random_bytes(4)) . '.zip', 'orig_name' => 'andere.zip', 'mime' => 'application/zip', 'size_bytes' => 1, 'rolle' => 'paket'])]) : 0;
+}
+Db::run('UPDATE projekt_versionen SET review_maengel = ? WHERE id IN (?, ?)', [json_encode(['index.html: zwei Bilder ohne alt-Text']), (int) $b10P['live_version_id'], $b10Andere]);
+$b10Neu1 = BauRegeln::vorschlaegeAktualisieren(); $b10Neu2 = BauRegeln::vorschlaegeAktualisieren();
+$b10Vs = array_values(array_filter(BauRegeln::vorschlaege(), static fn($v) => $v['schluessel'] === 'alt'));
+$b10Regeln = count(BauRegeln::liste());
+if ($b10Vs) { BauRegeln::vorschlagEntscheiden((int) $b10Vs[0]['id'], true, 'Uwe Admin'); }
+pruefe('Aus Fehlern lernen: derselbe Mangel bei zwei Projekten → EIN Vorschlag (nicht doppelt); erst das Ja macht ihn zur Regel',
+    $b10Andere > 0 && $b10Neu1 >= 1 && $b10Neu2 === 0 && count($b10Vs) === 1 && $b10Regeln === count(BauRegeln::liste()) - 1 && str_contains(BauRegeln::alsText(), 'alt-Text')
+    && BauRegeln::vorschlaege() === array_values(array_filter(BauRegeln::vorschlaege(), static fn($v) => $v['schluessel'] !== 'alt')),
+    json_encode([$b10Andere, $b10Neu1, $b10Neu2, count($b10Vs)]));
+/* Bericht, Cron, Rechte */
+$b10Pdf = Betrieb::berichtPdf($vpP, date('Y-m'));
+pruefe('Betriebsbericht: PDF im neuen Stil; hängt am Monatsbericht der Hosting-Kunden (keine zusätzliche Mail)',
+    str_starts_with($b10Pdf, '%PDF') && str_contains($b10Pdf, '/FontFile2') && str_contains((string) file_get_contents($wurzel . '/src/Hosting.php'), 'Betrieb::berichtPdf($bPid)'));
+pruefe('Wächter und Seitenprüfung stehen im Automation Center, Stufe A, schicken nichts an Kunden; nur ein Admin bedient Betrieb und Bauregeln',
+    (Automation::REGELN['betrieb_abweichung'][3] ?? true) === false && (Automation::REGELN['betrieb_seitencheck'][3] ?? true) === false
+    && substr_count((string) file_get_contents($wurzel . '/index.php'), "if (!Auth::istAdmin()) { throw new RuntimeException('Das darf nur ein Admin.'); }") >= 1
+    && str_contains((string) file_get_contents($wurzel . '/index.php'), "Bauregeln ändert nur ein Admin."));
+pruefe('Bewusst nicht: keine Seite wird wegen offener Zahlung abgeschaltet', !preg_match('~abschalt|sperren\(|deaktivier~i', (string) preg_replace('~/\*.*?\*/~s', '', (string) file_get_contents($wurzel . '/src/Betrieb.php'))));
+Db::run('DELETE FROM abos WHERE id = ?', [$b10Abo]);
+
 /* Unsinnige Pakete */
 $vpT = sys_get_temp_dir() . '/kette-ent-' . bin2hex(random_bytes(3));
 $vpFehler = static function (array $d) use ($vpZip, $vpT): string {

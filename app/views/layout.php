@@ -174,6 +174,9 @@ $menue = [
     ['muster', 'Bausteine', 'muster'],
     ['dateien', 'Dateien', 'dateien'],
     ['monitoring', 'Laufen die Seiten?', 'monitoring'],
+    /* AutoBuild Phase 10 (07.10.2026): alle Live-Seiten mit Ampel, und die Regeln, nach denen Claude baut. */
+    ['betrieb', 'Betrieb', 'betrieb'],
+    ['bauregeln', 'Bauregeln', 'bauregeln'],
   ]],
 
   ['einstellungen', 'Einstellungen', 'einstellungen', [

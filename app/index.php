@@ -2971,7 +2971,8 @@ if ($post) {
                 } elseif ($tat === 'wunsch_einordnen') {
                     $wuW = Wunsch::laden((int) ($_POST['wunsch'] ?? 0));
                     if (!$wuW || (int) $wuW['project_id'] !== $wuPid) { throw new RuntimeException('Wunsch gehört nicht zu diesem Projekt.'); }
-                    Wunsch::einordnen((int) $wuW['id'], (string) ($_POST['status'] ?? ''), Auth::name(), (string) ($_POST['grund'] ?? ''));
+                    Wunsch::einordnen((int) $wuW['id'], (string) ($_POST['status'] ?? ''), Auth::name(), (string) ($_POST['grund'] ?? ''),
+                        isset($_POST['minuten']) && trim((string) $_POST['minuten']) !== '' ? (int) $_POST['minuten'] : null);
                     $_SESSION['gut'] = 'Eingeordnet: ' . (Wunsch::STATUS[(string) $_POST['status']] ?? '') . '. Der Kunde sieht den neuen Stand auf seiner Seite.';
                 } else {
                     $wuE = Wunsch::umsetzen($wuPid, Auth::name());
@@ -3563,6 +3564,53 @@ if ($post) {
                 $ok = Rechnung::verschicken($r);
                 $_SESSION['gut'] = $ok ? 'Verschickt.' : 'Der Versand hat nicht geklappt — siehe Nachrichten.';
                 zurueck('rechnungen/' . (int) $r['id']);
+
+            /* AutoBuild Phase 10 (07.10.2026): Betrieb, Kostenwächter, Bauregeln. */
+            case 'betrieb_pruefen':
+            case 'betrieb_grenze':
+            case 'betrieb_einstellungen':
+            case 'zusatzangebot':
+                if (!Auth::istAdmin()) { throw new RuntimeException('Das darf nur ein Admin.'); }
+                require_once __DIR__ . '/src/Betrieb.php';
+                require_once __DIR__ . '/src/Lieferung.php';
+                $btPid = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'betrieb_pruefen') {
+                    $btL = Lieferung::liveCheck($btPid);
+                    $btA = Betrieb::abweichung($btPid);
+                    $btS = Betrieb::seitencheck($btPid);
+                    $_SESSION[$btL['ok'] && $btA['ok'] && $btS['ok'] ? 'gut' : 'fehler'] = $btL['text'] . ' ' . $btA['text'] . ' Seitenprüfung: ' . ($btS['befunde'] === 0 ? 'alles in Ordnung.' : $btS['befunde'] . ' Befund(e).');
+                    zurueck('projekte/' . $btPid . '#betrieb');
+                } elseif ($tat === 'betrieb_grenze') {
+                    $_SESSION['gut'] = 'Freigegeben: Grenze jetzt ' . Betrieb::grenzeErhoehen($btPid, Auth::name()) . ' Bauläufe.';
+                    zurueck('projekte/' . $btPid . '#betrieb');
+                } elseif ($tat === 'betrieb_einstellungen') {
+                    Betrieb::einstellungenSpeichern((int) round(((float) str_replace(',', '.', trim((string) ($_POST['stundensatz'] ?? '0')))) * 100), (int) ($_POST['grenze'] ?? Betrieb::GRENZE_VORGABE), Auth::name());
+                    $_SESSION['gut'] = 'Gespeichert.';
+                    zurueck('betrieb');
+                }
+                require_once __DIR__ . '/src/Wunsch.php';
+                $btW = Wunsch::laden((int) ($_POST['wunsch'] ?? 0));
+                if (!$btW || (int) $btW['project_id'] !== $btPid) { throw new RuntimeException('Wunsch gehört nicht zu diesem Projekt.'); }
+                $btAng = Betrieb::zusatzangebot((int) $btW['id'], (int) ($_POST['minuten'] ?? 60), Auth::name());
+                if (!is_int($btAng)) { throw new RuntimeException($btAng); }
+                $_SESSION['gut'] = 'Zusatzangebot als Entwurf angelegt — ansehen, anpassen und selbst schicken. Nimmt der Kunde an, den Wunsch auf „Zusatz angenommen“ setzen.';
+                zurueck('angebote/' . $btAng);
+
+            case 'bauregel_neu':
+            case 'bauregel_aendern':
+            case 'bauregel_schalten':
+            case 'bauregel_vorschlag':
+                if (!Auth::istAdmin()) { throw new RuntimeException('Bauregeln ändert nur ein Admin.'); }
+                require_once __DIR__ . '/src/BauRegeln.php';
+                if ($tat === 'bauregel_neu') { BauRegeln::hinzufuegen((string) ($_POST['text'] ?? ''), Auth::name()); $_SESSION['gut'] = 'Regel aufgenommen — gilt ab dem nächsten Bauauftrag.'; }
+                elseif ($tat === 'bauregel_aendern') { BauRegeln::aendern((int) ($_POST['regel'] ?? 0), (string) ($_POST['text'] ?? ''), Auth::name()); $_SESSION['gut'] = 'Regel geändert (neue Version).'; }
+                elseif ($tat === 'bauregel_schalten') { BauRegeln::schalten((int) ($_POST['regel'] ?? 0), ($_POST['an'] ?? '') === '1', Auth::name()); $_SESSION['gut'] = 'Gespeichert (neue Version).'; }
+                else {
+                    $brJa = ($_POST['entscheidung'] ?? '') === 'ja';
+                    BauRegeln::vorschlagEntscheiden((int) ($_POST['vorschlag'] ?? 0), $brJa, Auth::name());
+                    $_SESSION['gut'] = $brJa ? 'Vorschlag angenommen — die Regel gilt ab dem nächsten Bauauftrag.' : 'Vorschlag abgelehnt — er kommt nicht wieder.';
+                }
+                zurueck('bauregeln');
 
             case 'rechnung_gutschrift':
                 /* Gutschrift / Nota di credito (07.10.2026, Vorschlag 11): eine ausgestellte Rechnung
@@ -5208,6 +5256,16 @@ switch ($route) {
                           FROM projects p JOIN customers c ON c.id = p.customer_id
                           LEFT JOIN orders o ON o.id = p.order_id WHERE p.id = ?', [$id]);
             if (!$p) { http_response_code(404); exit('Projekt nicht gefunden.'); }
+            if (($teile[2] ?? '') === 'betriebsbericht.pdf') {
+                require_once __DIR__ . '/src/Betrieb.php';
+                $bbMonat = preg_match('~^\d{4}-\d{2}$~', (string) ($_GET['monat'] ?? '')) ? (string) $_GET['monat'] : null;
+                $bbPdf = Betrieb::berichtPdf($id, $bbMonat);
+                if ($bbPdf === '') { http_response_code(404); exit('Die Seite ist noch nicht im Betrieb.'); }
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="Betriebsbericht-' . $id . '-' . ($bbMonat ?? date('Y-m', strtotime('first day of last month'))) . '.pdf"');
+                echo $bbPdf;
+                exit;
+            }
             if (($teile[2] ?? '') === 'uebergabe.pdf') {
                 require_once __DIR__ . '/src/Lieferung.php';
                 $upd = Lieferung::uebergabePdf($id);
@@ -5972,6 +6030,18 @@ switch ($route) {
             'lauf'    => sicher(static fn() => Cron::zuletzt(), null),
             'bilanz'  => sicher(static fn() => Cron::letzteBilanz(), null),
         ]);
+        break;
+
+    case 'betrieb':
+        /* AutoBuild Phase 10: alle Live-Seiten mit Ampel. */
+        require_once __DIR__ . '/src/Betrieb.php';
+        ansicht('betrieb', ['liste' => sicher(static fn() => Betrieb::uebersicht(), []), 'admin' => Auth::istAdmin()]);
+        break;
+
+    case 'bauregeln':
+        require_once __DIR__ . '/src/BauRegeln.php';
+        require_once __DIR__ . '/src/Standard.php';
+        ansicht('bauregeln', ['admin' => Auth::istAdmin()]);
         break;
 
     case 'rechnungsmuster':

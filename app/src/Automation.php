@@ -63,6 +63,8 @@ final class Automation
         'websites'       => ['Erreichbarkeit der Seiten', 'hosting', 'A', false, 'Prüft, ob die Kundenseiten antworten.'],
         'ssl'            => ['Zertifikate', 'hosting', 'A', false, 'Warnt vor ablaufenden Zertifikaten.'],
         'hosting'        => ['Hosting-Schritte fortsetzen', 'hosting', 'A', true, 'Wiederholt liegengebliebene Schritte im KAS; am Ende geht der Zugang an den Kunden.'],
+        'betrieb_abweichung' => ['Live-Seiten unverändert?', 'hosting', 'A', false, 'Vergleicht einmal am Tag jede Live-Seite mit ihrer freigegebenen Fassung und meldet eine Abweichung. Repariert nichts.'],
+        'betrieb_seitencheck' => ['Seitenprüfung', 'hosting', 'A', false, 'Prüft jede Live-Seite einmal pro Woche: Links, Bilder, Kontaktwege, Impressum/Datenschutz, Jahreszahl, Formulare.'],
         'speicher'       => ['Speicher der Kunden', 'hosting', 'A', false, 'Warnt ab 90 % belegtem Speicher.'],
         'reseller'       => ['Reseller-Vertrag lesen', 'hosting', 'A', false, 'Liest den Vertrag (nur lesen).'],
         'bericht'        => ['Monatsbericht an Hosting-Kunden', 'hosting', 'A', true, 'Ab dem Ersten einmal im Monat an jeden Hosting-Kunden.'],

@@ -84,7 +84,7 @@ final class Wunsch
     }
 
     /** Ein Mensch ordnet ein. Ein Zusatz kann erst „angenommen“ werden, wenn er Zusatz war. */
-    public static function einordnen(int $id, string $status, string $wer, string $grund = ''): void
+    public static function einordnen(int $id, string $status, string $wer, string $grund = '', ?int $minuten = null): void
     {
         $w = self::laden($id);
         if (!$w) { throw new RuntimeException('Wunsch nicht gefunden.'); }
@@ -95,7 +95,20 @@ final class Wunsch
         if (in_array($status, ['zusatz', 'abgelehnt'], true) && $grund === '') {
             $grund = $status === 'zusatz' ? 'Geht über das vereinbarte Angebot hinaus.' : 'Lässt sich so nicht umsetzen.';
         }
-        Db::update('projekt_wuensche', $id, ['status' => $status, 'grund' => $grund !== '' ? $grund : null, 'eingeordnet_von' => mb_substr($wer, 0, 120), 'eingeordnet_am' => date('Y-m-d H:i:s')]);
+        /* Phase 10: Nach dem Livegang zählt „im Umfang“ gegen das Kontingent der Betreuung (Minuten aus dem Paket;
+           kleine Inhaltsänderungen = 0 Min.). Ohne Vertrag und nach der Nachbesserung bleibt nur „Zusatz“. */
+        $felder = [];
+        if ($status === 'im_umfang') {
+            require_once __DIR__ . '/Betrieb.php';
+            $min = max(0, min(6000, (int) ($minuten ?? Betrieb::minutenAus((string) ($w['vorschlag_aufwand'] ?? '')))));
+            $nein = Betrieb::einordnungPruefen((int) $w['project_id'], $min);
+            if ($nein !== null) { throw new RuntimeException($nein); }
+            $p = Db::one('SELECT * FROM projects WHERE id = ?', [(int) $w['project_id']]);
+            if ($p && Betrieb::imBetrieb($p)) { $felder = ['aufwand_min' => $min, 'kontingent_monat' => date('Y-m')]; }
+        } elseif ($minuten !== null && $status === 'zusatz') {
+            $felder = ['aufwand_min' => max(0, min(6000, $minuten))];
+        }
+        Db::update('projekt_wuensche', $id, ['status' => $status, 'grund' => $grund !== '' ? $grund : null, 'eingeordnet_von' => mb_substr($wer, 0, 120), 'eingeordnet_am' => date('Y-m-d H:i:s')] + $felder);
         Events::pruefspur('wunsch_eingeordnet', 'projekt_wuensche', $id, ['status' => $w['status']], ['status' => $status, 'von' => $wer]);
     }
 

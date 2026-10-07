@@ -218,6 +218,15 @@ final class Cron
                 require_once __DIR__ . '/Hosting.php';
                 return Hosting::fortsetzen();
             },
+            /* AutoBuild Phase 10: Abweichungswächter (jede Live-Seite einmal am Tag) und Seitenprüfung (wöchentlich). Melden nur. */
+            'betrieb_abweichung' => static function () {
+                require_once __DIR__ . '/Betrieb.php';
+                return Betrieb::taeglich();
+            },
+            'betrieb_seitencheck' => static function () {
+                require_once __DIR__ . '/Betrieb.php';
+                return Betrieb::woechentlich();
+            },
             /* Einmal am Tag: Speicher aller Kunden-Accounts, Warnung ab 90 %. */
             'speicher'    => static function () {
                 require_once __DIR__ . '/Hosting.php';

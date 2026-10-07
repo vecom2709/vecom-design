@@ -1350,7 +1350,7 @@ final class Hosting
      * Eine Mail an den Kunden eines Hosting-Auftrags, in seiner Sprache.
      * @param callable|null $senden wie Mail::senden -- austauschbar fuer die Pruefkette
      */
-    private static function kundeSchreiben(int $kundeId, string $anlass, array $werte, ?callable $senden = null): bool
+    private static function kundeSchreiben(int $kundeId, string $anlass, array $werte, ?callable $senden = null, array $anhaenge = []): bool
     {
         require_once __DIR__ . '/Texte.php';
         require_once __DIR__ . '/Mail.php';
@@ -1368,7 +1368,7 @@ final class Hosting
         }
         [$betreff, $text] = Texte::mail($anlass, $sp, $werte);
         $senden ??= [Mail::class, 'senden'];
-        return (bool) $senden($anlass, (string) $k['email'], $betreff, $text, ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()]);
+        return (bool) $senden($anlass, (string) $k['email'], $betreff, $text, ['customer_id' => $kundeId, 'antwortAn' => Mail::eigeneAdresse()] + ($anhaenge ? ['anhaenge' => $anhaenge] : []));
     }
 
     /* ------------------------------------------------------------------ */
@@ -1419,8 +1419,17 @@ final class Hosting
             if ((string) Db::wert('SELECT svalue FROM settings WHERE skey = ?', [$schl], '') !== '') { continue; }
             $zeilen = self::berichtZeilen($a);
             if (!$zeilen) { continue; }
+            /* AutoBuild Phase 10 (Vorschlag 6): Ist die Seite von uns gebaut und im Betrieb, hängt der Betriebsbericht als PDF an —
+               keine zusätzliche Mail. Berichtet wird über den Vormonat. */
+            $anh = [];
+            $bPid = (int) ($a['project_id'] ?? 0) ?: (int) self::still(static fn() => Db::wert('SELECT id FROM projects WHERE customer_id = ? AND veroeffentlicht_domain = ? ORDER BY id DESC LIMIT 1',
+                [(int) $a['customer_id'], (string) $a['domain']], 0), 0);
+            if ($bPid > 0) {
+                $bPdf = (string) self::still(static function () use ($bPid): string { require_once __DIR__ . '/Betrieb.php'; return Betrieb::berichtPdf($bPid); }, '');
+                if ($bPdf !== '') { $anh[] = ['name' => 'Betriebsbericht-' . preg_replace('~[^a-z0-9.-]+~i', '-', (string) $a['domain']) . '-' . date('Y-m', strtotime('first day of last month')) . '.pdf', 'daten' => $bPdf]; }
+            }
             $ok = self::still(static fn() => self::kundeSchreiben((int) $a['customer_id'], 'hosting_bericht',
-                ['domain' => (string) $a['domain'], 'monat' => $monat, 'zeilen' => $zeilen], $senden), false);
+                ['domain' => (string) $a['domain'], 'monat' => $monat, 'zeilen' => $zeilen], $senden, $anh), false);
             if ($ok) {
                 Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)', [$schl, date('Y-m-d H:i:s')]);
                 $n++;

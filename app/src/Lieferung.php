@@ -213,5 +213,7 @@ final class Lieferung
         if ($frei && trim((string) ($p['uebergabe'] ?? '')) === '') { throw new RuntimeException('Erst die Übergabe erstellen.'); }
         Db::update('projects', $pid, ['uebergabe_frei_am' => $frei ? date('Y-m-d H:i:s') : null]);
         Events::pruefspur($frei ? 'uebergabe_frei' : 'uebergabe_zu', 'projects', $pid, [], ['von' => $wer]);
+        /* Phase 10: mit der Übergabe beginnt der Betrieb (Karte „Betrieb“, Kontingent, Wächter). */
+        if ($frei) { require_once __DIR__ . '/Betrieb.php'; Betrieb::beginnen($pid); }
     }
 }
