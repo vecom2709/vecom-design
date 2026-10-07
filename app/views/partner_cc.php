@@ -346,6 +346,7 @@ $ccIst = static fn(string $liste, string $wert): bool => in_array($wert, (array)
   </div>
 </div>
 <?php require_once dirname(__DIR__) . '/src/Fuss.php'; echo Fuss::html($sprache); ?>
+<script src="/assets/js/partner-mail.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-mail.js') ?>" defer></script>
 <script src="/assets/js/partner-cc.js?v=<?= (int) @filemtime(dirname(__DIR__, 2) . '/assets/js/partner-cc.js') ?>" defer></script>
 <?php /* Einführung (06.10.2026): Daten für partner-tour.js — in der Admin-Ansicht startet nichts von selbst, nichts wird gespeichert. */
   $tcSeite = match ($ccSeite) { 'start' => 'start', 'kunden', 'lead', 'mail' => 'kunden', 'ergebnisse' => 'ergebnisse', 'shop' => 'shop', 'support' => 'support',

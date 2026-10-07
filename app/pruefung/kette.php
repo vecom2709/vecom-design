@@ -28753,6 +28753,14 @@ pruefe('Kunden finden: die Bereinigung prüft alle Betriebe und meldet sich einm
 /* 9) Die Seite zeigt Reiter und Marken */
 pruefe('Kunden finden: Regeln „akquise_abgleich“ und „akquise_tag“ sind im Automation Center registriert', isset(Automation::REGELN['akquise_abgleich'], Automation::REGELN['akquise_tag']));
 
+/* Partner-Mail mit Rückfall (07.10.2026, Uwe: „im E-Mail-Programm öffnen geht nicht“). */
+$pmJs = (string) file_get_contents($oben . '/assets/js/partner-mail.js');
+pruefe('Partner-Mail: jeder mailto-Link geht durch vecomMail — langer Text nur als Betreff + Zwischenablage, sonst Gmail/Outlook/Kopieren; geladen in beiden Partner-Ansichten',
+    str_contains($pmJs, "window.vecomMail = { oeffnen: oeffnen }") && str_contains($pmJs, 'mail.google.com/mail/?view=cm') && str_contains($pmJs, 'outlook.live.com/mail/0/deeplink/compose')
+    && str_contains($pmJs, "a[href^=\"mailto:\"]") && str_contains($pmJs, 'LANG = 1900')
+    && str_contains((string) file_get_contents($oben . '/assets/js/partner-cc.js'), 'window.vecomMail.oeffnen(j.link)')
+    && str_contains((string) file_get_contents($wurzel . '/views/partner_cc.php'), 'partner-mail.js') && str_contains((string) file_get_contents($oben . '/partner.php'), 'partner-mail.js'));
+
 abschnitt('Bilanz');
 $GLOBALS['bilanz_erreicht'] = true;
 

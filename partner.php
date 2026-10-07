@@ -2438,6 +2438,7 @@ if ($p && isset($_GET['karte'])) {
   require_once __DIR__ . '/app/src/PartnerTour.php';
   echo PartnerTour::json(PartnerTour::daten($p, 'voll', $sprache, PartnerTour::urls($selbst, !empty($wmKatalog)), $selbst(), ($adminBlick ?? null) !== null)); ?>
 <script src="/assets/js/partner-tour.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-tour.js') ?>" defer></script>
+<script src="/assets/js/partner-mail.js?v=<?= (int) @filemtime(__DIR__ . '/assets/js/partner-mail.js') ?>" defer></script>
 <?php endif; ?>
 <?php require_once __DIR__ . '/app/src/Fuss.php'; echo Fuss::html($sprache); ?>
 </body>

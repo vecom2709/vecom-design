@@ -203,6 +203,8 @@
         if (!j.ok) { if (st) { st.textContent = '⛔ ' + (j.meldung || ''); } return; }
         if (j.lang && navigator.clipboard) { navigator.clipboard.writeText(j.text).catch(function () {}); }
         if (st) { st.textContent = '✓ ' + (j.lang ? f.getAttribute('data-lang') : f.getAttribute('data-ok')); }
+        /* Mit Rückfall (07.10.2026): partner-mail.js zeigt Gmail/Outlook/Kopieren, wenn kein Programm übernimmt. */
+        if (window.vecomMail) { window.vecomMail.oeffnen(j.link); return; }
         window.location.href = j.link;
       })
       .catch(function () { f.submit(); });
