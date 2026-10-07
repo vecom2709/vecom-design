@@ -778,16 +778,11 @@
   </div>
 
   <!--teil:mails-->
-  <div class="block"><h2>E-Mails</h2>
-    <?php if (!$mails): ?><div class="leer">Noch keine verschickt.</div><?php else: ?>
-      <table><tbody>
-      <?php foreach ($mails as $m): ?>
-        <tr><td><?= Fmt::h($m['betreff']) ?><br><small style="color:var(--leise)"><?= Fmt::h(Fmt::seit($m['created_at'])) ?></small></td>
-            <td style="text-align:right"><span class="marke2 <?= $m['status'] === 'gesendet' ? 'gut' : 'schlecht' ?>"><?= Fmt::h($m['status']) ?></span>
-            <?php if ($m['fehler']): ?><br><small style="color:var(--rot)"><?= Fmt::h(mb_substr((string) $m['fehler'], 0, 120)) ?></small><?php endif; ?></td></tr>
-      <?php endforeach; ?>
-      </tbody></table>
-    <?php endif; ?></div>
+  <?php /* Mail-Spur (07.10.2026): jede Mail zum Projekt als Band — Stand, Empfänger, wodurch sie rausging, Text aufklappbar. */
+    require_once __DIR__ . '/../src/MailSpur.php';
+    $mailSpur = sicher(static fn() => MailSpur::zuProjekt((int) $p['id'], 12), []); ?>
+  <div class="block" id="mails"><h2>E-Mails</h2>
+    <?php if (!$mailSpur): ?><div class="leer">Noch keine verschickt.</div><?php else: $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; endif; ?></div>
 <!--teil:ende-->
 </div></div>
 

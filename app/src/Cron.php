@@ -5,6 +5,7 @@ require_once __DIR__ . '/Monitoring.php';
 require_once __DIR__ . '/Onboarding.php';
 require_once __DIR__ . '/Cockpit.php';
 require_once __DIR__ . '/Sicherung.php';
+require_once __DIR__ . '/Mail.php';
 
 /**
  * Der regelmaessige Lauf. Auf dem Webspace gibt es kein SSH und keinen
@@ -747,8 +748,11 @@ final class Cron
             if ($ruht !== null) { $bilanz[$name] = ['ruht' => $ruht]; continue; }
             $t0 = microtime(true);
             $fehler = null;
+            // Mail-Spur: was diese Aufgabe verschickt, steht als „automatisch: <Regel>“ in der Akte.
+            Mail::$ausloeser = ['art' => 'automatisch', 'ref' => (string) $name, 'wer' => 'Automatik'];
             try { $bilanz[$name] = $tun(); $fehler = Automation::fehlerAus($bilanz[$name]); }
             catch (Throwable $e) { $bilanz[$name] = ['fehler' => mb_substr($e->getMessage(), 0, 200)]; $fehler = $bilanz[$name]['fehler']; }
+            finally { Mail::$ausloeser = null; }
             // Gelaufen (auch mit Fehler — sonst liefe eine kaputte Aufgabe alle zehn Minuten): Tag vermerken.
             if (isset(self::TAGES_AUFGABEN[$name])) { self::merken(self::TAGES_AUFGABEN[$name], date('Y-m-d')); }
             $laeufe[$name] = ['ms' => (int) round((microtime(true) - $t0) * 1000), 'ergebnis' => Automation::kurz($bilanz[$name]), 'fehler' => $fehler];

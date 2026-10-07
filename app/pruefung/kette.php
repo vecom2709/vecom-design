@@ -28228,6 +28228,61 @@ pruefe('Seite „Umzüge & DNS“ nur für den Admin, im Menü unter Bauen; kein
     && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['umzuege', 'Umzüge & DNS', 'umzuege']")
     && !array_filter(['migration_', 'dns_', 'exit_', 'domain_bestell'], static fn($t) => (bool) array_filter(Rechte::TATEN_MITARBEIT, static fn($m) => str_starts_with($t, $m) || str_starts_with($m, $t))));
 
+/* ---- Mail-Spur: jede versendete Mail klar markiert, mit Verlauf und Text (07.10.2026) ---- */
+abschnitt('Mail-Spur: jede Mail mit Auslöser, Stand und Text — dort, wo sie ausgelöst wurde');
+require_once $wurzel . '/src/MailSpur.php';
+require_once $wurzel . '/src/Mail.php';
+if (!function_exists('url')) { function url(string $p = ''): string { return '/app/' . ltrim($p, '/'); } }
+$msMig = (string) file_get_contents($wurzel . '/migrations/215_mail_spur.sql');
+pruefe('Migration 215: Auslöser, Bezug und Partner an jeder Mail — nur hinzugefügt', substr_count($msMig, 'ADD COLUMN IF NOT EXISTS') === 7 && !preg_match('~\bDROP\b|\bDELETE\s+FROM\b~i', $msMig));
+$msK = (int) Db::insert('customers', ['name' => 'Spur Kette', 'email' => 'spur@pruefung.example', 'sprache' => 'de', 'token' => bin2hex(random_bytes(12))]);
+Mail::$ausloeser = ['art' => 'knopf', 'ref' => 'bewertung_bitten', 'wer' => 'Kette'];
+Mail::senden('spur_probe', 'spur@pruefung.example', 'Probe mit Spur', "Zeile eins\n<script>alert(1)</script>", ['customer_id' => $msK, 'ref_art' => 'angebot', 'ref_id' => 4242]);
+Mail::$ausloeser = null;
+$msZ = Db::one('SELECT * FROM mails WHERE id = ?', [(int) Mail::$letzteId]);
+pruefe('Mail::senden hält fest, wodurch die Mail rausging, worauf sie sich bezieht — und gibt ihre Zeile her', $msZ && $msZ['ausloeser'] === 'knopf'
+    && $msZ['ausloeser_ref'] === 'bewertung_bitten' && $msZ['ausloeser_wer'] === 'Kette' && $msZ['ref_art'] === 'angebot' && (int) $msZ['ref_id'] === 4242
+    && $msZ['anlass'] === 'spur_probe');
+Mail::senden('spur_probe', 'spur@pruefung.example', 'Probe ohne Klick', 'Text', ['customer_id' => $msK]);
+pruefe('Ohne Klick und ohne Freigabe: „ablauf“ — leer heißt nur noch „vor der Erfassung“', (string) Db::wert('SELECT ausloeser FROM mails WHERE id = ?', [(int) Mail::$letzteId], '') === 'ablauf');
+pruefe('Der Satz zum Auslöser: Freigabe, Knopf mit Uwes Wort, Automatik mit Regelnamen, Ablauf, alt',
+    MailSpur::wer(['ausloeser' => 'freigabe', 'ausloeser_id' => 12, 'ausloeser_wer' => 'Uwe']) === 'nach Uwes Ja in AI Freigaben (#12)'
+    && MailSpur::wer(['ausloeser' => 'knopf', 'ausloeser_ref' => 'bewertung_bitten', 'ausloeser_wer' => 'Uwe']) === 'per Knopf „Bitte verschicken“ von Uwe'
+    && MailSpur::wer(['ausloeser' => 'automatisch', 'ausloeser_ref' => 'mahnungen']) === 'automatisch: ' . (Automation::REGELN['mahnungen'][0] ?? 'mahnungen')
+    && str_starts_with(MailSpur::wer(['ausloeser' => 'ablauf']), 'vom Ablauf') && MailSpur::wer([]) === '');
+$msSp = MailSpur::zuRef('angebot', 4242);
+pruefe('Zu einer Sache: die Mail mit Text, Stand und Auslöser', count($msSp) === 1 && str_contains($msSp[0]['text'], 'Zeile eins') && $msSp[0]['wer'] !== '' && $msSp[0]['kunde'] === $msK);
+$mailSpur = $msSp; $mailSpurLeer = '';
+ob_start(); require $wurzel . '/views/mailspur.php'; $msHtml = (string) ob_get_clean();
+pruefe('Das Band: Stand in Farbe, Empfänger, Betreff, Auslöser, Text aufklappbar — und nichts aus dem Text wird ausgeführt',
+    str_contains($msHtml, 'class="ms-band') && str_contains($msHtml, 'spur@pruefung.example') && str_contains($msHtml, 'Probe mit Spur')
+    && str_contains($msHtml, 'Text ansehen, wie er rausging') && str_contains($msHtml, 'Per Knopf') && !str_contains($msHtml, '<script>alert') && str_contains($msHtml, '&lt;script&gt;')
+    && str_contains($msHtml, '/app/kunden/' . $msK . '/mail/'));
+// Freigabe: Ja → die Mail trägt die Freigabe, die Antwort nennt sie (auch für Telegram)
+require_once $wurzel . '/src/Freigabe.php';
+$msF = Freigabe::vorschlagen('kunde_nachricht', ['kunde' => $msK, 'betreff' => 'Spur aus der Freigabe', 'text' => 'Guten Tag, das ist die Probe.'], ['titel' => 'Spur', 'grund' => 'Kette', 'von' => 'Kette']);
+$msG = Freigabe::genehmigen($msF, 'Kette');
+$msFm = MailSpur::zuFreigabe($msF);
+pruefe('Freigabe: die Mail des Ja trägt die Freigabe — und die Antwort sagt, was mit der Post geschah', $msFm !== []
+    && $msFm[0]['betreff'] !== '' && str_contains($msFm[0]['betreff'], 'Spur aus der Freigabe') && str_starts_with($msFm[0]['wer'], 'nach Kettes Ja in AI Freigaben (#' . $msF . ')')
+    && str_contains((string) ($msG['post'] ?? ''), 'Spur aus der Freigabe') && Mail::$ausloeser === null, json_encode($msG, JSON_UNESCAPED_UNICODE));
+pruefe('Telegram bekommt den Satz zur Post mit', str_contains((string) file_get_contents($wurzel . '/src/TelegramBot.php'), "\$erg['post']"));
+// Einbindung: Knopf, Cron, Orte der Tat
+$msIdx = (string) file_get_contents($wurzel . '/index.php');
+$msCron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Jeder Knopf (app/index.php) und jede Cron-Aufgabe setzt den Auslöser — der Cron räumt ihn danach weg',
+    str_contains($msIdx, "Mail::\$ausloeser = ['art' => 'knopf'") && str_contains($msCron, "Mail::\$ausloeser = ['art' => 'automatisch'") && str_contains($msCron, 'finally { Mail::$ausloeser = null; }'));
+$msOrte = ['ai_freigaben.php' => 'mailsJeFreigabe', 'kunde.php' => "MailSpur::zuZahlungen(", 'projekt.php' => 'MailSpur::zuProjekt(', 'angebot.php' => 'MailSpur::zuAngebot(',
+           'partner_akte.php' => 'MailSpur::zuPartner(', 'akquise_firma.php' => 'MailSpur::zuMailIds('];
+pruefe('Die Bänder stehen dort, wo die Mail ausgelöst wurde: AI Freigaben, Kundenakte, Projekt, Angebot, Partner, Akquise-Betrieb',
+    !array_filter($msOrte, static fn($n, $d) => !str_contains((string) file_get_contents($wurzel . '/views/' . $d), $n) || !str_contains((string) file_get_contents($wurzel . '/views/' . $d), "mailspur.php"), ARRAY_FILTER_USE_BOTH));
+$msKv = (string) file_get_contents($wurzel . '/views/kunde.php');
+pruefe('Kundenakte: Auslöser an jeder Mail, Mails im Verlauf, Bewertungs-Bitte und Exit-Paket mit ihrer Mail',
+    str_contains($msKv, "\$km['wer']") && str_contains($msKv, '$vlEintraege') && str_contains($msKv, "['bewertung_bitte']") && str_contains($msKv, "MailSpur::zuRef('exit'"));
+pruefe('Angebot, Exit-Paket und Partner-Mails tragen ihren Bezug; die Akquise hängt die Mail an den Versand',
+    str_contains((string) file_get_contents($wurzel . '/src/Angebot.php'), "'ref_art' => 'angebot'") && str_contains((string) file_get_contents($wurzel . '/src/ExitPaket.php'), "'ref_art' => 'exit'")
+    && str_contains((string) file_get_contents($wurzel . '/src/Partner.php'), "'partner_id' => \$partnerId") && str_contains((string) file_get_contents($wurzel . '/src/AkquiseVersand.php'), "['mail_id' => Mail::\$letzteId]"));
+
 /* ============================================================================
    Prüfung 07.10.2026, Punkt 51: Abgleiche, die bisher von Hand liefen
    ============================================================================ */

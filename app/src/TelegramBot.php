@@ -1201,7 +1201,8 @@ Das wiegt schwer — genehmigen nur in der Verwaltung.", [$verwaltung], $msgId);
             'an' => Freigabe::ablehnen($id, $wer, '', 'telegram'),
             default => Freigabe::zurueckstellen($id, 1, $wer, 'telegram'),
         };
-        self::zeigeFreigaben($c, $msgId, ($erg['ok'] ? '✅ ' : '⚠️ ') . self::h($erg['text']) . "
+        // Mail-Spur (07.10.2026, Uwe: Telegram „ja, kurz“): ging eine Mail raus — an wen, mit welchem Betreff, oder warum nicht.
+        self::zeigeFreigaben($c, $msgId, ($erg['ok'] ? '✅ ' : '⚠️ ') . self::h($erg['text']) . (!empty($erg['post']) ? "\n" . self::h((string) $erg['post']) : '') . "
 
 ");
         return $tat === 'ajj' ? ($erg['ok'] ? 'ai_genehmigt' : 'ai_fehlgeschlagen') : ($tat === 'an' ? 'ai_abgelehnt' : 'ai_zurueck');

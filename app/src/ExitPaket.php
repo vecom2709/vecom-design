@@ -336,7 +336,7 @@ final class ExitPaket
         if ($senden !== null) { $ok = (bool) $senden((string) $p['email'], $betreff, $text); }
         else {
             require_once __DIR__ . '/Mail.php';
-            $ok = Mail::senden('exit_paket', (string) $p['email'], $betreff, $text, ['customer_id' => (int) $p['customer_id']]);
+            $ok = Mail::senden('exit_paket', (string) $p['email'], $betreff, $text, ['customer_id' => (int) $p['customer_id'], 'ref_art' => 'exit', 'ref_id' => $paketId]);
         }
         if (!$ok) {
             Db::run('UPDATE exit_pakete SET schluessel_hash = NULL, gueltig_bis = NULL WHERE id = ?', [$paketId]);

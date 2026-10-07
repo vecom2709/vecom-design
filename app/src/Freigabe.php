@@ -213,6 +213,11 @@ final class Freigabe
         $warAutomatisch = Automation::automatisch();
         $herkunft = Automation::herkunft();
         Automation::automatischZuruecksetzen();
+        /* Mail-Spur (07.10.2026): Jede Mail dieser Tat trägt die Freigabe — so steht sie hier unter
+           „Zuletzt entschieden“, in der Akte und in Telegram mit Text und Stand. */
+        require_once __DIR__ . '/Mail.php';
+        $vorherAusloeser = Mail::$ausloeser;
+        Mail::$ausloeser = ['art' => 'freigabe', 'ref' => (string) $f['art'], 'id' => $id, 'wer' => $wer];
         try {
             $text = self::ausfuehren($f['art'], $d, $userId);
             $ok = true;
@@ -220,11 +225,14 @@ final class Freigabe
             $text = $e->getMessage() !== '' ? $e->getMessage() : 'Die Tat ließ sich nicht ausführen.';
             $ok = false;
         } finally {
+            Mail::$ausloeser = $vorherAusloeser;
             if ($warAutomatisch) { Automation::automatischAb($herkunft); }
         }
         Db::run('UPDATE ai_freigaben SET status = ?, ergebnis = ? WHERE id = ?', [$ok ? 'ausgefuehrt' : 'fehlgeschlagen', mb_substr($text, 0, 1000), $id]);
         self::spur($ok ? 'freigabe_genehmigt' : 'freigabe_fehlgeschlagen', $id, ['art' => $f['art']], ['von' => $wer, 'kanal' => $kanal, 'geaendert' => $geaendert, 'ergebnis' => mb_substr($text, 0, 300)]);
-        return ['ok' => $ok, 'text' => $text];
+        $post = '';
+        try { require_once __DIR__ . '/MailSpur.php'; $post = MailSpur::kurz(MailSpur::zuFreigabe($id)); } catch (Throwable $e) { }
+        return ['ok' => $ok, 'text' => $text, 'post' => $post];
     }
 
     /** Die Tat selbst — genau die Methode, die auch app/index.php für Uwes Knopf ruft. */

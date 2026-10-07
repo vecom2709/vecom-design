@@ -31,7 +31,8 @@ final class KundeMails
         $mail = mb_strtolower(trim((string) ($k['email'] ?? '')));
         $grenze = max(1, min(500, $grenze));
         $mitInhalt = self::spalteDa();
-        $felder = 'id, anlass, empfaenger, betreff, status, fehler, created_at' . ($mitInhalt ? ', anhaenge, (inhalt IS NOT NULL OR html IS NOT NULL) AS hat_inhalt' : '');
+        $felder = 'id, anlass, empfaenger, betreff, status, fehler, created_at' . ($mitInhalt ? ', anhaenge, (inhalt IS NOT NULL OR html IS NOT NULL) AS hat_inhalt' : '')
+            . (self::spurDa() ? ', ausloeser, ausloeser_ref, ausloeser_id, ausloeser_wer' : '');
         $zeilen = Db::all(
             "SELECT $felder FROM mails
               WHERE customer_id = ?
@@ -49,7 +50,7 @@ final class KundeMails
         /* Akquise: über die verknüpfte Firma. Tabelle fehlt in alten Ständen — dann eben nicht. */
         try {
             $akq = Db::all(
-                "SELECT v.id, v.kanal, v.an, v.status, v.grund, v.mail_id, v.created_at FROM akq_versand v
+                "SELECT v.id, v.kanal, v.an, v.status, v.grund, v.mail_id, v.actor, v.created_at FROM akq_versand v
                    JOIN akq_firmen f ON f.id = v.firma_id
                   WHERE f.customer_id = ? AND v.kanal = 'email' AND v.status IN ('gesendet','von_hand','fehler')
                   ORDER BY v.id DESC LIMIT $grenze", [$kundeId]);
@@ -62,7 +63,7 @@ final class KundeMails
                 }
                 $aus[] = ['quelle' => 'akq', 'id' => (int) $v['id'], 'zeit' => (string) $v['created_at'], 'betreff' => 'Akquise-Mail',
                     'an' => (string) ($v['an'] ?? ''), 'status' => (string) $v['status'], 'fehler' => (string) ($v['grund'] ?? ''),
-                    'anlass' => 'akquise', 'anhaenge' => [], 'inhalt' => false];
+                    'anlass' => 'akquise', 'anhaenge' => [], 'inhalt' => false, 'wer' => 'Akquise' . (!empty($v['actor']) ? ' · ' . (string) $v['actor'] : ''), 'freigabe' => 0];
             }
         } catch (Throwable $e) { /* ohne Akquise-Tabellen */ }
         usort($aus, static fn($a, $b) => strcmp($b['zeit'], $a['zeit']) ?: $b['id'] <=> $a['id']);
@@ -91,7 +92,18 @@ final class KundeMails
             'an' => (string) $z['empfaenger'], 'status' => (string) $z['status'], 'fehler' => (string) ($z['fehler'] ?? ''),
             'anlass' => (string) $z['anlass'],
             'anhaenge' => is_array($anh) ? array_values(array_map(static fn($a) => ['name' => (string) ($a['name'] ?? ''), 'groesse' => (int) ($a['groesse'] ?? 0)], $anh)) : [],
-            'inhalt' => !empty($z['hat_inhalt'])];
+            'inhalt' => !empty($z['hat_inhalt']),
+            // Mail-Spur (07.10.2026): wodurch sie rausging — AI Freigabe, Knopf, automatisch oder Ablauf.
+            'wer' => (static function () use ($z): string { require_once __DIR__ . '/MailSpur.php'; return MailSpur::wer($z); })(),
+            'freigabe' => (string) ($z['ausloeser'] ?? '') === 'freigabe' ? (int) ($z['ausloeser_id'] ?? 0) : 0];
+    }
+
+    private static ?bool $spur = null;
+    private static function spurDa(): bool
+    {
+        if (self::$spur !== null) { return self::$spur; }
+        try { Db::wert('SELECT ausloeser FROM mails LIMIT 1', [], null); return self::$spur = true; }
+        catch (Throwable $e) { return self::$spur = false; }
     }
 
     private static ?bool $spalte = null;

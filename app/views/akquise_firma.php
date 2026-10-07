@@ -567,12 +567,19 @@ $post = static function (string $tat, string $inhalt = '', string $attr = '') us
 
 <div class="block">
   <h2>Was geschah</h2>
+  <?php /* Mail-Spur (07.10.2026): Ging eine Mail über den Server, steht sie unter ihrer Zeile — Stand und Text.
+           Was im eigenen Mailprogramm geöffnet wurde, kennt die Verwaltung nicht im Wortlaut. */
+    require_once __DIR__ . '/../src/MailSpur.php';
+    $akqMails = sicher(static fn() => MailSpur::zuMailIds(array_column($versand, 'mail_id')), []); ?>
   <?php if ($versand): ?>
     <div class="tabellenrahmen" style="margin-bottom:12px"><table><thead><tr><th>Wann</th><th>Weg</th><th>Ergebnis</th><th>Grund</th><th>Wer</th></tr></thead><tbody>
       <?php foreach ($versand as $x): ?><tr><td class="akq-klein"><?= Fmt::h(Fmt::zeit((string) $x['created_at'])) ?></td>
         <td><?= Fmt::h(AkquiseGate::KANAELE[(string) $x['kanal']] ?? '') ?></td>
         <td><span class="marke2 <?= ['gesendet' => 'gut', 'von_hand' => 'gut', 'blockiert' => 'warnung', 'fehler' => 'schlecht', 'bounce' => 'schlecht'][$x['status']] ?? '' ?>"><?= Fmt::h(['gesendet' => 'verschickt', 'von_hand' => 'selbst gemacht', 'blockiert' => 'gestoppt', 'fehler' => 'Fehler', 'bounce' => 'kam zurück'][$x['status']] ?? (string) $x['status']) ?></span></td>
-        <td class="akq-klein"><?= Fmt::h((string) $x['grund']) ?></td><td class="akq-klein"><?= Fmt::h((string) $x['actor']) ?></td></tr><?php endforeach; ?>
+        <td class="akq-klein"><?= Fmt::h((string) $x['grund']) ?></td><td class="akq-klein"><?= Fmt::h((string) $x['actor']) ?></td></tr>
+        <?php if (!empty($akqMails[(int) ($x['mail_id'] ?? 0)])): ?><tr><td colspan="5" style="padding-top:0">
+          <?php $mailSpur = [$akqMails[(int) $x['mail_id']]]; $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?></td></tr><?php endif; ?>
+      <?php endforeach; ?>
     </tbody></table></div>
   <?php endif; ?>
   <div class="tabellenrahmen"><table><tbody>

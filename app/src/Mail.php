@@ -18,6 +18,19 @@ require_once __DIR__ . '/Automation.php';
  */
 final class Mail
 {
+    /**
+     * WODURCH DIE MAIL RAUSGING (07.10.2026, Uwe: „wenn eine email versendet wurde soll dies auch
+     * ganz klar markiert sein inklusive des verlaufs was geschrieben wurde“). Wer eine Tat startet,
+     * setzt das hier: app/index.php für jeden Knopf (knopf), Freigabe::genehmigen (freigabe),
+     * der Cron je Aufgabe (automatisch). Bleibt es leer, war es der Ablauf selbst (Bestellung,
+     * Kundenbereich, Webhook) — gespeichert als „ablauf“. Leer in der Datenbank heißt: vor der Erfassung.
+     * @var array{art:string, ref?:string, id?:int, wer?:string}|null
+     */
+    public static ?array $ausloeser = null;
+
+    /** Die Zeile in `mails` zur zuletzt vermerkten Mail — für alle, die sie verknüpfen wollen. */
+    public static ?int $letzteId = null;
+
     /** Etwas holen, ohne dass eine Mail daran scheitert. */
     private static function still(callable $fn, mixed $ersatz = null): mixed
     {
@@ -121,6 +134,13 @@ final class Mail
             'inhalt'      => mb_substr($text, 0, 200000),
             'html'        => $html,
             'anhaenge'    => $anhangListe ? json_encode($anhangListe, JSON_UNESCAPED_UNICODE) : null,
+            'ausloeser'     => mb_substr((string) (self::$ausloeser['art'] ?? 'ablauf'), 0, 20),
+            'ausloeser_ref' => isset(self::$ausloeser['ref']) ? mb_substr((string) self::$ausloeser['ref'], 0, 80) : null,
+            'ausloeser_id'  => isset(self::$ausloeser['id']) ? (int) self::$ausloeser['id'] : null,
+            'ausloeser_wer' => isset(self::$ausloeser['wer']) && trim((string) self::$ausloeser['wer']) !== '' ? mb_substr((string) self::$ausloeser['wer'], 0, 80) : null,
+            'ref_art'       => isset($bezug['ref_art']) ? mb_substr((string) $bezug['ref_art'], 0, 20) : null,
+            'ref_id'        => isset($bezug['ref_id']) ? (int) $bezug['ref_id'] : null,
+            'partner_id'    => isset($bezug['partner_id']) ? (int) $bezug['partner_id'] : null,
         ];
 
         // Ein anonymisierter Kunde traegt eine Adresse unter .invalid. Die
@@ -313,11 +333,16 @@ final class Mail
 
     private static function vermerken(array $daten): void
     {
-        try { Db::insert('mails', $daten); }
+        self::$letzteId = null;
+        $spur = ['ausloeser' => 1, 'ausloeser_ref' => 1, 'ausloeser_id' => 1, 'ausloeser_wer' => 1, 'ref_art' => 1, 'ref_id' => 1, 'partner_id' => 1];
+        try { self::$letzteId = Db::insert('mails', $daten); }
         catch (Throwable $e) {
-            /* Vor Migration 210 fehlen die Spalten für den Inhalt — dann wenigstens die Zeile. */
-            try { Db::insert('mails', array_diff_key($daten, ['inhalt' => 1, 'html' => 1, 'anhaenge' => 1])); }
-            catch (Throwable $e2) { /* Protokoll ist Beiwerk */ }
+            /* Vor Migration 215 fehlen die Spalten der Spur, vor 210 die für den Inhalt — dann wenigstens die Zeile. */
+            try { self::$letzteId = Db::insert('mails', array_diff_key($daten, $spur)); }
+            catch (Throwable $e2) {
+                try { self::$letzteId = Db::insert('mails', array_diff_key($daten, $spur + ['inhalt' => 1, 'html' => 1, 'anhaenge' => 1])); }
+                catch (Throwable $e3) { /* Protokoll ist Beiwerk */ }
+            }
         }
 
         /* Der Stand auf der Seite "Integrationen" wurde bisher nur von der

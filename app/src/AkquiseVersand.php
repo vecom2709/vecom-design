@@ -250,6 +250,11 @@ final class AkquiseVersand
             'sprache' => $sprache,
             'nurText' => true,
         ] + $optionen);
+        /* Mail-Spur (07.10.2026): die Zeile in `mails` an den Versand hängen — die Firmenakte zeigt die Mail
+           dann mit Stand und Text. Nur, wenn der echte Postbote lief (der Prüf-Postbote schreibt keine Zeile). */
+        if (!self::$postbote && Mail::$letzteId !== null) {
+            try { Db::update('akq_versand', $versandId, ['mail_id' => Mail::$letzteId]); } catch (Throwable $e) { }
+        }
         if (!$ok) {
             Db::update('akq_versand', $versandId, ['grund' => 'Brevo hat die Nachricht nicht angenommen — siehe E-Mail-Protokoll.']);
             Db::update('akq_firmen', (int) $f['id'], ['versand_status' => 'fehler']);

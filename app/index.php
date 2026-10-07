@@ -315,6 +315,12 @@ if ($post && !Ablauf::bestaetigt($_POST)) {
     $_SESSION['fehler'] = 'Nichts ausgeführt: Dieser Schritt braucht deine Bestätigung. Bitte den Knopf noch einmal drücken und die Rückfrage mit „Ja“ beantworten.';
     zurueck('heute');
 }
+/* Jede Mail, die dieser Klick auslöst, trägt ihn: Tat und Name (07.10.2026, Mail-Spur).
+   Freigabe::genehmigen setzt für seine Tat „freigabe“ darüber. */
+if ($post) {
+    require_once __DIR__ . '/src/Mail.php';
+    Mail::$ausloeser = ['art' => 'knopf', 'ref' => (string) ($_POST['tat'] ?? ''), 'wer' => Auth::name()];
+}
 
 /* ---------- Lebenszeichen fuer die laufende Aktualisierung ---------- */
 if ($route === 'puls') {
@@ -1506,7 +1512,7 @@ if ($post) {
                     'freigabe_ablehnen' => Freigabe::ablehnen($frId, $frWer, trim((string) ($_POST['grund'] ?? ''))),
                     default => Freigabe::zurueckstellen($frId, (int) ($_POST['tage'] ?? 1), $frWer),
                 };
-                $_SESSION[$frR['ok'] ? 'gut' : 'fehler'] = $frR['text'];
+                $_SESSION[$frR['ok'] ? 'gut' : 'fehler'] = $frR['text'] . (!empty($frR['post']) ? ' ' . str_replace("\n", ' · ', (string) $frR['post']) : '');
                 zurueck('ai-freigaben#f' . $frId);
 
             case 'claude_erlauben':
@@ -5038,7 +5044,14 @@ switch ($route) {
         ansicht('ai_freigaben', [
             'offen' => sicher(static fn() => Freigabe::offen(), []),
             'ruhend' => sicher(static fn() => Freigabe::ruhend(), []),
-            'entschieden' => sicher(static fn() => Freigabe::entschieden(15), []),
+            'entschieden' => $frEntschieden = sicher(static fn() => Freigabe::entschieden(15), []),
+            // Mail-Spur: was jede genehmigte Freigabe verschickt hat, mit Text (07.10.2026)
+            'mailsJeFreigabe' => sicher(static function () use (&$frEntschieden): array {
+                require_once __DIR__ . '/src/MailSpur.php';
+                $aus = [];
+                foreach ((array) $frEntschieden as $f) { $aus[(int) $f['id']] = MailSpur::zuFreigabe((int) $f['id']); }
+                return $aus;
+            }, []),
             'gehalten' => sicher(static fn() => Ausgang::offen(), []),
             'notaus' => sicher(static fn() => Automation::notAus(), false),
             'fokus' => (int) $id,

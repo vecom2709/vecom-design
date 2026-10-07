@@ -237,6 +237,13 @@ $hin = static fn(string $tat, string $wort, bool $haupt = false, array $extra = 
           . '<div style="font-size:11.5px;color:var(--leise);margin-top:4px">' . ($vp ? Fmt::h($name) : 'Vecom') . ' · ' . Fmt::h(date('d.m.Y H:i', strtotime((string) $n['created_at'])))
           . (!$vp && $n['gelesen_am'] ? ' · gelesen' : '') . '</div></div>';
   }; ?>
+<?php /* Mail-Spur (07.10.2026, Uwe: auch beim Partner jede versendete Mail klar markiert, mit Text). */
+  require_once __DIR__ . '/../src/MailSpur.php';
+  $mailSpur = sicher(static fn() => MailSpur::zuPartner((int) $p['id'], (string) ($p['email'] ?? ''), 20), []); ?>
+<div class="block" id="partner-mails">
+  <h2 style="font-size:15px;margin:0 0 6px">E-Mails an den Partner <?php if ($mailSpur): ?><span style="color:var(--leise);font-weight:400">(<?= count($mailSpur) ?>)</span><?php endif; ?></h2>
+  <?php $mailSpurLeer = 'Noch keine E-Mail an diesen Partner.'; require __DIR__ . '/mailspur.php'; ?>
+</div>
 <div class="block" id="nachrichten">
   <h2 style="font-size:15px;margin:0 0 10px">Support-Anliegen</h2>
   <?php if (!$tkListe): ?><p style="color:var(--leise);font-size:13px;margin:0 0 10px">Noch keine. Der Partner schreibt über SUPPORT im Command Center; deine Antwort bekommt er per Mail und, wenn er die App hat, aufs Handy.</p><?php endif; ?>

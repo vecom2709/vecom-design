@@ -45,6 +45,11 @@ $anzahlung = (int) round((int) $a['summe_cents'] * (int) $a['anzahlung_prozent']
   </div>
 </div>
 
+<?php /* Mail-Spur (07.10.2026): Ging das Angebot raus, steht hier die Mail mit Stand und Text. */
+  require_once __DIR__ . '/../src/MailSpur.php';
+  $mailSpur = sicher(static fn() => MailSpur::zuAngebot((int) $a['id'], (int) $a['customer_id'], (string) ($a['gesendet_am'] ?? '')), []); ?>
+<?php if ($mailSpur): ?><div class="block" id="mails"><h2 style="font-size:15px;margin:0 0 4px">E-Mail an den Kunden</h2><?php $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?></div><?php endif; ?>
+
 <div class="zwei">
   <div>
     <div class="block">

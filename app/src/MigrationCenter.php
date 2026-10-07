@@ -398,7 +398,7 @@ final class MigrationCenter
         if ($gesamt !== 'rot') {
             self::stand($id, 'bereit', 'Pre-Flight ohne Blocker (' . ($gesamt === 'ok' ? 'alles grün' : 'mit Hinweisen') . ').', $wer);
         }
-        Events::protokoll('migration_preflight', 'Pre-Flight ' . ($domain ?: '#' . $id) . ': ' . $gesamt, $kunde);
+        Events::protokoll('migration_preflight', 'Pre-Flight ' . ($domain ?: '#' . $id) . ': ' . (['ok' => 'alles in Ordnung', 'warn' => 'mit Hinweisen', 'rot' => 'mit Blockern'][$gesamt] ?? $gesamt), $kunde);
         return $bericht;
     }
 

@@ -2,7 +2,7 @@
 /* AI Freigaben (AI Office Stufe 1, 06.10.2026). Daten: $offen, $ruhend, $entschieden, $gehalten, $notaus, $fokus.
    Uwe: Umfang „Was Claude vorschlägt“, Ausführen „Dieselbe Tat wie Ihr Knopf“, Zurückstellen „morgen, 3 Tage,
    1 Woche“. Ein Ding je Karte: Genehmigen ist der eine laute Knopf. */
-$offen = $offen ?? []; $ruhend = $ruhend ?? []; $entschieden = $entschieden ?? []; $gehalten = $gehalten ?? [];
+$offen = $offen ?? []; $ruhend = $ruhend ?? []; $entschieden = $entschieden ?? []; $mailsJeFreigabe = $mailsJeFreigabe ?? []; $gehalten = $gehalten ?? [];
 $statusWort = ['ausgefuehrt' => ['erledigt', 'gut'], 'fehlgeschlagen' => ['fehlgeschlagen', 'schlecht'], 'abgelehnt' => ['abgelehnt', ''],
                'von_hand' => ['per Knopf erledigt', 'gut'], 'laeuft' => ['läuft', 'warnung']];
 $link = static function (array $f): string {
@@ -104,7 +104,9 @@ $link = static function (array $f): string {
   <div class="block"><h2>Zuletzt entschieden</h2>
     <table class="schlicht"><tbody>
       <?php foreach ($entschieden as $f): [$sw, $sk] = $statusWort[$f['status']] ?? [$f['status'], '']; ?>
-        <tr><td><?= Fmt::h((string) $f['titel']) ?><?php if (!empty($f['ergebnis'])): ?><br><small style="color:var(--leise)"><?= Fmt::h(mb_substr((string) $f['ergebnis'], 0, 160)) ?></small><?php endif; ?></td>
+        <tr id="f<?= (int) $f['id'] ?>"><td><?= Fmt::h((string) $f['titel']) ?><?php if (!empty($f['ergebnis'])): ?><br><small style="color:var(--leise)"><?= Fmt::h(mb_substr((string) $f['ergebnis'], 0, 160)) ?></small><?php endif; ?>
+          <?php /* Mail-Spur (07.10.2026): was diese Freigabe verschickt hat — Band mit Stand, Text aufklappbar. */
+            $mailSpur = ($mailsJeFreigabe ?? [])[(int) $f['id']] ?? []; $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?></td>
           <td style="width:1%;white-space:nowrap"><span class="marke2 <?= $sk ?>"><?= Fmt::h($sw) ?></span><?= !empty($f['geaendert']) ? ' <span class="marke2">geändert</span>' : '' ?></td>
           <td style="color:var(--dim);width:28%"><?= Fmt::h(trim((string) ($f['entschieden_von'] ?? '') . ' · ' . ($f['kanal'] === 'telegram' ? 'Telegram · ' : '') . Fmt::zeit((string) ($f['entschieden_am'] ?? $f['created_at'])), ' ·')) ?></td></tr>
       <?php endforeach; ?>

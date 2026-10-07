@@ -1869,7 +1869,7 @@ final class Partner
         if ($betreff === '') { return false; }
         $senden ??= [Mail::class, 'senden'];
         return (bool) self::still(static fn() => $senden($anlass, (string) $p['email'], $betreff, $text,
-            ['antwortAn' => Mail::eigeneAdresse(), 'sprache' => $sp, 'empfaengerArt' => 'partner']), false);
+            ['antwortAn' => Mail::eigeneAdresse(), 'sprache' => $sp, 'empfaengerArt' => 'partner', 'partner_id' => $partnerId]), false);
     }
 
     /**

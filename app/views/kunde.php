@@ -100,15 +100,24 @@ $eing = !empty($eingebettet);
           <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
           <button class="knopf">Um Google-Bewertung bitten</button></form>
       <?php endif; ?>
+      <?php /* Mail-Spur: jede Bitte, auch eine gescheiterte oder zurückgehaltene, mit Text. */
+        $mailSpur = sicher(static fn() => (static function () use ($k) { require_once __DIR__ . '/../src/MailSpur.php'; return MailSpur::zuKunde((int) $k['id'], ['bewertung_bitte']); })(), []);
+        $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?>
     </div>
   <?php endif; ?>
   <div class="block"><h2>Zahlungen</h2><div class="tabellenrahmen"><table>
     <thead><tr><th>Bestellung</th><th>Anbieter</th><th class="num">Betrag</th><th>Status</th><th>Bezahlt am</th></tr></thead><tbody>
     <?php if (!$zahlungen): ?><tr><td colspan="5"><div class="leer">Noch keine Zahlung.</div></td></tr><?php endif; ?>
+    <?php /* Mail-Spur: Zahlungslinks, Anforderungen und Mahnungen je Zahlung — mit Text. */
+      $zMails = sicher(static fn() => (static function () use ($zahlungen) { require_once __DIR__ . '/../src/MailSpur.php'; return MailSpur::zuZahlungen(array_column($zahlungen, 'id')); })(), []); ?>
     <?php foreach ($zahlungen as $z): ?><tr><td><?= Fmt::h($z['order_no']) ?></td><td><?= Fmt::h($z['provider']) ?></td>
       <td class="num"><?= Fmt::geld((int) $z['amount_cents'], $z['currency']) ?></td>
       <td><span class="marke2 <?= Status::ton($z['status']) ?>"><?= Fmt::h(Status::label(Status::ZAHLUNG, $z['status'])) ?></span></td>
-      <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td></tr><?php endforeach; ?>
+      <td><?= Fmt::h(Fmt::zeit($z['paid_at'])) ?></td></tr>
+      <?php if (!empty($zMails[(int) $z['id']])): ?><tr><td colspan="5" style="padding-top:0">
+        <details><summary style="cursor:pointer;font-size:12.5px;color:var(--dim)">✉ <?= count($zMails[(int) $z['id']]) ?> E-Mail<?= count($zMails[(int) $z['id']]) === 1 ? '' : 's' ?> zu dieser Zahlung</summary>
+          <?php $mailSpur = $zMails[(int) $z['id']]; $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?></details></td></tr><?php endif; ?>
+    <?php endforeach; ?>
     </tbody></table></div></div>
   <div class="block" id="schreiben"><h2>Nachricht an den Kunden</h2>
     <?php if ($anonym ?? false): ?>
@@ -152,6 +161,7 @@ $eing = !empty($eingebettet);
         <tr>
           <td style="white-space:nowrap"><?= Fmt::h(Fmt::zeit($km['zeit'])) ?></td>
           <td><?php if ($km['quelle'] === 'mail'): ?><a href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '/mail/' . $km['id'])) ?>"><?= Fmt::h(Fmt::name($km['betreff'], 'E-Mail ohne Betreff')) ?></a><?php else: ?><?= Fmt::h($km['betreff']) ?><?php endif; ?>
+            <?php if (($km['wer'] ?? '') !== ''): ?><div class="akq-klein" style="color:var(--dim)">↳ <?= Fmt::h(ucfirst((string) $km['wer'])) ?><?php if (!empty($km['freigabe'])): ?> · <a href="<?= Fmt::h(url('ai-freigaben')) ?>#f<?= (int) $km['freigabe'] ?>">Freigabe ansehen</a><?php endif; ?></div><?php endif; ?>
             <div class="akq-klein" style="color:var(--leise)">an <?= Fmt::h($km['an']) ?><?= $km['quelle'] === 'mail' && !$km['inhalt'] ? ' · Inhalt nicht gespeichert (vor 07.10.2026)' : '' ?><?= $km['quelle'] === 'akq' ? ' · Inhalt nicht gespeichert (aus Ihrem Mailprogramm)' : '' ?></div>
             <?php if ($km['status'] !== 'gesendet' && $km['fehler'] !== ''): ?><div class="akq-klein" style="color:var(--rot)"><?= Fmt::h($km['fehler']) ?></div><?php endif; ?></td>
           <td><span class="marke2 <?= Fmt::h($kmSt[1]) ?>"><?= Fmt::h($kmSt[0]) ?></span></td>
@@ -973,6 +983,8 @@ $eing = !empty($eingebettet);
             <td style="min-width:220px"><?= Fmt::h(implode(', ', array_map(static fn($x) => ExitPaket::INHALTE[$x] ?? $x, explode(',', (string) $ex['inhalt'])))) ?>
               <?= $ex['stand'] === 'fertig' ? ' · ' . Fmt::h(ExitPaket::groesse((int) $ex['groesse'])) : '' ?>
               <?php if ($ex['stand'] === 'fehler'): ?><br><small style="color:var(--rot)"><?= Fmt::h((string) $ex['fehler']) ?></small><?php endif; ?>
+              <?php $mailSpur = sicher(static fn() => (static function () use ($ex) { require_once __DIR__ . '/../src/MailSpur.php'; return MailSpur::zuRef('exit', (int) $ex['id']); })(), []);
+                    $mailSpurLeer = ''; require __DIR__ . '/mailspur.php'; ?>
               <?php if ($ex['protokoll']): ?><details style="margin-top:4px"><summary style="cursor:pointer;font-size:var(--fs-klein);color:var(--dim)">Protokoll</summary>
                 <pre style="font-size:var(--fs-klein);white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto"><?= Fmt::h((string) $ex['protokoll']) ?></pre></details><?php endif; ?></td>
             <td style="width:1%;white-space:nowrap">
@@ -1034,10 +1046,24 @@ $eing = !empty($eingebettet);
 
   <?php if ($k['notes']): ?><div class="block"><h2>Interne Notizen</h2><p style="color:var(--dim);white-space:pre-wrap"><?= Fmt::h($k['notes']) ?></p></div><?php endif; ?>
 <?php if (!$eing): ?>
+  <?php /* Mail-Spur (07.10.2026): Jede Mail steht auch im Verlauf, klar als Mail, mit Stand und Link zum Text. */
+    $vlEintraege = array_map(static fn($a) => ['zeit' => (string) $a['created_at'], 'titel' => (string) $a['title'], 'mail' => null], $aktivitaeten);
+    require_once __DIR__ . '/../src/KundeMails.php';
+    foreach (array_slice($kmListe ?? ($kundenMails ?? []), 0, 20) as $vlM) {
+        if ($vlM['quelle'] !== 'mail') { continue; }
+        $vlEintraege[] = ['zeit' => (string) $vlM['zeit'], 'titel' => (string) $vlM['betreff'], 'mail' => $vlM];
+    }
+    usort($vlEintraege, static fn($x, $y) => strcmp($y['zeit'], $x['zeit']));
+    $vlEintraege = array_slice($vlEintraege, 0, 30); ?>
   <div class="block"><h2>Verlauf</h2>
-    <?php if (!$aktivitaeten): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
-    <?php foreach ($aktivitaeten as $a): ?><li><span class="punkt"></span><span><?= Fmt::h($a['title']) ?></span>
-      <span class="wann"><?= Fmt::h(Fmt::seit($a['created_at'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
+    <?php if (!$vlEintraege): ?><div class="leer">Noch nichts.</div><?php else: ?><ul class="verlauf">
+    <?php foreach ($vlEintraege as $vl): ?><li><span class="punkt"></span>
+      <?php if ($vl['mail'] !== null): $vlSt = KundeMails::STATUS[$vl['mail']['status']] ?? [ucfirst((string) $vl['mail']['status']), '']; ?>
+        <span><span class="marke2 <?= Fmt::h($vlSt[1]) ?>">✉ <?= Fmt::h($vlSt[0]) ?></span>
+          <a href="<?= Fmt::h(url('kunden/' . (int) $k['id'] . '/mail/' . (int) $vl['mail']['id'])) ?>"><?= Fmt::h(Fmt::name($vl['titel'], 'E-Mail ohne Betreff')) ?></a>
+          <?php if (($vl['mail']['wer'] ?? '') !== ''): ?><small style="color:var(--leise)"> · <?= Fmt::h((string) $vl['mail']['wer']) ?></small><?php endif; ?></span>
+      <?php else: ?><span><?= Fmt::h($vl['titel']) ?></span><?php endif; ?>
+      <span class="wann"><?= Fmt::h(Fmt::seit($vl['zeit'])) ?></span></li><?php endforeach; ?></ul><?php endif; ?></div>
 <?php endif; ?>
 
   <?php /* -------------------------------------------------------------------

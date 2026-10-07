@@ -721,6 +721,7 @@ final class Angebot
                 }
                 Mail::senden('angebot', (string) $k['email'], $betreff, $text, [
                     'customer_id' => (int) $a['customer_id'],
+                    'ref_art' => 'angebot', 'ref_id' => $angebotId,   // Mail-Spur: das Angebot zeigt seine Mail
                     'antwortAn'   => Mail::eigeneAdresse(),
                 ] + ($anhaenge ? ['anhaenge' => $anhaenge] : []));
             }
