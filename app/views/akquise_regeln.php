@@ -218,6 +218,154 @@ $blick = [
   </form>
 </div>
 
+<?php /* EINMAL AN ALLE — PROBELAUF (07.10.2026, Uwe: „in kunden finden soll automatisch jetzt alle emails versenden
+         einmalig nur“ — nach dem Hinweis zu Art. 130 Codice Privacy, § 7 UWG und Brevo: „Erst Probelauf“).
+         Der Probelauf rechnet nur. Geöffnet wird darunter in der Reihe im eigenen Mailprogramm. */
+  require_once dirname(__DIR__) . '/src/AkquiseEinmal.php'; $ep = $einmalProbe ?? null; ?>
+<div class="block" id="einmal">
+  <h2>Einmal an alle</h2>
+  <p class="rg-erkl">Rechnet, was ein einmaliger Versand an jeden Betrieb mit E-Mail-Adresse träfe — <b>es wird nichts gesendet</b>.
+    Ausgeschlossen bleibt, was auch sonst nie angeschrieben wird (Widerspruch, Sperrliste, Partner, schon angeschrieben, unzustellbar).</p>
+  <?php if ($ep === null): ?>
+    <a class="knopf haupt" href="<?= Fmt::h(url('akquise/regeln')) ?>?probe=1#einmal">Probelauf rechnen</a>
+  <?php else: ?>
+    <div class="ep-zahlen">
+      <div><b><?= (int) $ep['bekaemen'] ?></b><span>bekämen eine Mail</span></div>
+      <div><b><?= (int) $ep['mit_zustimmung'] ?></b><span>davon mit dokumentierter Zustimmung</span></div>
+      <div><b style="color:<?= $ep['ohne_zustimmung'] ? 'var(--rot)' : 'inherit' ?>"><?= (int) $ep['ohne_zustimmung'] ?></b><span>davon ohne Zustimmung</span></div>
+      <div><b><?= (int) $ep['tage'] ?></b><span>Tage bei <?= (int) $ep['grenzen']['tag'] ?> Mails am Tag</span></div>
+    </div>
+    <table class="schlicht" style="margin-top:12px"><thead><tr><th>Land</th><th class="num">mit Zustimmung</th><th class="num">ohne Zustimmung</th></tr></thead><tbody>
+      <?php foreach ($ep['je_land'] as $epL => $epN): ?>
+        <tr><td><?= Fmt::h(['IT' => 'Italien', 'DE' => 'Deutschland'][$epL] ?? $epL) ?></td><td class="num"><?= (int) $epN['mit'] ?></td><td class="num"><?= (int) $epN['ohne'] ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+    <p class="akq-klein" style="margin:10px 0 4px"><b><?= (int) $ep['mit_adresse'] ?></b> von <?= (int) $ep['gesamt'] ?> Betrieben haben eine E-Mail-Adresse<?= $ep['gekappt'] ? ' (gerechnet: die ersten ' . AkquiseEinmal::HOECHSTENS . ')' : '' ?>.
+      Fertiger Text liegt bei <b><?= (int) $ep['mit_text'] ?></b>, bei <b><?= (int) $ep['ohne_text'] ?></b> müsste er erst entstehen.</p>
+    <table class="schlicht"><tbody>
+      <?php foreach (AkquiseEinmal::GRUENDE as $epG => $epW): if (!$ep['aus'][$epG]) { continue; } ?>
+        <tr><td><?= Fmt::h($epW) ?></td><td class="num" style="width:1%"><?= (int) $ep['aus'][$epG] ?></td></tr>
+      <?php endforeach; ?>
+    </tbody></table>
+    <?php if ($ep['ohne_zustimmung'] > 0): ?>
+      <div class="hinweis schlecht" style="margin-top:12px">Für <b><?= (int) $ep['ohne_zustimmung'] ?></b> Betriebe gibt es keine dokumentierte Zustimmung. Werbe-Mails ohne vorherige Zustimmung
+        sind in Italien (Art. 130 Codice Privacy) und Deutschland (§ 7 UWG, auch an Firmen) unzulässig; Brevo verbietet kalte Massenmails —
+        eine Sperre träfe auch Rechnungen und Kundenmails. Keine Rechtsberatung.</div>
+    <?php endif; ?>
+    <?php if ($ep['beispiele']): ?>
+      <h3 style="font-size:14px;margin:16px 0 6px">So gingen sie hinaus — <?= count($ep['beispiele']) ?> Beispiele</h3>
+      <?php foreach ($ep['beispiele'] as $epB): ?>
+        <details class="ep-bsp"><summary><b><?= Fmt::h($epB['name']) ?></b> · <?= Fmt::h(trim($epB['ort'] . ' ' . $epB['land'])) ?>
+          · <span class="marke2 <?= $epB['zustimmung'] ? 'gut' : 'schlecht' ?>"><?= $epB['zustimmung'] ? 'mit Zustimmung' : 'ohne Zustimmung' ?></span>
+          <?= $epB['freigegeben'] ? '<span class="marke2">Text freigegeben</span>' : '<span class="marke2">Entwurf</span>' ?></summary>
+          <p style="margin:8px 0 4px"><b>Betreff:</b> <?= Fmt::h($epB['betreff']) ?></p>
+          <div class="ep-text"><?= Fmt::h($epB['text']) ?></div>
+          <a class="akq-klein" href="<?= Fmt::h(url('akquise/' . (int) $epB['firma_id'])) ?>">Betrieb öffnen →</a></details>
+      <?php endforeach; ?>
+    <?php endif; ?>
+    <p class="akq-klein" style="margin-top:12px">Gerechnet <?= Fmt::h(Fmt::zeit($ep['am'])) ?> · <a href="<?= Fmt::h(url('akquise/regeln')) ?>?probe=1#einmal">neu rechnen</a>.
+      Gesendet wurde nichts.</p>
+  <?php endif; ?>
+
+  <?php /* DIE REIHE IM EIGENEN MAILPROGRAMM (07.10.2026, Uwe: „sendn im mailprogramm öffnen mach es darüber“).
+           Der Server verschickt nichts: Er sucht den Nächsten, bereitet Text und Prüfung vor, und „Öffnen“ geht über
+           die bestehende Tat akq_mail_mailto. Abgeschickt wird in Uwes Programm, von Uwes Adresse. Jeder Betrieb nur
+           einmal — das steht danach in akq_versand („von_hand“), nicht im Browser. */ ?>
+  <div class="ea-reihe" id="einmal-reihe">
+    <h3>Im eigenen Mailprogramm öffnen — einer nach dem anderen</h3>
+    <p class="rg-erkl">Jede Mail öffnet sich fertig in deinem Programm (Outlook, Apple Mail …) — <b>du drückst dort selbst auf Senden</b>, mit deiner Adresse.
+      Ein Abmeldelink hängt dran. Wer einmal geöffnet wurde, kommt nie wieder dran. Erst die mit Zustimmung, dann — nur wenn angekreuzt — die ohne.</p>
+    <p class="akq-klein">Viele Mails am Tag aus dem eigenen Postfach können es auf Sperrlisten bringen; dann kommen auch deine Kundenmails nicht mehr an.
+      Ratsam sind höchstens etwa <b><?= (int) $grenzen['tag'] ?></b> am Tag — morgen geht es an derselben Stelle weiter.</p>
+    <form id="ea-form" action="<?= Fmt::h(url('akquise')) ?>" method="post" onsubmit="return false"><?= Csrf::feld() ?>
+      <label class="ea-ohne"><input type="checkbox" id="ea-ohne"><span>Auch Betriebe <b>ohne dokumentierte Zustimmung</b> — ich habe den Hinweis zu Art. 130 Codice Privacy und § 7 UWG gelesen und entscheide selbst.</span></label>
+      <button class="knopf haupt" type="button" id="ea-start">Reihe starten</button>
+    </form>
+    <div id="ea-schritt" hidden>
+      <div class="ea-stand" id="ea-stand"></div>
+      <div class="ea-karte" id="ea-karte">
+        <div class="ea-kopf"><b id="ea-name"></b> <span class="akq-klein" id="ea-ort"></span> <span class="marke2" id="ea-zust"></span></div>
+        <div class="akq-klein">an <span id="ea-an"></span></div>
+        <p style="margin:8px 0 4px"><b>Betreff:</b> <span id="ea-betreff"></span></p>
+        <details><summary class="akq-klein" style="cursor:pointer">Text ansehen, wie er rausgeht</summary><div class="ep-text" id="ea-text"></div></details>
+        <ul class="ea-hinweise" id="ea-hinweise" hidden></ul>
+        <div class="ea-knoepfe">
+          <button class="knopf haupt" type="button" id="ea-oeffnen">Im Mailprogramm öffnen</button>
+          <button class="knopf" type="button" id="ea-weiter">Überspringen</button>
+          <a class="akq-klein" id="ea-akte" href="#" target="_blank" rel="noopener">Betrieb ansehen →</a>
+        </div>
+      </div>
+      <p class="akq-klein" id="ea-status" role="status"></p>
+      <details id="ea-weg-box" hidden><summary class="akq-klein" style="cursor:pointer">In dieser Reihe übersprungen (<span id="ea-weg-zahl">0</span>)</summary><ul class="akq-klein" id="ea-weg"></ul></details>
+    </div>
+  </div>
+</div>
+<script>
+(function () {
+  var f = document.getElementById('ea-form'); if (!f || !window.fetch) { return; }
+  var $ = function (id) { return document.getElementById(id); };
+  var weg = [], jetzt = null, geoeffnet = 0, basis = <?= json_encode(url('akquise/'), JSON_UNESCAPED_SLASHES) ?>;
+  function post(daten) {
+    var d = new FormData(f); Object.keys(daten).forEach(function (k) { d.append(k, daten[k]); });
+    return fetch(f.getAttribute('action'), { method: 'POST', body: d, credentials: 'same-origin', headers: { 'Accept': 'application/json' } }).then(function (r) { return r.json(); });
+  }
+  function zeigeWeg(liste) {
+    liste.forEach(function (w) { weg.push(w.id); var li = document.createElement('li'); li.textContent = w.name + ' — ' + w.grund; $('ea-weg').appendChild(li); });
+    $('ea-weg-zahl').textContent = weg.length; $('ea-weg-box').hidden = weg.length === 0;
+  }
+  function laden(meldung) {
+    $('ea-status').textContent = 'Suche den Nächsten …'; $('ea-oeffnen').disabled = true;
+    post({ tat: 'akq_einmal_naechste', auch_ohne: $('ea-ohne').checked ? '1' : '', weg: weg.join(',') }).then(function (j) {
+      if (!j.ok) { $('ea-status').textContent = '⛔ ' + (j.fehler || 'Nicht möglich.'); return; }
+      zeigeWeg(j.uebersprungen || []);
+      $('ea-schritt').hidden = false;
+      $('ea-stand').innerHTML = '<b>' + geoeffnet + '</b> in dieser Reihe geöffnet · <b>' + j.heute + '</b> heute' + (j.heute >= j.tag ? ' <span style="color:var(--rot)">— Tagesgrenze (' + j.tag + ') erreicht, besser morgen weiter</span>' : ' von etwa ' + j.tag)
+        + ' · noch offen: <b>' + j.offen_mit + '</b> mit Zustimmung' + (j.offen_ohne ? ', <b>' + j.offen_ohne + '</b> ohne' + ($('ea-ohne').checked ? '' : ' (nicht angekreuzt)') : '');
+      jetzt = j.naechste;
+      if (!jetzt) { $('ea-karte').hidden = true; $('ea-status').textContent = (meldung ? meldung + ' ' : '') + (!$('ea-ohne').checked && j.offen_ohne ? '✓ Alle mit Zustimmung sind durch. ' + j.offen_ohne + ' ohne Zustimmung kämen nur mit dem Häkchen oben dran.' : weg.length ? '✓ Durch — ' + weg.length + ' übersprungen (siehe unten; meist fehlt noch ein Text, weil das Audit fehlt).' : '✓ Fertig — in dieser Reihe ist niemand mehr offen.'); return; }
+      $('ea-karte').hidden = false;
+      $('ea-name').textContent = jetzt.name; $('ea-ort').textContent = jetzt.ort; $('ea-an').textContent = jetzt.an;
+      $('ea-zust').textContent = jetzt.zustimmung ? 'mit Zustimmung' : 'ohne Zustimmung'; $('ea-zust').className = 'marke2 ' + (jetzt.zustimmung ? 'gut' : 'schlecht');
+      $('ea-betreff').textContent = jetzt.betreff; $('ea-text').textContent = jetzt.text;
+      $('ea-akte').href = basis + jetzt.firma_id;
+      var h = $('ea-hinweise'); h.innerHTML = '';
+      (jetzt.hinweise || []).forEach(function (t) { var li = document.createElement('li'); li.textContent = '⚠ ' + t; h.appendChild(li); });
+      h.hidden = !(jetzt.hinweise || []).length;
+      $('ea-oeffnen').textContent = h.hidden ? 'Im Mailprogramm öffnen' : 'Hinweise gelesen — im Mailprogramm öffnen';
+      $('ea-oeffnen').disabled = false; $('ea-status').textContent = meldung || '';
+    }).catch(function () { $('ea-status').textContent = '⛔ Keine Verbindung — bitte noch einmal.'; });
+  }
+  $('ea-start').addEventListener('click', function () { weg = []; laden(); });
+  $('ea-weiter').addEventListener('click', function () { if (jetzt) { zeigeWeg([{ id: jetzt.firma_id, name: jetzt.name, grund: 'von dir übersprungen' }]); } laden(); });
+  $('ea-oeffnen').addEventListener('click', function () {
+    if (!jetzt) { return; }
+    var b = $('ea-oeffnen'); b.disabled = true; $('ea-status').textContent = 'Öffne …';
+    post({ tat: 'akq_mail_mailto', firma: jetzt.firma_id, vorlage: jetzt.vorlage, betreff: jetzt.betreff, text: jetzt.text,
+           hinweise_gelesen: (jetzt.hinweise || []).length ? '1' : '', js: '1' }).then(function (j) {
+      if (!j.ok) { b.disabled = false; $('ea-status').textContent = '⛔ ' + (j.fehler || 'Nicht möglich.'); return; }
+      if (j.lang && navigator.clipboard) { navigator.clipboard.writeText(j.text).catch(function () {}); }
+      geoeffnet++;
+      var m = '✓ ' + jetzt.name + ' geöffnet — dort auf Senden drücken.' + (j.lang ? ' Der Text liegt zusätzlich in der Zwischenablage.' : '');
+      window.location.href = j.link;
+      setTimeout(function () { laden(m); }, 600);
+    }).catch(function () { b.disabled = false; $('ea-status').textContent = '⛔ Keine Verbindung — bitte noch einmal.'; });
+  });
+})();
+</script>
+<style>
+  .ep-zahlen{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+  .ep-zahlen div{display:flex;flex-direction:column;gap:2px} .ep-zahlen b{font-size:20px} .ep-zahlen span{color:var(--leise);font-size:12.5px}
+  .ep-bsp{border:1px solid var(--linie);border-radius:10px;padding:8px 12px;margin-top:8px} .ep-bsp summary{cursor:pointer;font-size:13.5px}
+  .ep-text{white-space:pre-wrap;font-size:13px;line-height:1.55;padding:10px 12px;border-radius:8px;background:rgba(0,0,0,.18);max-height:360px;overflow:auto;margin-bottom:6px}
+  .ea-reihe{margin-top:22px;padding-top:16px;border-top:1px solid var(--linie)} .ea-reihe h3{font-size:15px;margin:0 0 6px}
+  .ea-reihe .ea-ohne{display:flex!important;flex-direction:row;gap:8px;align-items:flex-start;font-size:13.5px;margin:10px 0;max-width:760px;text-transform:none;letter-spacing:0;color:inherit} .ea-ohne input{margin-top:3px;width:auto;flex:none}
+  .ea-stand{font-size:13px;margin:12px 0 8px;color:var(--dim)}
+  .ea-karte{border:1px solid var(--linie);border-radius:12px;padding:12px 14px} .ea-kopf{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:baseline}
+  .ea-hinweise{margin:8px 0;padding-left:18px;font-size:13px;color:#e8a34a}
+  .ea-knoepfe{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
+  @media (max-width:640px){ .ep-zahlen{grid-template-columns:repeat(2,minmax(0,1fr))} }
+</style>
+
 <div class="block" id="sperrliste">
   <h2>Nie kontaktieren <span class="akq-klein" style="font-weight:400">· <?= count($sperrliste) ?> Einträge</span></h2>
   <p class="rg-erkl">Wer hier steht, bekommt nie wieder etwas von Vecom — keine Mail, keinen Brief, keinen Anruf.

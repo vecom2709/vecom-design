@@ -28512,6 +28512,65 @@ KiAntwort::$waSenden = null;
 Ki::$antwort = null;
 Db::run("DELETE FROM settings WHERE skey LIKE 'ki\\_%'");
 
+/* ---- Kunden finden: „Einmal an alle“ — nur Probelauf (07.10.2026) ---- */
+abschnitt('Kunden finden: Einmal an alle — Probelauf, sendet nichts');
+require_once $wurzel . '/src/AkquiseEinmal.php';
+$eaF = static fn(string $k, string $land, array $mehr = []): int => (int) Db::insert('akq_firmen', $mehr + [
+    'kennung' => $k, 'name' => 'Einmal ' . $k, 'name_norm' => 'einmal ' . mb_strtolower($k), 'land' => $land, 'stadt' => 'Probeort',
+    'branche' => 'restaurant', 'email' => 'info@' . mb_strtolower($k) . '-einmal.example', 'domain' => mb_strtolower($k) . '-einmal.example']);
+
+$eaOhne = $eaF('EA00000001', 'IT');
+$eaMit = $eaF('EA00000002', 'DE', ['einwilligung' => 'Anruf ' . date('d.m.Y'), 'einwilligung_kanaele' => 'email']);
+$eaNicht = $eaF('EA00000003', 'IT', ['email_do_not_contact' => 1]);
+$eaSchon = $eaF('EA00000004', 'IT');
+Db::insert('akq_versand', ['firma_id' => $eaSchon, 'kanal' => 'email', 'an' => 'x@y', 'status' => 'von_hand', 'compliance' => 'UNKNOWN']);
+$eaBounce = $eaF('EA00000005', 'DE');
+Db::insert('akq_versand', ['firma_id' => $eaBounce, 'kanal' => 'email', 'an' => 'x@y', 'status' => 'bounce', 'compliance' => 'UNKNOWN', 'created_at' => date('Y-m-d H:i:s', strtotime('-400 days'))]);
+Db::insert('akq_vorlagen', ['firma_id' => $eaOhne, 'sprache' => 'it', 'kanal' => 'email', 'betreff' => 'Il suo sito', 'text' => 'Buongiorno, testo di prova.', 'fingerabdruck' => hash('sha256', 'einmal-' . $eaOhne), 'status' => 'entwurf']);
+$eaZaehl = static fn(): array => [(int) Db::wert('SELECT COUNT(*) FROM akq_versand', [], 0), (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0), (int) Db::wert('SELECT COUNT(*) FROM akq_vorlagen', [], 0)];
+$eaVorher = $eaZaehl();
+$eaP = AkquiseEinmal::probelauf();
+pruefe('Probelauf: schreibt und sendet nichts — keine Versandzeile, keine Mail, kein neuer Text', $eaZaehl() === $eaVorher);
+$eaBsp = array_column($eaP['beispiele'], 'firma_id');
+pruefe('Probelauf: Widerspruch, schon angeschrieben und unzustellbar bleiben draußen — mit Grund gezählt',
+    $eaP['aus']['nicht'] >= 1 && $eaP['aus']['schon'] >= 1 && $eaP['aus']['bounce'] >= 1 && !in_array($eaNicht, $eaBsp, true) && !in_array($eaSchon, $eaBsp, true));
+pruefe('Probelauf: mit und ohne Zustimmung getrennt, je Land, und der Beispieltext ist der echte Entwurf',
+    $eaP['mit_zustimmung'] >= 1 && $eaP['ohne_zustimmung'] >= 1 && isset($eaP['je_land']['IT'], $eaP['je_land']['DE'])
+    && in_array($eaOhne, $eaBsp, true) && in_array('Buongiorno, testo di prova.', array_column($eaP['beispiele'], 'text'), true)
+    && $eaP['bekaemen'] === $eaP['mit_zustimmung'] + $eaP['ohne_zustimmung'] && $eaP['tage'] >= 1);
+$eaSeite = (string) file_get_contents($wurzel . '/views/akquise_regeln.php');
+pruefe('Seite: nur auf Knopfdruck gerechnet, sagt „es wird nichts gesendet“ und nennt das Risiko ohne Zustimmung — kein Sendeknopf',
+    str_contains($eaSeite, '?probe=1#einmal') && str_contains($eaSeite, 'es wird nichts gesendet') && str_contains($eaSeite, 'Art. 130 Codice Privacy')
+    && !preg_match('~name="tat" value="akq_einmal~', $eaSeite) && str_contains((string) file_get_contents($oben . '/app/akquise_route.php'), "(\$_GET['probe'] ?? '') === '1'"));
+
+/* ---- „Einmal an alle“ im eigenen Mailprogramm (07.10.2026, Uwe: „sendn im mailprogramm öffnen mach es darüber“) ---- */
+abschnitt('Kunden finden: Einmal an alle — Reihe im eigenen Mailprogramm');
+$eaAndere = array_values(array_diff(array_map('intval', array_column(Db::all('SELECT id FROM akq_firmen'), 'id')), [$eaOhne]));
+$eaMails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$eaN1 = AkquiseEinmal::naechste(false);
+pruefe('Reihe: ohne Häkchen kommt kein Betrieb ohne Zustimmung dran — gezählt wird er trotzdem',
+    ($eaN1['naechste'] === null || $eaN1['naechste']['zustimmung'] === true) && $eaN1['offen_ohne'] >= 1 && $eaN1['offen'] === $eaN1['offen_mit']);
+$eaN2 = AkquiseEinmal::naechste(true, $eaAndere);
+pruefe('Reihe: mit Häkchen kommt er dran — mit dem echten Entwurf samt Betreff, als „ohne Zustimmung“ markiert',
+    ($eaN2['naechste']['firma_id'] ?? 0) === $eaOhne && $eaN2['naechste']['betreff'] === 'Il suo sito' && $eaN2['naechste']['zustimmung'] === false);
+$eaVersandVorher = (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$eaOhne], 0);
+pruefe('Reihe: das Suchen schreibt keine Versandzeile und schickt keine Mail', $eaVersandVorher === 0 && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $eaMails);
+$eaFehler = '';
+try { AkquiseMail::mailtoErzeugen($eaOhne, $eaN2['naechste']['betreff'], $eaN2['naechste']['text'], false); } catch (RuntimeException $e) { $eaFehler = $e->getMessage(); }
+pruefe('Reihe: ohne bestätigten Hinweis öffnet der Server nichts (kein Versandgrund)', $eaFehler !== '' && (int) Db::wert('SELECT COUNT(*) FROM akq_versand WHERE firma_id = ?', [$eaOhne], 0) === 0);
+$eaLink = AkquiseMail::mailtoErzeugen($eaOhne, $eaN2['naechste']['betreff'], $eaN2['naechste']['text'], true);
+pruefe('Reihe: Öffnen ist ein mailto-Link mit Betreff und Abmeldelink — über den Server geht keine Mail',
+    str_starts_with($eaLink['link'], 'mailto:') && str_contains($eaLink['link'], 'subject=Il%20suo%20sito') && str_contains($eaLink['text'], 'widerspruch.php?t=')
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $eaMails);
+$eaN3 = AkquiseEinmal::naechste(true, $eaAndere);
+pruefe('Reihe: einmalig — wer geöffnet wurde, kommt nie wieder dran (steht als „von_hand“ in der Datenbank)',
+    $eaN3['naechste'] === null && (string) Db::wert("SELECT status FROM akq_versand WHERE firma_id = ? ORDER BY id DESC LIMIT 1", [$eaOhne], '') === 'von_hand');
+$eaRoute = (string) file_get_contents($oben . '/app/akquise_route.php');
+$eaSeite = (string) file_get_contents($wurzel . '/views/akquise_regeln.php');
+pruefe('Seite: die Reihe öffnet über die bestehende Tat akq_mail_mailto, das Häkchen „ohne Zustimmung“ ist nicht vorbelegt, Hinweise stehen auf dem Knopf',
+    str_contains($eaRoute, "case 'akq_einmal_naechste':") && str_contains($eaSeite, "tat: 'akq_mail_mailto'") && str_contains($eaSeite, '<input type="checkbox" id="ea-ohne">')
+    && str_contains($eaSeite, 'Hinweise gelesen — im Mailprogramm öffnen') && str_contains($eaSeite, 'du drückst dort selbst auf Senden'));
+
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */

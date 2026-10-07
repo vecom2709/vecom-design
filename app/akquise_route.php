@@ -252,6 +252,16 @@ if ($post) {
                 }
                 header('Location: ' . $r['link'], true, 303);
                 exit;
+            case 'akq_einmal_naechste':   // „Einmal an alle“ im eigenen Mailprogramm (07.10.2026): nur suchen und Text vorbereiten, gesendet wird nichts
+                require_once __DIR__ . '/src/AkquiseEinmal.php';
+                $eaWeg = array_slice(array_map('intval', array_filter(explode(',', (string) ($_POST['weg'] ?? '')))), 0, 2000);
+                header('Content-Type: application/json; charset=utf-8'); header('Cache-Control: no-store');
+                try {
+                    echo json_encode(['ok' => true] + AkquiseEinmal::naechste(!empty($_POST['auch_ohne']), $eaWeg), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                } catch (Throwable $e) {
+                    echo json_encode(['ok' => false, 'fehler' => 'Ließ sich nicht vorbereiten.'], JSON_UNESCAPED_UNICODE);
+                }
+                exit;
             case 'akq_werkstatt':   // Nachrichten-Werkstatt: Prüfliste + Vorschau, nur lesen, nichts wird gesendet oder gespeichert
                 require_once __DIR__ . '/src/AkquiseWerkstatt.php';
                 $wsF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$fid]);
@@ -920,6 +930,9 @@ if ($teil === 'regeln') {
         'schluesselEinmal' => $einmal,
         'heute' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'gesendet' AND created_at >= CURDATE()"),
         'blockiert' => (int) Db::wert("SELECT COUNT(*) FROM akq_versand WHERE status = 'blockiert' AND created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY)"),
+        // „Einmal an alle“ — nur der Probelauf, nur auf Knopfdruck (07.10.2026): rechnet, sendet nichts.
+        'einmalProbe' => ($_GET['probe'] ?? '') === '1'
+            ? sicher(static function () { require_once __DIR__ . '/src/AkquiseEinmal.php'; return AkquiseEinmal::probelauf(); }, null) : null,
     ]);
     exit;
 }
