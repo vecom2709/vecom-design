@@ -1521,7 +1521,39 @@ final class Texte
                        'en' => '✓ Web space: {belegt} of {gebucht} used.'],
     ];
 
+    /** Exit-Paket (AI Office Stufe 5): Inhalt, LIESMICH im Paket, Seite für den abgelaufenen Link. */
+    public const EXIT = [
+        'web'  => ['it' => 'i file del sito', 'de' => 'die Dateien der Website', 'en' => 'the website files'],
+        'dns'  => ['it' => 'la documentazione DNS', 'de' => 'die DNS-Dokumentation', 'en' => 'the DNS documentation'],
+        'mail' => ['it' => 'l’elenco di caselle e inoltri', 'de' => 'die Liste der Postfächer und Weiterleitungen', 'en' => 'the list of mailboxes and forwards'],
+        'datei' => ['it' => 'LEGGIMI.txt', 'de' => 'LIESMICH.txt', 'en' => 'README.txt'],
+        'liesmich' => [
+            'it' => "Pacchetto dati di {domain}\nPreparato da Vecom Design il {datum}.\n\nCONTENUTO\n{liste}\n\nCOME USARLO\n- sito/: copi questi file nella cartella web del nuovo fornitore (di solito via FTP).\n- dns/zona.txt: le voci DNS in formato zona — la maggior parte dei fornitori le importa direttamente. dns/voci.csv è la stessa lista in tabella.\n- posta/: le caselle e gli inoltri esistenti. Le password non sono incluse: le imposti di nuovo presso il nuovo fornitore.\n\nNON INCLUSO\n- Database: All-Inkl non lo consegna all’esterno. Su richiesta lo esportiamo per lei.\n- Password e codici di accesso: per sicurezza non li inviamo mai.\n\nIl file PROTOCOLLO.txt elenca ogni file con la sua impronta SHA-256: così può verificare che nulla sia cambiato.\n",
+            'de' => "Datenpaket von {domain}\nErstellt von Vecom Design am {datum}.\n\nINHALT\n{liste}\n\nSO VERWENDEN SIE ES\n- website/: Diese Dateien in den Web-Ordner beim neuen Anbieter kopieren (meist per FTP).\n- dns/zone.txt: die DNS-Einträge im Zonenformat — die meisten Anbieter lesen sie direkt ein. dns/eintraege.csv ist dieselbe Liste als Tabelle.\n- post/: die vorhandenen Postfächer und Weiterleitungen. Passwörter sind nicht enthalten: beim neuen Anbieter neu vergeben.\n\nNICHT ENTHALTEN\n- Datenbank: All-Inkl gibt sie nicht nach außen. Auf Wunsch exportieren wir sie für Sie.\n- Passwörter und Zugangscodes: die verschicken wir aus Sicherheitsgründen nie.\n\nDie Datei PROTOKOLL.txt nennt jede Datei mit ihrem SHA-256-Fingerabdruck — damit lässt sich prüfen, dass nichts verändert wurde.\n",
+            'en' => "Data package for {domain}\nPrepared by Vecom Design on {datum}.\n\nCONTENTS\n{liste}\n\nHOW TO USE IT\n- website/: copy these files into the web folder at your new provider (usually via FTP).\n- dns/zone.txt: the DNS records in zone-file format — most providers can import it directly. dns/records.csv is the same list as a table.\n- mail/: the existing mailboxes and forwards. Passwords are not included: set new ones at your new provider.\n\nNOT INCLUDED\n- Database: All-Inkl does not hand it out. On request we export it for you.\n- Passwords and access codes: for security reasons we never send them.\n\nThe file PROTOCOL.txt lists every file with its SHA-256 fingerprint, so you can check that nothing was changed.\n",
+        ],
+        'protokoll' => ['it' => 'PROTOCOLLO.txt', 'de' => 'PROTOKOLL.txt', 'en' => 'PROTOCOL.txt'],
+        'ordner' => [
+            'web'  => ['it' => 'sito', 'de' => 'website', 'en' => 'website'],
+            'dns'  => ['it' => 'dns', 'de' => 'dns', 'en' => 'dns'],
+            'mail' => ['it' => 'posta', 'de' => 'post', 'en' => 'mail'],
+        ],
+        'csv' => ['it' => 'voci.csv', 'de' => 'eintraege.csv', 'en' => 'records.csv'],
+        'zone' => ['it' => 'zona.txt', 'de' => 'zone.txt', 'en' => 'zone.txt'],
+        'weg' => [
+            'it' => ['Link non più valido', 'Questo link per il download è scaduto o non esiste. Scriva a Vecom Design e le prepariamo un nuovo link.'],
+            'de' => ['Link nicht mehr gültig', 'Dieser Download-Link ist abgelaufen oder existiert nicht. Schreiben Sie Vecom Design, dann gibt es einen neuen Link.'],
+            'en' => ['Link no longer valid', 'This download link has expired or does not exist. Write to Vecom Design and we will prepare a new link.'],
+        ],
+    ];
+
     public const MAILS = [
+        /* Exit-Paket (AI Office Stufe 5, 07.10.2026): nur nach Uwes Ja in AI Freigaben. */
+        'exit_paket' => [
+            'it' => ['I suoi dati sono pronti per il download', "Buongiorno {name},\n\ncome richiesto abbiamo preparato un pacchetto con i dati del suo sito {domain}: {inhalt}.\n\nPuò scaricarlo qui fino al {bis}:\n{link}\n\nNel pacchetto trova un file LEGGIMI che spiega cosa contiene e come usarlo con un nuovo fornitore. Le password non sono incluse — per sicurezza non le inviamo mai.\n\nCordiali saluti,\nUwe"],
+            'de' => ['Ihre Daten stehen zum Herunterladen bereit', "Guten Tag {name},\n\nwie gewünscht haben wir ein Paket mit den Daten Ihrer Website {domain} vorbereitet: {inhalt}.\n\nSie können es hier bis zum {bis} herunterladen:\n{link}\n\nIm Paket liegt eine LIESMICH-Datei, die erklärt, was drin ist und wie Sie es bei einem neuen Anbieter verwenden. Passwörter sind nicht enthalten — die verschicken wir aus Sicherheitsgründen nie.\n\nFreundliche Grüße\nUwe"],
+            'en' => ['Your data is ready to download', "Hello {name},\n\nas requested, we have prepared a package with the data of your website {domain}: {inhalt}.\n\nYou can download it here until {bis}:\n{link}\n\nThe package contains a README file explaining what is inside and how to use it with a new provider. Passwords are not included — for security reasons we never send them.\n\nKind regards,\nUwe"],
+        ],
         'bewertung_bitte' => [
             'it' => ['Una piccola richiesta', "Buongiorno {name},\n\nil suo sito è online da un po’ — spero che le porti clienti.\n\nSe è soddisfatto del lavoro, mi aiuterebbe molto una sua recensione su Google. Bastano due righe:\n{link}\n\nGrazie di cuore,\nUwe"],
             'de' => ['Eine kleine Bitte', "Guten Tag {name},\n\nIhre Website ist jetzt eine Weile online — ich hoffe, sie bringt Ihnen Kunden.\n\nWenn Sie zufrieden sind, hilft mir eine Bewertung auf Google sehr. Zwei Sätze genügen:\n{link}\n\nHerzlichen Dank,\nUwe"],

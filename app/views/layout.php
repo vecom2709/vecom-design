@@ -23,6 +23,8 @@ $navZahlen = [
                   + (int) sicher(fn() => Db::wert('SELECT COUNT(*) FROM ausgang_gehalten WHERE entschieden_am IS NULL', [], 0), 0),
   // Umsatz-Spürhund (Stufe 3): offene Chancen — jede ist eine Handlung (anbieten, nachfassen, antworten oder verwerfen).
   'umsatz-chancen' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM umsatz_chancen WHERE status = 'offen'", [], 0), 0),
+  // Umzüge (Stufe 5): fehlgeschlagene und solche, die noch auf den Pre-Flight warten — beides wartet auf Uwe.
+  'umzuege' => (int) sicher(fn() => Db::wert("SELECT COUNT(*) FROM migrationen WHERE stand IN ('neu','fehlgeschlagen')", [], 0), 0),
 ];
 // Wie viele Vorgaenge gerade auf Uwe warten. Das ist die einzige Zahl im
 // Menue, die eine Handlung meint und nicht nur einen Bestand.
@@ -174,6 +176,8 @@ $menue = [
     ['muster', 'Bausteine', 'muster'],
     ['dateien', 'Dateien', 'dateien'],
     ['monitoring', 'Laufen die Seiten?', 'monitoring'],
+    /* AI Office Stufe 5 (07.10.2026): Migration Center und DNS-Wache. */
+    ['umzuege', 'Umzüge & DNS', 'umzuege'],
     /* AutoBuild Phase 10 (07.10.2026): alle Live-Seiten mit Ampel, und die Regeln, nach denen Claude baut. */
     ['betrieb', 'Betrieb', 'betrieb'],
     ['bauregeln', 'Bauregeln', 'bauregeln'],

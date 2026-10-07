@@ -341,6 +341,12 @@ final class Cron
                 require_once __DIR__ . '/Domainumzug.php';
                 return Domainumzug::nachsehenAlle();
             },
+            /* AI Office Stufe 5 (07.10.2026): neue Umzugsteile einem Vorgang zuordnen, Stände nachziehen.
+               Liest die drei Umzugstabellen und schreibt nur in die eigenen — deshalb bei jedem Lauf. */
+            'migration_abgleich' => static function () {
+                require_once __DIR__ . '/MigrationCenter.php';
+                return MigrationCenter::abgleich();
+            },
             'abbuchungen' => static function () {
                 require_once __DIR__ . '/Abbuchung.php';
                 return Abbuchung::faellige();
@@ -661,6 +667,20 @@ final class Cron
             $aufgaben['bewertung_vorschlag'] = static function () {
                 require_once __DIR__ . '/Bewertungsbitte.php';
                 return Bewertungsbitte::vorschlagen();
+            };
+        }
+        // DNS-Wache (AI Office Stufe 5, Uwe: „Vorher + täglich, MX/NS-Alarm“): einmal am Tag das öffentliche
+        // DNS jeder Kundendomain; bei MX/NS/SPF/DMARC Meldung und Zuruf an Uwe. Schreibt sonst niemandem.
+        if (self::heuteNochNicht('cron_dns_wache')) {
+            $aufgaben['dns_wache'] = static function () {
+                require_once __DIR__ . '/DnsSchutz.php';
+                return DnsSchutz::taeglich();
+            };
+        }
+        if (self::heuteNochNicht('cron_exit_aufraeumen')) {
+            $aufgaben['exit_aufraeumen'] = static function () {
+                require_once __DIR__ . '/ExitPaket.php';
+                return ExitPaket::aufraeumen();
             };
         }
         require_once __DIR__ . '/Morgenbriefing.php';

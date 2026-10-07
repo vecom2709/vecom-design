@@ -40,6 +40,7 @@ final class Hilfe
         'muster'             => 'Hier liegen Bausteine, die du in Kundenseiten wiederverwendest.',
         'dateien'            => 'Hier liegen alle Dateien, die Kunden hochgeladen haben: Logos, Fotos, Texte.',
         'monitoring'         => 'Hier siehst du, ob die Kundenseiten erreichbar sind und ihr Zertifikat gilt.',
+        'umzuege'            => 'Hier siehst du jeden Umzug eines Kunden als einen Vorgang, den Pre-Flight davor und wie das DNS vor und nach jeder Änderung aussah.',
         'betrieb'            => 'Hier stehen alle Seiten, die wir gebaut und veröffentlicht haben — mit Ampel: Was rot ist, braucht Sie.',
         'bauregeln'          => 'Hier stehen die Regeln, nach denen Claude baut — jede Änderung ist eine neue Version.',
         'einstellungen'      => 'Hier stellst du ein, was für alles gilt: Firma, Stripe, E-Mail, Zugänge.',

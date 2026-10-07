@@ -209,8 +209,9 @@ RewriteRule ^assets/js/(haus|werkbank)\.js$ - [G,L]
   # Claudes Erlaubnis-Tuer und Schnittstelle (AI Office Stufe 2, 07.10.2026): Schluessel und
   # Antworten duerfen in keinem Zwischenspeicher liegen (RFC 6749, 5.1: no-store). Der Block
   # darueber setzt fuer jede .php no-cache und gewaenne sonst gegen das no-store aus PHP --
-  # gemessen mit Apache 2.4: ohne diese Zeilen kam no-cache an.
-  <FilesMatch "^claude-(mcp|oauth)\.php$">
+  # gemessen mit Apache 2.4: ohne diese Zeilen kam no-cache an. Seit Stufe 5 auch der
+  # Download des Exit-Pakets: ein Kunden-ZIP gehoert in keinen Zwischenspeicher.
+  <FilesMatch "^(claude-(mcp|oauth)|exit-paket)\.php$">
     Header set Cache-Control "no-store"
   </FilesMatch>
   <FilesMatch "\.(css|js)$">

@@ -74,6 +74,9 @@ final class Automation
         'mailumzug'      => ['E-Mail-Umzüge', 'hosting', 'A', false, 'Kopiert Postfächer portionsweise (lesend von der alten Seite).'],
         'seitenumzug'    => ['Seiten-Umzüge', 'hosting', 'A', false, 'Zieht Seiten portionsweise um.'],
         'domains'        => ['Domain-Umzüge nachsehen', 'hosting', 'A', false, 'Zeigen die Nameserver schon auf All-Inkl?'],
+        'migration_abgleich' => ['Umzüge zusammenführen', 'hosting', 'A', false, 'Ordnet Domain-, Seiten- und Mailumzüge einem Vorgang zu und zieht dessen Stand nach. Liest nur (AI Office Stufe 5).'],
+        'dns_wache'      => ['DNS-Wache', 'hosting', 'A', false, 'Liest täglich das DNS aller Kundendomains. Ändern sich MX, Nameserver, SPF oder DMARC: Meldung und Zuruf an dich (AI Office Stufe 5).'],
+        'exit_aufraeumen' => ['Exit-Links ablaufen lassen', 'hosting', 'A', false, 'Macht Download-Links nach sieben Tagen ungültig. Die Pakete bleiben an der Kundenakte.'],
         'hosting_abgelaufen' => ['Abgelaufene Zugangsdaten löschen', 'hosting', 'A', false, 'Löscht verschlüsselte Zugangsdaten nach der Frist.'],
         // Partner
         'partner'        => ['Provisionen reifen lassen', 'partner', 'A', false, 'Gibt Provisionen nach 14 Tagen frei, prüft Stripe-Konten und Auffälliges.'],

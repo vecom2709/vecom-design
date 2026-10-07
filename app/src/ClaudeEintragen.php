@@ -70,7 +70,7 @@ final class ClaudeEintragen
             ['name' => 'freigabe_vorschlagen', 'title' => 'Vorschlag in AI Freigaben',
              'description' => 'Etwas, das nach draußen gehen soll, Uwe zur Freigabe hinlegen: Nachricht an einen Kunden (kunde_nachricht: kunde_id, betreff, text), Nachricht zum Projekt (nachricht_senden: projekt_id, text), Nachricht an einen Partner (partner_nachricht: partner_id, text), ein fertiges Angebot senden (angebot_senden: angebot_id), eine Vorschau freischalten (vorschau_frei: projekt_id), Bitte um Google-Bewertung (bewertung_bitten: kunde_id), Einladung zum Fragebogen (fragebogen_einladen: projekt_id), Restzahlung anfordern (restzahlung_anfordern: projekt_id), Betreuungsrate anfordern (abo_anfordern: zahlung_id) oder Mahnung Stufe 2/3 (mahnung_schicken: zahlung_id, stufe). Es geht erst raus, wenn Uwe genehmigt; bei Nachrichten kann er Betreff und Text vorher ändern. Texte in der Sprache des Kunden, Uwe siezt Kunden. Nichts erfinden — nur, was in der Verwaltung steht.',
              'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['art', 'titel', 'grund'], 'properties' => [
-                 'art' => ['type' => 'string', 'enum' => array_keys(Freigabe::ARTEN)],
+                 'art' => ['type' => 'string', 'enum' => array_values(array_diff(array_keys(Freigabe::ARTEN), Freigabe::NUR_VERWALTUNG))],
                  'titel' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 200, 'description' => 'Worum es geht, in einer Zeile.'],
                  'grund' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 1000, 'description' => 'Warum jetzt — mit der Quelle (z. B. „Angebot A-12 seit 9 Tagen ohne Antwort“).'],
                  'empfehlung' => ['type' => 'string', 'maxLength' => 1000],
@@ -207,7 +207,7 @@ final class ClaudeEintragen
     {
         require_once __DIR__ . '/Freigabe.php';
         $art = (string) ($a['art'] ?? '');
-        if (!isset(Freigabe::ARTEN[$art])) { throw new InvalidArgumentException('art: ' . implode(', ', array_keys(Freigabe::ARTEN)) . '.'); }
+        if (!isset(Freigabe::ARTEN[$art]) || in_array($art, Freigabe::NUR_VERWALTUNG, true)) { throw new InvalidArgumentException('art: ' . implode(', ', array_diff(array_keys(Freigabe::ARTEN), Freigabe::NUR_VERWALTUNG)) . '.'); }
         $offen = (int) Db::wert("SELECT COUNT(*) FROM ai_freigaben WHERE status IN ('offen','zurueckgestellt') AND system_name = 'Claude (Connector)'", [], 0);
         if ($offen >= self::OFFENE_VORSCHLAEGE) {
             throw new InvalidArgumentException('Schon ' . $offen . ' Vorschläge warten auf Uwe. Erst wenn er davon welche entschieden hat, kommen neue dazu.');

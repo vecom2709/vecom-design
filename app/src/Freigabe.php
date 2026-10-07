@@ -52,7 +52,12 @@ final class Freigabe
         'restzahlung_anfordern' => ['tat' => 'restzahlung_anfordern', 'pflicht' => ['projekt'],          'aenderbar' => [], 'wort' => 'Restzahlung anfordern'],
         'abo_anfordern'         => ['tat' => 'abo_anfordern',         'pflicht' => ['zahlung'],          'aenderbar' => [], 'wort' => 'Betreuungsrate anfordern'],
         'mahnung_schicken'      => ['tat' => 'mahnung_schicken',      'pflicht' => ['zahlung', 'stufe'], 'aenderbar' => [], 'wort' => 'Mahnung schicken'],
+        // AI Office Stufe 5 (07.10.2026, Uwe: „Link über AI Freigaben“): der Download-Link fürs Exit-Paket.
+        'exit_link_senden'      => ['tat' => 'exit_link_senden',      'pflicht' => ['paket'],            'aenderbar' => [], 'wort' => 'Exit-Paket-Link schicken'],
     ];
+
+    /** Arten, die nur die Verwaltung selbst vorschlägt — nie Claude über den Connector. */
+    public const NUR_VERWALTUNG = ['exit_link_senden'];
 
     /** Prüfnaht für die Kette: ersetzt die Telegram-Nachricht an Uwe. */
     public static $telegram = null;
@@ -103,7 +108,7 @@ final class Freigabe
     /** Nummern als Zahl, Schlüssel sortiert — damit „5“ und 5 derselbe Vorschlag sind. */
     private static function norm(array $d): array
     {
-        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
+        foreach (['projekt', 'kunde', 'partner', 'angebot', 'zahlung', 'stufe', 'paket'] as $k) { if (isset($d[$k])) { $d[$k] = (int) $d[$k]; } }
         ksort($d);
         return $d;
     }
@@ -116,6 +121,7 @@ final class Freigabe
         $partner = isset($d['partner']) ? (int) $d['partner'] : null;
         try {
             if ($projekt !== null && $kunde === null) { $kunde = (int) Db::wert('SELECT customer_id FROM projects WHERE id = ?', [$projekt], 0) ?: null; }
+            if (isset($d['paket'])) { $kunde = (int) Db::wert('SELECT customer_id FROM exit_pakete WHERE id = ?', [(int) $d['paket']], 0) ?: $kunde; }
             if (isset($d['angebot'])) { $kunde = (int) Db::wert('SELECT customer_id FROM angebote WHERE id = ?', [(int) $d['angebot']], 0) ?: $kunde; }
             if (isset($d['zahlung']) && $kunde === null) {
                 $kunde = (int) Db::wert('SELECT COALESCE(o.customer_id, a.customer_id) FROM payments p LEFT JOIN orders o ON o.id = p.order_id
@@ -271,6 +277,11 @@ final class Freigabe
                 $m = Mahnung::schicken((int) $d['zahlung'], $stufe);
                 if ($m !== 'raus') { throw new RuntimeException($m === 'versand_fehler' ? 'Sie wäre dran gewesen, aber der Versand hat nicht geklappt.' : 'Nichts zu tun: bezahlt, oder diese Stufe ging schon raus.'); }
                 return Mahnung::name($stufe) . ' ist raus — der Kunde hat sie samt frischem Zahlungslink.';
+            case 'exit_link_senden':
+                require_once __DIR__ . '/ExitPaket.php';
+                $r = ExitPaket::linkSenden((int) $d['paket']);
+                if (!$r['ok']) { throw new RuntimeException($r['text']); }
+                return $r['text'];
         }
         throw new RuntimeException('Unbekannte Art.');
     }

@@ -77,6 +77,17 @@ final class ClaudeWerkzeuge
             ['name' => 'umsatz_chancen', 'title' => 'Umsatz-Chancen',
              'description' => 'Was der Umsatz-Spürhund gefunden hat: fertige Seiten ohne Betreuung, Seiten ohne Hosting bei Vecom, Angebote ohne Antwort, wartende Interessenten — mit Grund, Richtwert und Vorschlag. Daraus lassen sich Vorschläge in AI Freigaben machen (freigabe_vorschlagen), wenn Eintragen erlaubt ist.',
              'inputSchema' => $leer, 'annotations' => $nur('Umsatz-Chancen')],
+            // AI Office Stufe 5 (07.10.2026): Umzüge und DNS — nur lesen. Pre-Flight und Zurücknehmen bleiben Uwes Klick.
+            ['name' => 'umzuege', 'title' => 'Umzüge',
+             'description' => 'Migration Center: jeder Umzug eines Kunden (Domain, Website, E-Mail) mit gemeinsamem Stand, Teilen, letztem Pre-Flight-Bericht (Ampel je Punkt) und Verlauf. Ohne id die Liste, mit id ein Vorgang.',
+             'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'properties' => [
+                 'id' => $zahl('ID eines Umzugs (aus der Liste).', 1, 2147483647)]],
+             'annotations' => $nur('Umzüge')],
+            ['name' => 'dns_stand', 'title' => 'DNS-Stand',
+             'description' => 'Die festgehaltenen DNS-Stände einer Kundendomain (vorher/nachher bei Änderungen, tägliche Wache, Pre-Flight), mit Unterschied zum vorigen Stand und was eine Änderung umgeschrieben oder hinzugefügt hat. Ohne domain: alle Domains unter DNS-Wache.',
+             'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'properties' => [
+                 'domain' => ['type' => 'string', 'minLength' => 3, 'maxLength' => 190, 'description' => 'z. B. firma.it']]],
+             'annotations' => $nur('DNS-Stand')],
             ['name' => 'akquise', 'title' => 'Akquise',
              'description' => 'Akquise-Stand: Zahlen von heute, offene Antworten von Interessenten, fällige Wiedervorlagen, Termine der nächsten sieben Tage.',
              'inputSchema' => $leer, 'annotations' => $nur('Akquise')],
@@ -134,6 +145,8 @@ final class ClaudeWerkzeuge
                 'geld'           => self::geld($a),
                 'akquise'        => self::akquise(),
                 'umsatz_chancen' => self::umsatzChancen(),
+                'umzuege'        => self::umzuege($a),
+                'dns_stand'      => self::dnsStand($a),
                 'ueberwachung'   => self::ueberwachung(),
                 'pruefspur'      => self::pruefspur($a),
                 'wissen_suchen'  => self::wissenSuchen($a),
@@ -345,6 +358,49 @@ final class ClaudeWerkzeuge
             'betrieb_id' => $c['firma_id'], 'gefunden_am' => $c['gefunden_am']], Spuerhund::offen());
         return ['offen' => $offen, 'hinweis' => 'Richtwerte aus der eigenen Preisliste, in Cent; keine Zusage. Verworfene Chancen stehen hier nicht.',
                 'seite' => self::verwaltung('/umsatz-chancen')];
+    }
+
+    private static function umzuege(array $a): array
+    {
+        require_once __DIR__ . '/MigrationCenter.php';
+        if (isset($a['id'])) {
+            $v = MigrationCenter::vorgang(self::zahl($a, 'id', 0, 1, 2147483647));
+            if ($v === null) { throw new InvalidArgumentException('Keinen Umzug mit dieser ID.'); }
+            return ['id' => (int) $v['id'], 'kunde_id' => (int) $v['customer_id'], 'kunde' => $v['kunde'], 'domain' => $v['domain'],
+                'stand' => MigrationCenter::STAENDE[$v['stand']] ?? $v['stand'], 'notiz' => $v['notiz'],
+                'teile' => array_map(static fn($t) => ['art' => MigrationCenter::ARTEN[$t['art']], 'was' => $t['titel'], 'stand' => $t['wort']], $v['teile']),
+                'preflight' => $v['preflight'], 'erlaubte_naechste_staende' => array_map(static fn($x) => MigrationCenter::STAENDE[$x], $v['erlaubt']),
+                'verlauf' => array_map(static fn($h) => ['am' => $h['created_at'], 'von' => $h['von'], 'nach' => $h['nach'], 'grund' => $h['grund'], 'wer' => $h['wer']], $v['verlauf']),
+                'seite' => self::verwaltung('/umzuege?id=' . (int) $v['id'])];
+        }
+        return ['umzuege' => array_map(static fn($m) => ['id' => (int) $m['id'], 'kunde_id' => (int) $m['customer_id'], 'kunde' => $m['kunde'], 'domain' => $m['domain'],
+                    'stand' => MigrationCenter::STAENDE[$m['stand']] ?? $m['stand'], 'preflight_ampel' => $m['preflight_ampel'], 'preflight_am' => $m['preflight_am'],
+                    'teile' => array_map(static fn($t) => MigrationCenter::ARTEN[$t['art']] . ': ' . $t['wort'], $m['teile'])], MigrationCenter::liste(40)),
+                'hinweis' => 'Pre-Flight starten und Stände setzen kann nur Uwe in der Verwaltung.', 'seite' => self::verwaltung('/umzuege')];
+    }
+
+    private static function dnsStand(array $a): array
+    {
+        require_once __DIR__ . '/DnsSchutz.php';
+        $roh = trim((string) ($a['domain'] ?? ''));
+        if ($roh === '') {
+            return ['domains' => array_map(static fn($d) => ['domain' => $d['domain'], 'kunde_id' => $d['kunde'], 'zuletzt' => $d['letzter']['created_at'] ?? null,
+                        'aenderungen_mit_rueckweg' => $d['nachher_offen']], DnsSchutz::uebersicht()), 'seite' => self::verwaltung('/umzuege#dns-wache')];
+        }
+        $d = DnsSchutz::domain($roh);
+        if ($d === '') { throw new InvalidArgumentException('Keine gültige Domain.'); }
+        $st = DnsSchutz::fuerDomain($d, 15);
+        $aus = [];
+        foreach ($st as $i => $s) {
+            $vor = $st[$i + 1] ?? null;
+            $aus[] = ['id' => (int) $s['id'], 'am' => $s['created_at'], 'anlass' => $s['anlass'], 'eintraege' => $s['oeffentlich'], 'mit_kas_zone' => (bool) $s['kas_ok'],
+                'unterschied_zum_vorigen' => $vor ? DnsSchutz::vergleich($vor['oeffentlich'], $s['oeffentlich']) : null,
+                'aenderung' => is_array($s['aenderungen']) ? ['umgeschrieben' => array_map(static fn($u) => ['typ' => $u['typ'], 'name' => $u['name'], 'alt' => $u['alt_daten'], 'neu' => $u['neu_daten']], (array) ($s['aenderungen']['umgeschrieben'] ?? [])),
+                    'hinzugefuegt' => (array) ($s['aenderungen']['hinzugefuegt'] ?? [])] : null,
+                'zurueckgenommen_am' => $s['zurueck_am']];
+        }
+        return ['domain' => $d, 'staende' => $aus, 'hinweis' => 'Nur das öffentliche DNS und — wenn vorhanden — die KAS-Zone, ohne Zugangsdaten. Zurücknehmen kann nur Uwe.',
+                'seite' => self::verwaltung('/umzuege?dns=' . rawurlencode($d))];
     }
 
     private static function akquise(): array

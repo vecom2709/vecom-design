@@ -692,14 +692,40 @@ $eing = !empty($eingebettet);
             'USt-IdNr / P. IVA' => trim((string) ($k['vat_id'] ?? '')),
             'Nameserver'    => implode(' · ', Hosting::NAMESERVER),
           ], static fn($x) => $x !== ''); ?>
-        <div style="margin-top:12px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px">
+        <?php /* CHECKLISTE MIT FREIGABE (AI Office Stufe 5, 07.10.2026): Eine Domain kaufen ist „rot“.
+                 Erst die Liste, dann Uwes Freigabe (Rückfrage SCHWER), dann erst der Knopf zum Bestellsystem. */
+              $dbCheck = sicher(static fn() => Hosting::bestellCheckliste($hostingA), ['punkte' => [], 'blocker' => 0, 'freigegeben' => false, 'bestellt' => false]); ?>
+        <div style="margin-top:12px;padding:12px 14px;border:1px solid var(--linie);border-radius:10px" id="domain-bestellen">
           <div style="display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between">
             <b>Domain bestellen</b>
+            <?php if ($dbCheck['freigegeben']): ?>
             <?php /* Das vorhandene Kopieren aus dem Layout: erst in die Zwischenablage,
                      dann das Bestellsystem in einem neuen Tab (data-oeffnen). */ ?>
             <button type="button" class="knopf klein" data-kopieren="db-daten-<?= (int) $hostingA['id'] ?>"
                     data-oeffnen="https://www.domain-bestellsystem.de/">Kopieren und Bestellsystem öffnen ↗</button>
+            <?php endif; ?>
           </div>
+          <table class="schlicht" style="margin-top:8px"><tbody>
+            <?php foreach ($dbCheck['punkte'] as $dbP): ?>
+              <tr><td style="width:1%;white-space:nowrap"><span class="marke2 <?= $dbP['ok'] === true ? 'gut' : ($dbP['ok'] === false ? 'schlecht' : 'warnung') ?>"><?= $dbP['ok'] === true ? '✓' : ($dbP['ok'] === false ? '✗' : '?') ?></span></td>
+                <td style="width:34%"><?= Fmt::h($dbP['punkt']) ?></td><td style="color:var(--dim);font-size:13px"><?= Fmt::h($dbP['text']) ?></td></tr>
+            <?php endforeach; ?>
+          </tbody></table>
+          <?php if (!$dbCheck['freigegeben']): ?>
+            <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:8px"><?= Csrf::feld() ?>
+              <input type="hidden" name="tat" value="domain_bestellung_freigeben"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+              <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>">
+              <button class="knopf"<?= $dbCheck['blocker'] ? ' disabled title="Erst die rot markierten Punkte klären" style="opacity:.45;cursor:not-allowed"' : '' ?>>Bestellung freigeben</button>
+              <span style="color:var(--leise);font-size:12.5px;margin-left:8px"><?= $dbCheck['blocker'] ? 'Erst die rot markierten Punkte klären.' : 'Danach erscheint der Knopf zum Bestellsystem.' ?></span></form>
+          <?php else: ?>
+            <p style="font-size:12.5px;color:var(--leise);margin:8px 0 0">Freigegeben <?= Fmt::h(Fmt::zeit((string) $hostingA['bestell_freigabe_am'])) ?> von <?= Fmt::h((string) $hostingA['bestell_freigabe_von']) ?>.
+              <?= $dbCheck['bestellt'] ? 'Bestellt am ' . Fmt::h(Fmt::datum((string) $hostingA['domain_bestellt_am'])) . ' — jetzt wartet die Verwaltung auf die Nameserver.' : '' ?></p>
+            <?php if (!$dbCheck['bestellt']): ?>
+              <form method="post" action="<?= Fmt::h(url('')) ?>" style="margin-top:6px"><?= Csrf::feld() ?>
+                <input type="hidden" name="tat" value="domain_bestellt"><input type="hidden" name="id" value="<?= (int) $hostingA['id'] ?>">
+                <input type="hidden" name="zurueck" value="kunden/<?= (int) $k['id'] ?>"><button class="knopf klein">Bei All-Inkl bestellt</button></form>
+            <?php endif; ?>
+          <?php endif; ?>
           <textarea id="db-daten-<?= (int) $hostingA['id'] ?>" readonly aria-hidden="true" tabindex="-1"
                     style="position:absolute;left:-9999px;width:1px;height:1px"><?= Fmt::h(implode("\n", array_map(static fn($n, $w) => $n . ': ' . $w, array_keys($dbFelder), $dbFelder))) ?></textarea>
           <table class="schlicht" style="margin-top:8px"><tbody>
@@ -918,6 +944,56 @@ $eing = !empty($eingebettet);
         <span style="color:var(--leise);font-size:12.5px;margin-left:8px">
           Vergebene Domains werden nie angeboten. Lässt sich „frei“ nicht automatisch bestätigen (bei .it häufig), zählt dein Haken.</span>
       </form>
+    <?php endif; ?>
+  </div>
+  <?php endif; ?>
+
+  <?php /* EXIT-PAKET (AI Office Stufe 5, 07.10.2026, Uwe: Website-Dateien, DNS-Doku, Postfächer;
+           „Link über AI Freigaben“). Nur Admin. Entsteht auf Klick, der Link geht nur nach Uwes Ja. */ ?>
+  <?php if (empty($k['anonym_am']) && Rechte::geld()): ?>
+  <?php require_once __DIR__ . '/../src/ExitPaket.php';
+        $exListe = sicher(static fn() => ExitPaket::fuerKunde((int) $k['id']), []); ?>
+  <div class="block" id="exit"><h2>Exit-Paket</h2>
+    <p style="color:var(--leise);font-size:12.5px;margin:-4px 0 10px">Wenn der Kunde geht oder seine Daten haben will: ein ZIP mit Protokoll (SHA-256 je Datei)
+      und einem LIESMICH in seiner Sprache. Passwörter sind nie drin; die Datenbank gibt KAS nicht heraus. Der Download-Link geht erst nach deinem Ja in AI Freigaben raus.</p>
+    <form method="post" action="<?= Fmt::h(url('')) ?>"><?= Csrf::feld() ?>
+      <input type="hidden" name="tat" value="exit_paket_erstellen"><input type="hidden" name="kunde" value="<?= (int) $k['id'] ?>">
+      <div style="display:flex;flex-wrap:wrap;gap:14px;margin-bottom:8px">
+        <?php foreach (ExitPaket::INHALTE as $exK => $exW): ?>
+          <label style="display:inline-flex;gap:6px;align-items:center;font-size:13.5px"><input type="checkbox" name="inhalt[]" value="<?= Fmt::h($exK) ?>" checked style="width:auto;margin:0"> <?= Fmt::h($exW) ?></label>
+        <?php endforeach; ?>
+      </div>
+      <label style="display:inline-flex;gap:6px;align-items:center;font-size:13px;color:var(--dim);margin-bottom:8px">
+        <input type="checkbox" name="link" value="1" checked style="width:auto;margin:0"> danach den Link-Versand in AI Freigaben legen</label><br>
+      <button class="knopf">Paket erstellen</button></form>
+    <?php if ($exListe): ?>
+      <table class="schlicht" style="margin-top:12px"><tbody>
+        <?php foreach ($exListe as $ex): ?>
+          <tr><td style="width:1%;white-space:nowrap;color:var(--leise)"><?= Fmt::h(Fmt::zeit((string) $ex['created_at'])) ?></td>
+            <td style="min-width:220px"><?= Fmt::h(implode(', ', array_map(static fn($x) => ExitPaket::INHALTE[$x] ?? $x, explode(',', (string) $ex['inhalt'])))) ?>
+              <?= $ex['stand'] === 'fertig' ? ' · ' . Fmt::h(ExitPaket::groesse((int) $ex['groesse'])) : '' ?>
+              <?php if ($ex['stand'] === 'fehler'): ?><br><small style="color:var(--rot)"><?= Fmt::h((string) $ex['fehler']) ?></small><?php endif; ?>
+              <?php if ($ex['protokoll']): ?><details style="margin-top:4px"><summary style="cursor:pointer;font-size:12.5px;color:var(--dim)">Protokoll</summary>
+                <pre style="font-size:11.5px;white-space:pre-wrap;word-break:break-all;max-height:240px;overflow:auto"><?= Fmt::h((string) $ex['protokoll']) ?></pre></details><?php endif; ?></td>
+            <td style="width:1%;white-space:nowrap">
+              <?php if ($ex['stand'] === 'fertig'): ?>
+                <a class="knopf klein" href="<?= Fmt::h(url('dateien/' . (int) $ex['file_id'])) ?>">Herunterladen</a>
+                <?php if ($ex['schluessel_hash'] !== null): ?>
+                  <span class="marke2 gut">Link gültig bis <?= Fmt::h(Fmt::datum((string) $ex['gueltig_bis'])) ?> · <?= (int) $ex['abrufe'] ?>× geladen</span>
+                  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="exit_link_sperren">
+                    <input type="hidden" name="id" value="<?= (int) $ex['id'] ?>"><input type="hidden" name="kunde" value="<?= (int) $k['id'] ?>"><button class="knopf klein stumm">Link sperren</button></form>
+                <?php elseif (!empty($ex['freigabe']) && in_array((string) $ex['freigabe']['status'], ['offen', 'zurueckgestellt'], true)): ?>
+                  <a class="marke2 warnung" href="<?= Fmt::h(url('ai-freigaben/' . (int) $ex['freigabe']['id'])) ?>">Versand wartet in AI Freigaben</a>
+                <?php elseif ($ex['gesendet_am'] !== null): ?>
+                  <span class="marke2">Link abgelaufen · <?= (int) $ex['abrufe'] ?>× geladen</span>
+                <?php else: ?>
+                  <form method="post" action="<?= Fmt::h(url('')) ?>" style="display:inline"><?= Csrf::feld() ?><input type="hidden" name="tat" value="exit_link_vorschlagen">
+                    <input type="hidden" name="id" value="<?= (int) $ex['id'] ?>"><input type="hidden" name="kunde" value="<?= (int) $k['id'] ?>"><button class="knopf klein">Link-Versand vorschlagen</button></form>
+                <?php endif; ?>
+              <?php else: ?><span class="marke2 <?= $ex['stand'] === 'fehler' ? 'schlecht' : '' ?>"><?= Fmt::h($ex['stand'] === 'fehler' ? 'gescheitert' : 'wird gebaut') ?></span><?php endif; ?>
+            </td></tr>
+        <?php endforeach; ?>
+      </tbody></table>
     <?php endif; ?>
   </div>
   <?php endif; ?>

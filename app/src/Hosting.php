@@ -1008,7 +1008,7 @@ final class Hosting
             } else {
                 self::schritt($auftragId, 'dns', 'laeuft', null, true);
                 try {
-                    $r = self::dnsUebernehmen($domain, (string) ($a['mail'] ?? 'vecom'), $als, $kas);
+                    $r = self::dnsUebernehmen($domain, (string) ($a['mail'] ?? 'vecom'), $als, $kas, $auftragId, $kundeId);
                     self::schritt($auftragId, 'dns', !empty($r['hand']) ? 'hand'
                         : ($r['ok'] ? 'fertig' : ((int) $st['dns']['versuche'] + 1 >= self::VERSUCHE ? 'hand' : 'fehler')), $r['text']);
                 } catch (Throwable $e) {
@@ -1176,12 +1176,28 @@ final class Hosting
         return ['eintraege' => $aus, 'mx_ersetzen' => $mailBleibt && $mxDa];
     }
 
-    /** Die Auswahl in die KAS-Zone schreiben. */
-    private static function dnsUebernehmen(string $domain, string $mail, array $als, object $kas): array
+    /**
+     * Die Auswahl in die KAS-Zone schreiben.
+     *
+     * VORHER UND NACHHER (AI Office Stufe 5, 07.10.2026): Ohne gespeicherten Vorher-Stand
+     * wird nichts geschrieben (DnsSchutz). Jede Änderung steht danach mit altem Wert im
+     * Nachher-Stand — umgeschriebene lassen sich per Klick zurücknehmen, hinzugefügte stehen
+     * als Liste zum Löschen im KAS (Löschen über die API bleibt gesperrt).
+     */
+    private static function dnsUebernehmen(string $domain, string $mail, array $als, object $kas, ?int $auftragId = null, ?int $kundeId = null): array
     {
+        require_once __DIR__ . '/DnsSchutz.php';
         $bestand = $kas->bestand($domain);
         $plan = self::dnsAuswahl($bestand, $mail);
         if (!$plan['eintraege']) { return ['ok' => true, 'text' => 'Beim alten Anbieter stand nichts, was mit muss.']; }
+        $bezug = $auftragId !== null ? 'hosting:' . $auftragId : null;
+        $kasLesen = static fn(string $d): array => $kas->dnsLesen($d, $als);
+        try {
+            $vorherId = DnsSchutz::schnappschuss($domain, 'vorher', $kundeId, $bezug, null, $kasLesen, $bestand);
+        } catch (Throwable $e) {
+            return ['ok' => false, 'text' => 'Kein Vorher-Stand gespeichert (' . $e->getMessage() . ') — deshalb nichts geändert.'];
+        }
+        $protokoll = ['umgeschrieben' => [], 'hinzugefuegt' => []];
         $umgeschrieben = 0;
         $uebrigKas = 0;
         $eintraege = $plan['eintraege'];
@@ -1201,7 +1217,11 @@ final class Hosting
                 if (!$z['aenderbar'] || $z['id'] === '' || !$alteMx) { $uebrigKas++; continue; }
                 $ziel = array_shift($alteMx);
                 $r = $kas->dnsAendern($z['id'], $ziel['daten'], $ziel['aux'], $als);
-                if ($r['ok']) { $umgeschrieben++; } else { array_unshift($alteMx, $ziel); $uebrigKas++; }
+                if ($r['ok']) {
+                    $umgeschrieben++;
+                    $protokoll['umgeschrieben'][] = ['id' => (string) $z['id'], 'typ' => 'MX', 'name' => (string) $z['name'],
+                        'alt_daten' => (string) $z['daten'], 'alt_aux' => (int) $z['aux'], 'neu_daten' => $ziel['daten'], 'neu_aux' => $ziel['aux']];
+                } else { array_unshift($alteMx, $ziel); $uebrigKas++; }
             }
             $eintraege = array_merge($alteMx, $sonst);
         }
@@ -1209,7 +1229,16 @@ final class Hosting
         $gut = $umgeschrieben;
         foreach ($eintraege as $e) {
             $r = $kas->dnsHinzufuegen($domain, $e['typ'], $e['name'], $e['daten'], $e['aux'], $als);
-            if ($r['ok']) { $gut++; } else { $fehler[] = $e['typ'] . ' ' . ($e['name'] ?: '@') . ': ' . $r['text']; }
+            if ($r['ok']) {
+                $gut++;
+                if (($r['text'] ?? '') !== 'war schon da') { $protokoll['hinzugefuegt'][] = $e; }
+            } else { $fehler[] = $e['typ'] . ' ' . ($e['name'] ?: '@') . ': ' . $r['text']; }
+        }
+        try {
+            DnsSchutz::schnappschuss($domain, 'nachher', $kundeId, $bezug, null, $kasLesen, $bestand, $vorherId, $protokoll);
+        } catch (Throwable $e) {
+            Events::melden('dns_nachher_fehlt', 'DNS ' . $domain . ': Nachher-Stand nicht gespeichert', 'warnung',
+                'Die Einträge sind geschrieben, aber der Nachher-Stand fehlt: ' . $e->getMessage() . ' Der Vorher-Stand liegt unter Umzüge & DNS.', '/umzuege?dns=' . rawurlencode($domain));
         }
         if ($fehler) { return ['ok' => false, 'text' => $gut . ' übernommen, nicht: ' . implode(' · ', $fehler)]; }
         if ($uebrigKas > 0) {
@@ -1444,6 +1473,74 @@ final class Hosting
 
     /** Die Nameserver von All-Inkl -- gemessen an vecom-design.it am 26.09.2026. */
     public const NAMESERVER = ['ns5.kasserver.com', 'ns6.kasserver.com'];
+
+    /**
+     * DOMAIN-BESTELLCHECKLISTE (AI Office Stufe 5, 07.10.2026). Eine Domain zu kaufen ist im
+     * Masterprompt „rot“: nie von selbst. Bestellt wird weiter von Hand im Bestellsystem von
+     * All-Inkl (dafuer gibt es keine Schnittstelle) -- aber erst, wenn diese Liste stimmt und
+     * Uwe die Bestellung freigegeben hat. Jeder Punkt: ok (true), Blocker (false) oder
+     * „selbst nachsehen“ (null).
+     *
+     * @param callable(string):array|null $frei wie Domainpruefung::pruefen
+     * @return array{punkte:list<array{punkt:string, ok:?bool, text:string}>, blocker:int, freigegeben:bool, bestellt:bool}
+     */
+    public static function bestellCheckliste(array $a, ?callable $frei = null): array
+    {
+        $k = Db::one('SELECT * FROM customers WHERE id = ?', [(int) $a['customer_id']]) ?? [];
+        $domain = (string) $a['domain'];
+        $p = [];
+        $p[] = ['punkt' => 'Zustimmung des Kunden', 'ok' => !empty($a['zugestimmt_am']),
+                'text' => !empty($a['zugestimmt_am']) ? 'am ' . date('d.m.Y', strtotime((string) $a['zugestimmt_am'])) . ' (Wortlaut in der Kundenakte)' : 'fehlt — ohne seine Zustimmung wird nichts bestellt'];
+        $bezahlt = in_array((string) $a['status'], ['angelegt', 'aktiv'], true);
+        $p[] = ['punkt' => 'Bezahlt oder in der Betreuung enthalten', 'ok' => $bezahlt,
+                'text' => $bezahlt ? (!empty($a['inklusive']) ? 'in der Betreuung enthalten' : 'erste Rate bezahlt, Account angelegt') : 'noch nicht — erst danach bestellen'];
+        $frei ??= static function (string $d): array { require_once __DIR__ . '/Domainpruefung.php'; return Domainpruefung::pruefen($d); };
+        $st = '';
+        try { $st = (string) ($frei($domain)['stand'] ?? ''); } catch (Throwable $e) { $st = ''; }
+        $p[] = ['punkt' => 'Domain noch frei', 'ok' => $st === 'frei' ? true : ($st === 'vergeben' ? false : null),
+                'text' => match ($st) { 'frei' => 'die Registrierungsstelle sagt: frei (eben geprüft)',
+                    'vergeben' => 'VERGEBEN — nicht bestellen, dem Kunden eine andere anbieten',
+                    default => 'nicht automatisch prüfbar (bei .it häufig) — im Bestellsystem nachsehen' }];
+        $fehlt = [];
+        foreach (['Name' => trim((string) (($k['company'] ?? '') ?: ($k['name'] ?? ''))), 'Straße' => trim((string) ($k['street'] ?? '')),
+                  'PLZ und Ort' => trim((string) ($k['zip'] ?? '') . (string) ($k['city'] ?? '')), 'E-Mail' => trim((string) ($k['email'] ?? '')),
+                  'Telefon' => trim((string) ($k['phone'] ?? ''))] as $f => $w) { if ($w === '') { $fehlt[] = $f; } }
+        if (str_ends_with($domain, '.it') && trim((string) ($k['tax_code'] ?? '')) === '' && trim((string) ($k['vat_id'] ?? '')) === '') {
+            $fehlt[] = 'Codice fiscale oder P. IVA (für .it Pflicht)';
+        }
+        $p[] = ['punkt' => 'Inhaberdaten vollständig', 'ok' => !$fehlt, 'text' => $fehlt ? 'es fehlt: ' . implode(', ', $fehlt) . ' — unter „Bearbeiten“ ergänzen' : 'Name, Anschrift, E-Mail, Telefon' . (str_ends_with($domain, '.it') ? ', Steuernummer' : '')];
+        $dSchritt = (string) Db::wert("SELECT status FROM hosting_schritte WHERE auftrag_id = ? AND schritt = 'domain'", [(int) $a['id']], '');
+        $p[] = ['punkt' => 'Domain im KAS-Account', 'ok' => $dSchritt === 'fertig' ? true : null,
+                'text' => $dSchritt === 'fertig' ? 'angelegt — nach der Registrierung zeigt sie sofort auf /web' : 'noch nicht (Stand: ' . ($dSchritt ?: 'unbekannt') . ') — geht auch nach der Bestellung'];
+        $p[] = ['punkt' => 'Nameserver', 'ok' => true, 'text' => implode(' · ', self::NAMESERVER)];
+        return ['punkte' => $p, 'blocker' => count(array_filter($p, static fn($x) => $x['ok'] === false)),
+                'freigegeben' => !empty($a['bestell_freigabe_am']), 'bestellt' => !empty($a['domain_bestellt_am'])];
+    }
+
+    /** Uwe gibt die Bestellung frei (Rückfrage SCHWER). Nur ohne Blocker. */
+    public static function bestellungFreigeben(int $auftragId, string $wer, ?callable $frei = null): array
+    {
+        $a = Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        if (!$a || !self::wartetAufBestellung($a)) { return ['ok' => false, 'text' => 'Diese Domain wartet nicht auf eine Bestellung.']; }
+        $c = self::bestellCheckliste($a, $frei);
+        if ($c['blocker'] > 0) {
+            return ['ok' => false, 'text' => 'Noch nicht: ' . implode(' · ', array_map(static fn($x) => $x['punkt'] . ' (' . $x['text'] . ')', array_filter($c['punkte'], static fn($x) => $x['ok'] === false)))];
+        }
+        Db::run('UPDATE hosting_auftraege SET bestell_freigabe_am = NOW(), bestell_freigabe_von = ? WHERE id = ? AND bestell_freigabe_am IS NULL', [mb_substr($wer, 0, 80), $auftragId]);
+        Events::protokoll('domain_bestellung_frei', 'Bestellung von ' . $a['domain'] . ' freigegeben von ' . $wer, (int) $a['customer_id']);
+        return ['ok' => true, 'text' => 'Freigegeben. Jetzt im Bestellsystem bestellen und danach „Bei All-Inkl bestellt“ klicken.'];
+    }
+
+    /** Uwes Haken nach der Bestellung — die Registrierung erkennt danach der Cron an den Nameservern. */
+    public static function bestelltMarkieren(int $auftragId): bool
+    {
+        $n = Db::run('UPDATE hosting_auftraege SET domain_bestellt_am = NOW() WHERE id = ? AND bestell_freigabe_am IS NOT NULL AND domain_bestellt_am IS NULL', [$auftragId])->rowCount();
+        if ($n > 0) {
+            $a = Db::one('SELECT domain, customer_id FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+            Events::protokoll('domain_bestellt', 'Domain ' . $a['domain'] . ' bei All-Inkl bestellt', (int) $a['customer_id']);
+        }
+        return $n > 0;
+    }
 
     /** Wartet dieser Auftrag darauf, dass Uwe die Domain bestellt? */
     public static function wartetAufBestellung(array $a): bool
@@ -1725,6 +1822,20 @@ final class Hosting
         $t = self::entschluesseln((string) $a['technik_blob']);
         if ($t !== null) { Events::protokoll('hosting_technik_angesehen', 'DB/FTP-Zugang von ' . $a['domain'] . ' angesehen', (int) $a['customer_id']); }
         return $t;
+    }
+
+    /**
+     * Der KAS-Login des Unter-Accounts, solange er verschluesselt am Auftrag liegt (AI Office
+     * Stufe 5: DNS lesen und zuruecksetzen). Nur zum Benutzen, nie zum Zeigen. Hat der Kunde
+     * seine Zugangsdaten abgerufen, ist er weg -- dann geht es nur noch von Hand im KAS.
+     * @return array{login:string,passwort:string}|null
+     */
+    public static function kasAlsStill(int $auftragId): ?array
+    {
+        $a = Db::one('SELECT zugang_blob FROM hosting_auftraege WHERE id = ?', [$auftragId]);
+        $z = $a && $a['zugang_blob'] !== null ? self::entschluesseln((string) $a['zugang_blob']) : null;
+        return ($z !== null && (string) ($z['kas_login'] ?? '') !== '' && (string) ($z['kas_passwort'] ?? '') !== '')
+            ? ['login' => (string) $z['kas_login'], 'passwort' => (string) $z['kas_passwort']] : null;
     }
 
     /** Dasselbe ohne Protokolleintrag -- fuer die Veroeffentlichung, die den Zugang nur benutzt, nie zeigt. */

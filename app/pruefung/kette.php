@@ -14708,7 +14708,9 @@ $jsAusnahmen = ['chef.php', 'werkstatt.php', 'cron.php', 'stripe-webhook.php', '
                 // Das Vecom-Fenster in Telegram (01.10.2026): eigener schlichter Rahmen in Telegram, die Sprache kommt aus dem Kanal-Knopf
                 'telegram-menue.php',
                 // Claudes Erlaubnis-Tür (AI Office Stufe 2): Fehlerseite nur für Uwe, wenn Claude falsch fragt — deutsch, ohne Skript
-                'claude-oauth.php', 'claude-mcp.php'];
+                'claude-oauth.php', 'claude-mcp.php',
+                // Exit-Paket (AI Office Stufe 5): liefert nur die Datei; die 410-Seite nimmt die Sprache aus ?lang, ohne Skript
+                'exit-paket.php'];
 $jsFehlt = [];
 foreach (glob($jsWurzel . '/*.php') ?: [] as $jsPhp) {
     $jsName = basename($jsPhp);
@@ -27959,6 +27961,247 @@ Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE kunde_id IN (?, ?, ?
 Db::run("UPDATE ai_freigaben SET status = 'abgelehnt' WHERE art = 'mahnung_schicken' AND status = 'offen'");
 Firma::speichern(['firma_google_bewertung' => (string) ($e4Link ?? '')]);
 Db::run('DELETE FROM payments WHERE id = ?', [$e4Z]);
+
+/* ---- AI Office Stufe 5: Migration Center, DNS-Schutz, Exit-Paket, Domain-Bestellcheckliste ---- */
+abschnitt('AI Office Stufe 5: Migration Center, DNS-Schutz, Exit-Paket, Domain-Checkliste');
+foreach (['DnsSchutz', 'MigrationCenter', 'ExitPaket'] as $e5Kl) { require_once $wurzel . '/src/' . $e5Kl . '.php'; }
+$e5Mig = (string) file_get_contents($wurzel . '/migrations/213_migration_center.sql');
+pruefe('Migration 213: fünf neue Tabellen, drei Spalten am Hosting-Auftrag, nichts gelöscht', substr_count($e5Mig, 'CREATE TABLE IF NOT EXISTS') === 5
+    && substr_count($e5Mig, 'ADD COLUMN IF NOT EXISTS') === 3 && !preg_match('~\bDROP\b|\bTRUNCATE\b|\bDELETE\s+FROM\b~i', $e5Mig));
+
+// DNS-Schutz: Grundlagen
+pruefe('DNS: Domain sauber aus Adresse, www und Pfad — Unsinn bleibt leer', DnsSchutz::domain('https://www.Firma-Probe.it/kontakt') === 'firma-probe.it'
+    && DnsSchutz::domain('quatsch') === '' && DnsSchutz::domain('a b.it') === '');
+$e5A = [['name' => '@', 'typ' => 'MX', 'wert' => '10 mx1.alt.it.'], ['name' => '@', 'typ' => 'TXT', 'wert' => 'v=spf1 include:alt.it -all'], ['name' => '@', 'typ' => 'A', 'wert' => '1.2.3.4']];
+pruefe('DNS: gleicher Inhalt, gleicher Abdruck — egal in welcher Reihenfolge und mit oder ohne Punkt am Ende',
+    DnsSchutz::fingerabdruck($e5A, null) === DnsSchutz::fingerabdruck([$e5A[2], ['name' => '@', 'typ' => 'MX', 'wert' => '10 MX1.alt.it'], $e5A[1]], null)
+    && DnsSchutz::fingerabdruck($e5A, null) !== DnsSchutz::fingerabdruck([$e5A[0]], null));
+pruefe('DNS: kritisch sind MX, NS, SPF und DMARC — nicht A', DnsSchutz::kritisch($e5A) === ['MX @ 10 mx1.alt.it', 'SPF @ v=spf1 include:alt.it -all']);
+$e5V = DnsSchutz::vergleich($e5A, [['name' => '@', 'typ' => 'MX', 'wert' => '10 mx9.neu.it'], $e5A[1], $e5A[2]]);
+pruefe('DNS: der Vergleich nennt, was weg und was neu ist', $e5V['weg'] === ['MX @ 10 mx1.alt.it'] && $e5V['neu'] === ['MX @ 10 mx9.neu.it']);
+
+// Vorher/Nachher am echten Hosting-Ablauf (Abschnitt „KAS-DNS“ weiter oben: altfirma-probe.it)
+$e5Hs = (string) file_get_contents($wurzel . '/src/Hosting.php');
+$e5Pv = strpos($e5Hs, "DnsSchutz::schnappschuss(\$domain, 'vorher'");
+pruefe('Hosting: ohne Vorher-Stand wird nichts geschrieben — der Schnappschuss steht vor dem ersten dnsAendern',
+    $e5Pv !== false && $e5Pv < (int) strpos($e5Hs, '$kas->dnsAendern($z[\'id\']') && str_contains($e5Hs, 'Kein Vorher-Stand gespeichert'));
+$e5Vor = Db::one("SELECT * FROM dns_schnappschuesse WHERE domain = 'altfirma-probe.it' AND anlass = 'vorher' ORDER BY id DESC LIMIT 1");
+$e5Nach = Db::one("SELECT * FROM dns_schnappschuesse WHERE domain = 'altfirma-probe.it' AND anlass = 'nachher' ORDER BY id DESC LIMIT 1");
+$e5Aend = json_decode((string) ($e5Nach['aenderungen_json'] ?? ''), true) ?: [];
+pruefe('Hosting: Vorher- und Nachher-Stand mit KAS-Zone, verknüpft, am Auftrag', $e5Vor && $e5Nach && (int) $e5Vor['kas_ok'] === 1
+    && (int) $e5Nach['vorher_id'] === (int) Db::wert("SELECT MAX(id) FROM dns_schnappschuesse WHERE domain = 'altfirma-probe.it' AND anlass = 'vorher'", [], 0)
+    && str_starts_with((string) $e5Nach['bezug'], 'hosting:') && $e5Nach['bezug'] === $e5Vor['bezug']);
+pruefe('Hosting: der Nachher-Stand kennt den alten Wert jedes umgeschriebenen Eintrags und jeden hinzugefügten',
+    ($e5Aend['umgeschrieben'][0]['id'] ?? '') === '11' && ($e5Aend['umgeschrieben'][0]['alt_daten'] ?? '') === 'w0199999.kasserver.com'
+    && (int) ($e5Aend['umgeschrieben'][0]['alt_aux'] ?? 0) === 10 && in_array('_dmarc', array_column((array) ($e5Aend['hinzugefuegt'] ?? []), 'name'), true));
+$e5Rw = DnsSchutz::rueckweg((int) $e5Nach['id']);
+pruefe('Rückweg: umgeschriebene per Klick, hinzugefügte nur als Liste zum Löschen im KAS', $e5Rw['ok'] && count($e5Rw['zurueck']) === 1
+    && (bool) preg_grep('~^TXT _dmarc ~', $e5Rw['hand']) && !in_array('delete_dns_settings', Kas::SCHREIBEN_ERLAUBT, true));
+$e5Ruf = [];
+$e5Z = DnsSchutz::zurueckrollen((int) $e5Nach['id'], 'Kette', static function (string $id, string $daten, int $aux) use (&$e5Ruf): array { $e5Ruf[] = "$id>$daten:$aux"; return ['ok' => true]; });
+pruefe('Zurückrollen: der alte Wert geht zurück, vermerkt mit wer und was — ein zweites Mal geht nicht', $e5Z['ok'] && $e5Ruf === ['11>w0199999.kasserver.com:10']
+    && Db::wert('SELECT zurueck_von FROM dns_schnappschuesse WHERE id = ?', [(int) $e5Nach['id']], '') === 'Kette' && !DnsSchutz::rueckweg((int) $e5Nach['id'])['ok']);
+pruefe('Zurückrollen ohne Zugang des Kunden-Accounts: nichts geraten, alles als Handarbeit mit altem Wert', str_contains(
+    (string) file_get_contents($wurzel . '/src/DnsSchutz.php'), "\$hand[] = 'zurücksetzen: '") && (Ablauf::TRAGWEITE['dns_zurueck'][0] ?? '') === Ablauf::SCHWER);
+
+// Tägliche Wache: Alarm nur bei MX/NS/SPF/DMARC, nie bei leerer Antwort, kein Name im Zuruf
+$e5Kw = (int) Db::insert('customers', ['name' => 'Wache Kette', 'email' => 'wache@pruefung.example', 'token' => bin2hex(random_bytes(12))]);
+Db::insert('hosting_auftraege', ['customer_id' => $e5Kw, 'domain' => 'wache-probe.it', 'status' => 'aktiv', 'preis_cents' => 990, 'domain_aktion' => 'neu', 'mail' => 'vecom']);
+$e5Mx = 'mx1.wache-probe.it';
+$e5Leer = false;
+$e5Dns = static function (string $h, int $t) use (&$e5Mx, &$e5Leer): array {
+    if ($e5Leer || !str_ends_with($h, 'wache-probe.it')) { return []; }
+    if ($t === DNS_MX && $h === 'wache-probe.it') { return [['pri' => 10, 'target' => $e5Mx]]; }
+    if ($t === DNS_A && $h === 'wache-probe.it') { return [['ip' => '85.13.1.1']]; }
+    if ($t === DNS_NS && $h === 'wache-probe.it') { return [['target' => 'ns5.kasserver.com'], ['target' => 'ns6.kasserver.com']]; }
+    return [];
+};
+$e5Zurufe = [];
+DnsSchutz::$zuruf = static function (string $t) use (&$e5Zurufe): void { $e5Zurufe[] = $t; };
+$e5Anz = static fn(): int => (int) Db::wert("SELECT COUNT(*) FROM dns_schnappschuesse WHERE domain = 'wache-probe.it'", [], 0);
+DnsSchutz::taeglich($e5Dns);
+$e5n1 = $e5Anz();
+DnsSchutz::taeglich($e5Dns);
+pruefe('Wache: der erste Lauf hält fest, ein unveränderter Stand wird nicht jeden Tag neu abgelegt, kein Alarm', $e5n1 === 1 && $e5Anz() === 1 && $e5Zurufe === []);
+$e5Leer = true;
+$e5U = DnsSchutz::taeglich($e5Dns);
+pruefe('Wache: liefert der Resolver nichts, ist das „nicht lesbar“ — kein Alarm „alles gelöscht“', $e5Anz() === 1 && $e5Zurufe === [] && $e5U['unlesbar'] >= 1);
+$e5Leer = false;
+$e5Mx = 'mx.fremd-anbieter.example';
+DnsSchutz::taeglich($e5Dns);
+$e5Meld = Db::one("SELECT title, level, body, link FROM notifications WHERE type = 'dns_geaendert' ORDER BY id DESC LIMIT 1");
+pruefe('Wache: MX geändert → Meldung (Störung, mit Vorher/Nachher und Link) und Zuruf ohne Domain und Namen', $e5Anz() === 2 && count($e5Zurufe) === 1
+    && $e5Meld && str_contains((string) $e5Meld['title'], 'wache-probe.it') && $e5Meld['level'] === 'schlecht'
+    && str_contains((string) $e5Meld['body'], 'mx1.wache-probe.it') && str_contains((string) $e5Meld['link'], '/umzuege?dns=')
+    && !str_contains($e5Zurufe[0], 'wache-probe') && !str_contains($e5Zurufe[0], 'Wache Kette'), json_encode($e5Zurufe));
+DnsSchutz::$zuruf = null;
+
+// Migration Center
+pruefe('Teile in einer Sprache: Domain, Website, Post', MigrationCenter::teilStand('domain', 'code_fehlt') === 'wartet_kunde'
+    && MigrationCenter::teilStand('domain', 'beantragt') === 'laeuft' && MigrationCenter::teilStand('mail', 'fehler') === 'fehler'
+    && MigrationCenter::teilStand('seite', 'abgebrochen') === 'abgebrochen');
+pruefe('Ableitung: Fehler schlägt alles, abgebrochen zählt nicht, alle fertig heißt abgeschlossen', MigrationCenter::abgeleitet(['laeuft', 'fehler']) === 'fehlgeschlagen'
+    && MigrationCenter::abgeleitet(['fertig', 'abgebrochen']) === 'abgeschlossen' && MigrationCenter::abgeleitet(['abgebrochen']) === null
+    && MigrationCenter::abgeleitet(['wartet_kunde', 'laeuft']) === 'laeuft' && MigrationCenter::abgeleitet(['wartet_kunde', 'offen']) === 'wartet');
+$e5K = (int) Db::insert('customers', ['name' => 'Umzug Kette', 'company' => 'Alt Probe Srl', 'email' => 'umzug@alt-probe.it', 'sprache' => 'de', 'token' => bin2hex(random_bytes(12))]);
+$e5S = (int) Db::insert('seitenumzuege', ['customer_id' => $e5K, 'adresse' => 'https://www.alt-probe.it', 'stand' => 'angefragt']);
+$e5M = (int) Db::insert('mailumzuege', ['customer_id' => $e5K, 'adresse' => 'info@alt-probe.it', 'stand' => 'angefragt']);
+MigrationCenter::abgleich();
+MigrationCenter::abgleich();
+$e5Id = (int) Db::wert('SELECT id FROM migrationen WHERE customer_id = ?', [$e5K], 0);
+pruefe('Abgleich: beide Teile in EINEM Vorgang, Domain aus der Adresse, zweimal ändert nichts, Stand „neu“ bis zum Pre-Flight',
+    $e5Id > 0 && (int) Db::wert('SELECT COUNT(*) FROM migrationen WHERE customer_id = ?', [$e5K], 0) === 1
+    && (int) Db::wert('SELECT COUNT(*) FROM migration_teile WHERE migration_id = ?', [$e5Id], 0) === 2
+    && (string) Db::wert('SELECT domain FROM migrationen WHERE id = ?', [$e5Id], '') === 'alt-probe.it'
+    && (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'neu');
+pruefe('Von Hand nur erlaubte Übergänge: neu → abgeschlossen geht nicht', !MigrationCenter::stand($e5Id, 'abgeschlossen', 'Test', 'Kette')
+    && !MigrationCenter::stand($e5Id, 'gibtsnicht', 'Test', 'Kette'));
+$e5Q = ['dns' => static function (string $h, int $t): array {
+            if ($h === 'alt-probe.it' && $t === DNS_MX) { return [['pri' => 0, 'target' => 'altprobe-it.mail.protection.outlook.com']]; }
+            if ($h === 'alt-probe.it' && $t === DNS_TXT) { return [['txt' => 'v=spf1 include:spf.protection.outlook.com -all']]; }
+            if ($h === 'alt-probe.it' && $t === DNS_A) { return [['ip' => '5.6.7.8']]; }
+            if ($h === 'alt-probe.it' && $t === DNS_NS) { return [['target' => 'ns1.altanbieter.it']]; }
+            return [];
+        },
+        'rdap' => static fn(string $d): array => ['status' => ['client transfer prohibited', 'active'], 'events' => [['eventAction' => 'expiration', 'eventDate' => date('c', strtotime('+200 days'))]],
+                                                  'entities' => [['roles' => ['registrar'], 'vcardArray' => ['vcard', [['fn', [], 'text', 'Alter Registrar SpA']]]]]],
+        'web' => static fn(string $u): array => ['code' => 200, 'html' => '<html><link href="/wp-content/themes/x.css"></html>', 'fehler' => '']];
+$e5Mails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$e5B = MigrationCenter::preflight($e5Id, 'Kette', $e5Q);
+$e5Pk = array_column($e5B['punkte'], 'ampel', 'punkt');
+pruefe('Pre-Flight: ohne Ziel bei Vecom und ohne Zustimmung rot — der Umzug bleibt im Pre-Flight', $e5B['ampel'] === 'rot' && $e5Pk['Ziel bei Vecom'] === 'rot'
+    && $e5Pk['Zustimmung'] === 'rot' && (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'preflight');
+pruefe('Pre-Flight: Registrar, Ablauf, Post bei Outlook, WordPress erkannt, DNS festgehalten — und keine Mail ist rausgegangen',
+    str_contains(json_encode($e5B, JSON_UNESCAPED_UNICODE), 'Alter Registrar SpA') && str_contains(json_encode($e5B, JSON_UNESCAPED_UNICODE), 'outlook.com')
+    && str_contains(json_encode($e5B, JSON_UNESCAPED_UNICODE), 'WordPress') && (int) $e5B['schnappschuss'] > 0
+    && (string) Db::wert('SELECT bezug FROM dns_schnappschuesse WHERE id = ?', [(int) $e5B['schnappschuss']], '') === 'migration:' . $e5Id
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $e5Mails);
+Db::insert('hosting_auftraege', ['customer_id' => $e5K, 'domain' => 'alt-probe.it', 'status' => 'aktiv', 'preis_cents' => 990, 'domain_aktion' => 'transfer', 'mail' => 'vecom']);
+foreach (['migration', 'mailumzug'] as $e5Art) { Db::insert('zustimmungen', ['customer_id' => $e5K, 'art' => $e5Art, 'fassung' => 'kette', 'sprache' => 'de', 'text' => 'Kette']); }
+$e5B2 = MigrationCenter::preflight($e5Id, 'Kette', $e5Q);
+$e5Pk2 = array_column($e5B2['punkte'], 'ampel', 'punkt');
+pruefe('Pre-Flight: Sperre ohne Domain-Teil kein Blocker, fehlendes DMARC ein Hinweis — der Umzug ist bereit', $e5B2['ampel'] === 'warn'
+    && $e5Pk2['Domain'] === 'ok' && $e5Pk2['Mail-Schutz'] === 'warn' && $e5Pk2['E-Mail'] === 'ok'
+    && (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'bereit');
+Db::run("UPDATE mailumzuege SET stand = 'laeuft' WHERE id = ?", [$e5M]);
+MigrationCenter::abgleich();
+pruefe('Läuft ein Teil, läuft der Umzug', (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'laeuft');
+Db::run("UPDATE mailumzuege SET stand = 'fehler', fehler = 'Anmeldung abgelehnt' WHERE id = ?", [$e5M]);
+MigrationCenter::abgleich();
+pruefe('Scheitert ein Teil: fehlgeschlagen, mit Grund und Meldung', (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'fehlgeschlagen'
+    && str_contains((string) Db::wert("SELECT grund FROM migration_verlauf WHERE migration_id = ? AND nach = 'fehlgeschlagen'", [$e5Id], ''), 'Anmeldung abgelehnt')
+    && (int) Db::wert("SELECT COUNT(*) FROM notifications WHERE type = 'migration_fehlgeschlagen'", [], 0) > 0);
+Db::run("UPDATE mailumzuege SET stand = 'laeuft' WHERE id = ?", [$e5M]);
+MigrationCenter::abgleich();
+pruefe('Fehlgeschlagen bleibt, bis Uwe entscheidet — dann zurückgerollt, alles im Verlauf', (string) Db::wert('SELECT stand FROM migrationen WHERE id = ?', [$e5Id], '') === 'fehlgeschlagen'
+    && MigrationCenter::stand($e5Id, 'zurueckgerollt', 'alte Post bleibt beim alten Anbieter', 'Kette')
+    && (int) Db::wert('SELECT COUNT(*) FROM migration_verlauf WHERE migration_id = ?', [$e5Id], 0) >= 6);
+pruefe('CMS nur aus Spuren im HTML', MigrationCenter::cms('<meta name="generator" content="Joomla! 4">') === 'Joomla! 4' && MigrationCenter::cms('<p>nichts</p>') === '');
+
+// Exit-Paket
+[$e5Sp, $e5Zl] = ExitPaket::ohneGeheimes([['mail_login' => 'm0123', 'mail_password' => 'geheim1', 'mail_adresses' => 'info@x.it', 'kas_auth' => 'geheim2', 'api_key' => 'geheim3']]);
+pruefe('Exit: kein Feld, das nach Passwort, Schlüssel oder Token heißt', $e5Sp === ['mail_login', 'mail_adresses'] && !str_contains(json_encode($e5Zl), 'geheim'));
+$e5Zone = ExitPaket::zone('alt-probe.it', [['name' => '@', 'typ' => 'MX', 'wert' => '10 mx.neu.it'], ['name' => '@', 'typ' => 'TXT', 'wert' => 'v=spf1 "x" -all']]);
+pruefe('Exit: Zonendatei mit $ORIGIN, Punkt hinter Hostnamen, TXT in Anführungszeichen', str_contains($e5Zone, '$ORIGIN alt-probe.it.') && str_contains($e5Zone, '10 mx.neu.it.')
+    && str_contains($e5Zone, '"v=spf1 \"x\" -all"'));
+$e5Ftp = new class {
+    public bool $zu = false;
+    public function liste(string $p): array { return $p === '/web' ? [['name' => 'index.html', 'ordner' => false], ['name' => 'css', 'ordner' => true]] : ($p === '/web/css' ? [['name' => 'a.css', 'ordner' => false]] : []); }
+    public function holen(string $r, string $l): void { file_put_contents($l, 'Inhalt von ' . $r); }
+    public function schliessen(): void { $this->zu = true; }
+};
+$e5Kas = static fn(): array => ['ok' => true, 'text' => '', 'postfaecher' => [['mail_login' => 'm0999', 'mail_adresses' => 'info@alt-probe.it', 'mail_password' => 'GEHEIM-xyz']],
+                                 'weiterleitungen' => [['mail_forward_adress' => 'buchung@alt-probe.it', 'mail_forward_targets' => 'info@alt-probe.it']]];
+$e5Ex = ExitPaket::erstellen($e5K, ['web', 'dns', 'mail'], 'Kette', ['ftp' => $e5Ftp, 'dns' => $e5Q['dns'], 'kasMail' => $e5Kas]);
+$e5Exz = Db::one('SELECT e.*, f.stored_name, f.rolle, f.uploaded_by FROM exit_pakete e JOIN files f ON f.id = e.file_id WHERE e.id = ?', [(int) ($e5Ex['id'] ?? 0)]);
+$e5Zip = new ZipArchive();
+$e5Auf = $e5Exz && $e5Zip->open(Ablage::ordner() . '/' . $e5Exz['stored_name']) === true;
+$e5Namen = [];
+if ($e5Auf) { for ($i = 0; $i < $e5Zip->numFiles; $i++) { $e5Namen[] = $e5Zip->getNameIndex($i); } }
+pruefe('Exit: ein ZIP mit Website, DNS, Post, LIESMICH und PROTOKOLL in der Sprache des Kunden — nur für die Verwaltung abgelegt', $e5Ex['ok'] && $e5Auf
+    && !array_diff(['website/index.html', 'website/css/a.css', 'dns/zone.txt', 'dns/eintraege.csv', 'post/postfaecher.csv', 'post/weiterleitungen.csv', 'LIESMICH.txt', 'PROTOKOLL.txt'], $e5Namen)
+    && $e5Exz['rolle'] === 'sicherung' && $e5Exz['uploaded_by'] === 'admin' && $e5Ftp->zu, implode(' ', $e5Namen) . ' ' . $e5Ex['text']);
+$e5Prot = $e5Auf ? (string) $e5Zip->getFromName('PROTOKOLL.txt') : '';
+pruefe('Exit: das Protokoll nennt jede Datei mit SHA-256 — und das Passwort steht nirgends im Paket', $e5Auf
+    && str_contains($e5Prot, hash('sha256', 'Inhalt von /web/index.html') . '  ') && str_contains($e5Prot, 'website/css/a.css')
+    && !str_contains((string) $e5Zip->getFromName('post/postfaecher.csv'), 'GEHEIM') && str_contains((string) $e5Zip->getFromName('post/postfaecher.csv'), 'm0999')
+    && str_contains((string) $e5Zip->getFromName('LIESMICH.txt'), 'Datenbank'));
+if ($e5Auf) { $e5Zip->close(); }
+pruefe('Exit: ohne Inhalt kein Paket', !ExitPaket::erstellen($e5K, [], 'Kette')['ok']);
+$e5Mails = (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0);
+$e5Lv = ExitPaket::linkVorschlagen((int) $e5Ex['id'], 'Kette');
+$e5F = (int) ($e5Lv['freigabe'] ?? 0);
+pruefe('Exit: der Link-Versand liegt in AI Freigaben (beim Kunden) — gesendet ist nichts, ein Schlüssel gibt es noch nicht', $e5Lv['ok']
+    && (string) Db::wert('SELECT art FROM ai_freigaben WHERE id = ?', [$e5F], '') === 'exit_link_senden' && (int) Db::wert('SELECT kunde_id FROM ai_freigaben WHERE id = ?', [$e5F], 0) === $e5K
+    && (int) Db::wert('SELECT COUNT(*) FROM mails', [], 0) === $e5Mails && (int) Db::wert('SELECT schluessel_hash IS NULL FROM exit_pakete WHERE id = ?', [(int) $e5Ex['id']], 0) === 1);
+pruefe('Exit: Claude kann den Versand nicht vorschlagen — nur die Verwaltung', in_array('exit_link_senden', Freigabe::NUR_VERWALTUNG, true)
+    && !ClaudeEintragen::rufen('freigabe_vorschlagen', ['art' => 'exit_link_senden', 'titel' => 'Exit', 'grund' => 'Test'], 9002)['ok']
+    && !in_array('exit_link_senden', (array) (array_column(ClaudeEintragen::liste(), 'inputSchema', 'name')['freigabe_vorschlagen']['properties']['art']['enum'] ?? ['exit_link_senden']), true));
+$e5Post = [];
+$e5Ls = ExitPaket::linkSenden((int) $e5Ex['id'], static function (string $an, string $betreff, string $text) use (&$e5Post): bool { $e5Post[] = [$an, $betreff, $text]; return true; });
+preg_match('~exit-paket\.php\?t=([a-f0-9]{64})~', (string) ($e5Post[0][2] ?? ''), $e5Tm);
+$e5T = (string) ($e5Tm[1] ?? '');
+$e5Ez = Db::one('SELECT * FROM exit_pakete WHERE id = ?', [(int) $e5Ex['id']]);
+pruefe('Exit: die Mail hat einen Betreff, ist auf Deutsch (Sie), nennt den Link — gespeichert ist nur der SHA-256, gültig 7 Tage', $e5Ls['ok'] && $e5T !== ''
+    && $e5Post[0][0] === 'umzug@alt-probe.it' && trim((string) $e5Post[0][1]) !== '' && str_contains((string) $e5Post[0][2], 'Passwörter sind nicht enthalten')
+    && hash_equals((string) $e5Ez['schluessel_hash'], hash('sha256', $e5T)) && !str_contains(json_encode($e5Ez), $e5T)
+    && abs(strtotime((string) $e5Ez['gueltig_bis']) - (time() + 7 * 86400)) < 120);
+$e5Ab = ExitPaket::abruf($e5T);
+pruefe('Exit: der Schlüssel öffnet genau dieses Paket und zählt den Abruf — ein falscher nichts', $e5Ab !== null && is_file($e5Ab['pfad'])
+    && (int) Db::wert('SELECT abrufe FROM exit_pakete WHERE id = ?', [(int) $e5Ex['id']], 0) === 1 && ExitPaket::abruf(str_repeat('a', 64)) === null && ExitPaket::abruf('x') === null);
+ExitPaket::linkSperren((int) $e5Ex['id']);
+pruefe('Exit: gesperrt ist sofort zu — die Datei bleibt an der Akte', ExitPaket::abruf($e5T) === null && is_file($e5Ab['pfad']));
+$e5Ex2 = ExitPaket::erstellen($e5K, ['dns'], 'Kette', ['dns' => $e5Q['dns']]);
+ExitPaket::linkSenden((int) $e5Ex2['id'], static fn(): bool => true);
+Db::run('UPDATE exit_pakete SET gueltig_bis = NOW() - INTERVAL 1 HOUR WHERE id = ?', [(int) $e5Ex2['id']]);
+pruefe('Exit: nach sieben Tagen macht der Cron den Link ungültig', ExitPaket::aufraeumen() >= 1 && (int) Db::wert('SELECT schluessel_hash IS NULL FROM exit_pakete WHERE id = ?', [(int) $e5Ex2['id']], 0) === 1);
+pruefe('Exit: scheitert der Versand, gilt kein Link', !ExitPaket::linkSenden((int) $e5Ex2['id'], static fn(): bool => false)['ok']
+    && (int) Db::wert('SELECT schluessel_hash IS NULL FROM exit_pakete WHERE id = ?', [(int) $e5Ex2['id']], 0) === 1);
+$e5Seite = (string) file_get_contents($oben . '/exit-paket.php');
+pruefe('exit-paket.php: nur GET, noindex, no-store, als Anhang, 410 für abgelaufen — und kein Wort aus der Datenbank', str_contains($e5Seite, "header('Allow: GET')")
+    && str_contains($e5Seite, 'noindex') && str_contains($e5Seite, 'no-store') && str_contains($e5Seite, 'attachment') && str_contains($e5Seite, 'http_response_code(410)')
+    && str_contains($e5Seite, 'ExitPaket::abruf(') && str_contains((string) file_get_contents($oben . '/.htaccess'), '<FilesMatch "^(claude-(mcp|oauth)|exit-paket)\\.php$">'));
+pruefe('Exit: der Versand ist eine Tat mit Rückfrage RAUS, die Freigabe ruft dieselbe Methode', (Ablauf::TRAGWEITE['exit_link_senden'][0] ?? '') === Ablauf::RAUS
+    && str_contains((string) file_get_contents($wurzel . '/src/Freigabe.php'), 'ExitPaket::linkSenden(') && isset(Texte::MAILS['exit_paket']['it'], Texte::MAILS['exit_paket']['de'], Texte::MAILS['exit_paket']['en']));
+
+// Domain-Bestellcheckliste
+$e5Kd = (int) Db::insert('customers', ['name' => 'Bestell Kette', 'email' => 'bestell@pruefung.example', 'token' => bin2hex(random_bytes(12))]);
+$e5Ad = (int) Db::insert('hosting_auftraege', ['customer_id' => $e5Kd, 'domain' => 'bestell-probe.it', 'status' => 'angelegt', 'preis_cents' => 990,
+    'domain_aktion' => 'neu', 'mail' => 'vecom', 'zugestimmt_am' => date('Y-m-d H:i:s')]);
+$e5Frei = static fn(string $d): array => ['stand' => 'frei', 'name' => $d, 'weg' => 'kette'];
+$e5Cl = Hosting::bestellCheckliste(Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$e5Ad]), $e5Frei);
+pruefe('Bestellcheckliste: ohne Anschrift, Telefon und (bei .it) Steuernummer ein Blocker — Freigeben geht nicht', $e5Cl['blocker'] === 1
+    && !Hosting::bestellungFreigeben($e5Ad, 'Kette', $e5Frei)['ok'] && (int) Db::wert('SELECT bestell_freigabe_am IS NULL FROM hosting_auftraege WHERE id = ?', [$e5Ad], 0) === 1);
+pruefe('Bestellcheckliste: „bei All-Inkl bestellt“ geht erst nach der Freigabe', !Hosting::bestelltMarkieren($e5Ad));
+Db::run("UPDATE customers SET street = 'Via Roma 1', zip = '92100', city = 'Agrigento', phone = '+39 0922 000000', tax_code = 'RSSMRA80A01A089X' WHERE id = ?", [$e5Kd]);
+pruefe('Bestellcheckliste: vergeben ist ein Blocker, „nicht prüfbar“ nur ein Hinweis', Hosting::bestellCheckliste(Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$e5Ad]),
+    static fn(string $d): array => ['stand' => 'vergeben'])['blocker'] === 1
+    && Hosting::bestellCheckliste(Db::one('SELECT * FROM hosting_auftraege WHERE id = ?', [$e5Ad]), static fn(string $d): array => ['stand' => 'unklar'])['blocker'] === 0);
+pruefe('Bestellcheckliste: vollständig → freigegeben mit Name, dann bestellt — die Bestellung selbst bleibt Handarbeit', Hosting::bestellungFreigeben($e5Ad, 'Kette', $e5Frei)['ok']
+    && (string) Db::wert('SELECT bestell_freigabe_von FROM hosting_auftraege WHERE id = ?', [$e5Ad], '') === 'Kette' && Hosting::bestelltMarkieren($e5Ad)
+    && (Ablauf::TRAGWEITE['domain_bestellung_freigeben'][0] ?? '') === Ablauf::SCHWER);
+$e5Kv = (string) file_get_contents($wurzel . '/views/kunde.php');
+$e5Kf = strpos($e5Kv, "<?php if (\$dbCheck['freigegeben']): ?>");
+pruefe('Kundenakte: der Knopf zum Bestellsystem erscheint erst nach der Freigabe', $e5Kf !== false && $e5Kf < (int) strpos($e5Kv, 'data-oeffnen="https://www.domain-bestellsystem.de/"'));
+
+// Claude liest mit
+$e5Cu = ClaudeWerkzeuge::rufen('umzuege', []);
+$e5Cd = ClaudeWerkzeuge::rufen('dns_stand', ['domain' => 'altfirma-probe.it']);
+pruefe('Claude: Umzüge und DNS-Stände nur lesend, mit Pre-Flight und Rückweg-Information', in_array('umzuege', ClaudeWerkzeuge::namen(), true) && in_array('dns_stand', ClaudeWerkzeuge::namen(), true)
+    && $e5Cu['ok'] && in_array($e5Id, array_column((array) $e5Cu['daten']['umzuege'], 'id'), true)
+    && ClaudeWerkzeuge::rufen('umzuege', ['id' => $e5Id])['ok'] && $e5Cd['ok'] && $e5Cd['daten']['staende'] !== []
+    && !ClaudeWerkzeuge::rufen('dns_stand', ['domain' => 'kein domain'])['ok']
+    && !array_filter(ClaudeWerkzeuge::liste(), static fn($w) => in_array($w['name'], ['umzuege', 'dns_stand'], true) && ($w['annotations']['readOnlyHint'] ?? false) !== true));
+pruefe('Claude: in den Lesewerkzeugen kein Schlüssel und keine Zugangsdaten', !str_contains(json_encode($e5Cd), 'kas_passwort') && !str_contains(json_encode($e5Cu), 'schluessel_hash'));
+
+// Einbindung
+$e5Cron = (string) file_get_contents($wurzel . '/src/Cron.php');
+pruefe('Automation Center: Abgleich, DNS-Wache, Exit-Links — keine schickt dem Kunden etwas', !array_filter(['migration_abgleich', 'dns_wache', 'exit_aufraeumen'],
+    static fn($r) => !isset(Automation::REGELN[$r]) || Automation::REGELN[$r][3] !== false) && str_contains($e5Cron, "'cron_dns_wache'")
+    && str_contains($e5Cron, "'migration_abgleich' =>") && str_contains($e5Cron, "'cron_exit_aufraeumen'"));
+pruefe('Seite „Umzüge & DNS“ nur für den Admin, im Menü unter Bauen; keine neue Tat für Mitarbeit', !in_array('umzuege', Rechte::SEITEN, true)
+    && str_contains((string) file_get_contents($wurzel . '/views/layout.php'), "['umzuege', 'Umzüge & DNS', 'umzuege']")
+    && !array_filter(['migration_', 'dns_', 'exit_', 'domain_bestell'], static fn($t) => (bool) array_filter(Rechte::TATEN_MITARBEIT, static fn($m) => str_starts_with($t, $m) || str_starts_with($m, $t))));
 
 /* ============================================================================
    Aufräumen und Bilanz

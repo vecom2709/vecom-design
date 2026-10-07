@@ -2501,6 +2501,87 @@ if ($post) {
                 }
                 zurueck((string) ($_POST['zurueck'] ?? ''));
 
+            /* AI Office Stufe 5 (07.10.2026): Migration Center, DNS-Schutz, Exit-Paket, Domain-Bestellcheckliste.
+               Alles nur Admin (keine Tat steht in Rechte::TATEN_MITARBEIT). Raus geht nur der Exit-Link,
+               und der nur mit Uwes Ja (AI Freigaben oder Rückfrage RAUS). */
+            case 'migration_anlegen':
+            case 'migration_preflight':
+            case 'migration_stand':
+                require_once __DIR__ . '/src/MigrationCenter.php';
+                $mcWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                $mcId = (int) ($_POST['id'] ?? 0);
+                try {
+                    if ($tat === 'migration_anlegen') {
+                        $mcId = MigrationCenter::anlegen((int) ($_POST['kunde'] ?? 0), (string) ($_POST['domain'] ?? ''), $mcWer, (string) ($_POST['notiz'] ?? ''));
+                        $_SESSION['gut'] = 'Umzug angelegt. Als Nächstes: Pre-Flight.';
+                    } elseif ($tat === 'migration_preflight') {
+                        $mcB = MigrationCenter::preflight($mcId, $mcWer);
+                        $_SESSION[$mcB['ampel'] === 'rot' ? 'fehler' : 'gut'] = $mcB['ampel'] === 'rot'
+                            ? 'Pre-Flight: Es gibt Blocker — siehe Bericht.' : 'Pre-Flight ' . ($mcB['ampel'] === 'ok' ? 'ohne Befund' : 'mit Hinweisen') . ' — der Umzug ist bereit.';
+                    } else {
+                        $mcOk = MigrationCenter::stand($mcId, (string) ($_POST['nach'] ?? ''), (string) ($_POST['grund'] ?? ''), $mcWer);
+                        $_SESSION[$mcOk ? 'gut' : 'fehler'] = $mcOk ? 'Stand gesetzt.' : 'Dieser Wechsel geht von hier aus nicht.';
+                    }
+                } catch (InvalidArgumentException $e) {
+                    $_SESSION['fehler'] = $e->getMessage();
+                }
+                zurueck($mcId > 0 ? 'umzuege?id=' . $mcId : 'umzuege');
+
+            case 'dns_festhalten':
+            case 'dns_zurueck':
+                require_once __DIR__ . '/src/DnsSchutz.php';
+                $dsDomain = DnsSchutz::domain((string) ($_POST['domain'] ?? ''));
+                try {
+                    if ($tat === 'dns_festhalten') {
+                        $dsId = DnsSchutz::vonHand($dsDomain);
+                        $_SESSION['gut'] = 'DNS-Stand #' . $dsId . ' festgehalten.';
+                    } else {
+                        $dsR = DnsSchutz::zurueckrollen((int) ($_POST['id'] ?? 0), Auth::name() !== '' ? Auth::name() : 'Verwaltung');
+                        $_SESSION[$dsR['ok'] ? 'gut' : 'fehler'] = $dsR['text'];
+                    }
+                } catch (InvalidArgumentException $e) {
+                    $_SESSION['fehler'] = $e->getMessage();
+                }
+                zurueck('umzuege?dns=' . rawurlencode($dsDomain));
+
+            case 'exit_paket_erstellen':
+            case 'exit_link_vorschlagen':
+            case 'exit_link_senden':
+            case 'exit_link_sperren':
+                require_once __DIR__ . '/src/ExitPaket.php';
+                $exWer = Auth::name() !== '' ? Auth::name() : 'Verwaltung';
+                $exKunde = (int) ($_POST['kunde'] ?? 0);
+                if ($tat === 'exit_paket_erstellen') {
+                    $exR = ExitPaket::erstellen($exKunde, (array) ($_POST['inhalt'] ?? []), $exWer);
+                    if ($exR['ok'] && ($_POST['link'] ?? '') === '1') {
+                        $exL = ExitPaket::linkVorschlagen((int) $exR['id'], $exWer);
+                        $exR['text'] .= ' ' . $exL['text'];
+                    }
+                } elseif ($tat === 'exit_link_vorschlagen') {
+                    $exR = ExitPaket::linkVorschlagen((int) ($_POST['id'] ?? 0), $exWer);
+                } elseif ($tat === 'exit_link_senden') {
+                    $exR = ExitPaket::linkSenden((int) ($_POST['id'] ?? 0));
+                    if ($exR['ok']) { require_once __DIR__ . '/src/Freigabe.php'; Freigabe::vonHandErledigt('exit_link_senden', ['paket' => (int) ($_POST['id'] ?? 0)]); }
+                } else {
+                    $exOk = ExitPaket::linkSperren((int) ($_POST['id'] ?? 0));
+                    $exR = ['ok' => $exOk, 'text' => $exOk ? 'Der Link ist ab sofort ungültig. Die Datei bleibt an der Kundenakte.' : 'Es gab keinen gültigen Link.'];
+                }
+                $_SESSION[$exR['ok'] ? 'gut' : 'fehler'] = $exR['text'];
+                zurueck($exKunde > 0 ? 'kunden/' . $exKunde . '#exit' : 'umzuege');
+
+            case 'domain_bestellung_freigeben':
+            case 'domain_bestellt':
+                require_once __DIR__ . '/src/Hosting.php';
+                $dbId = (int) ($_POST['id'] ?? 0);
+                if ($tat === 'domain_bestellung_freigeben') {
+                    $dbR = Hosting::bestellungFreigeben($dbId, Auth::name() !== '' ? Auth::name() : 'Verwaltung');
+                    $_SESSION[$dbR['ok'] ? 'gut' : 'fehler'] = $dbR['text'];
+                } else {
+                    $dbOk = Hosting::bestelltMarkieren($dbId);
+                    $_SESSION[$dbOk ? 'gut' : 'fehler'] = $dbOk ? 'Vermerkt. Sobald die Nameserver auf All-Inkl zeigen, geht es von selbst weiter.' : 'Erst die Bestellung freigeben.';
+                }
+                zurueck((string) ($_POST['zurueck'] ?? ''));
+
             case 'umzug_code_zeigen':
             case 'umzug_beantragt':
             case 'umzug_pruefen':
@@ -4895,6 +4976,21 @@ switch ($route) {
             'unterwegs' => sicher(static fn() => Db::all("SELECT a.*, p.name FROM partner_auszahlungen a JOIN partner p ON p.id = a.partner_id
                                                            WHERE a.status = 'offen' ORDER BY a.id DESC LIMIT 50"), [])]);
         unset($_SESSION['lauf_ergebnis']);
+        break;
+
+    case 'umzuege':
+        /* Migration Center (AI Office Stufe 5, 07.10.2026): alle Umzüge als Vorgang, Pre-Flight, DNS-Stände. */
+        require_once __DIR__ . '/src/MigrationCenter.php';
+        sicher(static fn() => MigrationCenter::abgleich(), null);
+        $mcDns = DnsSchutz::domain((string) ($_GET['dns'] ?? ''));
+        ansicht('umzuege', [
+            'liste' => sicher(static fn() => MigrationCenter::liste(), []),
+            'vorgang' => isset($_GET['id']) ? sicher(static fn() => MigrationCenter::vorgang((int) $_GET['id']), null) : null,
+            'dnsDomain' => $mcDns,
+            'dnsStaende' => $mcDns !== '' ? sicher(static fn() => DnsSchutz::fuerDomain($mcDns, 30), []) : [],
+            'dnsUebersicht' => sicher(static fn() => DnsSchutz::uebersicht(), []),
+            'kundenWahl' => sicher(static fn() => Db::all("SELECT id, name, company FROM customers WHERE demo = 0 AND anonym_am IS NULL ORDER BY COALESCE(NULLIF(company, ''), name) LIMIT 800"), []),
+        ]);
         break;
 
     case 'umsatz-chancen':

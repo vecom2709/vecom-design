@@ -289,6 +289,16 @@ final class Ablauf
             'Fehlende Teile werden beim Anbieter angelegt (Domain, Postfach). Stand beim Account „unklar“, '
             . 'kann ein zweiter entstehen — vorher in der KAS-Accountliste nachsehen.',
             'Ja, wiederholen'],
+        /* AI Office Stufe 5 (07.10.2026) */
+        'exit_link_senden' => [self::RAUS,
+            'Der Kunde bekommt jetzt eine E-Mail mit dem Download-Link zu seinem Exit-Paket, sieben Tage gültig.',
+            'Ja, Link schicken'],
+        'dns_zurueck' => [self::SCHWER,
+            'Die umgeschriebenen DNS-Einträge im KAS gehen jetzt auf den alten Wert zurück — Mails und Website folgen dem innerhalb von Stunden.',
+            'Ja, zurücksetzen'],
+        'domain_bestellung_freigeben' => [self::SCHWER,
+            'Du gibst die Bestellung dieser Domain frei. Danach bestellst du sie im Bestellsystem — eine Registrierung lässt sich nicht zurücknehmen und kostet Gebühr.',
+            'Ja, Bestellung freigeben'],
         'kas_account_anlegen' => [self::SCHWER,
             'Beim Anbieter entsteht ein echter Unter-Account. Das kostet ab sofort.',
             'Ja, Account anlegen'],
