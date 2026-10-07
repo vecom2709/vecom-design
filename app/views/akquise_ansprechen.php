@@ -61,9 +61,13 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
   <?php elseif ($anRes): ?>
     <div class="leer">Partner <?= $anH((string) $anRes['name']) ?> kümmert sich um diesen Betrieb (bis <?= $anH(date('d.m.Y', strtotime((string) $anRes['bis']))) ?>). Bis dahin nicht selbst ansprechen.</div>
   <?php else: ?>
-    <p class="an-hilfe"><?= $an['frei']['email'] || $an['frei']['whatsapp']
-      ? 'Er hat zugestimmt: E-Mail oder WhatsApp öffnen, lesen, selbst senden. Die Folge-Mails laufen danach automatisch.'
-      : 'Noch kein Versandgrund für E-Mail und keine Zustimmung für WhatsApp. Der E-Mail-Entwurf steht trotzdem bereit (bearbeiten, kopieren). Zum Senden oben bei „E-Mail“ den Versandgrund dokumentieren — oder <b>anrufen bzw. vorbeigehen</b> und eine Zustimmung unten eintragen.' ?></p>
+    <?php /* Hilfesatz (07.10.2026, Uwe: „zeigt immer noch muss anrufen oder vorbeigehen“): Er sagte „Er hat zugestimmt“,
+             sobald die Mail öffnen durfte -- seit dem 06.10. also auch ohne Zustimmung. Jetzt drei ehrliche Fälle. */ ?>
+    <p class="an-hilfe"><?= $anStand['farbe'] === 'gruen'
+      ? 'Er hat zugestimmt: ' . ($an['frei']['whatsapp'] ? 'E-Mail oder WhatsApp' : 'E-Mail') . ' öffnen, lesen, selbst senden. Die Folge-Mails laufen danach automatisch.'
+      : ($an['frei']['email']
+        ? '<b>E-Mail geht:</b> im Reiter „E-Mail“ den Text prüfen und in deinem eigenen Mailprogramm öffnen — ohne dokumentierten Versandgrund bestätigst du vorher den Hinweis. WhatsApp öffnet erst nach seiner Zustimmung: am einfachsten in der Mail danach fragen und unten „Hat zugestimmt“ eintragen.'
+        : 'Keine E-Mail-Adresse bekannt und noch keine Zustimmung für WhatsApp. Anrufen oder vorbeigehen und unten eine Zustimmung eintragen — oder unter „Angaben ändern“ eine E-Mail-Adresse ergänzen, dann geht die Mail.') ?></p>
     <div class="an-kopf" style="margin:0 0 8px">
       <span class="akq-klein">Texte auf <?= $anH(AkquiseText::SPRACHEN[$an['sprache']]) ?></span>
       <nav class="an-sprache" aria-label="Sprache der Texte">
@@ -98,7 +102,7 @@ $anH = static fn(?string $s): string => Fmt::h((string) $s);
           </div>
         <?php elseif (!$frei): ?>
           <div class="an-zu"><b>Erst nach seiner Zustimmung.</b> Eine Werbe-<?= $k === 'email' ? 'Mail' : 'Nachricht' ?> ohne Zustimmung ist in Italien und Deutschland verboten — auch von Hand.
-            Ruf an oder geh vorbei (Reiter „Anruf“ oder „Besuch“). Sagt er Ja, unten „Hat zugestimmt“ ausfüllen: Dann steht hier der fertige Text zum Öffnen.
+            <?= $k === 'whatsapp' && $an['frei']['email'] ? 'Frag in deiner E-Mail, ob du ihm per WhatsApp schreiben darfst — oder ruf an bzw. geh vorbei.' : 'Ruf an oder geh vorbei (Reiter „Anruf“ oder „Besuch“).' ?> Sagt er Ja, unten „Hat zugestimmt“ ausfüllen: Dann steht hier der fertige Text zum Öffnen.
             <?php if ($k === 'whatsapp' && AkquiseGate::einwilligungDeckt($f, 'email')): ?><br><span class="akq-klein">Für E-Mail hat er schon zugestimmt — für WhatsApp noch nicht.</span><?php endif; ?></div>
         <?php else: $x = $an[$k]; ?>
           <?php if ($k === 'email'): /* Senden über das eigene Mailprogramm (06.10.2026): mailto-Link, das System verschickt nichts selbst */ ?>

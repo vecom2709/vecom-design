@@ -22,7 +22,7 @@ require_once __DIR__ . '/Akquise.php';
  *
  * VIER STATUS
  *
- *   keine_freigabe      🔴 Keine Versandfreigabe dokumentiert
+ *   keine_freigabe      ⚪ Keine Versandfreigabe dokumentiert
  *   pruefen             🟡 Manuelle Prüfung erforderlich
  *   freigegeben         🟢 Versand freigegeben (manuell, einzeln)
  *   nicht_kontaktieren  ⛔ Widerspruch, Abmeldung, Beschwerde, Kontaktverbot, Sperre
@@ -43,7 +43,7 @@ final class AkquiseMail
 
     /** Status → [Zeichen, Farbe, Wort] */
     public const STATUS = [
-        self::KEINE   => ['🔴', 'rot',  'Keine Versandfreigabe dokumentiert'],
+        self::KEINE   => ['⚪', 'grau', 'Keine Versandfreigabe dokumentiert'],   // 07.10.2026: grau statt rot -- die Mail öffnet trotzdem (mit Hinweis), Rot las sich wie gesperrt
         self::PRUEFEN => ['🟡', 'gelb', 'Manuelle Prüfung erforderlich'],
         self::FREI    => ['🟢', 'gruen', 'Versand freigegeben'],
         self::NICHT   => ['⛔', 'rot',  'Nicht kontaktieren'],

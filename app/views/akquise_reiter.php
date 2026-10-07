@@ -63,7 +63,7 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .akq-chance.s-interessant{border-color:var(--linie2)}
   .akq-ampel{display:inline-flex;gap:7px;align-items:center;font-size:13px;color:var(--dim);white-space:nowrap}
   .akq-ampel i{width:11px;height:11px;border-radius:50%;background:var(--leise);flex:none;box-shadow:0 0 0 3px rgba(255,255,255,.04)}
-  .akq-ampel.gruen i{background:var(--gruen)} .akq-ampel.gelb i{background:#f5c542} .akq-ampel.rot i{background:var(--rot)}
+  .akq-ampel.gruen i{background:var(--gruen)} .akq-ampel.gelb i{background:#f5c542} .akq-ampel.rot i{background:var(--rot)} .akq-ampel.blau i{background:#6aa8ff}
   .akq-ampel.klein span{font-size:12px;color:var(--leise)}
   .akq-stufen5{display:flex;gap:0;list-style:none;margin:12px 0 0;padding:0;flex-wrap:wrap;align-items:center}
   .akq-stufen5 li{display:block;font-size:12.5px;line-height:1.4;padding:5px 12px;color:var(--leise);border:1px solid var(--linie);margin-left:-1px}

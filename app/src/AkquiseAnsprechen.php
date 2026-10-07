@@ -40,6 +40,13 @@ final class AkquiseAnsprechen
         if (in_array((string) ($f['kontakt_status'] ?? ''), ['kontaktiert', 'geantwortet'], true)) {
             return ['farbe' => 'gelb', 'wort' => 'Wartet auf Antwort', 'schreiben' => false];
         }
+        /* 07.10.2026, Uwe: „zeigt immer noch muss anrufen oder vorbeigehen“. Seit dem 06.10. öffnet die Mail auch ohne
+           Zustimmung im eigenen Mailprogramm (nach bestätigtem Hinweis) -- die Ampel sagte trotzdem weiter „Erst
+           anrufen oder besuchen“. Jetzt nennt sie, was wirklich geht. WhatsApp bleibt bis zur Zustimmung zu (Gate),
+           deshalb zählt hier nur die Mail. Ohne Datenbankabfrage: Partner-Reservierung prüft erst die Firmenseite. */
+        if (Akquise::normEmail((string) ($f['email'] ?? '')) !== null && AkquiseMail::status($f) !== AkquiseMail::NICHT) {
+            return ['farbe' => 'blau', 'wort' => 'Schreiben per Mail', 'schreiben' => false];
+        }
         return ['farbe' => 'grau', 'wort' => 'Erst anrufen oder besuchen', 'schreiben' => false];
     }
 

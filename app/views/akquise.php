@@ -249,7 +249,7 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
         $score = $z['score'] !== null ? (int) $z['score'] : null;
         $ohneWeb = trim((string) ($z['url'] ?? '')) === ''; ?>
       <tr>
-        <td><label class="akq-wahl"><?php if ($akqPartner && $stand['farbe'] === 'grau' && trim((string) ($z['telefon'] ?? '')) !== ''): ?><input type="checkbox" name="firmen[]" value="<?= (int) $z['id'] ?>" aria-label="<?= Fmt::h((string) $z['name']) ?> auswählen"><?php endif; ?>
+        <td><label class="akq-wahl"><?php if ($akqPartner && in_array($stand['farbe'], ['grau', 'blau'], true) &&trim((string) ($z['telefon'] ?? '')) !== ''): ?><input type="checkbox" name="firmen[]" value="<?= (int) $z['id'] ?>" aria-label="<?= Fmt::h((string) $z['name']) ?> auswählen"><?php endif; ?>
           <a href="<?= Fmt::h(url('akquise/' . (int) $z['id'])) ?>"><b><?= Fmt::h((string) $z['name']) ?></b></a></label>
           <div class="akq-klein"><?= Fmt::h(Akquise::branchenName($z['branche'])) ?><?= !$ohneWeb ? ' · ' . Fmt::h((string) ($z['domain'] ?? '')) : '' ?></div>
           <?php /* E-Mail und WhatsApp in jeder Zeile (06.10.2026, Uwe). Die Adresse steht immer da; anklickbar (→ Versand von Hand

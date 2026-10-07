@@ -20,7 +20,7 @@ final class Hilfe
         'aktivitaeten'       => 'Hier steht, was passiert ist — wer wann bestellt, bezahlt, geschrieben oder freigegeben hat.',
         'vorgaenge'          => 'Hier stehen alle Kunden mit laufendem Auftrag, jeweils mit dem nächsten Schritt.',
         'kunden'             => 'Hier findest du jeden Kunden, auch ohne laufenden Auftrag. Ein Klick öffnet seine Akte.',
-        'akquise'            => 'Hier findest du Betriebe und sprichst sie an — mit fertigen Texten. Mail und WhatsApp erst nach Zustimmung; danach läuft der Rest automatisch.',
+        'akquise'            => 'Hier findest du Betriebe und sprichst sie an — mit fertigen Texten. Die Mail öffnet in deinem eigenen Mailprogramm, WhatsApp erst nach Zustimmung; danach läuft der Rest automatisch.',
         'nachrichten'        => 'Hier liest und beantwortest du, was Kunden dir über ihre Seite schreiben.',
         'anfragen'           => 'Hier landen Anfragen von der Website. Antworte zuerst denen, die am längsten warten.',
         'bedarf'             => 'Hier siehst du, was Besucher im Preisrechner zusammengestellt haben, und machst daraus ein Angebot.',

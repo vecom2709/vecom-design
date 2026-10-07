@@ -16087,6 +16087,21 @@ pruefe('Jeder Betrieb mit E-Mail öffnet im Mailprogramm (06.10.2026): der ferti
     $ahMo === [] && count($ahMl) === 2 && str_starts_with($ahMl[0], 'mailto:info%40mailprobe-ohne.example?subject=') && str_starts_with($ahMl[1], 'mailto:info%40mailprobe-web.example?subject=')
     && Akquise::normEmail('info [at] bar.example') === 'info@bar.example' && Akquise::normEmail('Kontakt: info@bar.example.') === 'info@bar.example'
     && Akquise::normEmail('info@bäckerei.example') === 'info@xn--bckerei-5wa.example' && Akquise::normEmail('keine') === null && Akquise::normEmail('a@b') === null, json_encode($ahMo, JSON_UNESCAPED_UNICODE));
+/* Ampel ehrlich (07.10.2026, Uwe: „zeigt immer noch muss anrufen oder vorbeigehen“): mit Adresse „Schreiben per Mail“, WhatsApp bleibt bis zur Zustimmung zu. */
+$ahAm = (int) Db::insert('akq_firmen', ['kennung' => 'AHA00001', 'name' => 'Bar Ampel', 'name_norm' => 'bar ampel', 'land' => 'IT', 'branche' => 'bar_cafe', 'stadt' => 'Favara',
+    'telefon' => '+39 347 5550001', 'email' => 'info@bar-ampel.example', 'quelle' => 'aha-kette-1']);
+$ahAmF = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$ahAm]);
+$ahAmP = AkquiseAnsprechen::paket($ahAmF, [], null, '');
+$ahAmV = (string) file_get_contents($wurzel . '/views/akquise_ansprechen.php');
+pruefe('Ampel ehrlich: Betrieb mit E-Mail ohne Zustimmung zeigt „Schreiben per Mail“ (Mail öffnet), WhatsApp bleibt bis zur Zustimmung zu; ohne Adresse weiter „Erst anrufen oder besuchen“; kein „Er hat zugestimmt“ ohne Zustimmung',
+    AkquiseAnsprechen::stand($ahAmF) === ['farbe' => 'blau', 'wort' => 'Schreiben per Mail', 'schreiben' => false]
+    && $ahAmP['frei'] === ['email' => true, 'whatsapp' => false] && $ahAmP['whatsapp']['link'] === null
+    && AkquiseAnsprechen::stand(array_merge($ahAmF, ['email_do_not_contact' => 1]))['farbe'] !== 'blau'
+    && AkquiseAnsprechen::stand(['name' => 'Ohne', 'telefon' => '+39 347 5550002'])['wort'] === 'Erst anrufen oder besuchen'
+    && str_contains($ahAmV, "\$anStand['farbe'] === 'gruen'") && str_contains($ahAmV, 'E-Mail geht:')
+    && str_contains((string) file_get_contents($wurzel . '/views/akquise_reiter.php'), '.akq-ampel.blau i'),
+    json_encode([AkquiseAnsprechen::stand($ahAmF), $ahAmP['frei']], JSON_UNESCAPED_UNICODE));
+Db::run('UPDATE akq_firmen SET gesperrt = 1 WHERE id = ?', [$ahAm]);
 $ahFv = (string) file_get_contents($wurzel . '/views/akquise_firma.php');
 pruefe('„Text für den automatischen Versand“: kein Versand über den Server mehr — der freigegebene Text öffnet im Mailprogramm (mailto), Text gilt danach als benutzt',
     str_contains($ahFv, 'data-fk-mailto') && !str_contains($ahFv, "\$post('akq_senden'") && str_contains((string) file_get_contents($wurzel . '/akquise_route.php'), "UPDATE akq_vorlagen SET status = 'gesendet' WHERE id = ? AND firma_id = ? AND kanal = 'email'"));
@@ -26719,9 +26734,9 @@ $crM1 = AkquiseCrm::profilSpeichern($crA, ['email' => 'neu@cr00000001.example'])
 $crMf = (array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crA]);
 $crKa = AkquiseCrm::kanaele($crMf);
 $crKc = AkquiseCrm::kanaele((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crC]));
-pruefe('Kommunikationsstatus: eine im Profil geänderte Adresse ist ungeprüft und „von Hand“; der Kanal E-Mail zeigt den Status von AkquiseMail (🔴 ohne Versandgrund, gesperrt bei Nicht kontaktieren) — keine zweite Rechnung',
+pruefe('Kommunikationsstatus: eine im Profil geänderte Adresse ist ungeprüft und „von Hand“; der Kanal E-Mail zeigt den Status von AkquiseMail (⚪ ohne Versandgrund, gesperrt bei Nicht kontaktieren) — keine zweite Rechnung',
     $crM1['ok'] && (int) $crMf['email_verified'] === 0 && str_starts_with((string) $crMf['email_source'], 'Von Hand eingetragen')
-    && ($crKa['email']['mailstatus'][0] ?? '') === '🔴' && $crKc['email']['zustand'] === 'gesperrt' && $crKa['whatsapp']['mailstatus'] === null, json_encode([$crM1, $crKa['email'], $crKc['email']]));
+    && ($crKa['email']['mailstatus'][0] ?? '') === '⚪' && $crKc['email']['zustand'] === 'gesperrt' && $crKa['whatsapp']['mailstatus'] === null, json_encode([$crM1, $crKa['email'], $crKc['email']]));
 foreach (['akq_kanaele', 'akq_notizen', 'akq_kontakte', 'akq_antworten', 'akq_versand', 'akq_sperrliste', 'akq_protokoll'] as $crTab) {
     Db::run("DELETE FROM `$crTab` WHERE firma_id IN (?, ?, ?, ?)", [$crA, $crB, $crC, $crD]);
 }
