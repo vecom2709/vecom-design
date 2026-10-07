@@ -458,7 +458,7 @@ final class Akquise
     ];
 
     /** Was mit dem Betrieb geht. */
-    private const EIGENE = ['akq_befunde', 'akq_audits', 'akq_protokoll', 'akq_analysen', 'akq_signale'];
+    public const EIGENE = ['akq_befunde', 'akq_audits', 'akq_protokoll', 'akq_analysen', 'akq_signale'];
 
     /** Bedingung „darf aussortiert werden“ über f = akq_firmen. */
     public static function aussortierbarSql(): string
@@ -550,18 +550,38 @@ final class Akquise
     /** Schon einmal aussortiert? */
     public static function warAussortiert(array $roh): bool
     {
-        $k = self::aussortierSchluessel($roh);
-        if (!$k || !self::tabelleDa('akq_aussortiert')) { return false; }
-        return (int) Db::wert('SELECT COUNT(*) FROM akq_aussortiert WHERE schluessel IN (' . implode(',', array_fill(0, count($k), '?')) . ')', $k) > 0;
+        return self::aussortiertGrund($roh) !== null;
     }
 
-    /** Wieder aufnehmen: Schlüssel vergessen (jetzt mit Kontaktweg gefunden). */
+    /** Warum draußen (Kunden finden, 07.10.2026)? null = nie aussortiert. Der stärkste Grund gewinnt. */
+    public static function aussortiertGrund(array $roh): ?string
+    {
+        $k = self::aussortierSchluessel($roh);
+        if (!$k || !self::tabelleDa('akq_aussortiert')) { return null; }
+        $in = implode(',', array_fill(0, count($k), '?'));
+        if (!self::spalteDa('akq_aussortiert', 'grund')) {
+            return (int) Db::wert("SELECT COUNT(*) FROM akq_aussortiert WHERE schluessel IN ($in)", $k) > 0 ? 'ohne_kontakt' : null;
+        }
+        $g = array_column(Db::all("SELECT grund FROM akq_aussortiert WHERE schluessel IN ($in)", $k), 'grund');
+        if (!$g) { return null; }
+        $anders = array_values(array_diff($g, ['ohne_kontakt']));
+        return $anders ? (string) $anders[0] : 'ohne_kontakt';
+    }
+
+    /** Wieder aufnehmen: Schlüssel vergessen (jetzt mit Kontaktweg gefunden) — nur „ohne Kontaktweg“; Kunde, kein Interesse,
+        abgemeldet usw. bleiben draußen. */
     public static function aussortiertVergessen(array $roh): void
     {
         $k = self::aussortierSchluessel($roh);
         if ($k && self::tabelleDa('akq_aussortiert')) {
-            Db::run('DELETE FROM akq_aussortiert WHERE schluessel IN (' . implode(',', array_fill(0, count($k), '?')) . ')', $k);
+            Db::run('DELETE FROM akq_aussortiert WHERE schluessel IN (' . implode(',', array_fill(0, count($k), '?')) . ')'
+                . (self::spalteDa('akq_aussortiert', 'grund') ? " AND grund = 'ohne_kontakt'" : ''), $k);
         }
+    }
+
+    private static function still(callable $fn): mixed
+    {
+        try { return $fn(); } catch (Throwable $e) { return null; }
     }
 
     /** Herkunft einer gefundenen Adresse (06.10.2026). */
@@ -628,6 +648,15 @@ final class Akquise
             $id = Db::wert('SELECT id FROM akq_firmen WHERE quelle = ?', [$d['quelle']], null);
             if ($id !== null) { return [(int) $id, 'quelle']; }
         }
+        /* Kunden finden (07.10.2026): dieselbe Partita IVA oder dieselbe Firmen-Mail ist derselbe Betrieb. */
+        if (!empty($d['piva'])) {
+            $id = self::still(static fn() => Db::wert('SELECT id FROM akq_firmen WHERE piva = ? LIMIT 1', [$d['piva']], null));
+            if ($id !== null) { return [(int) $id, 'piva']; }
+        }
+        if (!empty($d['email'])) {
+            $id = Db::wert('SELECT id FROM akq_firmen WHERE email = ? LIMIT 1', [$d['email']], null);
+            if ($id !== null) { return [(int) $id, 'email']; }
+        }
         if (!empty($d['name_norm']) && !empty($d['plz'])) {
             $id = Db::wert('SELECT id FROM akq_firmen WHERE name_norm = ? AND plz = ? LIMIT 1',
                            [$d['name_norm'], $d['plz']], null);
@@ -660,6 +689,18 @@ final class Akquise
      * @return array{id:int,neu:bool,grund:?string,gesperrt:bool}
      */
     public static function firmaMelden(array $roh, ?int $laufId = null): array
+    {
+        [$d, $plattform, $domain] = self::normalisieren($roh);
+        $r = self::firmaUebernehmen($d, $laufId, $plattform, $domain);
+        /* Kunden finden (07.10.2026): schon Kunde? mögliche Dublette? — markieren, nie still verwerfen. */
+        try { require_once __DIR__ . '/KundenFinden.php'; KundenFinden::abgleichen((int) $r['id']); } catch (Throwable $e) { }
+        return $r;
+    }
+
+    /**
+     * Rohdaten → Felder von akq_firmen. @return array{0:array<string,mixed>,1:bool,2:?string} [Felder, Plattform?, Domain]
+     */
+    public static function normalisieren(array $roh): array
     {
         $name = trim((string) ($roh['name'] ?? ''));
         $land = strtoupper(trim((string) ($roh['land'] ?? '')));
@@ -695,7 +736,19 @@ final class Akquise
             'quelle'          => self::kurz($roh['quelle'] ?? null, 80),
             'quelle_lizenz'   => self::kurz($roh['quelle_lizenz'] ?? null, 60),
         ];
+        /* Kunden finden (07.10.2026): Partita IVA und „neu auf OpenStreetMap“ (Version 1 des Eintrags). */
+        if (self::spalteDa('akq_firmen', 'piva')) {
+            require_once __DIR__ . '/KundenFinden.php';
+            $d['piva'] = KundenFinden::normPiva($roh['piva'] ?? null);
+            $osm = (string) ($roh['osm_zeit'] ?? '');
+            $d['osm_neu_am'] = (int) ($roh['osm_version'] ?? 0) === 1 && preg_match('~^\d{4}-\d{2}-\d{2}~', $osm) ? substr($osm, 0, 10) : null;
+        }
+        return [$d, $plattform, $domain];
+    }
 
+    /** @return array{id:int,neu:bool,grund:?string,gesperrt:bool} */
+    private static function firmaUebernehmen(array $d, ?int $laufId, bool $plattform, ?string $domain): array
+    {
         return Db::nochmal(static function () use ($d, $laufId, $plattform, $domain) {
             $treffer = self::dubletteFinden($d);
             if ($treffer !== null) {
@@ -937,7 +990,18 @@ final class Akquise
             if ($wert !== null && ($firma[$feld] ?? null) === null) { $upd[$feld] = $wert; }
         }
         if (isset($upd['email'])) { $upd['email_source'] = 'Website: ' . mb_substr((string) ($e['geprueft_url'] ?? $firma['url'] ?? ''), 0, 200); }
+        /* Kunden finden (07.10.2026): Partita IVA und betreuende Agentur aus der Fußzeile. */
+        if (self::spalteDa('akq_firmen', 'piva')) {
+            require_once __DIR__ . '/KundenFinden.php';
+            $pv = KundenFinden::normPiva($e['piva'] ?? null);
+            if ($pv !== null && empty($firma['piva'])) { $upd['piva'] = $pv; }
+            $ag = self::kurz($e['agentur'] ?? null, 120);
+            if ($ag !== null && !preg_match('~vecom~i', $ag)) { $upd['agentur'] = $ag; }
+        }
         self::mitMailQuelle(static fn() => Db::update('akq_firmen', $firmaId, $upd), $upd, static fn($n) => Db::update('akq_firmen', $firmaId, $n));
+        if (isset($upd['piva']) || isset($upd['email']) || isset($upd['telefon'])) {
+            try { require_once __DIR__ . '/KundenFinden.php'; KundenFinden::abgleichen($firmaId); } catch (Throwable $x) { }
+        }
 
         self::protokoll($firmaId, 'audit', 'Audit abgeschlossen (' . self::AUDIT_STATUS[$status] . ')',
             ['audit_id' => $auditId, 'seiten' => (int) ($e['seiten'] ?? 0)]);
@@ -1089,6 +1153,16 @@ final class Akquise
             $wo[] = '(f.name LIKE ? OR f.domain LIKE ? OR f.kennung = ? OR f.stadt LIKE ?)';
             $like = '%' . addcslashes($q, '%_\\') . '%';
             array_push($args, $like, $like, strtoupper($q), $like);
+        }
+        /* Kunden finden (07.10.2026, Uwe): standardmäßig nur die Arbeitsliste — wer schon Kunde ist, kein Interesse hat
+           oder gesperrt ist, steht unter seinem eigenen Reiter. „alle“ zeigt alles. */
+        $ansicht = (string) ($f['ansicht'] ?? '');
+        if ($ansicht === '' && empty($f['kontakt']) && empty($f['gesperrte']) && empty($f['q'])) { $ansicht = 'arbeit'; }
+        if ($ansicht !== 'alle' && self::spalteDa('akq_firmen', 'markierung')) {
+            require_once __DIR__ . '/KundenFinden.php';
+            $w = KundenFinden::ansichtSql($ansicht);
+            if ($w !== '') { $wo[] = $w; }
+            if ($ansicht === 'aus') { $f['gesperrte'] = 1; }
         }
         if (empty($f['gesperrte'])) { $wo[] = 'f.gesperrt = 0'; }
         $sql = implode(' AND ', $wo);

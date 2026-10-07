@@ -52,13 +52,14 @@ final class AkquisePrio
     public static function berechnen(array $f, array $k = []): array
     {
         $nie = (int) ($f['gesperrt'] ?? 0) === 1 || (string) ($f['sperr_art'] ?? '') !== ''
-            || in_array((string) ($f['kontakt_status'] ?? ''), ['abgelehnt', 'gesperrt', 'kunde'], true) || (int) ($f['bestandskunde'] ?? 0) === 1;
+            || in_array((string) ($f['kontakt_status'] ?? ''), ['abgelehnt', 'gesperrt', 'kunde'], true) || (int) ($f['bestandskunde'] ?? 0) === 1
+            || (string) ($f['markierung'] ?? '') === 'kunde';
         if ($nie) {
             require_once __DIR__ . '/AkquiseCrm.php';
             $art = (string) ($f['sperr_art'] ?? '');
             $warum = match (true) {
                 $art !== '' => 'Gesperrt: ' . (AkquiseCrm::SPERR_ARTEN[$art] ?? $art),
-                (int) ($f['bestandskunde'] ?? 0) === 1 || ($f['kontakt_status'] ?? '') === 'kunde' => 'Schon Kunde',
+                (int) ($f['bestandskunde'] ?? 0) === 1 || ($f['kontakt_status'] ?? '') === 'kunde' || ($f['markierung'] ?? '') === 'kunde' => 'Schon Kunde',
                 ($f['kontakt_status'] ?? '') === 'abgelehnt' => 'Kein Interesse geäußert',
                 default => 'Gesperrt',
             };
@@ -104,6 +105,14 @@ final class AkquisePrio
         }
         if (!$wege) { $abzug += 10; $gegen[] = 'Kein Kontaktweg bekannt'; }
 
+        /* Kunden finden (07.10.2026): Neueröffnung, Saison, wie gewonnene Kunden, lernende Branchenzahlen, fremde Agentur. */
+        try {
+            require_once __DIR__ . '/KundenFinden.php';
+            $zu = KundenFinden::prioZusatz($f);
+            foreach ($zu['plus'] as $x) { $p[] = $x; }
+            foreach ($zu['minus'] as [$pk, $g]) { $abzug += $pk; $gegen[] = $g; }
+        } catch (Throwable $e) { /* Zusatz ist Beiwerk */ }
+
         usort($p, static fn($a, $b) => $b[0] <=> $a[0]);
         $score = max(0, min(100, array_sum(array_column($p, 0)) - $abzug));
         $heiss = (int) ($k['offen_positiv'] ?? 0) > 0 || (int) ($k['termine'] ?? 0) > 0 || (int) ($k['checks'] ?? 0) > 0;
@@ -111,13 +120,13 @@ final class AkquisePrio
         return ['score' => $score, 'stufe' => $stufe, 'gruende' => array_merge(array_column($p, 1), array_map(static fn($g) => '− ' . $g, $gegen))];
     }
 
-    /** „Warum ist dieser Betrieb interessant?“ — die zwei stärksten belegten Gründe in einem Satz. */
+    /** „Warum ist dieser Betrieb interessant?“ — die drei stärksten belegten Gründe in einem Satz (07.10.2026: drei statt zwei). */
     public static function warum(array $f): string
     {
         $g = json_decode((string) ($f['prio_gruende'] ?? ''), true);
         if (!is_array($g) || !$g) { return ''; }
         $pos = array_values(array_filter($g, static fn($x) => !str_starts_with((string) $x, '− ')));
-        return $pos ? implode(' · ', array_slice($pos, 0, 2)) . '.' : '';
+        return $pos ? implode(' · ', array_slice($pos, 0, 3)) . '.' : '';
     }
 
     /** Kontext für viele Betriebe in vier Abfragen statt vier je Betrieb. @return array<int,array<string,mixed>> */

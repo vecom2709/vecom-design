@@ -527,6 +527,11 @@ final class Cron
                 require_once __DIR__ . '/AkquisePrio.php';
                 return AkquisePrio::lauf();
             },
+            /* Kunden finden (07.10.2026): Liste gegen Kunden und Dubletten abgleichen (in Paketen), fällige „Später“ zurück. */
+            'akquise_abgleich' => static function () {
+                require_once __DIR__ . '/KundenFinden.php';
+                return KundenFinden::bereinigen() + ['spaeter_zurueck' => KundenFinden::spaeterFaellig()];
+            },
             /* Akquise-CRM (06.10.2026, Modul F): Partner reagiert nicht auf ein heißes Signal — 48 h Hinweis, 72 h Meldung an Uwe. */
             'partner_warnungen' => static function () {
                 require_once __DIR__ . '/AkquisePartner.php';
@@ -738,6 +743,15 @@ final class Cron
         // einmal im Jahr zusammensucht, sucht im Maerz nach einem Beleg vom
         // Maerz davor. Liegt das Paket jeden Morgen fertig da, ist die Frage
         // "hast du alles?" mit einem Klick beantwortet.
+        /* Kunden finden (07.10.2026): einmal am Tag Branchenzahlen lernen, Tagesliste „Heute ansprechen“ rechnen,
+           nächstes Gebiet aus dem Gebietsplan anlegen. Schreibt niemanden an. */
+        if (self::heuteNochNicht('cron_kunden_finden')) {
+            $aufgaben['akquise_tag'] = static function () {
+                require_once __DIR__ . '/KundenFinden.php';
+                return ['lernen' => KundenFinden::lernen(), 'tagesliste' => KundenFinden::tageslisteRechnen(), 'gebiet' => KundenFinden::naechstesGebiet()];
+            };
+        }
+
         if (self::heuteNochNicht('cron_steuerakte')) {
             $aufgaben['steuerakte'] = static function () {
                 require_once __DIR__ . '/Steuerakte.php';
@@ -850,7 +864,7 @@ final class Cron
         'verzeichnisse' => 'cron_verzeichnisse', 'spur' => 'cron_spur', 'zustellbarkeit' => 'cron_zustellbarkeit',
         'sicherung' => 'cron_sicherung', 'spuerhund' => 'cron_spuerhund', 'bewertung_vorschlag' => 'cron_bewertung_vorschlag',
         'morgenbriefing' => 'cron_morgenbriefing', 'claude_zugang' => 'cron_claude_zugang',
-        'sicherung_aussen' => 'cron_sicherung_aussen', 'steuerakte' => 'cron_steuerakte',
+        'sicherung_aussen' => 'cron_sicherung_aussen', 'steuerakte' => 'cron_steuerakte', 'akquise_tag' => 'cron_kunden_finden',
     ];
 
     /**

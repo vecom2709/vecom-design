@@ -12,7 +12,7 @@ declare(strict_types=1);
    einer Weiterleitung (POST → Redirect → GET), nie mit einer Seite.
    ========================================================================== */
 
-foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseWorker', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablauf'] as $k) {
+foreach (['Akquise', 'AkquiseScore', 'AkquiseGate', 'AkquiseText', 'AkquiseVersand', 'AkquiseWorker', 'AkquiseAnalyse', 'AkquiseEinwilligung', 'Ablauf', 'KundenFinden'] as $k) {
     require_once __DIR__ . "/src/$k.php";
 }
 
@@ -175,6 +175,43 @@ if ($post) {
                 AkquiseSteuerung::sucheEinschalten();
                 $_SESSION['gut'] = 'Betriebe suchen ist eingeschaltet — wartende Aufträge startet dein PC in den nächsten fünf Minuten.';
                 weiter('akquise#steuerung');
+
+            /* Kunden finden (07.10.2026): Dubletten, Später, Tagesliste, Gebietsplan, Abgleich. */
+            case 'akq_zusammenfuehren':
+                require_once __DIR__ . '/src/KundenFinden.php';
+                $behalte = (int) ($_POST['behalte'] ?? 0); $weg = (int) ($_POST['weg'] ?? 0);
+                $_SESSION['gut'] = KundenFinden::zusammenfuehren($behalte, $weg);
+                Events::pruefspur('akq_zusammenfuehren', 'akq_firmen', $behalte, ['weg' => $weg], ['behalte' => $behalte]);
+                weiter('akquise/' . $behalte);
+
+            case 'akq_kein_doppel':
+                Db::update('akq_firmen', $fid, ['markierung' => 'geprueft', 'markierung_grund' => 'Kein Doppel (von Hand geprüft)', 'markierung_am' => date('Y-m-d H:i:s')]);
+                Akquise::protokoll($fid, 'abgleich', 'Von Hand geprüft: kein Doppel');
+                $_SESSION['gut'] = 'Vermerkt: eigener Betrieb, kein Doppel.';
+                $zurueck('akquise?ansicht=dublette');
+
+            case 'akq_spaeter':
+                require_once __DIR__ . '/src/KundenFinden.php';
+                $_SESSION['gut'] = KundenFinden::spaeter($fid, (int) ($_POST['monate'] ?? 6));
+                $zurueck('akquise');
+
+            case 'akq_tag_erledigt':
+                require_once __DIR__ . '/src/KundenFinden.php';
+                KundenFinden::tageslisteErledigt((int) ($_POST['tag'] ?? 0));
+                weiter('akquise#heute');
+
+            case 'akq_gebiete_speichern':
+                require_once __DIR__ . '/src/KundenFinden.php';
+                KundenFinden::planSpeichern((string) ($_POST['plan'] ?? ''), !empty($_POST['auto']));
+                $r = !empty($_POST['auto']) ? KundenFinden::naechstesGebiet() : ['angelegt' => null];
+                $_SESSION['gut'] = 'Gebietsplan gespeichert.' . ($r['angelegt'] ? ' Nächstes Gebiet angelegt: ' . $r['angelegt'] . '.' : '');
+                weiter('akquise/karte');
+
+            case 'akq_abgleich_jetzt':
+                require_once __DIR__ . '/src/KundenFinden.php';
+                $r = KundenFinden::bereinigen(3000);
+                $_SESSION['gut'] = $r['geprueft'] . ' Betriebe geprüft: ' . $r['kunden'] . ' schon Kunde, ' . $r['dubletten'] . ' mögliche Dubletten.' . ($r['offen'] > 0 ? ' Noch ' . $r['offen'] . ' offen — der Rest folgt automatisch.' : '');
+                weiter('akquise');
 
             /* Aussortieren (06.10.2026, Uwe: „die Betriebe, die keine E-Mail haben und kein WhatsApp, lösche raus“). */
             case 'akq_aussortieren':
@@ -889,7 +926,12 @@ if ($teil === 'regeln') {
 
 if ($teil === 'auswertung' || $teil === 'karte') {
     require_once __DIR__ . '/src/AkquiseAuswertung.php';
-    if ($teil === 'karte') { ansicht('akquise_karte', ['punkte' => AkquiseAuswertung::kartenpunkte()]); exit; }
+    if ($teil === 'karte') {
+        require_once __DIR__ . '/src/KundenFinden.php';
+        ansicht('akquise_karte', ['punkte' => AkquiseAuswertung::kartenpunkte(), 'gebiete' => sicher(static fn() => KundenFinden::gebiete(), ['plan' => [], 'orte' => [], 'auto' => false]),
+                                  'planText' => implode("\n", sicher(static fn() => KundenFinden::plan(), []))]);
+        exit;
+    }
     $nach = in_array($_GET['nach'] ?? '', ['branche', 'kanal', 'variante'], true) ? (string) $_GET['nach'] : 'branche';
     $tage = in_array((int) ($_GET['tage'] ?? 90), [30, 90, 365], true) ? (int) ($_GET['tage'] ?? 90) : 90;
     $wegDash = null; try { $wegDash = AkquiseAuswertung::wegZumDashboard($tage); } catch (Throwable $e) { $wegDash = null; }
@@ -1094,7 +1136,8 @@ if ($teil !== '' && ctype_digit($teil)) {
 }
 
 $filter = array_intersect_key($_GET, array_flip(['land', 'region', 'kreis', 'stadt', 'branche', 'kontakt', 'compliance', 'audit',
-                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web', 'partner', 'prio_min', 'prio', 'mit_email', 'mit_whatsapp']));
+                                                  'stufe', 'score_min', 'von', 'bis', 'q', 'sort', 'gesperrte', 'stark', 'darf', 'ohne_web', 'partner', 'prio_min', 'prio', 'mit_email', 'mit_whatsapp', 'ansicht']));
+if (isset($filter['ansicht']) && $filter['ansicht'] !== 'alle' && !isset(KundenFinden::ANSICHTEN[(string) $filter['ansicht']])) { unset($filter['ansicht']); }
 ansicht('akquise', [
     'liste' => Akquise::liste($filter, max(1, (int) ($_GET['seite'] ?? 1))),
     'filter' => $filter,
@@ -1107,5 +1150,10 @@ ansicht('akquise', [
     'signale' => sicher(static function () { require_once __DIR__ . '/src/AkquiseSignal.php'; return AkquiseSignal::offen(); }, []),
     'checks' => sicher(static function () { require_once __DIR__ . '/src/AkquiseCheck.php'; return AkquiseCheck::liste(10); }, []),
     'plattform' => sicher(static function () { require_once __DIR__ . '/src/AkquisePlattform.php'; return AkquisePlattform::offen(20); }, []),
+    /* Kunden finden (07.10.2026) */
+    'ansichten' => sicher(static fn() => KundenFinden::ansichtZahlen(), []),
+    'heute' => sicher(static fn() => KundenFinden::tagesliste(), []),
+    'ausgeschlossen' => ($filter['ansicht'] ?? '') === 'aus' ? sicher(static fn() => KundenFinden::ausgeschlossen(), null) : null,
+    'abgleichOffen' => sicher(static fn() => (int) Db::wert('SELECT COUNT(*) FROM akq_firmen WHERE abgeglichen_am IS NULL'), 0),
 ]);
 exit;

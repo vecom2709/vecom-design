@@ -26,6 +26,7 @@ export interface SeitenSignale {
   oeffnungRoh?: unknown[];
   hreflang: string[];
   text: string;                    // sichtbarer Text, gekuerzt
+  fuss?: string;                   // Ende des Textes (Fußzeile: P.IVA, „Realizzato da“) -- auch wenn text gekuerzt ist
   links: { href: string; text: string }[];
   bilder: { gesamt: number; ohneAlt: number; kaputt: string[]; inhalt: number };
   telLinks: string[];
@@ -206,6 +207,7 @@ function auswerten(): Omit<SeitenSignale, 'url'> {
     ].slice(0, 10),
     hreflang: q('link[rel="alternate"][hreflang]').map((l) => l.getAttribute('hreflang') ?? ''),
     text: text.slice(0, 20000),
+    fuss: text.slice(-1500),
     links: links.slice(0, 400),
     bilder: { gesamt: bilder.length, ohneAlt: inhaltsBilder.filter((b) => !(b.getAttribute('alt') ?? '').trim()).length,
       kaputt: bilder.filter((b) => b.complete && b.naturalWidth === 0 && !!b.currentSrc).map((b) => b.currentSrc).slice(0, 10), inhalt: inhaltsBilder.length },

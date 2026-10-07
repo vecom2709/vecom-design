@@ -180,7 +180,8 @@ final class AkquiseWorker
         $liste = array_slice((array) ($d['firmen'] ?? []), 0, 200);
         $neu = $dubletten = $fehler = 0;
         $ergebnisse = [];
-        $aussortiert = 0;
+        $aussortiert = $ausgeschlossen = $schonKunde = 0;
+        require_once __DIR__ . '/KundenFinden.php';
         foreach ($liste as $roh) {
             if (!is_array($roh)) { $fehler++; continue; }
             try {
@@ -189,6 +190,21 @@ final class AkquiseWorker
                    (dort steht oft die Adresse), außer der Betrieb wurde schon einmal aussortiert. */
                 if (!str_starts_with((string) ($roh['quelle'] ?? ''), 'lead-scout:') && trim((string) ($roh['name'] ?? '')) !== ''
                     && in_array(strtoupper(trim((string) ($roh['land'] ?? ''))), ['DE', 'IT'], true)) {
+                    /* Kunden finden (07.10.2026, Uwe): wer schon Kunde ist, kein Interesse hatte, sich abgemeldet hat oder
+                       zusammengeführt wurde, kommt nicht wieder in die Liste. Steht er schon drin, ergänzt firmaMelden nur. */
+                    $grundAus = Akquise::aussortiertGrund($roh);
+                    if ($grundAus !== null && $grundAus !== 'ohne_kontakt') {
+                        $ausgeschlossen++;
+                        $ergebnisse[] = ['quelle' => $roh['quelle'] ?? null, 'ausgeschlossen' => $grundAus];
+                        continue;
+                    }
+                    [$norm] = Akquise::normalisieren($roh);
+                    if (Akquise::dubletteFinden($norm) === null && ($kunde = KundenFinden::kundeFuer($norm)) !== null) {
+                        KundenFinden::merken($roh, 'kunde', 'Schon Kunde (#' . $kunde[0] . ', ' . $kunde[1] . ')', $kunde[0]);
+                        $schonKunde++;
+                        $ergebnisse[] = ['quelle' => $roh['quelle'] ?? null, 'schon_kunde' => $kunde[0]];
+                        continue;
+                    }
                     if (Akquise::erreichbarRoh($roh)) {
                         Akquise::aussortiertVergessen($roh);
                     } else {
@@ -213,7 +229,11 @@ final class AkquiseWorker
             Db::run('UPDATE akq_laeufe SET gefunden = gefunden + ?, neu = neu + ?, dubletten = dubletten + ? WHERE id = ?',
                 [count($liste), $neu, $dubletten, $laufId]);
         }
-        return ['ok' => true, 'neu' => $neu, 'dubletten' => $dubletten, 'fehler' => $fehler, 'aussortiert' => $aussortiert, 'ergebnisse' => $ergebnisse];
+        if ($schonKunde + $ausgeschlossen > 0) {
+            Akquise::protokoll(null, 'abgleich', 'Nicht aufgenommen: ' . $schonKunde . ' schon Kunde, ' . $ausgeschlossen . ' früher ausgeschlossen', [], $laufId);
+        }
+        return ['ok' => true, 'neu' => $neu, 'dubletten' => $dubletten, 'fehler' => $fehler, 'aussortiert' => $aussortiert,
+                'schon_kunde' => $schonKunde, 'ausgeschlossen' => $ausgeschlossen, 'ergebnisse' => $ergebnisse];
     }
 
     private static function auditMelden(array $d): array

@@ -10,6 +10,7 @@ $akqTeil = '';
 require_once dirname(__DIR__) . '/src/AkquiseAnsprechen.php';
 require_once dirname(__DIR__) . '/src/AkquiseMail.php';
 require_once dirname(__DIR__) . '/src/AkquisePrio.php';
+require_once dirname(__DIR__) . '/src/KundenFinden.php';
 $wert = static fn(string $k): string => (string) ($filter[$k] ?? '');
 $gewaehlt = static fn(string $k, string $v): string => (($filter[$k] ?? '') === $v) ? ' selected' : '';
 $seitenUrl = static function (int $s) use ($filter): string {
@@ -204,6 +205,56 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
     Kauft ein Betrieb, der beim Partner zugestimmt hat (auch erst Monate später), gehört er diesem Partner — mit mindestens <?= Fmt::h(Partner::satzWort(['art' => 'prozent', 'wert' => Partner::zahl('partner_anruf_bp')])) ?> Provision.</p>
 </div>
 <?php endif; ?>
+<?php /* Kunden finden (07.10.2026): „Heute ansprechen“ — die zehn besten, jeden Morgen neu. Nur Vorschlag, gesendet wird nichts. */
+  $akqHeute = $heute ?? [];
+  if ($akqHeute): $akqOffen = count(array_filter($akqHeute, static fn($t) => (int) $t['erledigt'] === 0)); ?>
+<div class="block" id="heute">
+  <h2 style="margin:0 0 4px">Heute ansprechen <span class="akq-klein">(<?= $akqOffen ?> von <?= count($akqHeute) ?> offen)</span></h2>
+  <p class="akq-klein" style="margin:0 0 10px">Jeden Morgen die besten zehn aus der Arbeitsliste — mit Grund und dem Weg, der erlaubt ist. Hier wird nichts gesendet.</p>
+  <ol class="akq-heute">
+  <?php foreach ($akqHeute as $t): ?>
+    <li class="<?= (int) $t['erledigt'] === 1 ? 'fertig' : '' ?>">
+      <span class="rang"><?= (int) $t['rang'] ?></span>
+      <span><a href="<?= Fmt::h(url('akquise/' . (int) $t['firma_id']) . '#ansprechen') ?>"><b><?= Fmt::h((string) $t['name']) ?></b></a>
+        <span class="akq-klein"> · <?= Fmt::h((string) ($t['stadt'] ?? '')) ?> · <?= Fmt::h(Akquise::branchenName($t['branche'])) ?></span>
+        <span class="akq-klein" style="display:block"><?= Fmt::h((string) $t['grund']) ?></span></span>
+      <span class="kanal"><?= Fmt::h(KundenFinden::KANAL_WORT[(string) $t['kanal']] ?? (string) $t['kanal']) ?></span>
+      <?php if ((int) $t['erledigt'] === 0): ?>
+      <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_tag_erledigt"><input type="hidden" name="tag" value="<?= (int) $t['id'] ?>">
+        <button class="knopf klein" aria-label="<?= Fmt::h((string) $t['name']) ?> erledigt">Erledigt</button></form>
+      <?php else: ?><span class="akq-klein">✓ erledigt</span><?php endif; ?>
+    </li>
+  <?php endforeach; ?>
+  </ol>
+</div>
+<?php endif; ?>
+<?php /* Kunden finden (07.10.2026, Uwe): wer schon Kunde, ausgeschlossen oder doppelt ist, steht unter eigenem Reiter. */
+  $akqAns = (string) ($filter['ansicht'] ?? ''); if ($akqAns === '' && empty($filter['kontakt']) && empty($filter['gesperrte']) && empty($filter['q'])) { $akqAns = 'arbeit'; }
+  $akqAz = $ansichten ?? []; ?>
+<nav class="akq-schnell akq-ansicht" aria-label="Ansicht">
+  <?php foreach (KundenFinden::ANSICHTEN as $k => $w): if ($k !== 'arbeit' && (int) ($akqAz[$k] ?? 0) === 0 && $akqAns !== $k) { continue; } ?>
+    <a href="<?= Fmt::h(url('akquise') . ($k === 'arbeit' ? '' : '?ansicht=' . $k)) ?>" class="<?= $akqAns === $k ? 'an' : '' ?>"<?= $akqAns === $k ? ' aria-current="page"' : '' ?>><?= Fmt::h($w) ?> <span class="zahl"><?= (int) ($akqAz[$k] ?? 0) ?></span></a>
+  <?php endforeach; ?>
+  <a href="<?= Fmt::h(url('akquise') . '?ansicht=alle') ?>" class="<?= $akqAns === 'alle' ? 'an' : '' ?>">Alle</a>
+</nav>
+<?php if (($abgleichOffen ?? 0) > 0 && Rechte::darfTat('akq_abgleich_jetzt')): ?>
+  <div class="hinweis" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+    <span><b><?= (int) $abgleichOffen ?> Betriebe</b> sind noch nicht mit deinen Kunden abgeglichen. Das passiert von selbst in Paketen — oder jetzt auf einmal.</span>
+    <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin:0"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_abgleich_jetzt"><button class="knopf">Jetzt abgleichen</button></form>
+  </div>
+<?php endif; ?>
+<?php if ($akqAns === 'aus' && !empty($ausgeschlossen)): $akqAg = $ausgeschlossen; ?>
+  <div class="block">
+    <h2 style="margin:0 0 6px">Nicht mehr in der Liste</h2>
+    <p class="akq-klein" style="margin:0 0 8px">Diese Betriebe kommen bei einer neuen Suche nicht wieder. Nur „Ohne E-Mail und WhatsApp“ kehrt zurück, sobald sich ein Kontaktweg findet.</p>
+    <p style="margin:0 0 10px"><?php foreach (KundenFinden::GRUENDE as $g => $w): if (empty($akqAg['zahlen'][$g])) { continue; } ?><span class="crm-prio" style="margin:0 6px 6px 0"><?= Fmt::h($w) ?>: <?= (int) $akqAg['zahlen'][$g] ?></span><?php endforeach; ?></p>
+    <?php if ($akqAg['zuletzt']): ?><div class="tabellenrahmen"><table><thead><tr><th>Betrieb</th><th>Grund</th><th>Seit</th></tr></thead><tbody>
+      <?php foreach (array_slice($akqAg['zuletzt'], 0, 30) as $ag): ?><tr><td><?= Fmt::h((string) $ag['name']) ?><?php if (!empty($ag['customer_id'])): ?> · <a href="<?= Fmt::h(url('kunden/' . (int) $ag['customer_id'])) ?>">Kunde</a><?php endif; ?></td>
+        <td><?= Fmt::h(KundenFinden::GRUENDE[(string) $ag['grund']] ?? (string) $ag['grund']) ?><?= !empty($ag['grund_text']) ? ' <span class="akq-klein">' . Fmt::h((string) $ag['grund_text']) . '</span>' : '' ?></td>
+        <td><?= Fmt::h(date('d.m.Y', strtotime((string) $ag['am']))) ?></td></tr><?php endforeach; ?>
+    </tbody></table></div><?php endif; ?>
+  </div>
+<?php endif; ?>
 <?php $akqSchnell = ['' => 'Alle', 'darf' => 'Haben zugestimmt', 'ohne_web' => 'Ohne Website', 'stark' => 'Starke Chancen', 'partner' => 'Beim Partner'];
   $akqSchnellAn = !empty($filter['darf']) ? 'darf' : (!empty($filter['ohne_web']) ? 'ohne_web' : (!empty($filter['stark']) ? 'stark' : (!empty($filter['partner']) ? 'partner' : ''))); ?>
 <nav class="akq-schnell" aria-label="Schnellauswahl">
@@ -242,7 +293,8 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   <div class="tabellenrahmen"><table class="akq-tab">
     <thead><tr><th>Betrieb</th><th>Ort</th><th>Was fehlt</th><th>Ansprechen</th></tr></thead>
     <tbody>
-    <?php foreach ($liste['zeilen'] as $z):
+    <?php $akqDubl = []; $akqSp = [];
+      foreach ($liste['zeilen'] as $z):
         $top = json_decode((string) ($z['top_probleme'] ?? '[]'), true) ?: [];
         $stand = AkquiseAnsprechen::stand($z);
         $stufe = (int) $z['gesperrt'] === 1 ? 'erledigt' : Akquise::stufe5((string) $z['kontakt_status']);
@@ -264,6 +316,16 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
           <?php if ($score !== null): ?><span class="akq-chance s-<?= Fmt::h((string) $z['score_stufe']) ?>" style="margin-top:5px" title="Wie gut passt Vecom hier? 0–100"><b><?= $score ?></b> <?= Fmt::h(Akquise::chanceWort($score)) ?></span><?php endif; ?>
           <?php $zSt = AkquisePrio::STUFEN[(string) ($z['prio_stufe'] ?? '')] ?? null; if ($zSt): ?><span class="crm-prio p-<?= Fmt::h((string) $z['prio_stufe']) ?>" style="margin-top:5px" title="Akquise-Priorität: <?= Fmt::h($zSt[1] . (AkquisePrio::warum($z) !== '' ? ' — ' . AkquisePrio::warum($z) : '')) ?>"><?= $zSt[0] ?> <?= (int) $z['prio_score'] ?></span><?php endif; ?>
           <?php if ($stufe !== 'neu'): ?><span class="akq-stufe st-<?= $stufe ?>"><?= Fmt::h(Akquise::STUFEN5[$stufe][0]) ?></span><?php endif; ?>
+          <?php /* Kunden finden (07.10.2026): Marken in der Zeile */
+            $akqMk = (string) ($z['markierung'] ?? ''); ?>
+          <?php if ($akqMk === 'kunde' || (string) $z['kontakt_status'] === 'kunde'): ?><span class="akq-marke kunde" title="<?= Fmt::h((string) ($z['markierung_grund'] ?? 'Kunde')) ?>">● Schon Kunde<?php if ((int) ($z['customer_id'] ?? 0) > 0): ?> · <a href="<?= Fmt::h(url('kunden/' . (int) $z['customer_id'])) ?>">Akte</a><?php endif; ?></span><?php endif; ?>
+          <?php if ($akqMk === 'dublette' && (int) ($z['dublette_von'] ?? 0) > 0): $akqDubl[] = $z; ?>
+            <span class="akq-marke doppel">⚠ Mögliche Dublette von <a href="<?= Fmt::h(url('akquise/' . (int) $z['dublette_von'])) ?>">#<?= (int) $z['dublette_von'] ?></a> (<?= (int) $z['dublette_prozent'] ?> %)
+              <button class="knopf klein" form="akqz_<?= (int) $z['id'] ?>">Zusammenführen</button> <button class="knopf klein" form="akqk_<?= (int) $z['id'] ?>">Kein Doppel</button></span>
+          <?php endif; ?>
+          <?php if (!empty($z['osm_neu_am']) && strtotime((string) $z['osm_neu_am']) >= time() - 60 * 86400): ?><span class="akq-marke neu" title="Version 1 auf OpenStreetMap — meist eine Neueröffnung">✦ Neu seit <?= Fmt::h(date('d.m.', strtotime((string) $z['osm_neu_am']))) ?></span><?php endif; ?>
+          <?php if (trim((string) ($z['agentur'] ?? '')) !== ''): ?><span class="akq-marke agentur" title="Laut Fußzeile der Website">Agentur: <?= Fmt::h(mb_substr((string) $z['agentur'], 0, 40)) ?></span><?php endif; ?>
+          <?php if ((string) ($z['crm_stufe'] ?? '') === 'spaeter' && !empty($z['naechster_am'])): ?><span class="akq-marke spaeter">⏸ Wieder am <?= Fmt::h(date('d.m.Y', strtotime((string) $z['naechster_am']))) ?></span><?php endif; ?>
           <?php if (!empty($z['beim_partner'])): $bp = $z['beim_partner']; [$bpWort, $bpArt] = Akquise::partnerKennung($bp); ?>
             <a class="akq-partner <?= $bpArt ?>" href="<?= Fmt::h(url('akquise') . '?partner=' . (int) $bp['partner_id']) ?>" title="Reserviert bis <?= Fmt::h(date('d.m.Y', strtotime((string) $bp['bis']))) ?>"><?= (string) ($bp['herkunft'] ?? '') === 'vecom' ? '☎' : '★' ?> <b><?= Fmt::h((string) $bp['partner_name']) ?></b> <?= Fmt::h($bpWort) ?></a>
           <?php endif; ?></td>
@@ -275,6 +337,9 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
           <span class="akq-ampel klein <?= Fmt::h($stand['farbe']) ?>"><i></i><span><?= Fmt::h($stand['wort']) ?></span></span>
           <?php if ($stand['farbe'] !== 'rot'): ?>
             <a class="knopf akq-los" href="<?= Fmt::h(url('akquise/' . (int) $z['id']) . '#ansprechen') ?>">Ansprechen</a>
+          <?php endif; ?>
+          <?php if ((string) ($z['crm_stufe'] ?? '') !== 'spaeter' && !in_array((string) $z['kontakt_status'], ['kunde', 'abgelehnt', 'gesperrt'], true)): $akqSp[] = (int) $z['id']; ?>
+            <button class="knopf klein leise" form="akqs_<?= (int) $z['id'] ?>" title="Jetzt nicht — in sechs Monaten wieder in der Arbeitsliste">Später</button>
           <?php endif; ?>
         </div></td>
       </tr>
@@ -292,6 +357,13 @@ $kachel = static fn(string $k, string $v): string => url('akquise') . '?' . http
   </div>
   <?php endif; ?>
   </form>
+  <?php /* Eigene Formulare für Knöpfe in der Zeile — Formulare dürfen nicht ineinander stecken. */
+    foreach ($akqDubl as $dz): ?>
+    <form id="akqz_<?= (int) $dz['id'] ?>" method="post" action="<?= Fmt::h(url('akquise')) ?>" hidden><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_zusammenfuehren"><input type="hidden" name="behalte" value="<?= (int) $dz['dublette_von'] ?>"><input type="hidden" name="weg" value="<?= (int) $dz['id'] ?>"></form>
+    <form id="akqk_<?= (int) $dz['id'] ?>" method="post" action="<?= Fmt::h(url('akquise')) ?>" hidden><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_kein_doppel"><input type="hidden" name="firma" value="<?= (int) $dz['id'] ?>"><input type="hidden" name="zurueck" value="akquise?ansicht=dublette"></form>
+  <?php endforeach; foreach ($akqSp as $sid): ?>
+    <form id="akqs_<?= $sid ?>" method="post" action="<?= Fmt::h(url('akquise')) ?>" hidden><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_spaeter"><input type="hidden" name="firma" value="<?= $sid ?>"><input type="hidden" name="monate" value="6"></form>
+  <?php endforeach; ?>
   <p class="akq-klein" style="margin-top:8px">Häkchen vor dem Namen: nur bei Betrieben mit Telefonnummer, die noch nicht zugestimmt haben. Der Partner sieht sie in seiner Anrufliste.</p>
   <script>
   (function () {

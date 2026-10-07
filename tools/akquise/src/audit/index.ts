@@ -39,6 +39,10 @@ export interface AuditErgebnis {
   telefon?: string;
   /** Nummer aus einem wa.me-/WhatsApp-Link der Website (06.10.2026). */
   whatsapp?: string;
+  /** Partita IVA / USt-IdNr. aus Impressum oder Fußzeile (07.10.2026, Kunden finden). */
+  piva?: string;
+  /** „Realizzato da …“ im Seitenfuß: die Seite betreut schon eine Agentur (07.10.2026). */
+  agentur?: string;
   bilder?: { mobil?: string; desktop?: string };
   marken?: { art: string; x: number; y: number; b: number; h: number }[];
   /** Öffnungszeiten laut Website (D3, 29.09.2026) -- nur wenn eindeutig gefunden. */
@@ -53,6 +57,29 @@ export interface AuditErgebnis {
 const MAIL = /[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,24}/gi;
 const MAIL_VERSTECKT = /([a-z0-9._%+-]+)\s*(?:\[at\]|\(at\)|\s+at\s+|\[chiocciola\]|\(chiocciola\))\s*([a-z0-9-]+(?:\s*(?:\.|\[dot\]|\(dot\)|\[punto\])\s*[a-z0-9-]+)+)/gi;
 const KEINE_MAIL = /\.(png|jpe?g|gif|webp|svg|avif)$|^(example|esempio|name|nome|email|mail|tuo|your)@|@(example|sentry|wixpress|domain|dominio)\./i;
+
+/* Kunden finden (07.10.2026): Partita IVA (IT, 11 Ziffern) oder USt-IdNr. (DE, 9 Ziffern) -- für den Abgleich
+   mit der Kundenliste. Nur mit Kennwort davor, sonst wäre jede Telefonnummer eine. */
+export function pivaAusText(text: string): string | undefined {
+  const m = text.match(/\b(?:p\.?\s?iva|partita\s+iva|vat(?:\s+(?:no|number|id))?|c\.?\s?f\.?\s*(?:e|\/)\s*p\.?\s?iva)\s*[:.\-]?\s*(?:it\s?)?(\d{11})\b/i)
+    ?? text.match(/\b(?:ust\.?-?\s?id(?:nr)?\.?|umsatzsteuer-identifikationsnummer)\s*[:.\-]?\s*de\s?(\d{9})\b/i);
+  return m?.[1];
+}
+
+/* „Realizzato da Studio X“, „Webdesign by …“, „Erstellt von …“ -- die Seite betreut schon jemand.
+   Baukästen („Powered by WordPress“) zählen nicht. Dieselbe Regel steht in KundenFinden::agenturAusText (PHP). */
+const AGENTUR_WORT = /\b(?:realizzat[oa]|sviluppat[oa]|progettat[oa]|design(?:ed)?|sito(?: web)?|web ?design|made|erstellt|gestaltet|umgesetzt|realisiert|entwickelt|credits?)\s*(?:da|by|von|:)\s*:?\s*/i;
+const AGENTUR_NAME = /^([\p{Lu}0-9][\p{L}0-9&.'\- ]{1,48})/u;   // der Name beginnt groß -- ohne i-Schalter
+const BAUKASTEN = /^(wordpress|wix|jimdo|squarespace|shopify|joomla|webnode|ionos|aruba|godaddy|google|weebly|strato|elementor|divi)\b/i;
+export function agenturAusText(text: string): string | undefined {
+  const w = AGENTUR_WORT.exec(text);
+  if (!w) return undefined;
+  const m = AGENTUR_NAME.exec(text.slice(w.index + w[0].length));
+  if (!m) return undefined;
+  const n = m[1].replace(/\s+/g, ' ').trim().replace(/^[ .\-']+|[ .\-']+$/g, '');
+  if (n.length < 2 || BAUKASTEN.test(n) || /vecom/i.test(n)) return undefined;
+  return n.slice(0, 120);
+}
 
 export function mailsAusText(text: string): string[] {
   const roh = [...(text.match(MAIL) ?? [])];
@@ -163,6 +190,8 @@ export async function auditieren(firma: FirmaKurz): Promise<AuditErgebnis> {
     worker_version: VERSION,
     sprache: m ? spracheErkennen(m.lang, m.text) : undefined,
     email, telefon, whatsapp,
+    piva: seiten.map((s) => pivaAusText(`${s.fuss ?? ''} ${s.text ?? ''}`)).find(Boolean),
+    agentur: seiten.map((s) => agenturAusText(s.fuss ?? s.text.slice(-1500))).find(Boolean),
     bilder: { mobil: roh.browser?.screenshotMobil ?? undefined, desktop: roh.browser?.screenshotDesktop ?? undefined },
     marken: roh.browser?.mobil?.marken ?? [],   // A2 (28.09.2026): Stellen auf dem Handyfoto
     oeffnungszeiten: oeffnungLesen(seiten.flatMap((s) => s.oeffnungRoh ?? []), seiten.map((s) => s.text)) ?? undefined,

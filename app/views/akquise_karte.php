@@ -61,3 +61,39 @@ foreach ($punkte as $pk) { $zahl[$pk['f']]++; }
     </script>
   <?php endif; ?>
 </div>
+<?php /* Gebietsplan (07.10.2026, Kunden finden 13): welche Gebiete durchsucht sind, welches als Nächstes dran ist. */
+$gb = $gebiete ?? ['plan' => [], 'orte' => [], 'auto' => false]; ?>
+<div class="block" id="gebiete">
+  <h2 style="margin:0 0 4px">Gebietsplan</h2>
+  <p class="akq-klein" style="margin:0 0 12px">Ist die Automatik an, legt die Verwaltung jeden Tag das nächste fällige Gebiet als Suche an — nur, wenn „Betriebe suchen“ eingeschaltet ist und nichts wartet. Ein Gebiet ist nach <?= KundenFinden::GEBIET_TAGE ?> Tagen wieder fällig.</p>
+  <?php if ($gb['plan']): ?>
+  <div class="tabellenrahmen"><table><thead><tr><th>Gebiet</th><th>Zuletzt durchsucht</th><th>Gefunden / neu</th><th>Stand</th></tr></thead><tbody>
+    <?php foreach ($gb['plan'] as $g): ?>
+      <tr><td><b><?= Fmt::h((string) $g['gebiet']) ?></b></td>
+        <td><?= $g['fertig_am'] ? Fmt::h(date('d.m.Y', strtotime((string) $g['fertig_am']))) : '<span class="akq-klein">noch nie</span>' ?></td>
+        <td><?= (int) $g['gefunden'] ?> / <?= (int) $g['neu'] ?></td>
+        <td><?= match ((string) $g['status']) { 'wartet' => '⏳ wartet auf deinen PC', 'laeuft' => '🔎 läuft', 'fehler' => '⚠ Fehler beim letzten Lauf', default => $g['faellig'] ? 'fällig' : '✓ aktuell' } ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+  <?php endif; ?>
+  <?php if (Rechte::darfTat('akq_gebiete_speichern')): ?>
+  <form method="post" action="<?= Fmt::h(url('akquise')) ?>" style="margin-top:12px;display:grid;gap:10px;max-width:640px"><?= Csrf::feld() ?><input type="hidden" name="tat" value="akq_gebiete_speichern">
+    <label for="akq_plan">Gebiete, eines je Zeile (z. B. „Provinz Agrigento“, „Sciacca“, „Landkreis Mainz-Bingen“)</label>
+    <textarea id="akq_plan" name="plan" rows="7"><?= Fmt::h((string) ($planText ?? '')) ?></textarea>
+    <label class="akq-haken" style="margin:0"><input type="checkbox" name="auto" value="1" <?= !empty($gb['auto']) ? 'checked' : '' ?> style="width:auto;min-height:0"> Automatik: das nächste fällige Gebiet selbst anlegen</label>
+    <button class="knopf haupt" style="justify-self:start">Speichern</button>
+  </form>
+  <?php endif; ?>
+</div>
+<?php if ($gb['orte']): ?>
+<div class="block">
+  <h2 style="margin:0 0 8px">Abdeckung je Ort</h2>
+  <div class="tabellenrahmen"><table><thead><tr><th>Ort</th><th>Betriebe</th><th>ohne Website</th><th>Chancen</th><th>angesprochen</th><th>Kunden</th><th>zuletzt gesucht</th></tr></thead><tbody>
+    <?php foreach (array_slice($gb['orte'], 0, 80) as $o): ?>
+      <tr><td><a href="<?= Fmt::h(url('akquise') . '?stadt=' . rawurlencode((string) $o['stadt'])) ?>"><?= Fmt::h((string) $o['stadt']) ?></a><?= (string) $o['kreis'] !== '' ? ' <span class="akq-klein">' . Fmt::h((string) $o['kreis']) . '</span>' : '' ?></td>
+        <td><?= (int) $o['betriebe'] ?></td><td><?= (int) $o['ohne_web'] ?></td><td><?= (int) $o['chancen'] ?></td><td><?= (int) $o['angesprochen'] ?></td><td><?= (int) $o['kunden'] ?></td>
+        <td><?= $o['zuletzt'] ? Fmt::h(date('d.m.Y', strtotime((string) $o['zuletzt']))) : '—' ?></td></tr>
+    <?php endforeach; ?>
+  </tbody></table></div>
+</div>
+<?php endif; ?>

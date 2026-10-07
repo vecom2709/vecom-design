@@ -112,6 +112,8 @@ final class Automation
         'akquise_tipp'   => ['Website-Tipp der Woche', 'akquise', 'A', true, 'Dienstags, nur an bestätigte Abos.'],
         'akquise_termine' => ['Termin-Erinnerung', 'akquise', 'A', true, 'Am Vortag eine Erinnerung an den Gebuchten, genau einmal.'],
         'akquise_prio'   => ['Akquise-Priorität rechnen', 'akquise', 'A', false, 'Rechnet die Priorität je Betrieb aus den eigenen Daten nach (300 je Lauf).'],
+        'akquise_abgleich' => ['Kunden finden: Abgleich', 'akquise', 'A', false, 'Gleicht die Liste mit Kunden und Dubletten ab (400 je Lauf) und holt fällige „Später“ zurück — schreibt niemanden an.'],
+        'akquise_tag'    => ['Kunden finden: Tagesliste und Gebiet', 'akquise', 'A', false, 'Einmal am Tag: Branchenzahlen lernen, „Heute ansprechen“ rechnen, nächstes Gebiet aus dem Gebietsplan anlegen.'],
         'partner_warnungen' => ['Partner-Warnungen 48 h / 72 h', 'partner', 'A', true, 'Heißes Signal beim reservierten Betrieb ohne Reaktion: nach 48 h Hinweis an den Partner, nach 72 h Meldung an Uwe — je Signal einmal.'],
         'akquise_checks' => ['Website-Checks anonymisieren', 'akquise', 'A', false, 'Leert persönliche Felder nach der Frist.'],
         'akquise_woche'  => ['Akquise-Wochenbericht', 'akquise', 'A', false, 'Montags ein Zuruf an dich.'],

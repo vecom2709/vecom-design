@@ -8150,7 +8150,7 @@ foreach (['mario@gmail.com', 'anna@libero.it', 'x@pec.it', 'b@web.de', 'k@pruefu
 
 /* A2 + A4: Vorbelegung aus Kundenakte und Vorhaben. */
 $fbKunde = Events::kundeFinden(['name' => 'Vorbelegt Probe', 'email' => 'info@vorbelegt-kette.it',
-    'phone' => '+39 0922 111222', 'company' => 'Vorbelegt SRL']);
+    'phone' => '+39 0922 118899', 'company' => 'Vorbelegt SRL']);
 Db::insert('bedarf', ['customer_id' => $fbKunde, 'token' => bin2hex(random_bytes(24)), 'sprache' => 'de', 'status' => 'abgesendet',
     'antworten' => json_encode(['zweck' => ['zeigen'], 'umfang' => 'wenige', 'sprachen' => 'eine',
         'material' => ['logo'], 'bestand' => 'neu', 'zeit' => 'schnell', 'betreuung' => 'ja', 'branche' => 'gastro'])]);
@@ -8158,7 +8158,7 @@ $fbVor = Bedarf::alsFragebogen($fbKunde);
 pruefe('A2: Domain aus der E-Mail vorbelegt, als Vorschlag „läuft auf uns“',
     ($fbVor['domain'] ?? '') === 'uns' && ($fbVor['domain_name'] ?? '') === 'vorbelegt-kette.it', json_encode($fbVor));
 pruefe('A4: Telefon, E-Mail und Firma aus der Akte',
-    ($fbVor['telefon'] ?? '') === '+39 0922 111222' && ($fbVor['email_web'] ?? '') === 'info@vorbelegt-kette.it'
+    ($fbVor['telefon'] ?? '') === '+39 0922 118899' && ($fbVor['email_web'] ?? '') === 'info@vorbelegt-kette.it'
     && ($fbVor['firmenname'] ?? '') === 'Vorbelegt SRL');
 pruefe('A4: „schnell“ wird „so bald wie möglich“, Betreuung „ja“ wird „am liebsten Sie“',
     ($fbVor['termin'] ?? '') === 'baldest' && ($fbVor['pflege'] ?? '') === 'du');
@@ -26625,7 +26625,7 @@ $crLauf = AkquisePrio::lauf(5000);
 pruefe('Priorität: eine offene positive Antwort macht „Jetzt kontaktieren“; der Cron rechnet nach, ohne „zuletzt geändert“ zu verfälschen; „Warum interessant?“ nennt die stärksten Gründe',
     $crPb2['stufe'] === 'jetzt' && $crPb2['gruende'][0] === 'Positive Antwort wartet auf Bearbeitung' && $crLauf['gerechnet'] > 0
     && (string) Db::wert('SELECT updated_at FROM akq_firmen WHERE id = ?', [$crA], '') === $crUpd && Db::wert('SELECT prio_am FROM akq_firmen WHERE id = ?', [$crA], '2000-01-01') > '2000-01-02'
-    && AkquisePrio::warum((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crB])) === 'Positive Antwort wartet auf Bearbeitung · Digital-Chance 80/100: Seite lädt langsam.', json_encode($crPb2));
+    && AkquisePrio::warum((array) Db::one('SELECT * FROM akq_firmen WHERE id = ?', [$crB])) === 'Positive Antwort wartet auf Bearbeitung · Digital-Chance 80/100: Seite lädt langsam · Kontaktweg vorhanden: E-Mail, Telefon.', json_encode($crPb2));
 
 /* Heute und nächster bester Kontakt */
 $crH = AkquiseCrm::heute(500);
@@ -28515,6 +28515,112 @@ Db::run("DELETE FROM settings WHERE skey LIKE 'ki\\_%'");
 /* ============================================================================
    Aufräumen und Bilanz
    ============================================================================ */
+abschnitt('Kunden finden: nie doppelt, mit Grund, mit Tagesliste');
+foreach (['Akquise', 'AkquiseWorker', 'AkquisePrio', 'KundenFinden', 'AkquiseGate'] as $kfK) { require_once $wurzel . "/src/$kfK.php"; }
+KundenFinden::vergessen();
+$kfKunde = (int) Db::insert('customers', ['name' => 'Sara Bellini', 'email' => 'info@trattoria-sole-kf.it', 'phone' => '0925 112233', 'company' => 'Trattoria del Sole',
+    'city' => 'Sciacca', 'country' => 'IT', 'vat_id' => 'IT01234567897', 'sprache' => 'it', 'token' => bin2hex(random_bytes(12))]);
+Db::insert('websites', ['customer_id' => $kfKunde, 'domain' => 'sole-kunde-kf.it', 'url' => 'https://sole-kunde-kf.it']);   // erst mit Website/Projekt/Bestellung ist er „Kunde“
+$kfLead = (int) Db::insert('customers', ['name' => 'Nur Interessent', 'email' => 'lead@nur-bereich-kf.it', 'sprache' => 'it', 'token' => bin2hex(random_bytes(12))]);
+KundenFinden::vergessen();
+pruefe('Kunden finden: ein Interessent mit persönlichem Bereich ist noch kein Kunde, einer mit Website schon',
+    KundenFinden::kundeFuer(['email' => 'lead@nur-bereich-kf.it', 'land' => 'IT']) === null
+    && (KundenFinden::kundeFuer(['url' => 'https://sole-kunde-kf.it', 'land' => 'IT'])[0] ?? 0) === $kfKunde);
+/* 1) Neuer Fund, der schon Kunde ist (gleiche Website-Domain wie die Firmen-Mail) → nicht in die Liste, gemerkt mit Grund. */
+$kfR = AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [
+    ['name' => 'Trattoria Sole Sciacca', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://www.trattoria-sole-kf.it', 'email' => 'prenota@trattoria-sole-kf.it', 'quelle' => 'osm:node/91000001', 'branche' => 'restaurant'],
+    ['name' => 'Bar Nuovo KF', 'land' => 'IT', 'stadt' => 'Sciacca', 'email' => 'bar.nuovo.kf@libero.it', 'quelle' => 'osm:node/91000002', 'branche' => 'cafe',
+     'osm_version' => 1, 'osm_zeit' => date('Y-m-d', strtotime('-10 days')) . 'T09:00:00Z'],
+]]);
+pruefe('Kunden finden: ein Fund, der schon Kunde ist, kommt nicht in die Liste — der andere schon', (int) ($kfR['schon_kunde'] ?? 0) === 1 && (int) $kfR['neu'] === 1
+    && Db::wert("SELECT id FROM akq_firmen WHERE quelle = 'osm:node/91000001'", [], null) === null, json_encode(array_diff_key($kfR, ['ergebnisse' => 1])));
+pruefe('Kunden finden: er steht mit Grund „kunde“ in der Ausschlussliste und kommt bei der nächsten Suche auch mit Kontaktweg nicht zurück',
+    Akquise::aussortiertGrund(['quelle' => 'osm:node/91000001', 'name' => 'x']) === 'kunde'
+    && (int) (AkquiseWorker::ausfuehren('firmen_melden', ['firmen' => [['name' => 'Trattoria Sole Sciacca', 'land' => 'IT', 'stadt' => 'Sciacca', 'email' => 'neu@sole-anders.example', 'quelle' => 'osm:node/91000001', 'branche' => 'restaurant']]])['ausgeschlossen'] ?? 0) === 1);
+/* „Ohne Kontaktweg“ darf zurück, „kein Interesse“ nicht. */
+Db::run("INSERT IGNORE INTO akq_aussortiert (schluessel, name, grund) VALUES ('q:osm:node/91000003', 'Ohne Weg', 'ohne_kontakt'), ('q:osm:node/91000004', 'Will nicht', 'kein_interesse')");
+Akquise::aussortiertVergessen(['quelle' => 'osm:node/91000003']); Akquise::aussortiertVergessen(['quelle' => 'osm:node/91000004']);
+pruefe('Kunden finden: vergessen wird nur „ohne Kontaktweg“ — „kein Interesse“ bleibt draußen',
+    Db::wert("SELECT id FROM akq_aussortiert WHERE schluessel = 'q:osm:node/91000003'", [], null) === null && Db::wert("SELECT id FROM akq_aussortiert WHERE schluessel = 'q:osm:node/91000004'", [], null) !== null);
+/* 2) Vorhandener Eintrag, der Kunde ist (Partita IVA vom Audit) → markiert, Status „kunde“, Priorität „nie“, nicht in der Arbeitsliste. */
+$kfAlt = Akquise::firmaMelden(['name' => 'Ristorante Il Sole', 'land' => 'IT', 'stadt' => 'Menfi', 'telefon' => '0925 999000', 'quelle' => 'osm:node/91000005', 'branche' => 'restaurant']);
+Db::update('akq_firmen', (int) $kfAlt['id'], ['piva' => '01234567897']);
+KundenFinden::abgleichen((int) $kfAlt['id']);
+$kfZ = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $kfAlt['id']]);
+$kfArbeit = Akquise::liste(['q' => '']);
+pruefe('Kunden finden: ein vorhandener Betrieb mit der Partita IVA eines Kunden wird „Schon Kunde“, verknüpft und bekommt Priorität „nie“',
+    (string) $kfZ['markierung'] === 'kunde' && (string) $kfZ['kontakt_status'] === 'kunde' && (int) $kfZ['customer_id'] === $kfKunde && (int) $kfZ['bestandskunde'] === 0
+    && AkquisePrio::berechnen($kfZ)['stufe'] === 'nie', json_encode(array_intersect_key($kfZ, array_flip(['markierung', 'kontakt_status', 'customer_id', 'markierung_grund']))));
+pruefe('Kunden finden: die Arbeitsliste zeigt ihn nicht, der Reiter „Schon Kunde“ schon',
+    !in_array((int) $kfAlt['id'], array_map('intval', array_column(Akquise::liste([])['zeilen'], 'id')), true)
+    && in_array((int) $kfAlt['id'], array_map('intval', array_column(Akquise::liste(['ansicht' => 'kunde'], 1, 500)['zeilen'], 'id')), true));
+/* 3) Dubletten: gleiche Telefonnummer, ähnlicher Name → Verdacht; Zusammenführen nimmt Angaben und Verlauf mit. */
+$kfA = Akquise::firmaMelden(['name' => 'Panificio Russo KF', 'land' => 'IT', 'stadt' => 'Ribera', 'telefon' => '0925 777111', 'quelle' => 'osm:node/91000006', 'branche' => 'bakery']);
+$kfB = Akquise::firmaMelden(['name' => 'Panificio Russo', 'land' => 'IT', 'stadt' => 'Ribera', 'telefon' => '+39 0925 777111', 'email' => 'russo.kf@panificio-kf.example', 'quelle' => 'overture:kf-1', 'branche' => 'bakery']);
+$kfBz = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $kfB['id']]);
+pruefe('Kunden finden: gleiche Telefonnummer bei ähnlichem Namen wird „Mögliche Dublette“ des älteren Eintrags',
+    $kfB['neu'] === true && (string) $kfBz['markierung'] === 'dublette' && (int) $kfBz['dublette_von'] === (int) $kfA['id'], json_encode([$kfB, $kfBz['markierung'], $kfBz['dublette_von']]));
+Akquise::protokoll((int) $kfB['id'], 'notiz', 'Verlauf am Doppel');
+$kfMsg = KundenFinden::zusammenfuehren((int) $kfA['id'], (int) $kfB['id']);
+$kfAz = Db::one('SELECT * FROM akq_firmen WHERE id = ?', [(int) $kfA['id']]);
+pruefe('Kunden finden: Zusammenführen ergänzt die E-Mail, nimmt den Verlauf mit, löscht das Doppel und merkt sich dessen Quelle',
+    (string) $kfAz['email'] === 'russo.kf@panificio-kf.example' && Db::wert('SELECT id FROM akq_firmen WHERE id = ?', [(int) $kfB['id']], null) === null
+    && (int) Db::wert("SELECT COUNT(*) FROM akq_protokoll WHERE firma_id = ? AND text = 'Verlauf am Doppel'", [(int) $kfA['id']]) === 1
+    && Akquise::aussortiertGrund(['quelle' => 'overture:kf-1', 'name' => 'x']) === 'zusammengefuehrt', $kfMsg);
+/* Neue Funde mit derselben Firmen-Mail sind derselbe Betrieb (keine zweite Zeile). */
+$kfC = Akquise::firmaMelden(['name' => 'Forno Russo', 'land' => 'IT', 'stadt' => 'Ribera', 'email' => 'russo.kf@panificio-kf.example', 'quelle' => 'osm:node/91000007']);
+pruefe('Kunden finden: gleiche E-Mail bei einem neuen Fund ergänzt den vorhandenen Betrieb statt einer zweiten Zeile', $kfC['neu'] === false && (int) $kfC['id'] === (int) $kfA['id'], json_encode($kfC));
+/* 4) Neueröffnung, Saison, Agentur, lernende Zahlen in der Priorität */
+$kfNeu = Db::one("SELECT * FROM akq_firmen WHERE quelle = 'osm:node/91000002'");
+$kfZu = KundenFinden::prioZusatz(array_merge($kfNeu, ['tourismus' => 1, 'agentur' => 'Studio Lumen', 'osm_neu_am' => date('Y') . '-02-01']), strtotime(date('Y') . '-02-10'));
+pruefe('Kunden finden: Neueröffnung (OSM Version 1) und „vor der Saison“ geben Punkte, eine fremde Agentur zieht ab',
+    $kfNeu['osm_neu_am'] !== null && count(array_filter($kfZu['plus'], static fn($x) => str_contains($x[1], 'neu eröffnet'))) === 1
+    && count(array_filter($kfZu['plus'], static fn($x) => str_contains($x[1], 'Saison'))) === 1
+    && count(array_filter($kfZu['minus'], static fn($x) => str_contains($x[1], 'Studio Lumen'))) === 1, json_encode($kfZu, JSON_UNESCAPED_UNICODE));
+pruefe('Kunden finden: Agentur und Partita IVA kommen aus dem Prüfbericht in die Akte', (static function () use ($wurzel): bool {
+    $id = (int) Akquise::firmaMelden(['name' => 'Hotel Mare KF', 'land' => 'IT', 'stadt' => 'Sciacca', 'url' => 'https://hotel-mare-kf.example', 'quelle' => 'osm:node/91000008', 'branche' => 'hotel'])['id'];
+    try { Akquise::auditMelden($id, ['status' => 'fertig', 'befunde' => [], 'messwerte' => [], 'seiten' => 1, 'geprueft_url' => 'https://hotel-mare-kf.example', 'piva' => '0987 6543 210', 'agentur' => 'Studio Lumen']); } catch (Throwable $e) { }
+    $f = Db::one('SELECT piva, agentur FROM akq_firmen WHERE id = ?', [$id]);
+    return (string) $f['piva'] === '09876543210' && (string) $f['agentur'] === 'Studio Lumen';
+})());
+$kfL = KundenFinden::lernen();
+pruefe('Kunden finden: die Branchenzahlen werden gelernt und gespeichert', is_array($kfL) && Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_lernen'", [], null) !== null, json_encode($kfL));
+/* 5) Später statt löschen */
+KundenFinden::spaeter((int) $kfA['id'], 6);
+pruefe('Kunden finden: „Später“ nimmt den Betrieb sechs Monate aus der Arbeitsliste, der Reiter „Später“ zeigt ihn',
+    !in_array((int) $kfA['id'], array_map('intval', array_column(Akquise::liste([], 1, 500)['zeilen'], 'id')), true)
+    && in_array((int) $kfA['id'], array_map('intval', array_column(Akquise::liste(['ansicht' => 'spaeter'], 1, 500)['zeilen'], 'id')), true));
+Db::update('akq_firmen', (int) $kfA['id'], ['naechster_am' => date('Y-m-d', strtotime('-1 day'))]);
+pruefe('Kunden finden: ist der Tag da, kommt er von selbst zurück', KundenFinden::spaeterFaellig() >= 1 && Db::wert('SELECT crm_stufe FROM akq_firmen WHERE id = ?', [(int) $kfA['id']], null) === null);
+/* 6) Tagesliste: nur Arbeitsliste, nur erlaubter Weg, nie ein Kunde */
+Db::run('DELETE FROM akq_tagesliste');
+Db::run("UPDATE akq_firmen SET prio_stufe = 'jetzt', prio_score = 99 WHERE id IN (?, ?)", [(int) $kfA['id'], (int) $kfAlt['id']]);
+Db::run("UPDATE akq_firmen SET einwilligung = 'kette', einwilligung_kanaele = 'email', email_send_allowed = 1 WHERE id = ?", [(int) $kfA['id']]);
+KundenFinden::tageslisteRechnen();
+$kfT = array_map('intval', array_column(KundenFinden::tagesliste(), 'firma_id'));
+pruefe('Kunden finden: „Heute ansprechen“ nimmt den Betrieb mit Einwilligung, nie den Kunden — und rechnet am selben Tag nicht doppelt',
+    in_array((int) $kfA['id'], $kfT, true) && !in_array((int) $kfAlt['id'], $kfT, true) && (KundenFinden::tageslisteRechnen()['schon'] ?? false) === true, json_encode($kfT));
+/* 7) Gebietsplan: legt das nächste Gebiet an — nur mit eingeschalteter Suche, nie doppelt */
+$kfSchalter = AkquiseGate::schalter('recherche');
+Db::run("UPDATE akq_laeufe SET status = 'fertig' WHERE status IN ('wartet','laeuft')");
+KundenFinden::planSpeichern("Provinz Kettenland\nProvinz Zweitland", true);
+AkquiseGate::schalterSetzen('recherche', true);
+$kfG1 = KundenFinden::naechstesGebiet(); $kfG2 = KundenFinden::naechstesGebiet();
+AkquiseGate::schalterSetzen('recherche', false);
+Db::run("UPDATE akq_laeufe SET status = 'gestoppt' WHERE angelegt_von = 'Gebietsplan' AND status = 'wartet'");
+$kfG3 = KundenFinden::naechstesGebiet();
+AkquiseGate::schalterSetzen('recherche', $kfSchalter);
+pruefe('Kunden finden: der Gebietsplan legt das nächste Gebiet an, wartet dann, und tut nichts bei ausgeschalteter Suche',
+    $kfG1['angelegt'] === 'Provinz Kettenland' && $kfG2['angelegt'] === null && ($kfG3['grund'] ?? '') === 'suche_aus', json_encode([$kfG1, $kfG2, $kfG3]));
+Db::run("DELETE FROM akq_laeufe WHERE angelegt_von = 'Gebietsplan'");
+Db::run("DELETE FROM settings WHERE skey IN ('akq_gebiete_plan','akq_gebiete_auto')");
+/* 8) Bereinigung in Paketen */
+Db::run('UPDATE akq_firmen SET abgeglichen_am = NULL');
+$kfB2 = KundenFinden::bereinigen(5000);
+pruefe('Kunden finden: die Bereinigung prüft alle Betriebe und meldet sich einmal', $kfB2['offen'] === 0 && $kfB2['geprueft'] > 0 && Db::wert("SELECT svalue FROM settings WHERE skey = 'akq_bereinigt_am'", [], null) !== null, json_encode($kfB2));
+/* 9) Die Seite zeigt Reiter und Marken */
+pruefe('Kunden finden: Regeln „akquise_abgleich“ und „akquise_tag“ sind im Automation Center registriert', isset(Automation::REGELN['akquise_abgleich'], Automation::REGELN['akquise_tag']));
+
 abschnitt('Bilanz');
 $GLOBALS['bilanz_erreicht'] = true;
 

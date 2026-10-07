@@ -165,6 +165,19 @@ if (!AkquiseGate::briefAn()) { unset($reiter['briefe']); }   // Briefe ausgescha
   .crm-prio{display:inline-flex;gap:4px;align-items:center;padding:2px 9px;border-radius:999px;font-size:var(--fs-klein);font-weight:650;border:1px solid var(--linie);white-space:nowrap;font-variant-numeric:tabular-nums}
   .crm-prio.p-jetzt{border-color:rgba(255,138,138,.5);color:#ffb4a8} .crm-prio.p-gut{border-color:rgba(74,222,128,.45);color:var(--gruen)}
   .crm-prio.p-spaeter{border-color:rgba(245,197,66,.45);color:#f5c542} .crm-prio.p-niedrig{color:var(--leise)} .crm-prio.p-nie{border-color:var(--rot);color:var(--rot)}
+  /* Kunden finden (07.10.2026) */
+  .akq-ansicht a .zahl{font-variant-numeric:tabular-nums;color:var(--leise);margin-left:4px}
+  .akq-marke{display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;margin:5px 6px 0 0;padding:2px 9px;border-radius:999px;font-size:var(--fs-klein);border:1px solid var(--linie);color:var(--dim)}
+  .akq-marke.kunde{border-color:rgba(90,169,255,.55);color:#9cc9ff} .akq-marke.doppel{border-color:rgba(245,197,66,.5);color:#f5c542;border-radius:12px;padding:6px 10px}
+  .akq-marke.neu{border-color:rgba(74,222,128,.45);color:var(--gruen)} .akq-marke.agentur{color:var(--leise)} .akq-marke.spaeter{color:var(--leise)}
+  .akq-marke .knopf.klein,.akq-heute .knopf.klein{padding:3px 10px;min-height:0;font-size:var(--fs-klein)}
+  .knopf.klein.leise{background:transparent;border-color:var(--linie);color:var(--dim);margin-top:6px}
+  .akq-heute{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+  .akq-heute li{display:grid;grid-template-columns:auto 1fr auto auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--linie);border-radius:12px;background:var(--flaeche)}
+  .akq-heute li.fertig{opacity:.55}
+  .akq-heute .rang{font-weight:700;font-variant-numeric:tabular-nums;color:var(--cyan);min-width:1.6em;text-align:center}
+  .akq-heute .kanal{font-size:var(--fs-klein);color:var(--dim);white-space:nowrap}
+  @media (max-width:700px){ .akq-heute li{grid-template-columns:auto 1fr} .akq-heute .kanal,.akq-heute form{grid-column:2} }
   @media (max-width:700px){ .akq-filter .breit{grid-column:span 1} .akq-reiter .rechts{margin-left:0;width:100%}
     .akq-suchzeile{grid-template-columns:1fr} .akq-schritt{align-items:flex-start} }
 </style>

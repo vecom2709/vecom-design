@@ -25,6 +25,9 @@ export interface OsmElement {
   lat?: number; lon?: number;
   center?: { lat: number; lon: number };
   tags?: Record<string, string>;
+  /** Mit „out meta“: Version und Zeit der letzten Änderung (07.10.2026, Neueröffnungen). */
+  version?: number;
+  timestamp?: string;
 }
 
 export interface Gebiet { name: string; osmId: number; region?: string; kreis?: string; lat?: number; lon?: number }
@@ -33,6 +36,8 @@ export interface GefundeneFirma {
   name: string; land: 'DE' | 'IT'; region?: string; kreis?: string; stadt?: string; plz?: string;
   adresse?: string; lat?: number; lon?: number; url?: string; telefon?: string; email?: string;
   branche: string; unternehmensart: string; quelle: string; quelle_lizenz: string;
+  /** Version 1 = erstmals eingetragen; mit der Zeit dazu meist eine Neueröffnung (Kunden finden, 07.10.2026). */
+  osm_version?: number; osm_zeit?: string;
 }
 
 const LIZENZ = 'ODbL (© OpenStreetMap-Mitwirkende)';
@@ -157,14 +162,14 @@ export async function untergebiete(gebiet: Gebiet, ebene: 'kreis' | 'stadt'): Pr
 export async function betriebeIn(gebiet: Gebiet, branchen: string[]): Promise<OsmElement[]> {
   const liste = branchen.length ? branchen : Object.keys(BRANCHEN);
   const teile = liste.flatMap((b) => BRANCHEN[b]?.osm ?? []).map((s) => `nwr${overpassFilter(s)}(area.g);`);
-  return overpass(`[out:json][timeout:180];rel(${gebiet.osmId});map_to_area->.g;(${teile.join('')});out center tags;`);
+  return overpass(`[out:json][timeout:180];rel(${gebiet.osmId});map_to_area->.g;(${teile.join('')});out center tags meta;`);
 }
 
 /** Betriebe mit einer bestimmten PLZ/CAP (OSM-Adressfeld). */
 export async function betriebeMitPlz(land: string, plz: string, branchen: string[]): Promise<OsmElement[]> {
   const liste = branchen.length ? branchen : Object.keys(BRANCHEN);
   const teile = liste.flatMap((b) => BRANCHEN[b]?.osm ?? []).map((s) => `nwr${overpassFilter(s)}["addr:postcode"="${esc(plz)}"](area.land);`);
-  return overpass(`[out:json][timeout:180];${landArea(land)}(${teile.join('')});out center tags;`);
+  return overpass(`[out:json][timeout:180];${landArea(land)}(${teile.join('')});out center tags meta;`);
 }
 
 /* ==========================================================================
@@ -215,5 +220,7 @@ export function alsFirma(e: OsmElement, land: 'DE' | 'IT', ort: { region?: strin
     unternehmensart: art ? `${art[0]}=${art[1]}` : '',
     quelle: `osm:${e.type}/${e.id}`,
     quelle_lizenz: LIZENZ,
+    osm_version: e.version,
+    osm_zeit: e.timestamp,
   };
 }

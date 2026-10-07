@@ -520,6 +520,10 @@ final class Ablauf
             '„Nicht kontaktieren“ wird aufgehoben, die Sperrlisten-Einträge dieses Betriebs werden gelöscht. '
             . 'Alter Stand und deine Begründung stehen danach in der Prüfspur.',
             'Ja, aufheben'],
+        'akq_zusammenfuehren' => [self::SCHWER,
+            'Die beiden Einträge werden zu einem: Leere Angaben werden ergänzt, Verlauf, Antworten, Einwilligungen und Notizen wandern mit, '
+            . 'der zweite Eintrag wird gelöscht. Das lässt sich nicht rückgängig machen.',
+            'Ja, zusammenführen'],
         'akq_aussortieren' => [self::SCHWER,
             'Alle Betriebe ohne E-Mail und ohne WhatsApp (auch ohne Handynummer) werden endgültig gelöscht — samt Prüfberichten. '
             . 'Gesperrte, angesprochene und Betriebe bei Partnern bleiben. Wer nur Festnetz hat, fällt damit auch aus der Anrufliste.',
