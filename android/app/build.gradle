@@ -1,0 +1,50 @@
+/* Vecom Partner — Android-App (07.10.2026).
+
+   Eine Trusted Web Activity: Chrome öffnet partner.php im Vollbild, ohne
+   Adresszeile. Kein eigener Code und kein eigener Bildschirm — die App ist
+   die Partnerseite. Damit gibt es weiter genau EINE Wahrheit über die Zahlen,
+   und jede Änderung an partner.php ist sofort auch in der App, ohne neue APK.
+
+   Ein WebView wäre einfacher gewesen, hätte aber zwei Dinge gekostet, die die
+   Partnerseite braucht: Web-Push (gibt es im WebView nicht) und die geteilte
+   Anmeldung mit Chrome (das bestätigte Gerät aus PartnerGeraet). */
+plugins { id 'com.android.application' }
+
+android {
+    namespace 'it.vecomdesign.partner'
+    compileSdk 36
+
+    defaultConfig {
+        applicationId 'it.vecomdesign.partner'
+        minSdk 24
+        targetSdk 36
+        versionCode 1
+        versionName '1.0'
+    }
+
+    /* Der Schlüssel liegt NIE im Repository (es ist öffentlich). Pfad und
+       Kennwörter kommen aus der Umgebung; ohne sie wird nur unsigniert gebaut.
+       Geht der Schlüssel verloren, lässt sich die App nicht mehr aktualisieren
+       UND assetlinks.json passt nicht mehr — dann zeigt die App wieder eine
+       Adresszeile. Deshalb: sicher aufbewahren, zweimal. */
+    signingConfigs {
+        vecom {
+            storeFile System.getenv('VECOM_KEYSTORE') ? file(System.getenv('VECOM_KEYSTORE')) : null
+            storePassword System.getenv('VECOM_KEYSTORE_PASS')
+            keyAlias 'vecom-partner'
+            keyPassword System.getenv('VECOM_KEYSTORE_PASS')
+        }
+    }
+    buildTypes {
+        release {
+            minifyEnabled true; shrinkResources true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
+            if (System.getenv('VECOM_KEYSTORE')) { signingConfig signingConfigs.vecom }
+        }
+    }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+}
+
+dependencies {
+    implementation 'com.google.androidbrowserhelper:androidbrowserhelper:2.7.4'
+}

@@ -2315,7 +2315,14 @@ if ($p && isset($_GET['karte'])) {
     <div class="knoepfe">
       <button class="knopf haupt" type="button" id="push_an" hidden><?= $h($T('app_an')) ?></button>
       <button class="knopf" type="button" id="installieren" hidden><?= $h($T('app_installieren')) ?></button>
+      <?php /* Eigene App (07.10.2026): Android als APK (Trusted Web Activity, Quelle in android/),
+               iPhone als Profil mit Web-Clip — Apple lässt keine App-Datei außerhalb des App Store zu.
+               Beide öffnen nur diese Seite; was der Partner sieht, entsteht weiter allein hier. */ ?>
+      <a class="knopf" id="app_apk" href="/assets/app/vecom-partner.apk?v=<?= (int) @filemtime(__DIR__ . '/assets/app/vecom-partner.apk') ?>" download="vecom-partner.apk"><?= $h($T('app_apk')) ?></a>
+      <a class="knopf" id="app_ios_profil" href="/assets/app/vecom-partner.mobileconfig"><?= $h($T('app_ios_profil')) ?></a>
     </div>
+    <p class="klein" id="app_apk_hilfe" style="margin-top:10px"><?= $h($T('app_apk_hilfe')) ?></p>
+    <p class="klein" id="app_ios_hilfe"><?= $h($T('app_ios_profil_hilfe')) ?></p>
     <p class="klein" id="app_hilfe" style="margin-top:10px"></p>
     <?php if ($p): /* Chrome-Absprung: dieselbe persönliche Adresse, die schon in der Adresszeile steht. */ ?>
     <p class="klein" id="app_chrome" hidden><a href="<?= $h('intent://' . preg_replace('~^https?://~', '', $basis) . $selbst() . '#Intent;scheme=https;package=com.android.chrome;end') ?>"><?= $h($T('app_chrome')) ?></a></p>
@@ -2344,6 +2351,11 @@ if ($p && isset($_GET['karte'])) {
     var ua = navigator.userAgent, alsApp = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
     var ios = /iPhone|iPad|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     var android = /Android/.test(ua), chrome = document.getElementById('app_chrome');
+    /* Die Download-Knöpfe nur dort, wo sie passen: Android sieht die APK, das iPhone das Profil,
+       der Rechner beide (zum Weitergeben). Schon als App geöffnet: keiner. */
+    var zeig = function (id, an) { var e = document.getElementById(id); if (e) { e.hidden = !an; } };
+    zeig('app_apk', !alsApp && !ios); zeig('app_apk_hilfe', !alsApp && !ios);
+    zeig('app_ios_profil', !alsApp && !android); zeig('app_ios_hilfe', !alsApp && !android);
     if (alsApp) { hilfe.textContent = HW.laeuft; }
     else if (ios) { hilfe.textContent = HW.ios; }
     else if (/SamsungBrowser/.test(ua)) { hilfe.textContent = HW.samsung; }

@@ -181,6 +181,7 @@ jobs:
               --exclude '^caps/' \
               --exclude '^tools/' \
               --exclude '^3d-produktion/' \
+              --exclude '^android/' \
               --exclude '^cockpit/\.htaccess$' \
               --exclude '^build\.mjs$' \
               --exclude '^seiten/' \
