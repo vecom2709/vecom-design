@@ -1,0 +1,8 @@
+[{
+  "relation": ["delegate_permission/common.handle_all_urls"],
+  "target": {
+    "namespace": "android_app",
+    "package_name": "it.vecomdesign.partner",
+    "sha256_cert_fingerprints": ["E8:6D:FD:44:80:48:34:D0:BA:18:0F:54:D6:00:B1:91:C7:C2:CA:34:7F:2B:EB:DD:AD:0F:44:08:E1:F7:64:5C"]
+  }
+}]
