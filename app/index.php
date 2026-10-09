@@ -267,10 +267,29 @@ if ($route === 'passwort-vergessen') {
     $fertig = false;
     if ($post) {
         Csrf::pruefen();
+        /* Live antwortete diese Seite am 09.10.2026 mit 500 und leerem Text — und weder Link noch
+           Meldung entstanden. Ohne Fehlerprotokoll auf dem Webspace war nicht zu sehen, warum.
+           Jetzt landet jeder Absturz hier in settings.passwort_fehler (lesbar im phpMyAdmin),
+           auch ein nicht abfangbarer. Die Seite sagt trotzdem dasselbe wie immer. */
+        register_shutdown_function(static function (): void {
+            $f = error_get_last();
+            if ($f === null || !in_array($f['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) { return; }
+            try {
+                Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)',
+                    ['passwort_fehler', date('Y-m-d H:i:s') . ' ' . mb_substr($f['message'] . ' @ ' . basename($f['file']) . ':' . $f['line'], 0, 900)]);
+            } catch (Throwable $e) { /* nichts mehr zu retten */ }
+        });
         /* Die Migrationen laufen sonst erst nach der Anmeldung — und genau die geht hier nicht.
            Ohne diesen Schritt fehlte die Tabelle beim ersten vergessenen Passwort nach dem Deploy. */
         try { require_once __DIR__ . '/src/Einrichtung.php'; Einrichtung::migrieren(); } catch (Throwable $e) { /* dann zeigt es die Anmeldung später */ }
-        Auth::linkAnfordern((string) ($_POST['email'] ?? ''));
+        try {
+            Auth::linkAnfordern((string) ($_POST['email'] ?? ''));
+        } catch (Throwable $e) {
+            try {
+                Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)',
+                    ['passwort_fehler', date('Y-m-d H:i:s') . ' ' . get_class($e) . ': ' . mb_substr($e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine(), 0, 900)]);
+            } catch (Throwable $e2) { /* dann bleibt nur das Server-Protokoll */ }
+        }
         $fertig = true;
     }
     require __DIR__ . '/views/passwort.php';

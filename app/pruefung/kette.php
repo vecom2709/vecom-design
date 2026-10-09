@@ -7952,8 +7952,11 @@ pruefe('Passwort vergessen: beide Seiten stehen vor dem Riegel, die Anmeldung ze
     strpos($p0Idx, "\$route === 'passwort-vergessen'") < strpos($p0Idx, 'Auth::nurAdmin();')
     && strpos($p0Idx, "\$route === 'passwort-neu'") < strpos($p0Idx, 'Auth::nurAdmin();')
     && str_contains((string) file_get_contents($oben . '/app/views/anmelden.php'), "url('passwort-vergessen')")
-    && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 800), 'Einrichtung::migrieren()'));
+    && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), 'Einrichtung::migrieren()'));
 $p0Auth = (string) file_get_contents($wurzel . '/src/Auth.php');
+pruefe('Passwort vergessen: ein Absturz beim Anfordern landet in settings.passwort_fehler (auch ein nicht abfangbarer) statt nur als leere 500',
+    str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), "'passwort_fehler'")
+    && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), 'register_shutdown_function'));
 pruefe('Passwort vergessen: eigene Adressen gehen über den Mailserver des Webspace, Brevo nur als Rückfall (All-Inkl wies Brevo mit 451 4.7.1 ab)',
     strpos($p0Auth, '@mail($an') !== false && strpos($p0Auth, '@mail($an') < strpos($p0Auth, "Mail::senden('passwort_link'")
     && str_contains($p0Auth, 'if (!$ok) {'));
