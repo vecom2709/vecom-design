@@ -19,6 +19,7 @@
       <div class="feld"><label>Passwort</label><input type="password" name="passwort" autocomplete="current-password" required></div>
       <button class="knopf haupt" style="width:100%;justify-content:center">Anmelden</button>
     </form>
+    <p style="margin:14px 0 0;text-align:center;font-size:14px"><a href="<?= Fmt::h(url('passwort-vergessen')) ?>">Passwort vergessen?</a></p>
   </div>
 </div>
 </body>

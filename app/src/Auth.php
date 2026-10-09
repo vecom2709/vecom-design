@@ -42,6 +42,55 @@ final class Auth
         return true;
     }
 
+    /* ---------- Passwort vergessen (09.10.2026, Uwe: „kannst du mir es zurückschalten“) ----------
+       Niemand setzt hier ein Passwort für jemand anderen. Die Adresse bekommt einen Link,
+       30 Minuten gültig, einmal benutzbar, und die Person wählt ihr Passwort selbst.
+       Die Antwort ist immer dieselbe — ob die Adresse bekannt ist, verrät die Seite nicht. */
+    public const LINK_MINUTEN = 30;
+    public const LINK_JE_STUNDE = 3;
+
+    public static function linkAnfordern(string $email): void
+    {
+        $email = mb_strtolower(trim($email));
+        $u = Db::one('SELECT id, name, email, role FROM users WHERE email = ? AND active = 1', [$email]);
+        require_once __DIR__ . '/Rechte.php';
+        if ($u === null || !isset(Rechte::ROLLEN[(string) $u['role']])) { usleep(300000); return; }
+        $zuletzt = (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)', [(int) $u['id']]);
+        if ($zuletzt >= self::LINK_JE_STUNDE) { return; }
+        $token = bin2hex(random_bytes(24));
+        Db::insert('passwort_links', [
+            'user_id' => (int) $u['id'], 'token_hash' => hash('sha256', $token),
+            'gueltig_bis' => date('Y-m-d H:i:s', time() + self::LINK_MINUTEN * 60),
+        ]);
+        $link = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/passwort-neu?t=' . $token;
+        require_once __DIR__ . '/Mail.php';
+        Mail::senden('passwort_link', (string) $u['email'], 'Neues Passwort für die Vecom-Verwaltung',
+            'Hallo ' . trim((string) $u['name']) . ",\n\nmit diesem Link setzt du dir ein neues Passwort für die Verwaltung:\n\n"
+            . $link . "\n\nEr gilt " . self::LINK_MINUTEN . ' Minuten und nur einmal. Wenn du das nicht angefordert hast, ignoriere diese Mail — dein Passwort bleibt, wie es ist.',
+            ['nurText' => true, 'empfaengerArt' => 'admin', 'sprache' => 'de']);
+        Events::protokoll('passwort_link', 'Link für neues Passwort angefordert: ' . $u['email']);
+    }
+
+    /** Der Benutzer zu einem noch gültigen, unbenutzten Link — sonst null. */
+    public static function linkPruefen(string $token): ?array
+    {
+        if (!preg_match('~^[0-9a-f]{48}$~', $token)) { return null; }
+        return Db::one('SELECT l.id AS link_id, u.id, u.email, u.name FROM passwort_links l JOIN users u ON u.id = l.user_id
+            WHERE l.token_hash = ? AND l.benutzt_am IS NULL AND l.gueltig_bis > NOW() AND u.active = 1', [hash('sha256', $token)]);
+    }
+
+    /** Setzt das neue Passwort, entwertet alle offenen Links des Benutzers und löst die Anmeldebremse. */
+    public static function passwortSetzen(string $token, string $neu): bool
+    {
+        $u = self::linkPruefen($token);
+        if ($u === null || mb_strlen($neu) < 10) { return false; }
+        Db::update('users', (int) $u['id'], ['password_hash' => password_hash($neu, PASSWORD_DEFAULT)]);
+        Db::run('UPDATE passwort_links SET benutzt_am = NOW() WHERE user_id = ? AND benutzt_am IS NULL', [(int) $u['id']]);
+        Db::run('DELETE FROM settings WHERE skey LIKE ?', ['anm\\_fehl\\_%']);
+        Events::protokoll('passwort_neu', 'Neues Passwort gesetzt: ' . $u['email']);
+        return true;
+    }
+
     /** Abmeldung nach so vielen Sekunden ohne Klick (05.10.2026, Uwe: „Ja“). */
     public const LEERLAUF = 3600;
     /** Spätestens nach so vielen Sekunden neu anmelden, auch bei Betrieb. */

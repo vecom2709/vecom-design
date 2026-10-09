@@ -242,6 +242,7 @@ function paketTexte(array $post): array {
 if ($route === 'anmelden') {
     $fehler = null;
     $hinweis = isset($_GET['zeit']) ? 'Aus Sicherheitsgründen abgemeldet — eine Stunde ohne Klick oder zwölf Stunden insgesamt.' : null;
+    if (!empty($_SESSION['anm_hinweis'])) { $hinweis = (string) $_SESSION['anm_hinweis']; unset($_SESSION['anm_hinweis']); }
     if ($post) {
         Csrf::pruefen();
         $email = (string) ($_POST['email'] ?? '');
@@ -259,6 +260,35 @@ if ($route === 'anmelden') {
             : 'E-Mail oder Passwort stimmt nicht.';
     }
     require __DIR__ . '/views/anmelden.php';
+    exit;
+}
+/* Passwort vergessen (09.10.2026): zwei Seiten vor dem Riegel, beide ohne Anmeldung. */
+if ($route === 'passwort-vergessen') {
+    $fertig = false;
+    if ($post) {
+        Csrf::pruefen();
+        /* Die Migrationen laufen sonst erst nach der Anmeldung — und genau die geht hier nicht.
+           Ohne diesen Schritt fehlte die Tabelle beim ersten vergessenen Passwort nach dem Deploy. */
+        try { require_once __DIR__ . '/src/Einrichtung.php'; Einrichtung::migrieren(); } catch (Throwable $e) { /* dann zeigt es die Anmeldung später */ }
+        Auth::linkAnfordern((string) ($_POST['email'] ?? ''));
+        $fertig = true;
+    }
+    require __DIR__ . '/views/passwort.php';
+    exit;
+}
+if ($route === 'passwort-neu') {
+    $token = (string) ($_POST['t'] ?? $_GET['t'] ?? '');
+    $fehler = null;
+    if ($post) {
+        Csrf::pruefen();
+        $n1 = (string) ($_POST['neu1'] ?? ''); $n2 = (string) ($_POST['neu2'] ?? '');
+        if ($n1 !== $n2) { $fehler = 'Die beiden Passwörter sind nicht gleich.'; }
+        elseif (mb_strlen($n1) < 10) { $fehler = 'Das Passwort braucht mindestens 10 Zeichen.'; }
+        elseif (Auth::passwortSetzen($token, $n1)) { $_SESSION['anm_hinweis'] = 'Das neue Passwort gilt. Melde dich damit an.'; weiter('anmelden'); }
+        else { $fehler = 'Der Link ist abgelaufen oder schon benutzt. Fordere einen neuen an.'; }
+    }
+    $linkGilt = Auth::linkPruefen($token) !== null;
+    require __DIR__ . '/views/passwort.php';
     exit;
 }
 if ($route === 'abmelden') { Auth::abmelden(); weiter('anmelden'); }

@@ -7909,6 +7909,46 @@ pruefe('eine andere Adresse vom selben Absender ist ebenfalls gesperrt',
     Auth::gesperrt('jemand-anders@pruefung.example') > 0);
 Db::run("DELETE FROM settings WHERE skey LIKE 'anm\\_fehl\\_%'");
 pruefe('nach dem Fenster ist die Sperre weg', Auth::gesperrt($p0Mail) === 0);
+
+/* Passwort vergessen (09.10.2026): Link per Mail, 30 Minuten, einmal -- und niemand außer
+   der Person selbst setzt das Passwort. Fremde und Kunden-Zugänge bekommen keinen Link. */
+Db::run("DELETE FROM mails WHERE anlass = 'passwort_link'");
+$p0Uid = (int) Db::wert('SELECT id FROM users WHERE email = ?', [$p0Mail]);
+Auth::linkAnfordern('niemand@pruefung.example');
+Auth::linkAnfordern($p0Mail);
+$p0Mails = Db::all("SELECT empfaenger, inhalt FROM mails WHERE anlass = 'passwort_link' ORDER BY id");
+preg_match('~passwort-neu\?t=([0-9a-f]{48})~', (string) ($p0Mails[0]['inhalt'] ?? ''), $p0T);
+$p0Token = $p0T[1] ?? '';
+pruefe('Passwort vergessen: nur die bekannte Verwaltungsadresse bekommt eine Mail, mit Link und Token darin',
+    count($p0Mails) === 1 && $p0Mails[0]['empfaenger'] === $p0Mail && $p0Token !== ''
+    && (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ?', [$p0Uid]) === 1, json_encode(array_column($p0Mails, 'empfaenger')));
+pruefe('Passwort vergessen: in der Datenbank steht nur die Prüfsumme, nie der Link selbst',
+    $p0Token !== '' && Db::one('SELECT 1 FROM passwort_links WHERE token_hash = ?', [$p0Token]) === null
+    && Db::one('SELECT 1 FROM passwort_links WHERE token_hash = ?', [hash('sha256', $p0Token)]) !== null);
+pruefe('Passwort vergessen: zu kurz wird abgelehnt, der Link bleibt gültig',
+    Auth::passwortSetzen($p0Token, 'kurz') === false && Auth::linkPruefen($p0Token) !== null);
+pruefe('Passwort vergessen: das neue Passwort gilt, das alte nicht mehr, der Link ist verbraucht',
+    Auth::passwortSetzen($p0Token, 'neu-und-lang-genug') === true && Auth::linkPruefen($p0Token) === null
+    && Auth::passwortSetzen($p0Token, 'noch-eins-lang-genug') === false
+    && Auth::anmelden($p0Mail, 'richtig-richtig') === false && Auth::anmelden($p0Mail, 'neu-und-lang-genug') === true);
+$_SESSION = [];
+Db::run('UPDATE passwort_links SET gueltig_bis = DATE_SUB(NOW(), INTERVAL 1 MINUTE), benutzt_am = NULL WHERE user_id = ?', [$p0Uid]);
+pruefe('Passwort vergessen: ein abgelaufener Link öffnet nichts', Auth::linkPruefen($p0Token) === null && Auth::passwortSetzen($p0Token, 'abgelaufen-aber-lang') === false);
+for ($p0i = 0; $p0i < Auth::LINK_JE_STUNDE + 2; $p0i++) { Auth::linkAnfordern($p0Mail); }
+pruefe('Passwort vergessen: höchstens ' . Auth::LINK_JE_STUNDE . ' Links je Stunde und Adresse',
+    (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ?', [$p0Uid]) === Auth::LINK_JE_STUNDE);
+Db::run('UPDATE users SET role = ? WHERE id = ?', ['kunde', $p0Uid]);
+Db::run('DELETE FROM passwort_links WHERE user_id = ?', [$p0Uid]);
+Auth::linkAnfordern($p0Mail);
+pruefe('Passwort vergessen: ein Kunden-Zugang bekommt keinen Link in die Verwaltung',
+    (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ?', [$p0Uid]) === 0);
+$p0Idx = (string) file_get_contents($oben . '/app/index.php');
+pruefe('Passwort vergessen: beide Seiten stehen vor dem Riegel, die Anmeldung zeigt den Weg, die Migration läuft auch ohne Anmeldung',
+    strpos($p0Idx, "\$route === 'passwort-vergessen'") < strpos($p0Idx, 'Auth::nurAdmin();')
+    && strpos($p0Idx, "\$route === 'passwort-neu'") < strpos($p0Idx, 'Auth::nurAdmin();')
+    && str_contains((string) file_get_contents($oben . '/app/views/anmelden.php'), "url('passwort-vergessen')")
+    && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 800), 'Einrichtung::migrieren()'));
+Db::run("DELETE FROM mails WHERE anlass = 'passwort_link'");
 Db::run('DELETE FROM users WHERE email = ?', [$p0Mail]);
 
 /* Keine verlorene Zaehlung: Jeder Ereignisname, den die Seite an d.php
