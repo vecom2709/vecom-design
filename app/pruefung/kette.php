@@ -7954,6 +7954,9 @@ pruefe('Passwort vergessen: beide Seiten stehen vor dem Riegel, die Anmeldung ze
     && str_contains((string) file_get_contents($oben . '/app/views/anmelden.php'), "url('passwort-vergessen')")
     && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), 'Einrichtung::migrieren()'));
 $p0Auth = (string) file_get_contents($wurzel . '/src/Auth.php');
+pruefe('Verwaltung: ein Absturz (fatal oder Ausnahme) landet in settings.letzter_absturz statt nur als weiße Seite',
+    str_contains($p0Idx, "'letzter_absturz'") && str_contains($p0Idx, 'set_exception_handler(')
+    && strpos($p0Idx, 'set_exception_handler(') < strpos($p0Idx, 'Auth::start();'));
 pruefe('Passwort vergessen: ein Absturz beim Anfordern landet in settings.passwort_fehler (auch ein nicht abfangbarer) statt nur als leere 500',
     str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), "'passwort_fehler'")
     && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 2500), 'register_shutdown_function'));

@@ -19,6 +19,32 @@ spl_autoload_register(static function (string $klasse): void {
 });
 
 date_default_timezone_set((string) Config::get('zeitzone', 'Europe/Rome'));
+
+/* Jeder Absturz hinterlässt eine Spur (09.10.2026, Uwe: „ich sehe nur weiß“). Auf dem Webspace
+   gibt es kein Fehlerprotokoll, das wir lesen können; ein fataler Fehler war bisher nur eine
+   weiße Seite. Jetzt steht der letzte in settings.letzter_absturz — lesbar im phpMyAdmin —
+   mit Route, Datei und Zeile, ohne Anfrageinhalte. */
+register_shutdown_function(static function (): void {
+    $f = error_get_last();
+    if ($f === null || !in_array($f['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR], true)) { return; }
+    try {
+        $wo = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '');
+        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)',
+            ['letzter_absturz', date('Y-m-d H:i:s') . ' ' . ($_SERVER['REQUEST_METHOD'] ?? '') . ' ' . mb_substr($wo, 0, 80) . ' — '
+                . mb_substr($f['message'] . ' @ ' . basename($f['file']) . ':' . $f['line'], 0, 800)]);
+    } catch (Throwable $e) { /* ohne Datenbank bleibt nur die weiße Seite */ }
+});
+set_exception_handler(static function (Throwable $e): void {
+    try {
+        $wo = (string) (parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?? '');
+        Db::run('INSERT INTO settings (skey, svalue) VALUES (?, ?) ON DUPLICATE KEY UPDATE svalue = VALUES(svalue)',
+            ['letzter_absturz', date('Y-m-d H:i:s') . ' ' . ($_SERVER['REQUEST_METHOD'] ?? '') . ' ' . mb_substr($wo, 0, 80) . ' — '
+                . get_class($e) . ': ' . mb_substr($e->getMessage() . ' @ ' . basename($e->getFile()) . ':' . $e->getLine(), 0, 800)]);
+    } catch (Throwable $e2) { }
+    http_response_code(500);
+    echo '<!doctype html><meta charset="utf-8"><title>Fehler</title><p style="font:16px system-ui;padding:2rem">Hier ist etwas schiefgegangen. Der Fehler ist festgehalten — bitte die Seite neu laden oder <a href="' . htmlspecialchars(Config::basis() . '/heute') . '">zu „Heute“</a>.</p>';
+});
+
 Auth::start();
 /* CSP vorerst nur melden (Etappe 0b, 05.10.2026): blockiert nichts, sagt im Monitoring, was blockiert würde. */
 Csp::melden('verwaltung');
