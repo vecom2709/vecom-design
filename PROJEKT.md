@@ -5413,3 +5413,5 @@ Jetzt steht sie in `assets/js/sprache.js` (eine Datei, im Kopf jeder gebauten Se
   Beide Seiten stehen vor `Auth::nurAdmin()`; die Migration läuft dort mit, weil sie sonst erst nach der Anmeldung liefe. Setzen löst die Anmeldebremse. Migration 219, sieben Prüfungen in der Kette.
 - 09.10.2026 · **Passwort-Link meldet seinen Ausgang** (Uwe: „es kam keine E-Mail an“). Die Seite antwortet immer gleich, darum geht jeder Ausgang als Meldung samt Handy-Zuruf an Uwe: unbekannte Adresse, Grenze erreicht, verschickt, oder gescheitert mit dem Fehler aus `mails`. Im Titel nie die Adresse.
   DNS der Domain geprüft: SPF enthält spf.brevo.com, DKIM brevo1/brevo2, DMARC p=none — am Versandweg liegt es nicht.
+- 09.10.2026 · **Passwort-Link an eigene Adressen über den Webspace-Mailserver** (Brevo-Log: Soft Bounce „451 4.7.1 … rate-limited due to a poor reputation“ — All-Inkl nahm von der Brevo-IP nichts an kontakt@ an, Brevo meldete trotzdem „versendet“). Eigene Domain → `mail()` des Webspace, Brevo nur als Rückfall; fremde Adressen wie bisher über Brevo.
+  Merke: Ein „gesendet“ in `mails` heißt nur „Brevo hat angenommen“ — ob es ankam, steht erst im Brevo-Log.

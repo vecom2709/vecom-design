@@ -75,10 +75,26 @@ final class Auth
         ]);
         $link = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/passwort-neu?t=' . $token;
         require_once __DIR__ . '/Mail.php';
-        $ok = Mail::senden('passwort_link', (string) $u['email'], 'Neues Passwort für die Vecom-Verwaltung',
-            'Hallo ' . trim((string) $u['name']) . ",\n\nmit diesem Link setzt du dir ein neues Passwort für die Verwaltung:\n\n"
-            . $link . "\n\nEr gilt " . self::LINK_MINUTEN . ' Minuten und nur einmal. Wenn du das nicht angefordert hast, ignoriere diese Mail — dein Passwort bleibt, wie es ist.',
-            ['nurText' => true, 'empfaengerArt' => 'admin', 'sprache' => 'de']);
+        $betreff = 'Neues Passwort für die Vecom-Verwaltung';
+        $text = 'Hallo ' . trim((string) $u['name']) . ",\n\nmit diesem Link setzt du dir ein neues Passwort für die Verwaltung:\n\n"
+            . $link . "\n\nEr gilt " . self::LINK_MINUTEN . ' Minuten und nur einmal. Wenn du das nicht angefordert hast, ignoriere diese Mail — dein Passwort bleibt, wie es ist.';
+        /* Eigene Adressen nicht über Brevo (09.10.2026, gemessen im Brevo-Log): Der Mailserver
+           von All-Inkl wies die Mail an kontakt@ ab — „451 4.7.1 … rate-limited due to a poor
+           reputation“ der Brevo-IP. Brevo meldete trotzdem „versendet“, nur ein Soft Bounce
+           später zeigte es. Liegt das Postfach auf unserem eigenen Webspace, geht die Mail
+           deshalb über dessen Mailserver; Brevo nur, wenn der sie nicht annimmt. */
+        $an = (string) $u['email'];
+        $eigeneDomain = substr((string) strrchr(Mail::eigeneAdresse(), '@'), 1);
+        $ok = false;
+        if ($eigeneDomain !== '' && str_ends_with(mb_strtolower($an), '@' . mb_strtolower($eigeneDomain)) && function_exists('mail')) {
+            $ok = @mail($an, '=?UTF-8?B?' . base64_encode($betreff) . '?=', $text,
+                'From: ' . Mail::eigeneAdresse() . "\r\nContent-Type: text/plain; charset=utf-8\r\nContent-Transfer-Encoding: 8bit");
+            if ($ok) { Events::protokoll('passwort_link', 'Passwort-Link über den eigenen Mailserver an ' . $an); }
+        }
+        if (!$ok) {
+            $ok = Mail::senden('passwort_link', $an, $betreff, $text,
+                ['nurText' => true, 'empfaengerArt' => 'admin', 'sprache' => 'de']);
+        }
         if ($ok) {
             Events::melden('passwort_link', 'Passwort-Link verschickt — auch im Spam-Ordner nachsehen', 'warnung', 'An ' . $u['email']);
         } else {

@@ -7953,6 +7953,10 @@ pruefe('Passwort vergessen: beide Seiten stehen vor dem Riegel, die Anmeldung ze
     && strpos($p0Idx, "\$route === 'passwort-neu'") < strpos($p0Idx, 'Auth::nurAdmin();')
     && str_contains((string) file_get_contents($oben . '/app/views/anmelden.php'), "url('passwort-vergessen')")
     && str_contains(substr($p0Idx, strpos($p0Idx, "\$route === 'passwort-vergessen'"), 800), 'Einrichtung::migrieren()'));
+$p0Auth = (string) file_get_contents($wurzel . '/src/Auth.php');
+pruefe('Passwort vergessen: eigene Adressen gehen über den Mailserver des Webspace, Brevo nur als Rückfall (All-Inkl wies Brevo mit 451 4.7.1 ab)',
+    strpos($p0Auth, '@mail($an') !== false && strpos($p0Auth, '@mail($an') < strpos($p0Auth, "Mail::senden('passwort_link'")
+    && str_contains($p0Auth, 'if (!$ok) {'));
 Db::run("DELETE FROM mails WHERE anlass = 'passwort_link'");
 Db::run('DELETE FROM users WHERE email = ?', [$p0Mail]);
 
