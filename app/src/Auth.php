@@ -54,9 +54,20 @@ final class Auth
         $email = mb_strtolower(trim($email));
         $u = Db::one('SELECT id, name, email, role FROM users WHERE email = ? AND active = 1', [$email]);
         require_once __DIR__ . '/Rechte.php';
-        if ($u === null || !isset(Rechte::ROLLEN[(string) $u['role']])) { usleep(300000); return; }
+        /* Die Seite sagt immer dasselbe -- also muss der Grund woanders hin, sonst sucht man
+           blind (09.10.2026, Uwe: „es kam keine E-Mail an“). Jeder Ausgang wird gemeldet;
+           „warnung“ klingelt auf dem Handy, dort steht nur der allgemeine Titel, nie die Adresse. */
+        if ($u === null || !isset(Rechte::ROLLEN[(string) $u['role']])) {
+            Events::melden('passwort_link', 'Passwort-Link: Adresse gehört zu keinem Verwaltungszugang', 'warnung',
+                'Angefragt für: ' . mb_substr($email, 0, 190) . ($u !== null ? ' (Rolle ' . $u['role'] . ')' : ''));
+            usleep(300000);
+            return;
+        }
         $zuletzt = (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ? AND created_at > DATE_SUB(NOW(), INTERVAL 1 HOUR)', [(int) $u['id']]);
-        if ($zuletzt >= self::LINK_JE_STUNDE) { return; }
+        if ($zuletzt >= self::LINK_JE_STUNDE) {
+            Events::melden('passwort_link', 'Passwort-Link: Grenze erreicht, eine Stunde warten', 'warnung', 'Für ' . $u['email']);
+            return;
+        }
         $token = bin2hex(random_bytes(24));
         Db::insert('passwort_links', [
             'user_id' => (int) $u['id'], 'token_hash' => hash('sha256', $token),
@@ -64,11 +75,17 @@ final class Auth
         ]);
         $link = rtrim((string) Config::get('website', 'https://vecom-design.it'), '/') . Config::basis() . '/passwort-neu?t=' . $token;
         require_once __DIR__ . '/Mail.php';
-        Mail::senden('passwort_link', (string) $u['email'], 'Neues Passwort für die Vecom-Verwaltung',
+        $ok = Mail::senden('passwort_link', (string) $u['email'], 'Neues Passwort für die Vecom-Verwaltung',
             'Hallo ' . trim((string) $u['name']) . ",\n\nmit diesem Link setzt du dir ein neues Passwort für die Verwaltung:\n\n"
             . $link . "\n\nEr gilt " . self::LINK_MINUTEN . ' Minuten und nur einmal. Wenn du das nicht angefordert hast, ignoriere diese Mail — dein Passwort bleibt, wie es ist.',
             ['nurText' => true, 'empfaengerArt' => 'admin', 'sprache' => 'de']);
-        Events::protokoll('passwort_link', 'Link für neues Passwort angefordert: ' . $u['email']);
+        if ($ok) {
+            Events::melden('passwort_link', 'Passwort-Link verschickt — auch im Spam-Ordner nachsehen', 'warnung', 'An ' . $u['email']);
+        } else {
+            $grund = Mail::$letzteId ? (string) Db::wert('SELECT fehler FROM mails WHERE id = ?', [Mail::$letzteId], '') : '';
+            Events::melden('passwort_link', 'Passwort-Link: Mail ging nicht raus', 'schlecht', 'An ' . $u['email'] . ': ' . $grund);
+        }
+        Events::protokoll('passwort_link', 'Link für neues Passwort angefordert: ' . $u['email'] . ($ok ? '' : ' (Mail gescheitert)'));
     }
 
     /** Der Benutzer zu einem noch gültigen, unbenutzten Link — sonst null. */

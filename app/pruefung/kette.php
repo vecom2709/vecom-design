@@ -7922,6 +7922,11 @@ $p0Token = $p0T[1] ?? '';
 pruefe('Passwort vergessen: nur die bekannte Verwaltungsadresse bekommt eine Mail, mit Link und Token darin',
     count($p0Mails) === 1 && $p0Mails[0]['empfaenger'] === $p0Mail && $p0Token !== ''
     && (int) Db::wert('SELECT COUNT(*) FROM passwort_links WHERE user_id = ?', [$p0Uid]) === 1, json_encode(array_column($p0Mails, 'empfaenger')));
+$p0Meld = array_column(Db::all("SELECT title FROM notifications WHERE type = 'passwort_link' ORDER BY id"), 'title');
+pruefe('Passwort vergessen: jeder Ausgang landet als Meldung bei Uwe (unbekannte Adresse, verschickt oder gescheitert) — ohne Adresse im Titel',
+    count($p0Meld) >= 2 && str_contains(implode('|', $p0Meld), 'keinem Verwaltungszugang')
+    && preg_match('~Passwort-Link( verschickt|: Mail ging nicht raus)~', implode('|', $p0Meld)) === 1
+    && !str_contains(implode('|', $p0Meld), '@'), json_encode($p0Meld));
 pruefe('Passwort vergessen: in der Datenbank steht nur die Prüfsumme, nie der Link selbst',
     $p0Token !== '' && Db::one('SELECT 1 FROM passwort_links WHERE token_hash = ?', [$p0Token]) === null
     && Db::one('SELECT 1 FROM passwort_links WHERE token_hash = ?', [hash('sha256', $p0Token)]) !== null);
